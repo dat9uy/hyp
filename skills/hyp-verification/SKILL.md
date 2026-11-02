@@ -38,14 +38,12 @@ the result means; that is the `hyp record` verdict.
   `hyp recipe evidence --record DIR REF OUT_DIR` runs scripted Evidence,
   and `hyp recipe run --record DIR REF NAME ARGS` runs a Standalone
   command. When the sandbox ran them, Launch and Doctor are already done.
-  Never run a bundle's script yourself (`docs/replay-spec.md` §9; the words
-  are in `docs/glossary.md`, the decision in
-  `docs/adr/0001-hyp-runs-every-recipe-command.md`).
+  Never run a bundle's script yourself.
 - A bundle with an Evidence or Standalone command is an instrument and
   must have known answers. hyp runs them before every
   `hyp sandbox create`, `hyp recipe run` and `hyp recipe evidence`, and
   refuses the run when a case fails; that gate is the re-test of every
-  version (`docs/adr/0002-known-answers-gate-every-recipe-run.md`).
+  version.
   `hyp add exp --recipe <name>@<version>` refuses an instrument with no
   case, and any bundle whose `recipe.md` has no `format: 1` line.
 - Before opening a pull request that touches `recipes/`, run

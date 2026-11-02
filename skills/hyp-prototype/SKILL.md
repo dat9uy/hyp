@@ -179,6 +179,6 @@ that no longer matters is `hyp withdraw <Q-id>`.
   and its evidence files are the account.
 - Edit or delete anything under `.tree/events/`.
 - Commit `.tree/index.sqlite`; older hyp binaries write it, hyp keeps no
-  index (ADR 0006), and it is gitignored.
+  index, and it is gitignored.
 
 A complete walkthrough is in [example.sh](example.sh).

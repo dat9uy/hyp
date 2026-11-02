@@ -68,12 +68,12 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
      counts, have a must-pass case and a must-fail case under the bundle's
      `known-answers/`? Are all of the cited record's `known_answers`
      outcomes `ok`? If either is no, the verdict is insufficient, and its
-     why names the missing case or the failed one (ADR 0002).
+     why names the missing case or the failed one.
    - When that command is a verdict check (its cases print
      `verdict: LABEL=WORD` lines): does each label the verdict counts have
      a case printing `supports` and a case printing `contradicts`, and does
      `hyp recipe check` print no verdict warning for it? If not, the
-     verdict is insufficient, and its why names the missing case (ADR 0004).
+     verdict is insufficient, and its why names the missing case.
 5. Record your judgement, once, under your own actor name:
    `hyp confirm <Q-id> --role verifier --verdict sufficient --actor verifier-<topic>-1 --why "<reason, at most 300 characters>"`
    or the same with `--verdict insufficient`, where the `--why` states what evidence would make the selection sufficient. For a trade-off select, never ask for a rival to be excluded; ask only for evidence on the two questions above. The next agent reads it as its to-do list; `hyp status` shows it under the question as `verifier_insufficient`. When the to-do is done, that agent runs `hyp request-verify <Q-id>` and starts a new verifier.

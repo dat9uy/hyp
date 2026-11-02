@@ -11,14 +11,12 @@ directory, so a bump adds one directory and never edits an old one. A
 single Markdown file `recipes/<name>.md` is not a recipe, and neither is a
 directory `recipes/<name>/` without a version: no lookup loads it or pins it. Only
 `hyp recipe check` names it, in a rename hint when it hashes as a pin
-whose bundle is missing (ADR 0005).
+whose bundle is missing.
 Start a new recipe with `hyp recipe new NAME@1` (see To make a first
 version, under Changing a recipe).
 
-When hyp runs a recipe's commands, and whether a sandbox exists then, is
-defined in `docs/replay-spec.md` §9, and this file follows it. The words
-are defined in `docs/glossary.md`, and the decision behind them is
-`docs/adr/0001-hyp-runs-every-recipe-command.md`.
+This file says when hyp runs a recipe's commands, and whether a
+sandbox exists then.
 
 ## Frontmatter
 
@@ -94,8 +92,7 @@ judgment made after a gap appears.
 To make a first version:
 
 1. Run `hyp recipe new <name>@1` in the tree. It writes `recipes/<name>@1/`
-   beside the nearest `.tree/` from a template inside hyp
-   (`docs/adr/0009-a-first-instrument-starts-from-the-template.md`):
+   beside the nearest `.tree/` from a template inside hyp:
    `recipe.md` with `name:`, `version: 1` and `format: 1` filled in and no
    `from:` line, guidance under Launch, Doctor, Drive, Evidence, Standalone
    and Cleanup, and one Standalone command `Run check: ./check.sh` with
@@ -134,8 +131,7 @@ To make a next version:
 2. Edit the copy. `diff -r recipes/<name>@<N> recipes/<name>@<N+1>`
    shows what changed since `from:`.
 3. Add or update its known answers; `hyp recipe known-answers REF` runs
-   them, and hyp runs them again before every run (see Known answers,
-   ADR 0002).
+   them, and hyp runs them again before every run (see Known answers).
 
 The rule is held by a refusal and a check:
 
@@ -164,13 +160,13 @@ The rule is held by a refusal and a check:
   prints `warn: <dir> <command>: verdict <label>: no supports case` or
   `no contradicts case` for each label no case prints so,
   `warn: <dir> <command>: case <name>: malformed verdict line "<line>"`
-  and `warn: <dir> <command>: case <name>: label <label> printed twice`
-  (ADR 0004). Warnings never change the exit code. When a pin to
+  and `warn: <dir> <command>: case <name>: label <label> printed twice`.
+  Warnings never change the exit code. When a pin to
   `x@N` is `now missing` and a leftover `recipes/x/` hashes as the pin,
   the first drift line it explains is followed by
   `hint: <dir>/ holds x@N (same hash) in a folder whose name has no version; rename it: git mv <dir> <dir>@N`,
   once per folder; when every failure has a hint, the closing refusal
-  asks for the renames (ADR 0005). A stray file in a pinned bundle shows
+  asks for the renames. A stray file in a pinned bundle shows
   as drift (dot-entries and `__pycache__` are not hashed). Run it before
   opening any pull
   request that touches `recipes/`; the go test
@@ -192,8 +188,8 @@ Results in its own store and exits 0.
 
 ## Sections
 
-Five level-2 headings, in this order, one for each step
-(`docs/replay-spec.md` §9.1), each saying what to do and how to tell it
+Five level-2 headings, in this order, one for each step,
+each saying what to do and how to tell it
 worked:
 
 1. `## Launch`: how to start the subject, with exact commands and ports.
@@ -226,8 +222,7 @@ Name the subject arguments and any outside reads or writes, or write
 `External: none`. `hyp recipe check` warns about a command with no such
 line, or with `External: TODO`, which `hyp recipe new` writes under each
 command of a copy that lacks the line and under a first version's check; the exit code does not change, and
-a bundle without the line still loads and records (`docs/replay-spec.md`
-§9.2).
+a bundle without the line still loads and records.
 
 ## Hash
 
@@ -236,8 +231,7 @@ directory except entries whose name starts with `.` and `__pycache__`
 directories: one line `<sha256 of the file>  <path>` per file, sorted by path,
 hashed again. The directory name is not hashed, so a copy of recipes/x@1/ at recipes/x/ hashes the same.
 hyp opens each copy it makes by the ref it was copied for: the copy's
-`recipe.md` must give that name and version, wherever the copy sits
-(`docs/adr/0005-a-bundle-is-its-ref-and-hash.md`). The shell equivalent:
+`recipe.md` must give that name and version, wherever the copy sits. The shell equivalent:
 
 ```bash
 (cd recipes/NAME && find . \( -name '.*' ! -name . -o -name __pycache__ \) -prune -o -type f -print \
@@ -282,7 +276,7 @@ Rules:
   and a named one anywhere else.
 - `hyp sandbox create` copies the recipe to `~/.hyp-sandbox/ID/recipes/<name>/`
   outside `wt/`, so the agent working in `wt/`
-  does not find it there. The copy is opened by its ref (ADR 0005). Launch, Doctor, Drive and Cleanup commands run
+  does not find it there. The copy is opened by its ref. Launch, Doctor, Drive and Cleanup commands run
   with that copy as the working directory and get
   `HYP_SANDBOX_ID`, `HYP_SANDBOX_WT`, `HYP_SANDBOX_TMP`,
   `HYP_SANDBOX_RECIPE_TMP` (the recipe's own `$HYP_SANDBOX_TMP/<name>`,
@@ -352,7 +346,7 @@ Rules:
   everything after NAME is passed to the script as given, so a path in
   ARGS must be absolute.
 - Evidence and Standalone commands are checks, and run exactly as their
-  known-answer cases do (ADR 0003): from a temporary copy of the bundle,
+  known-answer cases do: from a temporary copy of the bundle,
   deleted afterwards, in an empty working directory of their own, with
   stdin `/dev/null` and only this environment: `PATH` (a directory holding
   the copy of the running hyp the gate used, named `hyp`, then the
@@ -378,7 +372,7 @@ Rules:
 
 A `Run:` line under Launch, Doctor, Drive or Cleanup takes no arguments
 from the run, so a run passes its inputs (a snapshot, a live-run directory)
-in a file (ADR 0002). A Standalone command takes its arguments from
+in a file. A Standalone command takes its arguments from
 `hyp recipe run`.
 
 1. The caller writes the inputs to a file and runs
@@ -402,13 +396,13 @@ A replay starts from a hyp store as it was at one event.
 `wt/.tree` before any recipe's Launch runs, so no recipe copies events.
 
 - The cut is the replay's own: hyp merges SRC's event files in replay order
-  (docs/replay-spec.md §6) and keeps every event up to and including the
+  and keeps every event up to and including the
   first with id `EVENT`, each line as it was written. It never compares ids
   as strings, so `hyp status` in `wt/` equals `hyp status --as-of EVENT` in
   SRC.
 - `wt/.tree/evidence` is SRC's evidence without the `E-*` folders of
   Experiments added after the cut. No `index.sqlite` is copied: hyp keeps
-  no index (ADR 0006).
+  no index.
   An actor with no event before the cut gets no events file. A symlink
   under SRC's evidence is refused (exit 3, and the sandbox is removed).
 - `--store` and `--cut` go together. An `EVENT` that SRC does not hold, a
@@ -464,7 +458,7 @@ is changing the sandbox; the lock goes away when that hyp exits.
 
 | Field | Value |
 |---|---|
-| `format` | the record's shape number, now `2` (`1` had no `inputs` and no `pgid`); absent (read as `0`) in a record written before it. A reader compares it before reading the rest (ADR 0002) |
+| `format` | the record's shape number, now `2` (`1` had no `inputs` and no `pgid`); absent (read as `0`) in a record written before it. A reader compares it before reading the rest |
 | `id` | the sandbox id |
 | `host` | absolute path of the host repository |
 | `base` | the full commit `wt/` is detached at |
@@ -482,7 +476,7 @@ Each entry of `recipes`:
 |---|---|
 | `ref` | `NAME@VERSION` as passed to `--recipe`, or `none` |
 | `name`, `version`, `sha256` | the recipe's name, version and hash (see Hash) |
-| `path` | where the copy the commands run from was, `~/.hyp-sandbox/ID/recipes/<name>`. Remove and drive reopen it by `ref` and check it against `sha256`; a copy that hashes differently runs nothing: remove records `failed: no Cleanup ran` and warns with both hashes, and drive refuses with exit 1 (`docs/adr/0005-a-bundle-is-its-ref-and-hash.md`) |
+| `path` | where the copy the commands run from was, `~/.hyp-sandbox/ID/recipes/<name>`. Remove and drive reopen it by `ref` and check it against `sha256`; a copy that hashes differently runs nothing: remove records `failed: no Cleanup ran` and warns with both hashes, and drive refuses with exit 1 |
 | `setup` | `passed` (Launch and Doctor passed), `failed` (one failed; the sandbox was kept), or `none` (nothing to run). Absent while setup runs, for `none`, and for a recipe after the one that failed, which was never launched |
 | `cleanup` | `ok`, or `failed: ` and each command that failed (`failed: ./stop1.sh`); `failed: no Cleanup ran` when the copy or `recipe.log` did not open. Absent when no Cleanup command ran. It is the outcome of the last Cleanup run |
 | `known_answers` | the outcome of the recipe's known answers, run before its commands: `hyp_sha256` (the hyp that ran them) and `cases`, one `{"name", "outcome"}` per case. Absent for a recipe with no Evidence or Standalone command, which is not gated |
@@ -516,7 +510,7 @@ included, is kept in OUT_DIR as it was read.
 `hyp recipe evidence` and `hyp recipe run` make the new directory that
 `--record DIR` names, holding `command.json`, `command.log` (each
 command's stderr, then its stdout, after a `== REF step: command` line),
-and each check's product (ADR 0003): for a Standalone command, its stdout
+and each check's product: for a Standalone command, its stdout
 in `stdout` and its `$HYP_OUT` tree in `out/`; for Evidence command `n`
 (from 0, in `commands` order), `stdout/<n>` and `out/<n>/`. They are kept
 even when the check fails. hyp reads `$HYP_OUT` by the rules a case
@@ -540,21 +534,21 @@ rename, before each command starts and after it ends.
 | `name`, `version`, `sha256` | the recipe's name, version and hash, the hash of what ran |
 | `path` | the library bundle the temporary copy came from |
 | `step` | `evidence` or `standalone` |
-| `cwd` | the caller's working directory, where the recipe lookup and a relative `--record` start; each command ran in an empty directory of its own (ADR 0003) |
+| `cwd` | the caller's working directory, where the recipe lookup and a relative `--record` start; each command ran in an empty directory of its own |
 | `created` | UTC time, RFC 3339 |
 | `commands` | one entry per command, with the fields of the sandbox record's `commands` |
 | `known_answers` | as in the sandbox record's `recipes` |
-| `arg_sha256` | the sha256 of each file an operator argument names: each argument that is an absolute path to a regular file, alone or after `KEY=`, symlinks followed, hashed before the first command runs. A directory and a relative path are not hashed. Absent when no argument names a file (`docs/replay-spec.md` §9.4) |
+| `arg_sha256` | the sha256 of each file an operator argument names: each argument that is an absolute path to a regular file, alone or after `KEY=`, symlinks followed, hashed before the first command runs. A directory and a relative path are not hashed. Absent when no argument names a file |
 
 ## Changes
 
 When create finishes, Launch and Doctor included, hyp writes
 `manifest.json` in the sandbox: every path in `wt/` but `wt/.git` and the
-`index.sqlite*` files older hyp binaries write under `wt/.tree` (ADR
-0006), each with its size, mode, and its
+`index.sqlite*` files older hyp binaries write under `wt/.tree`,
+each with its size, mode, and its
 sha256 (a regular file) or link target (a symlink). `hyp sandbox remove
 ID OUT_DIR` lists the paths that changed since then in
-`OUT_DIR/changes.json` (ADR 0002):
+`OUT_DIR/changes.json`:
 
 | Field | Value |
 |---|---|
@@ -575,14 +569,14 @@ that vanishes while the list is made is left out.
 ## Known answers
 
 A bundle with an Evidence or Standalone command is an instrument, and must
-have known answers (ADR 0002). For each mode it offers (each Evidence
+have known answers. For each mode it offers (each Evidence
 command, Standalone label, or flag that changes what its checks expect),
 write a must-pass case and a must-fail case, each with the exact exit code
 and output it must give. A pass condition never admits the failure output
 of the check it tests. When a case gives the wrong answer, the instrument
 is wrong: make the next version (see Changing a recipe).
 
-A check whose cases print a verdict is a **verdict check** (ADR 0004): any
+A check whose cases print a verdict is a **verdict check**: any
 case's expected `stdout` holds a line starting with `verdict:`. Each such
 line is `verdict: LABEL=WORD`, a whole line, where LABEL is the check's own
 name for a rival (an alias, `[a-z][a-z0-9-]{0,31}`) and WORD is
@@ -596,7 +590,7 @@ operator still types each verdict into `hyp record`.
 ### Cases as data
 
 A bundle can hold its known answers as data, and
-`hyp recipe known-answers REF` runs them with no sandbox (ADR 0002). Before
+`hyp recipe known-answers REF` runs them with no sandbox. Before
 every run of an instrument, hyp runs them and refuses the run on any
 failure (see The gate).
 
@@ -619,8 +613,8 @@ Each case is a directory `known-answers/NAME/`, NAME matching
   `git bundle create FILE HEAD <branch>`. A bundle with no `HEAD` breaks
   the rules below.
 
-`expect/` holds the files the command must leave under `$HYP_OUT`
-(ADR 0003): the same paths, directories included, and the same bytes,
+`expect/` holds the files the command must leave under `$HYP_OUT`:
+the same paths, directories included, and the same bytes,
 with the case directory's path written `$CASE`. Without `expect/`, the
 command must leave `$HYP_OUT` empty. `expect/` holds only directories and
 regular files.
@@ -635,8 +629,8 @@ for that file.
 
 hyp runs each case in a new case directory, `$CASE`. It copies `input/` to
 `$CASE/input`, clones `repo` to `$CASE/repo` when it is given, and runs the
-command as a check, the way `hyp recipe run` and `evidence` run it
-(ADR 0003): from a temporary copy of the bundle, in the empty `$CASE/cwd`,
+command as a check, the way `hyp recipe run` and `evidence` run it:
+from a temporary copy of the bundle, in the empty `$CASE/cwd`,
 with stdin `/dev/null` and only `PATH` (first, a directory holding a copy
 of the running hyp named `hyp`), `HOME=$CASE/home`, `TMPDIR=$CASE/tmp`,
 `GIT_CONFIG_NOSYSTEM=1` and `HYP_OUT=$CASE/out`. The clone of `repo` gets
@@ -648,7 +642,7 @@ compared. The command runs in its own process group, killed when it ends
 or after 60 seconds.
 
 So a check cannot build the binary it runs: a case has 60 seconds and a
-scratch `HOME`, by design (ADR 0003). Build real binaries before the run
+scratch `HOME`, by design. Build real binaries before the run
 and pass their paths to a Standalone command as arguments; its cases pass
 small stand-in scripts under `input/` in their place.
 
@@ -681,7 +675,7 @@ the instrument's known answers as above, with a copy of the operator's
 running hyp first on `PATH`, never the sandbox's `--hyp BIN`. hyp reads
 the running hyp once: `hyp recipe run` and `evidence` run their commands
 with the same copy, so `known_answers.hyp_sha256` names the hyp the
-commands ran (ADR 0003). A failed case
+commands ran. A failed case
 refuses the run (exit 1,
 `recipe REF failed its known answers: NAME: OUTCOME; nothing ran`), a
 timed-out case exits 3, and a refused create leaves no sandbox. The
@@ -694,11 +688,10 @@ or Standalone command is not gated.
 The gate proves that a bundle reproduces its own expected outputs, not
 that those outputs are right. A weak or wrong case needs review, which is
 why `hyp recipe check` warns about a missing must-pass or must-fail case,
-and, for a verdict check, a label with no supports or contradicts case
-(ADR 0004).
+and, for a verdict check, a label with no supports or contradicts case.
 Because a case and a run get the same environment, working directory and
 hyp, a passed gate carries over to the run, except for what a case cannot
-see (ADR 0003): a read of a fixed absolute path, a read from the network,
+see: a read of a fixed absolute path, a read from the network,
 the versions of the tools on the host `PATH` after hyp (the Python that
 runs a `#!/usr/bin/env python3` script among them), and a write outside
 `$HYP_OUT`.
@@ -720,7 +713,7 @@ it, and the record's `command.json`, whose `known_answers` show the gate
 passed.
 
 hyp marks a Result `uncontained` when it cannot vouch for the script. Each
-reason is reported once, in this order (spec §7.6):
+reason is reported once, in this order:
 
 1. `script outside recipes/: <pointer>`: the Result cites a file outside a
    versioned bundle (`recipes/<name>@<version>/`) that ends in `.py` or
@@ -773,31 +766,31 @@ not executable.
 A fixed input that is not the subject, such as a fixture or a cases file,
 is a file of the bundle, so the recipe pin hashes it, and the code that
 reads it is in the bundle too. A file outside the bundle is the subject,
-or a read or write that the command's `External:` line names (ADR 0008).
+or a read or write that the command's `External:` line names.
 hyp does not detect a fixture outside the bundle.
 
 The operator runs none of a bundle's scripts directly; hyp runs every
 command. A command is what a `Run:` line names, and every other file in the
-bundle, a helper script included, is hashed content (ADR 0002). Hashing
+bundle, a helper script included, is hashed content. Hashing
 never parses, so a bundle whose `recipe.md` breaks a command rule still
 hashes and its pins still verify. `hyp recipe new` writes `format: 1`, the
 one recipe format, into every bundle it makes. Every use of a bundle without it is
 refused (exit 1), naming `hyp recipe new` as the way to copy it;
 `hyp recipe hash` still hashes it. `hyp recipe check` names each versioned
 bundle `frozen` once a tree pins its hash, so its bytes never change, and
-`draft` before. The rules are in `docs/replay-spec.md` §9.2.
+`draft` before.
 
 ### Reading the tree
 
 A script reads a tree through hyp, never through the files under
-`.tree/events` (ADR 0006). `hyp events --json`, run in the store, prints
+`.tree/events`. `hyp events --json`, run in the store, prints
 `format`, every applied event in merge order as stored, and `rejections`,
 each refused event's id and reason; `hyp signals --json` prints the rounds
 and signals hyp derives. A file glob would also read the events replay
 rejected, and would tie the script to the store's layout. In a check, the
-`hyp` first on `PATH` is the gate's copy of the running hyp (ADR 0003); in
-a sandbox step it is whichever hyp the recipe puts there, and a hyp older
-than ADR 0006 has no `hyp events`.
+`hyp` first on `PATH` is the gate's copy of the running hyp; in
+a sandbox step it is whichever hyp the recipe puts there, and an older hyp
+may have no `hyp events`.
 
 ## Example
 

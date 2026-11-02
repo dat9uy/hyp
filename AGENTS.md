@@ -61,6 +61,7 @@ The skill-text gate's replay instrument is `recipes/skill-text-arms@2`: a fresh 
 - A recipe is self-contained: it relies on nothing but its own files, hyp and the subject. A fixed input that is not the subject, such as a fixture or a cases file, is a file of the bundle, and a file outside it is the subject or a read or write the command's `External:` line names. A frozen recipe version is never edited; a change is a new `@<N>`.
 - An id a Result cites must appear in the files it cites. Name a binary by its sha256, not by the commit it was built from.
 - hyp exits 1 for a rule refusal, 2 for bad arguments and 3 for an environment problem, such as a busy port or a missing tool ([replay-spec.md](docs/replay-spec.md) §9).
+- Skill text cites no ADR and no file under `docs/`: the skills are copied into other repositories without them. A skill states its rule inline, and the ADR behind it names the skill file. Removing such a citation is a product fix and needs no replay.
 - Write "Part of #N", never a closing keyword, next to an issue that stays open.
 - Commits use the conventional format (`feat:`, `fix:`, `docs:` and so on) and carry no AI trailers.
 
