@@ -1,0 +1,15 @@
+# Binaries for #240's e-arms, named by sha256.
+#
+# Operator hyp (writes investigations/id-citation and the fixture): main ff47d32,
+# built from a detached worktree with CGO_ENABLED=0 go build; prints 'hyp 0.1.0 (events v1) ff47d32ea676'.
+operator  ab43cbff6663cac7005fa3d6adc95996aab1b1d85495cdf073b57dc0a30143fa
+#
+# Arms: each from a fresh detached worktree of ff47d32, with arms/<arm>.patch applied
+# (none for today), built with CGO_ENABLED=0 go build -trimpath -o arm-<arm> ./cmd/hyp.
+# Each build was made twice in two worktrees and gave the same sha256.
+arm-today  f588b18916f095af514c1a7a23ad9434865daa88beea02cc1f01f50110d8eaa9
+arm-text-warn  f7a8d4211882bd38690fd11072cbc8465be94f59c268dcfae8948de5ffa7d48f
+arm-text-refuse  4419d0cbfbebf865cb4d55ed6535d6d58fae8da43166b67dd24fd617c5d652c8
+arm-cite  4c40c0cc2007fdf40b11980627a5f56efc90ccc08d408dfe3cfa2674ff9898de
+#
+# go: go version go1.27.3 darwin/arm64

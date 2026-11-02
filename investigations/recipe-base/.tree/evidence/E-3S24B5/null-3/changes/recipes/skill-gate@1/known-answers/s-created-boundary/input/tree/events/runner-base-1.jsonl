@@ -1,0 +1,1 @@
+{"actor": "runner-base-1", "id": "01M6CVSRRHXCNSXVNEMHWHD8JR", "node": "01M6CVSRRHXCNSXVNEMHWHD8JR", "payload": {"alias": "e2", "decided_by": "reading", "kind": "Experiment", "parent": "01M6CVSRR16BZS9BYY20D4CSRT", "recipe": "none", "title": "e"}, "ts": "2026-11-02T10:00:00.000001Z", "type": "node.add", "v": 1, "why": "w"}

@@ -1,0 +1,6 @@
+# recipe-base arms: hyp binaries named by sha256, each compiled with
+# CGO_ENABLED=0 from a detached worktree of its commit (not -dirty).
+# arm     commit                                    sha256                                                            embeds
+null      a5ba2d169226c77e9f1acb283e2750a894260930  31f7b1a9e9d742816b11b50639edcc01d1334ce6e1512aa74855a92f2f4f678e  no base (main)
+coarse    c1b4193614c826f8d6c9b75223ecc84da6c3d3cc  de92f4a5c9ee6a7b7addce6369adf83764a071c3bbc20bb46f9d794db4c42a44  base:claude-runner-gate@1
+fine      b3212e453b8de1c2457d8bdcc6aaa55d2079259b  5b4831a54ff3d0ee4fdf07681b9a8262b5272ecdc0d29f397a08058a02608c17  base:claude-runner@1 base:transcript-score@1 base:gate-verdict@1 base:fixture-check@1

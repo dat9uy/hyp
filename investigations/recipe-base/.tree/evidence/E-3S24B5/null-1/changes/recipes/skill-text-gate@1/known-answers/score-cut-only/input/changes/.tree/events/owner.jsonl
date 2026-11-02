@@ -1,0 +1,2 @@
+{"v": 1, "id": "C2", "type": "result.record", "payload": {}}
+{"v": 1, "id": "C1", "type": "node.add", "payload": {"kind": "Experiment", "title": "t"}}

@@ -1,0 +1,6 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Read", "input": {"file_path": "/x/README.md"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1", "is_error": false, "content": "text"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "ls nothing"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2", "is_error": true, "content": "no such file"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "hyp show X | head -3"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t3", "is_error": true, "content": "exit 1"}]}}

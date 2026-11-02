@@ -1,0 +1,3 @@
+{"actor": "o", "id": "01M6CVSRMH47Y4B2RAY9GSX9GB", "node": "01M6CVSRMH47Y4B2RAY9GSX9GB", "payload": {"alias": "g", "kind": "Goal", "parent": "", "title": "g"}, "ts": "2026-11-02T09:00:00.000000Z", "type": "node.add", "v": 1, "why": "w"}
+{"actor": "o", "id": "01M6CVSRMRW6MT4V306PWJ56ZQ", "node": "01M6CVSRMRW6MT4V306PWJ56ZQ", "payload": {"alias": "q", "kind": "DesignQuestion", "parent": "01M6CVSRMH47Y4B2RAY9GSX9GB", "title": "q"}, "ts": "2026-11-02T09:00:00.000000Z", "type": "node.add", "v": 1, "why": "w"}
+{"actor": "o", "id": "01M6CVSRMXS3WAWN7Q3V3JN6W7", "node": "01M6CVSRMXS3WAWN7Q3V3JN6W7", "payload": {"alias": "h", "kind": "Hypothesis", "parent": "01M6CVSRMRW6MT4V306PWJ56ZQ", "title": "h"}, "ts": "2026-11-02T09:00:00.000000Z", "type": "node.add", "v": 1, "why": "w"}

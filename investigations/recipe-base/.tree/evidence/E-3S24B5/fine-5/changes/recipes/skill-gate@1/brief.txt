@@ -1,0 +1,5 @@
+You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you. A hyp tree (.tree/) is already in place: it holds an investigation another session started.
+
+Resume it. Read its state with hyp, follow the skills, and carry the investigation one step forward: register the next Experiment the tree calls for and run it, or record what you find. Use your own judgment and work on your own, without asking questions. Every hyp write needs --why and an actor; $HYP_ACTOR is set.
+
+When you are done, reply with what you did on the last line.

@@ -1,0 +1,1 @@
+{"v":1,"id":"01M6A4QYZCM5RGD6AZ58XJTSBW","ts":"2026-10-31T23:29:30.09203Z","actor":"verifier-2","type":"confirm","node":"01M6A4QXN6X2M73YXCN7WRT7N9","payload":{"select":"01M6A4QYT7T8JQ6FKN93D82WFX","role":"verifier","verdict":"insufficient"},"why":"still no memory measurement"}

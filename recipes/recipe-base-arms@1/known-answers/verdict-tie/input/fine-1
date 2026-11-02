@@ -1,0 +1,6 @@
+arm	fine
+trial	1
+model	sonnet
+stops	0
+end_state	pass
+edited_lines	37

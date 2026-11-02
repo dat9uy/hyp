@@ -1,0 +1,91 @@
+package replay
+
+import (
+	"slices"
+
+	"github.com/dat9uy/hyp/internal/event"
+)
+
+// Exp is the derived record of one Experiment (ADR 0008). Replay builds it
+// once per projection, and every reader takes an Experiment's state from it
+// instead of re-deriving it from the Experiment's Results.
+type Exp struct {
+	Status     string            // ExpPlanned, ExpRun, ExpSuperseded or ExpWithdrawn; equal to Projection.Status[id].Status
+	Closed     string            // ExpSuperseded or ExpWithdrawn when it is closed, even if a Result makes it run; "" otherwise
+	Live       []string          // non-retracted Results, in creation order
+	Judged     map[string]string // Hypothesis → verdict over Live; a later Result wins
+	OneRival   bool              // the one-rival rule (oneRival) on its add-time rivals
+	Unjudged   []string          // targets live at its add that no Live Result judged; nil while Live is empty
+	ReplacedBy []string          // Experiments with a live supersedes edge to it, in edge order
+}
+
+// expClosed is how Experiment id is closed: ExpSuperseded when a live
+// supersedes edge points at it, otherwise ExpWithdrawn when it is withdrawn,
+// otherwise "".
+func (st *State) expClosed(id string) string {
+	switch {
+	case st.superseded(id):
+		return ExpSuperseded
+	case st.Withdrawn[id]:
+		return ExpWithdrawn
+	}
+	return ""
+}
+
+// expStatus is the status rule of Experiment id (spec §7.6), first match
+// wins: run with a non-retracted Result, so a live Result beats a close;
+// then superseded, withdrawn, and planned.
+func (st *State) expStatus(id string) string {
+	if st.liveResult(id) != "" {
+		return ExpRun
+	}
+	if c := st.expClosed(id); c != "" {
+		return c
+	}
+	return ExpPlanned
+}
+
+// exps builds the Exp record of every Experiment from the stored state.
+func (st *State) exps() map[string]*Exp {
+	out := map[string]*Exp{}
+	for _, id := range st.Order {
+		n := st.Nodes[id]
+		if n.Kind != event.KindExperiment {
+			continue
+		}
+		e := &Exp{Status: st.expStatus(id), Closed: st.expClosed(id), Judged: map[string]string{}}
+		if e.Closed == ExpSuperseded {
+			e.ReplacedBy = st.Superseders(id)
+		}
+		for _, r := range n.Children {
+			if st.Retracted[r] {
+				continue
+			}
+			e.Live = append(e.Live, r)
+			for h, v := range st.Nodes[r].Verdicts {
+				e.Judged[h] = v
+			}
+		}
+		rivals := st.RivalsAtAdd[id]
+		e.OneRival = oneRival(rivals, n.Targets)
+		if len(e.Live) > 0 {
+			e.Unjudged = unjudged(n.Targets, rivals, e.Judged, nil)
+		}
+		out[id] = e
+	}
+	return out
+}
+
+// unjudged lists the targets that were live rivals at the add and that
+// neither judged nor extra holds, in target order.
+func unjudged(targets, rivals []string, judged, extra map[string]string) []string {
+	var out []string
+	for _, t := range targets {
+		_, a := judged[t]
+		_, b := extra[t]
+		if slices.Contains(rivals, t) && !a && !b {
+			out = append(out, t)
+		}
+	}
+	return out
+}

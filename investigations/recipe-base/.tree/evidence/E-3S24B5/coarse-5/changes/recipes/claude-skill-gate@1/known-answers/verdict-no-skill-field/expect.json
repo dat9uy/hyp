@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["--base", "base", "--trials", "5", "--repro", "3", "--pass", "1", "--row", "f_a", "$CASE/input/base1"], "exit": 2, "stdout": ""}

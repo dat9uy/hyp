@@ -1,0 +1,1 @@
+{"v":1,"id":"01M6A4QZ7K09DKME6FFNZP7AR7","ts":"2026-10-31T23:29:30.355043Z","actor":"verifier-3","type":"confirm","node":"01M6A4QXN6X2M73YXCN7WRT7N9","payload":{"select":"01M6A4QYT7T8JQ6FKN93D82WFX","role":"verifier","verdict":"sufficient"},"why":"latency and memory are both measured"}

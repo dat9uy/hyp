@@ -1,0 +1,28 @@
+{"message": {"content": [{"id": "t1", "input": {"skill": "hyp-verification"}, "name": "Skill", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "ok", "is_error": false, "tool_use_id": "t1", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t2", "input": {"command": "hyp record --exp E-1 --why w"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t2", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t3", "input": {"command": "cd /w && hyp status --as-of X"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t3", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t4", "input": {"command": "export HYP_ACTOR=a; hyp add goal --title \"a; b | c && d\" --why \"x || y\""}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t4", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t5", "input": {"command": "HYP_ACTOR=a /usr/local/bin/hyp check"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t5", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t6", "input": {"command": "hyp add hyp --body \"$(cat <<'EOF'\nline; one\nhyp inside\nEOF\n)\" --why w"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t6", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t7", "input": {"command": "hyp status 2>&1 | head -5"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t7", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t8", "input": {"command": "hyp check; echo done"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t8", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t9", "input": {"command": "hyp check || true"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t9", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t10", "input": {"command": "hyp check && echo fine"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t10", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t11", "input": {"command": "echo \"hyp add\""}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t11", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t12", "input": {"command": "ls /nonexistent"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "Exit code 1\nboom", "is_error": true, "tool_use_id": "t12", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t13", "input": {"command": "hyp status"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "ok", "is_error": false, "tool_use_id": "t13", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t14", "input": {"command": "hyp add goal --title g --why w"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "ok", "is_error": false, "tool_use_id": "t14", "type": "tool_result"}], "role": "user"}, "type": "user"}

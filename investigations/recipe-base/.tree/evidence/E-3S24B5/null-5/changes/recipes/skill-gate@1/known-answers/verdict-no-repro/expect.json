@@ -1,0 +1,10 @@
+{
+ "args": [
+  "$CASE/input",
+  "reading_pin"
+ ],
+ "command": "verdict",
+ "exit": 0,
+ "stdout": "k: base reading_pin=2\nk: v1 reading_pin=0\nverdict: repro=contradicts\nverdict: v1=inconclusive\n",
+ "step": "standalone"
+}

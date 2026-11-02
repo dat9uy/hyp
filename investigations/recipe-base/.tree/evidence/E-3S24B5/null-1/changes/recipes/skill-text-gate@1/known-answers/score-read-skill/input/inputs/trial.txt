@@ -1,0 +1,4 @@
+arm=tight
+trial=5
+
+A brief.

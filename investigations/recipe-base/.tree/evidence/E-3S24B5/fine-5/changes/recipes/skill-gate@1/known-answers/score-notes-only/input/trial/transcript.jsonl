@@ -1,0 +1,6 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": "Bash", "input": {"command": "grep refused docs"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "is_error": false, "content": "refused: --decided-by reading contradicts recipe skill-gate@1\nrefused: over limit: body has 601 runes (max 600)"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": "Bash", "input": {"command": "hyp record --observation BIG"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b", "is_error": true, "content": "refused: over limit: observation has 601 runes (max 600)"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "c", "name": "Bash", "input": {"command": "hyp"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "c", "is_error": true, "content": "usage"}]}}

@@ -1,0 +1,5 @@
+You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you.
+
+A hyp tree, .tree/ in this repository, holds an investigation that another session started and left. Resume it with the hyp-prototype skill: read where it stands, take its next open step, and carry that step as far as you can, adding an Experiment and recording its Result when the step calls for them. Use only hyp's own commands to write to the tree. Work on your own without asking questions, and do not create a second tree.
+
+When you stop, reply with a one-line account of what you recorded on the last line.

@@ -1,0 +1,3 @@
+{"v": 1, "id": "01XX", "ts": "2026-11-01T00:00:00Z", "actor": "owner", "type": "result.record", "node": "01N", "payload": {}, "why": "w"}
+{"v": 1, "id": "01XX", "ts": "2026-11-01T00:00:00Z", "actor": "runner-base-6", "type": "node.add", "node": "01N", "payload": {"kind": "Experiment"}, "why": "w"}
+not json

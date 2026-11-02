@@ -1,0 +1,4 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": "Read", "input": {"file_path": "/x/.claude/skills/hyp-verification/SKILL.md"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "is_error": false, "content": "text"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": "Bash", "input": {"command": "cat <<'X' > f\nhyp not a call\nX\nhyp add exp --parent Q --title t --recipe skill-gate@1 --decided-by reading --why w"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b", "is_error": true, "content": [{"type": "text", "text": "refused: --decided-by reading contradicts recipe skill-gate@1"}]}]}}

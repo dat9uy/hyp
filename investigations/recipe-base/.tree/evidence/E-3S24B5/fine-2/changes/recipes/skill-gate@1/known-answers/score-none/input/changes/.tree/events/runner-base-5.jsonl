@@ -1,0 +1,1 @@
+{"v": 1, "id": "E", "ts": "t", "actor": "runner-base-1", "type": "node.add", "node": "N", "payload": {"kind": "Goal", "parent": "", "title": "g"}, "why": "w"}

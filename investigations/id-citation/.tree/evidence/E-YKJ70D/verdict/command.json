@@ -1,0 +1,56 @@
+{
+  "format": 2,
+  "ref": "id-citation-arms@1",
+  "name": "id-citation-arms",
+  "version": "1",
+  "sha256": "3fb1e1395f30d6201091602256a4e5d5261e201ec9ca27cc7178611a60210d7b",
+  "path": "/home/user/codingProjects/tree-based-agent-memory/recipes/id-citation-arms@1",
+  "step": "standalone",
+  "cwd": "/home/user/codingProjects/tree-based-agent-memory/investigations/id-citation",
+  "created": "2026-11-01T00:26:15Z",
+  "commands": [
+    {
+      "ref": "id-citation-arms@1",
+      "step": "standalone",
+      "label": "verdict",
+      "args": [
+        "./verdict.py",
+        "/home/user/codingProjects/tree-based-agent-memory/investigations/id-citation/.tree/evidence/E-YKJ70D/cases/stdout",
+        "/home/user/codingProjects/tree-based-agent-memory/investigations/id-citation/.tree/evidence/E-YKJ70D/cases.tsv"
+      ],
+      "exit": 0,
+      "pgid": 82304,
+      "started": "2026-11-01T00:26:15Z",
+      "ended": "2026-11-01T00:26:16Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "ab43cbff6663cac7005fa3d6adc95996aab1b1d85495cdf073b57dc0a30143fa",
+    "cases": [
+      {
+        "name": "cases-relative-arm",
+        "outcome": "ok"
+      },
+      {
+        "name": "cases-stubs",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-contradicts",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-env",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-missing-row",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-supports",
+        "outcome": "ok"
+      }
+    ]
+  }
+}

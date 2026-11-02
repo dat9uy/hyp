@@ -1,0 +1,94 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": ".agentkit/c.yaml",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "19732980d68fbd00358a0a4d98246c960400b87e4fa2a2e155db98be2b42ed6c",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": ".claude/agents/a.md",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": ".claude/settings.json",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "cbc80bb5c0c0f8944bf73b3a429505ac5cde16644978bc9a1e74c5755f8ca556",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": ".claude/skills/hyp-prototype/SKILL.md",
+      "change": "added",
+      "size": 11,
+      "sha256": "0309714c72bac0def8647b95c58084089d18a410fd4e4f51642d67bcaab98d80",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": ".claude/skills/hyp-verification/RECIPE-FORMAT.md",
+      "change": "added",
+      "size": 6,
+      "sha256": "65110ea3b8b62b0c09742c368bf1527f0978b06dff7a1371ef7b4c98e244d91a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": ".claude/skills/hyp-verification/SKILL.md",
+      "change": "added",
+      "size": 11,
+      "sha256": "84862503e66d15f7e6a78f3d9605d4823a64f2e30de95803423e7695d1e5f811",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": ".claude/skills/old/SKILL.md",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "7427d152005f9ed0fa31c76ef9963cf4bb47dce6e2768111d9eb0edbfe59c704",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": "AGENTS.md",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": "CLAUDE.md",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "a3a5e715f0cc574a73c3f9bebb6bc24f32ffd5b67b387244c2c909da779a1478",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": "docs/plans/q.md",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "fd6641673e7f3bf6e80e4bc5401fcb2821a1e117206c8e1c65cef23a58dc37ff",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": "plans/p.md",
+      "change": "deleted",
+      "size": 2,
+      "sha256": "fd6641673e7f3bf6e80e4bc5401fcb2821a1e117206c8e1c65cef23a58dc37ff",
+      "mode": "-rw-r--r--"
+    },
+    {
+      "path": "runner-note.txt",
+      "change": "added",
+      "size": 414,
+      "sha256": "ad3aa417128ebf52a1c5ab63512aa6343fa5470754d479583a88fb87b3773e53",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}

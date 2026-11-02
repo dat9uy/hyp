@@ -1,0 +1,10 @@
+{
+ "args": [
+  "$CASE/input",
+  "body_limit"
+ ],
+ "command": "verdict",
+ "exit": 0,
+ "stdout": "k: base body_limit=3\nverdict: repro=supports\n",
+ "step": "standalone"
+}

@@ -1,0 +1,3 @@
+== count-check@1 standalone: ./judge.sh 2
+count 2
+verdict: short=supports

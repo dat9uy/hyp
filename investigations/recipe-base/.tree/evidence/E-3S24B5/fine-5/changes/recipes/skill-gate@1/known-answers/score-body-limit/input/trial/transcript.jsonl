@@ -1,0 +1,4 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": "Bash", "input": {"command": "cd x && hyp add dq --parent G --title t --body BIG --why w"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "is_error": true, "content": "refused: over limit: body has 601 runes (max 600)"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": "Read", "input": {"file_path": "/x/README.md"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b", "is_error": false, "content": "r"}]}}

@@ -1,0 +1,10 @@
+== id-citation-arms@1 known answer cases-relative-arm
+cases.py: ok=input/append.sh: want NAME=/abs/path to an executable
+cases.py: ok=input/append.sh: want NAME=/abs/path to an executable
+== id-citation-arms@1 known answer cases-stubs
+== id-citation-arms@1 known answer verdict-contradicts
+== id-citation-arms@1 known answer verdict-env
+== id-citation-arms@1 known answer verdict-missing-row
+verdict.py: no row for cite K1
+verdict.py: no row for cite K1
+== id-citation-arms@1 known answer verdict-supports

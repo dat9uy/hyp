@@ -1,0 +1,132 @@
+{
+  "base": "a5ba2d169226c77e9f1acb283e2750a894260930",
+  "bin": "/home/user/.hyp-sandbox/rb-fine-2/bin",
+  "commands": [
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "launch",
+      "args": [
+        "./launch.sh"
+      ],
+      "exit": 0,
+      "pgid": 95551,
+      "started": "2026-11-02T00:39:54Z",
+      "ended": "2026-11-02T00:39:55Z"
+    },
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "doctor",
+      "args": [
+        "./doctor.sh"
+      ],
+      "exit": 0,
+      "pgid": 95629,
+      "started": "2026-11-02T00:39:55Z",
+      "ended": "2026-11-02T00:39:55Z"
+    },
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "drive",
+      "args": [
+        "./drive.py"
+      ],
+      "exit": 0,
+      "pgid": 95640,
+      "started": "2026-11-02T00:39:55Z",
+      "ended": "2026-11-02T00:43:36Z"
+    },
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "cleanup",
+      "args": [
+        "./cleanup.sh"
+      ],
+      "exit": 0,
+      "pgid": 96350,
+      "started": "2026-11-02T00:43:36Z",
+      "ended": "2026-11-02T00:43:36Z"
+    }
+  ],
+  "created": "2026-11-02T00:39:54Z",
+  "format": 2,
+  "host": "/home/user/codingProjects/tree-based-agent-memory",
+  "hyp_sha256": "5b4831a54ff3d0ee4fdf07681b9a8262b5272ecdc0d29f397a08058a02608c17",
+  "hyp_version": "hyp 0.1.0 (events v1) b3212e453b8d",
+  "id": "rb-fine-2",
+  "inputs": {
+    "source": "/private/tmp/claude-501/-home-user-codingProjects-tree-based-agent-memory/a447caaf-9269-4900-948d-662c9f332427/scratchpad/inputs-fine-2.env",
+    "path": "/home/user/.hyp-sandbox/rb-fine-2/inputs/inputs-fine-2.env",
+    "sha256": "6aef540ba1f09e1bb8d6dac1b0fba4cfa67438e6deacb452bf8c597fab91b7f3"
+  },
+  "recipes": [
+    {
+      "ref": "recipe-base-arms@1",
+      "name": "recipe-base-arms",
+      "version": "1",
+      "sha256": "4f2747ac4279332397a3831a1d0448c1b780243f167201fbaddbcdc779656492",
+      "path": "/home/user/.hyp-sandbox/rb-fine-2/recipes/recipe-base-arms",
+      "setup": "passed",
+      "cleanup": "ok",
+      "known_answers": {
+        "hyp_sha256": "e113f985e7c89bb9e3c8596cb2037a02d2edcb811f13a2839ceecea62339af36",
+        "cases": [
+          {
+            "name": "score-base",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-missing",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-null",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-usage",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-both",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-coarse",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-counts",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-extend",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-fine",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-missing-arm",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-model",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-null",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-tie",
+            "outcome": "ok"
+          }
+        ]
+      }
+    }
+  ],
+  "removed": "2026-11-02T00:43:36Z",
+  "tmp": "/home/user/.hyp-sandbox/rb-fine-2/tmp",
+  "wt": "/home/user/.hyp-sandbox/rb-fine-2/wt"
+}

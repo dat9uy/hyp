@@ -1,0 +1,11 @@
+{
+ "args": [
+  "$CASE/input",
+  "f_reading_pin",
+  "body_limit"
+ ],
+ "command": "verdict",
+ "exit": 0,
+ "stdout": "k: base reading_pin=3\nk: base body_limit=3\nk: v1 reading_pin=0\nk: v1 body_limit=2\nverdict: repro=supports\nverdict: v1=contradicts\n",
+ "step": "standalone"
+}

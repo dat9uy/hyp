@@ -1,0 +1,14 @@
+{
+ "args": [
+  "--row",
+  "f_body_limit",
+  "$CASE/input/s00.tsv",
+  "$CASE/input/s01.tsv",
+  "$CASE/input/s02.tsv",
+  "$CASE/input/s03.tsv"
+ ],
+ "command": "verdict",
+ "exit": 2,
+ "stdout": "",
+ "step": "standalone"
+}

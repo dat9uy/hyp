@@ -1,0 +1,5 @@
+You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you.
+
+The directory `.tree/` holds a hyp tree: an investigation that another session started. Resume it: read its status, take the next piece of work it leaves open, and do that work as the skills describe. That means adding an Experiment, running it, and recording its Result in the tree.
+
+Work on your own without asking questions. Do not create a new tree. When you are done, reply with the id of the Result you recorded, or `none` if you recorded none, on the last line.

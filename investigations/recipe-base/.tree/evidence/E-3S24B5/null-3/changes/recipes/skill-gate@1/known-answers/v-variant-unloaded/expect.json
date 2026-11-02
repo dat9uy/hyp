@@ -1,0 +1,24 @@
+{
+ "args": [
+  "f_reading_pin",
+  "$CASE/input/base-1.tsv",
+  "$CASE/input/base-2.tsv",
+  "$CASE/input/base-3.tsv",
+  "$CASE/input/base-4.tsv",
+  "$CASE/input/base-5.tsv",
+  "$CASE/input/fix-1.tsv",
+  "$CASE/input/fix-2.tsv",
+  "$CASE/input/fix-3.tsv",
+  "$CASE/input/fix-4.tsv",
+  "$CASE/input/fix-5.tsv",
+  "$CASE/input/tight-1.tsv",
+  "$CASE/input/tight-2.tsv",
+  "$CASE/input/tight-3.tsv",
+  "$CASE/input/tight-4.tsv",
+  "$CASE/input/tight-5.tsv"
+ ],
+ "command": "verdict",
+ "exit": 0,
+ "stdout": "k f_reading_pin base 3\nk f_reading_pin fix 2\nk f_reading_pin tight 1\nverdict: repro=supports\nverdict: fix=contradicts\nverdict: tight=supports\n",
+ "step": "standalone"
+}

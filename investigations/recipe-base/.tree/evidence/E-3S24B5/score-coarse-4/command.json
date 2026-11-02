@@ -1,0 +1,83 @@
+{
+  "format": 2,
+  "ref": "recipe-base-arms@1",
+  "name": "recipe-base-arms",
+  "version": "1",
+  "sha256": "4f2747ac4279332397a3831a1d0448c1b780243f167201fbaddbcdc779656492",
+  "path": "/home/user/codingProjects/tree-based-agent-memory/recipes/recipe-base-arms@1",
+  "step": "standalone",
+  "cwd": "/home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base",
+  "created": "2026-11-02T01:07:09Z",
+  "commands": [
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "/home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/coarse-4"
+      ],
+      "exit": 0,
+      "pgid": 9623,
+      "started": "2026-11-02T01:07:09Z",
+      "ended": "2026-11-02T01:07:10Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "e113f985e7c89bb9e3c8596cb2037a02d2edcb811f13a2839ceecea62339af36",
+    "cases": [
+      {
+        "name": "score-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-null",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-usage",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-both",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-coarse",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-counts",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-extend",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-fine",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-missing-arm",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-model",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-null",
+        "outcome": "ok"
+      },
+      {
+        "name": "verdict-tie",
+        "outcome": "ok"
+      }
+    ]
+  }
+}

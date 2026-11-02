@@ -1,0 +1,7 @@
+== recipe-base-arms@1 launch: ./launch.sh
+launch: wt holds hyp, its two skills and METHOD.md
+== recipe-base-arms@1 doctor: ./doctor.sh
+doctor: ok (hyp 0.1.0 (events v1) b3212e453b8d)
+== recipe-base-arms@1 drive: ./drive.py
+drive: arm fine trial 5 exit 0 timed_out False transcript True
+== recipe-base-arms@1 cleanup: ./cleanup.sh

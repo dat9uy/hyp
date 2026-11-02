@@ -1,0 +1,20 @@
+== recipe-base-arms@1 standalone: ./score.py /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/null-4
+arm	null
+trial	4
+model	sonnet
+cost_usd	0.9451067
+failing_hyp	1
+f_sandbox_json	0
+f_tar_input	0
+f_go_file	0
+f_recipe_none	1
+f_weak_cases	0
+stops	2
+bundle	skill-gate@1
+known_answers_exit	0
+add_exp_exit	0
+end_state	pass
+base_from	0
+edited_lines	907
+unused_base_files	0
+seam	1

@@ -1,0 +1,1 @@
+{"actor": "runner-b", "id": "01M6CVSRT49FGV9JPCB5XR639W", "node": "01M6CVSRT49FGV9JPCB5XR639W", "payload": {"observation": "o", "parent": "01M6CVSRSXZBBPFJ0ZJ4M6AZC2", "verdicts": {"01M6CVSRSRQQNYFRYZQ6T021EX": "supports"}}, "ts": "2026-11-02T10:30:00.000000Z", "type": "result.record", "v": 1, "why": "w"}

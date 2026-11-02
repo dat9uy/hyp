@@ -1,0 +1,6 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "q1", "name": "Skill", "input": {"skill": "hyp-verification"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "q1", "is_error": false, "content": "loaded"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "q2", "name": "Bash", "input": {"command": "hyp show H"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "q2", "is_error": false, "content": [{"type": "text", "text": "--decided-by reading contradicts recipe x@1, an instrument whose checks decide the verdicts; drop --decided-by\nrefused: over limit: body has 601 runes (max 600)"}]}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "q3", "name": "Bash", "input": {"command": "cat notes"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "q3", "is_error": false, "content": "refused: over limit: body has 601 runes (max 600)"}]}}

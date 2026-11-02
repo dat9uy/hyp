@@ -1,0 +1,6 @@
+{
+ "command": "./score.py",
+ "exit": 0,
+ "stdout": "arm\tbase\ntrial\t4\nskill_loaded\t0\nfailing_hyp\t0\nf_reading_pin\t1\nf_body_limit\t0\nend_state\tnone\n",
+ "step": "evidence"
+}

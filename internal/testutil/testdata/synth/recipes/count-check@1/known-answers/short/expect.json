@@ -1,0 +1,9 @@
+{
+ "args": [
+  "2"
+ ],
+ "command": "judge",
+ "exit": 0,
+ "stdout": "count 2\nverdict: short=supports\n",
+ "step": "standalone"
+}

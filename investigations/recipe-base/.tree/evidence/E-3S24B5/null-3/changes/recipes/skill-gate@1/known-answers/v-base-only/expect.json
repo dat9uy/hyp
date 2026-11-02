@@ -1,0 +1,14 @@
+{
+ "args": [
+  "f_reading_pin",
+  "$CASE/input/base-1.tsv",
+  "$CASE/input/base-2.tsv",
+  "$CASE/input/base-3.tsv",
+  "$CASE/input/base-4.tsv",
+  "$CASE/input/base-5.tsv"
+ ],
+ "command": "verdict",
+ "exit": 0,
+ "stdout": "k f_reading_pin base 3\nverdict: repro=supports\n",
+ "step": "standalone"
+}

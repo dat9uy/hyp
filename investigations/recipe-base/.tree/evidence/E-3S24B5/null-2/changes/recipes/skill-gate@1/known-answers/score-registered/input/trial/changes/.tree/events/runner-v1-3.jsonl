@@ -1,0 +1,2 @@
+{"v": 1, "id": "01A", "ts": "2026-11-01T00:00:00Z", "actor": "runner-v1-3", "type": "node.add", "node": "01A", "payload": {"kind": "Experiment"}, "why": "w"}
+{"v": 1, "id": "01C", "ts": "2026-11-01T00:00:00Z", "actor": "runner-v1-3", "type": "node.add", "node": "01C", "payload": {"kind": "Goal"}, "why": "w"}

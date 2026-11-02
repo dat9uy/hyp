@@ -1,0 +1,4 @@
+{"content": "brief", "operation": "enqueue", "type": "queue-operation"}
+{"message": {"content": "do the brief\n", "role": "user"}, "type": "user"}
+{"attachment": {"type": "skill_listing"}, "type": "attachment"}
+{"message": {"content": [{"text": "done", "type": "text"}], "role": "assistant"}, "type": "assistant"}

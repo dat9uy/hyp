@@ -1,0 +1,23 @@
+== recipe-base-arms@1 known answer score-base
+== recipe-base-arms@1 known answer score-missing
+score: /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/hyp-ka-3857016724/input/trial holds no drive.json
+score: /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/hyp-ka-1568445646/input/trial holds no drive.json
+== recipe-base-arms@1 known answer score-null
+== recipe-base-arms@1 known answer score-usage
+score: usage: score OUT_DIR
+score: usage: score OUT_DIR
+== recipe-base-arms@1 known answer verdict-both
+== recipe-base-arms@1 known answer verdict-coarse
+== recipe-base-arms@1 known answer verdict-counts
+verdict: every arm needs the same number of trials, 3 or 5: null 3, coarse 3, fine 4
+verdict: every arm needs the same number of trials, 3 or 5: null 3, coarse 3, fine 4
+== recipe-base-arms@1 known answer verdict-extend
+== recipe-base-arms@1 known answer verdict-fine
+== recipe-base-arms@1 known answer verdict-missing-arm
+verdict: no fine trial
+verdict: no fine trial
+== recipe-base-arms@1 known answer verdict-model
+verdict: /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/hyp-ka-3977326317/input/fine-1: the runner's model is opus, not sonnet
+verdict: /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/hyp-ka-3327632304/input/fine-1: the runner's model is opus, not sonnet
+== recipe-base-arms@1 known answer verdict-null
+== recipe-base-arms@1 known answer verdict-tie

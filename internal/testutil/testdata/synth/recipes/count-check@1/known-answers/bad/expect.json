@@ -1,0 +1,9 @@
+{
+ "args": [
+  "x"
+ ],
+ "command": "judge",
+ "exit": 2,
+ "stdout": "",
+ "step": "standalone"
+}

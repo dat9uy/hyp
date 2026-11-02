@@ -1,0 +1,10 @@
+{
+ "args": [
+  "$CASE/input",
+  "speed"
+ ],
+ "command": "verdict",
+ "exit": 2,
+ "stdout": "",
+ "step": "standalone"
+}

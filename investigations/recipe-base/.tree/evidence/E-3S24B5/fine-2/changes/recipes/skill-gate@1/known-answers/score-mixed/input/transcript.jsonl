@@ -1,0 +1,15 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Read", "input": {"file_path": "/w/.claude/skills/hyp-prototype/SKILL.md"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1", "is_error": false, "content": "text"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "hyp add exp --parent H --title t --recipe x@1 --decided-by reading --why w"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2", "is_error": true, "content": [{"type": "text", "text": "--decided-by reading contradicts recipe x@1, an instrument whose checks decide the verdicts; drop --decided-by"}]}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "hyp add hyp --parent Q --title t --body BIG --why w"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t3", "is_error": true, "content": "refused: over limit: body has 601 runes (max 600)"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t4", "name": "Bash", "input": {"command": "cat <<'X' > f\nhyp nothing\nX\nhyp status | head"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t4", "is_error": true, "content": [{"type": "text", "text": "boom"}]}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t5", "name": "Bash", "input": {"command": "ls missing"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t5", "is_error": true, "content": [{"type": "text", "text": "ls: missing: No such file"}]}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t6", "name": "Bash", "input": {"command": "echo a; FOO=1 /usr/bin/hyp recipe check"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t6", "is_error": true, "content": [{"type": "text", "text": "drift"}]}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t6", "name": "Bash", "input": {"command": "echo a; FOO=1 /usr/bin/hyp recipe check"}}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t7", "name": "Bash", "input": {"command": "hyp check || true"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t7", "is_error": false, "content": [{"type": "text", "text": "ok"}]}]}}

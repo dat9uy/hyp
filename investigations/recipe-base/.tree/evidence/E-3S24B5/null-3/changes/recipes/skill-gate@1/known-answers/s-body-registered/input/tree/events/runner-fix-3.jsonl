@@ -1,0 +1,1 @@
+{"actor": "runner-fix-3", "id": "01M6CVSRG0Y1M5Q5V3HCV1KXF7", "node": "01M6CVSRG0Y1M5Q5V3HCV1KXF7", "payload": {"alias": "e1", "decided_by": "reading", "kind": "Experiment", "parent": "01M6CVSRFV6W8C0PH7ZD6GWCCS", "recipe": "none", "title": "e"}, "ts": "2026-11-02T10:30:00.000000Z", "type": "node.add", "v": 1, "why": "w"}

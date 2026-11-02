@@ -1,0 +1,9 @@
+== id-citation-arms@1 standalone: ./verdict.py /home/user/codingProjects/tree-based-agent-memory/investigations/id-citation/.tree/evidence/E-YKJ70D/cases/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/id-citation/.tree/evidence/E-YKJ70D/cases.tsv
+text-warn: h-text-warn supports; failing cases: none
+text-refuse: h-text-refuse supports; failing cases: none
+cite: h-cite supports; failing cases: none
+today: h-null contradicts; failing cases: K1, K2, K3, K4, K5, K6
+verdict: h-text-warn=supports
+verdict: h-text-refuse=supports
+verdict: h-cite=supports
+verdict: h-null=contradicts

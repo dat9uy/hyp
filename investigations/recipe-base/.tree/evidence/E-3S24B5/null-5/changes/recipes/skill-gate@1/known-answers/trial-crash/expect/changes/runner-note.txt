@@ -1,0 +1,19 @@
+brief: crash
+actor: runner
+args: -p --model sonnet --setting-sources project --permission-mode bypassPermissions --output-format stream-json --verbose
+absent AGENTS.md
+absent CLAUDE.md
+absent .agentkit
+absent plans
+absent docs/plans
+absent .claude/settings.json
+absent .claude/agents
+absent .claude/skills/old
+present main.txt
+hyp-prototype
+hyp-verification
+proto base
+proto base
+verif base
+verif base
+hyp: pinned

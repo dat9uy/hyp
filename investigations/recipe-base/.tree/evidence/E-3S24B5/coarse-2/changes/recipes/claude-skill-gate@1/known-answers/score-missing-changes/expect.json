@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "score", "args": ["$CASE/input/trial"], "exit": 2, "stdout": ""}

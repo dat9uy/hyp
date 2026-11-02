@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["--row", "f_a", "$CASE/input/s00", "$CASE/input/s01", "$CASE/input/s02", "$CASE/input/s03", "$CASE/input/s04", "$CASE/input/s05", "$CASE/input/s06", "$CASE/input/s07", "$CASE/input/s08", "$CASE/input/s09"], "exit": 0, "stdout": "base: f_a failing 3 of 5\nv1: f_a failing 1 of 5\nverdict: repro=supports\nverdict: v1=supports\n"}

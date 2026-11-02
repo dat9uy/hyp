@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["$CASE/input/s00", "$CASE/input/s01", "$CASE/input/s02", "$CASE/input/s03", "$CASE/input/s04"], "exit": 2, "stdout": ""}

@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["--base", "base", "--trials", "5", "--repro", "3", "--pass", "1", "--row", "f_reading_pin", "--row", "f_body_limit", "$CASE/input/v1", "$CASE/input/v2", "$CASE/input/v3", "$CASE/input/v4", "$CASE/input/v5"], "exit": 2, "stdout": ""}

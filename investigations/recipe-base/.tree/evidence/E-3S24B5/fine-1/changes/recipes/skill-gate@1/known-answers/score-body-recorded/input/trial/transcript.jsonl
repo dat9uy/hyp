@@ -1,0 +1,4 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"/w/.claude/skills/hyp-verification/SKILL.md"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":false,"content":"text"}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"cat <<'X' > f\nhyp bogus\nX\nhyp add hyp --parent D --title t --body long --why w"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":"refused: over limit: body has 700 runes (max 600)"}]}}

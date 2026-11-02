@@ -1,0 +1,8 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t1", "name": "Read", "input": {"file_path": "/w/.claude/skills/hyp-prototype/SKILL.md"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t1", "is_error": false, "content": "skill"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "hyp add exp --parent H --title T --recipe r@1 --decided-by reading"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2", "is_error": true, "content": "refused: --decided-by reading contradicts recipe claude-skill-gate@1, an instrument whose checks decide the verdicts; drop --decided-by"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "cd /w && cat <<'EOF'\nhyp not a command\nEOF\nhyp add hyp --parent D --title T --body long"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t3", "is_error": true, "content": "rejected: over limit: body has 700 runes (max 600)"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "t4", "name": "Bash", "input": {"command": "hyp check"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t4", "is_error": false, "content": "fine"}]}}

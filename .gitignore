@@ -1,0 +1,8 @@
+.claude/
+/hyp
+*.sqlite
+*.sqlite-*
+*.pyc
+.*-scratch
+/plans/
+.agentkit/

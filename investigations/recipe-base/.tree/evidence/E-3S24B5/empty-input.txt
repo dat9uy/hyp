@@ -1,0 +1,23 @@
+coarse-3 and fine-5: end_state fail and f_weak_cases 1 have one cause.
+
+Both bundles keep the score-usage known-answer case of their base
+(claude-runner-gate@1, transcript-score@1), whose input/ is an empty
+directory. hyp recipe new recreated input/, so each runner's own
+`hyp recipe known-answers` passed in its sandbox. hyp sandbox remove keeps
+files only, so changes/ has no empty input/, and score's rebuilt bundle
+fails the gate:
+
+  refused: recipe gate-skill@1: known answer score-usage: input/ is missing
+  refused: recipe skill-gate@1: known answer score-usage: input/ is missing
+  warn: recipes/gate-skill@1 recipe gate-skill@1: known answer score-usage: input/ is missing
+
+(reproduced by copying changes/recipes/<bundle> into a scratch git repo,
+restoring exec bits, and running hyp recipe known-answers and, after
+hyp add exp, hyp recipe check, with the operator's hyp.) git drops an
+empty directory too, so a user who commits such a copy hits the same
+refusal: a defect of the bases, not only of the scoring.
+
+Counterfactual with the defect fixed (pass and the f_weak_cases stop
+restored, nothing else changed): coarse 5 passes, mean stops 0.80; fine 5
+passes, mean stops 0.40; null 5 passes, mean stops 1.20. Gaps 0.40 and
+0.80 are under the 1-stop bar, so h-null still supports.

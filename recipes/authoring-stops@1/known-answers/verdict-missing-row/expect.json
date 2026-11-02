@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["$CASE/input/table.tsv"], "exit": 2, "stdout": ""}

@@ -1,0 +1,6 @@
+arm	null
+trial	1
+model	sonnet
+stops	2
+end_state	pass
+edited_lines	80

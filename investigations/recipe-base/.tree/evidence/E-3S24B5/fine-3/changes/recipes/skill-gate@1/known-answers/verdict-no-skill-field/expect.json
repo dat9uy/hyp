@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["--row", "f_reading_pin", "$CASE/input/b1", "$CASE/input/b2", "$CASE/input/b3", "$CASE/input/b4", "$CASE/input/b5", "$CASE/input/v1", "$CASE/input/v2", "$CASE/input/v3", "$CASE/input/v4", "$CASE/input/v5"], "exit": 2, "stdout": ""}

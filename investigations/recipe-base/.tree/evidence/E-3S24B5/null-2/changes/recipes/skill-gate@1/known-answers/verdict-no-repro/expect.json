@@ -1,0 +1,20 @@
+{
+ "args": [
+  "--row",
+  "f_body_limit",
+  "$CASE/input/s00.tsv",
+  "$CASE/input/s01.tsv",
+  "$CASE/input/s02.tsv",
+  "$CASE/input/s03.tsv",
+  "$CASE/input/s04.tsv",
+  "$CASE/input/s05.tsv",
+  "$CASE/input/s06.tsv",
+  "$CASE/input/s07.tsv",
+  "$CASE/input/s08.tsv",
+  "$CASE/input/s09.tsv"
+ ],
+ "command": "verdict",
+ "exit": 0,
+ "stdout": "f_body_limit base: 2/5 does not reproduce\nf_body_limit v1: 5/5 fails\nverdict: repro=contradicts\nverdict: v1=inconclusive\n",
+ "step": "standalone"
+}

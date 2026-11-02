@@ -1,0 +1,1 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Skill","input":{"skill":"hyp-prototype"}}]}}

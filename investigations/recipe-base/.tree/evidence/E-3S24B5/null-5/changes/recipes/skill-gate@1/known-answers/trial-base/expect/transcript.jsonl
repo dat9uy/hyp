@@ -1,0 +1,2 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Skill","input":{"skill":"hyp-prototype"}}]}}
+{"type":"result","num_turns":3,"total_cost_usd":0.5}

@@ -1,0 +1,4 @@
+You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you.
+
+Carry out the task below in a hyp tree, following the method. Work on your own without asking questions. When you are done, reply with a short account of what you did.
+

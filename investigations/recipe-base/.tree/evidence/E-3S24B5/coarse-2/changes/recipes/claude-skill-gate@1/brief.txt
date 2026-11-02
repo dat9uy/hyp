@@ -1,0 +1,5 @@
+You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you.
+
+The repository holds a hyp tree (.tree) of an investigation that is under way. Pick it up where it stands: read its status, then take the next bounded step the skills prescribe for it. If that step is an Experiment, register it with hyp and, when you have run it, record its Result. Work on your own without asking questions, and do not edit hyp's code or the skills.
+
+When you are done, reply on the last line with the id of the last node you added.

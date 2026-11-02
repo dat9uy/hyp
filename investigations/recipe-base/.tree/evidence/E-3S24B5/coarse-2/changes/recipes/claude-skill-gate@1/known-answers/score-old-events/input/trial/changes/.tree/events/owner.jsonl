@@ -1,0 +1,4 @@
+{"v":1,"id":"X","ts":"2026-11-02T09:00:00Z","actor":"runner-base-1","type":"result.record","node":"X","payload":{"parent":"E"},"why":"w"}
+{"v":1,"id":"X","ts":"2026-11-02T10:00:01Z","actor":"runner-base-1","type":"node.add","node":"X","payload":{"kind":"Experiment"},"why":"w"}
+{"v":1,"id":"X","ts":"2026-11-02T10:00:02Z","actor":"runner-base-1","type":"node.add","node":"X","payload":{"kind":"Hypothesis"},"why":"w"}
+not json

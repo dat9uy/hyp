@@ -1,0 +1,2 @@
+{"v": 1, "id": "01A", "ts": "2026-11-01T00:00:00Z", "actor": "runner-base-1", "type": "node.add", "node": "01A", "payload": {"kind": "Experiment"}, "why": "w"}
+{"v": 1, "id": "01B", "ts": "2026-11-01T00:00:00Z", "actor": "runner-base-1", "type": "result.record", "node": "01B", "payload": {"parent": "01A"}, "why": "w"}

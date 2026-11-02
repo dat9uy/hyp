@@ -1,0 +1,27 @@
+{
+ "args": [
+  "--row",
+  "f_reading_pin",
+  "--row",
+  "f_body_limit",
+  "$CASE/input/s00.tsv",
+  "$CASE/input/s01.tsv",
+  "$CASE/input/s02.tsv",
+  "$CASE/input/s03.tsv",
+  "$CASE/input/s04.tsv",
+  "$CASE/input/s05.tsv",
+  "$CASE/input/s06.tsv",
+  "$CASE/input/s07.tsv",
+  "$CASE/input/s08.tsv",
+  "$CASE/input/s09.tsv",
+  "$CASE/input/s10.tsv",
+  "$CASE/input/s11.tsv",
+  "$CASE/input/s12.tsv",
+  "$CASE/input/s13.tsv",
+  "$CASE/input/s14.tsv"
+ ],
+ "command": "verdict",
+ "exit": 0,
+ "stdout": "f_reading_pin base: 3/5 reproduces\nf_reading_pin v1: 1/5 passes\nf_reading_pin v2: 2/5 fails\nf_body_limit base: 2/5 does not reproduce\nf_body_limit v1: 5/5 fails\nf_body_limit v2: 0/5 passes\nverdict: repro=supports\nverdict: v1=supports\nverdict: v2=contradicts\n",
+ "step": "standalone"
+}

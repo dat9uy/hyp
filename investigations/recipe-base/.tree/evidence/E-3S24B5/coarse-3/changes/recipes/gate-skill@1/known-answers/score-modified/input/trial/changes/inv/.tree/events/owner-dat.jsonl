@@ -1,0 +1,3 @@
+{"v": 1, "id": "I", "actor": "owner-dat", "type": "result.record", "payload": {}}
+{"v": 1, "id": "I", "actor": "runner-v2-5", "type": "node.add", "payload": {"kind": "Experiment"}}
+{"v": 1, "id": "I", "actor": "runner-v2-5", "type": "node.add", "payload": {"kind": "Goal"}}

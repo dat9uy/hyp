@@ -1,0 +1,21 @@
+#!/bin/sh
+# A stand-in for claude: records what the sandbox looked like, then ends like a runner.
+brief=$(cat)
+{
+  echo "brief: $brief"
+  echo "actor: $HYP_ACTOR"
+  echo "args: $*"
+  for f in AGENTS.md CLAUDE.md .agentkit plans docs/plans .claude/settings.json .claude/agents .claude/skills/old main.txt; do
+    if [ -e "$f" ]; then echo "present $f"; else echo "absent $f"; fi
+  done
+  ls .claude/skills
+  cat skills/hyp-prototype/SKILL.md .claude/skills/hyp-prototype/SKILL.md skills/hyp-verification/SKILL.md .claude/skills/hyp-verification/SKILL.md
+  case $(command -v hyp) in */.hyp-sandbox/*/bin/hyp) echo "hyp: pinned";; *) echo "hyp: other";; esac
+} > runner-note.txt
+case "$brief" in
+  *event*) printf '%s\n' '{"v":1,"id":"01M6CX8V7KJFWDJM0GKTQGANSW","ts":"2026-11-02T01:16:38.003238Z","actor":"runner","type":"node.add","node":"01M6CX8V7KJFWDJM0GKTQGANSW","payload":{"kind":"Hypothesis","parent":"01M6CX8FJVFFEHM9SVVV7J0QNW","title":"h"},"why":"w"}' >> .tree/events/runner.jsonl;;
+esac
+echo '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Skill","input":{"skill":"hyp-prototype"}}]}}'
+case "$brief" in *hang*) sleep 60;; esac
+echo '{"type":"result","num_turns":3,"total_cost_usd":0.5}'
+case "$brief" in *crash*) exit 7;; esac

@@ -1,0 +1,26 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "1", "name": "Bash", "input": {"command": "hyp add exp --parent H-1 --title t"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "1", "is_error": true, "content": "Exit code 1\nrefused"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "2", "name": "Bash", "input": {"command": "cd /w && hyp record --exp E-1"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "2", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "3", "name": "Bash", "input": {"command": "HYP_ACTOR=r hyp status"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "3", "is_error": true, "content": "Exit code 2\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "4", "name": "Bash", "input": {"command": "hyp status | head -5"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "4", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "5", "name": "Bash", "input": {"command": "hyp check; echo done"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "5", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "6", "name": "Bash", "input": {"command": "hyp check || true"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "6", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "7", "name": "Bash", "input": {"command": "hyp check &"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "7", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "8", "name": "Bash", "input": {"command": "hyp add goal --title 'a && b'"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "8", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "9", "name": "Bash", "input": {"command": "hyp check"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "9", "is_error": false, "content": "fine"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "10", "name": "Bash", "input": {"command": "hyp record --exp E-1 --observation \"$(cat <<'EOF'\nx\nEOF\n)\"\nhyp status 2>&1"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "10", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "11", "name": "Bash", "input": {"command": "hyp checkpoint --summary <<EOF\nline\nEOF"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "11", "is_error": true, "content": "Exit code 1\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "12", "name": "Bash", "input": {"command": "git status"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "12", "is_error": true, "content": "Exit code 128\nx"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "13", "name": "Bash", "input": {"command": "/usr/local/bin/hyp show E-1 2>&1"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "13", "is_error": true, "content": "Exit code 1\nx"}]}}

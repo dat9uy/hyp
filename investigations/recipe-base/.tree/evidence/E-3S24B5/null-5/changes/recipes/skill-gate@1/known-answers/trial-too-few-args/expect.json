@@ -1,0 +1,10 @@
+{
+ "args": [
+  "$CASE/repo"
+ ],
+ "command": "trial",
+ "exit": 2,
+ "repo": "repo.bundle",
+ "stdout": "",
+ "step": "standalone"
+}

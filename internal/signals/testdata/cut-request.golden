@@ -1,0 +1,9 @@
+no-movement:R-JXN1QF	6	no-movement E-H0V76P,E-QN9H45: R-TMCVWP, R-JXN1QF moved no live rival
+no-movement:R-TMCVWP	5	no-movement E-SER338,E-H0V76P: R-W7PVPF, R-TMCVWP moved no live rival
+one-rival:E-BMYN16	1	one-rival E-BMYN16 at add: H-WEE8KQ=proposed (parent), H-6XPT7T=proposed, H-E1Y3CP=proposed, H-S737Y1=proposed; targets: none; could target: H-6XPT7T,H-E1Y3CP,H-S737Y1
+spin:H-WEE8KQ:R-JXN1QF	6	spin H-WEE8KQ supported→supported at R-W7PVPF, supported→supported at R-TMCVWP, supported→supported at R-JXN1QF
+unjudged:E-RCD09Y	2	unjudged E-RCD09Y targets H-E1Y3CP, which no Result judged
+verifier-loop:Q-WRT7N9:01M6A4QYXMWXESM0YFCZBSRVTS	6	verifier-loop Q-WRT7N9 selected H-WEE8KQ (select D82WFX): verifier insufficient x1 (verifier-1); request-verify with no new Result, retract or link
+wasted:E-H0V76P	5	wasted E-H0V76P R-TMCVWP: H-WEE8KQ supported→supported, H-E1Y3CP inconclusive→inconclusive, H-S737Y1 inconclusive→inconclusive
+wasted:E-QN9H45	6	wasted E-QN9H45 R-JXN1QF: H-WEE8KQ supported→supported, H-E1Y3CP inconclusive→inconclusive, H-S737Y1 inconclusive→inconclusive
+wasted:E-SER338	4	wasted E-SER338 R-W7PVPF: H-WEE8KQ supported→supported, H-E1Y3CP inconclusive→inconclusive, H-S737Y1 inconclusive→inconclusive

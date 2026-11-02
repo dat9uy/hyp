@@ -1,0 +1,8 @@
+== recipe-base-arms@1 standalone: ./verdict.py /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-null-1/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-null-2/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-null-3/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-coarse-1/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-coarse-2/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-coarse-3/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-fine-1/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-fine-2/stdout /home/user/codingProjects/tree-based-agent-memory/investigations/recipe-base/.tree/evidence/E-3S24B5/score-fine-3/stdout
+null: trials 3, mean stops 1.00, end_state pass 3, mean edited_lines 906.0
+coarse: trials 3, mean stops 1.00, end_state pass 2, mean edited_lines 217.3
+fine: trials 3, mean stops 0.33, end_state pass 3, mean edited_lines 244.3
+extend: yes
+verdict: h-null=inconclusive
+verdict: h-coarse=inconclusive
+verdict: h-fine=inconclusive

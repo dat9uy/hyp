@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "check", "args": ["$CASE/input"], "exit": 1, "stdout": "fail\n"}

@@ -1,0 +1,2 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": "Skill", "input": {"skill": "hyp-prototype"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "is_error": false, "content": "ok"}]}}

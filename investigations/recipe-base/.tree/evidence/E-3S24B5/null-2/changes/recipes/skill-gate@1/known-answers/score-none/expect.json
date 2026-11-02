@@ -1,0 +1,9 @@
+{
+ "args": [
+  "$CASE/input/trial"
+ ],
+ "command": "score",
+ "exit": 0,
+ "stdout": "arm\tbase\ntrial\t4\nskill_loaded\t0\nfailing_hyp\t1\nf_reading_pin\t0\nf_body_limit\t0\nend_state\tnone\n",
+ "step": "standalone"
+}

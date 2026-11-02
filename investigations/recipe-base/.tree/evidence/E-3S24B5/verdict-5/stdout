@@ -1,0 +1,7 @@
+null: trials 5, mean stops 1.20, end_state pass 5, mean edited_lines 1068.2
+coarse: trials 5, mean stops 1.00, end_state pass 4, mean edited_lines 216.6
+fine: trials 5, mean stops 0.60, end_state pass 4, mean edited_lines 249.2
+extend: no
+verdict: h-null=supports
+verdict: h-coarse=contradicts
+verdict: h-fine=contradicts

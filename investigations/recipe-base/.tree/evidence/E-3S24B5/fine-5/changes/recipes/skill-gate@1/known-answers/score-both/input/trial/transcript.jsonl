@@ -1,0 +1,8 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": "Bash", "input": {"command": "hyp add exp --x"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "is_error": true, "content": "refused: --decided-by reading contradicts recipe skill-gate@1"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": "Bash", "input": {"command": "hyp add goal --body BIG"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b", "is_error": true, "content": "refused: over limit: body has 601 runes (max 600)"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "c", "name": "Bash", "input": {"command": "hyp add exp --y"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "c", "is_error": true, "content": "ok again"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "d", "name": "Skill", "input": {"skill": "hyp-prototype"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "d", "is_error": false, "content": "ok"}]}}

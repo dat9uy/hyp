@@ -1,0 +1,6 @@
+{
+ "command": "./score.py",
+ "exit": 1,
+ "stdout": "",
+ "step": "evidence"
+}

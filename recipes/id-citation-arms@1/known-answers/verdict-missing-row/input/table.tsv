@@ -1,0 +1,16 @@
+arm	case	exit	appended	warned
+today	K1	0	y	n
+today	K7	0	y	n
+today	G1	0	y	n
+today	C1a	2	n	n
+today	C1c	2	n	n
+text-warn	K1	0	y	y
+text-warn	K7	0	y	n
+text-warn	G1	0	y	n
+text-warn	C1a	2	n	n
+text-warn	C1c	2	n	n
+text-refuse	K1	2	n	n
+text-refuse	K7	0	y	n
+text-refuse	G1	0	y	n
+text-refuse	C1a	2	n	n
+text-refuse	C1c	2	n	n

@@ -1,0 +1,16 @@
+coarse-1 sonnet 0.5527 22 0
+coarse-2 sonnet 0.8242 26 0
+coarse-3 sonnet 0.5595 26 0
+coarse-4 sonnet 0.6475 21 0
+coarse-5 sonnet 0.675 29 0
+fine-1 sonnet 0.8027 29 0
+fine-2 sonnet 0.7586 26 0
+fine-3 sonnet 0.5824 20 0
+fine-4 sonnet 0.9352 28 0
+fine-5 sonnet 0.5983 21 0
+null-1 sonnet 0.8056 24 0
+null-2 sonnet 0.7892 24 0
+null-3 sonnet 1.3811 38 0
+null-4 sonnet 0.9451 30 0
+null-5 sonnet 1.0185 33 0
+total 11.88

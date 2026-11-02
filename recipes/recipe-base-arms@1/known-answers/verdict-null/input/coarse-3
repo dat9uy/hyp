@@ -1,0 +1,6 @@
+arm	coarse
+trial	3
+model	sonnet
+stops	0
+end_state	fail
+edited_lines	30

@@ -1,0 +1,2 @@
+{"v": 1, "id": "Enode.add", "ts": "2026-01-01T00:00:00Z", "actor": "runner-v2-3", "type": "node.add", "payload": {"kind": "Experiment"}, "why": "w"}
+{"v": 1, "id": "Eresult.record", "ts": "2026-01-01T00:00:00Z", "actor": "runner-v2-3", "type": "result.record", "payload": {}, "why": "w"}

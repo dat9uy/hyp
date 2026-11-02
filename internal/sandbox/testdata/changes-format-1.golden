@@ -1,0 +1,9 @@
+baseline string
+changes[].change string
+changes[].copied bool
+changes[].link string
+changes[].mode string
+changes[].path string
+changes[].sha256 string
+changes[].size number
+format number

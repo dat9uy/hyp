@@ -1,0 +1,5 @@
+You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you. hyp's own help may list starting points for a recipe.
+
+METHOD.md, at the root of this repository, is the pre-registered method of an Experiment whose instrument does not exist yet. Build that instrument as a versioned recipe bundle under recipes/ in this repository, as the method describes, so that `hyp recipe known-answers <name>@<version>` passes and `hyp add exp --recipe <name>@<version>` would accept it.
+
+The tree, the store cut and the skill variants the method names are not part of this task: the instrument takes them at run time, and a variant directory may be an example. Do not create a hyp tree and do not run the Experiment. Work on your own without asking questions. When the bundle is done, reply with its ref (<name>@<version>) on the last line.

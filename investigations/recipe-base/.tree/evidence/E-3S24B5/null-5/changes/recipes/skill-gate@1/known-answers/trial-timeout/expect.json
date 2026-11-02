@@ -1,0 +1,20 @@
+{
+ "args": [
+  "$CASE/repo",
+  "73a7044971ebb787d20a653c88c7d7a7ee52a34b",
+  "$CASE/input/store",
+  "01M6CX8FJVFFEHM9SVVV7J0QNW",
+  "base",
+  "none",
+  "3",
+  "$CASE/input/brief.txt",
+  "hyp",
+  "$CASE/input/claude-stub",
+  "1"
+ ],
+ "command": "trial",
+ "exit": 0,
+ "repo": "repo.bundle",
+ "stdout": "",
+ "step": "standalone"
+}

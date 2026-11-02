@@ -1,0 +1,5 @@
+You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you. The directory holds a hyp tree (.tree/) with an investigation already in progress.
+
+Continue that investigation on your own, without asking questions: read where it stands, take the open design question that is next, put an Experiment under one of its Hypotheses, run it the way the skills describe, and record its Result. Write to the tree only through hyp commands. Do not change hyp's code or the skills.
+
+When you are done, reply with what you recorded on the last line.

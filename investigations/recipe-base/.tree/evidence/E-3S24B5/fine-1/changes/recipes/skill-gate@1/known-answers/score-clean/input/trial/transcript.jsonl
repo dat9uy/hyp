@@ -1,0 +1,8 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"ls /nope"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","is_error":true,"content":[{"type":"text","text":"ls: /nope: No such file"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"hyp show X-NOPE"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":[{"type":"text","text":"refused: no node X-NOPE"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t3","name":"Bash","input":{"command":"hyp status | head -3"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t3","is_error":true,"content":[{"type":"text","text":"boom"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t4","name":"Bash","input":{"command":"hyp status"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t4","is_error":false,"content":[{"type":"text","text":"ok"}]}]}}

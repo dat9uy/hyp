@@ -1,0 +1,2 @@
+{"v": 1, "id": "X", "actor": "runner-base-1", "type": "node.add", "payload": {"kind": "Hypothesis"}}
+{"v": 1, "id": "X", "actor": "runner-base-1", "type": "node.add", "payload": {"kind": "Experiment"}}

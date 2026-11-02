@@ -1,0 +1,8 @@
+{"content": "brief", "operation": "enqueue", "type": "queue-operation"}
+{"message": {"content": "do the brief\n", "role": "user"}, "type": "user"}
+{"attachment": {"type": "skill_listing"}, "type": "attachment"}
+{"message": {"content": [{"id": "toolu_0006", "input": {"command": "ls"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0006", "input": {"command": "ls"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "a b", "is_error": false, "tool_use_id": "toolu_0006", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "a b", "is_error": false, "tool_use_id": "toolu_0006", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"text": "done", "type": "text"}], "role": "assistant"}, "type": "assistant"}

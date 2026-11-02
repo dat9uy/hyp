@@ -1,0 +1,2 @@
+{"message": {"content": [{"id": "t1", "input": {"file_path": "/w/.claude/skills/hyp-prototype/SKILL.md"}, "name": "Read", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "text", "is_error": false, "tool_use_id": "t1", "type": "tool_result"}], "role": "user"}, "type": "user"}

@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["$CASE/input/table.tsv"], "exit": 0, "stdout": "live refusal stops: 2 of 2\nverdict: h-binary=supports\nverdict: h-partial=supports\nverdict: h-null=contradicts\n"}

@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["--row", "f_a", "$CASE/input/g-1", "$CASE/input/g-2", "$CASE/input/g-3", "$CASE/input/g-4", "$CASE/input/g-5"], "exit": 2, "stdout": ""}

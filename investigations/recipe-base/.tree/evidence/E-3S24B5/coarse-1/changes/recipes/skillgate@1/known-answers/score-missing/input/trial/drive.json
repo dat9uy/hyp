@@ -1,0 +1,17 @@
+{
+ "arm": "base",
+ "trial": "5",
+ "model": "sonnet",
+ "session_id": "00000000-0000-4000-8000-000000000000",
+ "argv": [
+  "claude",
+  "-p"
+ ],
+ "exit": 0,
+ "timed_out": false,
+ "transcript_kept": true,
+ "result": "done",
+ "num_turns": 3,
+ "cost_usd": 0.25,
+ "permission_denials": 0
+}

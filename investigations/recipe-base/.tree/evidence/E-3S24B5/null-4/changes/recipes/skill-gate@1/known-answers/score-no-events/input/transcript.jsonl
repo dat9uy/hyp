@@ -1,0 +1,1 @@
+{"message": {"content": [{"id": "t1", "input": {"skill": "x"}, "name": "Skill", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}

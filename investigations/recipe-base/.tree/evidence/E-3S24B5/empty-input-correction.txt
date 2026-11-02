@@ -1,0 +1,13 @@
+Correction to empty-input.txt and R-H5H95P limit #1 (found by verifier-270-1).
+
+coarse-3 fails only on the base's score-usage case, whose input/ is empty.
+fine-5 fails on that case and also on verdict-unreadable, a case its
+runner's own generator wrote with an empty input/; it passes only when both
+input/ directories are recreated. So the common cause is that an empty
+input/ is lost on the way to changes/ (hyp sandbox remove keeps files) and
+in git, not only a defect of the bases.
+
+The verdict does not change: with only the base case fixed, fine stays at
+4/5 passes; with both fixed, fine is 5/5 at mean stops 0.40 against null's
+1.20, a gap of 0.80, under the 1-stop bar. coarse fixed is 5/5 at 0.80, a
+gap of 0.40.

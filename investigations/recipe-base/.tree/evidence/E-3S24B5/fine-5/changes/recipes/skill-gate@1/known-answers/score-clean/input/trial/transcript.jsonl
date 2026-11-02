@@ -1,0 +1,8 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": "Skill", "input": {"skill": "hyp-prototype"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "is_error": false, "content": "ok"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": "Bash", "input": {"command": "hyp status | tail -5"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b", "is_error": true, "content": "exit 1"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "c", "name": "Bash", "input": {"command": "ls nothing"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "c", "is_error": true, "content": "ls: nothing"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "d", "name": "Bash", "input": {"command": "hyp status"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "d", "is_error": false, "content": "fine"}]}}

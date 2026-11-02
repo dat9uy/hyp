@@ -1,0 +1,3 @@
+{"v": 1, "id": "E", "ts": "t", "actor": "runner-base-1", "type": "node.add", "node": "N", "payload": {"kind": "Goal", "parent": "", "title": "g"}, "why": "w"}
+{"v": 1, "id": "E", "ts": "t", "actor": "runner-base-1", "type": "node.add", "node": "N", "payload": {"kind": "Experiment", "parent": "H", "title": "e"}, "why": "w"}
+{"v": 1, "id": "E", "ts": "t", "actor": "runner-base-1", "type": "result.record", "node": "N", "payload": {"parent": "X", "verdicts": {}, "observation": "o"}, "why": "w"}

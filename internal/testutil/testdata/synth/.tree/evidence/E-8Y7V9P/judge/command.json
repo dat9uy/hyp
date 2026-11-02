@@ -1,0 +1,43 @@
+{
+  "format": 2,
+  "ref": "count-check@1",
+  "name": "count-check",
+  "version": "1",
+  "sha256": "3a281aefcaba87f666b249aede7b3865161efec0011320de26ccee21106186a3",
+  "path": "/home/user/codingProjects/tree-based-agent-memory/internal/testutil/testdata/synth/recipes/count-check@1",
+  "step": "standalone",
+  "cwd": "/home/user/codingProjects/tree-based-agent-memory/internal/testutil/testdata/synth",
+  "created": "2026-10-31T23:29:30Z",
+  "commands": [
+    {
+      "ref": "count-check@1",
+      "step": "standalone",
+      "label": "judge",
+      "args": [
+        "./judge.sh",
+        "2"
+      ],
+      "exit": 0,
+      "pgid": 855,
+      "started": "2026-10-31T23:29:30Z",
+      "ended": "2026-10-31T23:29:30Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "e63e57b488c75888f0f6a710d0e4098724260eb761dcaced0741438629121c35",
+    "cases": [
+      {
+        "name": "bad",
+        "outcome": "ok"
+      },
+      {
+        "name": "long",
+        "outcome": "ok"
+      },
+      {
+        "name": "short",
+        "outcome": "ok"
+      }
+    ]
+  }
+}

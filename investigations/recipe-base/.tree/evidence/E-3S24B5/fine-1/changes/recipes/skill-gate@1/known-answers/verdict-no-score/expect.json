@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["f_reading_pin", "--"], "exit": 2, "stdout": ""}

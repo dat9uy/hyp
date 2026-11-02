@@ -1,0 +1,1 @@
+{"format": 1, "changes": [{"path": ".tree/events/runner-variant-3.jsonl", "change": "added", "size": 1, "mode": "0644"}, {"path": "docs/events/x.jsonl", "change": "added", "size": 1, "mode": "0644", "copied": true}, {"path": ".tree/events/gone.jsonl", "change": "deleted", "size": 1, "mode": "0644"}]}

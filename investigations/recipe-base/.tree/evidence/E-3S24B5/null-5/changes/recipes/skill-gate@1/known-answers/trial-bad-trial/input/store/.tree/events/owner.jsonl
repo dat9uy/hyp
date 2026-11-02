@@ -1,0 +1,3 @@
+{"v":1,"id":"01M6CX8FJGWN0YRCEM9REAC60J","ts":"2026-11-02T01:16:26.064906Z","actor":"owner","type":"node.add","node":"01M6CX8FJGWN0YRCEM9REAC60J","payload":{"kind":"Goal","parent":"","title":"g"},"why":"w"}
+{"v":1,"id":"01M6CX8FJVFFEHM9SVVV7J0QNW","ts":"2026-11-02T01:16:26.075303Z","actor":"owner","type":"node.add","node":"01M6CX8FJVFFEHM9SVVV7J0QNW","payload":{"kind":"DesignQuestion","parent":"01M6CX8FJGWN0YRCEM9REAC60J","title":"d"},"why":"w"}
+{"v":1,"id":"01M6CX8FKKNB68AVCT2NKHNWP4","ts":"2026-11-02T01:16:26.099723Z","actor":"owner","type":"checkpoint","node":"01M6CX8FJGWN0YRCEM9REAC60J","payload":{"summary":"later"},"why":"w"}

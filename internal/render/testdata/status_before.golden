@@ -1,0 +1,16 @@
+GOAL G-000001 ship the data design — complete (answered 3, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+FRONTIER
+STALE
+AWAITING OWNER
+RECENT
+  2026-10-24 00:00 b confirm Q-000004 — test
+  2026-10-24 00:00 a dq.select Q-000004 — test
+  2026-10-24 00:00 b confirm Q-000003 — test
+  2026-10-24 00:00 a dq.select Q-000003 — test
+  2026-10-24 00:00 b confirm Q-000002 — test
+  2026-10-24 00:00 a dq.select Q-000002 — test
+  2026-10-24 00:00 a edge.add H-000005 — test
+  2026-10-24 00:00 a edge.add H-000006 — test
+  2026-10-24 00:00 a result.record R-000013 — test
+  2026-10-24 00:00 a result.record R-000011 — test
+CHECKPOINT 2026-10-24 00:00 a: all three questions answered

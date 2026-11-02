@@ -1,0 +1,14 @@
+{
+ "format": 1,
+ "baseline": "manifest.json at create",
+ "changes": [
+  {
+   "path": ".tree/events/runner-base-2.jsonl",
+   "change": "added",
+   "size": 1,
+   "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+   "mode": "-rw-r--r--",
+   "copied": true
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "args": [
+  "$CASE/input/base-1.tsv",
+  "$CASE/input/base-2.tsv",
+  "$CASE/input/base-3.tsv",
+  "$CASE/input/base-4.tsv",
+  "$CASE/input/base-5.tsv",
+  "$CASE/input/v1-1.tsv",
+  "$CASE/input/v1-2.tsv",
+  "$CASE/input/v1-3.tsv",
+  "$CASE/input/v1-4.tsv",
+  "$CASE/input/v1-5.tsv"
+ ],
+ "command": "verdict",
+ "exit": 2,
+ "stdout": "",
+ "step": "standalone"
+}

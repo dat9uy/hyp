@@ -1,0 +1,1 @@
+{"format": 1, "changes": [{"path": "inv/.tree/events/owner-dat.jsonl", "change": "modified", "copied": true}, {"path": "inv/.tree/events/runner-v2-4.jsonl", "change": "deleted"}, {"path": "events.jsonl", "change": "added", "copied": true}]}

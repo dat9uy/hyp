@@ -1,0 +1,72 @@
+{"content": "brief", "operation": "enqueue", "type": "queue-operation"}
+{"message": {"content": "do the brief\n", "role": "user"}, "type": "user"}
+{"attachment": {"type": "skill_listing"}, "type": "attachment"}
+{"message": {"content": [{"id": "toolu_0007", "input": {"file_path": "/w/README.md"}, "name": "Read", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0007", "input": {"file_path": "/w/README.md"}, "name": "Read", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "text", "is_error": false, "tool_use_id": "toolu_0007", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "text", "is_error": false, "tool_use_id": "toolu_0007", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0008", "input": {"file_path": "/w/SKILL.md.bak"}, "name": "Read", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0008", "input": {"file_path": "/w/SKILL.md.bak"}, "name": "Read", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "text", "is_error": false, "tool_use_id": "toolu_0008", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "text", "is_error": false, "tool_use_id": "toolu_0008", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0009", "input": {"command": "hyp status"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0009", "input": {"command": "hyp status"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0009", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0009", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0010", "input": {"command": "cd d && hyp record --exp e"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0010", "input": {"command": "cd d && hyp record --exp e"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0010", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0010", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0011", "input": {"command": "HYP_ACTOR=a hyp add goal --title \"x && y\" --why z 2>&1"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0011", "input": {"command": "HYP_ACTOR=a hyp add goal --title \"x && y\" --why z 2>&1"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0011", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0011", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0012", "input": {"command": "echo a\nhyp add goal --title t --why w"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0012", "input": {"command": "echo a\nhyp add goal --title t --why w"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0012", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0012", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0013", "input": {"command": "hyp check && echo ok"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0013", "input": {"command": "hyp check && echo ok"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0013", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0013", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0014", "input": {"command": "/usr/local/bin/hyp x"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0014", "input": {"command": "/usr/local/bin/hyp x"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0014", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0014", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0015", "input": {"command": "env X=1 hyp x # trailing comment"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0015", "input": {"command": "env X=1 hyp x # trailing comment"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0015", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0015", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0016", "input": {"command": "hyp status | head -3"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0016", "input": {"command": "hyp status | head -3"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0016", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0016", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0017", "input": {"command": "hyp check || exit 3"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0017", "input": {"command": "hyp check || exit 3"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 3\nx", "is_error": true, "tool_use_id": "toolu_0017", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 3\nx", "is_error": true, "tool_use_id": "toolu_0017", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0018", "input": {"command": "hyp check || echo failed"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0018", "input": {"command": "hyp check || echo failed"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0018", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0018", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0019", "input": {"command": "hyp check; false"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0019", "input": {"command": "hyp check; false"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0019", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0019", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0020", "input": {"command": "cat <<'EOF' > f\nhyp add\nEOF\nfalse"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0020", "input": {"command": "cat <<'EOF' > f\nhyp add\nEOF\nfalse"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0020", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0020", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0021", "input": {"command": "echo $(hyp version)\nfalse"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0021", "input": {"command": "echo $(hyp version)\nfalse"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0021", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0021", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0022", "input": {"command": "hyp status"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0022", "input": {"command": "hyp status"}, "name": "Bash", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "ok", "is_error": false, "tool_use_id": "toolu_0022", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "ok", "is_error": false, "tool_use_id": "toolu_0022", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"id": "toolu_0023", "input": {"file_path": "/w/f"}, "name": "Edit", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"content": [{"id": "toolu_0023", "input": {"file_path": "/w/f"}, "name": "Edit", "type": "tool_use"}], "type": "api-request-blob"}
+{"message": {"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0023", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"content": [{"content": "Exit code 1\nx", "is_error": true, "tool_use_id": "toolu_0023", "type": "tool_result"}], "type": "api-request-blob"}
+{"message": {"content": [{"text": "done", "type": "text"}], "role": "assistant"}, "type": "assistant"}

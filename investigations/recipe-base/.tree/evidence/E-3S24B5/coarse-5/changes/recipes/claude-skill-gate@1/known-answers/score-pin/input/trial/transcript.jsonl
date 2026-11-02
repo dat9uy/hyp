@@ -1,0 +1,7 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"/w/.claude/skills/hyp-verification/SKILL.md"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"hyp add exp --parent H --title t --recipe x@1 --decided-by reading --why w"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t2","is_error":true,"content":[{"type":"text","text":"--decided-by reading contradicts recipe x@1, an instrument whose checks decide the verdicts; drop --decided-by"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t3","name":"Bash","input":{"command":"ls missing"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t3","is_error":true,"content":[{"type":"text","text":"ls: missing: No such file"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t4","name":"Bash","input":{"command":"cat <<'X' > f\nhyp nothing\nX\necho a | /usr/local/bin/hyp recipe known-answers y@1"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t4","is_error":true,"content":[{"type":"text","text":"recipe y@1: 1 of 2 known answers failed"}]}]}}

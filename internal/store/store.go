@@ -1,0 +1,223 @@
+// Package store owns the .tree directory: discovery, init, reading the
+// per-actor JSONL logs and the single append path that validates first.
+package store
+
+import (
+	"bufio"
+	"bytes"
+	"crypto/rand"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/oklog/ulid/v2"
+
+	"github.com/dat9uy/hyp/internal/contain"
+	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/replay"
+)
+
+// ErrNoStore means no .tree/events directory was found above the start dir.
+var ErrNoStore = errors.New("no .tree store found; run 'hyp init'")
+
+var actorRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
+
+// LineError is a line of an events file that could not be parsed.
+type LineError struct {
+	File string
+	Line int
+	Err  error
+}
+
+// Dir returns the .tree directory under root.
+func Dir(root string) string { return filepath.Join(root, ".tree") }
+
+func eventsDir(root string) string { return filepath.Join(root, ".tree", "events") }
+
+// FindRoot walks up from start to the directory that contains .tree/events.
+func FindRoot(start string) (string, error) {
+	dir, err := filepath.Abs(start)
+	if err != nil {
+		return "", err
+	}
+	for {
+		if fi, err := os.Stat(eventsDir(dir)); err == nil && fi.IsDir() {
+			return dir, nil
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", ErrNoStore
+		}
+		dir = parent
+	}
+}
+
+// Init creates .tree/events, .tree/evidence and .tree/.gitignore in dir. It
+// changes nothing when .tree/events already exists. The .gitignore names
+// index.sqlite because older hyp binaries write one (ADR 0006).
+func Init(dir string) error {
+	if _, err := os.Stat(eventsDir(dir)); err == nil {
+		return fmt.Errorf("store already exists: %s", eventsDir(dir))
+	}
+	for _, sub := range []string{"events", "evidence"} {
+		if err := os.MkdirAll(filepath.Join(Dir(dir), sub), 0o755); err != nil {
+			return err
+		}
+	}
+	return os.WriteFile(filepath.Join(Dir(dir), ".gitignore"), []byte("index.sqlite\nindex.sqlite-*\n"), 0o644)
+}
+
+// ReadAll parses every .tree/events/*.jsonl file, keyed by actor (the base
+// name without .jsonl). Unparseable lines are returned as LineErrors.
+func ReadAll(root string) (map[string][]event.Event, []LineError, error) {
+	files, err := filepath.Glob(filepath.Join(eventsDir(root), "*.jsonl"))
+	if err != nil {
+		return nil, nil, err
+	}
+	out := map[string][]event.Event{}
+	var lineErrs []LineError
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			return nil, nil, err
+		}
+		evs, errs := parseFile(filepath.Base(f), data)
+		out[strings.TrimSuffix(filepath.Base(f), ".jsonl")] = evs
+		lineErrs = append(lineErrs, errs...)
+	}
+	return out, lineErrs, nil
+}
+
+func parseFile(name string, data []byte) ([]event.Event, []LineError) {
+	var evs []event.Event
+	var errs []LineError
+	sc := bufio.NewScanner(bytes.NewReader(data))
+	sc.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
+	for n := 1; sc.Scan(); n++ {
+		line := bytes.TrimSpace(sc.Bytes())
+		if len(line) == 0 {
+			continue
+		}
+		ev, err := event.ParseLine(line)
+		if err != nil {
+			errs = append(errs, LineError{File: name, Line: n, Err: err})
+			continue
+		}
+		evs = append(evs, ev)
+	}
+	return evs, errs
+}
+
+// Events returns the merged event list of the store.
+func Events(root string) ([]event.Event, []LineError, error) {
+	files, lineErrs, err := ReadAll(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	return replay.Merge(files), lineErrs, nil
+}
+
+// Load replays the store with the current recipe hashes.
+func Load(root string) (replay.Projection, []LineError, error) {
+	return LoadAsOf(root, "")
+}
+
+// LoadAsOf is Load stopped after the event asOf ("" for the whole log),
+// with the uncontained Results marked from files.
+func LoadAsOf(root, asOf string) (replay.Projection, []LineError, error) {
+	evs, lineErrs, err := Events(root)
+	if err != nil {
+		return replay.Projection{}, nil, err
+	}
+	p := replay.Replay(evs, recipe.Hashes(root), asOf)
+	contain.Mark(root, &p)
+	return p, lineErrs, nil
+}
+
+var (
+	entropyMu sync.Mutex
+	entropy   = ulid.Monotonic(rand.Reader, 0)
+)
+
+func newID(t time.Time) string {
+	entropyMu.Lock()
+	defer entropyMu.Unlock()
+	return ulid.MustNew(ulid.Timestamp(t), entropy).String()
+}
+
+// Append validates ev against the current log and, when it is allowed, writes
+// it as one line to .tree/events/<actor>.jsonl and fsyncs. V, ID, TS and
+// Actor are filled in here; for node.add and result.record Node is set to the
+// new id. A refused event is never written.
+func Append(root, actor string, ev event.Event) (event.Event, error) {
+	return AppendWith(root, actor, func(*replay.State, replay.Projection) (event.Event, error) { return ev, nil })
+}
+
+// AppendWith is Append for an event that depends on the current log: build
+// receives the replayed state and projection, under the same lock that the
+// write holds, so references are resolved against exactly the state the
+// event is validated against. An error from build is returned unchanged.
+func AppendWith(root, actor string, build func(*replay.State, replay.Projection) (event.Event, error)) (event.Event, error) {
+	if !ValidActor(actor) {
+		return event.Event{}, fmt.Errorf("invalid actor %q (want %s)", actor, actorRe)
+	}
+	// Lock the events directory, not one actor file, so that every writer
+	// validates against a log that already holds all other writers' events.
+	dir, err := os.Open(eventsDir(root))
+	if err != nil {
+		return event.Event{}, err
+	}
+	defer dir.Close()
+	if err := syscall.Flock(int(dir.Fd()), syscall.LOCK_EX); err != nil {
+		return event.Event{}, err
+	}
+	defer syscall.Flock(int(dir.Fd()), syscall.LOCK_UN)
+
+	evs, _, err := Events(root)
+	if err != nil {
+		return event.Event{}, err
+	}
+	st, p := replay.Build(evs, recipe.Hashes(root), "")
+	ev, err := build(st, p)
+	if err != nil {
+		return ev, err
+	}
+
+	now := time.Now().UTC()
+	ev.V = event.Version
+	ev.ID = newID(now)
+	ev.TS = now.Format(time.RFC3339Nano)
+	ev.Actor = actor
+	if ev.Type == event.TypeNodeAdd || ev.Type == event.TypeResultRecord {
+		ev.Node = ev.ID
+	}
+	if err := replay.Validate(st, ev); err != nil {
+		return ev, herr.Refused("%v", err)
+	}
+	line, err := json.Marshal(ev)
+	if err != nil {
+		return ev, err
+	}
+	// Open only after validation, so a refused event leaves no file behind.
+	f, err := os.OpenFile(filepath.Join(eventsDir(root), actor+".jsonl"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return ev, err
+	}
+	defer f.Close()
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		return ev, err
+	}
+	return ev, f.Sync()
+}
+
+// ValidActor reports whether actor matches ^[a-z0-9][a-z0-9-]{0,39}$.
+func ValidActor(actor string) bool { return actorRe.MatchString(actor) }

@@ -1,0 +1,132 @@
+{
+  "base": "a5ba2d169226c77e9f1acb283e2750a894260930",
+  "bin": "/home/user/.hyp-sandbox/rb-null-4/bin",
+  "commands": [
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "launch",
+      "args": [
+        "./launch.sh"
+      ],
+      "exit": 0,
+      "pgid": 5520,
+      "started": "2026-11-02T00:58:23Z",
+      "ended": "2026-11-02T00:58:24Z"
+    },
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "doctor",
+      "args": [
+        "./doctor.sh"
+      ],
+      "exit": 0,
+      "pgid": 5533,
+      "started": "2026-11-02T00:58:24Z",
+      "ended": "2026-11-02T00:58:26Z"
+    },
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "drive",
+      "args": [
+        "./drive.py"
+      ],
+      "exit": 0,
+      "pgid": 5544,
+      "started": "2026-11-02T00:58:26Z",
+      "ended": "2026-11-02T01:03:52Z"
+    },
+    {
+      "ref": "recipe-base-arms@1",
+      "step": "cleanup",
+      "args": [
+        "./cleanup.sh"
+      ],
+      "exit": 0,
+      "pgid": 8053,
+      "started": "2026-11-02T01:03:52Z",
+      "ended": "2026-11-02T01:03:53Z"
+    }
+  ],
+  "created": "2026-11-02T00:58:23Z",
+  "format": 2,
+  "host": "/home/user/codingProjects/tree-based-agent-memory",
+  "hyp_sha256": "31f7b1a9e9d742816b11b50639edcc01d1334ce6e1512aa74855a92f2f4f678e",
+  "hyp_version": "hyp 0.1.0 (events v1) a5ba2d169226",
+  "id": "rb-null-4",
+  "inputs": {
+    "source": "/private/tmp/claude-501/-home-user-codingProjects-tree-based-agent-memory/a447caaf-9269-4900-948d-662c9f332427/scratchpad/inputs-null-4.env",
+    "path": "/home/user/.hyp-sandbox/rb-null-4/inputs/inputs-null-4.env",
+    "sha256": "988556075edd41f9898715b6ccf824dc69dad55a8a878080fc108b8939a3a68d"
+  },
+  "recipes": [
+    {
+      "ref": "recipe-base-arms@1",
+      "name": "recipe-base-arms",
+      "version": "1",
+      "sha256": "4f2747ac4279332397a3831a1d0448c1b780243f167201fbaddbcdc779656492",
+      "path": "/home/user/.hyp-sandbox/rb-null-4/recipes/recipe-base-arms",
+      "setup": "passed",
+      "cleanup": "ok",
+      "known_answers": {
+        "hyp_sha256": "e113f985e7c89bb9e3c8596cb2037a02d2edcb811f13a2839ceecea62339af36",
+        "cases": [
+          {
+            "name": "score-base",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-missing",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-null",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-usage",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-both",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-coarse",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-counts",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-extend",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-fine",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-missing-arm",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-model",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-null",
+            "outcome": "ok"
+          },
+          {
+            "name": "verdict-tie",
+            "outcome": "ok"
+          }
+        ]
+      }
+    }
+  ],
+  "removed": "2026-11-02T01:03:53Z",
+  "tmp": "/home/user/.hyp-sandbox/rb-null-4/tmp",
+  "wt": "/home/user/.hyp-sandbox/rb-null-4/wt"
+}

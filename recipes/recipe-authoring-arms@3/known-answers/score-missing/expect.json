@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "score", "args": ["$CASE/repo"], "repo": "trial.bundle", "exit": 2, "stdout": ""}

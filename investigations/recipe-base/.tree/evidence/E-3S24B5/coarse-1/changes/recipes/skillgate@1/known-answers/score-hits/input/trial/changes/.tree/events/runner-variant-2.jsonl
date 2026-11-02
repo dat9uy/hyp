@@ -1,0 +1,2 @@
+{"v": 1, "id": "X", "ts": "t", "actor": "runner-variant-2", "type": "node.add", "payload": {"kind": "Experiment", "parent": "p", "title": "t", "recipe": "x@1"}, "why": "w"}
+not json

@@ -1,0 +1,2 @@
+{"actor": "runner-base-1", "id": "01M6CVSRPK9504MJH5VNCR4HHR", "node": "01M6CVSRPK9504MJH5VNCR4HHR", "payload": {"alias": "h5", "kind": "Hypothesis", "parent": "01M6CVSRNZ6NHFEVQKE9EC29DW", "title": "h"}, "ts": "2026-11-02T10:30:00.000000Z", "type": "node.add", "v": 1, "why": "w"}
+{"actor": "runner-base-1", "id": "01M6CVSRPTYTH21N7RYT00Q2W7", "node": "01M6CVSRNR5HF3Y8GK45H5JWBV", "payload": {"summary": "s"}, "ts": "2026-11-02T10:30:00.000000Z", "type": "checkpoint", "v": 1, "why": "w"}

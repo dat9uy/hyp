@@ -1,0 +1,15 @@
+{
+ "step": "standalone",
+ "command": "verdict",
+ "args": [
+  "f_reading_pin",
+  "$CASE/input/base-1",
+  "$CASE/input/base-2",
+  "$CASE/input/base-3",
+  "$CASE/input/base-4",
+  "$CASE/input/base-5",
+  "$CASE/input/base-6"
+ ],
+ "exit": 30,
+ "stdout": ""
+}

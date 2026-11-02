@@ -1,0 +1,4 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b1", "name": "Bash", "input": {"command": "hyp status"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b1", "is_error": false, "content": [{"type": "text", "text": "fine"}]}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b2", "name": "Read", "input": {"file_path": "/w/README.md"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b2", "is_error": false, "content": "text"}]}}

@@ -1,0 +1,5 @@
+== count-check@1 known answer bad
+judge.sh: want one whole number, got 'x'
+judge.sh: want one whole number, got 'x'
+== count-check@1 known answer long
+== count-check@1 known answer short

@@ -1,0 +1,2 @@
+{"v":1,"id":"01X","actor":"runner-base-1","type":"node.add","payload":{"kind":"Goal"}}
+{"v":1,"id":"01X","actor":"runner-base-1","type":"node.add","payload":{"kind":"Experiment"}}

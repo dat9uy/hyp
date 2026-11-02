@@ -1,0 +1,7 @@
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"a","name":"Bash","input":{"command":"cat <<'X' > f\nhyp nothing\nX\n/usr/local/bin/hyp add hyp --parent Q --title t --body long --why w"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"a","is_error":true,"content":[{"type":"text","text":"refused: over limit: body has 601 runes (max 600)"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"b","name":"Bash","input":{"command":"hyp add hyp --parent Q --title t --body long --why w 2>&1 | tail -n 3"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"b","is_error":true,"content":[{"type":"text","text":"refused: over limit: body has 601 runes (max 600)"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"c","name":"Bash","input":{"command":"ls /nope"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"c","is_error":true,"content":[{"type":"text","text":"no such file"}]}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"c","name":"Bash","input":{"command":"ls /nope"}}]}}

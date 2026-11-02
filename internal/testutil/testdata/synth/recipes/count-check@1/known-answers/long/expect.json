@@ -1,0 +1,9 @@
+{
+ "args": [
+  "5"
+ ],
+ "command": "judge",
+ "exit": 0,
+ "stdout": "count 5\nverdict: short=contradicts\n",
+ "step": "standalone"
+}

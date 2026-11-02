@@ -1,0 +1,19 @@
+{
+ "step": "standalone",
+ "command": "verdict",
+ "args": [
+  "f_body_limit",
+  "$CASE/input/base-1",
+  "$CASE/input/base-2",
+  "$CASE/input/base-3",
+  "$CASE/input/base-4",
+  "$CASE/input/base-5",
+  "$CASE/input/fix-1",
+  "$CASE/input/fix-2",
+  "$CASE/input/fix-3",
+  "$CASE/input/fix-4",
+  "$CASE/input/fix-5"
+ ],
+ "exit": 0,
+ "stdout": "verdict: repro=contradicts\nverdict: fix=inconclusive\n"
+}

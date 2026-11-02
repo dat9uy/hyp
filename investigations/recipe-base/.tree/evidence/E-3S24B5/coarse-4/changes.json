@@ -1,0 +1,2302 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": "recipes/claude-skill-gate@1/brief.txt",
+      "change": "added",
+      "size": 661,
+      "sha256": "01797a9f50f7dbb06fec4682f184c30a5f502ab00567fd14b3739fc8251d4e3a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/cleanup.sh",
+      "change": "added",
+      "size": 101,
+      "sha256": "f4f13de2f4eb0d7d30b5f65e96016be5f8683b4553acfca1dfc2a60019a0b875",
+      "mode": "-rwxr-xr-x",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/doctor.sh",
+      "change": "added",
+      "size": 885,
+      "sha256": "bcf2bdada06bd088d6f97d337281eddec2a8d3a88a6850ca6ffeb62ea992cef4",
+      "mode": "-rwxr-xr-x",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/drive.py",
+      "change": "added",
+      "size": 3037,
+      "sha256": "d3809b477b567d3ab5fb4fe47309864421aeac9e880ff2bda0a269186fcf23bf",
+      "mode": "-rwxr-xr-x",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-body/expect.json",
+      "change": "added",
+      "size": 208,
+      "sha256": "f1b789b106d9ef8aefd399657d35d2567387a7a894e5cbb7abcc8bfdc2eec668",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-body/input/trial/changes.json",
+      "change": "added",
+      "size": 29,
+      "sha256": "7257583546eeaf0d89e6a2b7f4a34c07aab3d52d31fc3d5ae30545a877bc689a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-body/input/trial/drive.json",
+      "change": "added",
+      "size": 105,
+      "sha256": "3f1ddda88ea439bfc9e381c4510360ff6ce8774ff01b759c3c45f2b17ccaad05",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-body/input/trial/state.env",
+      "change": "added",
+      "size": 33,
+      "sha256": "ead421c63280889877998d54fee6e04fc0cd65f87e0a3d59a645c24213bc9ed3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-body/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 1262,
+      "sha256": "12f08d9b803123d4e6da77a6ae59fd77af2bcc51505043708d8740653d35ae6c",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-clean/expect.json",
+      "change": "added",
+      "size": 205,
+      "sha256": "c0084cf9b23648cc6dfe1828a1bd5d5fad97056be5dec18eb628d5ca65a7e08e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-clean/input/trial/changes.json",
+      "change": "added",
+      "size": 29,
+      "sha256": "7257583546eeaf0d89e6a2b7f4a34c07aab3d52d31fc3d5ae30545a877bc689a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-clean/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "e6a54396fe3f4f0776b9d3347559f8a25520984a91946c95f7fe6f4bb22ba788",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-clean/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "2b79795788144555153b1a994d90fb9dc98ae6ec91ee6307fea746ec8aaec604",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-clean/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 522,
+      "sha256": "7fbbea6668a816ddd8ab517fc56ad444ae7d3e3e854d14e914fd1d8bb57de48a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-changes/expect.json",
+      "change": "added",
+      "size": 99,
+      "sha256": "207a39bfc82ff82503e2eaef6f64aa1d4cc6d08602d54fe11e898dd88a0653b3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-changes/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "ea5121a75bc1094bd20721e71831304fd3dd6c5d7fdbf1f87f12c9d878261093",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-changes/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "dc7cba7e9df85d410e901f8d134e59dc340640881d23c741912d8e483761ed5e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-changes/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-drive/expect.json",
+      "change": "added",
+      "size": 99,
+      "sha256": "207a39bfc82ff82503e2eaef6f64aa1d4cc6d08602d54fe11e898dd88a0653b3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-drive/input/trial/changes.json",
+      "change": "added",
+      "size": 29,
+      "sha256": "7257583546eeaf0d89e6a2b7f4a34c07aab3d52d31fc3d5ae30545a877bc689a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-drive/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "dc7cba7e9df85d410e901f8d134e59dc340640881d23c741912d8e483761ed5e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-drive/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-state/expect.json",
+      "change": "added",
+      "size": 99,
+      "sha256": "207a39bfc82ff82503e2eaef6f64aa1d4cc6d08602d54fe11e898dd88a0653b3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-state/input/trial/changes.json",
+      "change": "added",
+      "size": 29,
+      "sha256": "7257583546eeaf0d89e6a2b7f4a34c07aab3d52d31fc3d5ae30545a877bc689a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-state/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "ea5121a75bc1094bd20721e71831304fd3dd6c5d7fdbf1f87f12c9d878261093",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-state/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-transcript/expect.json",
+      "change": "added",
+      "size": 99,
+      "sha256": "207a39bfc82ff82503e2eaef6f64aa1d4cc6d08602d54fe11e898dd88a0653b3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-transcript/input/trial/changes.json",
+      "change": "added",
+      "size": 29,
+      "sha256": "7257583546eeaf0d89e6a2b7f4a34c07aab3d52d31fc3d5ae30545a877bc689a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-transcript/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "ea5121a75bc1094bd20721e71831304fd3dd6c5d7fdbf1f87f12c9d878261093",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-missing-transcript/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "dc7cba7e9df85d410e901f8d134e59dc340640881d23c741912d8e483761ed5e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-modified/expect.json",
+      "change": "added",
+      "size": 211,
+      "sha256": "7ccf38df27ca428fb10aa6aaf5fe0e8ce1896538e24d4e547451bf47ea7c504a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-modified/input/trial/changes.json",
+      "change": "added",
+      "size": 541,
+      "sha256": "7a3be3f43157cdafa4df6e7b506b264a4cb3d5db8ea8468ed14854e8dcada9d0",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-modified/input/trial/changes/.tree/events/shared.jsonl",
+      "change": "added",
+      "size": 308,
+      "sha256": "026a3a9878f320e16c2524941c6639cd72ab22a77f82265cae5115bafffc4a5d",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-modified/input/trial/changes/notes.md",
+      "change": "added",
+      "size": 146,
+      "sha256": "5bc0871d715e09026f55d45f124b41b7c97dbac585083d0f390e1b3d40d0aa0a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-modified/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "0dcea1b9bd2c1d51b1f1635983b22d4714af3945974131fdf1be4ab579b52397",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-modified/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "92301dbbd831c8b60039f5f517ab939217fee86f0ee709cf2ed36472df58a713",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-modified/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 397,
+      "sha256": "2ad9086fd113779aafa925566eb12191011b4161f96a0ba9dd2ff3a8d8edbffa",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-noskill/expect.json",
+      "change": "added",
+      "size": 208,
+      "sha256": "147921fb4ef74e6d1ef2e4990735cceac2cee1c6c89cce5996e4360fd393a6dc",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-noskill/input/trial/changes.json",
+      "change": "added",
+      "size": 29,
+      "sha256": "7257583546eeaf0d89e6a2b7f4a34c07aab3d52d31fc3d5ae30545a877bc689a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-noskill/input/trial/drive.json",
+      "change": "added",
+      "size": 105,
+      "sha256": "f37c9122851a19bd2af2ee6ea19c67857945f4cf274125ec83c529a87e773300",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-noskill/input/trial/state.env",
+      "change": "added",
+      "size": 33,
+      "sha256": "657b0d3395276f8666c5c141236d09ff246e4a2f0e8a52a8b8f01ff3f113f216",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-noskill/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 805,
+      "sha256": "3a76a9c016d410cb33f5fb0e9cf635ece95a542adcf11e57c1719b7392224d57",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-pin/expect.json",
+      "change": "added",
+      "size": 209,
+      "sha256": "c0efd09fc23b4fe676595aa2e8b5529758d782be0ceebdab9b2370f07ad74978",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-pin/input/trial/changes.json",
+      "change": "added",
+      "size": 202,
+      "sha256": "1c8673ad80f55b8c1fe9e976855e5c457df9ec2cd9c1ebd0a0522e788a0ec936",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-pin/input/trial/changes/.tree/events/other.jsonl",
+      "change": "added",
+      "size": 283,
+      "sha256": "b365175513da2274b65316a22710028f67a75186ed790de50ed2b10d092ca103",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-pin/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "95d005b02ca2579bfe63074023cdcd072e53d62934bb66227f0aa2b00f62fd49",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-pin/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "b813d195eb125018fafb5e0987dd06206e0b71aa5b812227ff875642e3a24bda",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-pin/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 690,
+      "sha256": "d9459c815a855f0ef7b7f371ab1c4fa11724c917e27b94bb812b7c6f5df5c716",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-recorded/expect.json",
+      "change": "added",
+      "size": 209,
+      "sha256": "87c7cd3542e6f6a043453ff5050a94e352911ca1545b65d8f6b46ede499b8de9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-recorded/input/trial/changes.json",
+      "change": "added",
+      "size": 206,
+      "sha256": "b30d468a7bfe20f4347bea4e498c1a378bda6979c041a114359de816a3b07ef0",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-recorded/input/trial/changes/.tree/events/shared.jsonl",
+      "change": "added",
+      "size": 460,
+      "sha256": "7fa2bbe40ceb6bcd43850c4d1e32c82bd9268feee395af312c2e62cf03d1d7ef",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-recorded/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "6b922e8647ad677021ab3eeb1c4aec0f0441bb9e573196cf401d95f86b3d9885",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-recorded/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "dadf595566fb76b12ae4f94b583336359ff7cd11ed7b2d737a8d0aa3f02fe15f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-recorded/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 261,
+      "sha256": "3c0f49b6f567d7e0c0a3f74e2cb209c7325d0fe7bce95b8c5f2b19504bf2acd1",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-seam/expect.json",
+      "change": "added",
+      "size": 205,
+      "sha256": "c0084cf9b23648cc6dfe1828a1bd5d5fad97056be5dec18eb628d5ca65a7e08e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-seam/input/trial/changes.json",
+      "change": "added",
+      "size": 29,
+      "sha256": "7257583546eeaf0d89e6a2b7f4a34c07aab3d52d31fc3d5ae30545a877bc689a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-seam/input/trial/drive.json",
+      "change": "added",
+      "size": 283,
+      "sha256": "e681eab6eef92949702dca992e9c649ae2700739bfb8620455318f5b161cf79d",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-seam/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "2b79795788144555153b1a994d90fb9dc98ae6ec91ee6307fea746ec8aaec604",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-seam/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 261,
+      "sha256": "3c0f49b6f567d7e0c0a3f74e2cb209c7325d0fe7bce95b8c5f2b19504bf2acd1",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-stops/expect.json",
+      "change": "added",
+      "size": 211,
+      "sha256": "ae73055b7975186c0145911c2786749ac78fb07e7f1c2d4f85769d54e1f2408a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-stops/input/trial/changes.json",
+      "change": "added",
+      "size": 210,
+      "sha256": "525dbe96a194788d0c1de65fd97460eceb37d3122cdd34c812035165c44d9496",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-stops/input/trial/changes/.tree/events/runner-base-1.jsonl",
+      "change": "added",
+      "size": 310,
+      "sha256": "e1d521e853162a352f65b5900ca9ece4f453bc70f145f0193d0a40403ac94191",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-stops/input/trial/drive.json",
+      "change": "added",
+      "size": 102,
+      "sha256": "ea5121a75bc1094bd20721e71831304fd3dd6c5d7fdbf1f87f12c9d878261093",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-stops/input/trial/state.env",
+      "change": "added",
+      "size": 30,
+      "sha256": "dc7cba7e9df85d410e901f8d134e59dc340640881d23c741912d8e483761ed5e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-stops/input/trial/transcript.jsonl",
+      "change": "added",
+      "size": 1387,
+      "sha256": "dfcbe234892883d5dc9b520c957176f17a5a640492f82f464cafbe4b2b211047",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-usage/expect.json",
+      "change": "added",
+      "size": 99,
+      "sha256": "207a39bfc82ff82503e2eaef6f64aa1d4cc6d08602d54fe11e898dd88a0653b3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/score-usage/input/.keep",
+      "change": "added",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/expect.json",
+      "change": "added",
+      "size": 340,
+      "sha256": "209db52cea2cd835cda12376a6ac334ffe7a97a821b20a17821aec4be5c4d660",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "218ec6d8ea3626288102e04e8a27f50e829dae5f72ca394f31ac4c58baf8614a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-skill/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/expect.json",
+      "change": "added",
+      "size": 340,
+      "sha256": "209db52cea2cd835cda12376a6ac334ffe7a97a821b20a17821aec4be5c4d660",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "ea4e4c17e2fd0b28c8b0989ca268276a63fff4bfdd6ce399f4dcf8ff6d8c9be5",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-bad-value/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/expect.json",
+      "change": "added",
+      "size": 318,
+      "sha256": "e149c9f3b835dbd71a608bb16ace053d98209c8dfcc313b3119199f38887484f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-count/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/expect.json",
+      "change": "added",
+      "size": 472,
+      "sha256": "04f19b0202b6a36ab13c50f779f7ab36db8553a14a47c685e71b419eccd5b3ca",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "0ff4b73f1a745a67405f7a2963ecf6e4ed715c8a031ed562ecca8e6c75be0dc0",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill-short/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/expect.json",
+      "change": "added",
+      "size": 465,
+      "sha256": "31209e1d11aa297670d1905410f55942d72ec61a133a26146ab364e17b185139",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "3967a6fa4e2f34caefabcae0f8bc0cb795f8c3162e7445e9ea293d7398b6dae7",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "87fffe179b77e8982233995ef776044fef57850b8476987c8cb2e9c016487af0",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "bc9995a861b1816b8ed9c1a5a51fd87507c9682884f900c0d99e079486c2a7ec",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "0b93076cb1ede975540cec59c0b6f8df3a8d29f9e19e85c92286772821f4209c",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-base-noskill/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/expect.json",
+      "change": "added",
+      "size": 315,
+      "sha256": "c192670b4c61f6f537d0f0d538962488713e23a01070689fd2cfc1387fbc3e21",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-count/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/expect.json",
+      "change": "added",
+      "size": 340,
+      "sha256": "337a15e81562e6ee4e938f004ada047757ecde456b494dd4cdd305486af95cbd",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-dup/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/expect.json",
+      "change": "added",
+      "size": 468,
+      "sha256": "0035be98683f2a87834b8fc8dffeb7510894a352dc5c91ad234c138f989f2e67",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "bc9995a861b1816b8ed9c1a5a51fd87507c9682884f900c0d99e079486c2a7ec",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "6edb2a9243d22ae9176d709c4d043ef051f1a212a9fa4a837997764153e6c0b4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "8e7211d2ff033874d460f8f2860717ce6ab4ff4c3c44c4faad741d74d2410c5a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-fail/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/expect.json",
+      "change": "added",
+      "size": 366,
+      "sha256": "a6d4d53c8e9818cda68f55a6ddf15cca09247e211dcb639317013e2e01050cde",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-field/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/expect.json",
+      "change": "added",
+      "size": 335,
+      "sha256": "23f4adbd68116e3786b4052e71fba01c12c8eec8d954c1ad1df6a25b28b73f46",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/alt-1",
+      "change": "added",
+      "size": 46,
+      "sha256": "dd29d5c833950765a2035bf62ae852e037ea5338dffdfc90a3af0986531e88cb",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/alt-2",
+      "change": "added",
+      "size": 46,
+      "sha256": "7fd0285a108b7f73c82ed0530ebf04adc6110d75ade9be217c15e054984cf2df",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/alt-3",
+      "change": "added",
+      "size": 46,
+      "sha256": "67adea5babeb9c7a187bbe9547acf8b789dcdc0572a53122ecf9c1104b5ea11a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/alt-4",
+      "change": "added",
+      "size": 46,
+      "sha256": "6338b57c9b1ff81d4ec2d22ac1b980ecaf4f8639497ec44b25285e0cd1d55e3d",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/alt-5",
+      "change": "added",
+      "size": 46,
+      "sha256": "44f8368030fd2aa037ea06394c53d3f64b51c82d6f43a2da5a2d95b9d8d958b8",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-base/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/expect.json",
+      "change": "added",
+      "size": 315,
+      "sha256": "7d1fa59d54f43d0cd133f7be1e172a301ba98f62c1cc2f09c21adc00c3d9cdee",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-no-row/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/expect.json",
+      "change": "added",
+      "size": 472,
+      "sha256": "04f19b0202b6a36ab13c50f779f7ab36db8553a14a47c685e71b419eccd5b3ca",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "afe78dd95af0205013a9939700ade8039515fc742928cbd5bee1ee24aeebbed3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-none/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/expect.json",
+      "change": "added",
+      "size": 465,
+      "sha256": "df39675362957100518c6fb432f6304328044b9155d408156d00acc8c1e694ee",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "6edb2a9243d22ae9176d709c4d043ef051f1a212a9fa4a837997764153e6c0b4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-pass/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/expect.json",
+      "change": "added",
+      "size": 569,
+      "sha256": "4250e3c082166b760dedf4cfc424f0acbe1392e6259c71ea6bffac90bec81be3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/base-1",
+      "change": "added",
+      "size": 63,
+      "sha256": "db821541294872762a11f90aa43cddf3f2b3875dbf979e3e6b7da3e93a95595f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/base-2",
+      "change": "added",
+      "size": 63,
+      "sha256": "7db2e4fdb1c8a4ea6a9b63b2d491ad92735c240c19b05e406057e2a21e225b58",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/base-3",
+      "change": "added",
+      "size": 63,
+      "sha256": "ab6ede78d7fdb5d8592b0066ba36f785419abc0da08f0c4225ffc7752bf717ba",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/base-4",
+      "change": "added",
+      "size": 63,
+      "sha256": "564b25d8c06f0ad29b46a3f3d8c35c7874863ead65a0f00b5e6cf580286d8706",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/base-5",
+      "change": "added",
+      "size": 63,
+      "sha256": "ef0af06d125bdf2f3cca8c436ead654bd82f6288713a3175f7243f1e4f2c8c27",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/variant-1",
+      "change": "added",
+      "size": 66,
+      "sha256": "8dd8bd1d54cd1e0555c4a498300b0480926ed91916e40e05877357a94a996575",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/variant-2",
+      "change": "added",
+      "size": 66,
+      "sha256": "6688bade230ae6cf03b69d29efca40c45461a454c7c719692a00798cf49998f9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/variant-3",
+      "change": "added",
+      "size": 66,
+      "sha256": "cfc91219bc61570045f4faa57b33f6baccd7c66a170cccbc6c16845e97f267c0",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/variant-4",
+      "change": "added",
+      "size": 66,
+      "sha256": "d2995ebcd374b1a8eb8f4ef1a411db33157424c58b50abd70848b9288d097bff",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-both/input/variant-5",
+      "change": "added",
+      "size": 66,
+      "sha256": "7a118560dd810aabc69dd6f091264eff2beebd6f40c553a605cad90e9c64be9b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/expect.json",
+      "change": "added",
+      "size": 573,
+      "sha256": "050bf7bdc159e987d3eccf89524895e9fbd91e00da48d75a23c524b4832f15ba",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/base-1",
+      "change": "added",
+      "size": 63,
+      "sha256": "276c19f3ef2eb1456224d8255125e5a4327c7e9e17068e93c75dc71f3b52de40",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/base-2",
+      "change": "added",
+      "size": 63,
+      "sha256": "5f2c47c1b7494e830ea94ce76f0f933fc28f70845956fc28715d4c0bbf17894e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/base-3",
+      "change": "added",
+      "size": 63,
+      "sha256": "1fee47ff70a20451d74c7cdc23c020b4dfb1a1453fd61a7316251cd945284c0e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/base-4",
+      "change": "added",
+      "size": 63,
+      "sha256": "d34065d76221326020dd07444f40cbc1ef33f290f7f9c81f97e32b49fb019eba",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/base-5",
+      "change": "added",
+      "size": 63,
+      "sha256": "ef0af06d125bdf2f3cca8c436ead654bd82f6288713a3175f7243f1e4f2c8c27",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/variant-1",
+      "change": "added",
+      "size": 66,
+      "sha256": "87ae182f300e0291efc029a7d8e50eb27aad3394ad0932831b2ed42b067c80ee",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/variant-2",
+      "change": "added",
+      "size": 66,
+      "sha256": "c140d4573d634dcf3644cd7317f2ca014672da2e575eb74460e827813879f8d6",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/variant-3",
+      "change": "added",
+      "size": 66,
+      "sha256": "549ad986780d26511cc67e70819d2377184055cd4ef1862d821d31594bb13f10",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/variant-4",
+      "change": "added",
+      "size": 66,
+      "sha256": "38ccdb52ec0b0be9bb0b6ad908a354ebd026b54c3da5c87b1d7a47aecfe9ce7e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-none/input/variant-5",
+      "change": "added",
+      "size": 66,
+      "sha256": "82cdf7b6d20fde3756381451dc2115ef276acc07ffc549b9b85faeb9e94695a3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/expect.json",
+      "change": "added",
+      "size": 566,
+      "sha256": "ec97608ec51f0bc1c9e77e38704450a8c98899ddfb84c831ae3b2551560cf8eb",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/base-1",
+      "change": "added",
+      "size": 63,
+      "sha256": "7f8b0fa1123c46a0fbef0461b70966fb80c11a37d257e01491a0d7ef8624f1f3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/base-2",
+      "change": "added",
+      "size": 63,
+      "sha256": "6e49df2cbc69d2cc98823dd1fc57e8e7deeae56278c1d53e534fc40664b6a3c9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/base-3",
+      "change": "added",
+      "size": 63,
+      "sha256": "13f5753671c1f6209069e3b18294300afaaad046353768c4398a6f2bdbdead9d",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/base-4",
+      "change": "added",
+      "size": 63,
+      "sha256": "d34065d76221326020dd07444f40cbc1ef33f290f7f9c81f97e32b49fb019eba",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/base-5",
+      "change": "added",
+      "size": 63,
+      "sha256": "ef0af06d125bdf2f3cca8c436ead654bd82f6288713a3175f7243f1e4f2c8c27",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/variant-1",
+      "change": "added",
+      "size": 66,
+      "sha256": "87ae182f300e0291efc029a7d8e50eb27aad3394ad0932831b2ed42b067c80ee",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/variant-2",
+      "change": "added",
+      "size": 66,
+      "sha256": "84bf598023bb0aca07f301f26a2ec5e21e56fded7a24c71afbd1e52c4f137e13",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/variant-3",
+      "change": "added",
+      "size": 66,
+      "sha256": "4922980242f2bf071ebe8c0f4c97fd6c6cbb1eacea363d711a14ad4d38379483",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/variant-4",
+      "change": "added",
+      "size": 66,
+      "sha256": "927005c3d1cb24e22ec82053edad59585b15ec8965b9921a3bb702ac261ccab3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-one/input/variant-5",
+      "change": "added",
+      "size": 66,
+      "sha256": "3c5caa67f906059834df9f2837fd20e53b3019285abe47ff873f15ce9323a72a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/expect.json",
+      "change": "added",
+      "size": 566,
+      "sha256": "de08123a5d8746c8ba4913c40cc08be2264cac832a01a72f15f34603e51e721d",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/base-1",
+      "change": "added",
+      "size": 63,
+      "sha256": "db821541294872762a11f90aa43cddf3f2b3875dbf979e3e6b7da3e93a95595f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/base-2",
+      "change": "added",
+      "size": 63,
+      "sha256": "5f2c47c1b7494e830ea94ce76f0f933fc28f70845956fc28715d4c0bbf17894e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/base-3",
+      "change": "added",
+      "size": 63,
+      "sha256": "1fc10779173ef6526ee4f63cdebe85f29b4598611b101639467ebabe95d53a13",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/base-4",
+      "change": "added",
+      "size": 63,
+      "sha256": "88131a896fc2475f196971156da5c44d2480c53b873b6a117b49f706419b6093",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/base-5",
+      "change": "added",
+      "size": 63,
+      "sha256": "ef0af06d125bdf2f3cca8c436ead654bd82f6288713a3175f7243f1e4f2c8c27",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/variant-1",
+      "change": "added",
+      "size": 66,
+      "sha256": "87ae182f300e0291efc029a7d8e50eb27aad3394ad0932831b2ed42b067c80ee",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/variant-2",
+      "change": "added",
+      "size": 66,
+      "sha256": "6688bade230ae6cf03b69d29efca40c45461a454c7c719692a00798cf49998f9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/variant-3",
+      "change": "added",
+      "size": 66,
+      "sha256": "d1d1d57add757906ddd789cfa3d2c4e747f347cb95d37556463fc9ede397104f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/variant-4",
+      "change": "added",
+      "size": 66,
+      "sha256": "d2995ebcd374b1a8eb8f4ef1a411db33157424c58b50abd70848b9288d097bff",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-rows-skip/input/variant-5",
+      "change": "added",
+      "size": 66,
+      "sha256": "7a118560dd810aabc69dd6f091264eff2beebd6f40c553a605cad90e9c64be9b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/expect.json",
+      "change": "added",
+      "size": 630,
+      "sha256": "94cd65493d5f33256a557aa9149108c956ce101fc207510caf1d4d142dd8f1dc",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/alt-1",
+      "change": "added",
+      "size": 46,
+      "sha256": "dd29d5c833950765a2035bf62ae852e037ea5338dffdfc90a3af0986531e88cb",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/alt-2",
+      "change": "added",
+      "size": 46,
+      "sha256": "7fd0285a108b7f73c82ed0530ebf04adc6110d75ade9be217c15e054984cf2df",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/alt-3",
+      "change": "added",
+      "size": 46,
+      "sha256": "dce24113b1570c10fcdc37dbdd19e6f44b374a892b362f00fede6ddd447f894b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/alt-4",
+      "change": "added",
+      "size": 46,
+      "sha256": "5ad9f514482da151e426857a5576c4d7b42a3c65b9178a639b1ff25a1d16a8ab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/alt-5",
+      "change": "added",
+      "size": 46,
+      "sha256": "d0463c9d6a78ff33ed662b5684ca86c14b96063a0a78848036b1396026a676f7",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "bc9995a861b1816b8ed9c1a5a51fd87507c9682884f900c0d99e079486c2a7ec",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "0b93076cb1ede975540cec59c0b6f8df3a8d29f9e19e85c92286772821f4209c",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "b282c3ab1d54da0cd9ec5a16d355343b31dbfff31b5af820e0c308c4c83fbae4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "73082df8ae2b0715b610bd9d34b6a5f3b5206f08e903e66e9fee4572d45acb6f",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-two-arms/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/expect.json",
+      "change": "added",
+      "size": 630,
+      "sha256": "2495492e637c0324916caf82c68388a48c16bba594a8fecdb5e709df1200770a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/alt-1",
+      "change": "added",
+      "size": 46,
+      "sha256": "bc0b00421e7f2847b11c4bc0daf9f962e065b7793262b7832c9b3fe058442589",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/alt-2",
+      "change": "added",
+      "size": 46,
+      "sha256": "00c48ff682ab510273ee138bde2a41c44cb2e5cd6c5f4c54d3e98644525bb9d7",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/alt-3",
+      "change": "added",
+      "size": 46,
+      "sha256": "dce24113b1570c10fcdc37dbdd19e6f44b374a892b362f00fede6ddd447f894b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/alt-4",
+      "change": "added",
+      "size": 46,
+      "sha256": "5ad9f514482da151e426857a5576c4d7b42a3c65b9178a639b1ff25a1d16a8ab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/alt-5",
+      "change": "added",
+      "size": 46,
+      "sha256": "d0463c9d6a78ff33ed662b5684ca86c14b96063a0a78848036b1396026a676f7",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/base-1",
+      "change": "added",
+      "size": 47,
+      "sha256": "b25e3881e3a5de32dde83e5e9cdca633f992433a72bf1dccee02e60d704103b9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/base-2",
+      "change": "added",
+      "size": 47,
+      "sha256": "51ad5062b5aa5a1cd299525233624eeff5fe90052474d5c43f8276cc35bfdaab",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/base-3",
+      "change": "added",
+      "size": 47,
+      "sha256": "1d0f46c1943a9261a16f8eddc729b695bb47ff172c1e1a658be591284e8d0e55",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/base-4",
+      "change": "added",
+      "size": 47,
+      "sha256": "a6ca53eab2a02e98eca2aa0788fd5bfe3fc20758c834c24f77cf96b9043c75bf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/base-5",
+      "change": "added",
+      "size": 47,
+      "sha256": "68cc6d5df4488e42de476bf164d333fe210e4a3a19a98bd03d55ae4535d8743b",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/variant-1",
+      "change": "added",
+      "size": 50,
+      "sha256": "40d32e62b13091398d7e3caf779a5d295575d1fa4113c0041f34c47019f2abd3",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/variant-2",
+      "change": "added",
+      "size": 50,
+      "sha256": "6a9bff6db671c85cd7017e116e7bb010bb1e92cf22b7cd5f68815483b90e13ea",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/variant-3",
+      "change": "added",
+      "size": 50,
+      "sha256": "ee85d583e41682b4dd0c755518d689ad62541b937f930d41bddf7408a75a6e91",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/variant-4",
+      "change": "added",
+      "size": 50,
+      "sha256": "1a9780f5406b62fb8a28a2e4478cca348abb8571a4fd287faa84775a0869ea75",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/known-answers/verdict-variant-noskill/input/variant-5",
+      "change": "added",
+      "size": 50,
+      "sha256": "1894a839df938d36c61d783e2f08aa05e21bee484da2ae2dbaf18db800b7c2a9",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/launch.sh",
+      "change": "added",
+      "size": 1897,
+      "sha256": "57abcea27b7ee5517c03c1c8d387a45867b5d9c5648ac1931242d10b70eb512d",
+      "mode": "-rwxr-xr-x",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/recipe.md",
+      "change": "added",
+      "size": 4559,
+      "sha256": "70813947cb6cacb43532b24e6cc3e1630dadee5cd0cf8565a6ecf67ab9a3bf37",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/score.py",
+      "change": "added",
+      "size": 5986,
+      "sha256": "5e91915db591fd5c7b491825e27da873c77d826c318b34049e1031ee715d06c9",
+      "mode": "-rwxr-xr-x",
+      "copied": true
+    },
+    {
+      "path": "recipes/claude-skill-gate@1/verdict.py",
+      "change": "added",
+      "size": 3748,
+      "sha256": "0734b9bf83a08791a6384e3c009c34be612010bef2b566bd5cec8299978c81a2",
+      "mode": "-rwxr-xr-x",
+      "copied": true
+    }
+  ]
+}

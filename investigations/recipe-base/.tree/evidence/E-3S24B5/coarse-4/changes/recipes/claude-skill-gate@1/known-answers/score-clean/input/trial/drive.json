@@ -1,0 +1,8 @@
+{
+ "arm": "base",
+ "trial": "4",
+ "model": "sonnet",
+ "exit": 0,
+ "num_turns": 3,
+ "cost_usd": 0.25
+}

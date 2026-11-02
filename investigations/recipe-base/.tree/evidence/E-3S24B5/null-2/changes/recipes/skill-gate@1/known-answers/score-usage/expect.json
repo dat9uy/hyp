@@ -1,0 +1,6 @@
+{
+ "command": "score",
+ "exit": 2,
+ "stdout": "",
+ "step": "standalone"
+}

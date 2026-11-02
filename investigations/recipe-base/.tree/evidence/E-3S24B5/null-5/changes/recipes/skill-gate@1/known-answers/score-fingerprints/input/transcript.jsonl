@@ -1,0 +1,4 @@
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "a", "name": "Bash", "input": {"command": "hyp add exp"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "a", "is_error": true, "content": "Exit code 1\nrefused: --decided-by reading contradicts recipe skill-gate@1, an instrument whose checks decide the verdicts; drop --decided-by"}]}}
+{"type": "assistant", "message": {"content": [{"type": "tool_use", "id": "b", "name": "Bash", "input": {"command": "hyp add hyp"}}]}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "b", "is_error": true, "content": [{"type": "text", "text": "Exit code 1\nrefused: over limit: body has 601 runes (max 600)"}]}]}}

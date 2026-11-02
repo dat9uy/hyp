@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["--row", "f_a", "$CASE/input/slim1", "$CASE/input/slim2", "$CASE/input/slim3", "$CASE/input/slim4", "$CASE/input/slim5"], "exit": 2, "stdout": ""}

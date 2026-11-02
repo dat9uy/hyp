@@ -1,0 +1,4 @@
+{"message": {"content": [{"id": "t1", "input": {"file_path": "/w/docs/adr/0004.md"}, "name": "Read", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "refused: --decided-by reading contradicts recipe skill-gate@1, an instrument whose checks decide the verdicts; drop --decided-by\nrefused: over limit: body has 601 runes (max 600)", "is_error": false, "tool_use_id": "t1", "type": "tool_result"}], "role": "user"}, "type": "user"}
+{"message": {"content": [{"id": "t2", "input": {"command": "hyp add exp --parent H-1 --title e --recipe none --decided-by reading --target none --why w"}, "name": "Bash", "type": "tool_use"}], "role": "assistant"}, "type": "assistant"}
+{"message": {"content": [{"content": "E-9 node.add", "is_error": false, "tool_use_id": "t2", "type": "tool_result"}], "role": "user"}, "type": "user"}

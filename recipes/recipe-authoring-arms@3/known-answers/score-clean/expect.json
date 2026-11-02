@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "score", "args": ["$CASE/repo"], "repo": "trial.bundle", "exit": 0, "stdout": "arm\tmain\ntrial\t1\nfailing_hyp\t0\nf_sandbox_json\t0\nf_tar_input\t0\nf_go_file\t0\nf_recipe_none\t0\nf_weak_cases\t0\nstops\t0\nbundle\tgood@1\nknown_answers_exit\t0\nadd_exp_exit\t0\nend_state\tpass\n"}

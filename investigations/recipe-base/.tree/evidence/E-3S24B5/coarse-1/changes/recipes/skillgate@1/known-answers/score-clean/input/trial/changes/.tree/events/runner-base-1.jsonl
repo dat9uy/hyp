@@ -1,0 +1,2 @@
+{"v": 1, "id": "X", "ts": "t", "actor": "runner-base-1", "type": "node.add", "payload": {"kind": "Experiment", "parent": "p", "title": "t", "recipe": "x@1"}, "why": "w"}
+{"v": 1, "id": "X", "ts": "t", "actor": "runner-base-1", "type": "result.record", "payload": {"exp": "E"}, "why": "w"}

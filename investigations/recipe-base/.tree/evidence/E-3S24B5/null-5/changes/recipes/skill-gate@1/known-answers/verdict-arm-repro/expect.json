@@ -1,0 +1,10 @@
+{
+ "args": [
+  "$CASE/input",
+  "reading_pin"
+ ],
+ "command": "verdict",
+ "exit": 2,
+ "stdout": "",
+ "step": "standalone"
+}
