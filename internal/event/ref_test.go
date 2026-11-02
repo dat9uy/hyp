@@ -11,7 +11,7 @@ func TestParseRef(t *testing.T) {
 		name, version string
 	}{
 		{"a@1", "a", "1"},
-		{"skill-text-arms@2", "skill-text-arms", "2"},
+		{"gate-arms@2", "gate-arms", "2"},
 		{"none", "none", ""},
 		{"x@y@3", "x@y", "3"}, // the last @ splits
 	} {

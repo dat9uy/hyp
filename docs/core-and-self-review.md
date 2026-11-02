@@ -32,15 +32,15 @@ Visibility is a separate axis from scope. Every item in this repository is publi
 
 The self-review recipes kept before the public release (session-replay, scratch-pg, readout-read, containment-arms, declaration-shape and signals-replay-proto), their inputs, and the trees that pinned them are not published. Records made before the public release stay in the private development history.
 
-When a question needs an instrument, it is a recipe with known answers, pinned by Experiments that declare `decided_by` or pin it. The skill-text gate in [AGENTS.md](../AGENTS.md) uses `recipes/skill-text-arms@2`. A new self-review recipe gets a row here, with its visibility.
+When a question needs an instrument, it is a recipe with known answers, pinned by Experiments that declare `decided_by` or pin it. The skill-text gate in [AGENTS.md](../AGENTS.md) uses `recipes/skill-text-arms@3`. A new self-review recipe gets a row here, with its visibility.
 
 | Item | Why it is self-review | Visibility |
 |---|---|---|
 | `recipes/id-citation-arms@1` | a recipe this repository keeps to test hyp: it runs the id-citation rule prototypes on a frozen fixture store for `investigations/id-citation`; it is no replay instrument | public |
-| `recipes/authoring-stops@1` | a recipe this repository keeps to test hyp: it probes whether each stop an author meets while turning a method into an instrument is still live; the tree that pinned it is not published | public |
-| `recipes/recipe-authoring-arms@3` | a recipe this repository keeps to test hyp: a sonnet runner turns the id-citation method into an instrument on two hyp arms; it runs live runners, it does not replay a session; the tree that pinned it is not published | public |
-| `recipes/skill-text-arms@2` | a recipe this repository keeps to test hyp: the skill-text gate's instrument, a fresh sonnet runner at a store cut of `investigations/id-citation` with base skills or a SKILL.md variant; the tree that pinned it is not published | public |
-| `recipes/recipe-base-arms@1` | a recipe this repository keeps to test hyp: a sonnet runner builds the held-out skill-text gate instrument on three hyp arms (template only, a coarse base, fine bases), for `investigations/recipe-base`; copied by hand from `recipe-authoring-arms@3`, because `--from` copies the same name only: the one bootstrap exception to starting from a base, had a base shipped (ADR 0009) | public |
+| `recipes/authoring-stops@2` | a recipe this repository keeps to test hyp: it probes whether each stop an author meets while turning a method into an instrument is still live; the tree that pinned it is not published | public |
+| `recipes/recipe-authoring-arms@4` | a recipe this repository keeps to test hyp: a sonnet runner turns the id-citation method into an instrument on two hyp arms; it runs live runners, it does not replay a session; the tree that pinned it is not published | public |
+| `recipes/skill-text-arms@3` | a recipe this repository keeps to test hyp: the skill-text gate's instrument, a fresh sonnet runner at a store cut of `investigations/id-citation` with base skills or a SKILL.md variant; the tree that pinned it is not published | public |
+| `recipes/recipe-base-arms@1` | a recipe this repository keeps to test hyp: a sonnet runner builds the held-out skill-text gate instrument on three hyp arms (template only, a coarse base, fine bases), for `investigations/recipe-base`; copied by hand from a version of `recipe-authoring-arms` (its `recipe.md` names it by hash), because `--from` copies the same name only: the one bootstrap exception to starting from a base, had a base shipped (ADR 0009) | public |
 
 ## Core
 

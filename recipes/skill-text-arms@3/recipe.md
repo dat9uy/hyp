@@ -1,17 +1,17 @@
 ---
 name: skill-text-arms
-version: 2
-from: skill-text-arms@1 ec37e1f88212fefbdebdac51d6d3990e781cb1816c2b630040c34f13e8de9371
+version: 3
+from: skill-text-arms@2 c4ec8536155fef10ff67aedd712f6de7ddf5714d83e00ff86cc59c38dfcda303
 format: 1
-subject: A fresh sonnet runner with hyp and its two skills (base, or a SKILL.md variant) runs #240's e-arms from the id-citation store cut; skill-text stops are counted from its transcript and changes, and the skill-text gate is applied (self-review, #254)
+subject: A fresh sonnet runner with hyp and its two skills (base, or a SKILL.md variant) runs the id-citation tree's e-arms from that tree's store cut; skill-text stops are counted from its transcript and changes, and the skill-text gate is applied (self-review)
 ---
 
 # skill-text-arms
 
-The skill-text gate's instrument for #254 (`investigations/skill-text-gate`).
+The skill-text gate's instrument (AGENTS.md, "Improving hyp with hyp").
 One sandbox per trial: `hyp sandbox create --store
 investigations/id-citation/.tree --cut 01M6A7K0994S8115J0ZHBMN916` puts
-#240's tree in `wt/.tree` as it was at the last `node.add` before e-arms;
+the id-citation tree in `wt/.tree` as it was at the last `node.add` before e-arms;
 Launch strips the clone down to hyp, its two skills (the arm's variant over
 them) and what e-arms needs; Drive runs a `claude -p` runner that
 pre-registers e-arms, runs it and records its Result; `score` reads one
@@ -27,7 +27,8 @@ binary `today`, `text-warn`, `text-refuse` and `cite`, `bin_<arm>` (an
 absolute path) and `sha_<arm>` (its sha256). It exits 2 when a line is
 missing, a binary is not a file or its sha256 differs, the arm is unknown
 or `wt/.tree` is missing. The binaries are built once by the operator from
-#240's arm patches on ff47d32 with `CGO_ENABLED=0 go build -trimpath`; the
+the id-citation investigation's arm patches with `CGO_ENABLED=0 go build
+-trimpath`, and each is named by the sha256 the inputs file gives; the
 runner never builds them.
 
 It copies each binary to `wt/arms/arm-<arm>` and writes
@@ -41,28 +42,35 @@ runner's brief is `brief.txt` followed by `method.md`. These files
 are written before the manifest, so they are not changes. Every product of
 the trial is written in Drive.
 
-`method.md` is #240's e-arms method
-(`plans/261101-0708-240-id-citation/assets/e-arms-method.md` on main at
-79a3a85, 5184 bytes) with these edits, so that it names nothing the runner
+`method.md` is the id-citation tree's e-arms method as that
+investigation wrote it (5184 bytes), with these edits, so that it names nothing the runner
 cannot have: the tree is "this repository's tree (`.tree/`)", not
 `investigations/id-citation`; the method, fixture and cases file are
 "given", not "committed"; `fixture.sh` is not named; the arms are named by
 sha256 in `arms/arms.sha256` and built already as `arms/arm-<arm>`, with
 no patch path; "phase 3" is reworded; and the Disclosure and Correction
-sections, written after #240's run, are dropped. It stays over a body's
-600 runes (4191 bytes), which S1 needs. `fixture/` is #240's
-`assets/fixture/` unchanged (`fixture.tar`, `cases.tsv`, `ids.txt`).
+sections, written after the id-citation run, are dropped. It stays over a body's
+600 runes (4191 bytes), which S1 needs. `fixture/` is that
+investigation's fixture unchanged (`fixture.tar`, `cases.tsv`, `ids.txt`).
 
-`brief.txt` is new. arms@3's brief told its runner not to create a tree
-and not to run the Experiment, so none of its trials reached these stops.
+`brief.txt` is new. The brief of the recipe-authoring instrument this
+recipe was first made from told its runner not to create a tree and not
+to run the Experiment, so none of its trials reached these stops.
 
-Version 2 (#254, after R-C5ZFZ9): @1 wrote the method as `wt/METHOD.md`,
-which gave it a home a plans-less author lacks, so S1 could not show; the
-verifier on q-repro judged that limit open. @2 carries the method only in
+Version 2: @1 wrote the method as `wt/METHOD.md`,
+which gave it a home a plans-less author lacks, so S1 could not show; a
+verifier judged that limit open. @2 carries the method only in
 the brief, and Doctor fails when `METHOD.md` is in `wt/`; its first
 paragraph says "This method" for "This file". @1's brief can
 never reach P5 (no runner writes a Launch); @2 keeps that brief, so P5 is
 not probed by either version.
+
+Version 3: @2's `score-usage` case held `expect.json` but no `input/`,
+because git keeps no empty directory, so the known-answer gate refused
+the bundle (`known answer score-usage: input/ is missing`) and no run of
+it could start. @3 adds `input/README.txt` to that case, and this text no
+longer names plan files, commits or tracker issues. The scripts, the
+method, the fixture and every expected output are unchanged.
 
 ## Doctor
 

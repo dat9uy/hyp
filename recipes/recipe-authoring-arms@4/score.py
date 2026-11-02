@@ -48,6 +48,8 @@ def method_names():
 WRITE_SANDBOX = re.compile(r"(>|\btee\s|\bcp\s|\bmv\s)[^;&|\n]*sandbox\.json")
 ADD_EXP_NONE = re.compile(r"\bhyp\s+add\s+exp\b[^\n;&|]*--recipe[ =]none\b")
 BUNDLE = re.compile(r"^recipes/([a-z0-9][a-z0-9._-]*)@([A-Za-z0-9._-]+)/")
+# A warning about a command's External: line (missing or TODO) is not about the bundle's cases.
+EXTERNAL_WARN = re.compile(r": (no External: line|External: not stated)")
 
 
 def fail(msg):
@@ -133,7 +135,8 @@ def main():
             a, _ = run(["hyp", "add", "exp", "--parent", h, "--title", "e", "--recipe", ref,
                         "--target", "none", "--why", "w"], repo)
             _, chk = run(["hyp", "recipe", "check"], repo)
-            w = int(any(l.startswith("warn") and ref in l for l in chk.splitlines()))
+            w = int(any(l.startswith("warn") and ref in l and not EXTERNAL_WARN.search(l)
+                        for l in chk.splitlines()))
             if bundle == "none" or (k == 0 and a == 0):
                 bundle, ka, ae, weak = ref, k, a, w
             if k == 0 and a == 0:

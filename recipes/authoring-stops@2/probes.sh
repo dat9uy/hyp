@@ -38,7 +38,7 @@ mkdir -p "$W/plain"
 p evidence-plain-dir hyp recipe evidence --record "$W/rec" inst@1 "$W/plain"
 # A known-answer input holding a bundle path with '@'.
 mkdir -p "$W/b/inst@1/known-answers/c/input/recipes/x@1"
-cp recipes/inst@1/recipe.md "$W/b/inst@1/" && touch "$W/b/inst@1/known-answers/c/input/recipes/x@1/recipe.md"
+cp recipes/inst@1/recipe.md recipes/inst@1/m.sh "$W/b/inst@1/" && touch "$W/b/inst@1/known-answers/c/input/recipes/x@1/recipe.md"
 p at-in-input hyp recipe hash "$W/b/inst@1"
 # A placeholder id in --why.
 p placeholder-id hyp add hyp --parent "$Q" --title h2 --why "see R-<new>"
