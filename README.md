@@ -15,6 +15,16 @@ An agent that investigates a design question usually keeps its account in prose:
 
 The binary refuses events that would corrupt the tree or skip a step, and `hyp signals` flags rounds that taught nothing. [loop-philosophy.md](docs/loop-philosophy.md) explains why these guards run during an investigation instead of before it.
 
+## Where hyp comes from
+
+hyp's way of running an Experiment starts from pstack's [`create-verification-skill`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/create-verification-skill/SKILL.md). That skill writes a project-local verify skill whose sections include Launch, Doctor, Drive, Evidence and Cleanup, with honesty rules: evidence survives cleanup, a step proven only in a stand-in for the real target stays unverified, a journey is never weakened to make it pass, and a skill that was never run is a draft. hyp keeps the five names as the sections of a recipe (see "Step" in [glossary.md](docs/glossary.md) and [replay-spec.md §9](docs/replay-spec.md#9-sandbox-lifecycle-and-steps)) and adds:
+
+- **Versioned recipes.** A recipe is a bundle of files with a version, pinned by its hash and never edited once a tree pins it ([ADR 0005](docs/adr/0005-a-bundle-is-its-ref-and-hash.md), [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md)).
+- **hyp runs the commands.** hyp, not the agent, runs every recipe command and records what it ran ([ADR 0001](docs/adr/0001-hyp-runs-every-recipe-command.md)).
+- **Known answers first.** Before a recipe runs, its checks must give their known answers, and they run the same way in that gate as in the run ([ADR 0002](docs/adr/0002-known-answers-gate-every-recipe-run.md), [ADR 0003](docs/adr/0003-a-check-runs-the-same-way-in-the-gate-and-in-the-run.md)).
+- **A verdict rule written first.** Each Experiment states, before it runs, which outcome gives which verdict ("Verdict rule" in [glossary.md](docs/glossary.md)).
+- **Rivals and a verifier.** Each Experiment tests rival Hypotheses in a tree, and an independent verifier confirms every select ("Rival" and "Verifier" in [glossary.md](docs/glossary.md)).
+
 ## An example
 
 hyp's own design is decided this way. The tree `investigations/id-citation` settled which rule stops a write command from appending text that cites an id that is no node. Its one Result, R-BV4CWV, supported three rivals and contradicted the fourth, and the owner selected among the three as a trade-off. `hyp status` in that directory:
@@ -54,16 +64,39 @@ Four rivals were written down before anything ran, including a null rival that s
 
 ## Get started
 
-Build the binary and link the two skills as [docs/install.md](docs/install.md) describes. Then, in the repository you investigate:
+Claude Code is the only harness hyp has been verified on.
+
+**1. Install the binary** (needs Go):
 
 ```bash
-export HYP_ACTOR=claude-<topic>-1
-hyp init
-hyp add goal --title "<observable outcome>" --why "<who asked, and why>"
-hyp status
+go install github.com/dat9uy/hyp/cmd/hyp@latest
+hyp version
 ```
 
-From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides an agent through questions, rivals, experiments and selects. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
+**2. Copy the two skills into your project** and commit them, so every session in the project loads them. From your project's root, with a clone (or download) of hyp at `<hyp>`:
+
+```bash
+mkdir -p .claude/skills
+cp -R <hyp>/skills/hyp-prototype <hyp>/skills/hyp-verification .claude/skills/
+git add .claude/skills
+```
+
+To update, re-run the `go install` line and copy the skills again, so the binary and the skills stay the same version.
+
+**3. Start a session** in your project and paste this prompt, with the goal filled in:
+
+```text
+Use the hyp-prototype skill. Set HYP_ACTOR=claude-<topic>-1 for this session.
+If `hyp status` says there is no .tree store, run `hyp init` at the repository root.
+Record this goal: <the outcome I want, and who needs it>.
+Add the first design question under it, with at least two rival hypotheses,
+one of them "no change needed". Do not add or run experiments yet.
+Show me `hyp status` and stop.
+```
+
+From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
+
+To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-hyp).
 
 ## What is in this repository
 
