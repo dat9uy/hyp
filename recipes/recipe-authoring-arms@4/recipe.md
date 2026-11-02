@@ -1,15 +1,16 @@
 ---
 name: recipe-authoring-arms
-version: 3
-from: recipe-authoring-arms@2 58ae7f45ee4ac5c62bc59e675e23aae878fbef7b8fc859ce858a7967b467878a
+version: 4
+from: recipe-authoring-arms@3 ddb06ff031eb47c316d095248e8ebfd3a2f25b69a02e91992468c91b33ef827f
 format: 1
-subject: A sonnet runner with only hyp and its two skills turns a written method into a recipe instrument, on two hyp arms (main, and main plus a first-bundle skeleton); stops are counted from its transcript and bundle (self-review, #235)
+subject: A sonnet runner with only hyp and its two skills turns a written method into a recipe instrument, on two hyp arms (main, and main plus a first-bundle skeleton); stops are counted from its transcript and bundle (self-review)
 ---
 
 # recipe-authoring-arms
 
-e-author's instrument for #235 (`investigations/recipe-authoring`). One
-sandbox per trial: Launch strips the clone down to hyp, its two skills and
+An instrument that asks whether a hyp arm cuts the stops an author meets
+while turning a written method into a recipe. One sandbox per trial:
+Launch strips the clone down to hyp, its two skills and
 a method; Drive runs a `claude -p` runner on it with the sandbox's pinned
 hyp (the arm, `--hyp BIN`); `score` counts the trial's stops and judges the
 bundle it left; `verdict` applies the pre-registered bar to every trial.
@@ -26,12 +27,12 @@ Reads the inputs file (`--inputs FILE`), `KEY=VALUE` lines: `arm`
 `wt/.claude/skills/`, and writes `method.md` as `wt/METHOD.md`. These
 files are written before the manifest, so they are not changes.
 
-`method.md` is #240's e-arms method (`plans/261101-0708-240-id-citation/assets/e-arms-method.md`
-on main at 92d7c5d) with these edits, so that it names nothing the runner
+`method.md` is the id-citation tree's e-arms method, as that
+investigation wrote it, with these edits, so that it names nothing the runner
 cannot have: the fixture's and cases file's sha256 lines and the ids from
-#240's own fixture are removed, the arms are described as binaries given at
+that investigation's own fixture are removed, the arms are described as binaries given at
 run time, "phase 3" is reworded, a line says the tree is not part of the
-task, and the Disclosure and Correction sections, written after #240's run,
+task, and the Disclosure and Correction sections, written after the id-citation run,
 are dropped.
 
 ## Doctor
@@ -86,7 +87,7 @@ Run verdict: ./verdict.py
   are 0). Every hyp it calls is the hyp first on PATH, the operator's,
   the same judge for both arms. It exits 2 when OUT_DIR lacks
   `state.env`, `transcript.jsonl` or `changes.json`.
-- `verdict SCORE...` reads score outputs and applies e-author's bar
+- `verdict SCORE...` reads score outputs and applies the pre-registered bar
   (the rule is in the script's docstring): with m and s the mean stops of
   main and scaffold and pm and ps their end-state passes, the null region
   (m <= 1 and pm >= 2/3 of main's trials) gives `h-binary=contradicts`,
@@ -104,9 +105,18 @@ written by hand from the rules above. Version 2: @1's score read
 changes.json's mode as a number, but hyp writes it in ls form
 (`-rwxr-xr-x`), so score crashed on every real trial; @1's fixture had
 used numbers. @2 reads the ls form, and its fixture's changes.json files
-use it. Version 3 (#235, after R-8Y0TZB): failing_hyp counted any
+use it. Version 3, after a first live run: failing_hyp counted any
 errored call that mentioned hyp, so a permission denial on a generator
 script counted; it now counts only a call whose last command is hyp. And
 f_tar_input fired on every trial for the fixture.tar the method itself
 asks for; an archive method.md names no longer counts. Each trial directory is a git bundle
 holding HEAD and main, made with fixed author dates.
+
+Version 4: `f_weak_cases` counted every `hyp recipe check` warning that
+named the bundle, but its rule is a warning about the bundle's cases.
+Once `hyp recipe check` began warning about a command with no `External:`
+line (or one left at `TODO`), the clean trial scored `f_weak_cases 1`, so
+@3 failed its own `score-clean` known answer. @4 ignores those two
+warnings, so the flag again means what its rule says, and every expected
+output is unchanged. This text also no longer names plan files, commits
+or tracker issues.

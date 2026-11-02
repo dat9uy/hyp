@@ -1,15 +1,16 @@
 ---
 name: authoring-stops
-version: 1
+version: 2
+from: authoring-stops@1 149b631db77bee2c011c79c6156b71b8f1f634c36ef4fb7045672dddce51c79f
 format: 1
-subject: Liveness of each method-to-instrument stop on gh:235, probed against the hyp first on PATH and a repository under study (self-review, #235)
+subject: Liveness of each stop an author meets while turning a method into an instrument, probed against the hyp first on PATH and a repository under study (self-review)
 ---
 
 # authoring-stops
 
-e-classify's instrument for #235 (`investigations/recipe-authoring`).
-`probes` runs one probe per stop: each probe is the smallest hyp, git or go
-command that hits the stop, run in a scratch directory under `$TMPDIR`, and
+An instrument that says which stops an author meets while turning a
+method into an instrument are still live. `probes` runs one probe per
+stop: each probe is the smallest hyp, git or go command that hits the stop, run in a scratch directory under `$TMPDIR`, and
 it prints what happened. Three probes read the repository under study
 instead. The classing itself (binary, skill text, no change) is a reading of
 this table by the AGENTS.md rule, kept as evidence; the probes say whether
@@ -76,7 +77,21 @@ Run verdict: ./verdict.sh
 For `probes`, `known-answers/` holds a clean repository, a legacy one (an old fixture
 directory, a bundle with no format line, a template with both sections)
 and a usage failure. Each input repository is a git bundle of one commit, holding HEAD and main,
-made by hand with fixed author dates; the expected tables were written
-from the probes' rule and hyp's documented refusals, not captured.
+made by hand with fixed author dates. @1's expected tables were written
+from the probes' rule and hyp's documented refusals; @2's three changed
+rows were produced in the gate's environment and checked against each
+probe's comment.
 For `verdict`, it holds a table with both, neither and one refusal stop
 live, and one missing a row.
+
+Version 2: @1's `probes-clean` and `probes-legacy` known answers failed
+under a newer hyp on three rows. `evidence-plain-dir` still refuses, but
+the refusal now also names a Standalone command for files no sandbox
+wrote. `first-bundle` now exits 0, because `hyp recipe new NAME@1` makes a
+first bundle from hyp's template, so that stop is gone. `at-in-input`
+copied only `recipe.md` into its scratch bundle, so hyp refused its
+missing `m.sh` before reaching the `@` check the probe exists for; @2
+copies `m.sh` too, and the row shows that hyp now accepts an `@` name
+below `input/`, so that stop is gone as well. The tables record those
+three answers; every other row, `verdict` and its cases are unchanged.
+This text also no longer names tracker issues or unpublished trees.
