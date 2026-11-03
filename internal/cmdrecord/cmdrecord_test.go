@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/event"
