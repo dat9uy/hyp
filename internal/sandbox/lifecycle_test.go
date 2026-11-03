@@ -94,7 +94,7 @@ func TestStackedScratchPg(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	db := filepath.Join(rec.Tmp, "db")
+	db := filepath.Join(rec.TmpDir(), "db")
 	t.Cleanup(func() { exec.Command("pg_ctl", "-D", db, "stop", "-m", "immediate").Run() })
 	if rec.Recipes[0].Setup != "passed" || rec.Recipes[1].Setup != "none" {
 		t.Errorf("setup = %+v", rec.Recipes)

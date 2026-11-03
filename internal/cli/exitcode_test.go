@@ -53,7 +53,8 @@ func TestExitCodeContract(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// A sandbox whose record points its wt outside the sandboxes root.
+	// A sandbox whose record, as an older hyp wrote it, points a recipe's copy
+	// outside the sandboxes root: drive refuses to run from it.
 	must(t, "sandbox", "create", "esc", "--host", repo, "--base", sha, "--hyp", stub, "--recipe", "none")
 	meta := filepath.Join(os.Getenv("HOME"), ".hyp-sandbox", "esc", "sandbox.json")
 	data, err := os.ReadFile(meta)
@@ -64,7 +65,7 @@ func TestExitCodeContract(t *testing.T) {
 	if err := json.Unmarshal(data, &rec); err != nil {
 		t.Fatal(err)
 	}
-	rec["wt"] = t.TempDir()
+	rec["recipes"] = []map[string]any{{"ref": "esc@1", "name": "esc", "version": "1", "path": t.TempDir()}}
 	if data, err = json.Marshal(rec); err != nil {
 		t.Fatal(err)
 	}
@@ -99,7 +100,7 @@ func TestExitCodeContract(t *testing.T) {
 		{"r13", run("r13", "twin@1"), 1},
 		{"r14", evidence("r14", "bad@1"), 1},
 		{"r15", evidence("r15", "nope@1"), 2},
-		{"r16", []string{"sandbox", "remove", "esc", "--discard"}, 1},
+		{"r16", []string{"sandbox", "drive", "esc"}, 1},
 		{"r17", []string{"check"}, 0},
 		{"r18", addExp("old@1"), 1},
 		{"r19", create("s-old", "old@1"), 1},

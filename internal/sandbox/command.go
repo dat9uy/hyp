@@ -94,9 +94,9 @@ func Drive(id string, out io.Writer) (*Record, error) {
 	var drives []drive
 	for i := range rec.Recipes {
 		e := &rec.Recipes[i]
-		cp, err := openCopy(r, *e)
+		cp, err := openCopy(r, rec.CopyDir(*e), *e)
 		if err != nil {
-			return nil, herr.New(herr.KindOf(err), "sandbox: %s at %s unreadable (%s); nothing driven", e.Ref, e.Path, herr.Text(err))
+			return nil, herr.New(herr.KindOf(err), "sandbox: %s at %s unreadable (%s); nothing driven", e.Ref, rec.CopyDir(*e), herr.Text(err))
 		}
 		if cp != nil && len(cp.Drive) > 0 {
 			drives = append(drives, drive{e, cp})

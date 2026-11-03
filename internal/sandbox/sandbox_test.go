@@ -146,14 +146,14 @@ func TestCreateRemoveRoundTrip(t *testing.T) {
 	if ents, _ := os.ReadDir(filepath.Join(box, "tmp")); len(ents) != 0 {
 		t.Errorf("tmp has %d entries", len(ents))
 	}
-	if rec.HypVersion != "hyp 0.0.0-test" || rec.Base != base || rec.Host != h {
+	if rec.HypVersion != "hyp 0.0.0-test" || rec.Base != base || rec.Host != filepath.Base(h) {
 		t.Errorf("record = %+v", rec)
 	}
 	var onDisk map[string]any
 	if data, _ := os.ReadFile(filepath.Join(box, "sandbox.json")); json.Unmarshal(data, &onDisk) != nil {
 		t.Fatalf("sandbox.json = %s", data)
 	}
-	want := []string{"base", "bin", "created", "format", "host", "hyp_sha256", "hyp_version", "id", "recipes", "tmp", "wt"}
+	want := []string{"base", "created", "format", "host", "hyp_sha256", "hyp_version", "id", "recipes"}
 	if keys := slices.Sorted(maps.Keys(onDisk)); !slices.Equal(keys, want) {
 		t.Errorf("record keys = %v, want %v", keys, want)
 	}
@@ -435,7 +435,7 @@ func TestCreateRunsLaunchAndDoctor(t *testing.T) {
 	}
 	cp := filepath.Join(box, "recipes", "boot")
 	if r := rec.Recipes; len(r) != 1 || r[0].Ref.String() != "boot@1" || r[0].Name != "boot" || r[0].Version != "1" ||
-		len(r[0].SHA256) != 64 || r[0].Path != cp || r[0].Setup != "passed" || r[0].Cleanup != "" {
+		len(r[0].SHA256) != 64 || rec.CopyDir(r[0]) != cp || r[0].Setup != "passed" || r[0].Cleanup != "" {
 		t.Errorf("recipes = %+v", r)
 	}
 	if !exists(filepath.Join(cp, "recipe.md")) {
@@ -453,7 +453,7 @@ func TestCreateRunsLaunchAndDoctor(t *testing.T) {
 	if len(lines) != 5 {
 		t.Fatalf("env.txt = %q", data)
 	}
-	if want := []string{"rl", rec.WT, rec.Tmp}; !reflect.DeepEqual(lines[:3], want) {
+	if want := []string{"rl", rec.WTDir(), rec.TmpDir()}; !reflect.DeepEqual(lines[:3], want) {
 		t.Errorf("env = %q, want %q", lines[:3], want)
 	}
 	if !strings.HasPrefix(lines[3], filepath.Join(box, "bin")+":") {
@@ -600,7 +600,7 @@ func TestCreateHostWithSameRecipeName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if data, _ := os.ReadFile(filepath.Join(rec.WT, "recipes", "boot", "recipe.md")); string(data) != "x\n" {
+	if data, _ := os.ReadFile(filepath.Join(rec.WTDir(), "recipes", "boot", "recipe.md")); string(data) != "x\n" {
 		t.Errorf("wt/recipes/boot/recipe.md = %q, want the host's", data)
 	}
 	if !exists(filepath.Join(box, "recipes", "boot", "recipe.md")) {
@@ -773,7 +773,7 @@ func TestRemoveDriftedCopyRunsNoCleanup(t *testing.T) {
 	if exists(marker) {
 		t.Error("Cleanup ran from a copy that no longer hashes as the record says")
 	}
-	if w := warn.String(); !strings.Contains(w, "boot@1 at "+rec.Recipes[0].Path) || !strings.Contains(w, "the record says "+rec.Recipes[0].SHA256) ||
+	if w := warn.String(); !strings.Contains(w, "boot@1 at "+rec.CopyDir(rec.Recipes[0])) || !strings.Contains(w, "the record says "+rec.Recipes[0].SHA256) ||
 		!strings.Contains(w, "copy hashes ") || !strings.Contains(w, "no Cleanup ran") {
 		t.Errorf("warn = %q", w)
 	}
@@ -801,7 +801,7 @@ func TestRemoveRefusesLeftoverProcess(t *testing.T) {
 	t.Setenv("PATH", path)
 	rec, box := create(t, "lo")
 	cmd := exec.Command("sleep", "300")
-	cmd.Dir = rec.WT
+	cmd.Dir = rec.WTDir()
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -950,7 +950,7 @@ func TestRemoveReadsOldRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	legacy := map[string]any{
-		"id": "op", "host": rec.Host, "base": rec.Base, "wt": rec.WT, "tmp": rec.Tmp, "bin": rec.Bin,
+		"id": "op", "host": rec.Host, "base": rec.Base, "wt": rec.WTDir(), "tmp": rec.TmpDir(), "bin": rec.BinDir(),
 		"hyp_sha256": rec.HypSHA256, "hyp_version": rec.HypVersion, "created": rec.Created, "port": 55471,
 		"recipe": map[string]any{"ref": "boot@1", "name": "boot", "version": "1", "sha256": rec.Recipes[0].SHA256, "path": old, "setup": "passed"},
 	}
@@ -967,7 +967,7 @@ func TestRemoveReadsOldRecord(t *testing.T) {
 	if !strings.Contains(string(raw), `"port": 55471`) || strings.Contains(string(raw), `"recipe":`) {
 		t.Errorf("saved record = %s", raw)
 	}
-	want := Entry{Ref: event.Ref{Name: "boot", Version: "1"}, Name: "boot", Version: "1", SHA256: rec.Recipes[0].SHA256, Path: old, Setup: "passed", Cleanup: "ok"}
+	want := Entry{Ref: event.Ref{Name: "boot", Version: "1"}, Name: "boot", Version: "1", SHA256: rec.Recipes[0].SHA256, Setup: "passed", Cleanup: "ok", legacyPath: old}
 	if saved := savedRecord(t, out); !reflect.DeepEqual(saved.Recipes, []Entry{want}) || saved.Removed == "" {
 		t.Errorf("saved = %+v", saved)
 	}
@@ -997,7 +997,7 @@ func TestRecordRecipeShapes(t *testing.T) {
 	if out, _ := json.Marshal(neither); !strings.Contains(string(out), `"recipes":[]`) {
 		t.Errorf("written = %s", out)
 	}
-	if out, _ := json.Marshal(Record{ID: "x", WT: "w", Base: "b"}); !strings.HasPrefix(string(out), `{"base":"b",`) {
+	if out, _ := json.Marshal(Record{ID: "x", Host: "h", Base: "b"}); !strings.HasPrefix(string(out), `{"base":"b",`) {
 		t.Errorf("keys not sorted: %s", out)
 	}
 }
@@ -1128,7 +1128,7 @@ func TestCreateCouldNotCheckLeftovers(t *testing.T) {
 func TestRemoveFromInsideSandbox(t *testing.T) {
 	setup(t)
 	rec, box := create(t, "in")
-	t.Chdir(rec.WT)
+	t.Chdir(rec.WTDir())
 	if _, err := Remove(RemoveOptions{ID: "in", Discard: true}); err != nil {
 		t.Fatal(err)
 	}
@@ -1186,12 +1186,12 @@ func TestCreateStacksRecipes(t *testing.T) {
 	}
 	for i, name := range []string{"env", "harness"} {
 		e := rec.Recipes[i]
-		if e.Ref.String() != name+"@1" || e.Name != name || len(e.SHA256) != 64 || e.Setup != "passed" || e.Path != filepath.Join(box, "recipes", name) {
+		if e.Ref.String() != name+"@1" || e.Name != name || len(e.SHA256) != 64 || e.Setup != "passed" || rec.CopyDir(e) != filepath.Join(box, "recipes", name) {
 			t.Errorf("recipes[%d] = %+v", i, e)
 		}
 		for _, phase := range []string{"launch", "doctor"} {
-			got, _ := os.ReadFile(filepath.Join(rec.Tmp, name, phase))
-			if strings.TrimSpace(string(got)) != filepath.Join(rec.Tmp, name) {
+			got, _ := os.ReadFile(filepath.Join(rec.TmpDir(), name, phase))
+			if strings.TrimSpace(string(got)) != filepath.Join(rec.TmpDir(), name) {
 				t.Errorf("%s %s: HYP_SANDBOX_RECIPE_TMP = %q", name, phase, got)
 			}
 		}
@@ -1365,7 +1365,7 @@ func TestLaunchReadsRunInputs(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := os.ReadFile(filepath.Join(rec.Tmp, "in", "seen.json")); string(got) != input+"\n" {
+	if got, _ := os.ReadFile(filepath.Join(rec.TmpDir(), "in", "seen.json")); string(got) != input+"\n" {
 		t.Errorf("Launch saw %q, want %q", got, input)
 	}
 }
@@ -1629,7 +1629,7 @@ func TestLaunchRowWrittenBeforeCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	during := filepath.Join(rec.Tmp, "during.json")
+	during := filepath.Join(rec.TmpDir(), "during.json")
 	pendingRow(t, during, "launch", func() []cmdrecord.Run {
 		var mid Record
 		data, _ := os.ReadFile(during)
@@ -1719,7 +1719,7 @@ func TestRemoveKeepsCleanupInRecord(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmd := exec.Command("sleep", "300")
-	cmd.Dir = rec.WT
+	cmd.Dir = rec.WTDir()
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}

@@ -26,7 +26,7 @@ import (
 
 // SandboxFormat and ChangesFormat are the shape numbers of sandbox.json and
 // changes.json (0: not written yet); cmdrecord.Format is command.json's.
-const SandboxFormat, ChangesFormat = 2, 1
+const SandboxFormat, ChangesFormat = 3, 1
 
 var caseTimeout = 60 * time.Second // each run of a known-answer case
 var gateTimeout = 10 * time.Minute // every case of one bundle

@@ -67,7 +67,7 @@ func sandboxCreate(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	line := fmt.Sprintf("sandbox %s: %s @ %s", pos[0], rec.WT, rec.Base[:min(8, len(rec.Base))])
+	line := fmt.Sprintf("sandbox %s: %s @ %s", pos[0], rec.WTDir(), rec.Base[:min(8, len(rec.Base))])
 	if rec.Cut != "" {
 		line += ", store cut at " + rec.Cut
 	}

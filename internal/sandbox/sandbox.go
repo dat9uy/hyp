@@ -115,20 +115,21 @@ import (
 	"github.com/dat9uy/hyp/internal/store"
 )
 
-// Record is sandbox.json. Recipes lists the sandbox's recipes in stack order;
-// --recipe none is the one entry {"ref": "none"}. Store and Cut name the
-// store wt/.tree was cut from and the cut event, when create made one.
-// Commands lists every command hyp ran in the sandbox, in order. Extra holds every other
-// field of a record read from disk (an older hyp's port, or a key a recipe
-// script added), so it is written back as read.
+// Record is sandbox.json. It names no live path: wt/, tmp/, bin/, the inputs
+// copy and each recipe copy are derived from the sandbox directory, which is
+// the sandbox root and the id. Host is the host repository's directory name.
+// Recipes lists the sandbox's recipes in stack order; --recipe none is the
+// one entry {"ref": "none"}. Store and Cut name the store wt/.tree was cut
+// from, as <host>/REL when it is inside the host, and the cut event, when
+// create made one. Commands lists every command hyp ran in the sandbox, in
+// order. Extra holds every other field of a record read from disk (an older
+// hyp's wt, tmp, bin or port, or a key a recipe script added), so it is
+// written back as read.
 type Record struct {
 	Format     int                        `json:"format"`
 	ID         string                     `json:"id"`
 	Host       string                     `json:"host"`
 	Base       string                     `json:"base"`
-	WT         string                     `json:"wt"`
-	Tmp        string                     `json:"tmp"`
-	Bin        string                     `json:"bin"`
 	HypSHA256  string                     `json:"hyp_sha256"`
 	HypVersion string                     `json:"hyp_version"`
 	Recipes    []Entry                    `json:"recipes"`
@@ -139,6 +140,30 @@ type Record struct {
 	Created    string                     `json:"created"`
 	Removed    string                     `json:"removed,omitempty"`
 	Extra      map[string]json.RawMessage `json:"-"`
+	// box is the sandbox directory, set by create and when the record is read.
+	box string
+}
+
+// WTDir, TmpDir and BinDir are the sandbox's wt/, tmp/ and bin/.
+func (r *Record) WTDir() string  { return filepath.Join(r.box, "wt") }
+func (r *Record) TmpDir() string { return filepath.Join(r.box, "tmp") }
+func (r *Record) BinDir() string { return filepath.Join(r.box, "bin") }
+
+// InputsFile is the sandbox's copy of the inputs file, or "" without one.
+func (r *Record) InputsFile() string {
+	if r.Inputs == nil {
+		return ""
+	}
+	return filepath.Join(r.box, keptInputs, r.Inputs.Name)
+}
+
+// CopyDir is the sandbox's copy of e's bundle: recipes/<name>, or the path an
+// older record names.
+func (r *Record) CopyDir(e Entry) string {
+	if e.legacyPath != "" {
+		return e.legacyPath
+	}
+	return filepath.Join(r.box, "recipes", e.Name)
 }
 
 // Entry is one recipe of a Record. Setup is passed, failed or none (nothing
@@ -150,20 +175,67 @@ type Entry struct {
 	Name    string    `json:"name,omitempty"`
 	Version string    `json:"version,omitempty"`
 	SHA256  string    `json:"sha256,omitempty"`
-	Path    string    `json:"path,omitempty"`
 	Setup   string    `json:"setup,omitempty"`
 	Cleanup string    `json:"cleanup,omitempty"`
 	// KnownAnswers is the outcome of the recipe's known answers, run before
 	// its commands; nil until the gate runs them.
 	KnownAnswers *cmdrecord.KnownAnswers `json:"known_answers,omitempty"`
+	// legacyPath is the copy's path an older record names; it is read and
+	// written back, and never set for a new sandbox.
+	legacyPath string
 }
 
-// Inputs is a run's inputs file: the path given to --inputs, the sandbox's
-// copy every command gets as HYP_SANDBOX_INPUTS, and the copy's sha256.
+type plainEntry Entry
+
+// MarshalJSON writes an older record's path back as it was read.
+func (e Entry) MarshalJSON() ([]byte, error) {
+	if e.legacyPath == "" {
+		return json.Marshal(plainEntry(e))
+	}
+	return json.Marshal(struct {
+		plainEntry
+		Path string `json:"path"`
+	}{plainEntry(e), e.legacyPath})
+}
+
+// UnmarshalJSON reads an older record's path, and takes the name from it when
+// the entry names none.
+func (e *Entry) UnmarshalJSON(data []byte) error {
+	var v struct {
+		plainEntry
+		Path string `json:"path"`
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	*e = Entry(v.plainEntry)
+	e.legacyPath = v.Path
+	if e.Name == "" && v.Path != "" {
+		e.Name = filepath.Base(v.Path)
+	}
+	return nil
+}
+
+// Inputs is a run's inputs file: the base name of the sandbox's copy, which
+// every command gets as HYP_SANDBOX_INPUTS, and the copy's sha256.
 type Inputs struct {
-	Source string `json:"source"`
-	Path   string `json:"path"`
+	Name   string `json:"name"`
 	SHA256 string `json:"sha256"`
+}
+
+// UnmarshalJSON takes the name from an older record's path.
+func (in *Inputs) UnmarshalJSON(data []byte) error {
+	var v struct {
+		Name, SHA256, Path string
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	*in = Inputs{Name: v.Name, SHA256: v.SHA256}
+	if in.Name == "" && v.Path != "" {
+		in.Name = filepath.Base(v.Path)
+	}
+	return nil
 }
 
 // plainRecord is Record without its JSON methods.
@@ -660,7 +732,7 @@ func Create(o CreateOptions) (*Record, error) {
 	}
 	// The baseline remove diffs wt/ against: what create made, Launch and
 	// Doctor included.
-	if err := writeManifest(box, rec.WT); err != nil {
+	if err := writeManifest(box, rec.WTDir()); err != nil {
 		return nil, herr.Env("%v; sandbox kept", err)
 	}
 	return rec, nil
@@ -894,12 +966,12 @@ func stepCmd(ctx context.Context, log *os.File, cwd string, extra, argv []string
 // hyp first on PATH.
 func sandboxEnv(rec *Record, e Entry) []string {
 	env := []string{
-		"HYP_SANDBOX_ID=" + rec.ID, "HYP_SANDBOX_WT=" + rec.WT, "HYP_SANDBOX_TMP=" + rec.Tmp,
-		"HYP_SANDBOX_RECIPE_TMP=" + filepath.Join(rec.Tmp, e.Name),
-		"PATH=" + rec.Bin + string(os.PathListSeparator) + os.Getenv("PATH"),
+		"HYP_SANDBOX_ID=" + rec.ID, "HYP_SANDBOX_WT=" + rec.WTDir(), "HYP_SANDBOX_TMP=" + rec.TmpDir(),
+		"HYP_SANDBOX_RECIPE_TMP=" + filepath.Join(rec.TmpDir(), e.Name),
+		"PATH=" + rec.BinDir() + string(os.PathListSeparator) + os.Getenv("PATH"),
 	}
 	if rec.Inputs != nil {
-		env = append(env, "HYP_SANDBOX_INPUTS="+rec.Inputs.Path)
+		env = append(env, "HYP_SANDBOX_INPUTS="+rec.InputsFile())
 	}
 	return env
 }
@@ -989,7 +1061,7 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		if err != nil {
 			return nil, nil, err
 		}
-		inputs = &Inputs{Source: src, Path: dst, SHA256: h}
+		inputs = &Inputs{Name: filepath.Base(dst), SHA256: h}
 	}
 	data, err := os.ReadFile(hyp)
 	if err != nil {
@@ -1004,10 +1076,14 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 	if err != nil {
 		return nil, nil, err
 	}
+	hostName := filepath.Base(host)
+	if a, ok := anchor(host, hostName, src); ok {
+		src = a
+	}
 	rec := &Record{
-		Format: SandboxFormat, ID: o.ID, Host: host, Base: base, WT: wt, Tmp: tmp, Bin: bin,
+		Format: SandboxFormat, ID: o.ID, Host: hostName, Base: base,
 		HypSHA256: hex.EncodeToString(sum[:]), HypVersion: version,
-		Recipes: []Entry{{Ref: event.RefNone}}, Inputs: inputs, Store: src, Cut: o.Cut, Created: now(),
+		Recipes: []Entry{{Ref: event.RefNone}}, Inputs: inputs, Store: src, Cut: o.Cut, Created: now(), box: box,
 	}
 	var cps []*recipe.Recipe
 	if len(rcps) > 0 {
@@ -1024,7 +1100,7 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		if err := os.Mkdir(filepath.Join(tmp, rcp.Name), 0o755); err != nil {
 			return nil, nil, err
 		}
-		e := Entry{Ref: rcp.Ref(), Name: rcp.Name, Version: rcp.Version, SHA256: rcp.Hash, Path: cp.Path, KnownAnswers: kas[i]}
+		e := Entry{Ref: rcp.Ref(), Name: rcp.Name, Version: rcp.Version, SHA256: rcp.Hash, KnownAnswers: kas[i]}
 		if len(cp.Launch)+len(cp.Doctor) == 0 {
 			e.Setup = "none"
 		}
@@ -1101,11 +1177,6 @@ func Remove(o RemoveOptions) (*Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	for _, p := range []string{rec.WT, rec.Tmp, rec.Bin} {
-		if ok, _ := inside(r, p); !ok {
-			return nil, herr.Refused("%v is not under %s", p, r)
-		}
-	}
 	// Recipes are cleaned up in reverse stack order.
 	type cleanup struct {
 		e  *Entry
@@ -1114,11 +1185,11 @@ func Remove(o RemoveOptions) (*Record, error) {
 	var cleanups []cleanup
 	for i := len(rec.Recipes) - 1; i >= 0; i-- {
 		e := &rec.Recipes[i]
-		cp, err := openCopy(r, *e)
+		cp, err := openCopy(r, rec.CopyDir(*e), *e)
 		if err != nil {
 			e.Cleanup = "failed: no Cleanup ran"
 			if o.Warn != nil {
-				fmt.Fprintf(o.Warn, "sandbox: %s at %s unreadable (%v); no Cleanup ran\n", e.Ref, e.Path, err)
+				fmt.Fprintf(o.Warn, "sandbox: %s at %s unreadable (%v); no Cleanup ran\n", e.Ref, rec.CopyDir(*e), err)
 			}
 		} else if cp != nil && len(cp.Cleanup) > 0 {
 			cleanups = append(cleanups, cleanup{e, cp})
@@ -1157,7 +1228,7 @@ func Remove(o RemoveOptions) (*Record, error) {
 	}
 
 	if !o.Discard {
-		if err := saveRecord(o, rec, rec.WT, box, keep); err != nil {
+		if err := saveRecord(o, rec, rec.WTDir(), box, keep); err != nil {
 			os.RemoveAll(o.OutDir) // proved absent above, so it is ours
 			return nil, herr.Env("%v; sandbox kept", err)
 		}
@@ -1168,21 +1239,21 @@ func Remove(o RemoveOptions) (*Record, error) {
 	return rec, nil
 }
 
-// openCopy opens the bundle copy e names in the sandbox root r by e's ref; nil
-// for none, which has no commands. A copy that is missing
+// openCopy opens e's bundle copy at dir, in the sandbox root r, by e's ref;
+// nil for none, which has no commands. A copy that is missing
 // is an environment error; one outside r, one that does not open, or one that
 // no longer hashes as the record's sha256 is refused, so no command runs from
 // a copy the record does not vouch for.
-func openCopy(r string, e Entry) (*recipe.Recipe, error) {
+func openCopy(r, dir string, e Entry) (*recipe.Recipe, error) {
 	if e.Ref.IsNone() {
 		return nil, nil
 	}
 	var got *recipe.Recipe
 	err := herr.Refused("not a directory under %s", r)
-	if fi, serr := os.Stat(e.Path); serr != nil {
+	if fi, serr := os.Stat(dir); serr != nil {
 		err = herr.Env("%v", serr)
-	} else if ok, _ := inside(r, e.Path); ok && fi.IsDir() {
-		got, err = recipe.OpenAs(e.Path, e.Ref.String())
+	} else if ok, _ := inside(r, dir); ok && fi.IsDir() {
+		got, err = recipe.OpenAs(dir, e.Ref.String())
 	}
 	if err != nil {
 		return nil, err
@@ -1193,20 +1264,26 @@ func openCopy(r string, e Entry) (*recipe.Recipe, error) {
 	return got, nil
 }
 
-// readRecord reads the record at path. A field this hyp does not write is
-// kept in Extra, so it is copied to OUT_DIR as it was read.
+// readRecord reads the record at path, in the sandbox directory that holds
+// it. A field this hyp does not write is kept in Extra, so it is copied to
+// OUT_DIR as it was read. Every path is derived from that directory, so each
+// name a path is joined from must be one plain name.
 func readRecord(path, id string) (*Record, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, herr.Env("%v", err)
 	}
 	var rec Record
-	ok := json.Unmarshal(data, &rec) == nil && rec.ID == id && rec.WT != "" && rec.Tmp != "" && rec.Bin != ""
+	ok := json.Unmarshal(data, &rec) == nil && rec.ID == id && idRe.MatchString(rec.ID) && rec.Base != ""
 	for _, e := range rec.Recipes {
-		if e.Ref.IsZero() || (!e.Ref.IsNone() && e.Path == "") {
+		if e.Ref.IsZero() || (!e.Ref.IsNone() && (e.Name != e.Ref.Name || !plainName(e.Name))) {
 			ok = false
 		}
 	}
+	if rec.Inputs != nil && !plainName(rec.Inputs.Name) {
+		ok = false
+	}
+	rec.box = filepath.Dir(path)
 	if !ok {
 		return nil, herr.Env("corrupt record %s", path)
 	}
@@ -1274,11 +1351,11 @@ func saveRecord(o RemoveOptions, rec *Record, wt, box string, keep []string) err
 		}
 	}
 	if rec.Inputs != nil {
-		dst := filepath.Join(o.OutDir, keptInputs, filepath.Base(rec.Inputs.Path))
+		dst := filepath.Join(o.OutDir, keptInputs, rec.Inputs.Name)
 		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 			return err
 		}
-		if err := copyFile(rec.Inputs.Path, dst, 0o644); err != nil {
+		if err := copyFile(rec.InputsFile(), dst, 0o644); err != nil {
 			return err
 		}
 	}
