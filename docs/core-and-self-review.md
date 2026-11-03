@@ -32,7 +32,7 @@ Visibility is a separate axis from scope. Every item in this repository is publi
 
 The self-review recipes kept before the public release (session-replay, scratch-pg, readout-read, containment-arms, declaration-shape and signals-replay-proto), their inputs, and the trees that pinned them are not published. Records made before the public release stay in the private development history.
 
-When a question needs an instrument, it is a recipe with known answers, pinned by Experiments that declare `decided_by` or pin it. The skill-text gate in [AGENTS.md](../AGENTS.md) uses `recipes/skill-text-arms@3`. A new self-review recipe gets a row here, with its visibility.
+When a question needs an instrument, it is a recipe with known answers, pinned by Experiments that declare `decided_by` or pin it. The skill-text gate in [AGENTS.md](../AGENTS.md) uses `recipes/skill-text-arms@4`. A new self-review recipe gets a row here, with its visibility.
 
 | Item | Why it is self-review | Visibility |
 |---|---|---|
@@ -41,7 +41,8 @@ When a question needs an instrument, it is a recipe with known answers, pinned b
 | `investigations/id-citation/arms/` | an input only self-review recipes use: the id-citation Arms as patches over a main commit (`today`, `text-warn`, `cite`; `text-refuse` is the base), which `id-citation-arms@2` takes as `--patch` | public |
 | `recipes/authoring-stops@2` | a recipe this repository keeps to test hyp: it probes whether each stop an author meets while turning a method into an instrument is still live; the tree that pinned it is not published | public |
 | `recipes/recipe-authoring-arms@4` | a recipe this repository keeps to test hyp: a sonnet runner turns the id-citation method into an instrument on two hyp arms; it runs live runners, it does not replay a session; the tree that pinned it is not published | public |
-| `recipes/skill-text-arms@3` | a recipe this repository keeps to test hyp: the skill-text gate's instrument, a fresh sonnet runner at a store cut of `investigations/id-citation` with base skills or a SKILL.md variant; the tree that pinned it is not published | public |
+| `recipes/skill-text-arms@3` | a recipe this repository keeps to test hyp: the skill-text gate's instrument until version 4, a fresh sonnet runner at a store cut of `investigations/id-citation` with base skills or a SKILL.md variant; it reads its Arm binaries from absolute paths, so it cannot run from this repository alone; the tree that pinned it is not published | public |
+| `recipes/skill-text-arms@4` | a recipe this repository keeps to test hyp: the skill-text gate's instrument, version 3's runner, brief, score and verdict, with a SKILL.md variant given as the trial's `--patch` and the four id-citation Arm binaries built in Launch from the patches in its `fixture/arms/` | public |
 | `recipes/recipe-base-arms@1` | a recipe this repository keeps to test hyp: a sonnet runner builds the held-out skill-text gate instrument on three hyp arms (template only, a coarse base, fine bases), for `investigations/recipe-base`; copied by hand from a version of `recipe-authoring-arms` (its `recipe.md` names it by hash), because `--from` copies the same name only: the one bootstrap exception to starting from a base, had a base shipped (ADR 0009) | public |
 
 ## Core
@@ -60,7 +61,7 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 |---|---|
 | arm (id-citation-arms) | an Arm: a hyp binary built in Launch from main or main plus one rival's patch, named by sha256, the subject the cases run (version 1 read binaries built by hand from absolute paths) |
 | arm (recipe-authoring-arms) | an Arm: a hyp binary, main or main plus one rival's prototype patch, pinned as the sandbox's `--hyp` |
-| arm (skill-text-arms) | an Arm: a set of skill files the runner loads: `base` (the skills at the sandbox's `--base`) or a SKILL.md variant carried in the bundle; the runner's hyp is the same in every arm |
+| arm (skill-text-arms) | an Arm: a set of skill files the runner loads: `base` (the skills at the sandbox's `--base`), or a SKILL.md variant given as the trial's `--patch` (version 3 carried variants in the bundle); the runner's hyp is the same in every arm |
 | arm (recipe-base-arms) | an Arm: a hyp binary built from main, or from main plus the embed prototype and one rival's base candidates, pinned as the sandbox's `--hyp`; `null` embeds no base; the candidates were not shipped (ADR 0009) |
 | stop (authoring-stops, recipe-authoring-arms, skill-text-arms) | a point where an author turning a method into an instrument is held up; counted as a failing hyp command or a fingerprint in the bundle or transcript |
 
