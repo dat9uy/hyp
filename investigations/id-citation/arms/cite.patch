@@ -1,0 +1,159 @@
+diff --git a/internal/cli/write.go b/internal/cli/write.go
+index c32d4b9..fc40c87 100644
+--- a/internal/cli/write.go
++++ b/internal/cli/write.go
+@@ -129,8 +129,7 @@ type draft struct {
+ }
+ 
+ // run appends the event that build returns, with refs resolved inside build
+-// against the locked state, and prints "<display id> <event type>". It
+-// refuses text flags that cite an id that is no node (checkCites).
++// against the locked state, and prints "<display id> <event type>".
+ func (w *writer) run(build func() (draft, error)) error {
+ 	ev, err := store.AppendWith(w.root, *w.actor, func(st *replay.State, p replay.Projection) (event.Event, error) {
+ 		w.st, w.p = st, p
+@@ -138,9 +137,6 @@ func (w *writer) run(build func() (draft, error)) error {
+ 		if err != nil {
+ 			return event.Event{}, err
+ 		}
+-		if err := w.checkCites(); err != nil {
+-			return event.Event{}, err
+-		}
+ 		raw, err := json.Marshal(d.payload)
+ 		if err != nil {
+ 			return event.Event{}, err
+@@ -569,10 +565,13 @@ func cmdSelect(args []string, stdout, stderr io.Writer) error {
+ 	w := newWriter("select", stdout, stderr)
+ 	tradeoff := w.fs.Bool("tradeoff", false, "the choice trades off owner-visible properties")
+ 	scope := w.fs.Bool("scope-change", false, "the choice changes the Goal's scope")
++	var results multi
++	w.fs.Var(&results, "result", "R-id of a Result this choice cites (repeatable)")
+ 	pos, err := parse(w.fs, args)
+ 	if err != nil {
+ 		return err
+ 	}
++	results = nil // begin parses args again
+ 	switch len(pos) {
+ 	case 1:
+ 		return suggest(w, pos[0])
+@@ -589,8 +588,12 @@ func cmdSelect(args []string, stdout, stderr io.Writer) error {
+ 			return draft{}, err
+ 		}
+ 		h, err := w.ref(pos[1])
++		if err != nil {
++			return draft{}, err
++		}
++		rs, err := w.results(results)
+ 		return draft{event.TypeDQSelect, dq, event.DQSelect{Hypothesis: h,
+-			PrevSelect: w.currentSelect(dq), Tradeoff: *tradeoff, ScopeChange: *scope}}, err
++			PrevSelect: w.currentSelect(dq), Tradeoff: *tradeoff, ScopeChange: *scope, Results: rs}}, err
+ 	})
+ }
+ 
+@@ -650,6 +653,8 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
+ 	verdict := w.fs.String("verdict", "", "sufficient or insufficient (required)")
+ 	var accepts multi
+ 	w.fs.Var(&accepts, "accept", "R-id#n of an open limit the owner accepts (repeatable)")
++	var results multi
++	w.fs.Var(&results, "result", "R-id of a Result this verdict cites (repeatable)")
+ 	pos, err := w.begin(args, 1)
+ 	if err != nil {
+ 		return err
+@@ -670,6 +675,10 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
+ 		if err != nil {
+ 			return draft{}, err
+ 		}
++		rs, err := w.results(results)
++		if err != nil {
++			return draft{}, err
++		}
+ 		if *role == event.RoleOwner && *verdict == event.ConfirmSufficient {
+ 			var open []string
+ 			for _, l := range w.p.Limits[dq] {
+@@ -682,12 +691,14 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
+ 					display(w.p, dq), strings.Join(open, "\n"))
+ 			}
+ 		}
+-		return draft{event.TypeConfirm, dq, event.Confirm{Select: sel, Role: *role, Verdict: *verdict, Accepts: keys}}, nil
++		return draft{event.TypeConfirm, dq, event.Confirm{Select: sel, Role: *role, Verdict: *verdict, Accepts: keys, Results: rs}}, nil
+ 	})
+ }
+ 
+ func cmdRequestVerify(args []string, stdout, stderr io.Writer) error {
+ 	w := newWriter("request-verify", stdout, stderr)
++	var results multi
++	w.fs.Var(&results, "result", "R-id of a Result that addresses the verdict (repeatable)")
+ 	pos, err := w.begin(args, 1)
+ 	if err != nil {
+ 		return err
+@@ -701,10 +712,31 @@ func cmdRequestVerify(args []string, stdout, stderr io.Writer) error {
+ 		if sel == "" {
+ 			return draft{}, refusedErr("no current selection")
+ 		}
+-		return draft{event.TypeDQRequestVerify, dq, event.DQRequestVerify{Select: sel}}, nil
++		rs, err := w.results(results)
++		if err != nil {
++			return draft{}, err
++		}
++		return draft{event.TypeDQRequestVerify, dq, event.DQRequestVerify{Select: sel, Results: rs}}, nil
+ 	})
+ }
+ 
++// results resolves each --result ref to a Result of the locked store, or
++// refuses with exit 2, so nothing is appended.
++func (w *writer) results(refs []string) ([]string, error) {
++	var ids []string
++	for _, r := range refs {
++		id, err := resolveRef(w.p, r)
++		if err != nil {
++			return nil, herr.BadArgs("--result: %s", herr.Text(err))
++		}
++		if w.p.Nodes[id].Kind != event.KindResult {
++			return nil, herr.BadArgs("--result %s is no Result", r)
++		}
++		ids = append(ids, id)
++	}
++	return ids, nil
++}
++
+ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
+ 	w := newWriter("checkpoint", stdout, stderr)
+ 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
+diff --git a/internal/event/event.go b/internal/event/event.go
+index 7d11692..e40f10b 100644
+--- a/internal/event/event.go
++++ b/internal/event/event.go
+@@ -183,10 +183,11 @@ type Empty struct{}
+ 
+ // DQSelect is the payload of dq.select.
+ type DQSelect struct {
+-	Hypothesis  string `json:"hypothesis"`
+-	PrevSelect  string `json:"prev_select"`
+-	Tradeoff    bool   `json:"tradeoff"`
+-	ScopeChange bool   `json:"scope_change"`
++	Hypothesis  string   `json:"hypothesis"`
++	PrevSelect  string   `json:"prev_select"`
++	Tradeoff    bool     `json:"tradeoff"`
++	ScopeChange bool     `json:"scope_change"`
++	Results     []string `json:"results,omitempty"`
+ }
+ 
+ // DQUnselect is the payload of dq.unselect.
+@@ -197,7 +198,8 @@ type DQUnselect struct {
+ // DQRequestVerify is the payload of dq.request_verify: the select whose
+ // insufficient verifier verdict has been addressed.
+ type DQRequestVerify struct {
+-	Select string `json:"select"`
++	Select  string   `json:"select"`
++	Results []string `json:"results,omitempty"`
+ }
+ 
+ // Confirm is the payload of confirm.
+@@ -206,6 +208,7 @@ type Confirm struct {
+ 	Role    string   `json:"role"`
+ 	Verdict string   `json:"verdict"`
+ 	Accepts []string `json:"accepts,omitempty"`
++	Results []string `json:"results,omitempty"`
+ }
+ 
+ // Checkpoint is the payload of checkpoint.
