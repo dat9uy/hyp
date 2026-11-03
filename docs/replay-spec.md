@@ -345,3 +345,13 @@ The open choices were decided in a hyp tree, whose records stay in the private d
 12. A record DIR inside OUT_DIR is refused. The check reads OUT_DIR, its record is written before each command starts, and a re-run must read the same files as the first run. A record beside OUT_DIR, the documented place, is unaffected.
 13. A record DIR inside any `recipes/` directory the lookup searches is refused, not only one inside the ref's own bundle. A record changes the hash of whatever bundle it lands in, an outer copy of the ref must hash the same as the nearest, and a record in a `recipes/` directory that does not exist yet would start a library the lookup finds.
 14. (replaced by choice 3)
+
+### 9.6 The subject
+
+A sandbox is the only place hyp assembles a subject. `hyp sandbox create` builds it from the host at `--base`, the store cut when one is given, and the per-run inputs. **[not built: #8]** It also builds it from one patch for each Arm (see Arm in [glossary.md](glossary.md)), given as `--patch ARM=FILE`.
+
+- **A change that lands in code is a commit.** An Experiment about it uses that commit as `--base` and takes no patch.
+- **A patch is a throwaway Arm: a change over the base that never lands in code. [not built: #8]** An Arm has at most one patch. A patch is never versioned, never stacked on another patch and never rebased. An Arm worth keeping is merged and becomes a commit, and the next Experiment uses that commit as its base. hyp refuses a patch that does not apply to the base before any command runs. It records each patch's sha256 in `sandbox.json`, copies it into the sandbox, and `hyp sandbox remove` keeps it with the kept files, so where the operator wrote it does not matter. A patch is the subject, so it is not a file of the recipe bundle (see Self-contained in [glossary.md](glossary.md)).
+- **Code under test is built in Launch, from the subject the sandbox assembled.** Each binary it builds is named by its sha256, and only the sha256 is kept. A check does not take a binary under test from outside a sandbox, and a known-answer case cannot build one: it has 60 seconds and a scratch `HOME` by design.
+
+The rule exists so a record names its subject only by what the repository holds (the base commit) or the tree keeps (each patch and its sha256), and a replay can rebuild the subject from them. A base commit holds only while the repository's history keeps it.

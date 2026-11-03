@@ -56,10 +56,10 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 
 | Self-review word | In core terms |
 |---|---|
-| arm (id-citation-arms) | a hyp binary built from one rival's prototype patch, the subject a Standalone check runs |
-| arm (recipe-authoring-arms) | a hyp binary, main or main plus one rival's prototype patch, pinned as the sandbox's `--hyp` |
-| arm (skill-text-arms) | a set of skill files the runner loads: `base` (the skills at the sandbox's `--base`) or a SKILL.md variant carried in the bundle; the runner's hyp is the same in every arm |
-| arm (recipe-base-arms) | a hyp binary built from main, or from main plus the embed prototype and one rival's base candidates, pinned as the sandbox's `--hyp`; `null` embeds no base; the candidates were not shipped (ADR 0009) |
+| arm (id-citation-arms) | an Arm: a hyp binary built from one rival's prototype patch, the subject a Standalone check runs |
+| arm (recipe-authoring-arms) | an Arm: a hyp binary, main or main plus one rival's prototype patch, pinned as the sandbox's `--hyp` |
+| arm (skill-text-arms) | an Arm: a set of skill files the runner loads: `base` (the skills at the sandbox's `--base`) or a SKILL.md variant carried in the bundle; the runner's hyp is the same in every arm |
+| arm (recipe-base-arms) | an Arm: a hyp binary built from main, or from main plus the embed prototype and one rival's base candidates, pinned as the sandbox's `--hyp`; `null` embeds no base; the candidates were not shipped (ADR 0009) |
 | stop (authoring-stops, recipe-authoring-arms, skill-text-arms) | a point where an author turning a method into an instrument is held up; counted as a failing hyp command or a fingerprint in the bundle or transcript |
 
 ## Where the scopes touch
