@@ -10,6 +10,8 @@
 //	              its ref and checked against the record's sha256 (docs/adr/0005-a-bundle-is-its-ref-and-hash.md)
 //	bin/hyp       a copy of the pinned hyp binary
 //	inputs/       with --inputs, the sandbox's copy of the inputs file (HYP_SANDBOX_INPUTS)
+//	patches/      with --patch, <ARM>.patch for each Arm, checked to apply to the base and
+//	              never applied (HYP_SANDBOX_PATCHES)
 //	manifest.json every path in wt/ when create finished, the baseline of changes.json
 //	recipe.log    the output of every recipe command, each after a "== REF phase: command" line
 //	sandbox.json  the Record, written only by hyp
@@ -35,7 +37,7 @@
 // Remove runs every recipe's Cleanup commands, last recipe first, every
 // command even after one fails, each under its own deadline. It then copies
 // wt/.tree (without index.sqlite*, which older hyp binaries write; ADR 0006),
-// recipe.log, each kept file and the record (with removed), the inputs copy, and changes.json with changes/ (every path
+// recipe.log, each kept file and the record (with removed), the inputs copy, patches/, and changes.json with changes/ (every path
 // in wt/ that changed since create finished) to OUT_DIR, and deletes the
 // sandbox. With Discard it deletes without writing a
 // record. A record written by an older hyp may hold a single recipe object
@@ -76,7 +78,9 @@
 // that does not exist, a base that already holds .tree, a sandbox with no
 // Drive command, a record directory that exists, an OUT_DIR without
 // sandbox.json, an unknown Standalone name, a recipe with no Evidence
-// command, an --inputs that is not a regular file); 3 the environment is wrong or I/O failed (a
+// command, an --inputs that is not a regular file, a --patch with a bad or
+// repeated Arm, a patch file that is not a regular file or does not apply
+// to the base); 3 the environment is wrong or I/O failed (a
 // process still running in the sandbox, or one hyp could not check for,
 // a sandbox another hyp command is changing,
 // missing git or lsof, a failed create step, a failed or timed-out Launch or
@@ -134,6 +138,7 @@ type Record struct {
 	HypVersion string                     `json:"hyp_version"`
 	Recipes    []Entry                    `json:"recipes"`
 	Inputs     *Inputs                    `json:"inputs,omitempty"`
+	Patches    []PatchSum                 `json:"patches,omitempty"`
 	Commands   []cmdrecord.Run            `json:"commands,omitempty"`
 	Store      string                     `json:"store,omitempty"`
 	Cut        string                     `json:"cut,omitempty"`
@@ -148,6 +153,9 @@ type Record struct {
 func (r *Record) WTDir() string  { return filepath.Join(r.box, "wt") }
 func (r *Record) TmpDir() string { return filepath.Join(r.box, "tmp") }
 func (r *Record) BinDir() string { return filepath.Join(r.box, "bin") }
+
+// PatchesDir is the directory of the sandbox's patch copies, <ARM>.patch each.
+func (r *Record) PatchesDir() string { return filepath.Join(r.box, keptPatches) }
 
 // InputsFile is the sandbox's copy of the inputs file, or "" without one.
 func (r *Record) InputsFile() string {
@@ -214,6 +222,30 @@ func (e *Entry) UnmarshalJSON(data []byte) error {
 		e.Name = filepath.Base(v.Path)
 	}
 	return nil
+}
+
+// PatchSum is one Arm's patch as the record names it: the Arm and the
+// sha256 of the sandbox's copy, patches/<ARM>.patch.
+type PatchSum struct {
+	Arm    string `json:"arm"`
+	SHA256 string `json:"sha256"`
+}
+
+// Patch is one --patch ARM=FILE: a throwaway Arm's change over the base.
+type Patch struct {
+	Arm, File string
+}
+
+var armRe = regexp.MustCompile(`^[a-z][a-z0-9-]{0,39}$`)
+
+// ParsePatch reads ARM=FILE. A word without = or with an empty side is bad
+// arguments; the Arm and the file are checked by Create.
+func ParsePatch(s string) (Patch, error) {
+	arm, file, ok := strings.Cut(s, "=")
+	if !ok || arm == "" || file == "" {
+		return Patch{}, herr.BadArgs("--patch %s: want ARM=FILE", s)
+	}
+	return Patch{Arm: arm, File: file}, nil
 }
 
 // Inputs is a run's inputs file: the base name of the sandbox's copy, which
@@ -310,6 +342,11 @@ type CreateOptions struct {
 	// Inputs is a file of this run's inputs, or "": the sandbox keeps a
 	// copy and passes it to every command as HYP_SANDBOX_INPUTS.
 	Inputs string
+	// Patches is at most one patch per Arm, in the order given. Each must
+	// apply to Base; the sandbox keeps a copy of each in patches/ and passes
+	// that directory to every command as HYP_SANDBOX_PATCHES. Nothing is
+	// applied to wt/: Launch builds each Arm.
+	Patches []Patch
 }
 
 // setupTimeout bounds one recipe's Launch and Doctor together.
@@ -625,6 +662,19 @@ func Create(o CreateOptions) (*Record, error) {
 	if o.Inputs != "" {
 		if fi, err := os.Stat(o.Inputs); err != nil || !fi.Mode().IsRegular() {
 			return nil, herr.BadArgs("--inputs %s is not a regular file", o.Inputs)
+		}
+	}
+	arms := map[string]bool{}
+	for _, p := range o.Patches {
+		if !armRe.MatchString(p.Arm) {
+			return nil, herr.BadArgs("--patch %s=%s: bad Arm %q; use [a-z][a-z0-9-], at most 40 characters", p.Arm, p.File, p.Arm)
+		}
+		if arms[p.Arm] {
+			return nil, herr.BadArgs("--patch %s=%s: Arm %s already has a patch; an Arm has at most one", p.Arm, p.File, p.Arm)
+		}
+		arms[p.Arm] = true
+		if fi, err := os.Stat(p.File); err != nil || !fi.Mode().IsRegular() {
+			return nil, herr.BadArgs("--patch %s=%s: %s is not a regular file", p.Arm, p.File, p.File)
 		}
 	}
 	var cut *store.Cut
@@ -973,6 +1023,9 @@ func sandboxEnv(rec *Record, e Entry) []string {
 	if rec.Inputs != nil {
 		env = append(env, "HYP_SANDBOX_INPUTS="+rec.InputsFile())
 	}
+	if len(rec.Patches) > 0 {
+		env = append(env, "HYP_SANDBOX_PATCHES="+rec.PatchesDir())
+	}
 	return env
 }
 
@@ -1030,6 +1083,10 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 			return nil, nil, err
 		}
 	}
+	patches, err := copyPatches(o, box, wt)
+	if err != nil {
+		return nil, nil, err
+	}
 	var src string
 	if cut != nil {
 		var err error
@@ -1083,7 +1140,7 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 	rec := &Record{
 		Format: SandboxFormat, ID: o.ID, Host: hostName, Base: base,
 		HypSHA256: hex.EncodeToString(sum[:]), HypVersion: version,
-		Recipes: []Entry{{Ref: event.RefNone}}, Inputs: inputs, Store: src, Cut: o.Cut, Created: now(), box: box,
+		Recipes: []Entry{{Ref: event.RefNone}}, Inputs: inputs, Patches: patches, Store: src, Cut: o.Cut, Created: now(), box: box,
 	}
 	var cps []*recipe.Recipe
 	if len(rcps) > 0 {
@@ -1111,6 +1168,40 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		return nil, nil, err
 	}
 	return rec, cps, nil
+}
+
+// copyPatches copies each patch to box/patches/<ARM>.patch, hashes the copy
+// and checks that it applies to the clone at the base, applying nothing. A
+// patch that does not apply is bad arguments: another base or another file
+// fixes it.
+func copyPatches(o CreateOptions, box, wt string) ([]PatchSum, error) {
+	if len(o.Patches) == 0 {
+		return nil, nil
+	}
+	dir := filepath.Join(box, keptPatches)
+	if err := os.Mkdir(dir, 0o755); err != nil {
+		return nil, err
+	}
+	var sums []PatchSum
+	for _, p := range o.Patches {
+		dst := filepath.Join(dir, p.Arm+".patch")
+		if err := copyFile(p.File, dst, 0o644); err != nil {
+			return nil, err
+		}
+		h, err := fileSum(dst)
+		if err != nil {
+			return nil, err
+		}
+		if out, err := exec.Command("git", "-C", wt, "apply", "--check", dst).CombinedOutput(); err != nil {
+			first, _, _ := strings.Cut(strings.TrimSpace(string(out)), "\n")
+			if first == "" {
+				first = err.Error()
+			}
+			return nil, herr.BadArgs("patch %s (%s) does not apply to %s: %s", p.Arm, p.File, o.Base, first)
+		}
+		sums = append(sums, PatchSum{Arm: p.Arm, SHA256: h})
+	}
+	return sums, nil
 }
 
 // copyRecipe copies rcp into dir (a sandbox's recipes/, outside wt/ so the
@@ -1283,6 +1374,11 @@ func readRecord(path, id string) (*Record, error) {
 	if rec.Inputs != nil && !plainName(rec.Inputs.Name) {
 		ok = false
 	}
+	for _, p := range rec.Patches {
+		if !armRe.MatchString(p.Arm) {
+			ok = false
+		}
+	}
 	rec.box = filepath.Dir(path)
 	if !ok {
 		return nil, herr.Env("corrupt record %s", path)
@@ -1296,6 +1392,7 @@ const (
 	keptRecord       = "sandbox.json"
 	keptRecipeLog    = "recipe.log"
 	keptInputs       = "inputs"
+	keptPatches      = "patches"
 	keptChanges      = "changes"
 	keptChangesJSON  = "changes.json"
 	keptKnownAnswers = "known-answers.log"
@@ -1303,7 +1400,7 @@ const (
 
 // KeptFiles is every name hyp writes into OUT_DIR on remove; no --keep path
 // may take one as its basename.
-var KeptFiles = []string{keptTree, keptRecord, keptRecipeLog, keptInputs, keptChanges, keptChangesJSON, keptKnownAnswers}
+var KeptFiles = []string{keptTree, keptRecord, keptRecipeLog, keptInputs, keptPatches, keptChanges, keptChangesJSON, keptKnownAnswers}
 
 // keepPaths checks that each kept path is relative, stays inside box and
 // has a basename no other kept file or the record uses.
@@ -1356,6 +1453,16 @@ func saveRecord(o RemoveOptions, rec *Record, wt, box string, keep []string) err
 			return err
 		}
 		if err := copyFile(rec.InputsFile(), dst, 0o644); err != nil {
+			return err
+		}
+	}
+	for _, p := range rec.Patches {
+		name := p.Arm + ".patch"
+		dst := filepath.Join(o.OutDir, keptPatches, name)
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			return err
+		}
+		if err := copyFile(filepath.Join(rec.PatchesDir(), name), dst, 0o644); err != nil {
 			return err
 		}
 	}

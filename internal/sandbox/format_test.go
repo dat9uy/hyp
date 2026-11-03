@@ -100,6 +100,7 @@ func fullRecord() Record {
 	return Record{Format: SandboxFormat, ID: "i", Host: "h", Base: "b", HypSHA256: "h", HypVersion: "v",
 		Recipes:  []Entry{{Ref: event.Ref{Name: "r", Version: "1"}, Name: "r", Version: "1", SHA256: "s", Setup: "passed", Cleanup: "ok", KnownAnswers: fullKnownAnswers()}},
 		Inputs:   &Inputs{Name: "n", SHA256: "h"},
+		Patches:  []PatchSum{{Arm: "a", SHA256: "h"}},
 		Commands: []cmdrecord.Run{fullCommand()}, Store: "s", Cut: "c", Created: "c", Removed: "r"}
 }
 
