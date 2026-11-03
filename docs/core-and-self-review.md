@@ -37,6 +37,8 @@ When a question needs an instrument, it is a recipe with known answers, pinned b
 | Item | Why it is self-review | Visibility |
 |---|---|---|
 | `recipes/id-citation-arms@1` | a recipe this repository keeps to test hyp: it runs the id-citation rule prototypes on a frozen fixture store for `investigations/id-citation`; it is no replay instrument | public |
+| `recipes/id-citation-arms@2` | a recipe this repository keeps to test hyp: version 1's cases and verdict, with every Arm built in Launch from the sandbox base or the base plus one patch from `investigations/id-citation/arms/`, and the fixture carried in the bundle; it is no replay instrument | public |
+| `investigations/id-citation/arms/` | an input only self-review recipes use: the id-citation Arms as patches over a main commit (`today`, `text-warn`, `cite`; `text-refuse` is the base), which `id-citation-arms@2` takes as `--patch` | public |
 | `recipes/authoring-stops@2` | a recipe this repository keeps to test hyp: it probes whether each stop an author meets while turning a method into an instrument is still live; the tree that pinned it is not published | public |
 | `recipes/recipe-authoring-arms@4` | a recipe this repository keeps to test hyp: a sonnet runner turns the id-citation method into an instrument on two hyp arms; it runs live runners, it does not replay a session; the tree that pinned it is not published | public |
 | `recipes/skill-text-arms@3` | a recipe this repository keeps to test hyp: the skill-text gate's instrument, a fresh sonnet runner at a store cut of `investigations/id-citation` with base skills or a SKILL.md variant; the tree that pinned it is not published | public |
@@ -56,7 +58,7 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 
 | Self-review word | In core terms |
 |---|---|
-| arm (id-citation-arms) | an Arm: a hyp binary built from one rival's prototype patch, the subject a Standalone check runs |
+| arm (id-citation-arms) | an Arm: a hyp binary built in Launch from main or main plus one rival's patch, named by sha256, the subject the cases run (version 1 read binaries built by hand from absolute paths) |
 | arm (recipe-authoring-arms) | an Arm: a hyp binary, main or main plus one rival's prototype patch, pinned as the sandbox's `--hyp` |
 | arm (skill-text-arms) | an Arm: a set of skill files the runner loads: `base` (the skills at the sandbox's `--base`) or a SKILL.md variant carried in the bundle; the runner's hyp is the same in every arm |
 | arm (recipe-base-arms) | an Arm: a hyp binary built from main, or from main plus the embed prototype and one rival's base candidates, pinned as the sandbox's `--hyp`; `null` embeds no base; the candidates were not shipped (ADR 0009) |
