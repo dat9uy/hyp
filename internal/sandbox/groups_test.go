@@ -173,13 +173,13 @@ func TestRunStepTellsInterruptFromTimeout(t *testing.T) {
 	save := func(cmdrecord.Run) error { return nil }
 	ctx, cancel := context.WithCancel(context.Background())
 	time.AfterFunc(100*time.Millisecond, cancel)
-	row, _ := runStep(ctx, log, "r@1", "drive", filepath.Dir(sh), stepCmd(ctx, log, t.TempDir(), nil, []string{sh}), time.Minute, save, false)
+	row, _ := runStep(ctx, log, "r@1", "drive", filepath.Dir(sh), stepCmd(ctx, log, t.TempDir(), nil, []string{sh}), nil, time.Minute, save, false)
 	if row.Error != "interrupted" {
 		t.Errorf("cancelled: error = %q, want interrupted", row.Error)
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	row, _ = runStep(ctx, log, "r@1", "drive", filepath.Dir(sh), stepCmd(ctx, log, t.TempDir(), nil, []string{sh}), 100*time.Millisecond, save, false)
+	row, _ = runStep(ctx, log, "r@1", "drive", filepath.Dir(sh), stepCmd(ctx, log, t.TempDir(), nil, []string{sh}), nil, 100*time.Millisecond, save, false)
 	if row.Error != "timed out after 100ms" {
 		t.Errorf("deadline: error = %q, want a timeout", row.Error)
 	}

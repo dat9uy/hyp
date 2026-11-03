@@ -849,7 +849,7 @@ func runSetup(ictx context.Context, box string, rec *Record, e Entry, cp *recipe
 	}{{recipe.Launch, cp.Launch}, {recipe.Doctor, cp.Doctor}} {
 		for _, argv := range phase.cmds {
 			save := rowSaver(&rec.Commands, write)
-			row, err := runStep(ctx, log, e.Ref.String(), phase.name, cp.Dir, stepCmd(ctx, log, cp.Dir, sandboxEnv(rec, e), argv), setupTimeout, save, false)
+			row, err := runStep(ctx, log, e.Ref.String(), phase.name, cp.Dir, stepCmd(ctx, log, cp.Dir, sandboxEnv(rec, e), argv), nil, setupTimeout, save, false)
 			if err != nil {
 				return fmt.Errorf("%s %s: %s: %v; record not written; the command did not run", e.Ref, phase.name, row.Shown(), err)
 			}
@@ -888,7 +888,7 @@ func runCleanup(box string, rec *Record, e Entry, cp *recipe.Recipe) (status, re
 			return nil
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), cleanupTimeout)
-		row, _ := runStep(ctx, log, e.Ref.String(), recipe.Cleanup, cp.Dir, stepCmd(ctx, log, cp.Dir, sandboxEnv(rec, e), argv), cleanupTimeout, save, false)
+		row, _ := runStep(ctx, log, e.Ref.String(), recipe.Cleanup, cp.Dir, stepCmd(ctx, log, cp.Dir, sandboxEnv(rec, e), argv), nil, cleanupTimeout, save, false)
 		cancel()
 		save(row)
 		outcome := row.Shown() + " " + row.Outcome()
@@ -932,7 +932,8 @@ func rowSaver(rows *[]cmdrecord.Run, write func() error) func(cmdrecord.Run) err
 }
 
 // runStep runs cmd, appending a "== REF step: command" line to log first,
-// and returns its row, the script shown as ./PATH inside bundle. It first
+// and returns its row, the script shown as ./PATH inside bundle, or as
+// shown when it is not nil. It first
 // passes the row, with started and nothing after, to save, and runs nothing
 // when save fails: it returns that pending row and the error. cmd's
 // environment, directory and output are set by stepCmd or checkCmd; its
@@ -943,8 +944,11 @@ func rowSaver(rows *[]cmdrecord.Run, write func() error) func(cmdrecord.Run) err
 // "interrupted" when ctx was cancelled (Ctrl-C) or a timeout after timeout
 // when its deadline passed. With endGroup, the group is also killed when the
 // command ends, so nothing it left in the background outlives it.
-func runStep(ctx context.Context, log *os.File, ref string, step recipe.Step, bundle string, cmd *exec.Cmd, timeout time.Duration, save func(cmdrecord.Run) error, endGroup bool) (cmdrecord.Run, error) {
-	row := cmdrecord.Run{Ref: ref, Step: step, Args: rowArgs(bundle, cmd.Args)}
+func runStep(ctx context.Context, log *os.File, ref string, step recipe.Step, bundle string, cmd *exec.Cmd, shown []string, timeout time.Duration, save func(cmdrecord.Run) error, endGroup bool) (cmdrecord.Run, error) {
+	if shown == nil {
+		shown = rowArgs(bundle, cmd.Args)
+	}
+	row := cmdrecord.Run{Ref: ref, Step: step, Args: shown}
 	row.Started = now()
 	if err := save(row); err != nil {
 		return row, err
