@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "cases", "args": ["$CASE/input/cases.tsv", "$CASE/input/fixture.tar", "ok=input/append.sh"], "exit": 2, "stdout": ""}
