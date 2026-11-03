@@ -45,7 +45,7 @@ func sandboxDrive(args []string, stdout io.Writer) error {
 }
 
 func sandboxCreate(args []string, stdout io.Writer) error {
-	const use = "usage: hyp sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--store SRC --cut EVENT] [--inputs FILE] [--hyp BIN]"
+	const use = "usage: hyp sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--store SRC --cut EVENT] [--inputs FILE] [--patch ARM=FILE]... [--hyp BIN]"
 	fs := readFlags("sandbox create", nil)
 	host := fs.String("host", "", "host repository root (required)")
 	base := fs.String("base", "", "commit to detach the clone at (required)")
@@ -56,6 +56,8 @@ func sandboxCreate(args []string, stdout io.Writer) error {
 	src := fs.String("store", "", "store directory (holding .tree) to cut into wt/.tree; needs --cut")
 	cut := fs.String("cut", "", "event id: wt/.tree is the store as of this event; needs --store")
 	inputs := fs.String("inputs", "", "file of this run's inputs; the sandbox keeps a copy, hashes it and passes it as HYP_SANDBOX_INPUTS")
+	var patchArgs multi
+	fs.Var(&patchArgs, "patch", "ARM=FILE: a throwaway Arm's patch over --base, at most one per Arm, repeatable; checked to apply, hashed, kept and passed in HYP_SANDBOX_PATCHES")
 	pos, err := parse(fs, args)
 	if err != nil {
 		return err
@@ -63,7 +65,15 @@ func sandboxCreate(args []string, stdout io.Writer) error {
 	if len(pos) != 1 || *host == "" || *base == "" || len(refs) == 0 {
 		return usageErr(use)
 	}
-	rec, err := sandbox.Create(sandbox.CreateOptions{ID: pos[0], Host: *host, Base: *base, Hyp: *bin, Refs: refs, Recipes: *recipes, Store: *src, Cut: *cut, Inputs: *inputs})
+	var patches []sandbox.Patch
+	for _, s := range patchArgs {
+		p, err := sandbox.ParsePatch(s)
+		if err != nil {
+			return err
+		}
+		patches = append(patches, p)
+	}
+	rec, err := sandbox.Create(sandbox.CreateOptions{ID: pos[0], Host: *host, Base: *base, Hyp: *bin, Refs: refs, Recipes: *recipes, Store: *src, Cut: *cut, Inputs: *inputs, Patches: patches})
 	if err != nil {
 		return err
 	}

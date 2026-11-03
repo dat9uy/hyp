@@ -17,6 +17,8 @@ hyp_version string
 id string
 inputs.name string
 inputs.sha256 string
+patches[].arm string
+patches[].sha256 string
 recipes[].cleanup string
 recipes[].known_answers.cases[].name string
 recipes[].known_answers.cases[].outcome string

@@ -262,7 +262,7 @@ _Avoid_: unpinned (alone)
 ### Sandboxes
 
 **Sandbox**:
-A disposable copy of the subject at a recorded base commit, with its own scratch space, pinned hyp and record. The sandbox is the only place hyp assembles a subject: from the base, a store cut, per-run inputs and, **[not built: #8]**, one patch for each Arm. Code under test is built in its Launch ([spec §9.6](replay-spec.md#96-the-subject)). It is not process isolation: commands still run on the host.
+A disposable copy of the subject at a recorded base commit, with its own scratch space, pinned hyp and record. The sandbox is the only place hyp assembles a subject: from the base, a store cut, per-run inputs and one patch for each Arm. Code under test is built in its Launch ([spec §9.6](replay-spec.md#96-the-subject)). It is not process isolation: commands still run on the host.
 _Avoid_: container, VM, environment
 
 **Sandbox record**:
@@ -293,7 +293,7 @@ The step that turns what happened into findings. When it is scripted, it reads o
 _Avoid_: check (as a step name), verify
 
 **Kept files**:
-What remove copies out of a sandbox before deleting it, which scripted Evidence reads. In code: `sandbox.KeptFiles`, every name remove writes into OUT_DIR.
+What remove copies out of a sandbox before deleting it, which scripted Evidence reads. In code: `sandbox.KeptFiles`, every name remove writes into OUT_DIR, `patches/` among them.
 _Avoid_: artifacts, output (alone)
 
 **Store cut**:
@@ -301,7 +301,7 @@ A copy of a tree's store as it stood at one event, given to a sandbox.
 _Avoid_: snapshot (that is a different thing: a capture of a live session)
 
 **Patch**:
-A throwaway change over the subject's base that never lands in code, given to `hyp sandbox create` as `--patch ARM=FILE` for one Arm. An Arm has at most one; a patch is never versioned, stacked or rebased, and a change that lands is a commit used as the base instead. hyp checks that it applies to the base, records its sha256 and keeps it with the kept files. It is the subject, not a file of the recipe bundle ([spec §9.6](replay-spec.md#96-the-subject)). **[not built: #8]**
+A throwaway change over the subject's base that never lands in code, given to `hyp sandbox create` as `--patch ARM=FILE` for one Arm. An Arm has at most one; a patch is never versioned, stacked or rebased, and a change that lands is a commit used as the base instead. hyp checks that it applies to the base, records its sha256 and keeps it with the kept files. It is the subject, not a file of the recipe bundle ([spec §9.6](replay-spec.md#96-the-subject)).
 _Avoid_: variant (alone), diff, fork
 
 ### People and binaries

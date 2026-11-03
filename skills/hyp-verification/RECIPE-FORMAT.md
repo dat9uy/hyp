@@ -280,7 +280,8 @@ Rules:
   with that copy as the working directory and get
   `HYP_SANDBOX_ID`, `HYP_SANDBOX_WT`, `HYP_SANDBOX_TMP`,
   `HYP_SANDBOX_RECIPE_TMP` (the recipe's own `$HYP_SANDBOX_TMP/<name>`,
-  made empty at create), and a `PATH` that starts with the sandbox's pinned
+  made empty at create), `HYP_SANDBOX_INPUTS` and `HYP_SANDBOX_PATCHES`
+  when given (see Per-run inputs below), and a `PATH` that starts with the sandbox's pinned
   `hyp`. They also inherit the environment of the process that runs hyp,
   which is how a run passes its inputs (see Per-run inputs below).
 - An Experiment recorded inside `wt/` resolves recipes only against what the
@@ -385,7 +386,18 @@ in a file. A Standalone command takes its arguments from
    later processes.
 3. `hyp sandbox remove` copies it to `OUT_DIR/inputs/<base name>`, so a
    Result that depends on the inputs cites the kept copy. `inputs`,
-   `changes` and `changes.json` are reserved names in OUT_DIR for `--keep`.
+   `patches`, `changes` and `changes.json` are reserved names in OUT_DIR for
+   `--keep`.
+4. A throwaway Arm, a change over the base that never lands in code, is
+   one patch: `hyp sandbox create ... --patch ARM=FILE`, repeatable, at
+   most one per Arm (ARM is `[a-z][a-z0-9-]`, at most 40 characters). A
+   change that lands is a commit, given as `--base` instead. hyp refuses a
+   patch that does not apply to the base with exit 2 before any command
+   runs, and leaves no sandbox. It applies nothing to `wt/`: it copies
+   each patch to `patches/<ARM>.patch`, passes that directory to every
+   command as `HYP_SANDBOX_PATCHES`, and Launch builds each Arm from it.
+   `sandbox.json` names each by `arm` and `sha256` under `patches`, and
+   remove keeps it as `OUT_DIR/patches/<ARM>.patch`.
 
 A recipe no longer names a variable of its own for its inputs.
 
@@ -463,6 +475,7 @@ is changing the sandbox; the lock goes away when that hyp exits.
 | `id` | the sandbox id; the sandbox is `~/.hyp-sandbox/ID`, and its clone, scratch directory, `bin/` and copies are found from it, not from the record. A script finds them in the `HYP_SANDBOX_` variables |
 | `host` | the host repository's directory name, not its path |
 | `base` | the full commit `wt/` is detached at |
+| `patches` | with `--patch ARM=FILE`: one `{"arm", "sha256"}` per patch, in the order given, the sha256 of the sandbox's copy `patches/<ARM>.patch`; absent otherwise |
 | `inputs` | with `--inputs FILE`: `name` (the base name of the sandbox's copy, `HYP_SANDBOX_INPUTS`, kept as `OUT_DIR/inputs/<name>`) and `sha256` (of the copy); absent otherwise |
 | `hyp_sha256`, `hyp_version` | hash of `bin/hyp` and what its `version` printed |
 | `recipes` | the sandbox's recipes in stack order, always a list (see below) |
@@ -765,7 +778,9 @@ not executable.
 A fixed input that is not the subject, such as a fixture or a cases file,
 is a file of the bundle, so the recipe pin hashes it, and the code that
 reads it is in the bundle too. A file outside the bundle is the subject,
-or a read or write that the command's `External:` line names.
+or a read or write that the command's `External:` line names. A patch
+given to `hyp sandbox create --patch` is the subject, not a file of the
+bundle: the sandbox keeps it and its sha256.
 hyp does not detect a fixture outside the bundle.
 
 The operator runs none of a bundle's scripts directly; hyp runs every
