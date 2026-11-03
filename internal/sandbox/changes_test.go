@@ -137,7 +137,7 @@ func TestStoreCutIsBaseline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !exists(filepath.Join(rec.WT, ".tree", "events")) {
+	if !exists(filepath.Join(rec.WTDir(), ".tree", "events")) {
 		t.Fatal("no cut in wt/.tree")
 	}
 	out := filepath.Join(t.TempDir(), "out")
@@ -168,7 +168,7 @@ func TestCreateInputs(t *testing.T) {
 	}
 	copyPath := filepath.Join(box, "inputs", "params.json")
 	sum, _ := fileSum(copyPath)
-	if rec.Inputs == nil || rec.Inputs.Path != copyPath || rec.Inputs.SHA256 != sum || sum == "" {
+	if rec.Inputs == nil || rec.InputsFile() != copyPath || rec.Inputs.Name != "params.json" || rec.Inputs.SHA256 != sum || sum == "" {
 		t.Fatalf("inputs = %+v, want the copy %s with sha256 %s", rec.Inputs, copyPath, sum)
 	}
 	if log, _ := os.ReadFile(filepath.Join(box, "recipe.log")); !strings.Contains(string(log), `{"n": 1}`) {

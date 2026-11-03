@@ -62,16 +62,16 @@ func TestDriveRunsInSandbox(t *testing.T) {
 	if _, err := Drive("drv", &buf); err != nil {
 		t.Fatal(err)
 	}
-	if !exists(filepath.Join(rec.WT, "driven.txt")) {
+	if !exists(filepath.Join(rec.WTDir(), "driven.txt")) {
 		t.Error("Drive did not run in the sandbox")
 	}
-	pwd, _ := os.ReadFile(filepath.Join(rec.Tmp, "pwd.txt"))
+	pwd, _ := os.ReadFile(filepath.Join(rec.TmpDir(), "pwd.txt"))
 	got, _ := filepath.EvalSymlinks(strings.TrimSpace(string(pwd)))
 	want, _ := filepath.EvalSymlinks(filepath.Join(box, "recipes", "boot"))
 	if got != want {
 		t.Errorf("PWD = %q, want %q", got, want)
 	}
-	if path, _ := os.ReadFile(filepath.Join(rec.Tmp, "path.txt")); !strings.HasPrefix(string(path), rec.Bin+":") {
+	if path, _ := os.ReadFile(filepath.Join(rec.TmpDir(), "path.txt")); !strings.HasPrefix(string(path), rec.BinDir()+":") {
 		t.Errorf("PATH = %q, want the pinned hyp first", path)
 	}
 	if !strings.Contains(buf.String(), "boot@1 drive: ./drive.sh ok") {
@@ -411,7 +411,7 @@ func TestDriveRefusesBusySandbox(t *testing.T) {
 		_, err := Drive("busy", io.Discard)
 		done <- err
 	}()
-	waitFile(t, filepath.Join(rec.Tmp, "started"))
+	waitFile(t, filepath.Join(rec.TmpDir(), "started"))
 	_, err := Drive("busy", io.Discard)
 	if code(err) != 3 {
 		t.Fatalf("second drive: err = %v, want code 3", err)
@@ -427,7 +427,7 @@ func TestDriveRefusesBusySandbox(t *testing.T) {
 	if !exists(filepath.Join(box, "sandbox.json")) {
 		t.Fatal("remove during a drive deleted the sandbox")
 	}
-	writeFile(t, filepath.Join(rec.Tmp, "go"), "")
+	writeFile(t, filepath.Join(rec.TmpDir(), "go"), "")
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
@@ -470,7 +470,7 @@ func TestDriveAfterRemoveIsNoSandbox(t *testing.T) {
 	if _, err := Drive("gone", io.Discard); code(err) != 2 || !strings.Contains(err.Error(), "no sandbox") {
 		t.Fatalf("drive: err = %v, want code 2 no sandbox", err)
 	}
-	if exists(filepath.Join(rec.Tmp, "ran")) {
+	if exists(filepath.Join(rec.TmpDir(), "ran")) {
 		t.Error("the Drive script ran")
 	}
 }
@@ -536,7 +536,7 @@ func TestDriveRowWrittenBeforeCommand(t *testing.T) {
 	if _, err := Drive("pend", io.Discard); err != nil {
 		t.Fatal(err)
 	}
-	during := filepath.Join(rec.Tmp, "during.json")
+	during := filepath.Join(rec.TmpDir(), "during.json")
 	var mid Record
 	pendingRow(t, during, "drive", func() []cmdrecord.Run {
 		data, _ := os.ReadFile(during)
@@ -593,7 +593,7 @@ func TestDriveRefusesWhenRowCannotBeSaved(t *testing.T) {
 	if code(err) != 3 || !strings.Contains(err.Error(), "the command did not run") {
 		t.Fatalf("err = %v, want code 3 the command did not run", err)
 	}
-	if exists(filepath.Join(rec.Tmp, "ran")) {
+	if exists(filepath.Join(rec.TmpDir(), "ran")) {
 		t.Error("the Drive script ran")
 	}
 	if got != nil && len(got.Commands) != 0 {

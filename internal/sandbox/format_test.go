@@ -97,9 +97,9 @@ func fullCommand() cmdrecord.Run {
 }
 
 func fullRecord() Record {
-	return Record{Format: SandboxFormat, ID: "i", Host: "h", Base: "b", WT: "w", Tmp: "t", Bin: "b", HypSHA256: "h", HypVersion: "v",
-		Recipes:  []Entry{{Ref: event.Ref{Name: "r", Version: "1"}, Name: "r", Version: "1", SHA256: "s", Path: "p", Setup: "passed", Cleanup: "ok", KnownAnswers: fullKnownAnswers()}},
-		Inputs:   &Inputs{Source: "s", Path: "p", SHA256: "h"},
+	return Record{Format: SandboxFormat, ID: "i", Host: "h", Base: "b", HypSHA256: "h", HypVersion: "v",
+		Recipes:  []Entry{{Ref: event.Ref{Name: "r", Version: "1"}, Name: "r", Version: "1", SHA256: "s", Setup: "passed", Cleanup: "ok", KnownAnswers: fullKnownAnswers()}},
+		Inputs:   &Inputs{Name: "n", SHA256: "h"},
 		Commands: []cmdrecord.Run{fullCommand()}, Store: "s", Cut: "c", Created: "c", Removed: "r"}
 }
 

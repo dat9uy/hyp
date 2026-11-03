@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -97,16 +96,8 @@ func TestDriveCopyCodes(t *testing.T) {
 	bundleIn(t, lib, "drv", "## Drive\n\nRun: ./drive.sh\n", map[string]string{"drive.sh": "#!/bin/sh\n"})
 	create := func(id string) (meta, copyDir string) {
 		must(t, "sandbox", "create", id, "--host", h, "--base", sha, "--hyp", stub, "--recipe", "drv@1", "--recipes", lib)
-		meta = filepath.Join(home, ".hyp-sandbox", id, "sandbox.json")
-		var rec struct{ Recipes []struct{ Path string } }
-		data, err := os.ReadFile(meta)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := json.Unmarshal(data, &rec); err != nil {
-			t.Fatal(err)
-		}
-		return meta, rec.Recipes[0].Path
+		box := filepath.Join(home, ".hyp-sandbox", id)
+		return filepath.Join(box, "sandbox.json"), filepath.Join(box, "recipes", "drv")
 	}
 
 	_, cp := create("c1")
@@ -118,7 +109,8 @@ func TestDriveCopyCodes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeFile(t, meta, strings.Replace(string(data), cp, t.TempDir(), 1))
+	// A copy an older record names outside the sandboxes root is refused.
+	writeFile(t, meta, strings.Replace(string(data), `"name": "drv",`, `"name": "drv", "path": "`+t.TempDir()+`",`, 1))
 	wantCode(t, hyp(t, "sandbox", "drive", "c2"), 1)
 
 	_, cp = create("c3")

@@ -46,7 +46,7 @@ func TestRemoveStopsLaunchGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pid := readPid(t, filepath.Join(rec.Tmp, "pid"))
+	pid := readPid(t, filepath.Join(rec.TmpDir(), "pid"))
 	if syscall.Kill(pid, 0) != nil {
 		t.Fatal("the Launch's background process did not survive Launch")
 	}
@@ -72,7 +72,7 @@ func TestRemoveEscalatesToKill(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pid := readPid(t, filepath.Join(rec.Tmp, "pid"))
+	pid := readPid(t, filepath.Join(rec.TmpDir(), "pid"))
 	var warn bytes.Buffer
 	if _, err := Remove(RemoveOptions{ID: "kill", Discard: true, Warn: &warn}); err != nil {
 		t.Fatal(err)
@@ -97,7 +97,7 @@ func TestDriveTimeoutKillsGroup(t *testing.T) {
 	if code(err) != 3 || !strings.Contains(err.Error(), "timed out after 1s") {
 		t.Fatalf("err = %v", err)
 	}
-	waitGone(t, readPid(t, filepath.Join(rec.Tmp, "pid")))
+	waitGone(t, readPid(t, filepath.Join(rec.TmpDir(), "pid")))
 }
 
 func TestEvidenceGroupEndsWithCommand(t *testing.T) {

@@ -266,7 +266,7 @@ A disposable copy of the subject at a recorded base commit, with its own scratch
 _Avoid_: container, VM, environment
 
 **Sandbox record**:
-The record of one sandbox that only hyp writes.
+The record of one sandbox that only hyp writes. It names no host path: the sandbox's own paths are derived from its id.
 _Avoid_: sandbox manifest, metadata
 
 **Step**:
