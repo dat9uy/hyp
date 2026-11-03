@@ -15,7 +15,7 @@ import (
 )
 
 // Format is the shape number of command.json.
-const Format = 3
+const Format = 4
 
 // Run is one command hyp ran, a row of the sandbox record or of a command
 // record (docs/replay-spec.md §9.4). Exit is set when the script exited,
@@ -99,10 +99,40 @@ type Record struct {
 	// KnownAnswers is the outcome of the recipe's known answers, run before
 	// its commands; nil until the gate runs them.
 	KnownAnswers *KnownAnswers `json:"known_answers,omitempty"`
-	// ArgSHA256 maps each operator argument that names a regular file by
-	// absolute path, alone or as the VALUE of a KEY=VALUE word, to the
-	// file's sha256, hashed before the first command runs.
-	ArgSHA256 map[string]string `json:"arg_sha256,omitempty"`
+	// Inputs is each operator argument that names a regular file, in ARGS
+	// order; absent when none does.
+	Inputs []Input `json:"inputs,omitempty"`
+	// ArgSHA256 is a format-3 record's arg_sha256, each file argument's
+	// absolute path to its sha256. It is read, and never written.
+	ArgSHA256 map[string]string `json:"-"`
+}
+
+// Input is one kept input: ARGS word Arg (counted from 1) named a regular
+// file, which hyp copied to Path (inputs/<arg>/<base name>, relative to the
+// record's directory) when Kept, hashed, and passed to the script as a copy.
+// A file over the size cap is not kept; its sha256 and size still are.
+type Input struct {
+	Arg    int    `json:"arg"`
+	Path   string `json:"path"`
+	SHA256 string `json:"sha256"`
+	Size   int64  `json:"size"`
+	Kept   bool   `json:"kept"`
+}
+
+type plainRecord Record
+
+// UnmarshalJSON also reads a format-3 record's arg_sha256.
+func (r *Record) UnmarshalJSON(data []byte) error {
+	var v struct {
+		plainRecord
+		ArgSHA256 map[string]string `json:"arg_sha256"`
+	}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	*r = Record(v.plainRecord)
+	r.ArgSHA256 = v.ArgSHA256
+	return nil
 }
 
 // Read reads and decodes the command record at path. It checks no rule: a

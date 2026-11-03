@@ -220,7 +220,7 @@ The recipe section whose commands run when no sandbox exists, for example to cap
 _Avoid_: tools, prepare, utilities
 
 **Command record**:
-hyp's record of one command it ran outside a sandbox: a standalone command, or a scripted Evidence command run again later ([spec §9.4](replay-spec.md#94-records)). In code: `cmdrecord.Record`, read by `cmdrecord.Read`; `Record.CleanRun` is the clean run that containment needs.
+hyp's record of one command it ran outside a sandbox: a standalone command, or a scripted Evidence command run again later ([spec §9.4](replay-spec.md#94-records)). It keeps each file argument and names no host path for anything a replay needs. In code: `cmdrecord.Record`, read by `cmdrecord.Read`; `Record.CleanRun` is the clean run that containment needs.
 _Avoid_: run record (collides with live run)
 
 **Self-contained**:
@@ -247,9 +247,9 @@ _Avoid_: test case (alone), result (a Result is a tree node)
 The `External:` line under an Evidence or Standalone command that names what the command reads or writes outside its bundle, or `none`. `hyp recipe check` warns when it is missing or still reads `TODO` (ADR 0008).
 _Avoid_: dependencies line, inputs line
 
-**Input binding**:
-The sha256 of each file an operator argument names, which hyp records as `arg_sha256` in `command.json` before the first command runs ([spec §9.4](replay-spec.md#94-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). In code: `cmdrecord.Record.ArgSHA256`.
-_Avoid_: inputs field (ADR 0008 rejected one on the Experiment)
+**Kept input**:
+A file an operator argument names, which hyp copies beside the command record as `inputs/N/<base name>`, hashes and lists under `inputs` in `command.json` before the first command runs; the script gets another copy. A file over 1 MB is hashed, not kept ([spec §9.4](replay-spec.md#94-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). In code: `cmdrecord.Input`.
+_Avoid_: input binding, arg hashes, inputs field (ADR 0008 rejected one on the Experiment)
 
 **Containment**:
 What hyp derives, from a Result's files, about whether it can vouch for the script that decided the verdict (spec §7.6). A Result is **uncontained** when one of §7.6's three reasons holds. The mark is read from files each time and never changes a status. Containment is about one Result's evidence. It is not self-contained, which is about a recipe relying only on its own files, and it is not sandbox isolation, which is about where commands run.
@@ -307,7 +307,7 @@ _Avoid_: variant (alone), diff, fork
 ### People and binaries
 
 **Subject**:
-The thing under test in an Experiment. A record names it by what the repository holds or the tree keeps: a commit, and for a throwaway arm one patch over it, both assembled in a sandbox ([spec §9.6](replay-spec.md#96-the-subject)). A binary built from it is named by its sha256. **[not built: #8]**
+The thing under test in an Experiment. A record names it by what the repository holds or the tree keeps: a commit, and for a throwaway arm one patch over it, both assembled in a sandbox ([spec §9.6](replay-spec.md#96-the-subject)). A binary built from it is named by its sha256.
 _Avoid_: target, system under test
 
 **Arm**:

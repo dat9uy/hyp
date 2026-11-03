@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/event"
@@ -68,12 +69,12 @@ func TestReadFixture(t *testing.T) {
 	}
 }
 
-// A full format-3 record survives a write and Read unchanged.
+// A full record survives a write and Read unchanged.
 func TestReadRoundTrip(t *testing.T) {
 	want := clean()
 	want.Path, want.Cwd, want.Created = "p", "c", "t"
 	want.Commands[0].PGID, want.Commands[0].Started, want.Commands[0].Ended = 7, "s", "e"
-	want.ArgSHA256 = map[string]string{"/a": "b"}
+	want.Inputs = []Input{{Arg: 1, Path: "inputs/1/a", SHA256: "b", Size: 2, Kept: true}}
 	data, err := json.Marshal(want)
 	if err != nil {
 		t.Fatal(err)
@@ -114,5 +115,20 @@ func TestRunOutcome(t *testing.T) {
 		if got := c.Outcome(); got != want {
 			t.Errorf("Outcome = %q, want %q", got, want)
 		}
+	}
+}
+
+// A format-3 record's arg_sha256 is read, and never written back.
+func TestReadFormat3ArgSHA256(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "command.json")
+	if err := os.WriteFile(path, []byte(`{"format": 3, "step": "standalone", "arg_sha256": {"/a": "b"}}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r, err := Read(path)
+	if err != nil || r.Format != 3 || r.ArgSHA256["/a"] != "b" {
+		t.Fatalf("Read = %+v, %v", r, err)
+	}
+	if data, _ := json.Marshal(r); strings.Contains(string(data), "arg_sha256") {
+		t.Errorf("written = %s", data)
 	}
 }

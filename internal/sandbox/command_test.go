@@ -213,7 +213,7 @@ func TestRunStandalone(t *testing.T) {
 		t.Errorf("self = %q: want a temporary copy outside the library, deleted", self)
 	}
 	rec := readCommandRecord(t, out)
-	if rec.Ref.String() != "tool@1" || rec.SHA256 != lib.Hash || rec.Path != lib.Path || rec.Step != "standalone" || len(rec.Commands) != 1 {
+	if rec.Ref.String() != "tool@1" || rec.SHA256 != lib.Hash || rec.Path != filepath.Base(root)+"/recipes/tool@1" || rec.Cwd != filepath.Base(root) || rec.Step != "standalone" || len(rec.Commands) != 1 {
 		t.Fatalf("command.json = %+v", rec)
 	}
 	if c := rec.Commands[0]; c.Label != "echo" || !reflect.DeepEqual(c.Args, []string{"./echo.sh", "fixed", "a", "--x"}) || c.Exit == nil || *c.Exit != 0 {
@@ -224,14 +224,24 @@ func TestRunStandalone(t *testing.T) {
 	}
 }
 
-// A Standalone run records the sha256 of each file its arguments name by
-// absolute path, alone or after KEY=, as it was before the command ran.
-// A directory, a relative path and a missing file are not hashed.
-func TestRunRecordsArgSHA256(t *testing.T) {
+// A Standalone run keeps each file its arguments name: absolute, relative
+// with a /, or after KEY=, symlinks followed, as DIR/inputs/<n>/<base>, hashed,
+// and gives the script a copy, so a script that writes to its argument leaves
+// the original and the kept bytes alone. The row shows the kept path. A bare
+// word is passed as given even when a file of that name is in the caller's
+// directory; a directory is passed absolute and shown anchored to the
+// repository; a missing path is passed as given.
+func TestRunKeepsInputs(t *testing.T) {
 	root := recipeRoot(t, "tool", passCase(map[string]string{
 		"recipe.md": recipeMD("tool", "## Standalone\n\nRun go: ./go.sh\n"),
-		"go.sh":     "#!/bin/sh\n[ \"$1\" = case ] && { echo case; exit 0; }\necho rewritten > \"$1\"\n",
+		"go.sh": "#!/bin/sh\n[ \"$1\" = case ] && { echo case; exit 0; }\necho rewritten > \"$1\"\n" +
+			"for a in \"$@\"; do echo \"arg=$a\"; done\n",
 	}, "standalone", "go", []string{"case"}, 0, "case\n"), "go.sh")
+	writeFile(t, filepath.Join(root, "data", "rel.txt"), "rel\n")
+	writeFile(t, filepath.Join(root, "bare"), "bare\n")
+	if err := os.MkdirAll(filepath.Join(root, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	dir := t.TempDir()
 	cases, fixture := filepath.Join(dir, "cases.tsv"), filepath.Join(dir, "fixture.tar")
 	writeFile(t, cases, "a\tb\n")
@@ -240,24 +250,63 @@ func TestRunRecordsArgSHA256(t *testing.T) {
 	if err := os.Symlink(fixture, link); err != nil {
 		t.Fatal(err)
 	}
-	sum := func(data string) string {
-		h, err := fileSum(writeTemp(t, data))
-		if err != nil {
-			t.Fatal(err)
-		}
-		return h
-	}
 	out := filepath.Join(t.TempDir(), "rec")
-	args := []string{cases, "FIXTURE=" + fixture, link, dir, "rel/x", filepath.Join(dir, "missing"), "--flag"}
-	if _, err := Run(RunOptions{Dir: root, Ref: "tool@1", Step: "standalone", Label: "go", Args: args, Record: out}); err != nil {
+	args := []string{cases, "FIXTURE=" + fixture, link, "data/rel.txt", "bare", "./sub", dir, filepath.Join(dir, "missing"), "--flag"}
+	var warn bytes.Buffer
+	if _, err := Run(RunOptions{Dir: root, Ref: "tool@1", Step: "standalone", Label: "go", Args: args, Record: out, Warn: &warn}); err != nil {
 		t.Fatal(err)
 	}
-	if data, _ := os.ReadFile(cases); string(data) != "rewritten\n" {
-		t.Fatalf("the command did not rewrite %s: %q", cases, data)
+	if data, _ := os.ReadFile(cases); string(data) != "a\tb\n" {
+		t.Errorf("the script changed the original %s: %q", cases, data)
 	}
-	want := map[string]string{cases: sum("a\tb\n"), fixture: sum("tar"), link: sum("tar")}
-	if rec := readCommandRecord(t, out); rec.Format != cmdrecord.Format || !reflect.DeepEqual(rec.ArgSHA256, want) {
-		t.Fatalf("format %d, arg_sha256 = %v, want %v", rec.Format, rec.ArgSHA256, want)
+	rec := readCommandRecord(t, out)
+	name := filepath.Base(root)
+	wantRow := []string{"./go.sh", "inputs/1/cases.tsv", "FIXTURE=inputs/2/fixture.tar", "inputs/3/link", "inputs/4/rel.txt", "bare", name + "/sub", dir, filepath.Join(dir, "missing"), "--flag"}
+	if rec.Format != cmdrecord.Format || len(rec.Commands) != 1 || !reflect.DeepEqual(rec.Commands[0].Args, wantRow) {
+		t.Fatalf("format %d, rows %+v, want args %q", rec.Format, rec.Commands, wantRow)
+	}
+	for _, c := range []struct {
+		n          int
+		path, body string
+	}{{1, "inputs/1/cases.tsv", "a\tb\n"}, {2, "inputs/2/fixture.tar", "tar"}, {3, "inputs/3/link", "tar"}, {4, "inputs/4/rel.txt", "rel\n"}} {
+		in := rec.Inputs[c.n-1]
+		kept := filepath.Join(out, filepath.FromSlash(c.path))
+		got, _ := os.ReadFile(kept)
+		sum, _ := fileSum(kept)
+		if in.Arg != c.n || in.Path != c.path || !in.Kept || in.Size != int64(len(c.body)) || in.SHA256 != sum || string(got) != c.body {
+			t.Errorf("input %d = %+v, kept %q (sha256 %s)", c.n, in, got, sum)
+		}
+	}
+	if len(rec.Inputs) != 4 {
+		t.Errorf("inputs = %+v, want 4", rec.Inputs)
+	}
+	log, _ := os.ReadFile(filepath.Join(out, "command.log"))
+	if !strings.Contains(string(log), "== tool@1 standalone: "+strings.Join(wantRow, " ")+"\n") || !strings.Contains(string(log), "arg=bare\n") ||
+		!strings.Contains(string(log), "arg="+filepath.Join(root, "sub")+"\n") {
+		t.Errorf("command.log = %s", log)
+	}
+	if w := warn.String(); w != "warn: argument 7 names a directory outside the repository; a replay cannot reach it\n" {
+		t.Errorf("warn = %q", w)
+	}
+}
+
+// A file over the cap is not kept: its sha256 and size are recorded, and the
+// script still gets a copy.
+func TestRunBigInputNotKept(t *testing.T) {
+	root := recipeRoot(t, "tool", passCase(map[string]string{
+		"recipe.md": recipeMD("tool", "## Standalone\n\nRun go: ./go.sh\n"),
+		"go.sh":     "#!/bin/sh\n[ \"$1\" = case ] && { echo case; exit 0; }\n[ -f \"$1\" ]\n",
+	}, "standalone", "go", []string{"case"}, 0, "case\n"), "go.sh")
+	big := filepath.Join(t.TempDir(), "big.bin")
+	writeFile(t, big, strings.Repeat("x", 2<<20))
+	out := filepath.Join(t.TempDir(), "rec")
+	if _, err := Run(RunOptions{Dir: root, Ref: "tool@1", Step: "standalone", Label: "go", Args: []string{big}, Record: out}); err != nil {
+		t.Fatal(err)
+	}
+	want, _ := fileSum(big)
+	rec := readCommandRecord(t, out)
+	if len(rec.Inputs) != 1 || rec.Inputs[0].Kept || rec.Inputs[0].SHA256 != want || rec.Inputs[0].Size != 2<<20 || exists(filepath.Join(out, "inputs", "1", "big.bin")) {
+		t.Errorf("inputs = %+v", rec.Inputs)
 	}
 }
 

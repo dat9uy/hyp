@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -117,7 +118,7 @@ func Drive(id string, out io.Writer) (*Record, error) {
 		for _, argv := range d.cp.Drive {
 			save := rowSaver(&rec.Commands, write)
 			ctx, cancel := context.WithTimeout(ictx, driveTimeout)
-			row, err := runStep(ctx, log, d.e.Ref.String(), recipe.Drive, d.cp.Dir, stepCmd(ctx, log, d.cp.Dir, sandboxEnv(rec, *d.e), argv), driveTimeout, save, false)
+			row, err := runStep(ctx, log, d.e.Ref.String(), recipe.Drive, d.cp.Dir, stepCmd(ctx, log, d.cp.Dir, sandboxEnv(rec, *d.e), argv), nil, driveTimeout, save, false)
 			cancel()
 			if err != nil {
 				return rec, herr.Env("%v; record not written; the command did not run", err)
@@ -148,47 +149,131 @@ type RunOptions struct {
 	Step          recipe.Step
 	Label, Record string
 	Args          []string
+	// Warn receives one line per directory argument outside the repository.
+	Warn io.Writer
 }
 
-// argHashes hashes the files args name: a word, or the part after the
-// first = of a KEY=VALUE word, that is an absolute path to a regular file,
-// symlinks followed. A directory or a relative path is not hashed. A file
-// that exists but cannot be read is an environment failure.
-func argHashes(args []string) (map[string]string, error) {
-	var out map[string]string
-	for _, a := range args {
-		for _, p := range argPaths(a) {
-			if _, seen := out[p]; seen {
-				continue
+// maxKeptInput caps a kept input. It is far below the changes/ cap
+// (maxCopy) because kept inputs sit beside every record in git, while
+// changes/ is one sandbox's output.
+const maxKeptInput = 1 << 20
+
+// pathWord reports whether s is written as a path: absolute, or relative
+// with a /. A bare word is never a path, even when a file of that name
+// exists, so a plain word cannot silently become one.
+func pathWord(s string) bool { return filepath.IsAbs(s) || strings.Contains(s, "/") }
+
+// repoOf is the repository a run's paths are anchored to: the top of the git
+// work tree that holds cwd, or cwd outside one.
+func repoOf(cwd string) string {
+	out, err := exec.Command("git", "-C", cwd, "rev-parse", "--show-toplevel").Output()
+	if top := strings.TrimSpace(string(out)); err == nil && top != "" {
+		return top
+	}
+	return cwd
+}
+
+// anchored is p as a record writes it: <repo>/REL inside repo, as given
+// outside it.
+func anchored(repo, p, given string) (string, bool) {
+	if a, ok := anchor(repo, filepath.Base(repo), p); ok {
+		return a, true
+	}
+	return given, false
+}
+
+// stageArgs reads each ARGS word (counted from 1) as a file argument, a
+// directory argument or a plain word. A word, or the VALUE of a KEY=VALUE
+// word, written as a path (pathWord) that names a regular file, symlinks
+// followed, is a file argument: hyp copies it under tmp, which the script
+// gets, hashes that copy, and keeps a second copy at dir/inputs/<n>/<base>
+// unless it is over maxKeptInput; the row shows inputs/<n>/<base>. One that
+// names a directory is passed as an absolute path and shown anchored to
+// repo, with a warning when it is outside. A relative path is read against
+// cwd. Every other word is passed and shown as given. A file argument that
+// cannot be read is an environment failure.
+func stageArgs(args []string, cwd, repo, dir, tmp string, warn io.Writer) (run, shown []string, inputs []cmdrecord.Input, err error) {
+	for i, a := range args {
+		n := i + 1
+		prefix, val := "", a
+		fi, abs := statPath(a, cwd)
+		if fi == nil {
+			if k, v, ok := strings.Cut(a, "="); ok {
+				if fi, abs = statPath(v, cwd); fi != nil {
+					prefix, val = k+"=", v
+				}
 			}
-			fi, err := os.Stat(p)
-			if err != nil || !fi.Mode().IsRegular() {
-				continue
+		}
+		switch {
+		case fi == nil:
+			run, shown = append(run, a), append(shown, a)
+		case fi.IsDir():
+			show, in := anchored(repo, abs, val)
+			if !in && warn != nil {
+				fmt.Fprintf(warn, "warn: argument %d names a directory outside the repository; a replay cannot reach it\n", n)
 			}
-			sum, err := fileSum(p)
+			run, shown = append(run, prefix+abs), append(shown, prefix+show)
+		default:
+			rel := filepath.ToSlash(filepath.Join("inputs", strconv.Itoa(n), filepath.Base(abs)))
+			in, err := keepInput(abs, fi.Mode().Perm(), filepath.Join(tmp, filepath.FromSlash(rel)), filepath.Join(dir, filepath.FromSlash(rel)))
 			if err != nil {
-				return nil, herr.Env("cannot hash argument %s: %v", p, err)
+				return nil, nil, nil, herr.Env("cannot read argument %d (%s): %v", n, val, err)
 			}
-			if out == nil {
-				out = map[string]string{}
-			}
-			out[p] = sum
+			in.Arg, in.Path = n, rel
+			inputs = append(inputs, in)
+			run, shown = append(run, prefix+filepath.Join(tmp, filepath.FromSlash(rel))), append(shown, prefix+rel)
 		}
 	}
-	return out, nil
+	return run, shown, inputs, nil
 }
 
-// argPaths lists the absolute paths word a may name: a itself, and the
-// VALUE of a KEY=VALUE word.
-func argPaths(a string) []string {
-	var out []string
-	if filepath.IsAbs(a) {
-		out = append(out, a)
+// statPath stats s, read against cwd when relative, when it is written as a
+// path and names a regular file or a directory; nil otherwise.
+func statPath(s, cwd string) (fs.FileInfo, string) {
+	if !pathWord(s) {
+		return nil, ""
 	}
-	if _, v, ok := strings.Cut(a, "="); ok && filepath.IsAbs(v) {
-		out = append(out, v)
+	p := s
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(cwd, p)
 	}
-	return out
+	fi, err := os.Stat(p)
+	if err != nil || !(fi.Mode().IsRegular() || fi.IsDir()) {
+		return nil, ""
+	}
+	return fi, filepath.Clean(p)
+}
+
+// keepInput copies src to pass, the copy the script gets, hashes it, and,
+// when it is at most maxKeptInput, copies it again to keep, mode kept, so a
+// script that writes to its argument cannot change the kept bytes.
+func keepInput(src string, mode fs.FileMode, pass, keep string) (cmdrecord.Input, error) {
+	var in cmdrecord.Input
+	if err := os.MkdirAll(filepath.Dir(pass), 0o755); err != nil {
+		return in, err
+	}
+	if err := copyFile(src, pass, mode); err != nil {
+		return in, err
+	}
+	fi, err := os.Stat(pass)
+	if err != nil {
+		return in, err
+	}
+	if in.SHA256, err = fileSum(pass); err != nil {
+		return in, err
+	}
+	in.Size = fi.Size()
+	if in.Size > maxKeptInput {
+		return in, nil
+	}
+	if err := os.MkdirAll(filepath.Dir(keep), 0o755); err != nil {
+		return in, err
+	}
+	if err := copyFile(pass, keep, mode); err != nil {
+		return in, err
+	}
+	in.Kept = true
+	return in, nil
 }
 
 // Run runs o.Ref's Evidence commands, or its Standalone command o.Label,
@@ -276,13 +361,16 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 			return nil, herr.Env("%v", err)
 		}
 	}
-	argSums, err := argHashes(o.Args)
+	repo := repoOf(o.Dir)
+	runArgs, shownArgs, inputs, err := stageArgs(o.Args, o.Dir, repo, dir, filepath.Join(tmp, "args"), o.Warn)
 	if err != nil {
 		os.RemoveAll(dir)
 		return nil, err
 	}
-	rec := &cmdrecord.Record{Format: cmdrecord.Format, Ref: rcp.Ref(), Name: rcp.Name, Version: rcp.Version, SHA256: rcp.Hash, Path: rcp.Path,
-		Step: o.Step, Cwd: o.Dir, Created: now(), Commands: []cmdrecord.Run{}, KnownAnswers: ka, ArgSHA256: argSums}
+	path, _ := anchored(repo, rcp.Path, rcp.Path)
+	cwd, _ := anchored(repo, o.Dir, o.Dir)
+	rec := &cmdrecord.Record{Format: cmdrecord.Format, Ref: rcp.Ref(), Name: rcp.Name, Version: rcp.Version, SHA256: rcp.Hash, Path: path,
+		Step: o.Step, Cwd: cwd, Created: now(), Commands: []cmdrecord.Run{}, KnownAnswers: ka, Inputs: inputs}
 	if err := writeJSON(meta, rec); err != nil {
 		os.RemoveAll(dir)
 		return nil, herr.Env("%v", err)
@@ -305,7 +393,8 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 	ictx, stop := interrupted()
 	defer stop()
 	for n, argv := range argvs {
-		full := append(slices.Clone(argv), o.Args...)
+		full := append(slices.Clone(argv), runArgs...)
+		shown := append(rowArgs(cp.Dir, argv), shownArgs...)
 		put := rowSaver(&rec.Commands, write)
 		save := func(c cmdrecord.Run) error {
 			c.Label = o.Label
@@ -316,7 +405,7 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 		if o.Step == recipe.Evidence {
 			out, stdout = filepath.Join(outDst, strconv.Itoa(n)), filepath.Join(stdoutDst, strconv.Itoa(n))
 		}
-		row, product, err := runCheck(ctx, log, o.Ref, o.Step, cp.Dir, hyp.Dir, full, timeout, save, out, stdout)
+		row, product, err := runCheck(ctx, log, o.Ref, o.Step, cp.Dir, hyp.Dir, full, shown, timeout, save, out, stdout)
 		cancel()
 		if err != nil {
 			return rec, herr.Env("%v; record not written; the command did not run", err)
@@ -343,7 +432,7 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 // (readTree), is written to out. product is nil, an exit 1 when the tree
 // broke those rules (what it could read is kept), or an exit 3 when keeping
 // the product failed. err means the command did not run.
-func runCheck(ctx context.Context, log *os.File, ref string, step recipe.Step, bundle, bin string, argv []string, timeout time.Duration, save func(cmdrecord.Run) error, out, stdout string) (row cmdrecord.Run, product, err error) {
+func runCheck(ctx context.Context, log *os.File, ref string, step recipe.Step, bundle, bin string, argv, shown []string, timeout time.Duration, save func(cmdrecord.Run) error, out, stdout string) (row cmdrecord.Run, product, err error) {
 	tmp, err := os.MkdirTemp("", "hyp-check-")
 	if err != nil {
 		return row, nil, err
@@ -361,7 +450,7 @@ func runCheck(ctx context.Context, log *os.File, ref string, step recipe.Step, b
 		return row, nil, err
 	}
 	defer outF.Close()
-	if row, err = runStep(ctx, log, ref, step, bundle, checkCmd(ctx, root, bin, argv, outF, log), timeout, save, true); err != nil {
+	if row, err = runStep(ctx, log, ref, step, bundle, checkCmd(ctx, root, bin, argv, outF, log), shown, timeout, save, true); err != nil {
 		return row, nil, err
 	}
 	data, rerr := os.ReadFile(outF.Name())

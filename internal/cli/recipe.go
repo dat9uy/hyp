@@ -185,7 +185,7 @@ func cmdRecipeRun(args []string, stdout, stderr io.Writer) error {
 	if *record == "" || len(pos) < 2 {
 		return usageErr("usage: hyp recipe run --record DIR REF NAME [ARGS...]")
 	}
-	return runOutside(stdout, sandbox.RunOptions{Ref: pos[0], Step: recipe.Standalone, Label: pos[1], Args: pos[2:], Record: *record})
+	return runOutside(stdout, sandbox.RunOptions{Ref: pos[0], Step: recipe.Standalone, Label: pos[1], Args: pos[2:], Record: *record, Warn: stderr})
 }
 
 // cmdRecipeEvidence handles hyp recipe evidence --record DIR REF OUT_DIR:
@@ -205,7 +205,7 @@ func cmdRecipeEvidence(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return usageErr("%v", err)
 	}
-	return runOutside(stdout, sandbox.RunOptions{Ref: pos[0], Step: recipe.Evidence, Args: []string{kept}, Record: *record})
+	return runOutside(stdout, sandbox.RunOptions{Ref: pos[0], Step: recipe.Evidence, Args: []string{kept}, Record: *record, Warn: stderr})
 }
 
 // cmdRecipeKnownAnswers handles hyp recipe known-answers REF: run every

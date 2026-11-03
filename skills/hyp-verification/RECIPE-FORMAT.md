@@ -344,8 +344,15 @@ Rules:
   path with `hyp recipe run`.
 - `hyp recipe run --record DIR REF NAME ARGS` runs the Standalone command
   NAME with ARGS appended after its fixed words. Flags go before REF;
-  everything after NAME is passed to the script as given, so a path in
-  ARGS must be absolute.
+  everything after NAME is the script's. A word, or the VALUE of a
+  `KEY=VALUE` word, written as a path (absolute, or relative with a `/`,
+  read against your working directory) that names a regular file is a file
+  argument: hyp keeps a copy beside the record as `inputs/N/<base name>`
+  (N counts ARGS from 1; not kept over 1 MB, but still hashed), and the
+  script gets another copy, never your file. One that names a directory is
+  passed as an absolute path. A bare word, such as `today`, is passed as
+  given even when a file of that name exists, so write `./today` to pass
+  that file.
 - Evidence and Standalone commands are checks, and run exactly as their
   known-answer cases do: from a temporary copy of the bundle,
   deleted afterwards, in an empty working directory of their own, with
@@ -541,16 +548,16 @@ rename, before each command starts and after it ends.
 
 | Field | Value |
 |---|---|
-| `format` | the record's shape number, now `3` (`arg_sha256` added; `2` added `pgid` to rows); absent (read as `0`) in a record written before it |
+| `format` | the record's shape number, now `4` (`inputs` replaced `arg_sha256`, and `path`, `cwd` and directory arguments name no host path; `3` added `arg_sha256`; `2` added `pgid` to rows); absent (read as `0`) in a record written before it |
 | `ref` | the recipe ref as given |
 | `name`, `version`, `sha256` | the recipe's name, version and hash, the hash of what ran |
-| `path` | the library bundle the temporary copy came from |
+| `path` | the library bundle the temporary copy came from, as `<repo>/REL` (`<repo>` is the directory name of the git work tree that holds `cwd`, or of `cwd` outside one), or as given outside it |
 | `step` | `evidence` or `standalone` |
-| `cwd` | the caller's working directory, where the recipe lookup and a relative `--record` start; each command ran in an empty directory of its own |
+| `cwd` | the caller's working directory, as `<repo>/REL`, where the recipe lookup and a relative `--record` start; each command ran in an empty directory of its own |
 | `created` | UTC time, RFC 3339 |
 | `commands` | one entry per command, with the fields of the sandbox record's `commands` |
 | `known_answers` | as in the sandbox record's `recipes` |
-| `arg_sha256` | the sha256 of each file an operator argument names: each argument that is an absolute path to a regular file, alone or after `KEY=`, symlinks followed, hashed before the first command runs. A directory and a relative path are not hashed. Absent when no argument names a file |
+| `inputs` | one entry per file argument, in ARGS order: `arg` (its place in ARGS, from 1), `path` (`inputs/<arg>/<base name>`, beside `command.json`), `sha256` and `size` (of the copy the script got) and `kept` (`false` over 1 MB, when no copy is at `path`). A row shows `path` in the argument's place, and a directory argument as `<repo>/REL`, or as given outside the repository, which hyp warns about. Absent when no argument names a file |
 
 ## Changes
 
