@@ -97,6 +97,18 @@ _Avoid_: choose, accept, decide (alone)
 The `confirm` event in which the verifier or the owner judges a select `sufficient` or `insufficient` ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §7.4](replay-spec.md#74-designquestion-state)). An owner confirm may also accept limits.
 _Avoid_: approve, review; verdict (alone: a confirm's answer is a confirm verdict)
 
+**Decision**:
+A DesignQuestion's current Select and the Confirms that still count **[not built: #27]**.
+_Avoid_: answer (`answered` is a status)
+
+**Dossier**:
+The evidence a DesignQuestion's Decision rests on: the selected Hypothesis's body, the live Hypotheses, every live Result with a verdict on one of them, and the links going out from those Hypotheses and Results, not counting `external_ref` **[not built: #27]**. It is derived, never stored.
+_Avoid_: basis (a basis event belongs to the Stale rule), case (a Case belongs to a known answer)
+
+**Lapse**:
+What happens to a Confirm when the Dossier differs from the one it judged: it stops counting, and counts again if the Dossier returns to what it judged **[not built: #27]**.
+_Avoid_: drop, invalidate
+
 **Verifier**:
 The role that confirms every select, independently of the actor who made it: a verifier confirm by the select's own actor is refused ([spec §5](replay-spec.md#5-refusals) rule 9). In code: `event.RoleVerifier`.
 _Avoid_: reviewer, checker
@@ -122,8 +134,12 @@ An edge from a node to something outside the tree, such as `gh:976` or a URL ([s
 _Avoid_: link (alone), reference
 
 **Admission**:
-The write-time rules the CLI checks before it appends an Experiment or a Result. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult` and `replay.Finding`.
+The write-time rules the CLI checks before it appends an Experiment, a Result or a Confirm. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult` and `replay.Finding`.
 _Avoid_: validation (that is `replay.Validate`, which replay also runs on every event)
+
+**Refusal**:
+hyp's no to a write: exit 1, and nothing is appended. It comes from `replay.Validate`, which reads stored events and also runs in replay, or from Admission, which runs only at write time and may read derived state.
+_Avoid_: rejection (that is what replay reports), error
 
 **Cite**:
 A token in a write command's text that names a node: a display id such as `R-BV4CWV`, or a placeholder such as `R-<new>` that stands for one. hyp refuses a write whose cite is no node of the store, with exit 2 (spec §5.1). A token after `<name>:` cites another store and is not checked.
