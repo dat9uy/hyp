@@ -187,6 +187,8 @@ The state is decided by the first matching rule:
 
 The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads, holds the insufficient verifier verdicts in a row on the current select. A sufficient verdict, an unselect, a select that does not continue the current one (the same Hypothesis or one that supersedes it) and a `hypothesis.amend` of the selected Hypothesis clear it, so verdicts on an old body never count towards a loop. The signal fires at two or more.
 
+**Dossier:** the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. A `contradicts` is **deciding** when the Hypothesis it judges is not the selected one and, by §7.1, that Hypothesis would be `supported` without this one verdict; the Result is marked as deciding the owner requirement, and §7.1 still stands. `hyp show <Q>` lists the Dossier and the mark under `dossier:`. Neither changes any status.
+
 **Suggested candidate:** the trade-off candidates are the live children that are `supported` and not stale. When there is exactly one, suggest it. With two or more such children, report "trade-off: owner decides" and list them.
 
 ### 7.5 Goal
