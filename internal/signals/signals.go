@@ -128,7 +128,7 @@ func Compute(evs []event.Event) Report {
 			targets := st.Nodes[ev.Node].VerdictOrder
 			after := st.Derived
 			r := byExp[rec.Parent]
-			selAt[ev.ID] = viewOf(r.QuestionID, st.Selection[r.QuestionID])
+			selAt[ev.ID] = viewOf(r.QuestionID, st.Decisions[r.QuestionID])
 			for _, t := range targets {
 				if !slices.Contains(live, t) {
 					live = append(live, t)
@@ -280,7 +280,7 @@ func Compute(evs []event.Event) Report {
 		}
 	}
 	for _, q := range questions {
-		s := viewOf(q, full.Selection[q])
+		s := viewOf(q, full.Decisions[q])
 		if s == nil {
 			continue
 		}

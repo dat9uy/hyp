@@ -166,6 +166,8 @@ Directed edges: Hypothesis → each of its child DQs; DQ → each of its child H
 
 Hold state is the latest of `dq.defer` / `dq.withdraw` / `dq.resume`; resume clears it.
 
+One record, the question's `Decision`, owns everything below except the hold state: select history, conflicts, verifier and owner confirms in one list per select (each with the Dossier at its place in the log), the owner requirement, limit acceptances and gating (§8), the reason order and the verifier-loop chain. Render, signals, check and the CLI read it.
+
 Selection is the current selection id (`""` when there is none) plus a conflict set:
 - Applying `dq.select` or `dq.unselect` whose `prev_select` ≠ the current selection id adds both ids to the conflict set. The event still applies; the last one in merge order becomes current.
 - A later select or unselect whose `prev_select` equals the current id clears the conflict set.
@@ -181,7 +183,7 @@ The state is decided by the first matching rule:
 3. Otherwise the state is `reopened` if `everAnswered`, else `open`. The reason is the first that holds:
    `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `verifier_insufficient` (the latest verifier confirm on the current select is `insufficient` and no re-verify request is open on it), `awaiting_verifier` (the latest verifier confirm on the current select is not `sufficient`: there is none, or it is `insufficient` with a request open), `awaiting_owner`, `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
 
-Amend: a `hypothesis.amend` of the Hypothesis of the current select drops that select's owner confirm, the limits it accepted, and its verifier confirm when that is `sufficient`, because they judged the old body. An insufficient verifier confirm stays, and so does an open re-verify request, so a request is still possible after an amend (and a second one is refused while the first is open). An amend of any other Hypothesis changes no confirm. Each select's verifier verdict and open request, and the verifier-loop chain that the verifier-loop signal reads (`Sel.Chain` and `Sel.ChainRequest`), are the question's selection state, written in one place: `Sel`'s verifier methods. The chain is stricter on that amend: it starts a new chain of insufficient verdicts and forgets an open request, so verdicts on the old body never count towards a loop.
+Amend: a `hypothesis.amend` of the Hypothesis of the current select drops that select's owner confirm, the limits it accepted, and its verifier confirm when that is `sufficient`, because they judged the old body. An insufficient verifier confirm stays, and so does an open re-verify request, so a request is still possible after an amend (and a second one is refused while the first is open). An amend of any other Hypothesis changes no confirm. Each select's verifier verdict and open request, and the verifier-loop chain that the verifier-loop signal reads (`Decision.Chain` and `Decision.ChainRequest`), are the question's selection state, written in one place: `Decision`'s methods. The chain is stricter on that amend: it starts a new chain of insufficient verdicts and forgets an open request, so verdicts on the old body never count towards a loop.
 
 Owner insufficient: an `insufficient` owner confirm drops the limit acceptances recorded on the select it names, because the owner's no withdraws their sign-off on its limits. It stays the latest owner confirm, so the state follows rules 2 and 3 as before. A verifier confirm changes no acceptance.
 
@@ -223,13 +225,21 @@ type Projection struct {
     Rejections []Rejection
     Applied    []Event              // events that applied, in merge order
     LastCheckpoint *Event
-    Limits     map[string][]Limit    // DQ id → the limits recorded under it, in Result creation order
     RivalsAtAdd map[string][]string  // Experiment id → the live rivals (§7.1) of its parent just before its add
     Exps       map[string]*Exp       // Experiment id → its derived record, built once per projection
     Results    map[string]*Res       // Result id → its derived record, built once per projection
     Edges      []Edge                // every edge in apply order; Live is false once removed
-    Selection  map[string]*Sel       // DQ id → its selection: current select, conflicts, each select's record, verifier state
-    Dossiers   map[string]*Dossier   // DQ id with a current select → its Dossier (§7.4)
+    Decisions  map[string]*Decision  // DQ id → its Decision record (§7.4)
+}
+type Decision struct {
+    Current   string                 // the current select id, or ""
+    Conflicts []string
+    Selects   map[string]SelectRec   // select id → its record
+    Confirms  map[string][]ConfirmRec // select id → its confirms in log order, each with the Dossier at that point
+    Chain     []Verdict              // insufficient verifier verdicts on the current select
+    ChainRequest string              // a request made after the last of them
+    Limits    []Limit                // the limits recorded under the question, in Result creation order
+    Dossier   *Dossier               // of the current select (§7.4); nil when there is none
 }
 type Dossier struct {
     Items    []DossierItem           // sorted; two Dossiers hold the same facts when their Items are equal

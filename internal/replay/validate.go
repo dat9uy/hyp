@@ -394,7 +394,7 @@ func (st *State) validateConfirm(ev event.Event) error {
 	if !event.ConfirmVerdicts[p.Verdict] {
 		return fmt.Errorf("bad confirm: unknown verdict %q", p.Verdict)
 	}
-	sel := st.Selection[ev.Node]
+	sel := st.Decisions[ev.Node]
 	if sel == nil {
 		return fmt.Errorf("bad confirm: %s is not a dq.select on %s", p.Select, ev.Node)
 	}
@@ -416,8 +416,8 @@ func (st *State) validateConfirm(ev event.Event) error {
 	return nil
 }
 
-// validateRequestVerify reads only the stored select and Sel's verifier
-// state, never the derived reason. Sel.onAmend holds how an amend changes
+// validateRequestVerify reads only the stored select and the Decision's verifier
+// state, never the derived reason. Decision.onAmend holds how an amend changes
 // that state and how it changes the verifier-loop chain.
 func (st *State) validateRequestVerify(ev event.Event) error {
 	var p event.DQRequestVerify
@@ -427,7 +427,7 @@ func (st *State) validateRequestVerify(ev event.Event) error {
 	if _, err := st.need(ev.Node, event.KindDesignQuestion); err != nil {
 		return err
 	}
-	sel := st.Selection[ev.Node]
+	sel := st.Decisions[ev.Node]
 	if sel == nil || sel.Current == "" || sel.Current != p.Select {
 		return fmt.Errorf("bad request-verify: %s is not the current select on %s", p.Select, ev.Node)
 	}

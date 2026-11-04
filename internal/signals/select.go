@@ -20,9 +20,9 @@ type selState struct {
 }
 
 // viewOf copies q's current select and its verifier chain from sel, the
-// chain replay keeps for the verifier-loop signal (replay.Sel). It returns
+// chain replay keeps for the verifier-loop signal (replay.Decision). It returns
 // nil when q has no current select.
-func viewOf(q string, sel *replay.Sel) *selState {
+func viewOf(q string, sel *replay.Decision) *selState {
 	if sel == nil || sel.Current == "" {
 		return nil
 	}

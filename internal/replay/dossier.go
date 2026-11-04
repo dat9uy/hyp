@@ -93,25 +93,18 @@ func (d *Dossier) Diff(o *Dossier) (added, removed []DossierItem) { return diffI
 // Equal reports whether two Dossiers hold the same facts.
 func (d *Dossier) Equal(o *Dossier) bool { return slices.Equal(d.Items, o.Items) }
 
-// dossiers builds the Dossier of every question with a current select.
-func (st *State) dossiers() map[string]*Dossier {
-	out := map[string]*Dossier{}
-	for q, sel := range st.Selection {
-		if sel.Current == "" {
-			continue
-		}
-		hyp := sel.Selects[sel.Current].Hyp
-		d := &Dossier{Items: st.dossierItems(q, hyp), Deciding: map[string][]string{}}
-		for _, it := range d.Items {
-			if it.Kind == DossierHyp && it.Node != hyp {
-				if rs := st.decidingContradictions(it.Node); len(rs) > 0 {
-					d.Deciding[it.Node] = rs
-				}
+// dossier builds question q's Dossier for a select of hyp, with its marks read
+// from the last derivation.
+func (st *State) dossier(q, hyp string) *Dossier {
+	d := &Dossier{Items: st.dossierItems(q, hyp), Deciding: map[string][]string{}}
+	for _, it := range d.Items {
+		if it.Kind == DossierHyp && it.Node != hyp {
+			if rs := st.decidingContradictions(it.Node); len(rs) > 0 {
+				d.Deciding[it.Node] = rs
 			}
 		}
-		out[q] = d
 	}
-	return out
+	return d
 }
 
 // decidingContradictions lists the Results whose contradicts alone keeps

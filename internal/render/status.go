@@ -160,7 +160,7 @@ func Status(p replay.Projection, maxLines int) string {
 		if ev.Type != event.TypeNodeAdd || p.Nodes[ev.ID].Kind != event.KindDesignQuestion {
 			continue
 		}
-		for _, l := range p.Limits[ev.ID] {
+		for _, l := range p.LimitsOf(ev.ID) {
 			if l.State == replay.LimitOpen {
 				open = append(open, fmt.Sprintf("  %s %s — %s", r.id(ev.ID), r.limitLabel(l.Result, l.Key), Cut(l.Text, 80)))
 			}

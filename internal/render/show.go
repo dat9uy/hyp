@@ -68,7 +68,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		if rec.RequestWhy != "" {
 			w("re-verify requested: %s", rec.RequestWhy)
 		}
-		if ls := p.Limits[id]; len(ls) > 0 {
+		if ls := p.LimitsOf(id); len(ls) > 0 {
 			w("limits:")
 			for _, l := range ls {
 				w("  %s", r.limitLine(l, rec.Hyp))
@@ -312,7 +312,7 @@ func (r renderer) limitLine(l replay.Limit, hyp string) string {
 // candidate, so the verifier sees which verdict decides whether the owner must
 // sign.
 func (r renderer) dossier(w func(string, ...any), q, selected string) {
-	d := r.p.Dossiers[q]
+	d := r.p.Decisions[q].Dossier
 	if d == nil {
 		return
 	}
