@@ -1,7 +1,7 @@
 package replay
 
 import (
-	"fmt"
+	"slices"
 
 	"github.com/dat9uy/hyp/internal/event"
 )
@@ -18,20 +18,13 @@ type Decision struct {
 	// Confirms holds every applied confirm on each select, verifier and owner
 	// in one list, in log order, each with the Dossier at its place in the log.
 	Confirms map[string][]ConfirmRec
-	// Chain and ChainRequest are the verifier-loop signal's view: the
-	// insufficient verdicts on the current select and a request made after
-	// the last of them.
-	Chain        []Verdict
-	ChainRequest string
+	// Chain is the verifier-loop signal's view: the insufficient verdicts in a
+	// row on the current select.
+	Chain []Verdict
 	// Limits and Dossier are derived when a Projection is built; a record
 	// stored in State holds neither.
 	Limits  []Limit  // the limits recorded under the question, in creation order
 	Dossier *Dossier // of the current select, or nil when there is none
-
-	verdict   map[string]string     // select id → latest verifier verdict that still counts
-	requested map[string]bool       // select id → re-verify asked since its last verifier confirm
-	owner     map[string]string     // select id → latest owner verdict that still counts
-	accepted  map[string]Acceptance // select id+"|"+limit key → the owner confirm that accepted it
 }
 
 // ConfirmRec is one applied confirm on a select. Items is the Dossier as it
@@ -43,8 +36,7 @@ type ConfirmRec struct {
 }
 
 func newDecision() *Decision {
-	return &Decision{Selects: map[string]SelectRec{}, Confirms: map[string][]ConfirmRec{}, verdict: map[string]string{},
-		requested: map[string]bool{}, owner: map[string]string{}, accepted: map[string]Acceptance{}}
+	return &Decision{Selects: map[string]SelectRec{}, Confirms: map[string][]ConfirmRec{}}
 }
 
 // setCurrent applies the conflict rule of spec §7.4 for the select or
@@ -65,130 +57,122 @@ func (s *Decision) setCurrent(evID, next, prev string) {
 
 // onSelect applies dq.select rec. The chain survives only when the select
 // continues the current one: the same Hypothesis or one that supersedes it.
-// An open chain request is forgotten either way.
 func (s *Decision) onSelect(rec SelectRec, prev string, continues bool) {
 	if !continues {
 		s.Chain = nil
 	}
-	s.ChainRequest = ""
 	s.Selects[rec.ID] = rec
 	s.setCurrent(rec.ID, rec.ID, prev)
 }
 
-// onUnselect applies a dq.unselect and forgets the chain and its request.
+// onUnselect applies a dq.unselect and forgets the chain.
 func (s *Decision) onUnselect(evID, prev string) {
 	s.setCurrent(evID, "", prev)
-	s.Chain, s.ChainRequest = nil, ""
+	s.Chain = nil
 }
 
-// onAmend runs on an amend of the current select's Hypothesis. It holds every
-// amend rule. The owner confirm and its acceptances judged the old body and
-// stop counting. The counting verifier verdict drops only when it is
-// sufficient: an insufficient verdict and an open request stay with the
-// select, so a request is still possible after an amend. The chain is
-// stricter and restarts with its request forgotten, so verdicts on the old
-// body never count towards a loop. The record keeps the latest verifier
-// confirm, so hyp show still prints it.
-func (s *Decision) onAmend() {
-	delete(s.owner, s.Current)
-	s.dropAcceptances(s.Current)
-	if s.verdict[s.Current] == event.ConfirmSufficient {
-		delete(s.verdict, s.Current)
-	}
-	s.Chain, s.ChainRequest = nil, ""
-}
+// onAmend runs on an amend of the current select's Hypothesis. The Dossier
+// holds the body, so the Confirms need nothing here. The chain restarts, so
+// verdicts on the old body never count towards a loop.
+func (s *Decision) onAmend() { s.Chain = nil }
 
 // onConfirm applies confirm ev on select p.Select, whose Dossier just then
-// was items.
+// was items. A verifier confirm on the current select extends the chain when
+// insufficient and clears it when sufficient.
 func (s *Decision) onConfirm(ev event.Event, p event.Confirm, items []DossierItem) {
 	s.Confirms[p.Select] = append(s.Confirms[p.Select], ConfirmRec{ID: ev.ID, Role: p.Role, Verdict: p.Verdict,
 		Actor: ev.Actor, Why: ev.Why, Accepts: p.Accepts, Items: items})
-	switch p.Role {
-	case event.RoleVerifier:
-		s.onVerifier(ev, p.Select, p.Verdict)
-	case event.RoleOwner:
-		s.owner[p.Select] = p.Verdict
-		// An owner's no withdraws their sign-off on this select's limits. Only
-		// a sufficient owner confirm carries accepts, so nothing is re-added.
-		if p.Verdict == event.ConfirmInsufficient {
-			s.dropAcceptances(p.Select)
-		}
-		for _, k := range p.Accepts {
-			s.accepted[p.Select+"|"+k] = Acceptance{Select: p.Select, Actor: ev.Actor}
-		}
+	if p.Role != event.RoleVerifier || p.Select != s.Current {
+		return
 	}
-}
-
-// onVerifier applies a verifier confirm ev on select id with verdict v. It
-// closes any open request on that select, and on the current select it extends
-// the chain when insufficient and clears it when sufficient.
-func (s *Decision) onVerifier(ev event.Event, id, v string) {
-	s.verdict[id] = v
-	delete(s.requested, id)
-	if rec, ok := s.Selects[id]; ok {
-		rec.Verifier, rec.VerifierWhy, rec.RequestWhy = v, ev.Why, ""
-		s.Selects[id] = rec
-	}
-	if id == s.Current {
-		switch v {
-		case event.ConfirmInsufficient:
-			s.Chain = append(s.Chain, Verdict{ev.ID, ev.Actor})
-		case event.ConfirmSufficient:
-			s.Chain = nil
-		}
-		s.ChainRequest = ""
-	}
-}
-
-// onRequest applies a dq.request_verify ev on select id. The chain records it
-// only on the current select with a chain to answer.
-func (s *Decision) onRequest(ev event.Event, id string) {
-	s.requested[id] = true
-	if rec, ok := s.Selects[id]; ok {
-		rec.RequestWhy = ev.Why
-		s.Selects[id] = rec
-	}
-	if id == s.Current && len(s.Chain) > 0 {
-		s.ChainRequest = ev.ID
-	}
-}
-
-// dropAcceptances forgets the limit acceptances recorded on select id.
-func (s *Decision) dropAcceptances(id string) {
-	for k, a := range s.accepted {
-		if a.Select == id {
-			delete(s.accepted, k)
-		}
-	}
-}
-
-// Verdict is the latest verifier verdict on select id that still counts, or "".
-func (s *Decision) Verdict(id string) string { return s.verdict[id] }
-
-// Requested reports whether a re-verify request is open on select id.
-func (s *Decision) Requested(id string) bool { return s.requested[id] }
-
-// CanRequest refuses a dq.request_verify on select id unless its counting
-// verdict is insufficient and no request is open on it.
-func (s *Decision) CanRequest(id string) error {
-	switch s.verdict[id] {
+	switch p.Verdict {
 	case event.ConfirmInsufficient:
-	case "":
-		return fmt.Errorf("bad request-verify: %s has no verifier confirm yet", id)
-	default:
-		return fmt.Errorf("bad request-verify: the latest verifier confirm on %s is not insufficient", id)
+		s.Chain = append(s.Chain, Verdict{ev.ID, ev.Actor})
+	case event.ConfirmSufficient:
+		s.Chain = nil
 	}
-	if s.requested[id] {
-		return fmt.Errorf("bad request-verify: a request is already open on %s", id)
+}
+
+// counting is the Confirm by role that counts on select id when the Dossier is
+// now: the latest one that judged this Dossier (spec §7.4), or nil. A Confirm
+// lapses when the Dossier differs from the one it judged and counts again if
+// the Dossier returns to it.
+func (s *Decision) counting(id, role string, now []DossierItem) *ConfirmRec {
+	cs := s.Confirms[id]
+	for i := len(cs) - 1; i >= 0; i-- {
+		if cs[i].Role == role && slices.Equal(cs[i].Items, now) {
+			return &cs[i]
+		}
 	}
 	return nil
 }
 
+// latest is the last Confirm by role on select id, counting or not, or nil.
+func (s *Decision) latest(id, role string) *ConfirmRec {
+	cs := s.Confirms[id]
+	for i := len(cs) - 1; i >= 0; i-- {
+		if cs[i].Role == role {
+			return &cs[i]
+		}
+	}
+	return nil
+}
+
+// Counting is the Confirm by role that counts on the current select of a
+// projected record, or nil.
+func (s *Decision) Counting(role string) *ConfirmRec {
+	if s == nil || s.Dossier == nil {
+		return nil
+	}
+	return s.counting(s.Current, role, s.Dossier.Items)
+}
+
+// Latest is the last Confirm by role on the current select, or nil.
+func (s *Decision) Latest(role string) *ConfirmRec {
+	if s == nil {
+		return nil
+	}
+	return s.latest(s.Current, role)
+}
+
+// ChangedSince lists what the current Dossier of a projected record holds and
+// c's does not, then the reverse.
+func (s *Decision) ChangedSince(c *ConfirmRec) (added, removed []DossierItem) {
+	return diffItems(c.Items, s.Dossier.Items)
+}
+
+// accepted maps each limit key an owner Confirm accepted on select id with
+// the Dossier now to that owner's actor: a sufficient owner Confirm with this
+// Dossier accepted it, and no later owner insufficient has this Dossier.
+func (s *Decision) accepted(id string, now []DossierItem) map[string]string {
+	out := map[string]string{}
+	for _, c := range s.Confirms[id] {
+		if c.Role != event.RoleOwner || !slices.Equal(c.Items, now) {
+			continue
+		}
+		if c.Verdict == event.ConfirmInsufficient {
+			clear(out)
+		}
+		for _, k := range c.Accepts {
+			out[k] = c.Actor
+		}
+	}
+	return out
+}
+
+// ownerRequired derives whether select rec needs the owner: the question has
+// two or more trade-off candidates now, or the select says so.
+func ownerRequired(rec SelectRec, candidates []string) bool {
+	return len(candidates) >= 2 || rec.Tradeoff || rec.ScopeChange
+}
+
 // reason is the first reason question id is not answered (spec §7.4), or ""
-// when it is. live lists its live child Hypotheses, and stale says the
-// question itself is stale.
-func (d *derivation) reason(id string, live []string, stale bool) string {
-	s := d.st.Decisions[id]
+// when it is. live lists its live child Hypotheses, candidates its trade-off
+// candidates, and stale says the question itself is stale. The Dossier is read
+// only for a select with a Confirm to compare, since this runs on every event.
+func (d *derivation) reason(id string, live, candidates []string, stale bool) string {
+	st := d.st
+	s := st.Decisions[id]
 	if len(s.Conflicts) > 0 {
 		return ReasonConflicting
 	}
@@ -201,12 +185,21 @@ func (d *derivation) reason(id string, live []string, stale bool) string {
 		return ReasonSelectedNotSupport
 	case d.staleOf(rec.Hyp) != nil || stale:
 		return ReasonSelectedStale
-	case s.verdict[rec.ID] == event.ConfirmInsufficient && !s.requested[rec.ID]:
-		return ReasonVerifierInsufficient
-	case s.verdict[rec.ID] != event.ConfirmSufficient:
+	case len(s.Confirms[rec.ID]) == 0:
 		return ReasonAwaitingVerifier
-	case rec.OwnerRequired && s.owner[rec.ID] != event.ConfirmSufficient:
-		return ReasonAwaitingOwner
+	}
+	now := st.dossierItems(id, rec.Hyp)
+	v := s.counting(rec.ID, event.RoleVerifier, now)
+	switch {
+	case v == nil:
+		return ReasonAwaitingVerifier
+	case v.Verdict == event.ConfirmInsufficient:
+		return ReasonVerifierInsufficient
+	}
+	if ownerRequired(rec, candidates) {
+		if o := s.counting(rec.ID, event.RoleOwner, now); o == nil || o.Verdict != event.ConfirmSufficient {
+			return ReasonAwaitingOwner
+		}
 	}
 	return ""
 }
@@ -249,9 +242,9 @@ func (st *State) decisions() map[string]*Decision {
 }
 
 // limits derives each question's limits. A limit is closed when a
-// non-retracted Result closes it, accepted when an owner confirm on the
-// question's current select accepted it, and open otherwise. Limits of a
-// retracted Result are left out.
+// non-retracted Result closes it, accepted when a counting owner confirm on
+// the question's current select accepted it (Decision.accepted), and open
+// otherwise. Limits of a retracted Result are left out.
 func (st *State) limits() map[string][]Limit {
 	closedBy := map[string]string{}
 	for _, id := range st.Order {
@@ -266,6 +259,7 @@ func (st *State) limits() map[string][]Limit {
 		}
 	}
 	out := map[string][]Limit{}
+	accepted := map[string]map[string]string{}
 	for _, id := range st.Order {
 		n := st.Nodes[id]
 		if n.Kind != event.KindResult || st.Retracted[id] || len(n.Limits) == 0 {
@@ -273,12 +267,15 @@ func (st *State) limits() map[string][]Limit {
 		}
 		q := st.resultQuestion(id)
 		s := st.Decisions[q]
+		if _, ok := accepted[q]; !ok && s.Current != "" {
+			accepted[q] = s.accepted(s.Current, st.dossierItems(q, s.Selects[s.Current].Hyp))
+		}
 		for i, text := range n.Limits {
 			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen}
 			if by, ok := closedBy[l.Key]; ok {
 				l.State, l.By = LimitClosed, by
-			} else if a, ok := s.accepted[s.Current+"|"+l.Key]; ok {
-				l.State, l.By = LimitAccepted, a.Actor
+			} else if actor, ok := accepted[q][l.Key]; ok {
+				l.State, l.By = LimitAccepted, actor
 			}
 			if s.Current != "" {
 				l.Gating = l.Gates(s.Selects[s.Current].Hyp)

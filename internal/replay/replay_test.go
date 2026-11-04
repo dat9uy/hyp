@@ -651,79 +651,6 @@ func TestGoalWithNoAnsweredQuestionIsInProgress(t *testing.T) {
 	}
 }
 
-func TestRequestVerifyReturnsToVerifier(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.RequestVerify(q, sel)
-	if p := replayB(b); len(p.Rejections) != 1 {
-		t.Fatalf("request before any verdict: rejections = %v, want 1", p.Rejections)
-	}
-	b.Evs = b.Evs[:len(b.Evs)-1]
-
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonVerifierInsufficient)
-	b.As("a").Supports(h1)
-	b.RequestVerify(q, sel)
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
-
-	b.RequestVerify(q, sel)
-	if p = replayB(b); len(p.Rejections) != 1 {
-		t.Fatalf("second request: rejections = %v, want 1", p.Rejections)
-	}
-	b.Evs = b.Evs[:len(b.Evs)-1]
-
-	b.As("c").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonVerifierInsufficient)
-	b.As("a").RequestVerify(q, sel)
-	b.As("d").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	p = replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQAnswered, "")
-}
-
-// A request is judged by the stored select and confirms, so a reason that
-// outranks verifier_insufficient at request time does not refuse it.
-func TestRequestVerifyAcceptedWhenAnotherReasonOutranks(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").Contradicts(h1)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonSelectedNotSupport)
-	b.RequestVerify(q, sel)
-	wantNoRejections(t, replayB(b))
-}
-
-// A refused request names the stored fact that failed: no verifier confirm on
-// the select yet, or a latest verifier confirm that is not insufficient.
-func TestRequestVerifyRefusalNamesTheMissingConfirm(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.RequestVerify(q, sel)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	b.As("a").RequestVerify(q, sel)
-	rej := replayB(b).Rejections
-	if len(rej) != 2 ||
-		!strings.Contains(rej[0].Reason, "has no verifier confirm yet") ||
-		!strings.Contains(rej[1].Reason, "is not insufficient") {
-		t.Fatalf("rejections: %v", rej)
-	}
-}
-
-// wantRejected fails unless event id was refused with a reason containing want.
 func wantRejected(t *testing.T, p Projection, id, want string) {
 	t.Helper()
 	for _, r := range p.Rejections {
@@ -774,7 +701,9 @@ func TestAmendReplacesBodyAndDropsSufficientConfirms(t *testing.T) {
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingVerifier)
 }
 
-func TestAmendKeepsInsufficientVerdict(t *testing.T) {
+// Replaces the rule that an amend keeps an insufficient verdict: it judged the
+// old body, so it lapses like any other Confirm, and counts again on the way back.
+func TestAmendLapsesInsufficientVerdict(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
@@ -784,12 +713,14 @@ func TestAmendKeepsInsufficientVerdict(t *testing.T) {
 	amend(b.As("a"), h, "new")
 	p := replayB(b)
 	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonVerifierInsufficient)
+	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
+	amend(b, h, "old")
+	wantStatus(t, replayB(b), q, DQOpen, ReasonVerifierInsufficient)
 }
 
-// After an amend the insufficient verdict and a request on it still count for
-// the select, while the verifier-loop chain starts again from the next verdict.
-func TestAmendKeepsRequestRestartsChain(t *testing.T) {
+// The verifier-loop chain starts again from the next verdict after an amend,
+// even when the body returns to what the earlier verdict judged.
+func TestAmendRestartsChain(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
@@ -797,17 +728,12 @@ func TestAmendKeepsRequestRestartsChain(t *testing.T) {
 	sel := b.As("a").Select(q, h, "", false)
 	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	amend(b.As("a"), h, "new")
-	b.RequestVerify(q, sel)
 	p := replayB(b)
 	wantNoRejections(t, p)
-	if s := p.Decisions[q]; s.ChainRequest != "" || len(s.Chain) != 0 {
-		t.Fatalf("after amend and request: chain %v, request %q, want both empty", s.Chain, s.ChainRequest)
+	if s := p.Decisions[q]; len(s.Chain) != 0 {
+		t.Fatalf("after an amend: chain %v, want empty", s.Chain)
 	}
 	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
-
-	second := b.RequestVerify(q, sel)
-	wantRejected(t, replayB(b), second, "a request is already open on "+sel)
-	b.Evs = b.Evs[:len(b.Evs)-1]
 
 	v2 := b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	p = replayB(b)
@@ -1087,7 +1013,7 @@ func TestSelectRecKeepsScopeChangeAndWhy(t *testing.T) {
 	}
 }
 
-func TestSelectRecKeepsLatestVerifier(t *testing.T) {
+func TestDecisionKeepsLatestVerifier(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
@@ -1095,26 +1021,24 @@ func TestSelectRecKeepsLatestVerifier(t *testing.T) {
 	sel := b.As("a").Select(q, h, "", false)
 	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	why(b, "thin")
-	b.As("a").RequestVerify(q, sel)
-	why(b, "fixed it")
-	if rec := currentSelect(t, replayB(b), q); rec.Verifier != event.ConfirmInsufficient || rec.VerifierWhy != "thin" || rec.RequestWhy != "fixed it" {
-		t.Fatalf("after a request-verify: %+v, want insufficient %q, request %q", rec, "thin", "fixed it")
+	if c := replayB(b).Decisions[q].Latest(event.RoleVerifier); c.Verdict != event.ConfirmInsufficient || c.Why != "thin" {
+		t.Fatalf("after an insufficient confirm: %+v, want insufficient %q", c, "thin")
 	}
 	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
 	why(b, "good")
-	if rec := currentSelect(t, replayB(b), q); rec.Verifier != event.ConfirmSufficient || rec.VerifierWhy != "good" || rec.RequestWhy != "" {
-		t.Fatalf("after a sufficient confirm: %+v, want sufficient %q and no request", rec, "good")
+	if c := replayB(b).Decisions[q].Latest(event.RoleVerifier); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
+		t.Fatalf("after a sufficient confirm: %+v, want sufficient %q", c, "good")
 	}
 
 	// An amend stops the sufficient confirm counting, but the record keeps it:
 	// hyp show still prints the latest verifier confirm.
 	amend(b.As("a"), h, "new")
-	st, p := Build(b.Evs, nil, "")
-	if st.Decisions[q].Verdict(sel) != "" {
-		t.Fatal("the amend left the sufficient verifier confirm in Confirms")
+	dec := replayB(b).Decisions[q]
+	if c := dec.Counting(event.RoleVerifier); c != nil {
+		t.Fatalf("after an amend a confirm still counts: %+v", c)
 	}
-	if rec := currentSelect(t, p, q); rec.Verifier != event.ConfirmSufficient || rec.VerifierWhy != "good" {
-		t.Fatalf("after an amend: %+v, want sufficient %q kept", rec, "good")
+	if c := dec.Latest(event.RoleVerifier); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
+		t.Fatalf("after an amend: %+v, want sufficient %q kept", c, "good")
 	}
 }
 
@@ -1129,11 +1053,11 @@ func TestConfirmOnEarlierSelectChangesOnlyIt(t *testing.T) {
 	b.As("v").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
 	why(b, "late")
 	p := replayB(b)
-	if rec := currentSelect(t, p, q); rec.ID != s2 || rec.Verifier != "" || rec.VerifierWhy != "" {
-		t.Fatalf("current select = %+v, want %s with no verifier", rec, s2)
+	if rec, dec := currentSelect(t, p, q), p.Decisions[q]; rec.ID != s2 || dec.Latest(event.RoleVerifier) != nil {
+		t.Fatalf("current select = %+v with verifier %+v, want %s with none", rec, dec.Latest(event.RoleVerifier), s2)
 	}
-	if rec := p.Decisions[q].Selects[s1]; rec.Verifier != event.ConfirmInsufficient || rec.VerifierWhy != "late" {
-		t.Fatalf("earlier select = %+v, want insufficient %q", rec, "late")
+	if cs := p.Decisions[q].Confirms[s1]; len(cs) != 1 || cs[0].Verdict != event.ConfirmInsufficient || cs[0].Why != "late" {
+		t.Fatalf("earlier select's confirms = %+v, want insufficient %q", cs, "late")
 	}
 }
 

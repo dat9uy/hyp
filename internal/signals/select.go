@@ -16,7 +16,6 @@ type selState struct {
 	q, sel, hyp string
 	tradeoff    bool
 	chain       []verdict
-	request     string // a request-verify after the chain's last verdict, or ""
 }
 
 // viewOf copies q's current select and its verifier chain from sel, the
@@ -27,7 +26,7 @@ func viewOf(q string, sel *replay.Decision) *selState {
 		return nil
 	}
 	rec := sel.Selects[sel.Current]
-	s := &selState{q: q, sel: sel.Current, hyp: rec.Hyp, tradeoff: rec.Tradeoff, request: sel.ChainRequest}
+	s := &selState{q: q, sel: sel.Current, hyp: rec.Hyp, tradeoff: rec.Tradeoff}
 	for _, v := range sel.Chain {
 		s.chain = append(s.chain, verdict{v.ID, v.Actor})
 	}

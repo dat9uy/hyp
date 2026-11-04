@@ -8,7 +8,7 @@ import (
 )
 
 // citeStore builds a store with a select and an insufficient verifier
-// confirm, so request-verify can be written, and returns its ids.
+// confirm, so another confirm can be written, and returns its ids.
 func citeStore(t *testing.T) (dir, q, h, e, r, rULID string) {
 	t.Helper()
 	dir, _, q = setup(t)
@@ -40,19 +40,19 @@ func TestCiteRefusesUnresolvedIDs(t *testing.T) {
 		args        []string
 	}{
 		{"placeholder in why (#240's event)", "--why names R-<new>",
-			[]string{"request-verify", q, "--why", "Done the to-do: R-<new> shows declared honest reading Results clear"}},
-		{"ellipsis in why", "--why names E-…", []string{"request-verify", q, "--why", "done: E-… shows it"}},
+			[]string{"confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", "Done the to-do: R-<new> shows declared honest reading Results clear"}},
+		{"ellipsis in why", "--why names E-…", []string{"confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", "done: E-… shows it"}},
 		{"dots in summary", "--summary names E-...", []string{"checkpoint", "--summary", "see E-... later", "--why", "x"}},
 		{"Xs in observation", "--observation names R-XXXXXX",
 			[]string{"record", "--exp", e, "--verdict", h + "=supports", "--observation", "R-XXXXXX shows alpha", "--why", "x"}},
-		{"seven Xs", "--why names R-XXXXXXX", []string{"request-verify", q, "--why", "R-XXXXXXX shows alpha"}},
+		{"seven Xs", "--why names R-XXXXXXX", []string{"confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", "R-XXXXXXX shows alpha"}},
 		{"braces in body", "--body names H-{id}", []string{"add", "hyp", "--parent", q, "--title", "g", "--body", "follows from H-{id}", "--why", "x"}},
 		{"angle in amend body", "--body names H-<id>", []string{"amend", h, "--body", "as H-<id> says", "--why", "x"}},
 		{"placeholder in limit", "--limit names R-<n>",
 			[]string{"record", "--exp", e, "--verdict", h + "=supports", "--observation", "ok", "--limit", "fine", "--limit", "see R-<n>", "--why", "x"}},
-		{"typo", "--why names " + typo, []string{"request-verify", q, "--why", typo + " shows alpha holds"}},
-		{"another store's id", "--why names R-64ZZ43", []string{"request-verify", q, "--why", "R-64ZZ43 shows alpha holds"}},
-		{"wrong kind", "--why names H-" + r[2:], []string{"request-verify", q, "--why", "H-" + r[2:] + " holds"}},
+		{"typo", "--why names " + typo, []string{"confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", typo + " shows alpha holds"}},
+		{"another store's id", "--why names R-64ZZ43", []string{"confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", "R-64ZZ43 shows alpha holds"}},
+		{"wrong kind", "--why names H-" + r[2:], []string{"confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", "H-" + r[2:] + " holds"}},
 		{"link why", "--why names Q-<x>", []string{"link", h, "external_ref", "gh:1", "--why", "per Q-<x>"}},
 	}
 	for _, c := range cases {
@@ -93,6 +93,6 @@ func TestCiteAcceptsResolvedIDsAndProse(t *testing.T) {
 
 func TestCiteNamesEveryUnresolvedToken(t *testing.T) {
 	_, q, _, _, _, _ := citeStore(t)
-	res := hyp(t, "request-verify", q, "--why", "R-<a> and E-<b>")
+	res := hyp(t, "confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", "R-<a> and E-<b>")
 	want(t, res, 2, "--why names R-<a>, which is no node here; --why names E-<b>, which is no node here; cite an id this store holds")
 }

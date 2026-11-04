@@ -54,12 +54,10 @@ func signalLines(r Report) string {
 
 // The golden files hold every signal generate.sh's comment names for the
 // synthetic store: one-rival, unjudged, wasted, no-movement and spin over the
-// whole log, and verifier-loop at the cut after the first request-verify
-// (nothing new since the verdict) and after the second insufficient verdict.
+// whole log, and verifier-loop at the cut after the second insufficient verdict.
 func TestSynthMatchesGolden(t *testing.T) {
 	for _, c := range []struct{ name, cut string }{
 		{"full.golden", ""},
-		{"cut-request.golden", "01M6A4QYXMWXESM0YFCZBSRVTS"},
 		{"cut-loop.golden", "01M6A4QYZCM5RGD6AZ58XJTSBW"},
 	} {
 		wantGolden(t, c.name, signalLines(Compute(synth(t, c.cut))))

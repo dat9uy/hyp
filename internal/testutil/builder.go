@@ -72,10 +72,6 @@ func (b *B) Unselect(dq, prev string) string {
 	return b.Emit(event.TypeDQUnselect, dq, event.DQUnselect{PrevSelect: prev})
 }
 
-func (b *B) RequestVerify(dq, sel string) string {
-	return b.Emit(event.TypeDQRequestVerify, dq, event.DQRequestVerify{Select: sel})
-}
-
 func (b *B) Defer(dq string) string    { return b.Emit(event.TypeDQDefer, dq, event.Empty{}) }
 func (b *B) Withdraw(dq string) string { return b.Emit(event.TypeDQWithdraw, dq, event.Empty{}) }
 func (b *B) Resume(dq string) string   { return b.Emit(event.TypeDQResume, dq, event.Empty{}) }

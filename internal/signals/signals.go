@@ -260,19 +260,6 @@ func Compute(evs []event.Event) Report {
 		}
 	}
 
-	under := func(n, q string) bool {
-		for n != "" {
-			if n == q {
-				return true
-			}
-			nd := nodes[n]
-			if nd == nil {
-				return false
-			}
-			n = nd.Parent
-		}
-		return false
-	}
 	var questions []string
 	for _, ev := range full.Applied {
 		if ev.Type == event.TypeDQSelect && !slices.Contains(questions, ev.Node) {
@@ -286,29 +273,6 @@ func Compute(evs []event.Event) Report {
 		}
 		if len(s.chain) >= 2 {
 			add("verifier-loop:"+display(q)+":"+s.chain[len(s.chain)-1].id, len(rounds), "verifier-loop "+s.describe(display))
-		}
-		if s.request == "" {
-			continue
-		}
-		lastVerdict := s.chain[len(s.chain)-1].id
-		fresh := false
-		for _, ev := range full.Applied {
-			if ev.ID <= lastVerdict || ev.ID >= s.request {
-				continue
-			}
-			switch ev.Type {
-			case event.TypeResultRecord, event.TypeResultRetract:
-				fresh = fresh || under(ev.Node, q)
-			case event.TypeEdgeAdd:
-				// A link counts from either end: an external_ref from a Hypothesis under q points outside the tree.
-				var p event.Edge
-				_ = event.DecodePayload(ev, &p)
-				fresh = fresh || under(ev.Node, q) || under(p.To, q)
-			}
-		}
-		if !fresh {
-			add("verifier-loop:"+display(q)+":"+s.request, len(rounds),
-				"verifier-loop "+s.describe(display)+"; request-verify with no new Result, retract or link")
 		}
 	}
 

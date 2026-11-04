@@ -12,8 +12,9 @@
 #   e-redis   targets h-none and judges only its parent h-redis: unjudged
 #   e-split   moves h-none and h-cdn to inconclusive
 #   e-lru-2..4  move nothing: wasted each, no-movement for each pair, spin on h-lru
-#   q-cache   two insufficient verifier verdicts, a request-verify between them
-#             with nothing new: verifier-loop
+#   q-cache   two insufficient verifier verdicts: verifier-loop. Two
+#             dq.request_verify events, which older binaries wrote and replay
+#             reads as history, keep that old shape in the log
 #   e-short   pins count-check@1 and cites its command record
 #   short     amended after its select, then confirmed again
 set -eu
@@ -26,6 +27,23 @@ rm -rf .tree
 
 h() { "$hyp" "$@" >/dev/null; }
 run() { HYP_ACTOR=runner h "$@"; }
+
+# old_request WHY appends the dq.request_verify an older hyp wrote on the last
+# select, since no command writes one now.
+old_request() {
+	python3 - "$1" <<'PY'
+import datetime, json, os, sys
+path = ".tree/events/runner.jsonl"
+sel = [e for e in map(json.loads, open(path)) if e["type"] == "dq.select"][-1]
+now = datetime.datetime.now(datetime.timezone.utc)
+abc = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+n = (int(now.timestamp() * 1000) << 80) | int.from_bytes(os.urandom(10), "big")
+ulid = "".join(abc[(n >> (5 * i)) & 31] for i in reversed(range(26)))
+ev = {"v": 1, "id": ulid, "ts": now.strftime("%Y-%m-%dT%H:%M:%S.%fZ"), "actor": "runner", "type": "dq.request_verify",
+      "node": sel["node"], "payload": {"select": sel["id"]}, "why": sys.argv[1]}
+open(path, "a").write(json.dumps(ev, separators=(",", ":"), ensure_ascii=False) + "\n")
+PY
+}
 
 run add goal --title "Pick a cache design for the synthetic service" --alias g --why "the service is slow under load"
 run add dq --parent g --title "Which cache layer should the service use?" --alias q-cache --why "the design question"
@@ -58,13 +76,13 @@ done
 
 run select q-cache h-lru --why "h-lru is the one supported rival"
 HYP_ACTOR=verifier-1 h confirm q-cache --role verifier --verdict insufficient --why "no run measured memory per process"
-run request-verify q-cache --why "asked again"
+old_request "asked again"
 HYP_ACTOR=verifier-2 h confirm q-cache --role verifier --verdict insufficient --why "still no memory measurement"
 run add exp --parent h-lru --title "Measure memory per process with the LRU" --alias e-mem --recipe none --decided-by reading \
 	--target h-cdn --why "the verifiers' gap"
 run record --exp e-mem --verdict h-lru=supports --verdict h-cdn=inconclusive \
 	--observation "the LRU adds 40MB per process" --limit "one host size only" --why "read from the profiler"
-run request-verify q-cache --why "memory is measured now"
+old_request "memory is measured now"
 HYP_ACTOR=verifier-3 h confirm q-cache --role verifier --verdict sufficient --why "latency and memory are both measured"
 
 run add dq --parent g --title "Is the hot key set short?" --alias q-keys --why "sizing the LRU"

@@ -62,11 +62,8 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				w("design: %s", body)
 			}
 		}
-		if rec.Verifier != "" {
-			w("verifier: %s — %s", rec.Verifier, rec.VerifierWhy)
-		}
-		if rec.RequestWhy != "" {
-			w("re-verify requested: %s", rec.RequestWhy)
+		if ok {
+			r.confirms(w, p.Decisions[id])
 		}
 		if ls := p.LimitsOf(id); len(ls) > 0 {
 			w("limits:")
@@ -304,6 +301,48 @@ func (r renderer) limitLine(l replay.Limit, hyp string) string {
 		state += " by " + l.By
 	}
 	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
+}
+
+// confirms prints the verifier confirm that counts, or else the latest one,
+// then, for each role whose latest confirm has lapsed, what changed since it.
+func (r renderer) confirms(w func(string, ...any), dec *replay.Decision) {
+	v := dec.Counting(event.RoleVerifier)
+	if v == nil {
+		v = dec.Latest(event.RoleVerifier)
+	}
+	if v != nil {
+		w("verifier: %s — %s", v.Verdict, v.Why)
+	}
+	for _, role := range []string{event.RoleVerifier, event.RoleOwner} {
+		if c := dec.Latest(role); c != nil {
+			if changed := r.changed(dec.ChangedSince(c)); changed != "" {
+				w("changed since %s: %s", c.Actor, changed)
+			}
+		}
+	}
+}
+
+// changed names a Dossier diff, one entry per node or link: "+R-…, -H-…",
+// and "body" for an amended selected body.
+func (r renderer) changed(added, removed []replay.DossierItem) string {
+	var parts []string
+	add := func(sign string, items []replay.DossierItem) {
+		for _, it := range items {
+			part := sign + r.id(it.Node)
+			switch it.Kind {
+			case replay.DossierBody:
+				part = "body"
+			case replay.DossierLink:
+				part += " " + it.Word + " " + r.id(it.To)
+			}
+			if !slices.Contains(parts, part) {
+				parts = append(parts, part)
+			}
+		}
+	}
+	add("+", added)
+	add("-", removed)
+	return strings.Join(parts, ", ")
 }
 
 // dossier lists question q's Dossier: each live Hypothesis with its status,

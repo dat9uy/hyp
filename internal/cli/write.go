@@ -686,25 +686,6 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 	})
 }
 
-func cmdRequestVerify(args []string, stdout, stderr io.Writer) error {
-	w := newWriter("request-verify", stdout, stderr)
-	pos, err := w.begin(args, 1)
-	if err != nil {
-		return err
-	}
-	return w.run(func() (draft, error) {
-		dq, err := w.ref(pos[0])
-		if err != nil {
-			return draft{}, err
-		}
-		sel := w.currentSelect(dq)
-		if sel == "" {
-			return draft{}, refusedErr("no current selection")
-		}
-		return draft{event.TypeDQRequestVerify, dq, event.DQRequestVerify{Select: sel}}, nil
-	})
-}
-
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))

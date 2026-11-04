@@ -72,7 +72,6 @@ write:
   select DQ [HYP] [--tradeoff] [--scope-change]   (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ
   confirm DQ --role verifier|owner --verdict sufficient|insufficient [--accept R#N]...
-  request-verify DQ                      after verifier_insufficient: the to-do is done, verify again
   checkpoint --summary S
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
@@ -102,33 +101,32 @@ sandbox (a disposable clone under ~/.hyp-sandbox/ID for one Experiment):
 type command func(args []string, stdout, stderr io.Writer) error
 
 var commands = map[string]command{
-	"init":           cmdInit,
-	"add":            cmdAdd,
-	"record":         cmdRecord,
-	"retract":        cmdOnNode("retract", event.TypeResultRetract),
-	"abandon":        cmdOnNode("abandon", event.TypeHypothesisAbandon),
-	"reaffirm":       cmdOnNode("reaffirm", event.TypeReaffirm),
-	"defer":          cmdOnNode("defer", event.TypeDQDefer),
-	"withdraw":       cmdWithdraw,
-	"resume":         cmdOnNode("resume", event.TypeDQResume),
-	"supersede":      cmdSupersede,
-	"amend":          cmdAmend,
-	"link":           cmdLink("link", event.TypeEdgeAdd),
-	"unlink":         cmdLink("unlink", event.TypeEdgeRemove),
-	"select":         cmdSelect,
-	"unselect":       cmdUnselect,
-	"confirm":        cmdConfirm,
-	"request-verify": cmdRequestVerify,
-	"checkpoint":     cmdCheckpoint,
-	"status":         cmdStatus,
-	"show":           cmdShow,
-	"diff":           cmdDiff,
-	"render":         cmdRender,
-	"check":          cmdCheck,
-	"signals":        cmdSignals,
-	"events":         cmdEvents,
-	"sandbox":        cmdSandbox,
-	"recipe":         cmdRecipe,
+	"init":       cmdInit,
+	"add":        cmdAdd,
+	"record":     cmdRecord,
+	"retract":    cmdOnNode("retract", event.TypeResultRetract),
+	"abandon":    cmdOnNode("abandon", event.TypeHypothesisAbandon),
+	"reaffirm":   cmdOnNode("reaffirm", event.TypeReaffirm),
+	"defer":      cmdOnNode("defer", event.TypeDQDefer),
+	"withdraw":   cmdWithdraw,
+	"resume":     cmdOnNode("resume", event.TypeDQResume),
+	"supersede":  cmdSupersede,
+	"amend":      cmdAmend,
+	"link":       cmdLink("link", event.TypeEdgeAdd),
+	"unlink":     cmdLink("unlink", event.TypeEdgeRemove),
+	"select":     cmdSelect,
+	"unselect":   cmdUnselect,
+	"confirm":    cmdConfirm,
+	"checkpoint": cmdCheckpoint,
+	"status":     cmdStatus,
+	"show":       cmdShow,
+	"diff":       cmdDiff,
+	"render":     cmdRender,
+	"check":      cmdCheck,
+	"signals":    cmdSignals,
+	"events":     cmdEvents,
+	"sandbox":    cmdSandbox,
+	"recipe":     cmdRecipe,
 }
 
 // Commands lists every command name Run dispatches, sorted.

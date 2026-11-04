@@ -159,15 +159,6 @@ func TestDecidingFollowsRuleFourOfHypothesisStatus(t *testing.T) {
 	}
 }
 
-func TestDossierChangesNoStatus(t *testing.T) {
-	b, q, _, h2, sel := selectedDossier()
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-	b.As("a").Supports(h2)
-	b.Contradicts(h2)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
 func TestDecisionKeepsEveryConfirmWithItsDossier(t *testing.T) {
 	b, q, _, h2, sel := selectedDossier()
 	v1 := b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)

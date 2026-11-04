@@ -210,19 +210,16 @@ func TestHelpExitsZeroAndUsagePrintsOnce(t *testing.T) {
 	}
 }
 
-func TestRequestVerifyAfterInsufficient(t *testing.T) {
-	_, _, q := setup(t)
-	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
-	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
-	want(t, hyp(t, "request-verify", q, "--why", "w"), 1, "refused: no current selection")
-	must(t, "select", q, h1, "--why", "pick")
-	want(t, hyp(t, "request-verify", q, "--why", "w"), 1, "has no verifier confirm yet")
-	must(t, "confirm", q, "--role", "verifier", "--verdict", "insufficient", "--why", "run it twice", "--actor", "b")
-	want(t, hyp(t, "request-verify", q, "--why", "R-x ran it twice"), 0, q+" dq.request_verify")
-	want(t, hyp(t, "show", q), 0, "re-verify requested: R-x ran it twice")
-	want(t, hyp(t, "status"), 0, q+" open/awaiting_verifier")
-	want(t, hyp(t, "request-verify", q, "--why", "again"), 1, "a request is already open")
+// The command is gone; a verifier can confirm again at any time, and an
+// insufficient verdict lapses when the Dossier changes.
+func TestRequestVerifyIsRemoved(t *testing.T) {
+	setup(t)
+	if got := hyp(t, "request-verify", "x", "--why", "w").code; got != 2 {
+		t.Fatalf("request-verify exit = %d, want 2", got)
+	}
+	if help := hyp(t, "help").stdout; strings.Contains(help, "request-verify") {
+		t.Fatalf("help names request-verify:\n%s", help)
+	}
 }
 
 func TestAddExpRefusesUntargetedLiveRival(t *testing.T) {

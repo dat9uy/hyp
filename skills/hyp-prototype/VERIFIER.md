@@ -27,11 +27,15 @@ under `.tree/evidence/` and `recipes/` that the Results cite.
 
 You are verifying design question `<Q-id>` in the hyp tree of this repository.
 
-1. Run `hyp show <Q-id>`. Note the `selected:` line: the hypothesis, its kind in parentheses (none for a plain select), and the selector's why, which for a trade-off holds the owner's words. Note the rivals among the question's children. If it prints `re-verify requested:`, an earlier verifier said insufficient and the investigating session says it has done that to-do; read that line first, then judge the whole selection again.
+1. Run `hyp show <Q-id>`. Note the `selected:` line: the hypothesis, its kind in parentheses (none for a plain select), and the selector's why, which for a trade-off holds the owner's words. Note the rivals among the question's children. If it prints `changed since <actor>:`, an earlier confirm judged different evidence, and the line names what the Dossier gained (`+`) and lost (`-`); read that line first, then judge the whole selection again.
    The `design:` line is the selected hypothesis's current body: judge that
    text, not an earlier one. Note any `limits:` lines and their state.
-2. Run `hyp show` on the selected hypothesis, and on each of its Results
-   (the `R-` ids among its Experiments' children). If it prints
+2. Run `hyp show` on the selected hypothesis, and on every Result listed
+   under `dossier:` in the output of step 1, rivals' Results included. A
+   Result is listed there because it has a verdict on a live hypothesis,
+   wherever it sits in the tree. A line marked `decides the owner requirement`
+   is a `contradicts` that alone keeps a rival from being a candidate, so check
+   that verdict closely. If `hyp show` on the selected hypothesis prints
    `predecessor evidence (not counted):`, run `hyp show` on each Result
    listed there too. Those Results tested the claims this hypothesis
    supersedes; judge whether its text answers what they found.
@@ -76,7 +80,7 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
      verdict is insufficient, and its why names the missing case.
 5. Record your judgement, once, under your own actor name:
    `hyp confirm <Q-id> --role verifier --verdict sufficient --actor verifier-<topic>-1 --why "<reason, at most 300 characters>"`
-   or the same with `--verdict insufficient`, where the `--why` states what evidence would make the selection sufficient. For a trade-off select, never ask for a rival to be excluded; ask only for evidence on the two questions above. The next agent reads it as its to-do list; `hyp status` shows it under the question as `verifier_insufficient`. When the to-do is done, that agent runs `hyp request-verify <Q-id>` and starts a new verifier.
+   or the same with `--verdict insufficient`, where the `--why` states what evidence would make the selection sufficient. For a trade-off select, never ask for a rival to be excluded; ask only for evidence on the two questions above. The next agent reads it as its to-do list; `hyp status` shows it under the question as `verifier_insufficient`. When the to-do is done, that agent starts a new verifier.
 
 Do not change the tree in any other way: no records, selects, links or
 retracts. If something is wrong, say so in the `--why` of an insufficient
