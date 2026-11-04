@@ -662,27 +662,17 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return draft{}, err
 		}
+		keys, keyErr := w.limitKeys("--accept", accepts)
+		// No current selection outranks a bad --accept, and AdmitConfirm refuses it.
 		sel := w.currentSelect(dq)
-		if sel == "" {
-			return draft{}, refusedErr("no current selection")
+		if keyErr != nil && sel != "" {
+			return draft{}, keyErr
 		}
-		keys, err := w.limitKeys("--accept", accepts)
-		if err != nil {
+		p := event.Confirm{Select: sel, Role: *role, Verdict: *verdict, Accepts: keys}
+		if _, err := admitted(w.p.AdmitConfirm(dq, p)); err != nil {
 			return draft{}, err
 		}
-		if *role == event.RoleOwner && *verdict == event.ConfirmSufficient {
-			var open []string
-			for _, l := range w.p.LimitsOf(dq) {
-				if l.Gating && !slices.Contains(keys, l.Key) {
-					open = append(open, fmt.Sprintf("  %s#%s %s", display(w.p, l.Result), strings.TrimPrefix(l.Key, l.Result+"#"), l.Text))
-				}
-			}
-			if len(open) > 0 {
-				return draft{}, refusedErr("open limits under %s are not accepted:\n%s\npass --accept <R-id>#<n> for each limit you accept, or close it first with hyp record --closes <R-id>#<n>",
-					display(w.p, dq), strings.Join(open, "\n"))
-			}
-		}
-		return draft{event.TypeConfirm, dq, event.Confirm{Select: sel, Role: *role, Verdict: *verdict, Accepts: keys}}, nil
+		return draft{event.TypeConfirm, dq, p}, nil
 	})
 }
 

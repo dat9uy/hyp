@@ -596,3 +596,18 @@ func TestCheckNamesRunExperimentClosedInMergedLog(t *testing.T) {
 	want(t, hyp(t, "show", e), 0, "status: run")
 	want(t, hyp(t, "check"), 0, "warn: "+e+" is withdrawn but reads run: its Result R-ZZZZZZ applied after the close")
 }
+
+// No current selection outranks a bad --accept, and a bad --accept outranks the
+// limit gate, in the order the refusals have always had.
+func TestConfirmRefusalOrder(t *testing.T) {
+	_, _, q := setup(t)
+	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--limit", "one host", "--why", "w")
+	owner := []string{"confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w"}
+	bad := append(append([]string{}, owner...), "--accept", "nope")
+	want(t, hyp(t, bad...), 1, "refused: no current selection")
+	must(t, "select", q, h1, "--why", "w")
+	want(t, hyp(t, bad...), 2, "nope")
+	want(t, hyp(t, owner...), 1, "open limits under")
+}
