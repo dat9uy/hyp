@@ -26,15 +26,15 @@ func TestDossierIsPerCurrentSelect(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Hyp(q, "h")
-	if d := replayB(b).Dossiers[q]; d != nil {
+	if d := replayB(b).Decisions[q].Dossier; d != nil {
 		t.Fatalf("no select, got a Dossier: %+v", d)
 	}
 	sel := b.Select(q, h, "", false)
-	if replayB(b).Dossiers[q] == nil {
+	if replayB(b).Decisions[q].Dossier == nil {
 		t.Fatal("a current select has no Dossier")
 	}
 	b.Unselect(q, sel)
-	if d := replayB(b).Dossiers[q]; d != nil {
+	if d := replayB(b).Decisions[q].Dossier; d != nil {
 		t.Fatalf("after an unselect, got a Dossier: %+v", d)
 	}
 }
@@ -44,7 +44,7 @@ func TestDossierHoldsBodyAndLiveHypotheses(t *testing.T) {
 	h3 := b.Hyp(q, "h3")
 	b.Abandon(h3)
 	b.Emit(event.TypeHypothesisAmend, h1, event.HypothesisAmend{Body: "new body"})
-	d := replayB(b).Dossiers[q]
+	d := replayB(b).Decisions[q].Dossier
 	for _, it := range []DossierItem{{Kind: DossierBody, Node: h1, Body: "new body"}, {Kind: DossierHyp, Node: h1}, {Kind: DossierHyp, Node: h2}} {
 		if !hasItem(d, it) {
 			t.Fatalf("missing %+v in %+v", it, d.Items)
@@ -59,7 +59,7 @@ func TestDossierHoldsAResultOutsideTheTreeWalk(t *testing.T) {
 	b, q, h1, h2, _ := selectedDossier()
 	// The Result sits under h1's Experiment, and its verdict is on h2.
 	r := b.Result(b.Exp(h1, event.RecipeNone, h2), map[string]string{h2: con})
-	d := replayB(b).Dossiers[q]
+	d := replayB(b).Decisions[q].Dossier
 	if !hasItem(d, DossierItem{Kind: DossierResult, Node: r, To: h2, Word: con}) {
 		t.Fatalf("a verdict on the rival is missing: %+v", d.Items)
 	}
@@ -69,7 +69,7 @@ func TestDossierDropsARetractedResult(t *testing.T) {
 	b, q, _, h2, _ := selectedDossier()
 	r := b.Contradicts(h2)
 	b.Retract(r)
-	d := replayB(b).Dossiers[q]
+	d := replayB(b).Decisions[q].Dossier
 	if hasItem(d, DossierItem{Kind: DossierResult, Node: r, To: h2, Word: con}) {
 		t.Fatalf("a retracted Result is listed: %+v", d.Items)
 	}
@@ -85,7 +85,7 @@ func TestDossierHoldsOutgoingLinksOnly(t *testing.T) {
 	b.Edge(h1, event.EdgeExternalRef, "gh:1")
 	p := replayB(b)
 	wantNoRejections(t, p)
-	d := p.Dossiers[q]
+	d := p.Decisions[q].Dossier
 	if !hasItem(d, DossierItem{Kind: DossierLink, Node: h1, To: other, Word: event.EdgeDependsOn}) {
 		t.Fatalf("the outgoing link is missing: %+v", d.Items)
 	}
@@ -99,13 +99,13 @@ func TestDossierHoldsOutgoingLinksOnly(t *testing.T) {
 func TestDossierDiffNamesAddedAndRemoved(t *testing.T) {
 	b, q, _, h2, _ := selectedDossier()
 	r := b.Contradicts(h2)
-	was := replayB(b).Dossiers[q]
-	if !was.Equal(replayB(b).Dossiers[q]) {
+	was := replayB(b).Decisions[q].Dossier
+	if !was.Equal(replayB(b).Decisions[q].Dossier) {
 		t.Fatal("the same log gave two different Dossiers")
 	}
 	b.Retract(r)
 	h3 := b.Hyp(q, "h3")
-	now := replayB(b).Dossiers[q]
+	now := replayB(b).Decisions[q].Dossier
 	if was.Equal(now) {
 		t.Fatal("different Dossiers compare equal")
 	}
@@ -122,7 +122,7 @@ func TestDecidingMarksTheOneContradicts(t *testing.T) {
 	b, q, h1, h2, _ := selectedDossier()
 	b.Supports(h2)
 	r := b.Contradicts(h2)
-	d := replayB(b).Dossiers[q]
+	d := replayB(b).Decisions[q].Dossier
 	if got := d.Deciding[h2]; !slices.Equal(got, []string{r}) {
 		t.Fatalf("Deciding[h2] = %v, want [%s]", got, r)
 	}
@@ -136,7 +136,7 @@ func TestDecidingLeavesOutTwoContradicts(t *testing.T) {
 	b.Supports(h2)
 	b.Contradicts(h2)
 	b.Contradicts(h2)
-	if got := replayB(b).Dossiers[q].Deciding[h2]; len(got) != 0 {
+	if got := replayB(b).Decisions[q].Dossier.Deciding[h2]; len(got) != 0 {
 		t.Fatalf("two contradicts are marked: %v", got)
 	}
 }
@@ -144,7 +144,7 @@ func TestDecidingLeavesOutTwoContradicts(t *testing.T) {
 func TestDecidingNeedsASupports(t *testing.T) {
 	b, q, _, h2, _ := selectedDossier()
 	b.Contradicts(h2)
-	if got := replayB(b).Dossiers[q].Deciding[h2]; len(got) != 0 {
+	if got := replayB(b).Decisions[q].Dossier.Deciding[h2]; len(got) != 0 {
 		t.Fatalf("a rival with no supports is marked: %v", got)
 	}
 }
@@ -154,7 +154,7 @@ func TestDecidingFollowsRuleFourOfHypothesisStatus(t *testing.T) {
 	b.Supports(h2)
 	b.Contradicts(h2)
 	b.DQ(h2, "open child") // without the contradicts it would await this, not be supported
-	if got := replayB(b).Dossiers[q].Deciding[h2]; len(got) != 0 {
+	if got := replayB(b).Decisions[q].Dossier.Deciding[h2]; len(got) != 0 {
 		t.Fatalf("a rival awaiting a sub-question is marked: %v", got)
 	}
 }
@@ -166,4 +166,42 @@ func TestDossierChangesNoStatus(t *testing.T) {
 	b.As("a").Supports(h2)
 	b.Contradicts(h2)
 	wantStatus(t, replayB(b), q, DQAnswered, "")
+}
+
+func TestDecisionKeepsEveryConfirmWithItsDossier(t *testing.T) {
+	b, q, _, h2, sel := selectedDossier()
+	v1 := b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
+	r := b.As("a").Supports(h2)
+	o := b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
+	v2 := b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	p := replayB(b)
+	dec := p.Decisions[q]
+	got := dec.Confirms[sel]
+	if len(got) != 3 || got[0].ID != v1 || got[1].ID != o || got[2].ID != v2 {
+		t.Fatalf("confirms = %+v, want v1, o, v2 in log order", got)
+	}
+	it := DossierItem{Kind: DossierResult, Node: r, To: h2, Word: sup}
+	if slices.Contains(got[0].Items, it) {
+		t.Fatalf("the first confirm's Dossier holds a later Result: %+v", got[0].Items)
+	}
+	if !slices.Equal(got[2].Items, dec.Dossier.Items) {
+		t.Fatalf("the last confirm's Dossier %+v differs from the current %+v", got[2].Items, dec.Dossier.Items)
+	}
+}
+
+func TestAProjectionKeepsItsLimitsAndDossierAsTheLogGoesOn(t *testing.T) {
+	b, q, _, h2, _ := selectedDossier()
+	st, p := Build(b.Evs, nil, "")
+	was := slices.Clone(p.Decisions[q].Dossier.Items)
+	n := b.N
+	b.Supports(h2)
+	for _, ev := range b.Evs[n:] {
+		_ = st.Step(ev, nil)
+	}
+	if !slices.Equal(p.Decisions[q].Dossier.Items, was) {
+		t.Fatalf("an earlier projection's Dossier changed: %+v", p.Decisions[q].Dossier.Items)
+	}
+	if st.Decisions[q].Dossier != nil {
+		t.Fatal("the stored record holds a Dossier")
+	}
 }

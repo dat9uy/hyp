@@ -739,7 +739,7 @@ func wantRejected(t *testing.T, p Projection, id, want string) {
 
 func wantLimit(t *testing.T, p Projection, q string, i int, state, by string) {
 	t.Helper()
-	ls := p.Limits[q]
+	ls := p.LimitsOf(q)
 	if len(ls) <= i {
 		t.Fatalf("limits under %s = %+v, want at least %d", q, ls, i+1)
 	}
@@ -800,7 +800,7 @@ func TestAmendKeepsRequestRestartsChain(t *testing.T) {
 	b.RequestVerify(q, sel)
 	p := replayB(b)
 	wantNoRejections(t, p)
-	if s := p.Selection[q]; s.ChainRequest != "" || len(s.Chain) != 0 {
+	if s := p.Decisions[q]; s.ChainRequest != "" || len(s.Chain) != 0 {
 		t.Fatalf("after amend and request: chain %v, request %q, want both empty", s.Chain, s.ChainRequest)
 	}
 	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
@@ -812,7 +812,7 @@ func TestAmendKeepsRequestRestartsChain(t *testing.T) {
 	v2 := b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	p = replayB(b)
 	wantNoRejections(t, p)
-	if s := p.Selection[q]; len(s.Chain) != 1 || s.Chain[0].ID != v2 {
+	if s := p.Decisions[q]; len(s.Chain) != 1 || s.Chain[0].ID != v2 {
 		t.Fatalf("chain after the second verdict = %v, want only %s", s.Chain, v2)
 	}
 	wantStatus(t, p, q, DQOpen, ReasonVerifierInsufficient)
@@ -837,7 +837,7 @@ func TestLimitStates(t *testing.T) {
 	h := b.Hyp(q, "h")
 	r1 := limitResult(b, h, []string{"l1"}, nil)
 	p := replayB(b)
-	if ls := p.Limits[q]; len(ls) != 1 || ls[0].Key != event.LimitKey(r1, 1) || ls[0].Text != "l1" {
+	if ls := p.LimitsOf(q); len(ls) != 1 || ls[0].Key != event.LimitKey(r1, 1) || ls[0].Text != "l1" {
 		t.Fatalf("limits = %+v, want one l1 on %s", ls, r1)
 	}
 	wantLimit(t, p, q, 0, LimitOpen, "")
@@ -859,7 +859,7 @@ func TestLimitHyps(t *testing.T) {
 		Verdicts: map[string]string{h2: event.VerdictSupports, h1: event.VerdictContradicts}, Observation: "o", Limits: []string{"l1"}})
 	p := replayB(b)
 	wantNoRejections(t, p)
-	if got := p.Limits[q][0].Hyps; !slices.Equal(got, []string{h1, h2}) {
+	if got := p.LimitsOf(q)[0].Hyps; !slices.Equal(got, []string{h1, h2}) {
 		t.Fatalf("Hyps = %v, want [%s %s]", got, h1, h2)
 	}
 }
@@ -1011,13 +1011,13 @@ func TestLimitGatingFollowsCurrentSelect(t *testing.T) {
 	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
 	limitResult(b, h1, []string{"only h1"}, nil)
 	limitResult(b, h2, []string{"only h2"}, nil)
-	if p := replayB(b); p.Limits[q][0].Gating || p.Limits[q][1].Gating {
+	if p := replayB(b); p.LimitsOf(q)[0].Gating || p.LimitsOf(q)[1].Gating {
 		t.Fatal("with no select, no limit gates")
 	}
 	b.As("a").Select(q, h1, "", false)
 	p := replayB(b)
-	if !p.Limits[q][0].Gating || p.Limits[q][1].Gating {
-		t.Fatalf("after selecting h1: gating = %v, %v; want true, false", p.Limits[q][0].Gating, p.Limits[q][1].Gating)
+	if !p.LimitsOf(q)[0].Gating || p.LimitsOf(q)[1].Gating {
+		t.Fatalf("after selecting h1: gating = %v, %v; want true, false", p.LimitsOf(q)[0].Gating, p.LimitsOf(q)[1].Gating)
 	}
 }
 
@@ -1110,7 +1110,7 @@ func TestSelectRecKeepsLatestVerifier(t *testing.T) {
 	// hyp show still prints the latest verifier confirm.
 	amend(b.As("a"), h, "new")
 	st, p := Build(b.Evs, nil, "")
-	if st.Selection[q].Verdict(sel) != "" {
+	if st.Decisions[q].Verdict(sel) != "" {
 		t.Fatal("the amend left the sufficient verifier confirm in Confirms")
 	}
 	if rec := currentSelect(t, p, q); rec.Verifier != event.ConfirmSufficient || rec.VerifierWhy != "good" {
@@ -1132,7 +1132,7 @@ func TestConfirmOnEarlierSelectChangesOnlyIt(t *testing.T) {
 	if rec := currentSelect(t, p, q); rec.ID != s2 || rec.Verifier != "" || rec.VerifierWhy != "" {
 		t.Fatalf("current select = %+v, want %s with no verifier", rec, s2)
 	}
-	if rec := p.Selection[q].Selects[s1]; rec.Verifier != event.ConfirmInsufficient || rec.VerifierWhy != "late" {
+	if rec := p.Decisions[q].Selects[s1]; rec.Verifier != event.ConfirmInsufficient || rec.VerifierWhy != "late" {
 		t.Fatalf("earlier select = %+v, want insufficient %q", rec, "late")
 	}
 }

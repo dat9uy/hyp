@@ -165,7 +165,7 @@ func (w *writer) run(build func() (draft, error)) error {
 
 // currentSelect returns the current selection id of DQ dq ("" if none).
 func (w *writer) currentSelect(dq string) string {
-	if sel := w.st.Selection[dq]; sel != nil {
+	if sel := w.st.Decisions[dq]; sel != nil {
 		return sel.Current
 	}
 	return ""
@@ -672,7 +672,7 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 		}
 		if *role == event.RoleOwner && *verdict == event.ConfirmSufficient {
 			var open []string
-			for _, l := range w.p.Limits[dq] {
+			for _, l := range w.p.LimitsOf(dq) {
 				if l.Gating && !slices.Contains(keys, l.Key) {
 					open = append(open, fmt.Sprintf("  %s#%s %s", display(w.p, l.Result), strings.TrimPrefix(l.Key, l.Result+"#"), l.Text))
 				}

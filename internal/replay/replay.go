@@ -75,13 +75,11 @@ func (st *State) Projection() Projection {
 		Status:      st.Derived,
 		Goal:        st.goalStatus(),
 		Applied:     st.Applied,
-		Limits:      st.limits(),
 		RivalsAtAdd: st.RivalsAtAdd,
 		Exps:        st.exps(),
 		Results:     st.results(),
 		Edges:       st.Edges,
-		Selection:   st.Selection,
-		Dossiers:    st.dossiers(),
+		Decisions:   st.decisions(),
 	}
 }
 
@@ -132,7 +130,7 @@ func (st *State) apply(ev event.Event) {
 			st.GoalID = ev.ID
 		}
 		if p.Kind == event.KindDesignQuestion {
-			st.Selection[ev.ID] = newSel()
+			st.Decisions[ev.ID] = newDecision()
 		}
 	case event.TypeResultRecord:
 		var p event.ResultRecord
@@ -152,11 +150,7 @@ func (st *State) apply(ev event.Event) {
 		_ = event.DecodePayload(ev, &p)
 		n := st.Nodes[ev.Node]
 		n.Body = p.Body
-		// The owner confirm on the current select and its acceptances judged
-		// the old body and stop counting; onAmend holds the verifier rules.
-		if sel := st.Selection[n.Parent]; sel != nil && sel.Current != "" && sel.Selects[sel.Current].Hyp == ev.Node {
-			delete(st.Confirms, sel.Current+"|"+event.RoleOwner)
-			st.dropAcceptances(sel.Current)
+		if sel := st.Decisions[n.Parent]; sel != nil && sel.Current != "" && sel.Selects[sel.Current].Hyp == ev.Node {
 			sel.onAmend()
 		}
 	case event.TypeDQSelect:
@@ -164,18 +158,15 @@ func (st *State) apply(ev event.Event) {
 		_ = event.DecodePayload(ev, &p)
 		cands := st.candidates(ev.Node, func(c string) string { return st.Derived[c].Status },
 			func(c string) bool { return st.Derived[c].Stale != nil })
-		sel := st.Selection[ev.Node]
-		sel.onSelect(sel.Current != "" && (p.Hypothesis == sel.Selects[sel.Current].Hyp || st.supersedes(p.Hypothesis, sel.Selects[sel.Current].Hyp)))
-		sel.Selects[ev.ID] = SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor,
+		sel := st.Decisions[ev.Node]
+		continues := sel.Current != "" && (p.Hypothesis == sel.Selects[sel.Current].Hyp || st.supersedes(p.Hypothesis, sel.Selects[sel.Current].Hyp))
+		sel.onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor,
 			OwnerRequired: len(cands) >= 2 || p.Tradeoff || p.ScopeChange, Tradeoff: p.Tradeoff,
-			ScopeChange: p.ScopeChange, Why: ev.Why}
-		sel.setCurrent(ev.ID, ev.ID, p.PrevSelect)
+			ScopeChange: p.ScopeChange, Why: ev.Why}, p.PrevSelect, continues)
 	case event.TypeDQUnselect:
 		var p event.DQUnselect
 		_ = event.DecodePayload(ev, &p)
-		sel := st.Selection[ev.Node]
-		sel.setCurrent(ev.ID, "", p.PrevSelect)
-		sel.onUnselect()
+		st.Decisions[ev.Node].onUnselect(ev.ID, p.PrevSelect)
 	case event.TypeDQDefer:
 		st.Hold[ev.Node] = DQDeferred
 	case event.TypeDQWithdraw:
@@ -187,24 +178,12 @@ func (st *State) apply(ev event.Event) {
 	case event.TypeConfirm:
 		var p event.Confirm
 		_ = event.DecodePayload(ev, &p)
-		if p.Role == event.RoleVerifier {
-			st.Selection[ev.Node].onConfirm(ev, p.Select, p.Verdict)
-		}
-		if p.Role == event.RoleOwner {
-			st.Confirms[p.Select+"|"+p.Role] = p.Verdict
-			// An owner's no withdraws their sign-off on this select's limits. Only
-			// a sufficient owner confirm carries accepts, so nothing is re-added.
-			if p.Verdict == event.ConfirmInsufficient {
-				st.dropAcceptances(p.Select)
-			}
-			for _, k := range p.Accepts {
-				st.Accepted[p.Select+"|"+k] = Acceptance{Select: p.Select, Actor: ev.Actor}
-			}
-		}
+		sel := st.Decisions[ev.Node]
+		sel.onConfirm(ev, p, st.dossierItems(ev.Node, sel.Selects[p.Select].Hyp))
 	case event.TypeDQRequestVerify:
 		var p event.DQRequestVerify
 		_ = event.DecodePayload(ev, &p)
-		st.Selection[ev.Node].onRequest(ev, p.Select)
+		st.Decisions[ev.Node].onRequest(ev, p.Select)
 	case event.TypeEdgeAdd:
 		var p event.Edge
 		_ = event.DecodePayload(ev, &p)
@@ -231,46 +210,6 @@ func (st *State) addNode(n *Node) {
 	}
 }
 
-// limits derives each question's limits. A limit is closed when a
-// non-retracted Result closes it, accepted when an owner confirm on the
-// question's current select accepted it, and open otherwise. Limits of a
-// retracted Result are left out.
-func (st *State) limits() map[string][]Limit {
-	closedBy := map[string]string{}
-	for _, id := range st.Order {
-		n := st.Nodes[id]
-		if n.Kind != event.KindResult || st.Retracted[id] {
-			continue
-		}
-		for _, k := range n.Closes {
-			if _, ok := closedBy[k]; !ok {
-				closedBy[k] = id
-			}
-		}
-	}
-	out := map[string][]Limit{}
-	for _, id := range st.Order {
-		n := st.Nodes[id]
-		if n.Kind != event.KindResult || st.Retracted[id] || len(n.Limits) == 0 {
-			continue
-		}
-		q := st.resultQuestion(id)
-		for i, text := range n.Limits {
-			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen}
-			if by, ok := closedBy[l.Key]; ok {
-				l.State, l.By = LimitClosed, by
-			} else if a, ok := st.Accepted[st.Selection[q].Current+"|"+l.Key]; ok {
-				l.State, l.By = LimitAccepted, a.Actor
-			}
-			if cur := st.Selection[q].Current; cur != "" {
-				l.Gating = l.Gates(st.Selection[q].Selects[cur].Hyp)
-			}
-			out[q] = append(out[q], l)
-		}
-	}
-	return out
-}
-
 // supersedes reports whether h reaches old through live supersedes edges.
 func (st *State) supersedes(h, old string) bool {
 	seen := map[string]bool{h: true}
@@ -288,22 +227,6 @@ func (st *State) supersedes(h, old string) bool {
 		}
 	}
 	return false
-}
-
-// setCurrent applies the conflict rule of spec §7.4 for the select or
-// unselect event evID: a write whose prev_select is not the current selection
-// records both as conflicting; a write that names the current selection clears
-// the conflict set. The write still applies and current becomes next.
-func (s *Sel) setCurrent(evID, next, prev string) {
-	if prev == s.Current {
-		s.Conflicts = nil
-	} else {
-		if s.Current != "" {
-			s.Conflicts = appendUnique(s.Conflicts, s.Current)
-		}
-		s.Conflicts = appendUnique(s.Conflicts, evID)
-	}
-	s.Current = next
 }
 
 // basisNodes lists the nodes for which ev is a basis event (spec §7.3).
@@ -648,31 +571,11 @@ func (d *derivation) dqState(id string) NodeStatus {
 		return ns
 	}
 
-	sel := st.Selection[id]
-	reason := ""
-	if len(sel.Conflicts) > 0 {
-		reason = ReasonConflicting
-	} else if sel.Current != "" {
-		rec := sel.Selects[sel.Current]
-		switch {
-		case d.hypStatus(rec.Hyp) != HypSupported:
-			reason = ReasonSelectedNotSupport
-		case d.staleOf(rec.Hyp) != nil || ns.Stale != nil:
-			reason = ReasonSelectedStale
-		case sel.Verdict(rec.ID) == event.ConfirmInsufficient && !sel.Requested(rec.ID):
-			reason = ReasonVerifierInsufficient
-		case sel.Verdict(rec.ID) != event.ConfirmSufficient:
-			reason = ReasonAwaitingVerifier
-		case rec.OwnerRequired && st.Confirms[rec.ID+"|"+event.RoleOwner] != event.ConfirmSufficient:
-			reason = ReasonAwaitingOwner
-		}
-		if reason == "" {
-			ns.Status = DQAnswered
-			d.dq[id] = ns
-			return ns
-		}
-	} else {
-		reason = d.candidateReason(live)
+	reason := d.reason(id, live, ns.Stale != nil)
+	if reason == "" {
+		ns.Status = DQAnswered
+		d.dq[id] = ns
+		return ns
 	}
 	ns.Status = DQOpen
 	if st.EverAnswered[id] {
@@ -681,26 +584,6 @@ func (d *derivation) dqState(id string) NodeStatus {
 	ns.Reason = reason
 	d.dq[id] = ns
 	return ns
-}
-
-// candidateReason gives the open reason of a DQ with no current selection.
-func (d *derivation) candidateReason(live []string) string {
-	if len(live) == 0 {
-		return ReasonNoCandidates
-	}
-	count := map[string]int{}
-	for _, c := range live {
-		count[d.hypStatus(c)]++
-	}
-	switch {
-	case count[HypProposed] == len(live):
-		return ReasonUntested
-	case count[HypContradicted] == len(live):
-		return ReasonAllContradicted
-	case count[HypSupported] == 0:
-		return ReasonInconclusive
-	}
-	return ReasonSupportedUnsel
 }
 
 // goalState follows spec §7.5, with one addition: a Goal needs at least one
@@ -761,13 +644,4 @@ func sortedKeys(m map[string]string) []string {
 	}
 	sort.Strings(keys)
 	return keys
-}
-
-// dropAcceptances forgets the limit acceptances recorded on sel.
-func (st *State) dropAcceptances(sel string) {
-	for k, a := range st.Accepted {
-		if a.Select == sel {
-			delete(st.Accepted, k)
-		}
-	}
 }

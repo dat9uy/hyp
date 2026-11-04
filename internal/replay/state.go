@@ -16,13 +16,11 @@ type Projection struct {
 	Rejections     []Rejection
 	Applied        []event.Event // events that applied, in merge order
 	LastCheckpoint *event.Event
-	Limits         map[string][]Limit  // DQ → limits recorded under it, in creation order
-	RivalsAtAdd    map[string][]string // Experiment → live rivals of its parent just before its add
-	Exps           map[string]*Exp     // Experiment → its derived record (experiment.go)
-	Results        map[string]*Res     // Result → its derived record (result.go)
-	Edges          []Edge              // every edge in apply order; Live is false once removed
-	Selection      map[string]*Sel     // DQ → its selection state
-	Dossiers       map[string]*Dossier // DQ with a current select → its Dossier (dossier.go)
+	RivalsAtAdd    map[string][]string  // Experiment → live rivals of its parent just before its add
+	Exps           map[string]*Exp      // Experiment → its derived record (experiment.go)
+	Results        map[string]*Res      // Result → its derived record (result.go)
+	Edges          []Edge               // every edge in apply order; Live is false once removed
+	Decisions      map[string]*Decision // DQ → its Decision record (decision.go)
 }
 
 // NodeStatus is the derived state of one node.
@@ -131,11 +129,19 @@ func (p Projection) UnjudgedAfter(exp string, extra map[string]string) []string 
 // CurrentSelect returns the DQ's current select; ok is false when the DQ's
 // last select or unselect is an unselect, or there is none.
 func (p Projection) CurrentSelect(dq string) (rec SelectRec, ok bool) {
-	sel := p.Selection[dq]
+	sel := p.Decisions[dq]
 	if sel == nil || sel.Current == "" {
 		return SelectRec{}, false
 	}
 	return sel.Selects[sel.Current], true
+}
+
+// LimitsOf lists the limits recorded under question dq, in creation order.
+func (p Projection) LimitsOf(dq string) []Limit {
+	if s := p.Decisions[dq]; s != nil {
+		return s.Limits
+	}
+	return nil
 }
 
 // LiveEdges lists the live edges in apply order.
@@ -153,21 +159,6 @@ func (p Projection) LiveEdges() []Edge {
 type Edge struct {
 	ID, From, Type, To string
 	Live               bool
-}
-
-// Sel is the selection state of one DesignQuestion (spec §7.4). Its verifier
-// state is written only by the methods in verifier.go: each select's counting
-// verdict and open request, the verifier fields of each SelectRec, and Chain
-// and ChainRequest, the verifier-loop signal's view of the insufficient
-// verdicts on the current select and a request made after the last of them.
-type Sel struct {
-	Current      string
-	Conflicts    []string
-	Selects      map[string]SelectRec
-	Chain        []Verdict
-	ChainRequest string
-	verdict      map[string]string // select id → latest verifier verdict that still counts
-	requested    map[string]bool   // select id → re-verify asked since its last verifier confirm
 }
 
 // SelectRec is one applied dq.select. Verifier and VerifierWhy are the
@@ -214,10 +205,8 @@ type State struct {
 	Abandoned    map[string]bool
 	Withdrawn    map[string]bool // Experiment → it has an applied experiment.withdraw
 	Edges        []Edge
-	Hold         map[string]string // DQ → "", "deferred" or "withdrawn"
-	Selection    map[string]*Sel
-	Confirms     map[string]string     // selectID+"|"+role → verdict, owner role only; Sel holds the verifier's
-	Accepted     map[string]Acceptance // selectID+"|"+limit key → the owner confirm that accepted it
+	Hold         map[string]string    // DQ → "", "deferred" or "withdrawn"
+	Decisions    map[string]*Decision // DQ → its Decision record (decision.go)
 	Snaps        map[string][]Snap
 	EverAnswered map[string]bool
 	Derived      map[string]NodeStatus
@@ -242,9 +231,7 @@ func NewState() *State {
 		Abandoned:    map[string]bool{},
 		Withdrawn:    map[string]bool{},
 		Hold:         map[string]string{},
-		Selection:    map[string]*Sel{},
-		Confirms:     map[string]string{},
-		Accepted:     map[string]Acceptance{},
+		Decisions:    map[string]*Decision{},
 		Snaps:        map[string][]Snap{},
 		EverAnswered: map[string]bool{},
 		Derived:      map[string]NodeStatus{},
