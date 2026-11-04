@@ -185,6 +185,8 @@ Amend: a `hypothesis.amend` of the Hypothesis of the current select drops that s
 
 Owner insufficient: an `insufficient` owner confirm drops the limit acceptances recorded on the select it names, because the owner's no withdraws their sign-off on its limits. It stays the latest owner confirm, so the state follows rules 2 and 3 as before. A verifier confirm changes no acceptance.
 
+**Dossier:** the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. A `contradicts` is **deciding** when the Hypothesis it judges is not the selected one and, by §7.1, that Hypothesis would be `supported` without this one verdict; the Result is marked as deciding the owner requirement, and §7.1 still stands. `hyp show <Q>` lists the Dossier and the mark under `dossier:`. Neither changes any status.
+
 **Suggested candidate:** the trade-off candidates are the live children that are `supported` and not stale. When there is exactly one, suggest it. With two or more such children, report "trade-off: owner decides" and list them.
 
 ### 7.5 Goal
@@ -227,7 +229,13 @@ type Projection struct {
     Results    map[string]*Res       // Result id → its derived record, built once per projection
     Edges      []Edge                // every edge in apply order; Live is false once removed
     Selection  map[string]*Sel       // DQ id → its selection: current select, conflicts, each select's record, verifier state
+    Dossiers   map[string]*Dossier   // DQ id with a current select → its Dossier (§7.4)
 }
+type Dossier struct {
+    Items    []DossierItem           // sorted; two Dossiers hold the same facts when their Items are equal
+    Deciding map[string][]string     // rival Hypothesis id → Results whose contradicts is deciding (§7.4)
+}
+type DossierItem struct { Kind, Node, To, Word, Body string } // body, hypothesis, result or link
 type Exp struct {
     Status     string            // planned, run, superseded or withdrawn (§7.6); equal to Status[id].Status
     Closed     string            // superseded or withdrawn when closed, even if a Result makes it run; "" otherwise
