@@ -566,3 +566,38 @@ func TestStatusPlannedOneRivalIsOneLine(t *testing.T) {
 		t.Fatalf("want one planned line with its one-rival mark for %s, got %q:\n%s", id, lines, out)
 	}
 }
+
+func TestShowListsTheDossier(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h1 := b.Hyp(q, "picked")
+	h2 := b.Hyp(q, "rival")
+	h3 := b.Hyp(q, "gone")
+	b.Abandon(h3)
+	sup := b.Supports(h1)
+	over := b.Result(b.Exp(h1, event.RecipeNone, h2), map[string]string{h2: event.VerdictContradicts})
+	s2 := b.Supports(h2)
+	b.Edge(h1, event.EdgeExternalRef, "gh:1")
+	before := Show(replay.Replay(b.Evs, nil, ""), q, []string{g})
+	if strings.Contains(before, "dossier:") {
+		t.Fatalf("no select, but a Dossier is listed:\n%s", before)
+	}
+	b.Select(q, h1, "", false)
+	p := replay.Replay(b.Evs, nil, "")
+	show := Show(p, q, []string{g})
+	id := func(i string) string { return event.DisplayID(p.Nodes[i].Kind, i) }
+	for _, want := range []string{
+		"dossier:\n  " + id(h1) + " supported (selected) picked\n    " + id(sup) + " supports\n",
+		"  " + id(h2) + " contradicted rival\n",
+		"    " + id(over) + " contradicts [decides the owner requirement",
+		"    " + id(s2) + " supports\n",
+	} {
+		if !strings.Contains(show, want) {
+			t.Fatalf("missing %q in:\n%s", want, show)
+		}
+	}
+	if strings.Contains(show, "gh:1\n  ") || strings.Contains(show, "link "+id(h1)) {
+		t.Fatalf("external_ref is listed in the Dossier:\n%s", show)
+	}
+}

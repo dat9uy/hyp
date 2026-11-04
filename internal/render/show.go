@@ -3,6 +3,7 @@ package render
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -74,6 +75,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 			}
 		}
 		r.experiments(w, id)
+		r.dossier(w, id, rec.Hyp)
 	}
 
 	for _, e := range p.LiveEdges() {
@@ -302,6 +304,52 @@ func (r renderer) limitLine(l replay.Limit, hyp string) string {
 		state += " by " + l.By
 	}
 	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
+}
+
+// dossier lists question q's Dossier: each live Hypothesis with its status,
+// the Results with a verdict on it, and the links going out from both. It
+// marks a contradicts that alone keeps a rival from being a trade-off
+// candidate, so the verifier sees which verdict decides whether the owner must
+// sign.
+func (r renderer) dossier(w func(string, ...any), q, selected string) {
+	d := r.p.Dossiers[q]
+	if d == nil {
+		return
+	}
+	w("dossier:")
+	links := func(from string) {
+		for _, it := range d.Items {
+			if it.Kind == replay.DossierLink && it.Node == from {
+				w("    link %s %s %s", r.id(from), it.Word, r.id(it.To))
+			}
+		}
+	}
+	for _, it := range d.Items {
+		if it.Kind != replay.DossierHyp {
+			continue
+		}
+		h := it.Node
+		line := fmt.Sprintf("  %s %s", r.id(h), r.p.Status[h].Status)
+		if r.p.Status[h].Stale != nil {
+			line += " STALE"
+		}
+		if h == selected {
+			line += " (selected)"
+		}
+		w("%s %s", line, Cut(r.p.Nodes[h].Title, 60))
+		links(h)
+		for _, res := range d.Items {
+			if res.Kind != replay.DossierResult || res.To != h {
+				continue
+			}
+			mark := ""
+			if slices.Contains(d.Deciding[h], res.Node) {
+				mark = " [decides the owner requirement: alone keeps this rival from being a candidate]"
+			}
+			w("    %s %s%s", r.id(res.Node), res.Word, mark)
+			links(res.Node)
+		}
+	}
 }
 
 // experiments lists every Experiment under question q, grouped by parent

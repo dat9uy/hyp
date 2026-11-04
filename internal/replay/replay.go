@@ -81,6 +81,7 @@ func (st *State) Projection() Projection {
 		Results:     st.results(),
 		Edges:       st.Edges,
 		Selection:   st.Selection,
+		Dossiers:    st.dossiers(),
 	}
 }
 
@@ -499,38 +500,52 @@ func (d *derivation) hypStatus(id string) string {
 	case st.Abandoned[id]:
 		s = HypAbandoned
 	default:
-		var supports, contradicts, any bool
-		for _, r := range st.resultsFor(id) {
-			any = true
-			switch st.Nodes[r].Verdicts[id] {
-			case event.VerdictSupports:
-				supports = true
-			case event.VerdictContradicts:
-				contradicts = true
-			}
-		}
-		switch {
-		case !any:
-			s = HypProposed
-		case contradicts:
-			s = HypContradicted
-		case supports:
-			s = HypSupported
-		default:
-			s = HypInconclusive
-		}
-		if s == HypSupported {
-			for _, c := range st.Nodes[id].Children {
-				if st.Nodes[c].Kind == event.KindDesignQuestion && st.isLiveDQ(c) &&
-					d.dqState(c).Status != DQAnswered {
-					s = HypAwaitingSubquestions
-					break
-				}
-			}
+		s = st.verdictStatus(id, "")
+		if s == HypSupported && st.awaitsSubquestions(id, func(c string) string { return d.dqState(c).Status }) {
+			s = HypAwaitingSubquestions
 		}
 	}
 	d.hyp[id] = s
 	return s
+}
+
+// verdictStatus is rule 3 of spec §7.1: the status of Hypothesis id from the
+// verdicts of its non-retracted Results, leaving out the Result except when it
+// is not "".
+func (st *State) verdictStatus(id, except string) string {
+	var supports, contradicts, any bool
+	for _, r := range st.resultsFor(id) {
+		if r == except {
+			continue
+		}
+		any = true
+		switch st.Nodes[r].Verdicts[id] {
+		case event.VerdictSupports:
+			supports = true
+		case event.VerdictContradicts:
+			contradicts = true
+		}
+	}
+	switch {
+	case !any:
+		return HypProposed
+	case contradicts:
+		return HypContradicted
+	case supports:
+		return HypSupported
+	}
+	return HypInconclusive
+}
+
+// awaitsSubquestions is rule 4 of spec §7.1: a child DQ of Hypothesis id that
+// is not withdrawn is not answered. status reads a question's state.
+func (st *State) awaitsSubquestions(id string, status func(string) string) bool {
+	for _, c := range st.Nodes[id].Children {
+		if st.Nodes[c].Kind == event.KindDesignQuestion && st.isLiveDQ(c) && status(c) != DQAnswered {
+			return true
+		}
+	}
+	return false
 }
 
 // resultsFor lists non-retracted Results with a verdict for hypothesis h, in

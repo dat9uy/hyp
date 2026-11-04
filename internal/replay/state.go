@@ -22,6 +22,7 @@ type Projection struct {
 	Results        map[string]*Res     // Result → its derived record (result.go)
 	Edges          []Edge              // every edge in apply order; Live is false once removed
 	Selection      map[string]*Sel     // DQ → its selection state
+	Dossiers       map[string]*Dossier // DQ with a current select → its Dossier (dossier.go)
 }
 
 // NodeStatus is the derived state of one node.
