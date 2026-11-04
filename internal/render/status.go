@@ -57,8 +57,7 @@ func Status(p replay.Projection, maxLines int) string {
 		if frontier {
 			add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.Status, ns.Reason, Cut(p.Nodes[dq].Title, 60))
 			if ns.Reason == replay.ReasonVerifierInsufficient {
-				rec, _ := p.CurrentSelect(dq)
-				add(kKeep, "%s  verifier: %s", indent, Cut(rec.VerifierWhy, event.MaxWhy))
+				add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
 			}
 			if pick := tradeoffPick(p, dq); pick != "" {
 				var rivals []string

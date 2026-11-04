@@ -93,7 +93,9 @@ func Validate(st *State, ev event.Event) (err error) {
 	case event.TypeConfirm:
 		return st.validateConfirm(ev)
 	case event.TypeDQRequestVerify:
-		return st.validateRequestVerify(ev)
+		// Read-only history: replay accepts it, whatever it holds, and it does
+		// nothing (spec §4).
+		return nil
 	case event.TypeReaffirm:
 		if err := decodeEmpty(ev); err != nil {
 			return err
@@ -414,24 +416,6 @@ func (st *State) validateConfirm(ev event.Event) error {
 		}
 	}
 	return nil
-}
-
-// validateRequestVerify reads only the stored select and the Decision's verifier
-// state, never the derived reason. Decision.onAmend holds how an amend changes
-// that state and how it changes the verifier-loop chain.
-func (st *State) validateRequestVerify(ev event.Event) error {
-	var p event.DQRequestVerify
-	if err := decode(ev, &p); err != nil {
-		return err
-	}
-	if _, err := st.need(ev.Node, event.KindDesignQuestion); err != nil {
-		return err
-	}
-	sel := st.Decisions[ev.Node]
-	if sel == nil || sel.Current == "" || sel.Current != p.Select {
-		return fmt.Errorf("bad request-verify: %s is not the current select on %s", p.Select, ev.Node)
-	}
-	return sel.CanRequest(p.Select)
 }
 
 func (st *State) validateEdge(ev event.Event) error {

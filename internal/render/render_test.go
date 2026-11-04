@@ -601,3 +601,39 @@ func TestShowListsTheDossier(t *testing.T) {
 		t.Fatalf("external_ref is listed in the Dossier:\n%s", show)
 	}
 }
+
+func TestShowPrintsWhatChangedSinceALapsedConfirm(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h := b.Hyp(q, "h")
+	gone := b.Supports(h)
+	b.Supports(h)
+	sel := b.As("a").Select(q, h, "", true)
+	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
+	show := Show(replay.Replay(b.Evs, nil, ""), q, []string{g})
+	if strings.Contains(show, "changed since") {
+		t.Fatalf("nothing changed, but:\n%s", show)
+	}
+	b.As("a").Retract(gone)
+	added := b.Supports(h)
+	rival := b.Hyp(q, "rival")
+	b.Emit(event.TypeHypothesisAmend, h, event.HypothesisAmend{Body: "new"})
+	p := replay.Replay(b.Evs, nil, "")
+	show = Show(p, q, []string{g})
+	id := func(i string) string { return event.DisplayID(p.Nodes[i].Kind, i) }
+	for _, want := range []string{
+		"verifier: sufficient — test\n",
+		"changed since v: ",
+		"changed since o: ",
+		"+" + id(added),
+		"+" + id(rival),
+		"-" + id(gone),
+		"body",
+	} {
+		if !strings.Contains(show, want) {
+			t.Fatalf("missing %q in:\n%s", want, show)
+		}
+	}
+}

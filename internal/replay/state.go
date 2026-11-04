@@ -95,11 +95,6 @@ func pins(nodes map[string]*Node, id string) []Pin {
 	return pins
 }
 
-// Acceptance is the owner confirm that accepted one limit.
-type Acceptance struct {
-	Select, Actor string
-}
-
 // Limit is one named limit recorded in a Result, with its derived state.
 type Limit struct {
 	Key, Result, Text string
@@ -161,19 +156,12 @@ type Edge struct {
 	Live               bool
 }
 
-// SelectRec is one applied dq.select. Verifier and VerifierWhy are the
-// latest verifier confirm on it, kept across an amend that stops it
-// counting; RequestWhy is the why of a dq.request_verify on it made after
-// that confirm.
+// SelectRec is one applied dq.select.
 type SelectRec struct {
 	ID, Hyp, Actor string
-	OwnerRequired  bool
 	Tradeoff       bool
 	ScopeChange    bool
 	Why            string
-	Verifier       string
-	VerifierWhy    string
-	RequestWhy     string
 }
 
 // Verdict is one insufficient verifier confirm: its event id and its actor.

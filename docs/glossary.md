@@ -98,15 +98,15 @@ The `confirm` event in which the verifier or the owner judges a select `sufficie
 _Avoid_: approve, review; verdict (alone: a confirm's answer is a confirm verdict)
 
 **Decision**:
-A DesignQuestion's current Select and the Confirms that still count **[not built: #27]**.
+A DesignQuestion's current Select and the Confirms that still count.
 _Avoid_: answer (`answered` is a status)
 
 **Dossier**:
-The evidence a DesignQuestion's Decision rests on: the selected Hypothesis's body, the live Hypotheses, every live Result with a verdict on one of them, and the links going out from those Hypotheses and Results, not counting `external_ref` **[not built: #27]**. It is derived, never stored.
+The evidence a DesignQuestion's Decision rests on: the selected Hypothesis's body, the live Hypotheses, every live Result with a verdict on one of them, and the links going out from those Hypotheses and Results, not counting `external_ref`. It is derived, never stored.
 _Avoid_: basis (a basis event belongs to the Stale rule), case (a Case belongs to a known answer)
 
 **Lapse**:
-What happens to a Confirm when the Dossier differs from the one it judged: it stops counting, and counts again if the Dossier returns to what it judged **[not built: #27]**.
+What happens to a Confirm when the Dossier differs from the one it judged: it stops counting, and counts again if the Dossier returns to what it judged.
 _Avoid_: drop, invalidate
 
 **Verifier**:
@@ -114,7 +114,7 @@ The role that confirms every select, independently of the actor who made it: a v
 _Avoid_: reviewer, checker
 
 **Owner**:
-The person who decides trade-offs, and the confirm role they act in. An owner confirm is required when a select is a trade-off or a scope change, or when the question has two or more trade-off candidates ([spec §7.4](replay-spec.md#74-designquestion-state)), and only an owner confirm accepts limits. In code: `event.RoleOwner`.
+The person who decides trade-offs, and the confirm role they act in. An owner confirm is required when the current select is a trade-off or a scope change, or when the question has two or more trade-off candidates now ([spec §7.4](replay-spec.md#74-designquestion-state)), and only an owner confirm accepts limits. In code: `event.RoleOwner`.
 _Avoid_: user, stakeholder, approver
 
 **Limit**:
@@ -178,7 +178,7 @@ Three Results in a row that judge a Hypothesis as their Experiment's parent and 
 _Avoid_: loop (alone: the verifier-loop is a different signal)
 
 **verifier-loop**:
-A select that collected two or more insufficient verifier verdicts in one chain, or a re-verify request with no new Result, retract or link under the question since the last verdict ([spec §7.4](replay-spec.md#74-designquestion-state)).
+A select that collected two or more insufficient verifier verdicts in one chain ([spec §7.4](replay-spec.md#74-designquestion-state)).
 _Avoid_: spin (that is about a Hypothesis's status)
 
 **unjudged**:

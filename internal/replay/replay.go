@@ -156,12 +156,9 @@ func (st *State) apply(ev event.Event) {
 	case event.TypeDQSelect:
 		var p event.DQSelect
 		_ = event.DecodePayload(ev, &p)
-		cands := st.candidates(ev.Node, func(c string) string { return st.Derived[c].Status },
-			func(c string) bool { return st.Derived[c].Stale != nil })
 		sel := st.Decisions[ev.Node]
 		continues := sel.Current != "" && (p.Hypothesis == sel.Selects[sel.Current].Hyp || st.supersedes(p.Hypothesis, sel.Selects[sel.Current].Hyp))
-		sel.onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor,
-			OwnerRequired: len(cands) >= 2 || p.Tradeoff || p.ScopeChange, Tradeoff: p.Tradeoff,
+		sel.onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor, Tradeoff: p.Tradeoff,
 			ScopeChange: p.ScopeChange, Why: ev.Why}, p.PrevSelect, continues)
 	case event.TypeDQUnselect:
 		var p event.DQUnselect
@@ -180,10 +177,6 @@ func (st *State) apply(ev event.Event) {
 		_ = event.DecodePayload(ev, &p)
 		sel := st.Decisions[ev.Node]
 		sel.onConfirm(ev, p, st.dossierItems(ev.Node, sel.Selects[p.Select].Hyp))
-	case event.TypeDQRequestVerify:
-		var p event.DQRequestVerify
-		_ = event.DecodePayload(ev, &p)
-		st.Decisions[ev.Node].onRequest(ev, p.Select)
 	case event.TypeEdgeAdd:
 		var p event.Edge
 		_ = event.DecodePayload(ev, &p)
@@ -335,7 +328,7 @@ func (st *State) LiveRivals(q, except string) []string {
 
 // candidates lists the trade-off candidates of DesignQuestion q (spec §7.4):
 // live child Hypotheses that are supported and not stale. They are the
-// Suggested set, and two or more of them make a select owner_required.
+// Suggested set, and two or more of them require the owner (ownerRequired).
 // status and stale read the derivation in progress or the last one.
 func (st *State) candidates(q string, status func(string) string, stale func(string) bool) []string {
 	var out []string
@@ -571,7 +564,7 @@ func (d *derivation) dqState(id string) NodeStatus {
 		return ns
 	}
 
-	reason := d.reason(id, live, ns.Stale != nil)
+	reason := d.reason(id, live, ns.Suggested, ns.Stale != nil)
 	if reason == "" {
 		ns.Status = DQAnswered
 		d.dq[id] = ns

@@ -96,30 +96,21 @@ func TestVerifierLoopAcrossReselectsOfOneHypothesis(t *testing.T) {
 	}
 }
 
-func TestRequestVerifyWithNewResultIsNotALoop(t *testing.T) {
+// Replaces the request path of verifier-loop: an old dq.request_verify event
+// is read-only history, so one verdict and a request are not a loop, with or
+// without anything new.
+func TestOldRequestIsNotALoop(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h1 := b.Hyp(q, "h1")
 	b.Supports(h1)
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").Supports(h1)
-	b.RequestVerify(q, sel)
-	noSignal(t, Compute(b.Evs), "verifier-loop:")
-}
-
-func TestRequestVerifyWithNothingNewIsALoop(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
+	b.As("a").Emit(event.TypeDQRequestVerify, q, event.DQRequestVerify{Select: sel})
+	noSignal(t, compute(t, b), "verifier-loop:")
 	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	req := b.As("a").RequestVerify(q, sel)
-	want := "verifier-loop Q-" + q[len(q)-6:] + " selected " + h(h1) + " (select " + sel[len(sel)-6:] + "): verifier insufficient x1 (v1); request-verify with no new Result, retract or link"
-	if got := detail(t, compute(t, b), "verifier-loop:Q-"+q[len(q)-6:]+":"+req); got != want {
-		t.Fatalf("got %q\nwant %q", got, want)
-	}
+	b.Emit(event.TypeDQRequestVerify, q, event.DQRequestVerify{Select: sel})
+	noSignal(t, compute(t, b), "verifier-loop:")
 }
 
 func TestUnselectResetsTheChain(t *testing.T) {
@@ -189,15 +180,15 @@ func TestAmendOfRivalKeepsTheChain(t *testing.T) {
 	}
 }
 
-func TestAmendClearsAnOpenRequest(t *testing.T) {
+func TestAmendRestartsTheLoop(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h1 := b.Hyp(q, "h1")
 	b.Supports(h1)
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").RequestVerify(q, sel)
 	b.As("a").Emit(event.TypeHypothesisAmend, h1, event.HypothesisAmend{Body: "new body"})
+	b.As("v2").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	noSignal(t, compute(t, b), "verifier-loop:")
 }
 

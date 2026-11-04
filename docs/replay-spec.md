@@ -53,7 +53,7 @@ One JSON object per line:
 | `dq.unselect` | DesignQuestion id | `prev_select` |
 | `dq.defer`, `dq.withdraw`, `dq.resume` | DesignQuestion id | `{}` |
 | `experiment.withdraw` | Experiment id | `{}` |
-| `dq.request_verify` | DesignQuestion id | `select` (the current `dq.select` event id on this DQ) |
+| `dq.request_verify` | DesignQuestion id | read-only history: older binaries wrote `select`; replay accepts the event, whatever it holds, and does nothing with it |
 | `confirm` | DesignQuestion id | `select` (a `dq.select` event id on this DQ), `role` (`verifier` or `owner`), `verdict` (`sufficient` or `insufficient`), `accepts` (optional list of limit keys `<result-id>#<n>`) |
 | `reaffirm` | Hypothesis or DesignQuestion id | `{}` |
 | `checkpoint` | Goal id | `summary` |
@@ -61,7 +61,7 @@ One JSON object per line:
 
 **[added] `dq.resume`**: undoes a defer or withdraw. Without it a mistaken defer is permanent in an append-only log.
 **[added] `confirm` with `role`**: §3 requires a verifier check on every select and an owner check on trade-offs. Replay can only be pure if both are stored events.
-**[added] `dq.request_verify`**: asks the verifier to judge the current select again after an insufficient verdict, once the agent has new evidence. Without it the question stays `verifier_insufficient` until a verifier happens to look again.
+**[added, then removed from use] `dq.request_verify`**: asked the verifier to judge the current select again. An insufficient verdict now lapses when the Dossier changes (§7.4), and a new verifier can confirm at any time, so no command writes this event (ADR 0011). Old logs keep it.
 **[added] `experiment.withdraw`**: closes an Experiment that will not run and that no other Experiment replaces; one that is replaced gets a `supersedes` edge from its replacement instead (ADR 0008). Without either, an Experiment that will never run stays `planned`.
 **[added] `hypothesis.amend`**: replaces a Hypothesis body. Without it a wrong body can only be fixed by superseding the Hypothesis.
 **[added] limits**: a Result names the limits of the design it found but did not test or fix (`limits`), and a later Result closes them (`closes`). A limit's key is `<result-id>#<n>`: the Result's full ULID, then `n`, which counts the Result's `limits` from 1. The CLI accepts any node reference before the `#` (§2) and stores the full id. An owner confirm accepts limits (`accepts`). §8 derives each limit's state.
@@ -89,7 +89,7 @@ An event is refused when any of these holds:
 13. An `alias` that is already used.
 14. `hypothesis.amend` on a Hypothesis that is superseded or abandoned (`bad amend: <id> is superseded or abandoned`), or whose `body` equals the current body (`bad amend: body is unchanged`).
 15. A limit key in `closes` or `accepts` that does not name a limit (`bad limit ref`): the key is not `<ref>#<n>` with n ≥ 1; `<ref>` is not a Result; the Result is retracted; n is greater than the Result's number of limits; or the Result is not under the question. For `closes` the question is the one the new Result belongs to (the parent DQ of its Experiment's Hypothesis); for `accepts` it is the confirm's DQ.
-16. `dq.request_verify` when any of these holds, read from stored events only (the select, its verifier confirms and open requests), never from the derived reason: `select` is not the current select on this DQ; that select has no verifier confirm yet; its latest verifier confirm is not `insufficient`; a request is already open on it. Each is reported as `bad request-verify: …`.
+16. Removed (ADR 0011). Nothing refuses a `dq.request_verify` beyond the envelope checks in rule 1.
 17. A `confirm` with `accepts` whose role is not `owner` or whose verdict is not `sufficient` (`bad confirm: only a sufficient owner confirm accepts limits`).
 18. A `result.record` `evidence_hashes` key that is not an entry of `evidence` or does not clean to `recipes/<name>@<version>/<file>` (`bad evidence_hashes: …`), or a value that is not lowercase hex (`invalid evidence_hashes value for …`).
 19. `decided_by` on a node that is not an Experiment (`unknown field`), or a value other than `reading` (`invalid decided_by`).
@@ -125,7 +125,7 @@ Replay is a pure function: `Replay(events []Event, recipeHashes map[string]strin
 For each event, in merge order:
 
 1. `err := Validate(state, ev)`. If there is an error, append a Rejection and continue.
-2. Apply the event to the stored state: nodes, live edges, results, retracted set, abandoned set, DQ selection state, confirms, limit acceptances, re-verify requests, amended Hypothesis bodies and the DQ hold state.
+2. Apply the event to the stored state: nodes, live edges, results, retracted set, abandoned set, DQ selection state, confirms, amended Hypothesis bodies and the DQ hold state.
 3. Run `recompute(state)`, which recomputes every derived field below from scratch.
 4. If `ev` is a **basis event** (defined in §7.3), store its snapshot, then run `recompute(state)` again.
 5. For every DQ that is now `answered`, set `everAnswered[dq] = true`.
@@ -171,23 +171,21 @@ One record, the question's `Decision`, owns everything below except the hold sta
 Selection is the current selection id (`""` when there is none) plus a conflict set:
 - Applying `dq.select` or `dq.unselect` whose `prev_select` ≠ the current selection id adds both ids to the conflict set. The event still applies; the last one in merge order becomes current.
 - A later select or unselect whose `prev_select` equals the current id clears the conflict set.
-- `owner_required` is stored on each select. It is true when, just before the select is applied, the question has two or more trade-off candidates (live child Hypotheses that are `supported` and not stale, as for the suggested candidate below), or when `tradeoff` or `scope_change` is true. A stale supported sibling does not count.
+- The **owner requirement** is derived from the current state and stored nowhere: the question has two or more trade-off candidates now (live child Hypotheses that are `supported` and not stale, as for the suggested candidate below), or the current select's `tradeoff` or `scope_change` is true. A stale supported sibling does not count.
 
-Confirms: the latest `confirm` for each (select id, role) pair wins.
+Dossier: the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. `hyp show <Q>` lists it under `dossier:`.
 
-Re-verify request **[added]**: replay keeps a "re-verify requested" flag per select. `dq.request_verify` sets it, and the next verifier confirm on that select clears it, whatever its verdict.
+A `contradicts` is **deciding** when the Hypothesis it judges is not the selected one and, by §7.1, that Hypothesis would be `supported` without this one verdict. `hyp show <Q>` marks its Result as deciding the owner requirement. It is a mark: §7.1 still stands and no status reads it.
+
+Confirms: a confirm judged the Dossier as it stood at the confirm's place in the merged log. For each (select id, role) pair, the confirm that **counts** is the latest one whose Dossier equals the current Dossier; when there is none, no confirm counts. A confirm that no longer matches has **lapsed**, and it counts again if the Dossier returns to what it judged, which is the §7.3 rule applied to a confirm, so a retract restores the earlier state exactly. This holds for both roles and both verdicts, and it is the only way a confirm stops counting. `hyp show <Q>` prints `changed since <actor>: …` for each role whose latest confirm has lapsed, naming what the Dossier gained (`+`) and lost (`-`) and `body` for an amended selected body. A lapse adds no status word. A reopened question closes by appending: a fresh confirm when the claim is unchanged, or a new Hypothesis that `supersedes` the old one and a select of it when the claim changed.
 
 The state is decided by the first matching rule:
 1. `withdrawn`, then `deferred` (from the hold state).
-2. `answered` when all of these hold: the conflict set is empty; there is a current selection; the selected Hypothesis is `supported` and not stale; the DQ itself is not stale; the latest verifier confirm on the current select is `sufficient`; and, if `owner_required`, the latest owner confirm on it is `sufficient`.
+2. `answered` when all of these hold: the conflict set is empty; there is a current selection; the selected Hypothesis is `supported` and not stale; the DQ itself is not stale; the verifier confirm that counts on the current select is `sufficient`; and, if the owner requirement holds, the owner confirm that counts on it is `sufficient`.
 3. Otherwise the state is `reopened` if `everAnswered`, else `open`. The reason is the first that holds:
-   `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `verifier_insufficient` (the latest verifier confirm on the current select is `insufficient` and no re-verify request is open on it), `awaiting_verifier` (the latest verifier confirm on the current select is not `sufficient`: there is none, or it is `insufficient` with a request open), `awaiting_owner`, `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
+   `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `verifier_insufficient` (the verifier confirm that counts on the current select is `insufficient`), `awaiting_verifier` (no verifier confirm counts on it), `awaiting_owner`, `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
 
-Amend: a `hypothesis.amend` of the Hypothesis of the current select drops that select's owner confirm, the limits it accepted, and its verifier confirm when that is `sufficient`, because they judged the old body. An insufficient verifier confirm stays, and so does an open re-verify request, so a request is still possible after an amend (and a second one is refused while the first is open). An amend of any other Hypothesis changes no confirm. Each select's verifier verdict and open request, and the verifier-loop chain that the verifier-loop signal reads (`Decision.Chain` and `Decision.ChainRequest`), are the question's selection state, written in one place: `Decision`'s methods. The chain is stricter on that amend: it starts a new chain of insufficient verdicts and forgets an open request, so verdicts on the old body never count towards a loop.
-
-Owner insufficient: an `insufficient` owner confirm drops the limit acceptances recorded on the select it names, because the owner's no withdraws their sign-off on its limits. It stays the latest owner confirm, so the state follows rules 2 and 3 as before. A verifier confirm changes no acceptance.
-
-**Dossier:** the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. A `contradicts` is **deciding** when the Hypothesis it judges is not the selected one and, by §7.1, that Hypothesis would be `supported` without this one verdict; the Result is marked as deciding the owner requirement, and §7.1 still stands. `hyp show <Q>` lists the Dossier and the mark under `dossier:`. Neither changes any status.
+The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads, holds the insufficient verifier verdicts in a row on the current select. A sufficient verdict, an unselect, a select that does not continue the current one (the same Hypothesis or one that supersedes it) and a `hypothesis.amend` of the selected Hypothesis clear it, so verdicts on an old body never count towards a loop. The signal fires at two or more.
 
 **Suggested candidate:** the trade-off candidates are the live children that are `supported` and not stale. When there is exactly one, suggest it. With two or more such children, report "trade-off: owner decides" and list them.
 
@@ -237,7 +235,6 @@ type Decision struct {
     Selects   map[string]SelectRec   // select id → its record
     Confirms  map[string][]ConfirmRec // select id → its confirms in log order, each with the Dossier at that point
     Chain     []Verdict              // insufficient verifier verdicts on the current select
-    ChainRequest string              // a request made after the last of them
     Limits    []Limit                // the limits recorded under the question, in Result creation order
     Dossier   *Dossier               // of the current select (§7.4); nil when there is none
 }
@@ -278,11 +275,11 @@ type StaleCause struct { Node, Reason string; Next *StaleCause }
 type Edge struct { ID, From, Type, To string; Live bool } // ID is the edge.add event's id
 ```
 
-A select's record keeps the latest verifier confirm on it and its why (`Verifier`, `VerifierWhy`) and the why of an open re-verify request (`RequestWhy`), even after an amend stops that confirm counting, so `hyp show` still prints it.
+`Confirms` keeps every applied confirm, including one that has lapsed, so `hyp show` still prints the latest. It prints the verifier confirm that counts, or the latest when none does.
 
 Limits **[added]**: a Result's limits are filed under its question, the parent DQ of its Experiment's Hypothesis, whichever Hypotheses it judged. Limits of a retracted Result are left out. A limit is:
 - `closed` when a non-retracted Result lists its key in `closes`; `By` is the first such Result in creation order. Retracting that Result reopens the limit unless another one closes it.
-- otherwise `accepted` when an owner confirm on the question's **current** select accepted it; `By` is that owner's actor. A new select, an amend that drops the owner confirm, or an insufficient owner confirm on that select makes the limit open again.
+- otherwise `accepted` when a sufficient owner confirm on the question's **current** select, with the current Dossier, accepted it, and no later owner `insufficient` has that Dossier; `By` is that owner's actor. A new select, a Dossier change or an insufficient owner confirm at this Dossier makes the limit open again, and a Dossier that returns restores it.
 - otherwise `open`.
 
 Limits never change a derived status. Only the CLI reads them: `hyp show` and `hyp status` list them, and `hyp confirm --role owner --verdict sufficient` is refused while a limit has `Gating` set (it is open and its Result has a verdict for the Hypothesis of the current select) and the confirm does not accept it (§5.1). An open limit whose Result judged only other Hypotheses does not gate; it stays listed, and `hyp show <Q>` marks it `open, does not gate (judges …)`.
