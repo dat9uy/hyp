@@ -134,7 +134,7 @@ An edge from a node to something outside the tree, such as `gh:976` or a URL ([s
 _Avoid_: link (alone), reference
 
 **Admission**:
-The write-time rules the CLI checks before it appends an Experiment, a Result or a Confirm. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult` and `replay.Finding`.
+The write-time rules the CLI checks before it appends an Experiment, a Result or a Confirm. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult`, `replay.Projection.AdmitConfirm` and `replay.Finding`.
 _Avoid_: validation (that is `replay.Validate`, which replay also runs on every event)
 
 **Refusal**:

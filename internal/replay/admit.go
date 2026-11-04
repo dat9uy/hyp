@@ -188,3 +188,27 @@ func (st *State) AdmitResult(p event.ResultRecord, f RecipeFacts, refHash map[st
 	}
 	return nil
 }
+
+// AdmitConfirm lists what admitting confirm p on question q would break: q has
+// no current selection, or it is a sufficient owner confirm that leaves a
+// gating limit unaccepted. p.Accepts must be resolved limit keys. Both rules
+// read derived state, so Validate does not repeat them.
+func (p Projection) AdmitConfirm(q string, c event.Confirm) []Finding {
+	if _, ok := p.CurrentSelect(q); !ok {
+		return []Finding{{FindRefuse, "no current selection"}}
+	}
+	if c.Role != event.RoleOwner || c.Verdict != event.ConfirmSufficient {
+		return nil
+	}
+	var open []string
+	for _, l := range p.LimitsOf(q) {
+		if l.Gating && !slices.Contains(c.Accepts, l.Key) {
+			open = append(open, fmt.Sprintf("  %s#%s %s", event.DisplayID(event.KindResult, l.Result), strings.TrimPrefix(l.Key, l.Result+"#"), l.Text))
+		}
+	}
+	if len(open) == 0 {
+		return nil
+	}
+	return []Finding{{FindRefuse, fmt.Sprintf("open limits under %s are not accepted:\n%s\npass --accept <R-id>#<n> for each limit you accept, or close it first with hyp record --closes <R-id>#<n>",
+		event.DisplayID(p.Nodes[q].Kind, q), strings.Join(open, "\n"))}}
+}
