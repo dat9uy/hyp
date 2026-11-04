@@ -567,6 +567,27 @@ func TestStatusPlannedOneRivalIsOneLine(t *testing.T) {
 	}
 }
 
+// A listed Hypothesis may hold a sub-question beside its Experiments. Only an
+// Experiment has marks, so the question must not be read as one.
+func TestStatusHypothesisWithSubQuestion(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h1 := b.Hyp(q, "h1")
+	b.Hyp(q, "h2")
+	sub := b.DQ(h1, "sub")
+	e := b.Exp(h1, event.RecipeNone)
+	out := Status(replay.Replay(b.Evs, nil, ""), 0)
+	subLine := event.DisplayID(event.KindDesignQuestion, sub) + " open"
+	if !strings.Contains(out, subLine) {
+		t.Fatalf("want the sub-question on the frontier (%q):\n%s", subLine, out)
+	}
+	marked := event.DisplayID(event.KindExperiment, e) + " planned [one-rival]"
+	if !strings.Contains(out, marked) {
+		t.Fatalf("want the sibling Experiment's mark (%q):\n%s", marked, out)
+	}
+}
+
 func TestShowListsTheDossier(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
