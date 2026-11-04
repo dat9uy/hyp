@@ -120,8 +120,8 @@ that no longer matters is `hyp withdraw <Q-id>`.
   `hyp select <Q-id> <H-id> --why "..."`. Add `--tradeoff` when the choice
   gives up something the owner cares about, and `--scope-change` when it
   changes the Goal's scope; either one requires the owner's confirmation. The
-  owner is also required automatically when two or more candidates were
-  supported at the time of the select.
+  owner is also required automatically while two or more candidates are
+  supported.
 - To change a selection, select the other candidate; the new select replaces
   the old one.
 
@@ -130,16 +130,25 @@ that no longer matters is `hyp withdraw <Q-id>`.
 - Every select needs an independent verifier; follow [VERIFIER.md](VERIFIER.md).
   The CLI refuses a verifier confirm from the actor that made the select.
 - `Q-… open/verifier_insufficient` with a `verifier:` line under it is the
-  verifier's to-do. Do it (experiments, records, retracts). Then ask for a
-  fresh verdict on the same select:
-  `hyp request-verify <Q-id> --why "<which Results or changes address the to-do>"`.
-  The question returns to `awaiting_verifier`; start a new verifier with a
-  new actor name, following VERIFIER.md. Do not re-select to reach the
-  verifier: a new select re-snapshots dependencies and drops any owner
-  confirm on the old one.
-- Amending the selected Hypothesis drops the select's sufficient verifier
-  confirm and its owner confirm, because they judged the old text. The
-  question returns to `awaiting_verifier`; start a new verifier as above.
+  verifier's to-do. Do it (experiments, records, retracts). The evidence
+  then differs from what the verdict judged, so the question returns to
+  `awaiting_verifier`; start a new verifier with a new actor name, following
+  VERIFIER.md. Do not re-select to reach the verifier: a new select
+  re-snapshots dependencies and leaves any owner confirm on the old one
+  behind.
+- A confirm counts only while the evidence it judged stands: what
+  `hyp show <Q-id>` lists under `dossier:`, which is the selected body, the
+  live Hypotheses, their Results and the links going out from them. When that
+  changes, verifier and owner confirms lapse, the question reopens, and
+  `hyp show <Q-id>` prints a `changed since` line. If the evidence returns,
+  for example after a retract, they count again.
+- A reopened question closes by appending, never by touching old events. When
+  the claim is unchanged, a fresh verifier confirm on the same select is
+  enough, plus a fresh owner confirm if the owner is required. When the
+  evidence changes the claim, add a new Hypothesis that `supersedes` the old
+  one and select that.
+- Amending the selected Hypothesis changes that evidence, because the confirms
+  judged the old text. Start a new verifier as above.
 - AWAITING OWNER lists two kinds of line. Stop and ask the owner for either.
   Show them `hyp show <Q-id>` and the rivals' `hyp show` output.
   - `Q-… trade-off: H-…, H-…` means two or more candidates are supported
