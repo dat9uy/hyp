@@ -47,83 +47,121 @@ func Status(p replay.Projection, maxLines int) string {
 		c[replay.DQReopened], c[replay.DQDeferred], c[replay.DQWithdrawn], c[replay.StaleReasonStale])
 
 	add(kKeep, "FRONTIER")
-	hidden := 0
+	// FRONTIER is the tree pruned to open work: a node prints only beneath its
+	// parent, and the walk enters a Hypothesis's sub-questions only from an
+	// open or reopened question and through a live rival. Open questions the
+	// walk does not reach are counted, so the Goal line's counts stay accounted
+	// for.
+	unreached := 0
 	edges := p.LiveEdges()
+	onFrontier := func(dq string) bool {
+		s := p.Status[dq].Status
+		return s == replay.DQOpen || s == replay.DQReopened
+	}
+	// blocker reports a question that keeps its printed Hypothesis waiting and
+	// that the walk would otherwise not print, so nothing would name the cause.
+	blocker := func(h, sub string) bool {
+		return p.Status[h].Status == replay.HypAwaitingSubquestions && p.Status[sub].Status == replay.DQDeferred
+	}
 	var walk func(dq string, depth int)
 	walk = func(dq string, depth int) {
 		ns := p.Status[dq]
 		indent := strings.Repeat("  ", depth+1)
-		frontier := ns.Status == replay.DQOpen || ns.Status == replay.DQReopened
-		if frontier {
-			add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.Status, ns.Reason, Cut(p.Nodes[dq].Title, 60))
-			if ns.Reason == replay.ReasonVerifierInsufficient {
-				add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
-			}
-			if pick := tradeoffPick(p, dq); pick != "" {
-				var rivals []string
-				for _, h := range ns.Suggested {
-					if h != pick {
-						rivals = append(rivals, h)
-					}
+		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.Status, ns.Reason, Cut(p.Nodes[dq].Title, 60))
+		if ns.Reason == replay.ReasonVerifierInsufficient {
+			add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
+		}
+		if pick := tradeoffPick(p, dq); pick != "" {
+			var rivals []string
+			for _, h := range ns.Suggested {
+				if h != pick {
+					rivals = append(rivals, h)
 				}
-				over := ""
-				if len(rivals) > 0 {
-					over = " over " + r.ids(rivals)
-				}
-				add(kKeep, "%s  trade-off decided: %s%s", indent, r.id(pick), over)
 			}
+			over := ""
+			if len(rivals) > 0 {
+				over = " over " + r.ids(rivals)
+			}
+			add(kKeep, "%s  trade-off decided: %s%s", indent, r.id(pick), over)
 		}
 		for _, h := range p.Nodes[dq].Children {
 			hs := p.Status[h]
 			if !replay.LiveHypStatus(hs.Status) {
-				hidden += r.countFrontier(h)
+				unreached += r.countFrontier(h)
 				continue
 			}
-			if frontier {
-				stale := ""
-				if hs.Stale != nil {
-					stale = " STALE"
-				}
-				sup := ""
-				for _, e := range edges {
-					if e.From == h && e.Type == event.EdgeSupersedes {
-						sup += " (supersedes " + r.id(e.To) + ")"
-					}
-				}
-				add(kHyp, "%s  %s %s%s%s %s", indent, r.id(h), hs.Status, stale, sup, Cut(p.Nodes[h].Title, 60))
-				for _, e := range p.Nodes[h].Children {
-					if p.Nodes[e].Kind == event.KindExperiment && p.Exps[e].Status == replay.ExpPlanned && len(r.marks(e)) == 0 {
-						add(kExp, "%s    %s planned %s", indent, r.id(e), Cut(p.Nodes[e].Title, 60))
-					}
-				}
-				// A marked Experiment is dropped with its Hypothesis, not before it.
-				// A planned one keeps its title on the same line, and a closed one
-				// has no line.
-				for _, e := range p.Nodes[h].Children {
-					if p.Nodes[e].Kind != event.KindExperiment {
-						continue
-					}
-					if m := r.marks(e); len(m) > 0 && !closed(p.Exps[e]) {
-						title := ""
-						if p.Exps[e].Status == replay.ExpPlanned {
-							title = " " + Cut(p.Nodes[e].Title, 60)
-						}
-						add(kHyp, "%s    %s %s [%s]%s", indent, r.id(e), p.Exps[e].Status, strings.Join(m, "; "), title)
-					}
+			var subs []string
+			for _, c := range p.Nodes[h].Children {
+				if p.Nodes[c].Kind == event.KindDesignQuestion {
+					subs = append(subs, c)
 				}
 			}
-			for _, sub := range p.Nodes[h].Children {
-				if p.Nodes[sub].Kind == event.KindDesignQuestion {
-					walk(sub, depth+1)
+			enter := replay.RivalStatus(hs.Status)
+			prints := func(sub string) bool { return enter && onFrontier(sub) || blocker(h, sub) }
+			// A sub-question's line means nothing without the Hypothesis that
+			// holds it, so truncation keeps that Hypothesis.
+			kind := kHyp
+			if slices.ContainsFunc(subs, prints) {
+				kind = kKeep
+			}
+			stale := ""
+			if hs.Stale != nil {
+				stale = " STALE"
+			}
+			sup := ""
+			for _, e := range edges {
+				if e.From == h && e.Type == event.EdgeSupersedes {
+					sup += " (supersedes " + r.id(e.To) + ")"
+				}
+			}
+			add(kind, "%s  %s %s%s%s %s", indent, r.id(h), hs.Status, stale, sup, Cut(p.Nodes[h].Title, 60))
+			for _, e := range p.Nodes[h].Children {
+				if p.Nodes[e].Kind == event.KindExperiment && p.Exps[e].Status == replay.ExpPlanned && len(r.marks(e)) == 0 {
+					add(kExp, "%s    %s planned %s", indent, r.id(e), Cut(p.Nodes[e].Title, 60))
+				}
+			}
+			// A marked Experiment is dropped with its Hypothesis, not before it.
+			// A planned one keeps its title on the same line, and a closed one
+			// has no line.
+			for _, e := range p.Nodes[h].Children {
+				if p.Nodes[e].Kind != event.KindExperiment {
+					continue
+				}
+				if m := r.marks(e); len(m) > 0 && !closed(p.Exps[e]) {
+					title := ""
+					if p.Exps[e].Status == replay.ExpPlanned {
+						title = " " + Cut(p.Nodes[e].Title, 60)
+					}
+					add(kHyp, "%s    %s %s [%s]%s", indent, r.id(e), p.Exps[e].Status, strings.Join(m, "; "), title)
+				}
+			}
+			for _, sub := range subs {
+				switch {
+				case enter && onFrontier(sub):
+					walk(sub, depth+2)
+				case blocker(h, sub):
+					add(kKeep, "%s    %s %s %s", indent, r.id(sub), p.Status[sub].Status, Cut(p.Nodes[sub].Title, 60))
+					unreached += r.countFrontier(sub)
+				default:
+					if onFrontier(sub) {
+						unreached++
+					}
+					unreached += r.countFrontier(sub)
 				}
 			}
 		}
 	}
 	for _, dq := range g.Children {
-		walk(dq, 0)
+		if onFrontier(dq) {
+			walk(dq, 0)
+		} else {
+			unreached += r.countFrontier(dq)
+		}
 	}
-	if hidden > 0 {
-		add(kKeep, "  (%d questions under rejected hypotheses hidden)", hidden)
+	if unreached == 1 {
+		add(kKeep, "  (1 open question out of play; hyp render --markdown lists every question)")
+	} else if unreached > 1 {
+		add(kKeep, "  (%d open questions out of play; hyp render --markdown lists every question)", unreached)
 	}
 
 	add(kKeep, "STALE")

@@ -588,6 +588,186 @@ func TestStatusHypothesisWithSubQuestion(t *testing.T) {
 	}
 }
 
+// lineOf returns the FRONTIER line naming id, with its leading spaces, or "".
+func lineOf(out, display string) string {
+	frontier := out[strings.Index(out, "FRONTIER"):strings.Index(out, "STALE")]
+	for _, l := range strings.Split(frontier, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(l), display+" ") {
+			return l
+		}
+	}
+	return ""
+}
+
+func indentOf(l string) int { return len(l) - len(strings.TrimLeft(l, " ")) }
+
+// A sub-question prints one level beneath the Hypothesis that holds it, so the
+// line order and the indent name its owner.
+func TestStatusSubQuestionPrintsBeneathItsHypothesis(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h1 := b.Hyp(q, "h1")
+	h2 := b.Hyp(q, "h2")
+	s1 := b.DQ(h1, "sub-of-h1")
+	h3 := b.Hyp(s1, "h3")
+	s2 := b.DQ(h2, "sub-of-h2")
+	out := Status(replay.Replay(b.Evs, nil, ""), 0)
+	H := func(id string) string { return event.DisplayID(event.KindHypothesis, id) }
+	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
+	if got, want := indentOf(lineOf(out, Q(s1))), indentOf(lineOf(out, H(h1)))+2; got != want {
+		t.Fatalf("sub-of-h1 at indent %d, want %d:\n%s", got, want, out)
+	}
+	if got, want := indentOf(lineOf(out, H(h3))), indentOf(lineOf(out, Q(s1)))+2; got != want {
+		t.Fatalf("h3 at indent %d, want %d:\n%s", got, want, out)
+	}
+	order := []string{H(h1), Q(s1), H(h3), H(h2), Q(s2)}
+	at := 0
+	for _, id := range order {
+		i := strings.Index(out[at:], id)
+		if i < 0 {
+			t.Fatalf("%s out of order, want %v:\n%s", id, order, out)
+		}
+		at += i
+	}
+	if strings.Contains(out, "out of play") {
+		t.Fatalf("every open question is printed, but a count line shows:\n%s", out)
+	}
+}
+
+// The walk reaches a sub-question only from an open or reopened question and
+// through a live rival. What it does not reach prints nothing but the count.
+func TestStatusPrunesWhatTheWalkDoesNotReach(t *testing.T) {
+	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
+	for _, tc := range []struct {
+		name  string
+		setup func(b *testutil.B, q, h1, h2 string)
+	}{
+		{"parent deferred", func(b *testutil.B, q, h1, h2 string) { b.Defer(q) }},
+		{"parent withdrawn", func(b *testutil.B, q, h1, h2 string) { b.Withdraw(q) }},
+		{"holder contradicted", func(b *testutil.B, q, h1, h2 string) { b.Contradicts(h2) }},
+		{"holder abandoned", func(b *testutil.B, q, h1, h2 string) { b.Abandon(h2) }},
+		{"parent answered by the rival", func(b *testutil.B, q, h1, h2 string) {
+			b.Supports(h1)
+			b.Answer(q, h1, "")
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			b := testutil.New()
+			g := b.Goal("g")
+			q := b.DQ(g, "q")
+			h1 := b.Hyp(q, "h1")
+			h2 := b.Hyp(q, "h2")
+			sub := b.DQ(h2, "sub-of-h2")
+			tc.setup(b, q, h1, h2)
+			out := Status(replay.Replay(b.Evs, nil, ""), 0)
+			if l := lineOf(out, Q(sub)); l != "" {
+				t.Fatalf("want the sub-question pruned, got %q:\n%s", l, out)
+			}
+			if !strings.Contains(out, "(1 open question out of play; hyp render --markdown lists every question)") {
+				t.Fatalf("want the count line:\n%s", out)
+			}
+		})
+	}
+}
+
+// Printed open questions plus the count line equal the Goal line's open and
+// reopened counts, whatever the walk prunes.
+func TestStatusCountLineAccountsForTheGoalCounts(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h1 := b.Hyp(q, "h1")
+	h2 := b.Hyp(q, "h2")
+	h3 := b.Hyp(q, "h3")
+	in := b.DQ(h1, "in play")
+	dead := b.DQ(h2, "under a contradicted rival")
+	b.Hyp(dead, "x")
+	deep := b.DQ(b.Hyp(dead, "y"), "deep")
+	gone := b.DQ(h3, "under an abandoned rival")
+	b.Contradicts(h2)
+	b.Abandon(h3)
+	p := replay.Replay(b.Evs, nil, "")
+	out := Status(p, 0)
+	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
+	if lineOf(out, Q(in)) == "" {
+		t.Fatalf("want the question under the live rival:\n%s", out)
+	}
+	for _, id := range []string{dead, deep, gone} {
+		if lineOf(out, Q(id)) != "" {
+			t.Fatalf("want %s pruned:\n%s", Q(id), out)
+		}
+	}
+	if !strings.Contains(out, "(3 open questions out of play;") {
+		t.Fatalf("want three counted:\n%s", out)
+	}
+	if got, want := p.Goal.Counts[replay.DQOpen], 5; got != want {
+		t.Fatalf("Goal counts %d open, want %d printed and counted", got, want)
+	}
+}
+
+// A deferred sub-question keeps its Hypothesis at awaiting_subquestions, so it
+// prints even though it is not open: nothing else names what blocks the line.
+func TestStatusPrintsADeferredBlocker(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h1 := b.Hyp(q, "h1")
+	h2 := b.Hyp(q, "h2")
+	blocking := b.DQ(h1, "blocking")
+	parked := b.DQ(h2, "parked under a proposed rival")
+	b.Defer(blocking)
+	b.Defer(parked)
+	b.Supports(h1)
+	p := replay.Replay(b.Evs, nil, "")
+	if s := p.Status[h1].Status; s != replay.HypAwaitingSubquestions {
+		t.Fatalf("h1 is %s, want %s", s, replay.HypAwaitingSubquestions)
+	}
+	out := Status(p, 0)
+	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
+	H := func(id string) string { return event.DisplayID(event.KindHypothesis, id) }
+	l := lineOf(out, Q(blocking))
+	if !strings.Contains(l, " deferred blocking") {
+		t.Fatalf("want the blocker's line, got %q:\n%s", l, out)
+	}
+	if got, want := indentOf(l), indentOf(lineOf(out, H(h1)))+2; got != want {
+		t.Fatalf("blocker at indent %d, want %d:\n%s", got, want, out)
+	}
+	if l := lineOf(out, Q(parked)); l != "" {
+		t.Fatalf("a deferred sub-question that blocks nothing printed %q:\n%s", l, out)
+	}
+}
+
+// Truncation keeps the Hypothesis that holds a printed sub-question and may
+// still drop one that holds nothing.
+func TestStatusTruncationKeepsTheHolder(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	var holders, bare []string
+	for i := range 6 {
+		h := b.Hyp(q, fmt.Sprintf("holder %d", i))
+		b.DQ(h, fmt.Sprintf("sub %d", i))
+		holders = append(holders, h)
+		bare = append(bare, b.Hyp(q, fmt.Sprintf("bare %d", i)))
+	}
+	out := Status(replay.Replay(b.Evs, nil, ""), 15)
+	H := func(id string) string { return event.DisplayID(event.KindHypothesis, id) }
+	for _, h := range holders {
+		if lineOf(out, H(h)) == "" {
+			t.Fatalf("holder %s dropped:\n%s", H(h), out)
+		}
+	}
+	for _, h := range bare {
+		if lineOf(out, H(h)) != "" {
+			t.Fatalf("want bare %s dropped first:\n%s", H(h), out)
+		}
+	}
+	if !strings.Contains(out, "lines truncated") {
+		t.Fatalf("want the truncation trailer:\n%s", out)
+	}
+}
+
 func TestShowListsTheDossier(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")

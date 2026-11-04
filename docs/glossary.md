@@ -42,6 +42,10 @@ _Avoid_: issue, decision; withdrawn for an Experiment (see Experiment status)
 A node, `H-`, under a DesignQuestion, that states one candidate answer as a claim an Experiment can test. Its status comes from the verdicts of non-retracted Results, or from a supersedes edge or an abandon ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)).
 _Avoid_: option, idea, solution
 
+**Frontier**:
+The section of `hyp status` that shows the open work: the tree pruned to it, printed by one walk. A node prints only beneath its parent. The walk enters a Hypothesis's sub-questions only from an open or reopened question and through a live rival, and it also prints a deferred question that keeps its printed Hypothesis at `awaiting_subquestions`. Open questions it does not reach are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
+_Avoid_: hidden, for a question the walk does not reach
+
 **Rival**:
 Another Hypothesis under the same DesignQuestion. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
 _Avoid_: alternative, competitor
