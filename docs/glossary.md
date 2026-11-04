@@ -90,7 +90,7 @@ A live Hypothesis or DesignQuestion whose basis may no longer hold: a `depends_o
 _Avoid_: outdated, questionable (that is about recipe hashes)
 
 **Select**:
-The `dq.select` event that picks one Hypothesis as a DesignQuestion's answer; the verifier, and on a trade-off the owner, then confirm it ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: the question's `replay.Sel`.
+The `dq.select` event that picks one Hypothesis as a DesignQuestion's answer; the verifier, and on a trade-off the owner, then confirm it ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: the question's `replay.Decision`.
 _Avoid_: choose, accept, decide (alone)
 
 **Confirm**:
