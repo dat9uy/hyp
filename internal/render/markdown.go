@@ -44,7 +44,7 @@ func Markdown(p replay.Projection) string {
 			}
 		}
 		b.WriteString("\n")
-		var nested []string
+		var subs []string
 		for _, h := range n.Children {
 			hn := p.Nodes[h]
 			fmt.Fprintf(&b, "- %s %s — %s\n", r.id(h), hn.Title, statusText(r, p.Status[h], nil))
@@ -67,11 +67,11 @@ func Markdown(p replay.Projection) string {
 					}
 				case event.KindDesignQuestion:
 					fmt.Fprintf(&b, "  - sub-question %s\n", r.id(c))
-					nested = append(nested, c)
+					subs = append(subs, c)
 				}
 			}
 		}
-		for _, c := range nested {
+		for _, c := range subs {
 			dq(c, level+1)
 		}
 	}
