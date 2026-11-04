@@ -453,7 +453,7 @@ func (st *State) verdictStatus(id, except string) string {
 	return HypInconclusive
 }
 
-// awaitsSubquestions is rule 4 of spec §7.1: a child DQ of Hypothesis id that
+// awaitsSubquestions is rule 4 of spec §7.1: a sub-question of Hypothesis id that
 // is not withdrawn is not answered. status reads a question's state.
 func (st *State) awaitsSubquestions(id string, status func(string) string) bool {
 	for _, c := range st.Nodes[id].Children {
