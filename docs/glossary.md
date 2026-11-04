@@ -63,7 +63,7 @@ A node, `R-`, under an Experiment, that records what a run observed: a verdict p
 _Avoid_: finding, outcome, run
 
 **Verdict**:
-A Result's label for one Hypothesis it judges: supports, contradicts or inconclusive. hyp derives status from these labels alone (spec §7.1) and never reads prose. A confirm's sufficient or insufficient is a confirm verdict, a separate thing.
+A Result's label for one Hypothesis it judges: supports, contradicts or inconclusive. Whoever runs `hyp record` types it, a person or an agent, and hyp stores only an actor name. hyp derives status from these labels alone (spec §7.1) and never reads prose. A confirm's sufficient or insufficient is a confirm verdict, a separate thing.
 _Avoid_: verdict for the rule or the script that led to the label
 
 **Verdict rule**:
@@ -315,11 +315,11 @@ One variant of the subject that an Experiment compares: either the base, or the 
 _Avoid_: variant (alone), branch
 
 **Operator**:
-The person or agent who runs an Experiment from outside the sandbox.
+The person or agent who runs an Experiment from outside the sandbox, and types its verdicts into `hyp record`.
 _Avoid_: runner, driver, user
 
 **Runner**:
-The agent that runs the loop with hyp's skills and writes a tree's verdicts. It is not the operator.
+The agent that runs the loop with hyp's skills. In a replay it runs inside the sandbox and writes the verdicts of the tree there. It is not the operator of the Experiment that started it.
 _Avoid_: drive agent, subject
 
 **Harness**:
