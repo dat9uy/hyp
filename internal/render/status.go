@@ -100,7 +100,10 @@ func Status(p replay.Projection, maxLines int) string {
 				// A planned one keeps its title on the same line, and a closed one
 				// has no line.
 				for _, e := range p.Nodes[h].Children {
-					if m := r.marks(e); p.Nodes[e].Kind == event.KindExperiment && len(m) > 0 && !closed(p.Exps[e]) {
+					if p.Nodes[e].Kind != event.KindExperiment {
+						continue
+					}
+					if m := r.marks(e); len(m) > 0 && !closed(p.Exps[e]) {
 						title := ""
 						if p.Exps[e].Status == replay.ExpPlanned {
 							title = " " + Cut(p.Nodes[e].Title, 60)
