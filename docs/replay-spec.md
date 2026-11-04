@@ -137,7 +137,7 @@ Stop after the event whose id equals `asOf`, when `asOf` is not empty.
 1. `superseded`: a live `supersedes` edge points at it.
 2. `abandoned`: it has an applied `hypothesis.abandon`.
 3. Collect the verdicts for this Hypothesis from all **non-retracted** Results. No verdicts gives `proposed`. Any `contradicts` gives `contradicted`. Otherwise any `supports` gives `supported`. Otherwise it is `inconclusive`.
-4. **[added]** If rule 3 gave `supported` and any child DQ that is not withdrawn is not `answered` (deferred children still block), the status is `awaiting_subquestions`. Everywhere this spec says `supported`, it means exactly `supported`, never `awaiting_subquestions`.
+4. **[added]** If rule 3 gave `supported` and any sub-question that is not withdrawn is not `answered` (deferred children still block), the status is `awaiting_subquestions`. Everywhere this spec says `supported`, it means exactly `supported`, never `awaiting_subquestions`.
 
 A Hypothesis is **live** unless it is `superseded` or `abandoned`. A DQ is live unless it is withdrawn.
 
@@ -145,7 +145,7 @@ A Hypothesis is a **live rival** when it is live and not `contradicted`. The unt
 
 ### 7.2 Combined status graph (for cycle refusal)
 
-Directed edges: Hypothesis → each of its child DQs; DQ → each of its child Hypotheses; N → T for each live `depends_on`. A new `depends_on` that would make this graph cyclic is refused (§5 rule 11). Because of this, derived fields can always be computed by memoized recursion without looping.
+Directed edges: Hypothesis → each of its sub-questions; DQ → each of its child Hypotheses; N → T for each live `depends_on`. A new `depends_on` that would make this graph cyclic is refused (§5 rule 11). Because of this, derived fields can always be computed by memoized recursion without looping.
 
 ### 7.3 Stale (snapshot rule, the minimal form of truth maintenance)
 
@@ -191,7 +191,7 @@ The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads
 
 ### 7.5 Goal
 
-- `complete` when every live DQ whose parent is the Goal is `answered`. Nested DQs are covered through rule 7.1.4, so DQs under rejected rival hypotheses never block the Goal. (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
+- `complete` when every live DQ whose parent is the Goal is `answered`. Sub-questions are covered through rule 7.1.4, so sub-questions under rejected rival hypotheses never block the Goal. (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
 - Otherwise `in_progress`, with counts per DQ state over all DQs and a count of stale live nodes.
 
 ### 7.6 Experiments and Results
