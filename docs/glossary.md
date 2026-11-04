@@ -38,13 +38,16 @@ _Avoid_: objective, epic
 A node, `Q-`, under the Goal or a Hypothesis, that asks one design question; its children are rival Hypotheses. Its state is open, reopened, answered, deferred or withdrawn ([spec §7.4](replay-spec.md#74-designquestion-state)). Withdrawn here is a hold that `dq.resume` lifts; it is not an Experiment's close.
 _Avoid_: issue, decision; withdrawn for an Experiment (see Experiment status)
 
+**Sub-question**:
+A DesignQuestion whose parent is a Hypothesis, asked because it only matters if that Hypothesis holds. While it is not withdrawn and not answered, deferred included, it keeps a supported parent at `awaiting_subquestions` ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)), so a selected parent cannot answer its question. That is its only effect on the parent: a Result under it judges its own Hypotheses, its answer gives the parent no support, and the Dossier does not list it. It blocks the Goal only through this rule ([spec §7.5](replay-spec.md#75-goal)).
+
 **Hypothesis**:
 A node, `H-`, under a DesignQuestion, that states one candidate answer as a claim an Experiment can test. Its status comes from the verdicts of non-retracted Results, or from a supersedes edge or an abandon ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)).
 _Avoid_: option, idea, solution
 
 **Frontier**:
-The section of `hyp status` that shows the open work: the tree pruned to it, printed by one walk. A node prints only beneath its parent. The walk enters a Hypothesis's sub-questions only from an open or reopened question and through a live rival, and it also prints a deferred question that keeps its printed Hypothesis at `awaiting_subquestions`. Open questions it does not reach are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
-_Avoid_: hidden, for a question the walk does not reach
+The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred question that keeps its printed Hypothesis at `awaiting_subquestions` also prints. Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
+_Avoid_: hidden, for a question that does not print
 
 **Rival**:
 Another Hypothesis under the same DesignQuestion. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).

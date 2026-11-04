@@ -635,9 +635,9 @@ func TestStatusSubQuestionPrintsBeneathItsHypothesis(t *testing.T) {
 	}
 }
 
-// The walk reaches a sub-question only from an open or reopened question and
-// through a live rival. What it does not reach prints nothing but the count.
-func TestStatusPrunesWhatTheWalkDoesNotReach(t *testing.T) {
+// A sub-question prints only from an open or reopened question and through a
+// live rival. Otherwise it prints nothing, and the count line accounts for it.
+func TestStatusPrintsOnlyOpenWork(t *testing.T) {
 	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
 	for _, tc := range []struct {
 		name  string
@@ -672,7 +672,7 @@ func TestStatusPrunesWhatTheWalkDoesNotReach(t *testing.T) {
 }
 
 // Printed open questions plus the count line equal the Goal line's open and
-// reopened counts, whatever the walk prunes.
+// reopened counts, whatever does not print.
 func TestStatusCountLineAccountsForTheGoalCounts(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
