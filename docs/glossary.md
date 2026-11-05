@@ -1,6 +1,6 @@
 # Glossary
 
-The words hyp uses for its tree, its recipes and its sandboxes. The spec ([replay-spec.md](replay-spec.md)) and the recipe format define the rules; this file only fixes which word means what, links the rule's section instead of restating it, and names the Go type that owns each concept where one exists. It also names the two scopes of this repository, core and self-review, and the test that puts an item in one; [core-and-self-review.md](core-and-self-review.md) maps the repository onto them.
+The words hyp uses for its tree, its recipes and its sandboxes. The specs ([replay-spec.md](replay-spec.md), [sandbox-spec.md](sandbox-spec.md)) and the recipe format define the rules; this file only fixes which word means what, links the rule's section instead of restating it, and names the Go type that owns each concept where one exists. It also names the two scopes of this repository, core and self-review, and the test that puts an item in one; [core-and-self-review.md](core-and-self-review.md) maps the repository onto them.
 
 ## Language
 
@@ -261,7 +261,7 @@ The recipe section whose commands run when no sandbox exists, for example to cap
 _Avoid_: tools, prepare, utilities
 
 **Command record**:
-hyp's record of one command it ran outside a sandbox: a standalone command, or a scripted Evidence command run again later ([spec §9.4](replay-spec.md#94-records)). It keeps each file argument and names no host path for anything a replay needs. In code: `cmdrecord.Record`, read by `cmdrecord.Read`; `Record.CleanRun` is the clean run that containment needs.
+hyp's record of one command it ran outside a sandbox: a standalone command, or a scripted Evidence command run again later ([sandbox spec §5.1](sandbox-spec.md#51-records)). It keeps each file argument and names no host path for anything a replay needs. In code: `cmdrecord.Record`, read by `cmdrecord.Read`; `Record.CleanRun` is the clean run that containment needs.
 _Avoid_: run record (collides with live run)
 
 **Self-contained**:
@@ -281,7 +281,7 @@ A case under `known-answers/NAME/` that hyp runs before every run of its instrum
 _Avoid_: fixture (alone), golden test
 
 **Case**:
-One known answer as the gate ran it: its name and its outcome, `ok` or why it failed. The sandbox record and the command record list one per case under `known_answers` ([spec §9.4](replay-spec.md#94-records)). In code: `cmdrecord.Case`.
+One known answer as the gate ran it: its name and its outcome, `ok` or why it failed. The sandbox record and the command record list one per case under `known_answers` ([sandbox spec §5.1](sandbox-spec.md#51-records)). In code: `cmdrecord.Case`.
 _Avoid_: test case (alone), result (a Result is a tree node)
 
 **External line**:
@@ -289,7 +289,7 @@ The `External:` line under an Evidence or Standalone command that names what the
 _Avoid_: dependencies line, inputs line
 
 **Kept input**:
-A file an operator argument names, which hyp copies beside the command record as `inputs/N/<base name>`, hashes and lists under `inputs` in `command.json` before the first command runs; the script gets another copy. A file over 1 MB is hashed, not kept ([spec §9.4](replay-spec.md#94-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). In code: `cmdrecord.Input`.
+A file an operator argument names, which hyp copies beside the command record as `inputs/N/<base name>`, hashes and lists under `inputs` in `command.json` before the first command runs; the script gets another copy. A file over 1 MB is hashed, not kept ([sandbox spec §5.1](sandbox-spec.md#51-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). In code: `cmdrecord.Input`.
 _Avoid_: input binding, arg hashes, inputs field (ADR 0008 rejected one on the Experiment)
 
 **Containment**:
@@ -303,7 +303,7 @@ _Avoid_: unpinned (alone)
 ### Sandboxes
 
 **Sandbox**:
-A disposable copy of the subject at a recorded base commit, with its own scratch space, pinned hyp and record. The sandbox is the only place hyp assembles a subject: from the base, a store cut, per-run inputs and one patch for each Arm. Code under test is built in its Launch ([spec §9.6](replay-spec.md#96-the-subject)). It is not process isolation: commands still run on the host.
+A disposable copy of the subject at a recorded base commit, with its own scratch space, pinned hyp and record. The sandbox is the only place hyp assembles a subject: from the base, a store cut, per-run inputs and one patch for each Arm. Code under test is built in its Launch ([sandbox spec §5.3](sandbox-spec.md#53-the-subject)). It is not process isolation: commands still run on the host.
 _Avoid_: container, VM, environment
 
 **Sandbox record**:
@@ -342,17 +342,17 @@ A copy of a tree's store as it stood at one event, given to a sandbox.
 _Avoid_: snapshot (that is a different thing: a capture of a live session)
 
 **Patch**:
-A throwaway change over the subject's base that never lands in code, given to `hyp sandbox create` as `--patch ARM=FILE` for one Arm. An Arm has at most one; a patch is never versioned, stacked or rebased, and a change that lands is a commit used as the base instead. hyp checks that it applies to the base, records its sha256 and keeps it with the kept files. It is the subject, not a file of the recipe bundle ([spec §9.6](replay-spec.md#96-the-subject)).
+A throwaway change over the subject's base that never lands in code, given to `hyp sandbox create` as `--patch ARM=FILE` for one Arm. An Arm has at most one; a patch is never versioned, stacked or rebased, and a change that lands is a commit used as the base instead. hyp checks that it applies to the base, records its sha256 and keeps it with the kept files. It is the subject, not a file of the recipe bundle ([sandbox spec §5.3](sandbox-spec.md#53-the-subject)).
 _Avoid_: variant (alone), diff, fork
 
 ### People and binaries
 
 **Subject**:
-The thing under test in an Experiment. A record names it by what the repository holds or the tree keeps: a commit, and for a throwaway arm one patch over it, both assembled in a sandbox ([spec §9.6](replay-spec.md#96-the-subject)). A binary built from it is named by its sha256.
+The thing under test in an Experiment. A record names it by what the repository holds or the tree keeps: a commit, and for a throwaway arm one patch over it, both assembled in a sandbox ([sandbox spec §5.3](sandbox-spec.md#53-the-subject)). A binary built from it is named by its sha256.
 _Avoid_: target, system under test
 
 **Arm**:
-One variant of the subject that an Experiment compares: either the base, or the base plus one Patch. It is named by a lowercase word, the ARM of `--patch ARM=FILE` ([spec §9.6](replay-spec.md#96-the-subject)).
+One variant of the subject that an Experiment compares: either the base, or the base plus one Patch. It is named by a lowercase word, the ARM of `--patch ARM=FILE` ([sandbox spec §5.3](sandbox-spec.md#53-the-subject)).
 _Avoid_: variant (alone), branch
 
 **Operator**:

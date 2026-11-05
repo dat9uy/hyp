@@ -6,7 +6,7 @@ This file is for any agent or person who changes hyp. It says how the repository
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores an investigation as append-only events under `.tree/` and derives every status from them.
 - **Two skills**: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses) and `skills/hyp-verification` (run one Experiment from a recipe).
-- **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md), the words in [glossary.md](docs/glossary.md), the loop's guards in [loop-philosophy.md](docs/loop-philosophy.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
+- **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md) and [sandbox-spec.md](docs/sandbox-spec.md), the words in [glossary.md](docs/glossary.md), the loop's guards in [loop-philosophy.md](docs/loop-philosophy.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
 - **Test data** under `internal/*/testdata`, such as the synthetic store in `internal/testutil/testdata/synth`. The recipes and trees kept to test hyp are `recipes/id-citation-arms@1` and `@2` with `investigations/id-citation` (whose Arm patches are in its `arms/`), `recipes/recipe-base-arms@1` with `investigations/recipe-base`, and the recipes `recipes/authoring-stops@2`, `recipes/recipe-authoring-arms@4`, `recipes/skill-text-arms@3` and `@4`, whose trees are not published. Records made before the public release stay in the private development history.
 
 Install the binary and link the skills as [install.md](docs/install.md) describes.
@@ -60,8 +60,9 @@ The skill-text gate's replay instrument is `recipes/skill-text-arms@4`: a fresh 
 
 - A recipe is self-contained: it relies on nothing but its own files, hyp and the subject. A fixed input that is not the subject, such as a fixture or a cases file, is a file of the bundle, and a file outside it is the subject or a read or write the command's `External:` line names. A frozen recipe version is never edited; a change is a new `@<N>`.
 - An id a Result cites must appear in the files it cites. Name a binary by its sha256, not by the commit it was built from.
-- hyp exits 1 for a rule refusal, 2 for bad arguments and 3 for an environment problem, such as a busy port or a missing tool ([replay-spec.md](docs/replay-spec.md) §9).
+- hyp exits 1 for a rule refusal, 2 for bad arguments and 3 for an environment problem, such as a busy port or a missing tool ([sandbox-spec.md](docs/sandbox-spec.md) §1.3).
 - Skill text cites no ADR and no file under `docs/`: the skills are copied into other repositories without them. A skill states its rule inline, and the ADR behind it names the skill file. Removing such a citation is a product fix and needs no replay.
+- A state machine has one spec, and a change to the machine updates that spec in the same PR. Every spec states the states or statuses, what is stored and what is derived, the events or steps with what each state refuses and its exit code, and what happens on a crash or a merged log.
 - Write "Part of #N", never a closing keyword, next to an issue that stays open.
 - Commits use the conventional format (`feat:`, `fix:`, `docs:` and so on) and carry no AI trailers.
 

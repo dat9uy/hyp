@@ -25,7 +25,7 @@ var evidenceTimeout = 10 * time.Minute   // each Evidence command
 var standaloneTimeout = 60 * time.Minute // a Standalone command
 
 // CommandFailed is a Drive, Evidence or Standalone command that exited
-// non-zero. hyp exits with Row's exit code unchanged (spec §9.3).
+// non-zero. hyp exits with Row's exit code unchanged (sandbox spec §1.3).
 type CommandFailed struct {
 	Row  cmdrecord.Run
 	Log  string // the log holding its output

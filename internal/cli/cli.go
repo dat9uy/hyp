@@ -169,7 +169,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	fmt.Fprintln(stderr, err)
-	// A recipe script's own exit code passes through unchanged (spec §9.3).
+	// A recipe script's own exit code passes through unchanged (sandbox spec §1.3).
 	if cf, ok := errors.AsType[*sandbox.CommandFailed](err); ok {
 		return *cf.Row.Exit
 	}
