@@ -621,10 +621,13 @@ func suggest(w *writer, ref string) error {
 	if len(q.Candidates) == 1 {
 		lone = q.Candidates[0]
 	}
+	ready := lone != "" && p.Hyps[lone].Status == replay.HypSupported && p.Hyps[lone].Stale == nil
 	switch {
 	case len(ids) > 1:
 		fmt.Fprintf(w.stdout, "trade-off: owner decides between %s\n", strings.Join(ids, ", "))
-	case lone != "" && p.Hyps[lone].Status == replay.HypSupported && p.Hyps[lone].Stale == nil:
+	case ready && p.HasOpenSubquestion(lone):
+		fmt.Fprintf(w.stdout, "suggested: none (%s)\n", replay.ReasonAwaitingSubquestions)
+	case ready:
 		fmt.Fprintf(w.stdout, "suggested: %s\n", ids[0])
 	default:
 		reason := q.Reason

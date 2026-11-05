@@ -57,10 +57,10 @@ func Status(p replay.Projection, maxLines int) string {
 		s := p.Questions[dq].State
 		return s == replay.DQOpen || s == replay.DQReopened
 	}
-	// blocker reports a question that keeps its printed Hypothesis waiting and
-	// that would otherwise not print, so nothing would name the cause.
+	// blocker reports a sub-question that a printed supported Hypothesis still
+	// owes and that would otherwise not print, so nothing would name the work.
 	blocker := func(h, sub string) bool {
-		return p.Hyps[h].Status == replay.HypAwaitingSubquestions && p.Questions[sub].State == replay.DQDeferred
+		return p.Hyps[h].Status == replay.HypSupported && p.Questions[sub].State == replay.DQDeferred
 	}
 	// awaitingOwner collects, for each question FRONTIER prints, the one step
 	// due from the owner: confirm the select, or choose between the candidates.

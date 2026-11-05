@@ -296,13 +296,12 @@ func NewState() *State {
 
 // The status words of each node kind.
 const (
-	HypProposed             HypStatus = "proposed"
-	HypSupported            HypStatus = "supported"
-	HypContradicted         HypStatus = "contradicted"
-	HypInconclusive         HypStatus = "inconclusive"
-	HypSuperseded           HypStatus = "superseded"
-	HypAbandoned            HypStatus = "abandoned"
-	HypAwaitingSubquestions HypStatus = "awaiting_subquestions"
+	HypProposed     HypStatus = "proposed"
+	HypSupported    HypStatus = "supported"
+	HypContradicted HypStatus = "contradicted"
+	HypInconclusive HypStatus = "inconclusive"
+	HypSuperseded   HypStatus = "superseded"
+	HypAbandoned    HypStatus = "abandoned"
 
 	DQOpen      QuestionState = "open"
 	DQReopened  QuestionState = "reopened"
@@ -327,6 +326,7 @@ const (
 	ReasonConflicting          = "conflicting_selections"
 	ReasonSelectedNotSupport   = "selected_not_supported"
 	ReasonSelectedStale        = "selected_stale"
+	ReasonAwaitingSubquestions = "awaiting_subquestions"
 	ReasonVerifierInsufficient = "verifier_insufficient"
 	ReasonAwaitingVerifier     = "awaiting_verifier"
 	ReasonAwaitingOwner        = "awaiting_owner"
