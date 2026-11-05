@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["$CASE/input/s00.tsv", "$CASE/input/s01.tsv", "$CASE/input/s02.tsv", "$CASE/input/s03.tsv", "$CASE/input/s04.tsv"], "exit": 0, "stdout": "base: k=2/5 opened=5/5 control_flagged=0/5\nreproduced: no\nverdict: h-null=supports\nverdict: h-compare=inconclusive\nships: none\n"}

@@ -1,0 +1,1 @@
+{"v": 1, "id": "01CONFIRM", "type": "confirm", "node": "01Q", "payload": {"select": "01S", "role": "verifier", "verdict": "sufficient"}}
