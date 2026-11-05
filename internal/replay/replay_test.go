@@ -252,10 +252,10 @@ func TestScenario07AwaitingSubquestions(t *testing.T) {
 	h1 := b.Hyp(q, "h1")
 	b.Supports(h1)
 	qc := b.DQ(h1, "qc")
-	wantStatus(t, replayB(b), h1, HypAwaitingSubquestions, "")
+	wantStatus(t, replayB(b), h1, HypSupported, "")
 
 	b.Answer(q, h1, "")
-	wantStatus(t, replayB(b), q, DQOpen, ReasonSelectedNotSupport)
+	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingSubquestions)
 
 	hc := b.Hyp(qc, "hc")
 	b.Supports(hc)

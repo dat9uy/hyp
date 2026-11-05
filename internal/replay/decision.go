@@ -185,6 +185,8 @@ func (d *derivation) reason(id string, live, candidates []string, stale bool) st
 		return ReasonSelectedNotSupport
 	case d.staleOf(rec.Hyp) != nil || stale:
 		return ReasonSelectedStale
+	case st.awaitsSubquestions(rec.Hyp, func(c string) QuestionState { return d.dqState(c).State }):
+		return ReasonAwaitingSubquestions
 	case len(s.Confirms[rec.ID]) == 0:
 		return ReasonAwaitingVerifier
 	}

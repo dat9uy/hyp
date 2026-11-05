@@ -328,9 +328,6 @@ func (d *derivation) hypStatus(id string) HypStatus {
 		s = HypAbandoned
 	default:
 		s = st.verdictStatus(id, "")
-		if s == HypSupported && st.awaitsSubquestions(id, func(c string) QuestionState { return d.dqState(c).State }) {
-			s = HypAwaitingSubquestions
-		}
 	}
 	d.hyp[id] = s
 	return s
@@ -364,11 +361,22 @@ func (st *State) verdictStatus(id, except string) HypStatus {
 	return HypInconclusive
 }
 
-// awaitsSubquestions is rule 4 of spec §7.1: a sub-question of Hypothesis id that
-// is not withdrawn is not answered. status reads a question's state.
+// awaitsSubquestions is the obligation of spec §7.4: a sub-question of Hypothesis
+// id that is not withdrawn is not answered. status reads a question's state.
 func (st *State) awaitsSubquestions(id string, status func(string) QuestionState) bool {
 	for _, c := range st.Nodes[id].Children {
 		if st.Nodes[c].Kind == event.KindDesignQuestion && st.isLiveDQ(c) && status(c) != DQAnswered {
+			return true
+		}
+	}
+	return false
+}
+
+// HasOpenSubquestion reports whether Hypothesis h has a sub-question that is
+// not withdrawn and not answered, so a deferred one counts (spec §7.4).
+func (p Projection) HasOpenSubquestion(h string) bool {
+	for _, c := range p.Nodes[h].Children {
+		if q := p.Questions[c]; q != nil && q.State != DQWithdrawn && q.State != DQAnswered {
 			return true
 		}
 	}

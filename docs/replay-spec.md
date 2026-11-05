@@ -86,7 +86,7 @@ An event is refused when any of these holds:
 8. `dq.select` of a Hypothesis that is not a direct child of that DQ, or is superseded or abandoned.
 9. `confirm` whose `select` is not a `dq.select` on this DQ. Also refused: a `verifier` confirm whose actor equals the actor of that select (separation of duties).
 10. `supersedes` where `from` = `to`, the two Hypotheses have different parent DQs, or the edge would create a supersedes cycle. **[added]** It may also join two Experiments, whose parent Hypotheses must have one parent DQ (`cross-DQ supersedes`); it is refused between an Experiment and any other kind (`wrong kind`), and onto an Experiment that has a non-retracted Result (`bad supersedes: <id> has the non-retracted Result <id>`).
-11. `depends_on` whose `from` is not a Hypothesis or DQ, whose `to` is not a Hypothesis, where `from` = `to`, or where the edge would create a cycle among `depends_on` edges, which is the only way the **combined status graph** can hold one (see §7.2). **[not built: #51]**
+11. `depends_on` whose `from` is not a Hypothesis or DQ, whose `to` is not a Hypothesis, where `from` = `to`, or where the edge would create a cycle among `depends_on` edges, which is the only way the **combined status graph** can hold one (see §7.2).
 12. `edge.add` duplicating a live edge; `edge.remove` of an edge that is not live.
 13. An `alias` that is already used.
 14. `hypothesis.amend` on a Hypothesis that is superseded or abandoned (`bad amend: <id> is superseded or abandoned`), or whose `body` equals the current body (`bad amend: body is unchanged`).
@@ -140,7 +140,7 @@ Stop after the event whose id equals `asOf`, when `asOf` is not empty.
 2. `abandoned`: it has an applied `hypothesis.abandon`.
 3. Collect the verdicts for this Hypothesis from all **non-retracted** Results. No verdicts gives `proposed`. Any `contradicts` gives `contradicted`. Otherwise any `supports` gives `supported`. Otherwise it is `inconclusive`.
 
-**[not built: #51]** A Hypothesis's status reads verdicts only. A sub-question does not change it: the block it puts on its parent belongs to the question that selected the parent (§7.4).
+A Hypothesis's status reads verdicts only. A sub-question does not change it: the block it puts on its parent belongs to the question that selected the parent (§7.4).
 
 A Hypothesis is **live** unless it is `superseded` or `abandoned`. A DQ is live unless it is withdrawn.
 
@@ -148,7 +148,7 @@ A Hypothesis is a **live rival** when it is live and not `contradicted`. The unt
 
 ### 7.2 Combined status graph (for cycle refusal)
 
-**[not built: #51]** What reads what: a Hypothesis reads only other Hypotheses, its status from verdicts and its stale through `depends_on`. A DQ reads its child Hypotheses, the sub-questions of its selected one and its own `depends_on` targets. No edge runs from a Hypothesis to a DQ, and a DQ reads other DQs only down the tree, so a cycle can only run through `depends_on` between Hypotheses. A new `depends_on` that would make such a cycle is refused (§5 rule 11). Because of this, derived fields can always be computed by memoized recursion without looping.
+What reads what: a Hypothesis reads only other Hypotheses, its status from verdicts and its stale through `depends_on`. A DQ reads its child Hypotheses, the sub-questions of its selected one and its own `depends_on` targets. No edge runs from a Hypothesis to a DQ, and a DQ reads other DQs only down the tree, so a cycle can only run through `depends_on` between Hypotheses. A new `depends_on` that would make such a cycle is refused (§5 rule 11). Because of this, derived fields can always be computed by memoized recursion without looping.
 
 ### 7.3 Stale (snapshot rule, the minimal form of truth maintenance)
 
@@ -163,7 +163,7 @@ A Hypothesis is a **live rival** when it is live and not `contradicted`. The unt
 - If nothing matches, stale is `none`.
 - `reaffirm` creates a new snapshot. It cannot clear staleness while T is still unsupported, because the first test is always live; `hyp check` warns "reaffirm had no effect" in that case.
 - `depends_on` is never followed across `supersedes`. A superseded target is not `supported`, so its dependents go stale until the agent re-points the edge and reaffirms.
-- **[not built: #51]** A sub-question on a target does not make its dependents stale, because it does not change the target's status. A claim that rests on an answer says so with `depends_on`.
+- A sub-question on a target does not make its dependents stale, because it does not change the target's status. A claim that rests on an answer says so with `depends_on`.
 - Stale is returned as a cause chain, not a bool, so the status screen can print `H-5 stale ← H-3 contradicted ← R-9`. The chain ends at the Result that contradicted (the latest non-retracted contradicting Result), when there is one.
 
 ### 7.4 DesignQuestion state
@@ -175,9 +175,9 @@ One record, the question's `Decision`, owns everything below except the hold sta
 Selection is the current selection id (`""` when there is none) plus a conflict set:
 - Applying `dq.select` or `dq.unselect` whose `prev_select` ≠ the current selection id adds both ids to the conflict set. The event still applies; the last one in merge order becomes current.
 - A later select or unselect whose `prev_select` equals the current id clears the conflict set.
-- The **owner requirement** is derived from the current state and stored nowhere: the question has two or more candidates now, or the current select's `tradeoff` or `scope_change` is true. A **candidate** is a live child Hypothesis whose status is `supported`; neither stale nor an open sub-question removes it. **[not built: #51]** Candidates read only what the Dossier lists, so the requirement changes only when the Dossier does, and then the Confirms lapse (ADR 0011). This is one requirement, and the owner confirm is the only owner act replay reads. The owner's choice between candidates is a procedure with no event: whoever runs the tree records it as the select. The select holds what was chosen, not who chose it: its actor is whoever wrote it, and no status reads its `why`.
+- The **owner requirement** is derived from the current state and stored nowhere: the question has two or more candidates now, or the current select's `tradeoff` or `scope_change` is true. A **candidate** is a live child Hypothesis whose status is `supported`; neither stale nor an open sub-question removes it. Candidates read only what the Dossier lists, so the requirement changes only when the Dossier does, and then the Confirms lapse (ADR 0011). This is one requirement, and the owner confirm is the only owner act replay reads. The owner's choice between candidates is a procedure with no event: whoever runs the tree records it as the select. The select holds what was chosen, not who chose it: its actor is whoever wrote it, and no status reads its `why`.
 
-Dossier: the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. `hyp show <Q>` lists it under `dossier:`. **[not built: #51]** A sub-question's answer never reaches the parent's Dossier: any answer discharges it, so a Confirm on the parent counts again once the sub-question is settled, and a flip of its answer gives no `changed since` line.
+Dossier: the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. `hyp show <Q>` lists it under `dossier:`. A sub-question's answer never reaches the parent's Dossier: any answer discharges it, so a Confirm on the parent counts again once the sub-question is settled, and a flip of its answer gives no `changed since` line.
 
 A `contradicts` is **deciding** when the Hypothesis it judges is not the selected one and, by rule 3 of §7.1, that Hypothesis would be `supported` without this one verdict. `hyp show <Q>` marks its Result as deciding the owner requirement. It is a mark: §7.1 still stands and no status reads it.
 
@@ -185,17 +185,17 @@ Confirms: a confirm judged the Dossier as it stood at the confirm's place in the
 
 The state is decided by the first matching rule:
 1. `withdrawn`, then `deferred` (from the hold state).
-2. `answered` when all of these hold: the conflict set is empty; there is a current selection; the selected Hypothesis is `supported` and not stale; the selected Hypothesis has no **open sub-question**, meaning one that is not withdrawn and not `answered`, so a deferred one still blocks **[not built: #51]**; the DQ itself is not stale; the verifier confirm that counts on the current select is `sufficient`; and, if the owner requirement holds, the owner confirm that counts on it is `sufficient`.
+2. `answered` when all of these hold: the conflict set is empty; there is a current selection; the selected Hypothesis is `supported` and not stale; the selected Hypothesis has no **open sub-question**, meaning one that is not withdrawn and not `answered`, so a deferred one still blocks; the DQ itself is not stale; the verifier confirm that counts on the current select is `sufficient`; and, if the owner requirement holds, the owner confirm that counts on it is `sufficient`.
 3. Otherwise the state is `reopened` if `everAnswered`, else `open`. The reason is the first that holds:
-   `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `awaiting_subquestions` (the selected Hypothesis has an open sub-question) **[not built: #51]**, `verifier_insufficient` (the verifier confirm that counts on the current select is `insufficient`), `awaiting_verifier` (no verifier confirm counts on it), `awaiting_owner` (the owner requirement holds and the owner confirm that counts, if any, is not `sufficient`), `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
+   `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `awaiting_subquestions` (the selected Hypothesis has an open sub-question), `verifier_insufficient` (the verifier confirm that counts on the current select is `insufficient`), `awaiting_verifier` (no verifier confirm counts on it), `awaiting_owner` (the owner requirement holds and the owner confirm that counts, if any, is not `sufficient`), `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
 
 The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads, holds the insufficient verifier verdicts in a row on the current select. A sufficient verdict, an unselect, a select that does not continue the current one (the same Hypothesis or one that supersedes it) and a `hypothesis.amend` of the selected Hypothesis clear it, so verdicts on an old body never count towards a loop. The signal fires at two or more.
 
-**Suggestion:** `hyp select Q` with no Hypothesis reads the candidates. With two or more, it prints "trade-off: owner decides" and lists them. With exactly one, it suggests that one when its status is `supported`, it is not stale and it has no open sub-question. With an open sub-question it prints `suggested: none (awaiting_subquestions)`. Otherwise it suggests none. **[not built: #51]**
+**Suggestion:** `hyp select Q` with no Hypothesis reads the candidates. With two or more, it prints "trade-off: owner decides" and lists them. With exactly one, it suggests that one when its status is `supported`, it is not stale and it has no open sub-question. With an open sub-question it prints `suggested: none (awaiting_subquestions)`. Otherwise it suggests none.
 
 ### 7.5 Goal
 
-- `complete` when every live DQ whose parent is the Goal is `answered`. Sub-questions are covered through the `answered` rule of §7.4, so sub-questions under rejected rival hypotheses never block the Goal. **[not built: #51]** (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
+- `complete` when every live DQ whose parent is the Goal is `answered`. Sub-questions are covered through the `answered` rule of §7.4, so sub-questions under rejected rival hypotheses never block the Goal. (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
 - Otherwise `in_progress`, with counts per DQ state over all DQs and a count of stale live nodes.
 
 ### 7.6 Experiments and Results

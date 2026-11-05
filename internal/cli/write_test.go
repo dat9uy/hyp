@@ -643,6 +643,14 @@ func TestSelectWithNoHypothesisReadsCandidates(t *testing.T) {
 		must(t, "add", "dq", "--parent", h, "--title", "Sub", "--why", "w")
 		want(t, hyp(t, "select", q), 0, "suggested: none (")
 	})
+	t.Run("lone with an open sub-question names it, then is suggested once settled", func(t *testing.T) {
+		_, _, q := setup(t)
+		h := supported(q, "H")
+		sub := must(t, "add", "dq", "--parent", h, "--title", "Sub", "--why", "w")
+		want(t, hyp(t, "select", q), 0, "suggested: none (awaiting_subquestions)")
+		must(t, "withdraw", sub, "--why", "w")
+		want(t, hyp(t, "select", q), 0, "suggested: "+h)
+	})
 	t.Run("two with one stale", func(t *testing.T) {
 		_, g, q := setup(t)
 		supported(q, "H1")

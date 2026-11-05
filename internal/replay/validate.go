@@ -398,23 +398,10 @@ func (f *Facts) validateEdge(ev event.Event) error {
 }
 
 // wouldCycle reports whether adding depends_on from→to would make the combined
-// status graph (spec §7.2) cyclic, that is whether from is reachable from to.
+// status graph (spec §7.2) cyclic. A cycle can only run through depends_on, so
+// that is whether from is reachable from to along those edges.
 func (f *Facts) wouldCycle(from, to string) bool {
-	return f.reachable(to, from, f.statusNext)
-}
-
-// statusNext lists a node's successors in the combined status graph.
-func (f *Facts) statusNext(id string) []string {
-	n := f.Nodes[id]
-	var next []string
-	if n != nil && (n.Kind == event.KindHypothesis || n.Kind == event.KindDesignQuestion) {
-		for _, c := range n.Children {
-			if k := f.Nodes[c].Kind; k == event.KindHypothesis || k == event.KindDesignQuestion {
-				next = append(next, c)
-			}
-		}
-	}
-	return append(next, f.dependsOn(id)...)
+	return f.reachable(to, from, f.dependsOn)
 }
 
 func (f *Facts) supersedesNext(id string) []string {

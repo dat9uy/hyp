@@ -706,8 +706,8 @@ func TestStatusCountLineAccountsForTheGoalCounts(t *testing.T) {
 	}
 }
 
-// A deferred sub-question keeps its Hypothesis at awaiting_subquestions, so it
-// prints even though it is not open: nothing else names what blocks the line.
+// A supported Hypothesis still owes a deferred sub-question, so it prints even
+// though it is not open: nothing else names the work owed.
 func TestStatusPrintsADeferredBlocker(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
@@ -720,8 +720,8 @@ func TestStatusPrintsADeferredBlocker(t *testing.T) {
 	b.Defer(parked)
 	b.Supports(h1)
 	p := replay.Replay(b.Evs, nil, "")
-	if s := p.Hyps[h1].Status; s != replay.HypAwaitingSubquestions {
-		t.Fatalf("h1 is %s, want %s", s, replay.HypAwaitingSubquestions)
+	if s := p.Hyps[h1].Status; s != replay.HypSupported {
+		t.Fatalf("h1 is %s, want %s", s, replay.HypSupported)
 	}
 	out := Status(p, 0)
 	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
