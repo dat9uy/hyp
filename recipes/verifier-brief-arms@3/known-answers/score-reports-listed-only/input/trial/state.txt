@@ -1,0 +1,3 @@
+arm=reader
+trial=1
+model=sonnet

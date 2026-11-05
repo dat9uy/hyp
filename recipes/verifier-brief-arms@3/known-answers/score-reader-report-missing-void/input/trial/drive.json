@@ -1,0 +1,1 @@
+{"verifier": {"exit": null, "timed_out": false, "subtype": null}, "followup": {"exit": null, "timed_out": false, "subtype": null, "result": null}, "readers": [{"exit": 0, "timed_out": false, "subtype": "success", "failed": false, "answered": true, "cost_usd": 0.05, "result": "R-MNVYSH"}], "readers_failed": 0, "cost_usd": 1.0}

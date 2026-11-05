@@ -1,0 +1,36 @@
+diff --git a/skills/hyp-prototype/VERIFIER.md b/skills/hyp-prototype/VERIFIER.md
+index 7250b84..1d88bee 100644
+--- a/skills/hyp-prototype/VERIFIER.md
++++ b/skills/hyp-prototype/VERIFIER.md
+@@ -19,6 +19,11 @@ it only the question id and the brief below. Do not pass your reasoning, your
+ conclusion or the transcript: the verifier judges the recorded evidence, not
+ your account of it.
+ 
++Before the verifier, start one fresh session per Result under `dossier:`, one
++at a time, each given only `## Brief for a reader`, with `<R-id>` filled. Save
++each reader's final message to `reader-reports/<R-id>.md` at the repository
++root, without changing it.
++
+ A verifier must be able to read the evidence it confirms. If the harness
+ limits the verifier's tools, allow it to run `hyp` and to read the files
+ under `.tree/evidence/` and `recipes/` that the Results cite.
+@@ -39,8 +44,9 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
+    `predecessor evidence (not counted):`, run `hyp show` on each Result
+    listed there too. Those Results tested the claims this hypothesis
+    supersedes; judge whether its text answers what they found.
+-3. Open every evidence pointer those Results list: files under
+-   `.tree/evidence/` or `recipes/`, or URLs.
++3. Read every file in `reader-reports/`. Each is one fresh reader's report on
++   one Result. Open the evidence of any verdict a report reads `wrong` or
++   `unclear`, and of any Result with no report.
+ 4. Judge the selection by its kind:
+    - **Plain select** (no kind shown), or `(scope-change)` alone:
+      - Does the evidence demonstrate the hypothesis within the scope its
+@@ -85,3 +91,7 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
+ Do not change the tree in any other way: no records, selects, links or
+ retracts. If something is wrong, say so in the `--why` of an insufficient
+ verdict and let the investigating session act on it.
++
++## Brief for a reader
++
++You are checking Result `<R-id>` only. Run `hyp show <R-id>`, then open every evidence pointer it lists. Run `hyp show` on each Hypothesis its verdicts name before judging. For each verdict it lists, use one line: `<R-id> <H-id> holds` if the evidence shows that verdict as written, `<R-id> <H-id> wrong` if it does not, or `<R-id> <H-id> unclear` if the files do not let you tell. Before those lines, give one quoted line from a file per verdict. End your reply with exactly one such line per verdict and nothing after them. Do not change the tree.
