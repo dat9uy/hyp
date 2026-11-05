@@ -19,6 +19,7 @@ import sys
 
 BANNED = re.compile(r"seed|control|plant|harness", re.I)
 ACTOR = "runner-fx"
+MIN_QUOTE = 20  # the shortest quote hyp audit takes
 
 HYPOTHESES = [
     ("h-outbox", "Durable outbox table, retry worker",
@@ -45,45 +46,45 @@ CFG_BROKER = "queue=webhooks-eu delivery_mode=at-most-once ack_mode=auto prefetc
 # in the middle of method.md, observation, whether the summary reads as a failure
 RUNS = [
     dict(name="sup1", parent="h-outbox", target="h-redis", verdicts={"h-outbox": "supports", "h-redis": "inconclusive"},
-         title="Outbox survives a worker kill during retries",
+         title="Outbox under a killed retry worker",
          total=500, lost=0, restart="kill -9 of the retry worker at delivery 180", cfg=cfg_outbox(50), side="redis",
-         middle="The service wrote rows to `webhook_outbox` in the same transaction as the order change, and one retry worker drained them in batches of 50. The Redis path ran alongside on only 20 deliveries, which is too few to judge it.",
-         obs="All 500 deliveries reached the receiver after the retry worker was killed at delivery 180; 0 lost, 37 delivered twice and removed by the receiver's idempotency key. The Redis path saw only 20 deliveries, too few to judge."),
+         middle="The service wrote rows to `webhook_outbox` inside the order change's own transaction, and one retry worker drained them in batches of 50. The Redis path ran alongside on only 20 deliveries, which is too few to judge it.",
+         obs="Every one of the 500 webhooks arrived despite the worker kill; none missing, and 37 repeats were dropped by the receiver. Only a score of webhooks took the Redis route, not enough for a judgement."),
     dict(name="sup2", parent="h-outbox", target="h-inline", verdicts={"h-outbox": "supports", "h-inline": "inconclusive"},
-         title="Outbox survives a full service restart",
+         title="Outbox through a whole-service reboot",
          total=500, lost=0, restart="systemctl restart of the whole service at delivery 240", cfg=cfg_outbox(50), side="in-process",
          middle="The whole service, retry worker included, was restarted while 62 rows were due. The in-process path ran alongside on only 20 deliveries, which is too few to judge it.",
-         obs="All 500 deliveries reached the receiver across a full service restart at delivery 240; 0 lost. The 62 rows due at the restart were delivered within 4 seconds of start-up. The in-process path saw only 20 deliveries, too few to judge."),
+         obs="Every one of the 500 webhooks arrived despite the full reboot; none missing. The 62 rows that were due went out within 4 seconds of coming back. Only a score of webhooks took the in-process route, not enough for a judgement."),
     dict(name="sup3", parent="h-outbox", target="h-broker", verdicts={"h-outbox": "supports", "h-broker": "inconclusive"},
-         title="Outbox survives a database failover during retries",
+         title="Outbox through a failover of its database",
          total=500, lost=0, restart="database failover to the standby at delivery 300", cfg=cfg_outbox(25), side="broker",
          middle="The primary database was failed over to its synchronous standby at delivery 300, with a batch of 25 in flight. The broker path ran alongside on only 20 deliveries, which is too few to judge it.",
-         obs="All 500 deliveries reached the receiver across a database failover at delivery 300 and a worker restart; 0 lost. Rows of the batch in flight were delivered again and removed by the idempotency key. The broker path saw only 20 deliveries, too few to judge."),
+         obs="Every one of the 500 webhooks arrived despite the failover and a worker reboot; none missing. Rows of the interrupted batch went out again, and the receiver dropped the repeats. Only a score of webhooks took the broker route, not enough for a judgement."),
     dict(name="rsup", parent="h-redis", target="h-outbox", verdicts={"h-redis": "supports", "h-outbox": "inconclusive"},
-         title="Redis queue survives a graceful restart",
+         title="Redis queue through a clean reboot of the server",
          total=500, lost=0, restart="graceful restart of redis-server at delivery 210", cfg=CFG_REDIS, side="outbox",
-         middle="Redis ran from `redis.conf` with `appendonly yes` and `appendfsync everysec`, and was restarted with SHUTDOWN at delivery 210, after which the AOF was replayed. The outbox path ran alongside on only 20 deliveries, which is too few to judge it.",
-         obs="All 500 deliveries reached the receiver across a graceful Redis restart at delivery 210; 0 lost, and the sorted set came back with 41 pending members from the AOF. The outbox path saw only 20 deliveries, too few to judge."),
+         middle="Redis ran from `redis.conf` with `appendonly yes` and `appendfsync` set to `everysec`, and was restarted with SHUTDOWN at delivery 210, after which the AOF was replayed. The outbox path ran alongside on only 20 deliveries, which is too few to judge it.",
+         obs="Every one of the 500 webhooks arrived despite the clean Redis reboot; none missing, and 41 pending members came back from the AOF. Only a score of webhooks took the outbox route, not enough for a judgement."),
     dict(name="binc", parent="h-broker", target="h-outbox", verdicts={"h-broker": "inconclusive", "h-outbox": "inconclusive"},
-         title="Broker and outbox under a short receiver outage",
+         title="Broker and outbox while the receiver is away",
          total=200, lost=0, restart="receiver unavailable for 90 seconds at delivery 80", cfg=CFG_BROKER, side="outbox",
          middle="No process was restarted in this run: only the receiver went away for 90 seconds, so it cannot speak to a restart on either path. Both paths retried and delivered everything.",
-         obs="With the receiver away for 90 seconds, both paths delivered all 200 deliveries; 0 lost. No process restarted in this run, so it says nothing about a restart on either path."),
+         obs="With the receiver gone for a minute and a half, both routes got all 200 webhooks through; none missing. Nothing rebooted here, which leaves the question open for both."),
     dict(name="seed_deciding", parent="h-redis", target="h-outbox", verdicts={"h-redis": "contradicts"},
-         title="Redis queue under a crash of the server",
+         title="Redis queue when the server crashes",
          total=500, lost=143, restart="kill -9 of redis-server at delivery 260", cfg=CFG_REDIS_OFF, side=None, failed=True,
          middle="Redis ran from the stock test image with `appendonly no` added to its command line, and the retry worker read the sorted set every 200 ms. The server was killed at delivery 260 with 143 members in the set.",
-         obs="143 of 500 deliveries never reached the receiver after redis-server was killed at delivery 260. The sorted set came back empty after the restart, and the retry worker found nothing to retry. Pending deliveries do not survive a restart on this path."),
+         obs="143 of the 500 webhooks never arrived once redis-server had been killed. The sorted set was empty when it came back, so the worker had nothing to retry. On this design, work that is pending is gone after a reboot."),
     dict(name="seed_lone", parent="h-inline", target="h-outbox", verdicts={"h-inline": "contradicts"},
-         title="In-process retry under a restart of the web process",
+         title="In-process retry when the web process reboots",
          total=500, lost=118, restart="restart of the web process at delivery 275", cfg=CFG_INLINE_MEM, side=None, failed=True,
          middle="Each delivery had its own retry timer in the web process, and each attempt was appended to the attempt log, which the process kept in memory as an in-process array and read back at start-up. The web process was restarted at delivery 275.",
-         obs="118 of 500 deliveries never reached the receiver after the web process restarted at delivery 275. The attempt log replay at start-up found 0 entries, so no retry timer came back. Pending deliveries do not survive a restart on this path."),
+         obs="118 of the 500 webhooks never arrived once the web process had come back. Replaying the attempt log at boot yielded 0 entries, so no timer returned. On this design, work that is pending is gone after a reboot."),
     dict(name="ctrl", parent="h-broker", target="h-outbox", verdicts={"h-broker": "contradicts"},
-         title="Broker queue under a consumer restart",
+         title="Broker queue when the consumer reboots",
          total=500, lost=20, restart="restart of the consumer at delivery 310", cfg=CFG_BROKER, side=None, failed=True,
-         middle="The consumer ran with at-most-once delivery, with `ack_mode=auto` and a prefetch of 20, so the broker removed each message as it handed it over. The consumer was restarted at delivery 310 with 20 messages handed over and not yet delivered.",
-         obs="20 of 500 deliveries never reached the receiver after the consumer restarted at delivery 310. The broker had already removed those 20 messages when it handed them over, and nothing retried them. Pending deliveries do not survive a restart on this path."),
+         middle="The consumer ran in at-most-once mode, with `ack_mode=auto` and a prefetch of 20, so the broker removed each message as it handed it over. The consumer was restarted at delivery 310 with 20 messages handed over and not yet delivered.",
+         obs="20 of the 500 webhooks never arrived once the consumer had come back. The broker had dropped those messages on hand-over, and nothing tried them again. On this design, work that is pending is gone after a reboot."),
 ]
 
 ORDER = ["sup1", "sup2", "sup3", "rsup", "binc", "seed_deciding", "seed_lone", "ctrl"]
@@ -138,10 +139,29 @@ def method_md(run, rng):
         "The run used one process of each kind on a single 4-core host, with local disks, so timings in the log say nothing about capacity.",
     ]
     return (
-        f"# {run['title']}\n\n## Setup\n\n{fill[0]}\n\n{fill[1]}\n\n"
+        f"## Setup\n\n{fill[0]}\n\n{fill[1]}\n\n"
         f"## Run\n\n{run['middle']}\n\n{fill[4]}\n\n"
         f"## Reading the result\n\n{fill[2]}\n\n{fill[3]}\n"
     )
+
+
+def collapse(text):
+    return " ".join(text.split())
+
+
+def check_quotes(visible, evidence):
+    """Exit when a phrase hyp show prints could pass as a quote from a file: a
+    holds audit must not be possible without opening one."""
+    hay = [collapse(t) for t in evidence]
+    hits = set()
+    for text in visible:
+        text = collapse(text)
+        for i in range(len(text) - MIN_QUOTE + 1):
+            window = text[i:i + MIN_QUOTE]
+            if any(window in h for h in hay):
+                hits.add(window)
+    if hits:
+        sys.exit("generate: visible text also in evidence:\n" + "\n".join(sorted(hits)))
 
 
 def main():
@@ -168,6 +188,7 @@ def main():
         ids[alias] = new("add", "hyp", "--parent", q, "--alias", alias, "--title", title, "--body", body, "--why", "a rival design for the retries")
     runs = {r["name"]: r for r in RUNS}
     results, exps = {}, {}
+    visible, evidence = [t for _, title, body in HYPOTHESES for t in (title, body)], []
     for name in ORDER:
         run = runs[name]
         e = new("add", "exp", "--parent", ids[run["parent"]], "--target", ids[run["target"]],
@@ -180,12 +201,15 @@ def main():
                 sys.exit(f"generate: banned word in {name}/{fname}: {BANNED.search(text).group(0)}")
             with open(os.path.join(folder, fname), "w") as f:
                 f.write(text)
+            evidence.append(text)
         args = ["record", "--exp", e, "--observation", run["obs"], "--why", "the run finished and its log was read",
                 "--evidence", f".tree/evidence/{e}/run.log", "--evidence", f".tree/evidence/{e}/method.md"]
         for ref, word in run["verdicts"].items():
             args += ["--verdict", f"{ids[ref]}={word}"]
         results[name] = new(*args)
+        visible += [run["title"], run["obs"]]
         exps[name] = e
+    check_quotes(visible, evidence)
     h("select", q, ids["h-outbox"], "--why", f"{results['sup3']} shows h-outbox keeping every delivery across a restart")
 
     events = json.loads(h("events", "--json"))["events"]

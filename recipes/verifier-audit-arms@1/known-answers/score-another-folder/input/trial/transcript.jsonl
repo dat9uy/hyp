@@ -1,0 +1,8 @@
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t0", "name": "Bash", "input": {"command": "cat .tree/evidence/E-AAAAAA/run.log .tree/evidence/E-AAAAAA/method.md"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t0", "content": "synthetic"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "cat .tree/evidence/E-S6AYPY/run.log .tree/evidence/E-S6AYPY/method.md"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "synthetic"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "cat .tree/evidence/E-MQBKMT/run.log .tree/evidence/E-MQBKMT/method.md"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t2", "content": "synthetic"}]}}
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "hyp confirm Q --role verifier --verdict insufficient --actor v --why x"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t3", "content": "synthetic"}]}}
