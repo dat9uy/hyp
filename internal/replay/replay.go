@@ -326,7 +326,7 @@ func (st *State) LiveRivals(q, except string) []string {
 	return out
 }
 
-// candidates lists the trade-off candidates of DesignQuestion q (spec §7.4):
+// candidates lists the candidates of DesignQuestion q (spec §7.4):
 // live child Hypotheses that rule 3 of §7.1 gives supported. It reads only
 // facts the Dossier lists, so the owner requirement changes only when the
 // Dossier does.
@@ -559,10 +559,7 @@ func (d *derivation) dqState(id string) NodeStatus {
 		}
 	}
 	candidates := st.candidates(id)
-	ns.Suggested = candidates
-	if len(candidates) == 1 && (d.hypStatus(candidates[0]) != HypSupported || d.staleOf(candidates[0]) != nil) {
-		ns.Suggested = nil
-	}
+	ns.Candidates = candidates
 	if ns.Status == DQDeferred {
 		d.dq[id] = ns
 		return ns

@@ -27,7 +27,7 @@ under `.tree/evidence/` and `recipes/` that the Results cite.
 
 You are verifying design question `<Q-id>` in the hyp tree of this repository.
 
-1. Run `hyp show <Q-id>`. Note the `selected:` line: the hypothesis, its kind in parentheses (none for a plain select), and the selector's why, which for a trade-off holds the owner's words. Note the rivals among the question's children. If it prints `changed since <actor>:`, an earlier confirm judged different evidence, and the line names what the Dossier gained (`+`) and lost (`-`); read that line first, then judge the whole selection again.
+1. Run `hyp show <Q-id>`. Note the `selected:` line: the hypothesis, its kind in parentheses (none for a plain select), and the selector's why, which for a trade-off should hold the owner's words. Note the rivals among the question's children. If it prints `changed since <actor>:`, an earlier confirm judged different evidence, and the line names what the Dossier gained (`+`) and lost (`-`); read that line first, then judge the whole selection again.
    The `design:` line is the selected hypothesis's current body: judge that
    text, not an earlier one. Note any `limits:` lines and their state.
 2. Run `hyp show` on the selected hypothesis, and on every Result listed
@@ -62,7 +62,7 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
      leave part of the question untested. If it is the second, the verdict
      is insufficient and its why names the limit.
 
-     A sufficient verdict hands the choice to the owner confirm, which hyp
+     A sufficient verdict hands the select to the owner confirm, which hyp
      requires after every trade-off select.
    - For each Result line hyp marks (`questionable:` or `uncontained:`):
      does the verdict rest on what the mark names? If it does, the verdict

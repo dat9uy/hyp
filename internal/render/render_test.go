@@ -368,7 +368,7 @@ func TestStatusDecidedTradeoffLeavesAwaitingOwner(t *testing.T) {
 	}
 }
 
-func TestStatusContradictedTradeoffPickAwaitsOwnerAgain(t *testing.T) {
+func TestStatusContradictedChoiceAwaitsOwnerAgain(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
@@ -854,5 +854,34 @@ func TestShowPrintsWhatChangedSinceALapsedConfirm(t *testing.T) {
 		if !strings.Contains(show, want) {
 			t.Fatalf("missing %q in:\n%s", want, show)
 		}
+	}
+}
+
+// A lone candidate has no rival to be chosen over, so a --tradeoff select of it
+// records no choice: the select still requires the owner, and FRONTIER prints
+// no decided line.
+func TestStatusLoneCandidateHasNoDecidedLine(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h := b.Hyp(q, "h")
+	b.Supports(h)
+	b.As("a").Select(q, h, "", true)
+	out := Status(replay.Replay(b.Evs, nil, ""), 0)
+	if strings.Contains(out, "trade-off decided") {
+		t.Fatalf("decided line for a lone candidate:\n%s", out)
+	}
+}
+
+// hyp show lists a lone candidate that is not ready too; only hyp select
+// withholds the suggestion.
+func TestShowListsCandidates(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h := b.Hyp(q, "h")
+	b.Supports(h)
+	b.DQ(h, "sub")
+	out := Show(replay.Replay(b.Evs, nil, ""), q, nil)
+	if want := "candidates: " + event.DisplayID(event.KindHypothesis, h) + "\n"; !strings.Contains(out, want) {
+		t.Fatalf("missing %q:\n%s", want, out)
 	}
 }

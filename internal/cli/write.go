@@ -614,14 +614,18 @@ func suggest(w *writer, ref string) error {
 	}
 	ns := p.Status[dq]
 	var ids []string
-	for _, h := range ns.Suggested {
+	for _, h := range ns.Candidates {
 		ids = append(ids, display(p, h))
 	}
+	lone := ""
+	if len(ns.Candidates) == 1 {
+		lone = ns.Candidates[0]
+	}
 	switch {
-	case len(ids) == 1:
-		fmt.Fprintf(w.stdout, "suggested: %s\n", ids[0])
 	case len(ids) > 1:
 		fmt.Fprintf(w.stdout, "trade-off: owner decides between %s\n", strings.Join(ids, ", "))
+	case lone != "" && p.Status[lone].Status == replay.HypSupported && p.Status[lone].Stale == nil:
+		fmt.Fprintf(w.stdout, "suggested: %s\n", ids[0])
 	default:
 		reason := ns.Reason
 		if reason == "" {

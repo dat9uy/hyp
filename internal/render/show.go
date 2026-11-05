@@ -47,8 +47,8 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	if ns.Stale != nil {
 		w("stale: %s", r.chain(ns.Stale))
 	}
-	if len(ns.Suggested) > 0 {
-		w("suggested: %s", r.ids(ns.Suggested))
+	if len(ns.Candidates) > 0 {
+		w("candidates: %s", r.ids(ns.Candidates))
 	}
 	if n.Kind == event.KindDesignQuestion {
 		rec, ok := p.CurrentSelect(id)

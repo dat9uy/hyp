@@ -161,7 +161,7 @@ func (s *Decision) accepted(id string, now []DossierItem) map[string]string {
 }
 
 // ownerRequired derives whether select rec needs the owner: the question has
-// two or more trade-off candidates now, or the select says so.
+// two or more candidates now, or the select says so.
 func ownerRequired(rec SelectRec, candidates []string) bool {
 	return len(candidates) >= 2 || rec.Tradeoff || rec.ScopeChange
 }

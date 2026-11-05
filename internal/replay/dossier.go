@@ -30,7 +30,7 @@ type DossierItem struct {
 type Dossier struct {
 	Items []DossierItem // sorted, so that two Dossiers compare item by item
 	// Deciding lists the Results whose contradicts alone keeps a rival from
-	// being a trade-off candidate. It is read from the statuses, so it stays
+	// being a candidate. It is read from the statuses, so it stays
 	// out of what two Dossiers compare.
 	Deciding map[string][]string // rival Hypothesis → Results
 }
@@ -108,7 +108,7 @@ func (st *State) dossier(q, hyp string) *Dossier {
 }
 
 // decidingContradictions lists the Results whose contradicts alone keeps
-// Hypothesis h from being a trade-off candidate: without that one verdict, rule
+// Hypothesis h from being a candidate: without that one verdict, rule
 // 3 of spec §7.1 gives supported. A Hypothesis with two contradicts has none,
 // since removing either leaves the other.
 func (st *State) decidingContradictions(h string) []string {
