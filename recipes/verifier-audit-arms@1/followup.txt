@@ -1,0 +1,1 @@
+Do not use any tool. Answer only from what you read before your confirm, including any audit you read. For each Result listed under `dossier:` that has a `contradicts` verdict, print one line: `<R-id> holds` if its evidence shows the hypothesis contradicted as written, `<R-id> wrong` if it does not, or `<R-id> not-opened` if neither you nor an audit you read covered its evidence.

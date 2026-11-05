@@ -1,0 +1,14 @@
+{
+ "verifier": {
+  "exit": 0,
+  "timed_out": false,
+  "subtype": "error_max_budget_usd"
+ },
+ "followup": {
+  "exit": null,
+  "timed_out": false,
+  "subtype": null,
+  "result": null
+ },
+ "cost_usd": 0.5
+}

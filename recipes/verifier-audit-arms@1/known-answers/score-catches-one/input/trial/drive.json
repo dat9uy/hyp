@@ -1,0 +1,14 @@
+{
+ "verifier": {
+  "exit": 0,
+  "timed_out": false,
+  "subtype": "success"
+ },
+ "followup": {
+  "exit": 0,
+  "timed_out": false,
+  "subtype": "success",
+  "result": "R-3HZQC8 wrong\nR-1ZNDBZ holds\nR-5NG3QD holds\n"
+ },
+ "cost_usd": 0.5
+}
