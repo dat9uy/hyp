@@ -5,7 +5,7 @@ When the arm has a reader brief, one reader per distinct Result in items.tsv
 runs first, one after another, under the verifier's actor name, each stopped
 after 10 minutes or $1. A reader's failure does not void the trial: drive.json
 counts it in readers_failed, and the verifier covers the gap by its brief.
-Readers still waiting after 28 minutes are not started, and count as failed, so
+A reader that could end after minute 28 is not started, and counts as failed, so
 one Drive command stays inside hyp's 60-minute limit.
 
 The verifier is a claude -p session with brief.txt on stdin, project settings
@@ -104,7 +104,7 @@ def readers(rtmp, wt, env, model, actor, project):
         results = list(dict.fromkeys(l.split("\t")[0] for l in f if l.strip()))
     rows, start = [], time.monotonic()
     for rid in results:
-        if time.monotonic() - start > READERS_WINDOW:
+        if time.monotonic() - start + READER_LIMIT > READERS_WINDOW:
             rows.append({"result": rid, "exit": None, "timed_out": False, "subtype": "not-started", "cost_usd": None, "failed": True})
             continue
         sid = str(uuid.uuid4())
