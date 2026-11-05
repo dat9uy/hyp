@@ -1,0 +1,13 @@
+diff --git a/skills/hyp-prototype/VERIFIER.md b/skills/hyp-prototype/VERIFIER.md
+index 7250b84..0d92e0b 100644
+--- a/skills/hyp-prototype/VERIFIER.md
++++ b/skills/hyp-prototype/VERIFIER.md
+@@ -39,7 +39,7 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
+    `predecessor evidence (not counted):`, run `hyp show` on each Result
+    listed there too. Those Results tested the claims this hypothesis
+    supersedes; judge whether its text answers what they found.
+-3. Open every evidence pointer those Results list: files under
++3. Open every evidence pointer those Results list, even when earlier ones seem to decide it: files under
+    `.tree/evidence/` or `recipes/`, or URLs.
+ 4. Judge the selection by its kind:
+    - **Plain select** (no kind shown), or `(scope-change)` alone:
