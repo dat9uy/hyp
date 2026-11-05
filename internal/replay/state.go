@@ -228,28 +228,19 @@ type SnapVal struct {
 	Stale  bool
 }
 
-// State is the stored state built by applying events.
-type State struct {
-	Nodes map[string]*Node
-	// recipeHashes are the current recipe hashes the last Step was given;
-	// a Result whose pin they do not match is questionable.
-	recipeHashes map[string]string
-	Order        []string // node ids in creation order
-	SeenIDs      map[string]bool
-	Retracted    map[string]bool
-	Abandoned    map[string]bool
-	Withdrawn    map[string]bool // Experiment → it has an applied experiment.withdraw
-	Edges        []Edge
-	Hold         map[string]QuestionState // DQ → "", DQDeferred or DQWithdrawn
-	Decisions    map[string]*Decision     // DQ → its Decision record (decision.go)
-	Snaps        map[string][]Snap
-	EverAnswered map[string]bool
-	// The derived records, rebuilt wholesale by recompute, so a map read
-	// before a Step keeps the state from before it.
-	Hyps      map[string]*Hyp
-	Questions map[string]*Question
-	goal      GoalState
-	Applied   []event.Event
+// Facts is what the applied events stored, and lookup indexes over it. A replay
+// rule takes Facts and nothing else, so reading a derived status from one does
+// not compile (spec §5.1, ADR 0013).
+type Facts struct {
+	Nodes     map[string]*Node
+	Order     []string // node ids in creation order
+	SeenIDs   map[string]bool
+	Retracted map[string]bool
+	Abandoned map[string]bool
+	Withdrawn map[string]bool // Experiment → it has an applied experiment.withdraw
+	Edges     []Edge
+	Hold      map[string]QuestionState // DQ → "", DQDeferred or DQWithdrawn
+	Decisions map[string]*Decision     // DQ → its Decision record (decision.go)
 	GoalID    string
 	Aliases   map[string]string // alias → node id
 
@@ -258,27 +249,47 @@ type State struct {
 	ResultsByHyp map[string][]string // hypothesis → Results with a verdict for it, in creation order
 	EdgesFrom    map[string][]int    // node → indexes into Edges of edges it starts
 	SupersededN  map[string]int      // Hypothesis or Experiment → number of live supersedes edges pointing at it
-	RivalsAtAdd  map[string][]string // Experiment → live rivals of its parent just before its add
+}
+
+// State is Facts and what recompute and Step derive from them. Snaps,
+// EverAnswered and RivalsAtAdd are stored, but record derived status at an
+// event, so they stay out of Facts.
+type State struct {
+	Facts
+	// recipeHashes are the current recipe hashes the last Step was given;
+	// a Result whose pin they do not match is questionable.
+	recipeHashes map[string]string
+	Snaps        map[string][]Snap
+	EverAnswered map[string]bool
+	// The derived records, rebuilt wholesale by recompute, so a map read
+	// before a Step keeps the state from before it.
+	Hyps        map[string]*Hyp
+	Questions   map[string]*Question
+	goal        GoalState
+	Applied     []event.Event
+	RivalsAtAdd map[string][]string // Experiment → live rivals of its parent just before its add
 }
 
 // NewState returns an empty state.
 func NewState() *State {
 	return &State{
-		Nodes:        map[string]*Node{},
-		SeenIDs:      map[string]bool{},
-		Retracted:    map[string]bool{},
-		Abandoned:    map[string]bool{},
-		Withdrawn:    map[string]bool{},
-		Hold:         map[string]QuestionState{},
-		Decisions:    map[string]*Decision{},
+		Facts: Facts{
+			Nodes:        map[string]*Node{},
+			SeenIDs:      map[string]bool{},
+			Retracted:    map[string]bool{},
+			Abandoned:    map[string]bool{},
+			Withdrawn:    map[string]bool{},
+			Hold:         map[string]QuestionState{},
+			Decisions:    map[string]*Decision{},
+			Aliases:      map[string]string{},
+			ResultsByHyp: map[string][]string{},
+			EdgesFrom:    map[string][]int{},
+			SupersededN:  map[string]int{},
+		},
 		Snaps:        map[string][]Snap{},
 		EverAnswered: map[string]bool{},
 		Hyps:         map[string]*Hyp{},
 		Questions:    map[string]*Question{},
-		Aliases:      map[string]string{},
-		ResultsByHyp: map[string][]string{},
-		EdgesFrom:    map[string][]int{},
-		SupersededN:  map[string]int{},
 		RivalsAtAdd:  map[string][]string{},
 	}
 }

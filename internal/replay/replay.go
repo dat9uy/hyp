@@ -113,87 +113,7 @@ func (st *State) apply(ev event.Event) {
 	// Only applied ids are reserved: a refused event never enters the state,
 	// so its id stays free.
 	st.SeenIDs[ev.ID] = true
-	switch ev.Type {
-	case event.TypeNodeAdd:
-		var p event.NodeAdd
-		_ = event.DecodePayload(ev, &p)
-		if p.Kind == event.KindExperiment {
-			// The derived records still hold the state before this event.
-			st.RivalsAtAdd[ev.ID] = st.LiveRivals(st.Nodes[p.Parent].Parent, p.Parent)
-		}
-		st.addNode(&Node{ID: ev.ID, Kind: p.Kind, Parent: p.Parent, Title: p.Title, Body: p.Body,
-			Alias: p.Alias, Recipe: p.Recipe, RecipeHash: p.RecipeHash, DecidedBy: p.DecidedBy, Actor: ev.Actor,
-			AddedBy: ev.ID, Targets: p.Targets})
-		if p.Alias != "" {
-			st.Aliases[p.Alias] = ev.ID
-		}
-		if p.Kind == event.KindGoal {
-			st.GoalID = ev.ID
-		}
-		if p.Kind == event.KindDesignQuestion {
-			st.Decisions[ev.ID] = newDecision()
-		}
-	case event.TypeResultRecord:
-		var p event.ResultRecord
-		_ = event.DecodePayload(ev, &p)
-		st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
-			AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
-			EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes})
-		for h := range p.Verdicts {
-			st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
-		}
-	case event.TypeResultRetract:
-		st.Retracted[ev.Node] = true
-	case event.TypeHypothesisAbandon:
-		st.Abandoned[ev.Node] = true
-	case event.TypeHypothesisAmend:
-		var p event.HypothesisAmend
-		_ = event.DecodePayload(ev, &p)
-		n := st.Nodes[ev.Node]
-		n.Body = p.Body
-		if sel := st.Decisions[n.Parent]; sel != nil && sel.Current != "" && sel.Selects[sel.Current].Hyp == ev.Node {
-			sel.onAmend()
-		}
-	case event.TypeDQSelect:
-		var p event.DQSelect
-		_ = event.DecodePayload(ev, &p)
-		sel := st.Decisions[ev.Node]
-		continues := sel.Current != "" && (p.Hypothesis == sel.Selects[sel.Current].Hyp || st.supersedes(p.Hypothesis, sel.Selects[sel.Current].Hyp))
-		sel.onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor, Tradeoff: p.Tradeoff,
-			ScopeChange: p.ScopeChange, Why: ev.Why}, p.PrevSelect, continues)
-	case event.TypeDQUnselect:
-		var p event.DQUnselect
-		_ = event.DecodePayload(ev, &p)
-		st.Decisions[ev.Node].onUnselect(ev.ID, p.PrevSelect)
-	case event.TypeDQDefer:
-		st.Hold[ev.Node] = DQDeferred
-	case event.TypeDQWithdraw:
-		st.Hold[ev.Node] = DQWithdrawn
-	case event.TypeExperimentWithdraw:
-		st.Withdrawn[ev.Node] = true
-	case event.TypeDQResume:
-		st.Hold[ev.Node] = ""
-	case event.TypeConfirm:
-		var p event.Confirm
-		_ = event.DecodePayload(ev, &p)
-		sel := st.Decisions[ev.Node]
-		sel.onConfirm(ev, p, st.dossierItems(ev.Node, sel.Selects[p.Select].Hyp))
-	case event.TypeEdgeAdd:
-		var p event.Edge
-		_ = event.DecodePayload(ev, &p)
-		st.EdgesFrom[ev.Node] = append(st.EdgesFrom[ev.Node], len(st.Edges))
-		st.Edges = append(st.Edges, Edge{ID: ev.ID, From: ev.Node, Type: p.Type, To: p.To, Live: true})
-		if p.Type == event.EdgeSupersedes {
-			st.SupersededN[p.To]++
-		}
-	case event.TypeEdgeRemove:
-		var p event.Edge
-		_ = event.DecodePayload(ev, &p)
-		st.Edges[st.liveEdge(ev.Node, p.Type, p.To)].Live = false
-		if p.Type == event.EdgeSupersedes {
-			st.SupersededN[p.To]--
-		}
-	}
+	rules[ev.Type].apply(st, ev)
 }
 
 func (st *State) addNode(n *Node) {
@@ -225,21 +145,8 @@ func (st *State) supersedes(h, old string) bool {
 
 // basisNodes lists the nodes for which ev is a basis event (spec §7.3).
 func (st *State) basisNodes(ev event.Event) []string {
-	switch ev.Type {
-	case event.TypeResultRecord:
-		var out []string
-		for _, h := range sortedKeys(st.Nodes[ev.ID].Verdicts) {
-			if st.Nodes[ev.ID].Verdicts[h] == event.VerdictSupports {
-				out = append(out, h)
-			}
-		}
-		return out
-	case event.TypeDQSelect, event.TypeReaffirm:
-		return []string{ev.Node}
-	case event.TypeEdgeAdd:
-		if st.Edges[len(st.Edges)-1].Type == event.EdgeDependsOn {
-			return []string{ev.Node}
-		}
+	if basis := rules[ev.Type].basis; basis != nil {
+		return basis(&st.Facts, ev)
 	}
 	return nil
 }
@@ -258,10 +165,10 @@ func (st *State) snapshot(n, eventID string) {
 }
 
 // dependsOn lists n's live depends_on targets in edge-add order.
-func (st *State) dependsOn(n string) []string {
+func (f *Facts) dependsOn(n string) []string {
 	var out []string
-	for _, i := range st.EdgesFrom[n] {
-		if e := st.Edges[i]; e.Live && e.Type == event.EdgeDependsOn {
+	for _, i := range f.EdgesFrom[n] {
+		if e := f.Edges[i]; e.Live && e.Type == event.EdgeDependsOn {
 			out = append(out, e.To)
 		}
 	}

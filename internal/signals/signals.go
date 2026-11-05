@@ -156,15 +156,9 @@ func Compute(evs []event.Event) Report {
 
 	full := st.Projection()
 	nodes := full.Nodes
-	retracted := map[string]bool{}
-	for _, ev := range full.Applied {
-		if ev.Type == event.TypeResultRetract {
-			retracted[ev.Node] = true
-		}
-	}
 	var results []result
 	for _, x := range recs {
-		if !retracted[x.node] {
+		if full.Results[x.node].Status != replay.ResRetracted {
 			x.round.Results = append(x.round.Results, x.res)
 			results = append(results, x.spin)
 		}
