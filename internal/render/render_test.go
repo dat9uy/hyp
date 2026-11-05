@@ -803,6 +803,24 @@ func TestShowListsTheDossier(t *testing.T) {
 	}
 }
 
+func TestShowNamesAContradictsOnARivalAsChangedSinceTheVerifier(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	b.Supports(h1)
+	b.Supports(h2)
+	sel := b.As("a").Select(q, h1, "", false)
+	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	r := b.As("a").Contradicts(h2)
+	p := replay.Replay(b.Evs, nil, "")
+	show := Show(p, q, []string{g})
+	want := "changed since v: +" + event.DisplayID(p.Nodes[r].Kind, r)
+	if !strings.Contains(show, want) {
+		t.Fatalf("missing %q in:\n%s", want, show)
+	}
+}
+
 func TestShowPrintsWhatChangedSinceALapsedConfirm(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")

@@ -121,7 +121,7 @@ The role that confirms every select, independently of the actor who made it: a v
 _Avoid_: reviewer, checker
 
 **Owner**:
-The person who decides trade-offs, and the confirm role they act in. An owner confirm is required when the current select is a trade-off or a scope change, or when the question has two or more trade-off candidates now ([spec §7.4](replay-spec.md#74-designquestion-state)), and only an owner confirm accepts limits. In code: `event.RoleOwner`.
+The person who decides trade-offs, and the confirm role they act in. An owner confirm is required when the current select is a trade-off or a scope change, or when the question has two or more trade-off candidates now: live child Hypotheses that their verdicts alone give `supported`, whether or not they are stale or have an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). Only an owner confirm accepts limits. In code: `event.RoleOwner`.
 _Avoid_: user, stakeholder, approver
 
 **Limit**:

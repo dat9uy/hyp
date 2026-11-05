@@ -327,13 +327,13 @@ func (st *State) LiveRivals(q, except string) []string {
 }
 
 // candidates lists the trade-off candidates of DesignQuestion q (spec §7.4):
-// live child Hypotheses that are supported and not stale. They are the
-// Suggested set, and two or more of them require the owner (ownerRequired).
-// status and stale read the derivation in progress or the last one.
-func (st *State) candidates(q string, status func(string) string, stale func(string) bool) []string {
+// live child Hypotheses that rule 3 of §7.1 gives supported. It reads only
+// facts the Dossier lists, so the owner requirement changes only when the
+// Dossier does.
+func (st *State) candidates(q string) []string {
 	var out []string
 	for _, c := range st.Nodes[q].Children {
-		if st.isLiveHyp(c) && status(c) == HypSupported && !stale(c) {
+		if st.isLiveHyp(c) && st.verdictStatus(c, "") == HypSupported {
 			out = append(out, c)
 		}
 	}
@@ -558,13 +558,17 @@ func (d *derivation) dqState(id string) NodeStatus {
 			live = append(live, c)
 		}
 	}
-	ns.Suggested = st.candidates(id, d.hypStatus, func(c string) bool { return d.staleOf(c) != nil })
+	candidates := st.candidates(id)
+	ns.Suggested = candidates
+	if len(candidates) == 1 && (d.hypStatus(candidates[0]) != HypSupported || d.staleOf(candidates[0]) != nil) {
+		ns.Suggested = nil
+	}
 	if ns.Status == DQDeferred {
 		d.dq[id] = ns
 		return ns
 	}
 
-	reason := d.reason(id, live, ns.Suggested, ns.Stale != nil)
+	reason := d.reason(id, live, candidates, ns.Stale != nil)
 	if reason == "" {
 		ns.Status = DQAnswered
 		d.dq[id] = ns

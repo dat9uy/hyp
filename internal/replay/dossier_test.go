@@ -149,13 +149,13 @@ func TestDecidingNeedsASupports(t *testing.T) {
 	}
 }
 
-func TestDecidingFollowsRuleFourOfHypothesisStatus(t *testing.T) {
+func TestDecidingIgnoresARivalsOpenSubquestion(t *testing.T) {
 	b, q, _, h2, _ := selectedDossier()
 	b.Supports(h2)
-	b.Contradicts(h2)
-	b.DQ(h2, "open child") // without the contradicts it would await this, not be supported
-	if got := replayB(b).Decisions[q].Dossier.Deciding[h2]; len(got) != 0 {
-		t.Fatalf("a rival awaiting a sub-question is marked: %v", got)
+	r := b.Contradicts(h2)
+	b.DQ(h2, "open child")
+	if got := replayB(b).Decisions[q].Dossier.Deciding[h2]; !slices.Equal(got, []string{r}) {
+		t.Fatalf("Deciding[h2] = %v, want [%s]", got, r)
 	}
 }
 
