@@ -39,14 +39,14 @@ A node, `Q-`, under the Goal or a Hypothesis, that asks one design question; its
 _Avoid_: issue, decision; withdrawn for an Experiment (see Experiment status)
 
 **Sub-question**:
-A DesignQuestion whose parent is a Hypothesis, asked because it only matters if that Hypothesis holds. While it is not withdrawn and not answered, deferred included, it keeps a supported parent at `awaiting_subquestions` ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)), so a selected parent cannot answer its question. That is its only effect on the parent: a Result under it judges its own Hypotheses, its answer gives the parent no support, and the Dossier does not list it. It blocks the Goal only through this rule ([spec §7.5](replay-spec.md#75-goal)).
+A DesignQuestion whose parent is a Hypothesis, asked because it only matters if that Hypothesis holds. It is an obligation: while it is not withdrawn and not answered, deferred included, the question that selected its parent cannot be answered, and reads `awaiting_subquestions` ([spec §7.4](replay-spec.md#74-designquestion-state)). **[not built: #51]** Any answer discharges it and withdrawing it releases it, whichever way it was going. That is its only effect on the parent: the parent's status does not change, a Result under it judges its own Hypotheses, its answer gives the parent no support, and the Dossier does not list it. It blocks the Goal only through this rule ([spec §7.5](replay-spec.md#75-goal)). A claim that rests on an answer is a premise, and a premise is `depends_on`.
 
 **Hypothesis**:
 A node, `H-`, under a DesignQuestion, that states one candidate answer as a claim an Experiment can test. Its status comes from the verdicts of non-retracted Results, or from a supersedes edge or an abandon ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)).
 _Avoid_: option, idea, solution
 
 **Frontier**:
-The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred question that keeps its printed Hypothesis at `awaiting_subquestions` also prints. Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
+The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred sub-question that a printed supported Hypothesis still owes also prints. **[not built: #51]** Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
@@ -103,7 +103,7 @@ A live Hypothesis or DesignQuestion whose basis may no longer hold: a `depends_o
 _Avoid_: outdated, questionable (that is about recipe hashes)
 
 **Candidate**:
-A live child Hypothesis of a DesignQuestion whose verdicts alone give it `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. In code: `replay.Question.Candidates`.
+A live child Hypothesis of a DesignQuestion whose status is `supported`, whether or not it is stale or has an open sub-question **[not built: #51]** ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. In code: `replay.Question.Candidates`.
 _Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for a lone ready candidate), rival (a rival need not be supported)
 
 **Trade-off**:
