@@ -1,4 +1,4 @@
-// Package cmdrecord owns the command record, command.json (spec §9.4): the
+// Package cmdrecord owns the command record, command.json (sandbox spec §5.1): the
 // recipe that ran, each command hyp ran, and the known answers that ran
 // before them. sandbox writes it; containment reads it. It is a leaf
 // package, so both can import it.
@@ -18,7 +18,7 @@ import (
 const Format = 4
 
 // Run is one command hyp ran, a row of the sandbox record or of a command
-// record (docs/replay-spec.md §9.4). Exit is set when the script exited,
+// record (docs/sandbox-spec.md §5.1). Exit is set when the script exited,
 // Error when it did not: it timed out, a signal killed it, or it did not
 // start. Args is the command as hyp ran it, its script shown as ./PATH
 // inside the bundle. Label names a Standalone command. PGID is the process
@@ -82,7 +82,7 @@ func (k *KnownAnswers) Passed() bool {
 	return true
 }
 
-// Record is command.json (spec §9.4): the recipe that ran, from a copy with
+// Record is command.json (sandbox spec §5.1): the recipe that ran, from a copy with
 // this hash, and each command with its arguments and exit code. Its output
 // is command.log beside it.
 type Record struct {

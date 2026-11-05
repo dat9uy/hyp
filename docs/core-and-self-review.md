@@ -47,7 +47,7 @@ When a question needs an instrument, it is a recipe with known answers, pinned b
 
 ## Core
 
-Every item is core: `cmd/`, `internal/`, `go.mod`, `go.sum`, the two skills, and the docs in this directory. The test data under `internal/*/testdata` is core too: synthetic stores and bundles written by the current hyp for its own tests, such as the store in `internal/testutil/testdata/synth` and its `generate.sh`.
+Every item is core: `cmd/`, `internal/`, `go.mod`, `go.sum`, the two skills, and the docs in this directory, the specs [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md) among them. The test data under `internal/*/testdata` is core too: synthetic stores and bundles written by the current hyp for its own tests, such as the store in `internal/testutil/testdata/synth` and its `generate.sh`.
 
 A new tree under `investigations/` that asks about hyp takes its question's scope, as the test above says. A tree that asks about a self-review recipe itself is the special case under rule 3, and its reason is instrument trust.
 
@@ -72,7 +72,7 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 **Self-review text inside core docs.** The core part of each passage is the general rule; the self-review part is session-replay's versions and history.
 
 - `skills/hyp-verification/RECIPE-FORMAT.md`: the examples that name scratch-pg teach core rules with a recipe this repository no longer keeps, which is a choice of example rather than a split. The stacking example names a generic `harness@1`.
-- [replay-spec.md](replay-spec.md) §9.5 records choices made in design trees that are core-scope, so that is ordinary provenance.
+- [sandbox-spec.md](sandbox-spec.md) §5.2 records choices made in design trees that are core-scope, so that is ordinary provenance.
 - [loop-philosophy.md](loop-philosophy.md), "Guard the loop while it runs, not before", describes the tripwire that stops a run; the session-replay recipe whose `tripwire.py` built it stays in the private development history.
 
 Skill text reaches replayed runs, so moving a passage out of the skills is its own change, gated as [loop-philosophy.md](loop-philosophy.md) describes. A change that only makes the text agree with an owner decision ships without a replay. This page is the owner decision such a change can cite.
