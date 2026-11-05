@@ -61,8 +61,8 @@ func TestScenario01SupportedUnselected(t *testing.T) {
 	wantNoRejections(t, p)
 	wantStatus(t, p, h1, HypSupported, "")
 	wantStatus(t, p, q, DQOpen, ReasonSupportedUnsel)
-	if !reflect.DeepEqual(p.Status[q].Suggested, []string{h1}) {
-		t.Fatalf("suggested = %v, want [%s]", p.Status[q].Suggested, h1)
+	if !reflect.DeepEqual(p.Status[q].Candidates, []string{h1}) {
+		t.Fatalf("candidates = %v, want [%s]", p.Status[q].Candidates, h1)
 	}
 }
 
@@ -92,8 +92,8 @@ func TestScenario03OwnerGateOnTwoSupported(t *testing.T) {
 	b.Supports(h1)
 	b.Supports(h2)
 	p := replayB(b)
-	if len(p.Status[q].Suggested) != 2 {
-		t.Fatalf("suggested = %v, want both candidates (trade-off)", p.Status[q].Suggested)
+	if len(p.Status[q].Candidates) != 2 {
+		t.Fatalf("candidates = %v, want both candidates (trade-off)", p.Status[q].Candidates)
 	}
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
@@ -218,8 +218,8 @@ func TestScenario06SupersedeSelected(t *testing.T) {
 
 	b.Supports(h1b)
 	p = replayB(b)
-	if !reflect.DeepEqual(p.Status[q].Suggested, []string{h1b}) {
-		t.Fatalf("suggested = %v, want [%s]", p.Status[q].Suggested, h1b)
+	if !reflect.DeepEqual(p.Status[q].Candidates, []string{h1b}) {
+		t.Fatalf("candidates = %v, want [%s]", p.Status[q].Candidates, h1b)
 	}
 }
 
@@ -903,8 +903,8 @@ func TestStaleSupportedSiblingRequiresOwner(t *testing.T) {
 	if p.Status[h2].Stale == nil {
 		t.Fatalf("h2 is not stale; the test needs a stale supported sibling")
 	}
-	if !reflect.DeepEqual(p.Status[q].Suggested, []string{h1, h2}) {
-		t.Fatalf("suggested = %v, want [%s %s]", p.Status[q].Suggested, h1, h2)
+	if !reflect.DeepEqual(p.Status[q].Candidates, []string{h1, h2}) {
+		t.Fatalf("candidates = %v, want [%s %s]", p.Status[q].Candidates, h1, h2)
 	}
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
@@ -983,8 +983,8 @@ func TestSubquestionBeforeTheSelectStillRequiresOwner(t *testing.T) {
 	b.Supports(h1)
 	b.Supports(h2)
 	b.DQ(h2, "sub")
-	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h1, h2}) {
-		t.Fatalf("suggested = %v, want [%s %s]", got, h1, h2)
+	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
+		t.Fatalf("candidates = %v, want [%s %s]", got, h1, h2)
 	}
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
@@ -1017,7 +1017,7 @@ func TestAbandoningRivalWithFallenPremiseAnswersOnAFreshVerifier(t *testing.T) {
 	wantStatus(t, p, q, DQAnswered, "")
 }
 
-func TestLoneCandidateIsSuggestedOnlyWhenReady(t *testing.T) {
+func TestLoneCandidateStaysACandidateWhenNotReady(t *testing.T) {
 	build := func() (b *testutil.B, q, h, tgt string) {
 		b = testutil.New()
 		g := b.Goal("g")
@@ -1029,32 +1029,31 @@ func TestLoneCandidateIsSuggestedOnlyWhenReady(t *testing.T) {
 		b.Supports(h)
 		return b, q, h, tgt
 	}
-	b, q, h, _ := build()
-	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h}) {
-		t.Fatalf("ready: suggested = %v, want [%s]", got, h)
+	b, q, h, tgt := build()
+	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
+		t.Fatalf("ready: candidates = %v, want [%s]", got, h)
 	}
-	b, q, _, tgt := build()
 	b.Contradicts(tgt)
-	if got := replayB(b).Status[q].Suggested; len(got) != 0 {
-		t.Fatalf("stale: suggested = %v, want none", got)
+	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
+		t.Fatalf("stale: candidates = %v, want [%s]", got, h)
 	}
 	b, q, h, _ = build()
 	b.DQ(h, "sub")
-	if got := replayB(b).Status[q].Suggested; len(got) != 0 {
-		t.Fatalf("waiting: suggested = %v, want none", got)
+	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
+		t.Fatalf("waiting: candidates = %v, want [%s]", got, h)
 	}
 }
 
 func TestTwoCandidatesWithOneNotReadyStayATradeoff(t *testing.T) {
 	b, q, h1, h2, tgt, _ := awaitingOwner(t)
 	b.As("a").Contradicts(tgt)
-	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h1, h2}) {
-		t.Fatalf("one stale: suggested = %v, want both", got)
+	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
+		t.Fatalf("one stale: candidates = %v, want both", got)
 	}
 	b, q, h1, h2, _, _ = awaitingOwner(t)
 	b.As("a").DQ(h2, "sub")
-	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h1, h2}) {
-		t.Fatalf("one waiting: suggested = %v, want both", got)
+	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
+		t.Fatalf("one waiting: candidates = %v, want both", got)
 	}
 }
 

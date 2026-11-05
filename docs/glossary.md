@@ -96,9 +96,16 @@ _Avoid_: stale (that is the dependency rule), invalid
 A live Hypothesis or DesignQuestion whose basis may no longer hold: a `depends_on` target is not supported, is stale itself, or changed since the basis event ([spec §7.3](replay-spec.md#73-stale-snapshot-rule-the-minimal-form-of-truth-maintenance)). It is shown as a cause chain, such as `H-5 stale ← H-3 contradicted ← R-9`. In code: `replay.StaleCause`.
 _Avoid_: outdated, questionable (that is about recipe hashes)
 
+**Candidate**:
+A live child Hypothesis of a DesignQuestion whose verdicts alone give it `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. In code: `replay.NodeStatus.Candidates`.
+_Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for a lone ready candidate), rival (a rival need not be supported)
+
+**Trade-off**:
+A DesignQuestion with two or more candidates now, or a select written with `--tradeoff`. Either one requires the owner ([spec §7.4](replay-spec.md#74-designquestion-state)). On a `--tradeoff` select, the verifier also treats a supported rival as left on purpose.
+
 **Select**:
-The `dq.select` event that picks one Hypothesis as a DesignQuestion's answer; the verifier, and on a trade-off the owner, then confirm it ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: the question's `replay.Decision`.
-_Avoid_: choose, accept, decide (alone)
+The `dq.select` event that records one Hypothesis as a DesignQuestion's answer. It is written by whoever runs the tree, never in the owner's role. A verifier confirm must then count on it, and an owner confirm too when the owner is required ([spec §7.4](replay-spec.md#74-designquestion-state)). On a trade-off the owner chooses first (see Owner). In code: the question's `replay.Decision`.
+_Avoid_: pick, choose (the owner chooses; the select records it), accept, decide (alone)
 
 **Confirm**:
 The `confirm` event in which the verifier or the owner judges a select `sufficient` or `insufficient` ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §7.4](replay-spec.md#74-designquestion-state)). An owner confirm may also accept limits.
@@ -121,8 +128,13 @@ The role that confirms every select, independently of the actor who made it: a v
 _Avoid_: reviewer, checker
 
 **Owner**:
-The person who decides trade-offs, and the confirm role they act in. An owner confirm is required when the current select is a trade-off or a scope change, or when the question has two or more trade-off candidates now: live child Hypotheses that their verdicts alone give `supported`, whether or not they are stale or have an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). Only an owner confirm accepts limits. In code: `event.RoleOwner`.
-_Avoid_: user, stakeholder, approver
+The person hyp asks to act on a trade-off, and the confirm role they act in. They act twice, in order:
+
+1. **Choose.** Before the select, the owner chooses between the candidates. This is a procedure with no event: whoever runs the tree records the choice as the select, with `--tradeoff` and the owner's words in `--why`. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, the flag can be set without asking the owner, and no rule reads `--why`. So a question can reach `answered` without this step.
+2. **Confirm.** After the verifier's sufficient confirm, the owner confirms the select. This is the only owner act replay reads, and a question that requires the owner cannot reach `answered` without it. It comes after the choice because it judges the evidence as the verifier left it, it lapses when the Dossier changes, and only it accepts limits.
+
+An owner confirm is required when the current select is a trade-off or a scope change, or when the question has two or more candidates now ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: `event.RoleOwner`; the requirement is `ownerRequired` in `replay`.
+_Avoid_: user, stakeholder, approver, pick, decide (alone)
 
 **Limit**:
 A limit of the tested design that a Result found but did not test or fix, keyed `<result-id>#<n>`. It is open until a later Result closes it or an owner confirm on the current select accepts it, and an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). In code: `replay.Limit`.

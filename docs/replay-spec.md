@@ -137,11 +137,11 @@ Stop after the event whose id equals `asOf`, when `asOf` is not empty.
 1. `superseded`: a live `supersedes` edge points at it.
 2. `abandoned`: it has an applied `hypothesis.abandon`.
 3. Collect the verdicts for this Hypothesis from all **non-retracted** Results. No verdicts gives `proposed`. Any `contradicts` gives `contradicted`. Otherwise any `supports` gives `supported`. Otherwise it is `inconclusive`.
-4. **[added]** If rule 3 gave `supported` and any sub-question that is not withdrawn is not `answered` (deferred children still block), the status is `awaiting_subquestions`. Everywhere this spec says `supported`, it means exactly `supported`, never `awaiting_subquestions`. The one exception is the trade-off candidates of §7.4, which read rule 3.
+4. **[added]** If rule 3 gave `supported` and any sub-question that is not withdrawn is not `answered` (deferred children still block), the status is `awaiting_subquestions`. Everywhere this spec says `supported`, it means exactly `supported`, never `awaiting_subquestions`. The one exception is the candidates of §7.4, which read rule 3.
 
 A Hypothesis is **live** unless it is `superseded` or `abandoned`. A DQ is live unless it is withdrawn.
 
-A Hypothesis is a **live rival** when it is live and not `contradicted`. The untargeted-rival refusal (§5.1), the one-rival and D1 signals count live rivals. Staleness (§7.3) and the trade-off candidates (§7.4) count live Hypotheses, contradicted ones included.
+A Hypothesis is a **live rival** when it is live and not `contradicted`. The untargeted-rival refusal (§5.1), the one-rival and D1 signals count live rivals. Staleness (§7.3) and the candidates (§7.4) count live Hypotheses, contradicted ones included.
 
 ### 7.2 Combined status graph (for cycle refusal)
 
@@ -171,7 +171,7 @@ One record, the question's `Decision`, owns everything below except the hold sta
 Selection is the current selection id (`""` when there is none) plus a conflict set:
 - Applying `dq.select` or `dq.unselect` whose `prev_select` ≠ the current selection id adds both ids to the conflict set. The event still applies; the last one in merge order becomes current.
 - A later select or unselect whose `prev_select` equals the current id clears the conflict set.
-- The **owner requirement** is derived from the current state and stored nowhere: the question has two or more trade-off candidates now, or the current select's `tradeoff` or `scope_change` is true. A **trade-off candidate** is a live child Hypothesis whose status by rule 3 of §7.1 is `supported`; neither stale nor an open sub-question removes it. Candidates read only what the Dossier lists, so the requirement changes only when the Dossier does, and then the Confirms lapse (ADR 0011).
+- The **owner requirement** is derived from the current state and stored nowhere: the question has two or more candidates now, or the current select's `tradeoff` or `scope_change` is true. A **candidate** is a live child Hypothesis whose status by rule 3 of §7.1 is `supported`; neither stale nor an open sub-question removes it. Candidates read only what the Dossier lists, so the requirement changes only when the Dossier does, and then the Confirms lapse (ADR 0011). This is one requirement, and the owner confirm is the only owner act replay reads. The owner's choice between candidates is a procedure with no event: whoever runs the tree records it as the select. The select holds what was chosen, not who chose it: its actor is whoever wrote it, and no rule reads its `why`.
 
 Dossier: the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. `hyp show <Q>` lists it under `dossier:`.
 
@@ -183,11 +183,11 @@ The state is decided by the first matching rule:
 1. `withdrawn`, then `deferred` (from the hold state).
 2. `answered` when all of these hold: the conflict set is empty; there is a current selection; the selected Hypothesis is `supported` and not stale; the DQ itself is not stale; the verifier confirm that counts on the current select is `sufficient`; and, if the owner requirement holds, the owner confirm that counts on it is `sufficient`.
 3. Otherwise the state is `reopened` if `everAnswered`, else `open`. The reason is the first that holds:
-   `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `verifier_insufficient` (the verifier confirm that counts on the current select is `insufficient`), `awaiting_verifier` (no verifier confirm counts on it), `awaiting_owner`, `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
+   `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `verifier_insufficient` (the verifier confirm that counts on the current select is `insufficient`), `awaiting_verifier` (no verifier confirm counts on it), `awaiting_owner` (the owner requirement holds and the owner confirm that counts, if any, is not `sufficient`), `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
 
 The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads, holds the insufficient verifier verdicts in a row on the current select. A sufficient verdict, an unselect, a select that does not continue the current one (the same Hypothesis or one that supersedes it) and a `hypothesis.amend` of the selected Hypothesis clear it, so verdicts on an old body never count towards a loop. The signal fires at two or more.
 
-**Suggested candidate:** with two or more trade-off candidates, report "trade-off: owner decides" and list them. With exactly one, suggest it when its status is exactly `supported` and it is not stale; otherwise suggest none.
+**Suggestion:** `hyp select Q` with no Hypothesis reads the candidates. With two or more, it prints "trade-off: owner decides" and lists them. With exactly one, it suggests that one when its status is exactly `supported` and it is not stale; otherwise it suggests none.
 
 ### 7.5 Goal
 
@@ -269,7 +269,7 @@ type NodeStatus struct {
     Status     string      // hypothesis status, DQ state, experiment status (§7.6), result recorded/retracted, goal state
     Reason     string      // DQ open/reopened reason; "" otherwise
     Stale      *StaleCause // nil when not stale
-    Suggested  []string    // DQ only: its trade-off candidates, or none when a lone one is not ready (§7.4)
+    Candidates []string    // DQ only: its candidates (§7.4)
 }
 type StaleCause struct { Node, Reason string; Next *StaleCause }
 type Edge struct { ID, From, Type, To string; Live bool } // ID is the edge.add event's id

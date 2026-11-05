@@ -25,10 +25,10 @@ type Projection struct {
 
 // NodeStatus is the derived state of one node.
 type NodeStatus struct {
-	Status    string      // hypothesis status, DQ state, experiment planned/run/superseded/withdrawn, result recorded/retracted, goal state
-	Reason    string      // DQ open/reopened reason; "" otherwise
-	Stale     *StaleCause // nil when not stale
-	Suggested []string    // DQ only: its trade-off candidates, or none when a lone one is not ready (spec §7.4)
+	Status     string      // hypothesis status, DQ state, experiment planned/run/superseded/withdrawn, result recorded/retracted, goal state
+	Reason     string      // DQ open/reopened reason; "" otherwise
+	Stale      *StaleCause // nil when not stale
+	Candidates []string    // DQ only: its candidates (spec §7.4)
 }
 
 // StaleCause is one link of a stale chain such as H-5 ← H-3 contradicted ← R-9.

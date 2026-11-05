@@ -153,7 +153,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
   Show them `hyp show <Q-id>` and the rivals' `hyp show` output.
   - `Q-… trade-off: H-…, H-…` means two or more candidates are supported
     and the owner must choose; it appears before any trade-off select.
-    Record the owner's pick as
+    Record the owner's choice as
     `hyp select <Q-id> <H-id> --tradeoff --why "<the owner's words>"`.
     The line then leaves AWAITING OWNER and FRONTIER shows
     `trade-off decided: H-… over H-…` under the question. Start the

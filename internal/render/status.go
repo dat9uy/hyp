@@ -68,18 +68,14 @@ func Status(p replay.Projection, maxLines int) string {
 		if ns.Reason == replay.ReasonVerifierInsufficient {
 			add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
 		}
-		if pick := tradeoffPick(p, dq); pick != "" {
+		if chosen := chosenCandidate(p, dq); chosen != "" {
 			var rivals []string
-			for _, h := range ns.Suggested {
-				if h != pick {
+			for _, h := range ns.Candidates {
+				if h != chosen {
 					rivals = append(rivals, h)
 				}
 			}
-			over := ""
-			if len(rivals) > 0 {
-				over = " over " + r.ids(rivals)
-			}
-			add(kKeep, "%s  trade-off decided: %s%s", indent, r.id(pick), over)
+			add(kKeep, "%s  trade-off decided: %s over %s", indent, r.id(chosen), r.ids(rivals))
 		}
 	}
 	printHypothesis := func(h, indent string, kind int) {
@@ -186,9 +182,9 @@ func Status(p replay.Projection, maxLines int) string {
 		if ns.Reason == replay.ReasonAwaitingOwner {
 			add(kKeep, "  %s awaiting_owner: %s", r.id(ev.ID), r.id(SelectedHyp(p, ev.ID)))
 		}
-		if len(ns.Suggested) >= 2 && ns.Status != replay.DQAnswered && ns.Status != replay.DQWithdrawn &&
-			tradeoffPick(p, ev.ID) == "" {
-			add(kKeep, "  %s trade-off: %s", r.id(ev.ID), r.ids(ns.Suggested))
+		if len(ns.Candidates) >= 2 && ns.Status != replay.DQAnswered && ns.Status != replay.DQWithdrawn &&
+			chosenCandidate(p, ev.ID) == "" {
+			add(kKeep, "  %s trade-off: %s", r.id(ev.ID), r.ids(ns.Candidates))
 		}
 	}
 
@@ -361,10 +357,12 @@ func SelectKind(rec replay.SelectRec) string {
 	return strings.Join(kinds, ", ")
 }
 
-// tradeoffPick returns the Hypothesis of the DQ's current select when that
-// select is a trade-off and its pick is still suggested ("" otherwise).
-func tradeoffPick(p replay.Projection, dq string) string {
-	if rec, ok := p.CurrentSelect(dq); ok && rec.Tradeoff && slices.Contains(p.Status[dq].Suggested, rec.Hyp) {
+// chosenCandidate returns the Hypothesis of the DQ's current select when that
+// select records the owner's choice: it has --tradeoff and its Hypothesis is
+// one of two or more candidates ("" otherwise).
+func chosenCandidate(p replay.Projection, dq string) string {
+	cands := p.Status[dq].Candidates
+	if rec, ok := p.CurrentSelect(dq); ok && rec.Tradeoff && len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
 		return rec.Hyp
 	}
 	return ""
