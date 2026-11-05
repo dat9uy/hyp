@@ -6,7 +6,7 @@ This file is for any agent or person who changes hyp. It says how the repository
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores an investigation as append-only events under `.tree/` and derives every status from them.
 - **Two skills**: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses) and `skills/hyp-verification` (run one Experiment from a recipe).
-- **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md) and [sandbox-spec.md](docs/sandbox-spec.md), the words in [glossary.md](docs/glossary.md), the loop's guards in [loop-philosophy.md](docs/loop-philosophy.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
+- **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md) and [sandbox-spec.md](docs/sandbox-spec.md), the words in [glossary.md](docs/glossary.md), the loop's guards in [loop-philosophy.md](docs/loop-philosophy.md), what a verifier's confirm proves in [verifier-trust.md](docs/verifier-trust.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
 - **Test data** under `internal/*/testdata`, such as the synthetic store in `internal/testutil/testdata/synth`. The recipes and trees kept to test hyp are `recipes/id-citation-arms@1` and `@2` with `investigations/id-citation` (whose Arm patches are in its `arms/`), `recipes/recipe-base-arms@1` with `investigations/recipe-base`, and the recipes `recipes/authoring-stops@2`, `recipes/recipe-authoring-arms@4`, `recipes/skill-text-arms@3` and `@4`, `recipes/verifier-brief-arms@1`, whose trees are not published. Records made before the public release stay in the private development history.
 
 Install the binary and link the skills as [install.md](docs/install.md) describes.
