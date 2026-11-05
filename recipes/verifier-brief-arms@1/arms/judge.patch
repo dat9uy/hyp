@@ -1,0 +1,12 @@
+diff --git a/skills/hyp-prototype/VERIFIER.md b/skills/hyp-prototype/VERIFIER.md
+index 7250b84..066d08a 100644
+--- a/skills/hyp-prototype/VERIFIER.md
++++ b/skills/hyp-prototype/VERIFIER.md
+@@ -64,6 +64,7 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
+ 
+      A sufficient verdict hands the select to the owner confirm, which hyp
+      requires after every trade-off select.
++   - For each `contradicts` on a rival, ask whether the evidence shows the hypothesis failing as written or only something the experiment added; if only the latter, the verdict is insufficient and its why names the Result.
+    - For each Result line hyp marks (`questionable:` or `uncontained:`):
+      does the verdict rest on what the mark names? If it does, the verdict
+      is insufficient, and its why names the mark.

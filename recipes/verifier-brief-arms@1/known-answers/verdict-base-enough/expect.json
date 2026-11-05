@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["$CASE/input/s00.tsv", "$CASE/input/s01.tsv", "$CASE/input/s02.tsv", "$CASE/input/s03.tsv", "$CASE/input/s04.tsv"], "exit": 0, "stdout": "base: k=2/5 opened=5/5 control_flagged=0/5\nverdict: h-base-enough=supports\nverdict: h-judge=inconclusive\nverdict: h-open-all=inconclusive\nverdict: h-neither=contradicts\nships: none\n"}
