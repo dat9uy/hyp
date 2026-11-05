@@ -1,0 +1,12 @@
+arm	session
+trial	1
+void	0
+confirm_verdict	insufficient
+caught	1
+answer_deciding	wrong
+answer_lone	wrong
+answer_loader	wrong
+opened_deciding	1
+opened_lone	1
+opened_loader	1
+false_alarm	1

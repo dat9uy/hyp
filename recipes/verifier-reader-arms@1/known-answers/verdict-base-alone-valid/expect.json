@@ -1,0 +1,1 @@
+{"step": "standalone", "command": "verdict", "args": ["$CASE/input/s00.tsv", "$CASE/input/s01.tsv", "$CASE/input/s02.tsv", "$CASE/input/s03.tsv", "$CASE/input/s04.tsv"], "exit": 0, "stdout": "base\t2\t2\t2\t2\t0\t5\ncut: valid\nverdict: h-null=contradicts\n"}

@@ -1,0 +1,2 @@
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t0", "name": "Bash", "input": {"command": "hyp show R-CT1F2H && for h in H-WN39AD H-OTHER; do hyp show $h; done"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t0", "content": "synthetic"}]}}

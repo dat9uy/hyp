@@ -1,0 +1,27 @@
+diff --git a/skills/hyp-prototype/VERIFIER.md b/skills/hyp-prototype/VERIFIER.md
+index 7250b84..3faf415 100644
+--- a/skills/hyp-prototype/VERIFIER.md
++++ b/skills/hyp-prototype/VERIFIER.md
+@@ -41,7 +41,12 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
+    supersedes; judge whether its text answers what they found.
+ 3. Open every evidence pointer those Results list: files under
+    `.tree/evidence/` or `recipes/`, or URLs.
+-4. Judge the selection by its kind:
++4. For each `contradicts` under `dossier:`, run `hyp show` on the Hypothesis
++   the verdict names. Write three lines before judging it: what that Hypothesis
++   prescribes, what the run used, and whether they are the same. If the failure
++   came from something the Hypothesis does not prescribe, the verdict does not
++   hold.
++5. Judge the selection by its kind:
+    - **Plain select** (no kind shown), or `(scope-change)` alone:
+      - Does the evidence demonstrate the hypothesis within the scope its
+        title and the question state, not merely something nearby?
+@@ -78,7 +83,7 @@ You are verifying design question `<Q-id>` in the hyp tree of this repository.
+      a case printing `supports` and a case printing `contradicts`, and does
+      `hyp recipe check` print no verdict warning for it? If not, the
+      verdict is insufficient, and its why names the missing case.
+-5. Record your judgement, once, under your own actor name:
++6. Record your judgement, once, under your own actor name:
+    `hyp confirm <Q-id> --role verifier --verdict sufficient --actor verifier-<topic>-1 --why "<reason, at most 300 characters>"`
+    or the same with `--verdict insufficient`, where the `--why` states what evidence would make the selection sufficient. For a trade-off select, never ask for a rival to be excluded; ask only for evidence on the two questions above. The next agent reads it as its to-do list; `hyp status` shows it under the question as `verifier_insufficient`. When the to-do is done, that agent starts a new verifier.
+ 

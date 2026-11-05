@@ -1,0 +1,14 @@
+{
+ "verifier": {
+  "exit": 0,
+  "timed_out": false,
+  "subtype": "success"
+ },
+ "followup": {
+  "exit": null,
+  "timed_out": true,
+  "subtype": null,
+  "result": null
+ },
+ "cost_usd": 0.5
+}

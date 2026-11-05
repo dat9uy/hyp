@@ -1,0 +1,25 @@
+{
+ "verifier": {
+  "exit": null,
+  "timed_out": false,
+  "subtype": null
+ },
+ "followup": {
+  "exit": null,
+  "timed_out": false,
+  "subtype": null,
+  "result": null
+ },
+ "cost_usd": 0.5,
+ "readers": [
+  {
+   "result": "R-CT1F2H",
+   "exit": 0,
+   "timed_out": false,
+   "subtype": "success",
+   "failed": false,
+   "answered": false
+  }
+ ],
+ "readers_failed": 0
+}

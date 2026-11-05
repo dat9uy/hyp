@@ -1,0 +1,1 @@
+Do not use any tool. Answer only from what you read before your confirm, including any reader report you read. For every verdict under `dossier:`, print one line: `<R-id> <H-id> holds` if its evidence shows that verdict as written, `<R-id> <H-id> wrong` if it does not, or `<R-id> <H-id> not-opened` if neither you nor a report you read covered its evidence.

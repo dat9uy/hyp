@@ -1,0 +1,12 @@
+arm	audit
+trial	3
+void	0
+confirm_verdict	sufficient
+caught	0
+answer_deciding	holds
+answer_lone	holds
+answer_loader	holds
+opened_deciding	1
+opened_lone	1
+opened_loader	1
+false_alarm	0

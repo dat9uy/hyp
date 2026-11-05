@@ -12,4 +12,4 @@ The threat is a lazy or skimming agent, not a malicious one.
 | Unchecked work blocks `answered` | Yes (spec §7.4) | Provided for lapsed confirms only |
 | Later re-check | Partly | `.tree/evidence` files are not hashed |
 
-#26 tracks how to close the evidence-was-touched gap. A recorded check was tested and abandoned, so the fix moves to agent procedure.
+#63 tracks how to close the evidence-was-touched gap. A recorded check was tested and abandoned, so the fix moves to agent procedure.

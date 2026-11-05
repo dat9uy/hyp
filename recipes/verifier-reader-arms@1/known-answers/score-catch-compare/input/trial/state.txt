@@ -1,0 +1,3 @@
+arm=compare
+trial=2
+model=sonnet

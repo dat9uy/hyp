@@ -1,0 +1,129 @@
+2026-09-14T10:04:55Z start: webhook delivery run, 500 deliveries
+2026-09-14T10:04:59Z delivery d-0001 attempt=1 status=200 latency_ms=23
+2026-09-14T10:05:00Z delivery d-0005 attempt=1 status=200 latency_ms=172
+2026-09-14T10:05:03Z delivery d-0009 attempt=1 status=200 latency_ms=173
+2026-09-14T10:05:05Z delivery d-0013 attempt=1 status=200 latency_ms=93
+2026-09-14T10:05:06Z delivery d-0017 attempt=1 status=200 latency_ms=170
+2026-09-14T10:05:08Z delivery d-0021 attempt=1 status=200 latency_ms=137
+2026-09-14T10:05:11Z delivery d-0025 attempt=1 status=200 latency_ms=133
+2026-09-14T10:05:13Z delivery d-0029 attempt=1 status=200 latency_ms=164
+2026-09-14T10:05:15Z delivery d-0033 attempt=1 status=202 latency_ms=155
+2026-09-14T10:05:16Z delivery d-0037 attempt=1 status=503 latency_ms=81 retry in 2s
+2026-09-14T10:05:18Z delivery d-0041 attempt=1 status=200 latency_ms=121
+2026-09-14T10:05:21Z delivery d-0045 attempt=1 status=200 latency_ms=30
+2026-09-14T10:05:24Z delivery d-0049 attempt=1 status=200 latency_ms=192
+2026-09-14T10:05:27Z delivery d-0053 attempt=1 status=202 latency_ms=111
+2026-09-14T10:05:30Z delivery d-0057 attempt=1 status=200 latency_ms=95
+2026-09-14T10:05:32Z delivery d-0061 attempt=1 status=200 latency_ms=22
+2026-09-14T10:05:35Z delivery d-0065 attempt=1 status=200 latency_ms=25
+2026-09-14T10:05:37Z delivery d-0069 attempt=1 status=200 latency_ms=24
+2026-09-14T10:05:39Z delivery d-0073 attempt=1 status=202 latency_ms=166
+2026-09-14T10:05:41Z delivery d-0077 attempt=1 status=200 latency_ms=93
+2026-09-14T10:05:44Z delivery d-0081 attempt=1 status=200 latency_ms=214
+2026-09-14T10:05:45Z delivery d-0085 attempt=1 status=202 latency_ms=68
+2026-09-14T10:05:46Z delivery d-0089 attempt=1 status=200 latency_ms=110
+2026-09-14T10:05:49Z delivery d-0093 attempt=1 status=200 latency_ms=71
+2026-09-14T10:05:53Z delivery d-0097 attempt=1 status=202 latency_ms=207
+2026-09-14T10:05:57Z delivery d-0101 attempt=1 status=503 latency_ms=33 retry in 2s
+2026-09-14T10:06:01Z delivery d-0105 attempt=1 status=200 latency_ms=52
+2026-09-14T10:06:02Z delivery d-0109 attempt=1 status=200 latency_ms=34
+2026-09-14T10:06:05Z delivery d-0113 attempt=1 status=200 latency_ms=215
+2026-09-14T10:06:08Z delivery d-0117 attempt=1 status=200 latency_ms=110
+2026-09-14T10:06:11Z delivery d-0121 attempt=1 status=200 latency_ms=223
+2026-09-14T10:06:15Z delivery d-0126 attempt=1 status=200 latency_ms=216
+2026-09-14T10:06:17Z delivery d-0130 attempt=1 status=202 latency_ms=34
+2026-09-14T10:06:18Z delivery d-0134 attempt=3 status=503 latency_ms=207 retry in 8s
+2026-09-14T10:06:20Z delivery d-0138 attempt=1 status=503 latency_ms=233 retry in 2s
+2026-09-14T10:06:22Z delivery d-0142 attempt=1 status=202 latency_ms=197
+2026-09-14T10:06:24Z delivery d-0146 attempt=1 status=202 latency_ms=77
+2026-09-14T10:06:28Z delivery d-0150 attempt=1 status=202 latency_ms=101
+2026-09-14T10:06:31Z delivery d-0154 attempt=1 status=202 latency_ms=46
+2026-09-14T10:06:34Z delivery d-0158 attempt=1 status=200 latency_ms=211
+2026-09-14T10:06:37Z delivery d-0162 attempt=1 status=202 latency_ms=233
+2026-09-14T10:06:38Z delivery d-0166 attempt=1 status=200 latency_ms=127
+2026-09-14T10:06:40Z delivery d-0170 attempt=1 status=200 latency_ms=146
+2026-09-14T10:06:43Z delivery d-0174 attempt=1 status=202 latency_ms=52
+2026-09-14T10:06:46Z delivery d-0178 attempt=1 status=200 latency_ms=215
+2026-09-14T10:06:48Z delivery d-0182 attempt=1 status=200 latency_ms=205
+2026-09-14T10:06:52Z delivery d-0186 attempt=1 status=202 latency_ms=170
+2026-09-14T10:06:53Z delivery d-0190 attempt=2 status=503 latency_ms=122 retry in 4s
+2026-09-14T10:06:56Z delivery d-0194 attempt=3 status=503 latency_ms=107 retry in 8s
+2026-09-14T10:06:57Z delivery d-0198 attempt=1 status=200 latency_ms=73
+2026-09-14T10:06:59Z delivery d-0202 attempt=2 status=503 latency_ms=205 retry in 4s
+2026-09-14T10:07:00Z delivery d-0206 attempt=3 status=503 latency_ms=123 retry in 8s
+2026-09-14T10:07:04Z delivery d-0210 attempt=1 status=200 latency_ms=174
+2026-09-14T10:07:05Z delivery d-0214 attempt=1 status=200 latency_ms=178
+2026-09-14T10:07:08Z delivery d-0218 attempt=1 status=202 latency_ms=87
+2026-09-14T10:07:11Z delivery d-0222 attempt=1 status=200 latency_ms=58
+2026-09-14T10:07:12Z delivery d-0226 attempt=1 status=200 latency_ms=116
+2026-09-14T10:07:14Z delivery d-0230 attempt=1 status=200 latency_ms=37
+2026-09-14T10:07:15Z config: outbox_table=webhook_outbox outbox_commit=same_transaction worker_batch=25 worker_poll_ms=200
+2026-09-14T10:07:16Z delivery d-0234 attempt=1 status=200 latency_ms=31
+2026-09-14T10:07:18Z delivery d-0238 attempt=1 status=202 latency_ms=159
+2026-09-14T10:07:20Z delivery d-0242 attempt=1 status=200 latency_ms=108
+2026-09-14T10:07:22Z delivery d-0246 attempt=3 status=503 latency_ms=174 retry in 8s
+2026-09-14T10:07:25Z delivery d-0251 attempt=1 status=200 latency_ms=95
+2026-09-14T10:07:27Z delivery d-0255 attempt=1 status=202 latency_ms=151
+2026-09-14T10:07:30Z delivery d-0259 attempt=1 status=200 latency_ms=101
+2026-09-14T10:07:31Z delivery d-0263 attempt=1 status=202 latency_ms=37
+2026-09-14T10:07:33Z delivery d-0267 attempt=1 status=200 latency_ms=158
+2026-09-14T10:07:34Z delivery d-0271 attempt=1 status=503 latency_ms=200 retry in 2s
+2026-09-14T10:07:37Z delivery d-0275 attempt=1 status=200 latency_ms=225
+2026-09-14T10:07:39Z delivery d-0279 attempt=1 status=503 latency_ms=101 retry in 2s
+2026-09-14T10:07:40Z delivery d-0283 attempt=1 status=200 latency_ms=114
+2026-09-14T10:07:42Z delivery d-0287 attempt=1 status=202 latency_ms=181
+2026-09-14T10:07:44Z delivery d-0291 attempt=2 status=503 latency_ms=18 retry in 4s
+2026-09-14T10:07:48Z delivery d-0295 attempt=1 status=202 latency_ms=180
+2026-09-14T10:07:50Z step: database failover to the standby at delivery 300
+2026-09-14T10:07:52Z delivery d-0299 attempt=1 status=200 latency_ms=100
+2026-09-14T10:07:55Z delivery d-0303 attempt=3 status=503 latency_ms=100 retry in 8s
+2026-09-14T10:07:57Z delivery d-0307 attempt=1 status=503 latency_ms=229 retry in 2s
+2026-09-14T10:08:00Z delivery d-0311 attempt=1 status=200 latency_ms=117
+2026-09-14T10:08:02Z delivery d-0315 attempt=1 status=200 latency_ms=142
+2026-09-14T10:08:05Z delivery d-0319 attempt=1 status=202 latency_ms=33
+2026-09-14T10:08:07Z delivery d-0323 attempt=1 status=200 latency_ms=188
+2026-09-14T10:08:09Z delivery d-0327 attempt=1 status=200 latency_ms=25
+2026-09-14T10:08:12Z delivery d-0331 attempt=1 status=202 latency_ms=179
+2026-09-14T10:08:13Z delivery d-0335 attempt=1 status=200 latency_ms=211
+2026-09-14T10:08:14Z delivery d-0339 attempt=1 status=200 latency_ms=160
+2026-09-14T10:08:16Z delivery d-0343 attempt=2 status=503 latency_ms=118 retry in 4s
+2026-09-14T10:08:17Z delivery d-0347 attempt=1 status=200 latency_ms=218
+2026-09-14T10:08:18Z delivery d-0351 attempt=1 status=200 latency_ms=192
+2026-09-14T10:08:21Z delivery d-0355 attempt=1 status=200 latency_ms=47
+2026-09-14T10:08:25Z delivery d-0359 attempt=2 status=503 latency_ms=59 retry in 4s
+2026-09-14T10:08:26Z delivery d-0363 attempt=1 status=200 latency_ms=96
+2026-09-14T10:08:30Z delivery d-0367 attempt=1 status=200 latency_ms=104
+2026-09-14T10:08:33Z delivery d-0371 attempt=1 status=200 latency_ms=217
+2026-09-14T10:08:36Z delivery d-0376 attempt=3 status=503 latency_ms=100 retry in 8s
+2026-09-14T10:08:38Z delivery d-0380 attempt=1 status=200 latency_ms=108
+2026-09-14T10:08:41Z delivery d-0384 attempt=3 status=503 latency_ms=123 retry in 8s
+2026-09-14T10:08:45Z delivery d-0388 attempt=1 status=202 latency_ms=109
+2026-09-14T10:08:48Z delivery d-0392 attempt=1 status=202 latency_ms=185
+2026-09-14T10:08:52Z delivery d-0396 attempt=1 status=200 latency_ms=90
+2026-09-14T10:08:55Z delivery d-0400 attempt=1 status=200 latency_ms=214
+2026-09-14T10:08:56Z delivery d-0404 attempt=1 status=202 latency_ms=236
+2026-09-14T10:08:57Z delivery d-0408 attempt=1 status=200 latency_ms=153
+2026-09-14T10:09:01Z delivery d-0412 attempt=1 status=200 latency_ms=198
+2026-09-14T10:09:03Z delivery d-0416 attempt=1 status=503 latency_ms=178 retry in 2s
+2026-09-14T10:09:04Z delivery d-0420 attempt=1 status=200 latency_ms=125
+2026-09-14T10:09:05Z delivery d-0424 attempt=1 status=200 latency_ms=232
+2026-09-14T10:09:07Z delivery d-0428 attempt=1 status=200 latency_ms=139
+2026-09-14T10:09:09Z delivery d-0432 attempt=1 status=200 latency_ms=84
+2026-09-14T10:09:13Z delivery d-0436 attempt=1 status=200 latency_ms=37
+2026-09-14T10:09:14Z delivery d-0440 attempt=1 status=503 latency_ms=216 retry in 2s
+2026-09-14T10:09:15Z delivery d-0444 attempt=1 status=200 latency_ms=147
+2026-09-14T10:09:16Z delivery d-0448 attempt=1 status=200 latency_ms=66
+2026-09-14T10:09:19Z delivery d-0452 attempt=1 status=200 latency_ms=206
+2026-09-14T10:09:22Z delivery d-0456 attempt=1 status=202 latency_ms=191
+2026-09-14T10:09:25Z delivery d-0460 attempt=1 status=200 latency_ms=116
+2026-09-14T10:09:27Z delivery d-0464 attempt=1 status=200 latency_ms=192
+2026-09-14T10:09:31Z delivery d-0468 attempt=1 status=200 latency_ms=161
+2026-09-14T10:09:35Z delivery d-0472 attempt=1 status=200 latency_ms=85
+2026-09-14T10:09:37Z delivery d-0476 attempt=1 status=202 latency_ms=109
+2026-09-14T10:09:41Z delivery d-0480 attempt=1 status=200 latency_ms=86
+2026-09-14T10:09:45Z delivery d-0484 attempt=1 status=200 latency_ms=213
+2026-09-14T10:09:47Z delivery d-0488 attempt=1 status=200 latency_ms=41
+2026-09-14T10:09:50Z delivery d-0492 attempt=1 status=503 latency_ms=93 retry in 2s
+2026-09-14T10:09:53Z delivery d-0496 attempt=1 status=200 latency_ms=198
+2026-09-14T10:09:55Z step: broker path ran 20 deliveries, 0 lost
+2026-09-14T10:09:59Z summary: total=500 delivered=500 lost=0

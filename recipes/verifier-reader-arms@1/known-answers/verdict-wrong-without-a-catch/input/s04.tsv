@@ -1,0 +1,12 @@
+arm	base
+trial	5
+void	0
+confirm_verdict	sufficient
+caught	0
+answer_deciding	wrong
+answer_lone	wrong
+answer_loader	wrong
+opened_deciding	0
+opened_lone	0
+opened_loader	0
+false_alarm	0

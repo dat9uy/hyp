@@ -1,0 +1,14 @@
+{
+ "verifier": {
+  "exit": 0,
+  "timed_out": false,
+  "subtype": "success"
+ },
+ "followup": {
+  "exit": 0,
+  "timed_out": false,
+  "subtype": "success",
+  "result": "H-Q9XTNX R-CT1F2H holds\nH-WN39AD R-CT1F2H holds\nH-Q9XTNX R-R70656 holds\nH-81JC22 R-R70656 holds\nH-Q9XTNX R-NSAG3W holds\nH-E7REPF R-NSAG3W holds\nH-WN39AD R-69XHPE holds\nH-Q9XTNX R-69XHPE holds\nH-E7REPF R-Z5G228 holds\nH-Q9XTNX R-Z5G228 holds\nH-WN39AD R-07W396 wrong\nH-81JC22 R-AZ07X8 wrong\nH-X9Q2WK R-2VMJR1 wrong\nH-E7REPF R-S3ED5E holds\n"
+ },
+ "cost_usd": 0.5
+}
