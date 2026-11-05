@@ -298,8 +298,10 @@ Rules:
   remove refuses and has to be run again.
 - A Cleanup must also succeed when run twice: a refused remove runs it again
   on the next attempt, after it has already stopped what it could.
-- A Cleanup must also succeed when its Launch never ran, or failed before it
-  wrote its state. create runs the Cleanup of the recipe whose Launch or
+- A Cleanup must also succeed when its Launch never ran, failed before it
+  wrote its state, or was stopped partway. When hyp was killed during a
+  command, remove stops that command's process group before any Cleanup runs,
+  so a Cleanup never races a Launch that outlived its hyp. create runs the Cleanup of the recipe whose Launch or
   Doctor failed, and removing a sandbox kept after a failed setup runs every
   recipe's Cleanup, including recipes after the failed one, which never
   launched. Such a Cleanup finds no state of its own under
@@ -331,8 +333,13 @@ Rules:
   the first that fails. It takes no arguments from the operator; a Drive
   reads its per-run values from the inputs file or from the state its
   Launch wrote under `$HYP_SANDBOX_RECIPE_TMP`. Run it again to drive
-  again. It exits 3 for a sandbox whose setup failed and 2 for one with no
-  Drive command. A drive, a remove or a create of a sandbox another hyp
+  again. It exits 2 for a sandbox with no Drive command and 3 for one that
+  cannot be driven, each refusal naming `hyp sandbox remove`: hyp was killed
+  before setup finished, setup failed, a remove already started, or a command
+  whose hyp was killed still runs (remove stops it; once it has ended, drive
+  works again). A directory with no record exits 3 and names
+  `hyp sandbox remove ID --discard`; `hyp sandbox remove ID OUT_DIR` on it
+  exits 2, since there is nothing to keep. A drive, a remove or a create of a sandbox another hyp
   command is changing exits 3, naming that command, and changes nothing.
 - `hyp recipe evidence --record DIR REF OUT_DIR` runs REF's Evidence
   commands after remove, with OUT_DIR's absolute path appended as the last
@@ -478,7 +485,7 @@ is changing the sandbox; the lock goes away when that hyp exits.
 
 | Field | Value |
 |---|---|
-| `format` | the record's shape number, now `3` (`2` also held the absolute `wt`, `tmp`, `bin`, `inputs.source`, `inputs.path` and `recipes[].path`, and an absolute `host` and `store`; `1` had no `inputs` and no `pgid`); absent (read as `0`) in a record written before it. A reader compares it before reading the rest. A format-2 sandbox still drives and removes, and its old fields are copied to OUT_DIR as read |
+| `format` | the record's shape number, now `4` (`3` had no `removing`; `2` also held the absolute `wt`, `tmp`, `bin`, `inputs.source`, `inputs.path` and `recipes[].path`, and an absolute `host` and `store`; `1` had no `inputs` and no `pgid`); absent (read as `0`) in a record written before it. A reader compares it before reading the rest. A format-2 sandbox still drives and removes, and its old fields are copied to OUT_DIR as read |
 | `id` | the sandbox id; the sandbox is `~/.hyp-sandbox/ID`, and its clone, scratch directory, `bin/` and copies are found from it, not from the record. A script finds them in the `HYP_SANDBOX_` variables |
 | `host` | the host repository's directory name, not its path |
 | `base` | the full commit `wt/` is detached at |
@@ -489,6 +496,7 @@ is changing the sandbox; the lock goes away when that hyp exits.
 | `commands` | each command hyp ran in the sandbox, in order (see below); absent when none ran |
 | `store`, `cut` | with `--store` and `--cut`: the store cut into `wt/.tree`, written `<host>/REL` when it is inside the host and as an absolute path otherwise, and the cut event's id; absent otherwise |
 | `created`, `removed` | UTC times, RFC 3339; `removed` only in OUT_DIR |
+| `removing` | UTC time, RFC 3339: a remove passed its refusals and is stopping the sandbox. Once set, drive refuses and remove can run again; a sandbox kept for a leftover process holds it, and OUT_DIR keeps it |
 
 Each entry of `recipes`:
 
@@ -496,7 +504,7 @@ Each entry of `recipes`:
 |---|---|
 | `ref` | `NAME@VERSION` as passed to `--recipe`, or `none` |
 | `name`, `version`, `sha256` | the recipe's name, version and hash (see Hash). The commands run from the sandbox's copy, `~/.hyp-sandbox/ID/recipes/<name>`. Remove and drive reopen it by `ref` and check it against `sha256`; a copy that hashes differently runs nothing: remove records `failed: no Cleanup ran` and warns with both hashes, and drive refuses with exit 1 |
-| `setup` | `passed` (Launch and Doctor passed), `failed` (one failed; the sandbox was kept), or `none` (nothing to run). Absent while setup runs, for `none`, and for a recipe after the one that failed, which was never launched |
+| `setup` | `passed` (Launch and Doctor passed), `failed` (one failed; the sandbox was kept), or `none` (nothing to run). Written as each recipe's setup ends. Absent until then, so a recipe whose setup hyp was killed during has none, and absent for the ref `none` and for a recipe after the one that failed, which was never launched |
 | `cleanup` | `ok`, or `failed: ` and each command that failed (`failed: ./stop1.sh`); `failed: no Cleanup ran` when the copy or `recipe.log` did not open. Absent when no Cleanup command ran. It is the outcome of the last Cleanup run |
 | `known_answers` | the outcome of the recipe's known answers, run before its commands: `hyp_sha256` (the hyp that ran them) and `cases`, one `{"name", "outcome"}` per case. Absent for a recipe with no Evidence or Standalone command, which is not gated |
 
@@ -578,8 +586,8 @@ ID OUT_DIR` lists the paths that changed since then in
 A path is `modified` when its size, sha256, mode or link target differs.
 remove copies each added or modified regular file up to 10 MB to
 `OUT_DIR/changes/<path>` (`copied: true`); a larger one is listed with
-`copied: false`. A sandbox made by an older hyp has no manifest: remove
-warns and writes no `changes.json`.
+`copied: false`. A sandbox whose setup did not finish, or that an older hyp made, has no
+manifest: remove warns and writes no `changes.json`.
 
 Limits: commits made inside `wt/.git` are not listed, only the files they
 change in the work tree; a symlink is compared by its target only; a file

@@ -310,6 +310,10 @@ _Avoid_: container, VM, environment
 The record of one sandbox that only hyp writes. It names no host path: the sandbox's own paths are derived from its id.
 _Avoid_: sandbox manifest, metadata
 
+**Sandbox state**:
+What a sandbox can do now, derived from each recipe's setup, its lock and its record's `removing` field, and never stored: `building`, `setting_up`, `interrupted`, `ready`, `setup_failed` or `removing` ([sandbox spec §2](sandbox-spec.md#2-the-sandbox-machine)). `interrupted` means hyp stopped while making the sandbox or during its setup: it cannot be driven and can be removed. In code: `sandbox.boxState`, from `deriveState`.
+_Avoid_: stored state, status of a sandbox
+
 **Step**:
 One stage of running an Experiment: Launch, Doctor, Drive, Evidence or Cleanup. In a recipe, each step is a section of that name. In code: `recipe.Step`, whose constants also name Standalone.
 _Avoid_: phase, stage, hook
