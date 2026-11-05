@@ -72,6 +72,8 @@ Content limits, in runes: `title` ≤ 120 and non-empty; `body`, `observation` a
 
 The same function, `replay.Validate(state, event) error`, is used by the CLI before appending and by replay on every event. At replay time a refused event is **skipped and reported** as a `Rejection{EventID, Reason}`; replay never panics and never stops on a bad event. This covers logs merged from several worktrees, where each event was valid alone.
 
+Each event type's rule is its entry in the table in `internal/replay/rules.go`, with its apply and basis nodes (ADR 0013). A rule takes `Facts`, so it cannot read a derived status.
+
 An event is refused when any of these holds:
 
 1. `v` ≠ 1, the type is unknown, a required field is missing, an unknown payload field is present, `ts` is not UTC, or a content limit is exceeded.

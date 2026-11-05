@@ -29,102 +29,13 @@ func Validate(st *State, ev event.Event) (err error) {
 			err = fmt.Errorf("invalid event: %v", r)
 		}
 	}()
-	if err := validateEnvelope(st, ev); err != nil {
+	if err := validateEnvelope(&st.Facts, ev); err != nil {
 		return err
 	}
-	switch ev.Type {
-	case event.TypeNodeAdd:
-		return st.validateNodeAdd(ev)
-	case event.TypeResultRecord:
-		return st.validateResult(ev)
-	case event.TypeResultRetract:
-		if err := decodeEmpty(ev); err != nil {
-			return err
-		}
-		if _, err := st.need(ev.Node, event.KindResult); err != nil {
-			return err
-		}
-		if st.Retracted[ev.Node] {
-			return errors.New("already retracted: " + ev.Node)
-		}
-	case event.TypeHypothesisAbandon:
-		if err := decodeEmpty(ev); err != nil {
-			return err
-		}
-		if _, err := st.need(ev.Node, event.KindHypothesis); err != nil {
-			return err
-		}
-		if st.Abandoned[ev.Node] {
-			return errors.New("already abandoned: " + ev.Node)
-		}
-	case event.TypeHypothesisAmend:
-		return st.validateAmend(ev)
-	case event.TypeDQSelect:
-		return st.validateSelect(ev)
-	case event.TypeDQUnselect:
-		var p event.DQUnselect
-		if err := decode(ev, &p); err != nil {
-			return err
-		}
-		_, err := st.need(ev.Node, event.KindDesignQuestion)
-		return err
-	case event.TypeExperimentWithdraw:
-		if err := decodeEmpty(ev); err != nil {
-			return err
-		}
-		if _, err := st.need(ev.Node, event.KindExperiment); err != nil {
-			return err
-		}
-		if st.Withdrawn[ev.Node] {
-			return errors.New("already withdrawn: " + ev.Node)
-		}
-		if st.superseded(ev.Node) {
-			return errors.New("already superseded: " + ev.Node)
-		}
-		if r := st.liveResult(ev.Node); r != "" {
-			return fmt.Errorf("bad withdraw: %s has the non-retracted Result %s", ev.Node, r)
-		}
-	case event.TypeDQDefer, event.TypeDQWithdraw, event.TypeDQResume:
-		if err := decodeEmpty(ev); err != nil {
-			return err
-		}
-		_, err := st.need(ev.Node, event.KindDesignQuestion)
-		return err
-	case event.TypeConfirm:
-		return st.validateConfirm(ev)
-	case event.TypeDQRequestVerify:
-		// Read-only history: replay accepts it, whatever it holds, and it does
-		// nothing (spec §4).
-		return nil
-	case event.TypeReaffirm:
-		if err := decodeEmpty(ev); err != nil {
-			return err
-		}
-		n, err := st.need(ev.Node, "")
-		if err != nil {
-			return err
-		}
-		if n.Kind != event.KindHypothesis && n.Kind != event.KindDesignQuestion {
-			return fmt.Errorf("wrong kind: reaffirm on %s", n.Kind)
-		}
-	case event.TypeCheckpoint:
-		var p event.Checkpoint
-		if err := decode(ev, &p); err != nil {
-			return err
-		}
-		if _, err := st.need(ev.Node, event.KindGoal); err != nil {
-			return err
-		}
-		if err := textLimit("summary", p.Summary, 1, event.MaxText); err != nil {
-			return err
-		}
-	case event.TypeEdgeAdd, event.TypeEdgeRemove:
-		return st.validateEdge(ev)
-	}
-	return nil
+	return rules[ev.Type].validate(&st.Facts, ev)
 }
 
-func validateEnvelope(st *State, ev event.Event) error {
+func validateEnvelope(f *Facts, ev event.Event) error {
 	if ev.V != event.Version {
 		return fmt.Errorf("unsupported version: v=%d", ev.V)
 	}
@@ -134,7 +45,7 @@ func validateEnvelope(st *State, ev event.Event) error {
 	if !ulidRe.MatchString(ev.ID) {
 		return fmt.Errorf("missing field: id must be a 26-character ULID, got %q", ev.ID)
 	}
-	if st.SeenIDs[ev.ID] {
+	if f.SeenIDs[ev.ID] {
 		return errors.New("duplicate id: " + ev.ID)
 	}
 	if !actorRe.MatchString(ev.Actor) {
@@ -152,7 +63,7 @@ func validateEnvelope(st *State, ev event.Event) error {
 	return textLimit("why", ev.Why, 1, event.MaxWhy)
 }
 
-func (st *State) validateNodeAdd(ev event.Event) error {
+func (f *Facts) validateNodeAdd(ev event.Event) error {
 	var p event.NodeAdd
 	if err := decode(ev, &p); err != nil {
 		return err
@@ -173,7 +84,7 @@ func (st *State) validateNodeAdd(ev event.Event) error {
 		if !aliasRe.MatchString(p.Alias) {
 			return fmt.Errorf("invalid alias: %q", p.Alias)
 		}
-		if _, used := st.Aliases[p.Alias]; used {
+		if _, used := f.Aliases[p.Alias]; used {
 			return fmt.Errorf("alias already used: %q", p.Alias)
 		}
 	}
@@ -185,12 +96,12 @@ func (st *State) validateNodeAdd(ev event.Event) error {
 		if p.Parent != "" {
 			return errors.New("wrong parent kind: Goal must have no parent")
 		}
-		if st.GoalID != "" {
+		if f.GoalID != "" {
 			return errors.New("wrong parent kind: only one Goal per log")
 		}
 		return nil
 	}
-	parent, err := st.need(p.Parent, "")
+	parent, err := f.need(p.Parent, "")
 	if err != nil {
 		return err
 	}
@@ -225,7 +136,7 @@ func (st *State) validateNodeAdd(ev event.Event) error {
 	}
 	seen := map[string]bool{}
 	for _, t := range p.Targets {
-		tn, err := st.need(t, event.KindHypothesis)
+		tn, err := f.need(t, event.KindHypothesis)
 		if err != nil {
 			return fmt.Errorf("bad target: %w", err)
 		}
@@ -243,7 +154,7 @@ func (st *State) validateNodeAdd(ev event.Event) error {
 	return nil
 }
 
-func (st *State) validateResult(ev event.Event) error {
+func (f *Facts) validateResult(ev event.Event) error {
 	var p event.ResultRecord
 	if err := decode(ev, &p); err != nil {
 		return err
@@ -251,7 +162,7 @@ func (st *State) validateResult(ev event.Event) error {
 	if ev.Node != ev.ID {
 		return errors.New("node must equal id on result.record")
 	}
-	exp, err := st.need(p.Parent, "")
+	exp, err := f.need(p.Parent, "")
 	if err != nil {
 		return err
 	}
@@ -300,25 +211,25 @@ func (st *State) validateResult(ev event.Event) error {
 			return err
 		}
 	}
-	q := st.Nodes[exp.Parent].Parent
+	q := f.Nodes[exp.Parent].Parent
 	for _, k := range p.Closes {
-		if err := st.checkLimitRef(k, q); err != nil {
+		if err := f.checkLimitRef(k, q); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (st *State) validateAmend(ev event.Event) error {
+func (f *Facts) validateAmend(ev event.Event) error {
 	var p event.HypothesisAmend
 	if err := decode(ev, &p); err != nil {
 		return err
 	}
-	n, err := st.need(ev.Node, event.KindHypothesis)
+	n, err := f.need(ev.Node, event.KindHypothesis)
 	if err != nil {
 		return err
 	}
-	if st.superseded(ev.Node) || st.Abandoned[ev.Node] {
+	if f.superseded(ev.Node) || f.Abandoned[ev.Node] {
 		return fmt.Errorf("bad amend: %s is superseded or abandoned", ev.Node)
 	}
 	if err := textLimit("body", p.Body, 1, event.MaxText); err != nil {
@@ -332,62 +243,62 @@ func (st *State) validateAmend(ev event.Event) error {
 
 // resultQuestion returns the DesignQuestion that Result r belongs to: the
 // parent of its Experiment's Hypothesis.
-func (st *State) resultQuestion(r string) string {
-	exp := st.Nodes[st.Nodes[r].Parent]
-	return st.Nodes[exp.Parent].Parent
+func (f *Facts) resultQuestion(r string) string {
+	exp := f.Nodes[f.Nodes[r].Parent]
+	return f.Nodes[exp.Parent].Parent
 }
 
 // checkLimitRef reports why key does not name a limit of a non-retracted
 // Result under question q.
-func (st *State) checkLimitRef(key, q string) error {
+func (f *Facts) checkLimitRef(key, q string) error {
 	r, n, ok := event.ParseLimitKey(key)
 	if !ok {
 		return fmt.Errorf("bad limit ref: %q (want <result>#<n>)", key)
 	}
-	node := st.Nodes[r]
+	node := f.Nodes[r]
 	if node == nil || node.Kind != event.KindResult {
 		return fmt.Errorf("bad limit ref: %s is not a Result", r)
 	}
-	if st.Retracted[r] {
+	if f.Retracted[r] {
 		return fmt.Errorf("bad limit ref: %s is retracted", r)
 	}
 	if n > len(node.Limits) {
 		return fmt.Errorf("bad limit ref: %s has %d limits", r, len(node.Limits))
 	}
-	if st.resultQuestion(r) != q {
+	if f.resultQuestion(r) != q {
 		return fmt.Errorf("bad limit ref: %s is not under %s", r, q)
 	}
 	return nil
 }
 
-func (st *State) validateSelect(ev event.Event) error {
+func (f *Facts) validateSelect(ev event.Event) error {
 	var p event.DQSelect
 	if err := decode(ev, &p); err != nil {
 		return err
 	}
-	if _, err := st.need(ev.Node, event.KindDesignQuestion); err != nil {
+	if _, err := f.need(ev.Node, event.KindDesignQuestion); err != nil {
 		return err
 	}
-	h, err := st.need(p.Hypothesis, event.KindHypothesis)
+	h, err := f.need(p.Hypothesis, event.KindHypothesis)
 	if err != nil {
 		return err
 	}
 	if h.Parent != ev.Node {
 		return fmt.Errorf("bad select: %s is not a child of %s", p.Hypothesis, ev.Node)
 	}
-	if st.superseded(p.Hypothesis) || st.Abandoned[p.Hypothesis] {
+	if f.superseded(p.Hypothesis) || f.Abandoned[p.Hypothesis] {
 		return fmt.Errorf("bad select: %s is superseded or abandoned", p.Hypothesis)
 	}
 	// prev_select is never refused: a mismatch is a conflict (spec §7.4).
 	return nil
 }
 
-func (st *State) validateConfirm(ev event.Event) error {
+func (f *Facts) validateConfirm(ev event.Event) error {
 	var p event.Confirm
 	if err := decode(ev, &p); err != nil {
 		return err
 	}
-	if _, err := st.need(ev.Node, event.KindDesignQuestion); err != nil {
+	if _, err := f.need(ev.Node, event.KindDesignQuestion); err != nil {
 		return err
 	}
 	if !event.Roles[p.Role] {
@@ -396,7 +307,7 @@ func (st *State) validateConfirm(ev event.Event) error {
 	if !event.ConfirmVerdicts[p.Verdict] {
 		return fmt.Errorf("bad confirm: unknown verdict %q", p.Verdict)
 	}
-	sel := st.Decisions[ev.Node]
+	sel := f.Decisions[ev.Node]
 	if sel == nil {
 		return fmt.Errorf("bad confirm: %s is not a dq.select on %s", p.Select, ev.Node)
 	}
@@ -411,14 +322,14 @@ func (st *State) validateConfirm(ev event.Event) error {
 		return errors.New("bad confirm: only a sufficient owner confirm accepts limits")
 	}
 	for _, k := range p.Accepts {
-		if err := st.checkLimitRef(k, ev.Node); err != nil {
+		if err := f.checkLimitRef(k, ev.Node); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (st *State) validateEdge(ev event.Event) error {
+func (f *Facts) validateEdge(ev event.Event) error {
 	var p event.Edge
 	if err := decode(ev, &p); err != nil {
 		return err
@@ -429,11 +340,11 @@ func (st *State) validateEdge(ev event.Event) error {
 	if p.To == "" {
 		return errors.New("missing field: to")
 	}
-	from, err := st.need(ev.Node, "")
+	from, err := f.need(ev.Node, "")
 	if err != nil {
 		return err
 	}
-	live := st.liveEdge(ev.Node, p.Type, p.To) >= 0
+	live := f.liveEdge(ev.Node, p.Type, p.To) >= 0
 	if ev.Type == event.TypeEdgeRemove {
 		if !live {
 			return fmt.Errorf("edge not live: %s %s %s", ev.Node, p.Type, p.To)
@@ -446,7 +357,7 @@ func (st *State) validateEdge(ev event.Event) error {
 	if p.Type == event.EdgeExternalRef {
 		return textLimit("to", p.To, 1, event.MaxExternalRef)
 	}
-	to, err := st.need(p.To, "")
+	to, err := f.need(p.To, "")
 	if err != nil {
 		return err
 	}
@@ -460,16 +371,16 @@ func (st *State) validateEdge(ev event.Event) error {
 				return errors.New("cross-DQ supersedes: both Hypotheses must share a DesignQuestion")
 			}
 		case from.Kind == event.KindExperiment && to.Kind == event.KindExperiment:
-			if st.Nodes[from.Parent].Parent != st.Nodes[to.Parent].Parent {
+			if f.Nodes[from.Parent].Parent != f.Nodes[to.Parent].Parent {
 				return errors.New("cross-DQ supersedes: both Experiments must be under one DesignQuestion")
 			}
-			if r := st.liveResult(p.To); r != "" {
+			if r := f.liveResult(p.To); r != "" {
 				return fmt.Errorf("bad supersedes: %s has the non-retracted Result %s", p.To, r)
 			}
 		default:
 			return errors.New("wrong kind: supersedes joins two Hypotheses or two Experiments")
 		}
-		if st.reachable(p.To, ev.Node, st.supersedesNext) {
+		if f.reachable(p.To, ev.Node, f.supersedesNext) {
 			return errors.New("supersedes cycle")
 		}
 		return nil
@@ -480,7 +391,7 @@ func (st *State) validateEdge(ev event.Event) error {
 	if to.Kind != event.KindHypothesis {
 		return fmt.Errorf("wrong kind: depends_on to %s", to.Kind)
 	}
-	if st.wouldCycle(ev.Node, p.To) {
+	if f.wouldCycle(ev.Node, p.To) {
 		return errors.New("depends_on cycle in the combined status graph")
 	}
 	return nil
@@ -488,35 +399,35 @@ func (st *State) validateEdge(ev event.Event) error {
 
 // wouldCycle reports whether adding depends_on from→to would make the combined
 // status graph (spec §7.2) cyclic, that is whether from is reachable from to.
-func (st *State) wouldCycle(from, to string) bool {
-	return st.reachable(to, from, st.statusNext)
+func (f *Facts) wouldCycle(from, to string) bool {
+	return f.reachable(to, from, f.statusNext)
 }
 
 // statusNext lists a node's successors in the combined status graph.
-func (st *State) statusNext(id string) []string {
-	n := st.Nodes[id]
+func (f *Facts) statusNext(id string) []string {
+	n := f.Nodes[id]
 	var next []string
 	if n != nil && (n.Kind == event.KindHypothesis || n.Kind == event.KindDesignQuestion) {
 		for _, c := range n.Children {
-			if k := st.Nodes[c].Kind; k == event.KindHypothesis || k == event.KindDesignQuestion {
+			if k := f.Nodes[c].Kind; k == event.KindHypothesis || k == event.KindDesignQuestion {
 				next = append(next, c)
 			}
 		}
 	}
-	return append(next, st.dependsOn(id)...)
+	return append(next, f.dependsOn(id)...)
 }
 
-func (st *State) supersedesNext(id string) []string {
+func (f *Facts) supersedesNext(id string) []string {
 	var next []string
-	for _, i := range st.EdgesFrom[id] {
-		if e := st.Edges[i]; e.Live && e.Type == event.EdgeSupersedes {
+	for _, i := range f.EdgesFrom[id] {
+		if e := f.Edges[i]; e.Live && e.Type == event.EdgeSupersedes {
 			next = append(next, e.To)
 		}
 	}
 	return next
 }
 
-func (st *State) reachable(start, target string, next func(string) []string) bool {
+func (f *Facts) reachable(start, target string, next func(string) []string) bool {
 	seen := map[string]bool{}
 	stack := []string{start}
 	for len(stack) > 0 {
@@ -534,9 +445,9 @@ func (st *State) reachable(start, target string, next func(string) []string) boo
 	return false
 }
 
-func (st *State) liveEdge(from, typ, to string) int {
-	for _, i := range st.EdgesFrom[from] {
-		if e := st.Edges[i]; e.Live && e.Type == typ && e.To == to {
+func (f *Facts) liveEdge(from, typ, to string) int {
+	for _, i := range f.EdgesFrom[from] {
+		if e := f.Edges[i]; e.Live && e.Type == typ && e.To == to {
 			return i
 		}
 	}
@@ -544,23 +455,23 @@ func (st *State) liveEdge(from, typ, to string) int {
 }
 
 // liveResult is the first non-retracted Result of Experiment exp, or "".
-func (st *State) liveResult(exp string) string {
-	for _, r := range st.Nodes[exp].Children {
-		if !st.Retracted[r] {
+func (f *Facts) liveResult(exp string) string {
+	for _, r := range f.Nodes[exp].Children {
+		if !f.Retracted[r] {
 			return r
 		}
 	}
 	return ""
 }
 
-func (st *State) superseded(id string) bool {
-	return st.SupersededN[id] > 0
+func (f *Facts) superseded(id string) bool {
+	return f.SupersededN[id] > 0
 }
 
 // need returns node id, refusing a missing node or (when kind != "") a node
 // of another kind.
-func (st *State) need(id, kind string) (*Node, error) {
-	n := st.Nodes[id]
+func (f *Facts) need(id, kind string) (*Node, error) {
+	n := f.Nodes[id]
 	if n == nil {
 		return nil, fmt.Errorf("unknown node %s", id)
 	}
