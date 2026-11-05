@@ -886,7 +886,7 @@ func TestLimitAcceptanceOnStaleSelectDoesNotOverride(t *testing.T) {
 	wantLimit(t, replayB(b), q, 0, LimitOpen, "")
 }
 
-func TestStaleSupportedSiblingDoesNotGateOwner(t *testing.T) {
+func TestStaleSupportedSiblingRequiresOwner(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
@@ -903,14 +903,159 @@ func TestStaleSupportedSiblingDoesNotGateOwner(t *testing.T) {
 	if p.Status[h2].Stale == nil {
 		t.Fatalf("h2 is not stale; the test needs a stale supported sibling")
 	}
-	if !reflect.DeepEqual(p.Status[q].Suggested, []string{h1}) {
-		t.Fatalf("suggested = %v, want [%s]", p.Status[q].Suggested, h1)
+	if !reflect.DeepEqual(p.Status[q].Suggested, []string{h1, h2}) {
+		t.Fatalf("suggested = %v, want [%s %s]", p.Status[q].Suggested, h1, h2)
 	}
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
 	p = replayB(b)
 	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQOpen, ReasonAwaitingOwner)
+}
+
+// awaitingOwner builds two supported rivals, h1 selected and a sufficient
+// verifier confirm, with h2 depending on a supported t in a second question.
+func awaitingOwner(t *testing.T) (b *testutil.B, q, h1, h2, tgt, sel string) {
+	t.Helper()
+	b = testutil.New()
+	g := b.Goal("g")
+	q = b.DQ(g, "q")
+	h1, h2 = b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	tgt = b.Hyp(b.DQ(g, "q2"), "t")
+	b.Supports(h1)
+	b.Supports(h2)
+	b.Supports(tgt)
+	b.Edge(h2, event.EdgeDependsOn, tgt)
+	sel = b.As("a").Select(q, h1, "", false)
+	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingOwner)
+	return b, q, h1, h2, tgt, sel
+}
+
+// wantOwnerHeld asserts the question still awaits the owner on the Dossier it
+// had, so no Confirm lapsed and no owner confirm was needed to get here.
+func wantOwnerHeld(t *testing.T, p Projection, q string, was *Dossier) {
+	t.Helper()
+	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQOpen, ReasonAwaitingOwner)
+	if !p.Decisions[q].Dossier.Equal(was) {
+		t.Fatalf("the Dossier changed: %+v, was %+v", p.Decisions[q].Dossier.Items, was.Items)
+	}
+}
+
+func TestOpenSubquestionOnRivalKeepsTheOwner(t *testing.T) {
+	b, q, _, h2, _, _ := awaitingOwner(t)
+	was := replayB(b).Decisions[q].Dossier
+	sub := b.As("a").DQ(h2, "sub")
+	p := replayB(b)
+	wantOwnerHeld(t, p, q, was)
+	if p.Goal.Status != GoalInProgress {
+		t.Fatalf("goal = %s, want in_progress", p.Goal.Status)
+	}
+	b.Withdraw(sub)
+	wantOwnerHeld(t, replayB(b), q, was)
+}
+
+func TestContradictedPremiseOfRivalKeepsTheOwner(t *testing.T) {
+	b, q, _, h2, tgt, _ := awaitingOwner(t)
+	was := replayB(b).Decisions[q].Dossier
+	r := b.As("a").Contradicts(tgt)
+	p := replayB(b)
+	if p.Status[h2].Stale == nil {
+		t.Fatalf("h2 is not stale; the test needs its premise to have fallen")
+	}
+	wantOwnerHeld(t, p, q, was)
+	b.Retract(r)
+	wantOwnerHeld(t, replayB(b), q, was)
+}
+
+func TestOpenSubquestionOnRivalsPremiseKeepsTheOwner(t *testing.T) {
+	b, q, _, _, tgt, _ := awaitingOwner(t)
+	was := replayB(b).Decisions[q].Dossier
+	b.As("a").DQ(tgt, "sub")
+	wantOwnerHeld(t, replayB(b), q, was)
+}
+
+func TestSubquestionBeforeTheSelectStillRequiresOwner(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	b.Supports(h1)
+	b.Supports(h2)
+	b.DQ(h2, "sub")
+	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h1, h2}) {
+		t.Fatalf("suggested = %v, want [%s %s]", got, h1, h2)
+	}
+	sel := b.As("a").Select(q, h1, "", false)
+	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	p := replayB(b)
+	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQOpen, ReasonAwaitingOwner)
+}
+
+func TestDirectContradictsOnRivalLapsesTheVerifier(t *testing.T) {
+	b, q, _, h2, _, _ := awaitingOwner(t)
+	r := b.As("a").Contradicts(h2)
+	p := replayB(b)
+	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
+	dec := p.Decisions[q]
+	added, _ := dec.ChangedSince(dec.Latest(event.RoleVerifier))
+	if !slices.ContainsFunc(added, func(it DossierItem) bool { return it.Kind == DossierResult && it.Node == r }) {
+		t.Fatalf("changed since = %+v, want it to name %s", added, r)
+	}
+}
+
+func TestAbandoningRivalWithFallenPremiseAnswersOnAFreshVerifier(t *testing.T) {
+	b, q, _, h2, tgt, sel := awaitingOwner(t)
+	b.As("a").Contradicts(tgt)
+	b.Abandon(h2)
+	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingVerifier)
+	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	p := replayB(b)
+	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
+}
+
+func TestLoneCandidateIsSuggestedOnlyWhenReady(t *testing.T) {
+	build := func() (b *testutil.B, q, h, tgt string) {
+		b = testutil.New()
+		g := b.Goal("g")
+		q = b.DQ(g, "q")
+		h = b.Hyp(q, "h")
+		tgt = b.Hyp(b.DQ(g, "q2"), "t")
+		b.Supports(tgt)
+		b.Edge(h, event.EdgeDependsOn, tgt)
+		b.Supports(h)
+		return b, q, h, tgt
+	}
+	b, q, h, _ := build()
+	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h}) {
+		t.Fatalf("ready: suggested = %v, want [%s]", got, h)
+	}
+	b, q, _, tgt := build()
+	b.Contradicts(tgt)
+	if got := replayB(b).Status[q].Suggested; len(got) != 0 {
+		t.Fatalf("stale: suggested = %v, want none", got)
+	}
+	b, q, h, _ = build()
+	b.DQ(h, "sub")
+	if got := replayB(b).Status[q].Suggested; len(got) != 0 {
+		t.Fatalf("waiting: suggested = %v, want none", got)
+	}
+}
+
+func TestTwoCandidatesWithOneNotReadyStayATradeoff(t *testing.T) {
+	b, q, h1, h2, tgt, _ := awaitingOwner(t)
+	b.As("a").Contradicts(tgt)
+	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h1, h2}) {
+		t.Fatalf("one stale: suggested = %v, want both", got)
+	}
+	b, q, h1, h2, _, _ = awaitingOwner(t)
+	b.As("a").DQ(h2, "sub")
+	if got := replayB(b).Status[q].Suggested; !reflect.DeepEqual(got, []string{h1, h2}) {
+		t.Fatalf("one waiting: suggested = %v, want both", got)
+	}
 }
 
 func TestLiveRivalsSkipDeadHypotheses(t *testing.T) {

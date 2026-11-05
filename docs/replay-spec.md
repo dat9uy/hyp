@@ -137,7 +137,7 @@ Stop after the event whose id equals `asOf`, when `asOf` is not empty.
 1. `superseded`: a live `supersedes` edge points at it.
 2. `abandoned`: it has an applied `hypothesis.abandon`.
 3. Collect the verdicts for this Hypothesis from all **non-retracted** Results. No verdicts gives `proposed`. Any `contradicts` gives `contradicted`. Otherwise any `supports` gives `supported`. Otherwise it is `inconclusive`.
-4. **[added]** If rule 3 gave `supported` and any sub-question that is not withdrawn is not `answered` (deferred children still block), the status is `awaiting_subquestions`. Everywhere this spec says `supported`, it means exactly `supported`, never `awaiting_subquestions`.
+4. **[added]** If rule 3 gave `supported` and any sub-question that is not withdrawn is not `answered` (deferred children still block), the status is `awaiting_subquestions`. Everywhere this spec says `supported`, it means exactly `supported`, never `awaiting_subquestions`. The one exception is the trade-off candidates of §7.4, which read rule 3.
 
 A Hypothesis is **live** unless it is `superseded` or `abandoned`. A DQ is live unless it is withdrawn.
 
@@ -171,11 +171,11 @@ One record, the question's `Decision`, owns everything below except the hold sta
 Selection is the current selection id (`""` when there is none) plus a conflict set:
 - Applying `dq.select` or `dq.unselect` whose `prev_select` ≠ the current selection id adds both ids to the conflict set. The event still applies; the last one in merge order becomes current.
 - A later select or unselect whose `prev_select` equals the current id clears the conflict set.
-- The **owner requirement** is derived from the current state and stored nowhere: the question has two or more trade-off candidates now (live child Hypotheses that are `supported` and not stale, as for the suggested candidate below), or the current select's `tradeoff` or `scope_change` is true. A stale supported sibling does not count.
+- The **owner requirement** is derived from the current state and stored nowhere: the question has two or more trade-off candidates now, or the current select's `tradeoff` or `scope_change` is true. A **trade-off candidate** is a live child Hypothesis whose status by rule 3 of §7.1 is `supported`; neither stale nor an open sub-question removes it. Candidates read only what the Dossier lists, so the requirement changes only when the Dossier does, and then the Confirms lapse (ADR 0011).
 
 Dossier: the evidence a question's current select rests on (ADR 0011). It is derived per question, from stored events only, and never stored: the selected Hypothesis's body, the set of live child Hypotheses, every non-retracted Result with a verdict on one of them with that verdict (found by verdict, not by tree parent), and the live links going out from those Hypotheses and Results, not counting `external_ref`. A rival's body, its planned Experiments and links other nodes add pointing in stay out. `hyp show <Q>` lists it under `dossier:`.
 
-A `contradicts` is **deciding** when the Hypothesis it judges is not the selected one and, by §7.1, that Hypothesis would be `supported` without this one verdict. `hyp show <Q>` marks its Result as deciding the owner requirement. It is a mark: §7.1 still stands and no status reads it.
+A `contradicts` is **deciding** when the Hypothesis it judges is not the selected one and, by rule 3 of §7.1, that Hypothesis would be `supported` without this one verdict. `hyp show <Q>` marks its Result as deciding the owner requirement. It is a mark: §7.1 still stands and no status reads it.
 
 Confirms: a confirm judged the Dossier as it stood at the confirm's place in the merged log. For each (select id, role) pair, the confirm that **counts** is the latest one whose Dossier equals the current Dossier; when there is none, no confirm counts. A confirm that no longer matches has **lapsed**, and it counts again if the Dossier returns to what it judged, which is the §7.3 rule applied to a confirm, so a retract restores the earlier state exactly. This holds for both roles and both verdicts, and it is the only way a confirm stops counting. `hyp show <Q>` prints `changed since <actor>: …` for each role whose latest confirm has lapsed, naming what the Dossier gained (`+`) and lost (`-`) and `body` for an amended selected body. A lapse adds no status word. A reopened question closes by appending: a fresh confirm when the claim is unchanged, or a new Hypothesis that `supersedes` the old one and a select of it when the claim changed.
 
@@ -187,7 +187,7 @@ The state is decided by the first matching rule:
 
 The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads, holds the insufficient verifier verdicts in a row on the current select. A sufficient verdict, an unselect, a select that does not continue the current one (the same Hypothesis or one that supersedes it) and a `hypothesis.amend` of the selected Hypothesis clear it, so verdicts on an old body never count towards a loop. The signal fires at two or more.
 
-**Suggested candidate:** the trade-off candidates are the live children that are `supported` and not stale. When there is exactly one, suggest it. With two or more such children, report "trade-off: owner decides" and list them.
+**Suggested candidate:** with two or more trade-off candidates, report "trade-off: owner decides" and list them. With exactly one, suggest it when its status is exactly `supported` and it is not stale; otherwise suggest none.
 
 ### 7.5 Goal
 
@@ -269,7 +269,7 @@ type NodeStatus struct {
     Status     string      // hypothesis status, DQ state, experiment status (§7.6), result recorded/retracted, goal state
     Reason     string      // DQ open/reopened reason; "" otherwise
     Stale      *StaleCause // nil when not stale
-    Suggested  []string    // DQ only
+    Suggested  []string    // DQ only: its trade-off candidates, or none when a lone one is not ready (§7.4)
 }
 type StaleCause struct { Node, Reason string; Next *StaleCause }
 type Edge struct { ID, From, Type, To string; Live bool } // ID is the edge.add event's id

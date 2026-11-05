@@ -611,3 +611,49 @@ func TestConfirmRefusalOrder(t *testing.T) {
 	want(t, hyp(t, bad...), 2, "nope")
 	want(t, hyp(t, owner...), 1, "open limits under")
 }
+
+func TestSelectWithNoHypothesisReadsCandidates(t *testing.T) {
+	supported := func(q, title string) string {
+		h := must(t, "add", "hyp", "--parent", q, "--title", title, "--why", "w")
+		e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+		must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w")
+		return h
+	}
+	// stalePremise makes h stale by contradicting a target it depends on.
+	stalePremise := func(g, h string) {
+		q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+		tgt := supported(q2, "T")
+		must(t, "link", h, "depends_on", tgt, "--why", "w")
+		e := must(t, "add", "exp", "--parent", tgt, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+		must(t, "record", "--exp", e, "--verdict", tgt+"=contradicts", "--observation", "o", "--why", "w")
+	}
+	t.Run("lone ready", func(t *testing.T) {
+		_, _, q := setup(t)
+		h := supported(q, "H")
+		want(t, hyp(t, "select", q), 0, "suggested: "+h)
+	})
+	t.Run("lone stale", func(t *testing.T) {
+		_, g, q := setup(t)
+		stalePremise(g, supported(q, "H"))
+		want(t, hyp(t, "select", q), 0, "suggested: none (")
+	})
+	t.Run("lone with an open sub-question", func(t *testing.T) {
+		_, _, q := setup(t)
+		h := supported(q, "H")
+		must(t, "add", "dq", "--parent", h, "--title", "Sub", "--why", "w")
+		want(t, hyp(t, "select", q), 0, "suggested: none (")
+	})
+	t.Run("two with one stale", func(t *testing.T) {
+		_, g, q := setup(t)
+		supported(q, "H1")
+		stalePremise(g, supported(q, "H2"))
+		want(t, hyp(t, "select", q), 0, "trade-off: owner decides between")
+	})
+	t.Run("two with one waiting", func(t *testing.T) {
+		_, _, q := setup(t)
+		supported(q, "H1")
+		h2 := supported(q, "H2")
+		must(t, "add", "dq", "--parent", h2, "--title", "Sub", "--why", "w")
+		want(t, hyp(t, "select", q), 0, "trade-off: owner decides between")
+	})
+}

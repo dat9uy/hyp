@@ -108,14 +108,10 @@ func (st *State) dossier(q, hyp string) *Dossier {
 }
 
 // decidingContradictions lists the Results whose contradicts alone keeps
-// Hypothesis h from being supported: without that one verdict, spec §7.1 gives
-// supported. A Hypothesis with two contradicts has none, since removing either
-// leaves the other.
+// Hypothesis h from being a trade-off candidate: without that one verdict, rule
+// 3 of spec §7.1 gives supported. A Hypothesis with two contradicts has none,
+// since removing either leaves the other.
 func (st *State) decidingContradictions(h string) []string {
-	childStatus := func(c string) string { return st.Derived[c].Status }
-	if st.awaitsSubquestions(h, childStatus) {
-		return nil
-	}
 	var out []string
 	for _, r := range st.Contradictions(h) {
 		if st.verdictStatus(h, r) == HypSupported {
