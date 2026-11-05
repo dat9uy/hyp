@@ -64,6 +64,7 @@ The skill-text gate's replay instrument is `recipes/skill-text-arms@4`: a fresh 
 - Skill text cites no ADR and no file under `docs/`: the skills are copied into other repositories without them. A skill states its rule inline, and the ADR behind it names the skill file. Removing such a citation is a product fix and needs no replay.
 - A state machine has one spec, and a change to the machine updates that spec in the same PR. Every spec states the states or statuses, what is stored and what is derived, the events or steps with what each state refuses and its exit code, and what happens on a crash or a merged log.
 - Write "Part of #N", never a closing keyword, next to an issue that stays open.
+- An issue that closes with its goal not met gets a new issue first, as a placeholder that states the unmet goal, and its closing comment names that issue. A goal is never held only in a closed issue.
 - Commits use the conventional format (`feat:`, `fix:`, `docs:` and so on) and carry no AI trailers.
 
 ## Build and test
