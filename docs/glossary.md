@@ -27,7 +27,7 @@ Deriving every status of a tree from its ordered events.
 _Avoid_: replay for re-running an agent session (that is an Experiment run with a session-replay recipe)
 
 **Projection**:
-Everything replay derives from a store's events: each node and its status, the Goal's state, rejections, limits, selections, and the derived records of Experiments and Results ([spec §8](replay-spec.md#8-projection-what-replay-returns)). Nothing stores it; every read replays (ADR 0006). In code: `replay.Projection`.
+Everything replay derives from a store's events: each node, a derived record per node kind (Hypothesis, Question, Experiment and Result) with its own status word, the Goal's state, rejections, limits and selections ([spec §8](replay-spec.md#8-projection-what-replay-returns)). Nothing stores it; every read replays (ADR 0006). In code: `replay.Projection`.
 _Avoid_: state (alone), index, cache
 
 **Goal**:
@@ -103,7 +103,7 @@ A live Hypothesis or DesignQuestion whose basis may no longer hold: a `depends_o
 _Avoid_: outdated, questionable (that is about recipe hashes)
 
 **Candidate**:
-A live child Hypothesis of a DesignQuestion whose verdicts alone give it `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. In code: `replay.NodeStatus.Candidates`.
+A live child Hypothesis of a DesignQuestion whose verdicts alone give it `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. In code: `replay.Question.Candidates`.
 _Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for a lone ready candidate), rival (a rival need not be supported)
 
 **Trade-off**:

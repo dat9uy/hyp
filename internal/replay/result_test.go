@@ -27,8 +27,8 @@ func TestResultsRecord(t *testing.T) {
 		t.Fatalf("Results has %d records, want 4", len(p.Results))
 	}
 	for id, r := range p.Results {
-		if r.Status != p.Status[id].Status {
-			t.Errorf("%s: Res.Status %s, Status %s", id, r.Status, p.Status[id].Status)
+		if string(r.Status) != statuses(p)[id].Status {
+			t.Errorf("%s: Res.Status %s, Status %s", id, r.Status, statuses(p)[id].Status)
 		}
 		if r.Uncontained != nil {
 			t.Errorf("%s: replay set Uncontained %q", id, r.Uncontained)

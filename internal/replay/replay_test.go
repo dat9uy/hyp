@@ -18,17 +18,39 @@ const (
 
 func replayB(b *testutil.B) Projection { return Replay(b.Evs, nil, "") }
 
-func wantStatus(t *testing.T, p Projection, id, status, reason string) {
+// wantStatus takes the status word of any node kind.
+func wantStatus[S ~string](t *testing.T, p Projection, id string, status S, reason string) {
 	t.Helper()
-	got := p.Status[id]
-	if got.Status != status || got.Reason != reason {
+	got := statuses(p)[id]
+	if got.Status != string(status) || got.Reason != reason {
 		t.Fatalf("%s: got %s/%s, want %s/%s", id, got.Status, got.Reason, status, reason)
 	}
 }
 
+// nodeStatus is one node's derived status, whatever its kind.
+type nodeStatus struct {
+	Status, Reason string
+	Stale          *StaleCause
+	Candidates     []string
+}
+
+// statuses is every node's derived status, so a test can compare them all.
+func statuses(p Projection) map[string]nodeStatus {
+	out := map[string]nodeStatus{}
+	for id := range p.Nodes {
+		s, _ := p.Display(id)
+		ns := nodeStatus{Status: s.Word, Reason: s.Reason, Stale: s.Stale}
+		if q := p.Questions[id]; q != nil {
+			ns.Candidates = q.Candidates
+		}
+		out[id] = ns
+	}
+	return out
+}
+
 func wantStale(t *testing.T, p Projection, id string, want *StaleCause) {
 	t.Helper()
-	if got := p.Status[id].Stale; !reflect.DeepEqual(got, want) {
+	if got := statuses(p)[id].Stale; !reflect.DeepEqual(got, want) {
 		t.Fatalf("%s stale: got %s, want %s", id, chain(got), chain(want))
 	}
 }
@@ -61,8 +83,8 @@ func TestScenario01SupportedUnselected(t *testing.T) {
 	wantNoRejections(t, p)
 	wantStatus(t, p, h1, HypSupported, "")
 	wantStatus(t, p, q, DQOpen, ReasonSupportedUnsel)
-	if !reflect.DeepEqual(p.Status[q].Candidates, []string{h1}) {
-		t.Fatalf("candidates = %v, want [%s]", p.Status[q].Candidates, h1)
+	if !reflect.DeepEqual(p.Questions[q].Candidates, []string{h1}) {
+		t.Fatalf("candidates = %v, want [%s]", p.Questions[q].Candidates, h1)
 	}
 }
 
@@ -92,8 +114,8 @@ func TestScenario03OwnerGateOnTwoSupported(t *testing.T) {
 	b.Supports(h1)
 	b.Supports(h2)
 	p := replayB(b)
-	if len(p.Status[q].Candidates) != 2 {
-		t.Fatalf("candidates = %v, want both candidates (trade-off)", p.Status[q].Candidates)
+	if len(p.Questions[q].Candidates) != 2 {
+		t.Fatalf("candidates = %v, want both candidates (trade-off)", p.Questions[q].Candidates)
 	}
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
@@ -124,16 +146,16 @@ func TestScenario04ContradictionPropagatesAndRetractRestores(t *testing.T) {
 	if p.Goal.Status != GoalComplete {
 		t.Fatalf("goal = %s, want complete", p.Goal.Status)
 	}
-	before, beforeGoal := p.Status, p.Goal
+	before, beforeGoal := statuses(p), p.Goal
 
 	r := b.Result(s.e3, map[string]string{s.h3: con})
 	p = replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, s.h3, HypContradicted, "")
 	byR := &StaleCause{Node: r, Reason: StaleReasonContradicts}
-	wantStale(t, p, s.h2, &StaleCause{Node: s.h3, Reason: HypContradicted, Next: byR})
+	wantStale(t, p, s.h2, &StaleCause{Node: s.h3, Reason: string(HypContradicted), Next: byR})
 	wantStale(t, p, s.h1, &StaleCause{Node: s.h2, Reason: StaleReasonStale,
-		Next: &StaleCause{Node: s.h3, Reason: HypContradicted, Next: byR}})
+		Next: &StaleCause{Node: s.h3, Reason: string(HypContradicted), Next: byR}})
 	wantStatus(t, p, s.q1, DQReopened, ReasonSelectedStale)
 	wantStatus(t, p, s.q2, DQReopened, ReasonSelectedStale)
 	wantStatus(t, p, s.q3, DQReopened, ReasonSelectedNotSupport)
@@ -146,14 +168,14 @@ func TestScenario04ContradictionPropagatesAndRetractRestores(t *testing.T) {
 	wantNoRejections(t, p)
 	// The retracted Result is the only node that did not exist before; every
 	// node that did must be exactly as it was.
-	for id := range p.Status {
+	for id := range statuses(p) {
 		if _, existed := before[id]; !existed && id != r {
 			t.Fatalf("unexpected new node %s", id)
 		}
 	}
-	after := map[string]NodeStatus{}
+	after := map[string]nodeStatus{}
 	for id := range before {
-		after[id] = p.Status[id]
+		after[id] = statuses(p)[id]
 	}
 	if !reflect.DeepEqual(before, after) {
 		for id := range before {
@@ -179,7 +201,7 @@ func TestScenario05ReaffirmCannotClearUnsupported(t *testing.T) {
 	b.Reaffirm(h1)
 	p := replayB(b)
 	wantNoRejections(t, p)
-	if p.Status[h1].Stale == nil {
+	if p.Hyps[h1].Stale == nil {
 		t.Fatal("reaffirm cleared staleness while the target is contradicted")
 	}
 
@@ -214,12 +236,12 @@ func TestScenario06SupersedeSelected(t *testing.T) {
 	wantNoRejections(t, p)
 	wantStatus(t, p, h1, HypSuperseded, "")
 	wantStatus(t, p, q, DQReopened, ReasonSelectedNotSupport)
-	wantStale(t, p, h9, &StaleCause{Node: h1, Reason: HypSuperseded})
+	wantStale(t, p, h9, &StaleCause{Node: h1, Reason: string(HypSuperseded)})
 
 	b.Supports(h1b)
 	p = replayB(b)
-	if !reflect.DeepEqual(p.Status[q].Candidates, []string{h1b}) {
-		t.Fatalf("candidates = %v, want [%s]", p.Status[q].Candidates, h1b)
+	if !reflect.DeepEqual(p.Questions[q].Candidates, []string{h1b}) {
+		t.Fatalf("candidates = %v, want [%s]", p.Questions[q].Candidates, h1b)
 	}
 }
 
@@ -316,7 +338,7 @@ func TestScenario11RecipeChangeFlagsOnly(t *testing.T) {
 	if !changed.Results[r].Questionable || same.Results[r].Questionable {
 		t.Fatalf("questionable: changed=%v same=%v", changed.Results[r].Questionable, same.Results[r].Questionable)
 	}
-	if !reflect.DeepEqual(changed.Status, same.Status) || !reflect.DeepEqual(changed.Goal, same.Goal) {
+	if !reflect.DeepEqual(statuses(changed), statuses(same)) || !reflect.DeepEqual(changed.Goal, same.Goal) {
 		t.Fatal("a recipe change altered a status")
 	}
 }
@@ -368,7 +390,7 @@ func TestEvidencePinFlagsResult(t *testing.T) {
 		if p.Results[plain].Questionable {
 			t.Fatalf("%s: a Result without pins was flagged", name)
 		}
-		if !reflect.DeepEqual(p.Status, same.Status) || !reflect.DeepEqual(p.Goal, same.Goal) {
+		if !reflect.DeepEqual(statuses(p), statuses(same)) || !reflect.DeepEqual(p.Goal, same.Goal) {
 			t.Fatalf("%s: an evidence pin altered a status", name)
 		}
 	}
@@ -476,7 +498,7 @@ func TestScenario14BadEventsSkipped(t *testing.T) {
 	if len(want.Rejections) != 0 {
 		t.Fatalf("clean log rejected: %+v", want.Rejections)
 	}
-	if !reflect.DeepEqual(p.Status, want.Status) || !reflect.DeepEqual(p.Goal, want.Goal) ||
+	if !reflect.DeepEqual(statuses(p), statuses(want)) || !reflect.DeepEqual(p.Goal, want.Goal) ||
 		!reflect.DeepEqual(p.Applied, want.Applied) {
 		t.Fatal("bad events changed the statuses")
 	}
@@ -490,7 +512,7 @@ func TestScenario15AsOfEqualsTruncation(t *testing.T) {
 	for i := range evs {
 		a := Replay(evs, nil, evs[i].ID)
 		w := Replay(evs[:i+1], nil, "")
-		if !reflect.DeepEqual(a.Status, w.Status) || !reflect.DeepEqual(a.Goal, w.Goal) {
+		if !reflect.DeepEqual(statuses(a), statuses(w)) || !reflect.DeepEqual(a.Goal, w.Goal) {
 			t.Fatalf("asOf %d differs from truncation", i)
 		}
 	}
@@ -900,11 +922,11 @@ func TestStaleSupportedSiblingRequiresOwner(t *testing.T) {
 	b.Contradicts(h3)
 	p := replayB(b)
 	wantStatus(t, p, h2, HypSupported, "")
-	if p.Status[h2].Stale == nil {
+	if p.Hyps[h2].Stale == nil {
 		t.Fatalf("h2 is not stale; the test needs a stale supported sibling")
 	}
-	if !reflect.DeepEqual(p.Status[q].Candidates, []string{h1, h2}) {
-		t.Fatalf("candidates = %v, want [%s %s]", p.Status[q].Candidates, h1, h2)
+	if !reflect.DeepEqual(p.Questions[q].Candidates, []string{h1, h2}) {
+		t.Fatalf("candidates = %v, want [%s %s]", p.Questions[q].Candidates, h1, h2)
 	}
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
@@ -961,7 +983,7 @@ func TestContradictedPremiseOfRivalKeepsTheOwner(t *testing.T) {
 	was := replayB(b).Decisions[q].Dossier
 	r := b.As("a").Contradicts(tgt)
 	p := replayB(b)
-	if p.Status[h2].Stale == nil {
+	if p.Hyps[h2].Stale == nil {
 		t.Fatalf("h2 is not stale; the test needs its premise to have fallen")
 	}
 	wantOwnerHeld(t, p, q, was)
@@ -983,7 +1005,7 @@ func TestSubquestionBeforeTheSelectStillRequiresOwner(t *testing.T) {
 	b.Supports(h1)
 	b.Supports(h2)
 	b.DQ(h2, "sub")
-	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
+	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
 		t.Fatalf("candidates = %v, want [%s %s]", got, h1, h2)
 	}
 	sel := b.As("a").Select(q, h1, "", false)
@@ -1030,16 +1052,16 @@ func TestLoneCandidateStaysACandidateWhenNotReady(t *testing.T) {
 		return b, q, h, tgt
 	}
 	b, q, h, tgt := build()
-	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
+	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
 		t.Fatalf("ready: candidates = %v, want [%s]", got, h)
 	}
 	b.Contradicts(tgt)
-	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
+	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
 		t.Fatalf("stale: candidates = %v, want [%s]", got, h)
 	}
 	b, q, h, _ = build()
 	b.DQ(h, "sub")
-	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
+	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h}) {
 		t.Fatalf("waiting: candidates = %v, want [%s]", got, h)
 	}
 }
@@ -1047,12 +1069,12 @@ func TestLoneCandidateStaysACandidateWhenNotReady(t *testing.T) {
 func TestTwoCandidatesWithOneNotReadyStayATradeoff(t *testing.T) {
 	b, q, h1, h2, tgt, _ := awaitingOwner(t)
 	b.As("a").Contradicts(tgt)
-	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
+	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
 		t.Fatalf("one stale: candidates = %v, want both", got)
 	}
 	b, q, h1, h2, _, _ = awaitingOwner(t)
 	b.As("a").DQ(h2, "sub")
-	if got := replayB(b).Status[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
+	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
 		t.Fatalf("one waiting: candidates = %v, want both", got)
 	}
 }
@@ -1260,7 +1282,7 @@ func TestDecidedByReplays(t *testing.T) {
 	if got := st.Nodes[read].DecidedBy; got != event.DecidedReading {
 		t.Fatalf("declared Experiment: decided_by %q, want %q", got, event.DecidedReading)
 	}
-	if a, b := p.Status[old], p.Status[read]; a.Status != b.Status || a.Reason != b.Reason {
+	if a, b := statuses(p)[old], statuses(p)[read]; a.Status != b.Status || a.Reason != b.Reason {
 		t.Fatalf("statuses differ: %+v and %+v", a, b)
 	}
 }
@@ -1280,8 +1302,8 @@ func TestExpRecordFollowsLiveResults(t *testing.T) {
 	r2 := b.Result(e, map[string]string{h1: inc})
 	p := replayB(b)
 	x := p.Exps[e]
-	if x.Status != ExpRun || p.Status[e].Status != x.Status {
-		t.Fatalf("status = %q (Status %q), want run", x.Status, p.Status[e].Status)
+	if x.Status != ExpRun || statuses(p)[e].Status != string(x.Status) {
+		t.Fatalf("status = %q (Status %q), want run", x.Status, statuses(p)[e].Status)
 	}
 	if !reflect.DeepEqual(x.Live, []string{r1, r2}) {
 		t.Fatalf("Live = %v, want %v", x.Live, []string{r1, r2})

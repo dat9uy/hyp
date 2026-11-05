@@ -10,8 +10,8 @@ import (
 // once per projection, and every reader takes an Experiment's state from it
 // instead of re-deriving it from the Experiment's Results.
 type Exp struct {
-	Status     string            // ExpPlanned, ExpRun, ExpSuperseded or ExpWithdrawn; equal to Projection.Status[id].Status
-	Closed     string            // ExpSuperseded or ExpWithdrawn when it is closed, even if a Result makes it run; "" otherwise
+	Status     ExpStatus         // ExpPlanned, ExpRun, ExpSuperseded or ExpWithdrawn
+	Closed     ExpStatus         // ExpSuperseded or ExpWithdrawn when it is closed, even if a Result makes it run; "" otherwise
 	Live       []string          // non-retracted Results, in creation order
 	Judged     map[string]string // Hypothesis → verdict over Live; a later Result wins
 	OneRival   bool              // the one-rival rule (oneRival) on its add-time rivals
@@ -22,7 +22,7 @@ type Exp struct {
 // expClosed is how Experiment id is closed: ExpSuperseded when a live
 // supersedes edge points at it, otherwise ExpWithdrawn when it is withdrawn,
 // otherwise "".
-func (st *State) expClosed(id string) string {
+func (st *State) expClosed(id string) ExpStatus {
 	switch {
 	case st.superseded(id):
 		return ExpSuperseded
@@ -35,7 +35,7 @@ func (st *State) expClosed(id string) string {
 // expStatus is the status rule of Experiment id (spec §7.6), first match
 // wins: run with a non-retracted Result, so a live Result beats a close;
 // then superseded, withdrawn, and planned.
-func (st *State) expStatus(id string) string {
+func (st *State) expStatus(id string) ExpStatus {
 	if st.liveResult(id) != "" {
 		return ExpRun
 	}

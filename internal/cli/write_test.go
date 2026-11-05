@@ -161,8 +161,8 @@ func TestHappyPath(t *testing.T) {
 		t.Fatalf("load: %v %v", err, p.Rejections)
 	}
 	for id, n := range p.Nodes {
-		if display(p, id) == q && p.Status[id].Status != replay.DQAnswered {
-			t.Fatalf("%s (%s) is %+v, want answered", q, n.Title, p.Status[id])
+		if display(p, id) == q && p.Questions[id].State != replay.DQAnswered {
+			t.Fatalf("%s (%s) is %+v, want answered", q, n.Title, p.Questions[id])
 		}
 	}
 	if p.Goal.Status != replay.GoalComplete {

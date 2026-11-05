@@ -28,16 +28,17 @@ func TestExpLifecycle(t *testing.T) {
 	p := replayB(b)
 	wantNoRejections(t, p)
 	for _, c := range []struct {
-		id, status, closed string
-		by                 []string
+		id             string
+		status, closed ExpStatus
+		by             []string
 	}{
 		{old, ExpSuperseded, ExpSuperseded, []string{repl}},
 		{repl, ExpPlanned, "", nil},
 		{gone, ExpWithdrawn, ExpWithdrawn, nil},
 	} {
 		x := p.Exps[c.id]
-		if x.Status != c.status || x.Closed != c.closed || !reflect.DeepEqual(x.ReplacedBy, c.by) || p.Status[c.id].Status != c.status {
-			t.Errorf("%s: %+v (Status %q), want status %q closed %q by %v", c.id, x, p.Status[c.id].Status, c.status, c.closed, c.by)
+		if x.Status != c.status || x.Closed != c.closed || !reflect.DeepEqual(x.ReplacedBy, c.by) || statuses(p)[c.id].Status != string(c.status) {
+			t.Errorf("%s: %+v (Status %q), want status %q closed %q by %v", c.id, x, statuses(p)[c.id].Status, c.status, c.closed, c.by)
 		}
 	}
 	b.Unedge(repl, event.EdgeSupersedes, old)

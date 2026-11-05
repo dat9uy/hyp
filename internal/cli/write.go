@@ -612,24 +612,24 @@ func suggest(w *writer, ref string) error {
 	if p.Nodes[dq].Kind != event.KindDesignQuestion {
 		return refusedErr("%s is not a DesignQuestion", ref)
 	}
-	ns := p.Status[dq]
+	q := p.Questions[dq]
 	var ids []string
-	for _, h := range ns.Candidates {
+	for _, h := range q.Candidates {
 		ids = append(ids, display(p, h))
 	}
 	lone := ""
-	if len(ns.Candidates) == 1 {
-		lone = ns.Candidates[0]
+	if len(q.Candidates) == 1 {
+		lone = q.Candidates[0]
 	}
 	switch {
 	case len(ids) > 1:
 		fmt.Fprintf(w.stdout, "trade-off: owner decides between %s\n", strings.Join(ids, ", "))
-	case lone != "" && p.Status[lone].Status == replay.HypSupported && p.Status[lone].Stale == nil:
+	case lone != "" && p.Hyps[lone].Status == replay.HypSupported && p.Hyps[lone].Stale == nil:
 		fmt.Fprintf(w.stdout, "suggested: %s\n", ids[0])
 	default:
-		reason := ns.Reason
+		reason := q.Reason
 		if reason == "" {
-			reason = ns.Status
+			reason = string(q.State)
 		}
 		fmt.Fprintf(w.stdout, "suggested: none (%s)\n", reason)
 	}

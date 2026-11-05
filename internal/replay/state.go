@@ -10,8 +10,9 @@ import (
 
 // Projection is what Replay returns.
 type Projection struct {
-	Nodes          map[string]*Node      // static fields from node.add / result.record
-	Status         map[string]NodeStatus // derived
+	Nodes          map[string]*Node     // static fields from node.add / result.record
+	Hyps           map[string]*Hyp      // Hypothesis → its derived record
+	Questions      map[string]*Question // DesignQuestion → its derived record
 	Goal           GoalStatus
 	Rejections     []Rejection
 	Applied        []event.Event // events that applied, in merge order
@@ -23,12 +24,58 @@ type Projection struct {
 	Decisions      map[string]*Decision // DQ → its Decision record (decision.go)
 }
 
-// NodeStatus is the derived state of one node.
-type NodeStatus struct {
-	Status     string      // hypothesis status, DQ state, experiment planned/run/superseded/withdrawn, result recorded/retracted, goal state
-	Reason     string      // DQ open/reopened reason; "" otherwise
+// HypStatus, QuestionState, ExpStatus, ResStatus and GoalState are the status
+// words of one node kind each, so a word of one kind cannot be compared with
+// a word of another (ADR 0013).
+type (
+	HypStatus     string
+	QuestionState string
+	ExpStatus     string
+	ResStatus     string
+	GoalState     string
+)
+
+// Hyp is the derived record of one Hypothesis (spec §7.1, §7.3).
+type Hyp struct {
+	Status HypStatus
+	Stale  *StaleCause // nil when not stale
+}
+
+// Question is the derived record of one DesignQuestion (spec §7.3, §7.4). Its
+// Decision, in Projection.Decisions under the same id, holds what was stored.
+type Question struct {
+	State      QuestionState
+	Reason     string      // why it is open or reopened; "" otherwise
 	Stale      *StaleCause // nil when not stale
-	Candidates []string    // DQ only: its candidates (spec §7.4)
+	Candidates []string    // its candidates (spec §7.4)
+}
+
+// Shown is any node's status as code that prints any node reads it.
+type Shown struct {
+	Word, Reason string
+	Stale        *StaleCause
+}
+
+// Display returns the status of a node whose kind the caller does not know;
+// ok is false when p holds no such node. It is for printing: code that knows
+// the kind reads Hyps, Questions, Exps, Results or Goal.
+func (p Projection) Display(id string) (s Shown, ok bool) {
+	if h := p.Hyps[id]; h != nil {
+		return Shown{Word: string(h.Status), Stale: h.Stale}, true
+	}
+	if q := p.Questions[id]; q != nil {
+		return Shown{Word: string(q.State), Reason: q.Reason, Stale: q.Stale}, true
+	}
+	if e := p.Exps[id]; e != nil {
+		return Shown{Word: string(e.Status)}, true
+	}
+	if r := p.Results[id]; r != nil {
+		return Shown{Word: string(r.Status)}, true
+	}
+	if n := p.Nodes[id]; n != nil && n.Kind == event.KindGoal {
+		return Shown{Word: string(p.Goal.Status)}, true
+	}
+	return Shown{}, false
 }
 
 // StaleCause is one link of a stale chain such as H-5 ← H-3 contradicted ← R-9.
@@ -39,7 +86,7 @@ type StaleCause struct {
 
 // GoalStatus summarises the Goal. Counts keys are DQ states plus "stale".
 type GoalStatus struct {
-	Status string
+	Status GoalState
 	Counts map[string]int
 	GoalID string
 }
@@ -177,7 +224,7 @@ type Snap struct {
 
 // SnapVal is a target's (status, stale) pair inside a Snap.
 type SnapVal struct {
-	Status string
+	Status HypStatus
 	Stale  bool
 }
 
@@ -193,14 +240,18 @@ type State struct {
 	Abandoned    map[string]bool
 	Withdrawn    map[string]bool // Experiment → it has an applied experiment.withdraw
 	Edges        []Edge
-	Hold         map[string]string    // DQ → "", "deferred" or "withdrawn"
-	Decisions    map[string]*Decision // DQ → its Decision record (decision.go)
+	Hold         map[string]QuestionState // DQ → "", DQDeferred or DQWithdrawn
+	Decisions    map[string]*Decision     // DQ → its Decision record (decision.go)
 	Snaps        map[string][]Snap
 	EverAnswered map[string]bool
-	Derived      map[string]NodeStatus
-	Applied      []event.Event
-	GoalID       string
-	Aliases      map[string]string // alias → node id
+	// The derived records, rebuilt wholesale by recompute, so a map read
+	// before a Step keeps the state from before it.
+	Hyps      map[string]*Hyp
+	Questions map[string]*Question
+	goal      GoalState
+	Applied   []event.Event
+	GoalID    string
+	Aliases   map[string]string // alias → node id
 
 	// Lookup indexes over the stored state, maintained by apply so that a
 	// full recompute per event stays fast.
@@ -218,11 +269,12 @@ func NewState() *State {
 		Retracted:    map[string]bool{},
 		Abandoned:    map[string]bool{},
 		Withdrawn:    map[string]bool{},
-		Hold:         map[string]string{},
+		Hold:         map[string]QuestionState{},
 		Decisions:    map[string]*Decision{},
 		Snaps:        map[string][]Snap{},
 		EverAnswered: map[string]bool{},
-		Derived:      map[string]NodeStatus{},
+		Hyps:         map[string]*Hyp{},
+		Questions:    map[string]*Question{},
 		Aliases:      map[string]string{},
 		ResultsByHyp: map[string][]string{},
 		EdgesFrom:    map[string][]int{},
@@ -231,28 +283,36 @@ func NewState() *State {
 	}
 }
 
-// Derived status words.
+// The status words of each node kind.
 const (
-	HypProposed                = "proposed"
-	HypSupported               = "supported"
-	HypContradicted            = "contradicted"
-	HypInconclusive            = "inconclusive"
-	HypSuperseded              = "superseded"
-	HypAbandoned               = "abandoned"
-	HypAwaitingSubquestions    = "awaiting_subquestions"
-	DQOpen                     = "open"
-	DQReopened                 = "reopened"
-	DQAnswered                 = "answered"
-	DQDeferred                 = "deferred"
-	DQWithdrawn                = "withdrawn"
-	ExpPlanned                 = "planned"
-	ExpRun                     = "run"
-	ExpSuperseded              = "superseded"
-	ExpWithdrawn               = "withdrawn"
-	ResRecorded                = "recorded"
-	ResRetracted               = "retracted"
-	GoalComplete               = "complete"
-	GoalInProgress             = "in_progress"
+	HypProposed             HypStatus = "proposed"
+	HypSupported            HypStatus = "supported"
+	HypContradicted         HypStatus = "contradicted"
+	HypInconclusive         HypStatus = "inconclusive"
+	HypSuperseded           HypStatus = "superseded"
+	HypAbandoned            HypStatus = "abandoned"
+	HypAwaitingSubquestions HypStatus = "awaiting_subquestions"
+
+	DQOpen      QuestionState = "open"
+	DQReopened  QuestionState = "reopened"
+	DQAnswered  QuestionState = "answered"
+	DQDeferred  QuestionState = "deferred"
+	DQWithdrawn QuestionState = "withdrawn"
+
+	ExpPlanned    ExpStatus = "planned"
+	ExpRun        ExpStatus = "run"
+	ExpSuperseded ExpStatus = "superseded"
+	ExpWithdrawn  ExpStatus = "withdrawn"
+
+	ResRecorded  ResStatus = "recorded"
+	ResRetracted ResStatus = "retracted"
+
+	GoalComplete   GoalState = "complete"
+	GoalInProgress GoalState = "in_progress"
+)
+
+// Why a question is open, why a node is stale, and a limit's state.
+const (
 	ReasonConflicting          = "conflicting_selections"
 	ReasonSelectedNotSupport   = "selected_not_supported"
 	ReasonSelectedStale        = "selected_stale"

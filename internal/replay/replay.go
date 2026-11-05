@@ -72,7 +72,8 @@ func Build(events []event.Event, recipeHashes map[string]string, asOf string) (*
 func (st *State) Projection() Projection {
 	return Projection{
 		Nodes:       st.Nodes,
-		Status:      st.Derived,
+		Hyps:        st.Hyps,
+		Questions:   st.Questions,
 		Goal:        st.goalStatus(),
 		Applied:     st.Applied,
 		RivalsAtAdd: st.RivalsAtAdd,
@@ -97,8 +98,8 @@ func (st *State) Step(ev event.Event, recipeHashes map[string]string) error {
 		}
 		st.recompute(recipeHashes)
 	}
-	for id, ns := range st.Derived {
-		if ns.Status == DQAnswered && st.Nodes[id].Kind == event.KindDesignQuestion {
+	for id, q := range st.Questions {
+		if q.State == DQAnswered {
 			st.EverAnswered[id] = true
 		}
 	}
@@ -117,7 +118,7 @@ func (st *State) apply(ev event.Event) {
 		var p event.NodeAdd
 		_ = event.DecodePayload(ev, &p)
 		if p.Kind == event.KindExperiment {
-			// Derived still holds the state before this event.
+			// The derived records still hold the state before this event.
 			st.RivalsAtAdd[ev.ID] = st.LiveRivals(st.Nodes[p.Parent].Parent, p.Parent)
 		}
 		st.addNode(&Node{ID: ev.ID, Kind: p.Kind, Parent: p.Parent, Title: p.Title, Body: p.Body,
@@ -247,8 +248,11 @@ func (st *State) basisNodes(ev event.Event) []string {
 func (st *State) snapshot(n, eventID string) {
 	targets := map[string]SnapVal{}
 	for _, t := range st.dependsOn(n) {
-		d := st.Derived[t]
-		targets[t] = SnapVal{Status: d.Status, Stale: d.Stale != nil}
+		var v SnapVal
+		if h := st.Hyps[t]; h != nil {
+			v = SnapVal{Status: h.Status, Stale: h.Stale != nil}
+		}
+		targets[t] = v
 	}
 	st.Snaps[n] = append(st.Snaps[n], Snap{EventID: eventID, Targets: targets})
 }
@@ -267,11 +271,11 @@ func (st *State) dependsOn(n string) []string {
 // LiveHypStatus reports whether a Hypothesis with derived status s is live
 // (spec §7.1): neither superseded nor abandoned. A contradicted Hypothesis is
 // still live.
-func LiveHypStatus(s string) bool { return s != HypSuperseded && s != HypAbandoned }
+func LiveHypStatus(s HypStatus) bool { return s != HypSuperseded && s != HypAbandoned }
 
 // RivalStatus reports whether a Hypothesis with derived status s is a live
 // rival (spec §7.1): live and not contradicted.
-func RivalStatus(s string) bool { return LiveHypStatus(s) && s != HypContradicted }
+func RivalStatus(s HypStatus) bool { return LiveHypStatus(s) && s != HypContradicted }
 
 // NotRivals lists the Hypotheses in ids, once each in first-seen order,
 // whose current derived status is not a live rival. The D1 signal and the
@@ -281,7 +285,7 @@ func (st *State) NotRivals(ids []string) []string {
 	for _, h := range ids {
 		if !slices.Contains(seen, h) {
 			seen = append(seen, h)
-			if !RivalStatus(st.Derived[h].Status) {
+			if !RivalStatus(st.hypWord(h)) {
 				out = append(out, h)
 			}
 		}
@@ -319,7 +323,7 @@ func (st *State) Superseders(h string) []string {
 func (st *State) LiveRivals(q, except string) []string {
 	var out []string
 	for _, c := range st.Nodes[q].Children {
-		if c != except && st.Nodes[c].Kind == event.KindHypothesis && RivalStatus(st.Derived[c].Status) {
+		if c != except && st.Nodes[c].Kind == event.KindHypothesis && RivalStatus(st.hypWord(c)) {
 			out = append(out, c)
 		}
 	}
@@ -340,6 +344,14 @@ func (st *State) candidates(q string) []string {
 	return out
 }
 
+// hypWord is Hypothesis id's derived status, or "" for any other id.
+func (st *State) hypWord(id string) HypStatus {
+	if h := st.Hyps[id]; h != nil {
+		return h.Status
+	}
+	return ""
+}
+
 // isLiveHyp is LiveHypStatus read from stored state, for use while the
 // derivation that sets the status is still running.
 func (st *State) isLiveHyp(id string) bool {
@@ -355,8 +367,8 @@ func (st *State) isLiveDQ(id string) bool {
 // derivation holds the memo of one recompute call.
 type derivation struct {
 	st      *State
-	hyp     map[string]string
-	dq      map[string]NodeStatus
+	hyp     map[string]HypStatus
+	dq      map[string]*Question
 	stale   map[string]*StaleCause
 	staleOK map[string]bool
 	// busy guards against a cycle that Validate should have refused: a node
@@ -372,36 +384,28 @@ func (d *derivation) enter(key string) bool {
 	return true
 }
 
-// recompute rebuilds st.Derived from the stored state.
+// recompute rebuilds the derived records from the stored state.
 func (st *State) recompute(recipeHashes map[string]string) {
 	st.recipeHashes = recipeHashes
-	d := &derivation{st: st, hyp: map[string]string{}, dq: map[string]NodeStatus{},
+	d := &derivation{st: st, hyp: map[string]HypStatus{}, dq: map[string]*Question{},
 		stale: map[string]*StaleCause{}, staleOK: map[string]bool{}, busy: map[string]bool{}}
-	out := make(map[string]NodeStatus, len(st.Order))
+	hyps, questions := map[string]*Hyp{}, map[string]*Question{}
 	for _, id := range st.Order {
 		n := st.Nodes[id]
 		switch n.Kind {
 		case event.KindGoal:
-			out[id] = NodeStatus{Status: st.goalState(d)}
+			st.goal = st.goalState(d)
 		case event.KindDesignQuestion:
-			out[id] = d.dqState(id)
+			questions[id] = d.dqState(id)
 		case event.KindHypothesis:
-			out[id] = NodeStatus{Status: d.hypStatus(id), Stale: d.staleOf(id)}
-		case event.KindExperiment:
-			out[id] = NodeStatus{Status: st.expStatus(id)}
-		case event.KindResult:
-			status := ResRecorded
-			if st.Retracted[id] {
-				status = ResRetracted
-			}
-			out[id] = NodeStatus{Status: status}
+			hyps[id] = &Hyp{Status: d.hypStatus(id), Stale: d.staleOf(id)}
 		}
 	}
-	st.Derived = out
+	st.Hyps, st.Questions = hyps, questions
 }
 
 // hypStatus follows spec §7.1.
-func (d *derivation) hypStatus(id string) string {
+func (d *derivation) hypStatus(id string) HypStatus {
 	if s, ok := d.hyp[id]; ok {
 		return s
 	}
@@ -409,7 +413,7 @@ func (d *derivation) hypStatus(id string) string {
 		return HypProposed
 	}
 	st := d.st
-	var s string
+	var s HypStatus
 	switch {
 	case st.superseded(id):
 		s = HypSuperseded
@@ -417,7 +421,7 @@ func (d *derivation) hypStatus(id string) string {
 		s = HypAbandoned
 	default:
 		s = st.verdictStatus(id, "")
-		if s == HypSupported && st.awaitsSubquestions(id, func(c string) string { return d.dqState(c).Status }) {
+		if s == HypSupported && st.awaitsSubquestions(id, func(c string) QuestionState { return d.dqState(c).State }) {
 			s = HypAwaitingSubquestions
 		}
 	}
@@ -428,7 +432,7 @@ func (d *derivation) hypStatus(id string) string {
 // verdictStatus is rule 3 of spec §7.1: the status of Hypothesis id from the
 // verdicts of its non-retracted Results, leaving out the Result except when it
 // is not "".
-func (st *State) verdictStatus(id, except string) string {
+func (st *State) verdictStatus(id, except string) HypStatus {
 	var supports, contradicts, any bool
 	for _, r := range st.resultsFor(id) {
 		if r == except {
@@ -455,7 +459,7 @@ func (st *State) verdictStatus(id, except string) string {
 
 // awaitsSubquestions is rule 4 of spec §7.1: a sub-question of Hypothesis id that
 // is not withdrawn is not answered. status reads a question's state.
-func (st *State) awaitsSubquestions(id string, status func(string) string) bool {
+func (st *State) awaitsSubquestions(id string, status func(string) QuestionState) bool {
 	for _, c := range st.Nodes[id].Children {
 		if st.Nodes[c].Kind == event.KindDesignQuestion && st.isLiveDQ(c) && status(c) != DQAnswered {
 			return true
@@ -490,7 +494,7 @@ func (d *derivation) staleOf(id string) *StaleCause {
 		for _, t := range st.dependsOn(id) {
 			ts := d.hypStatus(t)
 			if ts != HypSupported {
-				cause = &StaleCause{Node: t, Reason: ts}
+				cause = &StaleCause{Node: t, Reason: string(ts)}
 				if ts == HypContradicted {
 					cause.Next = &StaleCause{Node: st.latestContradiction(t), Reason: StaleReasonContradicts}
 				}
@@ -534,22 +538,22 @@ func (st *State) latestContradiction(h string) string {
 }
 
 // dqState follows spec §7.4.
-func (d *derivation) dqState(id string) NodeStatus {
+func (d *derivation) dqState(id string) *Question {
 	if s, ok := d.dq[id]; ok {
 		return s
 	}
 	if !d.enter("q|" + id) {
-		return NodeStatus{Status: DQOpen}
+		return &Question{State: DQOpen}
 	}
 	st := d.st
-	ns := NodeStatus{Stale: d.staleOf(id)}
+	q := &Question{Stale: d.staleOf(id)}
 	switch st.Hold[id] {
 	case DQWithdrawn:
-		ns = NodeStatus{Status: DQWithdrawn}
-		d.dq[id] = ns
-		return ns
+		q = &Question{State: DQWithdrawn}
+		d.dq[id] = q
+		return q
 	case DQDeferred:
-		ns.Status = DQDeferred
+		q.State = DQDeferred
 	}
 
 	var live []string
@@ -559,30 +563,30 @@ func (d *derivation) dqState(id string) NodeStatus {
 		}
 	}
 	candidates := st.candidates(id)
-	ns.Candidates = candidates
-	if ns.Status == DQDeferred {
-		d.dq[id] = ns
-		return ns
+	q.Candidates = candidates
+	if q.State == DQDeferred {
+		d.dq[id] = q
+		return q
 	}
 
-	reason := d.reason(id, live, candidates, ns.Stale != nil)
+	reason := d.reason(id, live, candidates, q.Stale != nil)
 	if reason == "" {
-		ns.Status = DQAnswered
-		d.dq[id] = ns
-		return ns
+		q.State = DQAnswered
+		d.dq[id] = q
+		return q
 	}
-	ns.Status = DQOpen
+	q.State = DQOpen
 	if st.EverAnswered[id] {
-		ns.Status = DQReopened
+		q.State = DQReopened
 	}
-	ns.Reason = reason
-	d.dq[id] = ns
-	return ns
+	q.Reason = reason
+	d.dq[id] = q
+	return q
 }
 
 // goalState follows spec §7.5, with one addition: a Goal needs at least one
 // answered live top-level DQ to be complete, so a new Goal is in_progress.
-func (st *State) goalState(d *derivation) string {
+func (st *State) goalState(d *derivation) GoalState {
 	g := st.Nodes[st.GoalID]
 	if g == nil {
 		return ""
@@ -592,7 +596,7 @@ func (st *State) goalState(d *derivation) string {
 		if !st.isLiveDQ(c) {
 			continue
 		}
-		if d.dqState(c).Status != DQAnswered {
+		if d.dqState(c).State != DQAnswered {
 			return GoalInProgress
 		}
 		answered++
@@ -605,19 +609,23 @@ func (st *State) goalState(d *derivation) string {
 
 func (st *State) goalStatus() GoalStatus {
 	gs := GoalStatus{GoalID: st.GoalID, Counts: map[string]int{
-		DQOpen: 0, DQReopened: 0, DQAnswered: 0, DQDeferred: 0, DQWithdrawn: 0, StaleReasonStale: 0,
+		string(DQOpen): 0, string(DQReopened): 0, string(DQAnswered): 0, string(DQDeferred): 0, string(DQWithdrawn): 0, StaleReasonStale: 0,
 	}}
 	if st.GoalID == "" {
 		return gs
 	}
-	gs.Status = st.Derived[st.GoalID].Status
+	gs.Status = st.goal
 	for _, id := range st.Order {
-		n := st.Nodes[id]
-		ns := st.Derived[id]
-		if n.Kind == event.KindDesignQuestion {
-			gs.Counts[ns.Status]++
+		var stale *StaleCause
+		switch st.Nodes[id].Kind {
+		case event.KindDesignQuestion:
+			q := st.Questions[id]
+			gs.Counts[string(q.State)]++
+			stale = q.Stale
+		case event.KindHypothesis:
+			stale = st.Hyps[id].Stale
 		}
-		if ns.Stale != nil && (st.isLiveHyp(id) || st.isLiveDQ(id)) {
+		if stale != nil && (st.isLiveHyp(id) || st.isLiveDQ(id)) {
 			gs.Counts[StaleReasonStale]++
 		}
 	}

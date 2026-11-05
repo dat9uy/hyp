@@ -43,8 +43,8 @@ func Status(p replay.Projection, maxLines int) string {
 	g := p.Nodes[p.Goal.GoalID]
 	c := p.Goal.Counts
 	add(kKeep, "GOAL %s %s — %s (answered %d, open %d, reopened %d, deferred %d, withdrawn %d, stale %d)",
-		r.id(g.ID), Cut(g.Title, 60), p.Goal.Status, c[replay.DQAnswered], c[replay.DQOpen],
-		c[replay.DQReopened], c[replay.DQDeferred], c[replay.DQWithdrawn], c[replay.StaleReasonStale])
+		r.id(g.ID), Cut(g.Title, 60), p.Goal.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
+		c[string(replay.DQReopened)], c[string(replay.DQDeferred)], c[string(replay.DQWithdrawn)], c[replay.StaleReasonStale])
 
 	add(kKeep, "FRONTIER")
 	// FRONTIER is the tree pruned to open work. The walk visits every question
@@ -54,20 +54,20 @@ func Status(p replay.Projection, maxLines int) string {
 	unprinted := 0
 	edges := p.LiveEdges()
 	onFrontier := func(dq string) bool {
-		s := p.Status[dq].Status
+		s := p.Questions[dq].State
 		return s == replay.DQOpen || s == replay.DQReopened
 	}
 	// blocker reports a question that keeps its printed Hypothesis waiting and
 	// that would otherwise not print, so nothing would name the cause.
 	blocker := func(h, sub string) bool {
-		return p.Status[h].Status == replay.HypAwaitingSubquestions && p.Status[sub].Status == replay.DQDeferred
+		return p.Hyps[h].Status == replay.HypAwaitingSubquestions && p.Questions[sub].State == replay.DQDeferred
 	}
 	// awaitingOwner collects, for each question FRONTIER prints, the one step
 	// due from the owner: confirm the select, or choose between the candidates.
 	var awaitingOwner []string
 	printQuestion := func(dq, indent string) {
-		ns := p.Status[dq]
-		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.Status, ns.Reason, Cut(p.Nodes[dq].Title, 60))
+		ns := p.Questions[dq]
+		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.State, ns.Reason, Cut(p.Nodes[dq].Title, 60))
 		switch {
 		case ns.Reason == replay.ReasonAwaitingOwner:
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s", r.id(dq), r.id(SelectedHyp(p, dq))))
@@ -88,7 +88,7 @@ func Status(p replay.Projection, maxLines int) string {
 		}
 	}
 	printHypothesis := func(h, indent string, kind int) {
-		hs := p.Status[h]
+		hs := p.Hyps[h]
 		stale := ""
 		if hs.Stale != nil {
 			stale = " STALE"
@@ -132,8 +132,8 @@ func Status(p replay.Projection, maxLines int) string {
 			unprinted++
 		}
 		for _, h := range p.Nodes[dq].Children {
-			listed := prints && replay.LiveHypStatus(p.Status[h].Status)
-			subInPlay := listed && replay.RivalStatus(p.Status[h].Status)
+			listed := prints && replay.LiveHypStatus(p.Hyps[h].Status)
+			subInPlay := listed && replay.RivalStatus(p.Hyps[h].Status)
 			var subs []string
 			for _, c := range p.Nodes[h].Children {
 				if p.Nodes[c].Kind == event.KindDesignQuestion {
@@ -151,7 +151,7 @@ func Status(p replay.Projection, maxLines int) string {
 			}
 			for _, sub := range subs {
 				if listed && blocker(h, sub) {
-					add(kKeep, "%s    %s %s %s", indent, r.id(sub), p.Status[sub].Status, Cut(p.Nodes[sub].Title, 60))
+					add(kKeep, "%s    %s %s %s", indent, r.id(sub), p.Questions[sub].State, Cut(p.Nodes[sub].Title, 60))
 				}
 				walk(sub, depth+2, subInPlay)
 			}
@@ -172,7 +172,8 @@ func Status(p replay.Projection, maxLines int) string {
 		if ev.Type != event.TypeNodeAdd {
 			continue
 		}
-		if s := p.Status[ev.ID].Stale; s != nil {
+		shown, _ := p.Display(ev.ID)
+		if s := shown.Stale; s != nil {
 			kind := kKeep
 			if n >= 5 {
 				kind = kStale
@@ -362,7 +363,7 @@ func SelectKind(rec replay.SelectRec) string {
 // select records the owner's choice: it has --tradeoff and its Hypothesis is
 // one of two or more candidates ("" otherwise).
 func chosenCandidate(p replay.Projection, dq string) string {
-	cands := p.Status[dq].Candidates
+	cands := p.Questions[dq].Candidates
 	if rec, ok := p.CurrentSelect(dq); ok && rec.Tradeoff && len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
 		return rec.Hyp
 	}
