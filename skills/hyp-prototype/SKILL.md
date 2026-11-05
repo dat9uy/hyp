@@ -24,7 +24,8 @@ never type one. Run `hyp help` for every command and flag.
 
 - One `hyp add dq --parent <goal-or-hyp> --title "<question>" --why "..."` per
   material design question. A question that only matters if a hypothesis
-  holds goes under that hypothesis.
+  holds goes under that hypothesis. It blocks: its parent cannot become the
+  answer until the sub-question is settled, whichever way it is settled.
 - Rival answers are siblings: `hyp add hyp --parent <Q-id> --title "..." --why "..."`.
   Add at least two when the answer is genuinely uncertain.
 - New information goes in a new node. A fix, an untested part of a claim
@@ -40,7 +41,8 @@ never type one. Run `hyp help` for every command and flag.
   wording, or a narrower claim). It never adds a claim that still needs a test.
 - When one answer assumes another, say so:
   `hyp link <H-or-Q-id> depends_on <H-id> --why "..."`. Then a contradiction
-  of the assumption marks every dependent stale automatically.
+  of the assumption marks every dependent stale automatically. This link, not
+  a sub-question, is how to say a claim rests on an answer.
 - Link issues or URLs with `hyp link <id> external_ref gh:976 --why "..."`.
 
 ## Experiment
