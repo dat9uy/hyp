@@ -138,7 +138,8 @@ func references(ev event.Event) []string {
 // reaffirmNoEffect reports whether node is still stale because a depends_on
 // target is not supported, which a reaffirm cannot fix (spec §7.3).
 func reaffirmNoEffect(p replay.Projection, node string) bool {
-	s := p.Status[node].Stale
+	shown, _ := p.Display(node)
+	s := shown.Stale
 	if s == nil {
 		return false
 	}

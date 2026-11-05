@@ -110,7 +110,7 @@ func (st *State) oneRivalRefusal(hyp string, targets []string) string {
 	}
 	var live []string
 	for _, id := range rivals {
-		live = append(live, fmt.Sprintf("  %s %s", event.DisplayID(event.KindHypothesis, id), st.Derived[id].Status))
+		live = append(live, fmt.Sprintf("  %s %s", event.DisplayID(event.KindHypothesis, id), st.hypWord(id)))
 	}
 	return fmt.Sprintf("live rivals of %s under %s are not targeted:\n%s\npass --target <H-id> for the rival this result would count against, or --target none to proceed without one",
 		event.DisplayID(event.KindHypothesis, hyp), event.DisplayID(st.Nodes[q].Kind, q), strings.Join(live, "\n"))
@@ -126,8 +126,8 @@ func (st *State) notRivalWarnings(parent string, targets []string) []string {
 		if h == parent {
 			role = "parent"
 		}
-		line := fmt.Sprintf("D1: %s %s is %s", role, hid(h), st.Derived[h].Status)
-		switch st.Derived[h].Status {
+		line := fmt.Sprintf("D1: %s %s is %s", role, hid(h), st.hypWord(h))
+		switch st.hypWord(h) {
 		case HypContradicted:
 			var rs []string
 			for _, r := range st.Contradictions(h) {
@@ -158,7 +158,7 @@ func (st *State) AdmitResult(p event.ResultRecord, f RecipeFacts, refHash map[st
 	if exp == nil || exp.Kind != event.KindExperiment {
 		return nil
 	}
-	switch display := event.DisplayID(exp.Kind, p.Parent); st.Derived[p.Parent].Status {
+	switch display := event.DisplayID(exp.Kind, p.Parent); st.expStatus(p.Parent) {
 	case ExpWithdrawn:
 		return []Finding{{FindRefuse, display + " is withdrawn; add a new Experiment for this Result"}}
 	case ExpSuperseded:

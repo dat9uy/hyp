@@ -26,7 +26,7 @@ func Markdown(p replay.Projection) string {
 	var dq func(id string, level int)
 	dq = func(id string, level int) {
 		n := p.Nodes[id]
-		fmt.Fprintf(&b, "\n%s %s %s — %s\n", strings.Repeat("#", min(level, 6)), r.id(id), n.Title, statusText(r, p.Status[id], nil))
+		fmt.Fprintf(&b, "\n%s %s %s — %s\n", strings.Repeat("#", min(level, 6)), r.id(id), n.Title, statusText(r, p, id, false))
 		if n.Body != "" {
 			fmt.Fprintf(&b, "\n%s\n", n.Body)
 		}
@@ -47,14 +47,14 @@ func Markdown(p replay.Projection) string {
 		var subs []string
 		for _, h := range n.Children {
 			hn := p.Nodes[h]
-			fmt.Fprintf(&b, "- %s %s — %s\n", r.id(h), hn.Title, statusText(r, p.Status[h], nil))
+			fmt.Fprintf(&b, "- %s %s — %s\n", r.id(h), hn.Title, statusText(r, p, h, false))
 			for _, c := range hn.Children {
 				cn := p.Nodes[c]
 				switch cn.Kind {
 				case event.KindExperiment:
-					fmt.Fprintf(&b, "  - %s %s — %s (recipe %s)\n", r.id(c), cn.Title, p.Status[c].Status, cn.Recipe)
+					fmt.Fprintf(&b, "  - %s %s — %s (recipe %s)\n", r.id(c), cn.Title, p.Exps[c].Status, cn.Recipe)
 					for _, res := range cn.Children {
-						rs, rr := p.Status[res], resOf(p, res)
+						rr := resOf(p, res)
 						flag := ""
 						if rr.Questionable {
 							flag = " — questionable"
@@ -62,7 +62,7 @@ func Markdown(p replay.Projection) string {
 						if len(rr.Uncontained) > 0 {
 							flag += " — uncontained"
 						}
-						fmt.Fprintf(&b, "    - %s %s %s: %s%s\n", r.id(res), rs.Status, r.verdicts(p.Nodes[res].Verdicts),
+						fmt.Fprintf(&b, "    - %s %s %s: %s%s\n", r.id(res), rr.Status, r.verdicts(p.Nodes[res].Verdicts),
 							p.Nodes[res].Observation, flag)
 					}
 				case event.KindDesignQuestion:

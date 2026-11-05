@@ -189,8 +189,8 @@ func TestSupersedeHintAndPredecessorEvidence(t *testing.T) {
 			t.Fatalf("show lacks %q:\n%s", want, show)
 		}
 	}
-	if p.Status[nw].Status != replay.HypSupported {
-		t.Fatalf("derivation changed: %s", p.Status[nw].Status)
+	if p.Hyps[nw].Status != replay.HypSupported {
+		t.Fatalf("derivation changed: %s", p.Hyps[nw].Status)
 	}
 }
 
@@ -229,8 +229,8 @@ func TestPredecessorEvidenceAlsoCounted(t *testing.T) {
 	if !sawBoth || !sawOnly {
 		t.Fatalf("results missing from show (both=%v only=%v):\n%s", sawBoth, sawOnly, show)
 	}
-	if p.Status[nw].Status != replay.HypSupported {
-		t.Fatalf("derivation changed: %s", p.Status[nw].Status)
+	if p.Hyps[nw].Status != replay.HypSupported {
+		t.Fatalf("derivation changed: %s", p.Hyps[nw].Status)
 	}
 }
 
@@ -701,7 +701,7 @@ func TestStatusCountLineAccountsForTheGoalCounts(t *testing.T) {
 	if !strings.Contains(out, "(3 open questions out of play;") {
 		t.Fatalf("want three counted:\n%s", out)
 	}
-	if got, want := p.Goal.Counts[replay.DQOpen], 5; got != want {
+	if got, want := p.Goal.Counts[string(replay.DQOpen)], 5; got != want {
 		t.Fatalf("Goal counts %d open, want %d printed and counted", got, want)
 	}
 }
@@ -720,7 +720,7 @@ func TestStatusPrintsADeferredBlocker(t *testing.T) {
 	b.Defer(parked)
 	b.Supports(h1)
 	p := replay.Replay(b.Evs, nil, "")
-	if s := p.Status[h1].Status; s != replay.HypAwaitingSubquestions {
+	if s := p.Hyps[h1].Status; s != replay.HypAwaitingSubquestions {
 		t.Fatalf("h1 is %s, want %s", s, replay.HypAwaitingSubquestions)
 	}
 	out := Status(p, 0)

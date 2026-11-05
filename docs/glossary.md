@@ -27,7 +27,7 @@ Deriving every status of a tree from its ordered events.
 _Avoid_: replay for re-running an agent session (that is an Experiment run with a session-replay recipe)
 
 **Projection**:
-Everything replay derives from a store's events: each node and its status, the Goal's state, rejections, limits, selections, and the derived records of Experiments and Results ([spec §8](replay-spec.md#8-projection-what-replay-returns)). Nothing stores it; every read replays (ADR 0006). In code: `replay.Projection`.
+Everything replay derives from a store's events: each node, a derived record per node kind (Hypothesis, Question, Experiment and Result) with its own status word, the Goal's state, rejections, limits and selections ([spec §8](replay-spec.md#8-projection-what-replay-returns)). Nothing stores it; every read replays (ADR 0006). In code: `replay.Projection`.
 _Avoid_: state (alone), index, cache
 
 **Goal**:

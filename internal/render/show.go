@@ -35,8 +35,8 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	}
 	w("path: %s", strings.Join(append(crumbs, r.id(id)), " > "))
 
-	ns := p.Status[id]
-	status := ns.Status
+	ns, _ := p.Display(id)
+	status := ns.Word
 	if ns.Reason != "" {
 		status += "/" + ns.Reason
 	}
@@ -47,8 +47,8 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	if ns.Stale != nil {
 		w("stale: %s", r.chain(ns.Stale))
 	}
-	if len(ns.Candidates) > 0 {
-		w("candidates: %s", r.ids(ns.Candidates))
+	if q := p.Questions[id]; q != nil && len(q.Candidates) > 0 {
+		w("candidates: %s", r.ids(q.Candidates))
 	}
 	if n.Kind == event.KindDesignQuestion {
 		rec, ok := p.CurrentSelect(id)
@@ -116,8 +116,8 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	if len(n.Children) > 0 {
 		w("children:")
 		for _, c := range n.Children {
-			cs := p.Status[c]
-			line := fmt.Sprintf("  %s %s", r.id(c), cs.Status)
+			cs, _ := p.Display(c)
+			line := fmt.Sprintf("  %s %s", r.id(c), cs.Word)
 			if cs.Reason != "" {
 				line += "/" + cs.Reason
 			}
@@ -153,7 +153,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		}
 		var lines []string
 		for _, ev := range p.Applied {
-			if ev.Type != event.TypeResultRecord || p.Status[ev.ID].Status == replay.ResRetracted {
+			if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == replay.ResRetracted {
 				continue
 			}
 			rn := p.Nodes[ev.ID]
@@ -244,13 +244,12 @@ func Diff(before, after replay.Projection) string {
 		if ev.Type != event.TypeNodeAdd && ev.Type != event.TypeResultRecord {
 			continue
 		}
-		old, had := before.Status[ev.ID]
-		cur := after.Status[ev.ID]
+		_, had := before.Display(ev.ID)
 		oldText := "absent"
 		if had {
-			oldText = statusText(r, old, before.Results[ev.ID])
+			oldText = statusText(r, before, ev.ID, true)
 		}
-		curText := statusText(r, cur, after.Results[ev.ID])
+		curText := statusText(r, after, ev.ID, true)
 		if !had || oldText != curText {
 			fmt.Fprintf(&b, "%s %s → %s\n", r.id(ev.ID), oldText, curText)
 		}
@@ -262,17 +261,18 @@ func Diff(before, after replay.Projection) string {
 	return b.String()
 }
 
-// statusText is a node's status as one phrase; res is its Result record, or
-// nil for any other node.
-func statusText(r renderer, s replay.NodeStatus, res *replay.Res) string {
-	t := s.Status
+// statusText is node id's status in p as one phrase, naming a questionable
+// Result when flagged.
+func statusText(r renderer, p replay.Projection, id string, flagged bool) string {
+	s, _ := p.Display(id)
+	t := s.Word
 	if s.Reason != "" {
 		t += "/" + s.Reason
 	}
 	if s.Stale != nil {
 		t += " stale ← " + r.chain(s.Stale)
 	}
-	if res != nil && res.Questionable {
+	if flagged && resOf(p, id).Questionable {
 		t += " questionable"
 	}
 	return t
@@ -368,8 +368,8 @@ func (r renderer) dossier(w func(string, ...any), q, selected string) {
 			continue
 		}
 		h := it.Node
-		line := fmt.Sprintf("  %s %s", r.id(h), r.p.Status[h].Status)
-		if r.p.Status[h].Stale != nil {
+		line := fmt.Sprintf("  %s %s", r.id(h), r.p.Hyps[h].Status)
+		if r.p.Hyps[h].Stale != nil {
 			line += " STALE"
 		}
 		if h == selected {
@@ -419,7 +419,7 @@ func (r renderer) experiments(w func(string, ...any), q string) {
 			if len(x.Live) == 0 {
 				judged := "pending"
 				if x.Status != replay.ExpPlanned {
-					judged = x.Status
+					judged = string(x.Status)
 				}
 				w("    judged: %s", judged)
 				continue

@@ -209,7 +209,7 @@ func (d *derivation) candidateReason(live []string) string {
 	if len(live) == 0 {
 		return ReasonNoCandidates
 	}
-	count := map[string]int{}
+	count := map[HypStatus]int{}
 	for _, c := range live {
 		count[d.hypStatus(c)]++
 	}

@@ -218,7 +218,8 @@ The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads
 ```go
 type Projection struct {
     Nodes      map[string]*Node      // static fields from node.add / result.record
-    Status     map[string]NodeStatus // derived; see below
+    Hyps       map[string]*Hyp       // Hypothesis id → its derived record
+    Questions  map[string]*Question  // DQ id → its derived record
     Goal       GoalStatus
     Rejections []Rejection
     Applied    []Event              // events that applied, in merge order
@@ -244,8 +245,8 @@ type Dossier struct {
 }
 type DossierItem struct { Kind, Node, To, Word, Body string } // body, hypothesis, result or link
 type Exp struct {
-    Status     string            // planned, run, superseded or withdrawn (§7.6); equal to Status[id].Status
-    Closed     string            // superseded or withdrawn when closed, even if a Result makes it run; "" otherwise
+    Status     ExpStatus         // planned, run, superseded or withdrawn (§7.6)
+    Closed     ExpStatus         // superseded or withdrawn when closed, even if a Result makes it run; "" otherwise
     Live       []string          // non-retracted Results, in creation order
     Judged     map[string]string // Hypothesis id → verdict over Live; a later Result wins
     OneRival   bool              // its parent had live rivals at its add and its targets name none of them
@@ -253,7 +254,7 @@ type Exp struct {
     ReplacedBy []string          // Experiments with a live supersedes edge to it, in edge order
 }
 type Res struct {
-    Status       string   // recorded or retracted; equal to Status[id].Status
+    Status       ResStatus // recorded or retracted
     Questionable bool     // questionable_evidence (§7.6)
     Pins         []Pin    // its Experiment's pin, then one per evidence_hashes entry, in the order cited (§7.6)
     Uncontained  []string // reasons (§7.6); set by the CLI from files, not by replay
@@ -265,11 +266,15 @@ type Limit struct {
     By    string               // the closing Result id, or the accepting owner's actor
     Gating bool                // open, and Hyps contains the Hypothesis of the question's current select
 }
-type NodeStatus struct {
-    Status     string      // hypothesis status, DQ state, experiment status (§7.6), result recorded/retracted, goal state
-    Reason     string      // DQ open/reopened reason; "" otherwise
-    Stale      *StaleCause // nil when not stale
-    Candidates []string    // DQ only: its candidates (§7.4)
+type Hyp struct {
+    Status HypStatus   // §7.1
+    Stale  *StaleCause // nil when not stale
+}
+type Question struct {
+    State      QuestionState // §7.4
+    Reason     string        // open/reopened reason; "" otherwise
+    Stale      *StaleCause   // nil when not stale
+    Candidates []string      // its candidates (§7.4)
 }
 type StaleCause struct { Node, Reason string; Next *StaleCause }
 type Edge struct { ID, From, Type, To string; Live bool } // ID is the edge.add event's id
@@ -288,7 +293,9 @@ Rivals at add **[added]**: when an Experiment is applied, replay stores the live
 
 The Projection holds every fact hyp derives; render, signals and the CLI read its fields, and nothing stores them a second time (ADR 0006). Scripts read the applied events and rejections through `hyp events --json` and derived signals through `hyp signals --json`, never the files under `.tree/events`.
 
-Equality test used by acceptance: `reflect.DeepEqual(p1.Status, p2.Status) && reflect.DeepEqual(p1.Goal, p2.Goal)`.
+Each node kind has its own status word: `HypStatus`, `QuestionState`, `ExpStatus`, `ResStatus` and `GoalState` are separate string types, so comparing two kinds does not compile (ADR 0013). A `Question` reaches its `Decision` by the shared id. `Projection.Display(id)` returns the word, reason and stale cause of any node, for code that prints a node without knowing its kind.
+
+Equality test used by acceptance: every node's derived record and the Goal are deeply equal.
 
 ## 9. Sandbox lifecycle and steps
 

@@ -61,7 +61,15 @@ type Signal struct {
 type result struct {
 	id, exp       string
 	targets       []string
-	before, after map[string]replay.NodeStatus
+	before, after map[string]*replay.Hyp
+}
+
+// word is Hypothesis h's status in hyps, or "" when hyps does not hold it.
+func word(hyps map[string]*replay.Hyp, h string) string {
+	if x := hyps[h]; x != nil {
+		return string(x.Status)
+	}
+	return ""
 }
 
 // Compute replays evs once and returns every round and every signal it
@@ -87,7 +95,7 @@ func Compute(evs []event.Event) Report {
 	prev := ""
 	for _, ev := range evs {
 		// Read the state before ev; a refused ev discards what was read.
-		before := st.Derived
+		before := st.Hyps
 		var live, d1 []string
 		var add event.NodeAdd
 		var rec event.ResultRecord
@@ -116,17 +124,17 @@ func Compute(evs []event.Event) Report {
 				r.Targets = append(r.Targets, display(t))
 			}
 			for _, h := range append([]string{add.Parent}, live...) {
-				r.AtAdd = append(r.AtAdd, []string{display(h), before[h].Status})
+				r.AtAdd = append(r.AtAdd, []string{display(h), word(before, h)})
 			}
 			for _, h := range d1 {
-				r.D1 = append(r.D1, []string{display(h), before[h].Status})
+				r.D1 = append(r.D1, []string{display(h), word(before, h)})
 			}
 			rounds = append(rounds, r)
 			exps = append(exps, ev.Node)
 			byExp[ev.Node] = r
 		case ev.Type == event.TypeResultRecord:
 			targets := st.Nodes[ev.Node].VerdictOrder
-			after := st.Derived
+			after := st.Hyps
 			r := byExp[rec.Parent]
 			selAt[ev.ID] = viewOf(r.QuestionID, st.Decisions[r.QuestionID])
 			for _, t := range targets {
@@ -136,7 +144,7 @@ func Compute(evs []event.Event) Report {
 			}
 			res := Result{ID: display(ev.Node), Event: ev.ID, Moves: [][]string{}}
 			for _, h := range live {
-				b, a := before[h].Status, after[h].Status
+				b, a := word(before, h), word(after, h)
 				res.Moves = append(res.Moves, []string{display(h), b, a})
 				res.Moved = res.Moved || b != a
 			}
@@ -239,7 +247,7 @@ func Compute(evs []event.Event) Report {
 		if _, ok := byHyp[parent]; !ok {
 			hypOrder = append(hypOrder, parent)
 		}
-		byHyp[parent] = append(byHyp[parent], step{x.id, x.before[parent].Status, x.after[parent].Status})
+		byHyp[parent] = append(byHyp[parent], step{x.id, word(x.before, parent), word(x.after, parent)})
 	}
 	expOf := map[string]string{}
 	for _, x := range results {
