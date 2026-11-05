@@ -97,7 +97,8 @@ files opened after the confirm; no confirm; a tool in the follow-up; a void tria
 by exit and by budget; a `holds` audit on a wrong verdict with a `wrong` follow-up,
 and one later changed; a `wrong` audit on the control; a verifier that audited in
 the readers arm; a refused confirm re-run after reading; opening by a glob across
-folders, a loop, a `cd` and Read; an errored Read; a file of the same name in
+folders, a loop, a `cd` and Read; a `cd` into the evidence directory with a glob, a
+loop, sizes only and another folder; an errored Read; a file of the same name in
 another folder; no answer lines; a missing file and a usage failure. For
 `verdict`: a `supports` and a `contradicts` case for each label; base alone on a
 valid and an invalid cut; one audit arm refused; audit arms refused on an invalid

@@ -37,7 +37,8 @@ running hyp confirm with --verdict that did not end in error, so a refused
 confirm does not end it. A tool use opens a file when it did not end in error
 and it is a Read of that file, or a Bash command where cat, sed, head, tail, awk,
 grep or less names the file or its folder, directly, by a glob or brace, by a
-for-loop variable, or after a cd into the folder in the same call. ls, wc, du and
+for-loop variable, or after a cd into the folder or the evidence directory in
+the same call. ls, wc, du and
 stat never count, nor does a file of the same name in another folder.
 
 Exits 2 on a usage error or when OUT_DIR lacks state.env, drive.json,
@@ -113,13 +114,17 @@ def expand(tok, loops):
     return out
 
 
-def named(tok, folder, in_folder):
+def named(tok, folder, in_folder, in_evidence=False):
     """The files of folder a path names: through the folder, through a glob over
-    the evidence folders, or bare after a cd into the folder."""
+    the evidence folders, from a cd into the evidence directory, or bare after a
+    cd into the folder."""
     if folder in tok:
         rest = tok.split(folder, 1)[1].strip("/") or "*"
     elif "evidence/" in tok:
         pattern = re.sub(r"/+", "/", tok.split("evidence/", 1)[1]).strip("/")
+        return {f for f in FILES if fnmatch.fnmatch(f"{folder}/{f}", pattern)}
+    elif in_evidence:
+        pattern = re.sub(r"/+", "/", tok[2:] if tok.startswith("./") else tok).strip("/")
         return {f for f in FILES if fnmatch.fnmatch(f"{folder}/{f}", pattern)}
     elif in_folder:
         rest = tok[2:] if tok.startswith("./") else tok
@@ -129,7 +134,7 @@ def named(tok, folder, in_folder):
 
 
 def opened_by_command(cmd, folder):
-    got, loops, in_folder = set(), {}, False
+    got, loops, in_folder, in_evidence = set(), {}, False, False
     for seg in SEGMENT.split(cmd):
         seg = LEAD.sub("", seg.strip())
         loop = LOOP.match(seg)
@@ -141,12 +146,13 @@ def opened_by_command(cmd, folder):
             continue
         if toks[0] == "cd":
             in_folder = len(toks) > 1 and toks[1].rstrip("/").endswith(folder)
+            in_evidence = len(toks) > 1 and toks[1].rstrip("/").endswith("evidence")
         elif os.path.basename(toks[0]) in READERS:
             for tok in toks[1:]:
                 if tok.startswith("-"):
                     continue
                 for t in expand(tok, loops):
-                    got |= named(t, folder, in_folder)
+                    got |= named(t, folder, in_folder, in_evidence)
     return got
 
 
