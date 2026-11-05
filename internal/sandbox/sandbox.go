@@ -29,18 +29,24 @@
 // record is written, create runs each recipe's Launch and then Doctor
 // commands in its copy, under that recipe's own deadline, before the next
 // recipe's Launch, and records setup "passed" (or "none" when there is
-// nothing to run). If one fails or times out, it runs the Cleanup of that
-// recipe and of every recipe before it, last first, and deletes the sandbox
-// only when no process still runs in it; a sandbox it keeps records setup
-// "failed" for that recipe.
+// nothing to run), each as that recipe ends. If one fails or times out, it
+// runs the Cleanup of that recipe and of every recipe before it, last first,
+// and deletes the sandbox only when no process still runs in it; a sandbox it
+// keeps records setup "failed" for that recipe.
 //
-// Remove runs every recipe's Cleanup commands, last recipe first, every
-// command even after one fails, each under its own deadline. It then copies
+// A sandbox's state is derived from its record and its lock (deriveState,
+// docs/sandbox-spec.md §2), and every command refuses by it: a hyp killed
+// during setup leaves a sandbox that cannot be driven and can be removed.
+//
+// Remove writes removing once no refusal can leave the sandbox unchanged,
+// stops the groups of commands a killed hyp left unfinished, then runs every
+// recipe's Cleanup commands, last recipe first, every command even after one
+// fails, each under its own deadline. It then copies
 // wt/.tree (without index.sqlite*, which older hyp binaries write; ADR 0006),
 // recipe.log, each kept file and the record (with removed), the inputs copy, patches/, and changes.json with changes/ (every path
 // in wt/ that changed since create finished) to OUT_DIR, and deletes the
 // sandbox. With Discard it deletes without writing a
-// record. A record written by an older hyp may hold a single recipe object
+// record, and only Discard clears a directory with no record. A record written by an older hyp may hold a single recipe object
 // and fields this one no longer writes; remove reads it, and the copy lists
 // the recipe under recipes and keeps the other fields.
 //
@@ -59,7 +65,7 @@
 // Every command hyp starts leads its own process group, which its row
 // records as pgid. Remove stops, after Cleanup, the groups of Launch,
 // Doctor, Drive and Cleanup commands that still have members (SIGTERM, then
-// SIGKILL after stopWait). A timeout or Ctrl-C kills the running command's
+// SIGKILL after stopWait), and before Cleanup those of unfinished rows. A timeout or Ctrl-C kills the running command's
 // group; an Evidence or Standalone group ends with its command. The sandbox
 // owns no network resource: a recipe that needs one sets it up in its Launch
 // and stops it in its Cleanup, and a daemon that leaves its group (setsid)
@@ -76,7 +82,7 @@
 // recipe name given twice, none stacked with a recipe, a recipe that does
 // not resolve, --store without --cut or the reverse, a store or cut event
 // that does not exist, a base that already holds .tree, a sandbox with no
-// Drive command, a record directory that exists, an OUT_DIR without
+// Drive command, a remove with OUT_DIR of a directory with no record, a record directory that exists, an OUT_DIR without
 // sandbox.json, an unknown Standalone name, a recipe with no Evidence
 // command, an --inputs that is not a regular file, a --patch with a bad or
 // repeated Arm, a patch file that is not a regular file or does not apply
@@ -84,7 +90,8 @@
 // process still running in the sandbox, or one hyp could not check for,
 // a sandbox another hyp command is changing,
 // missing git or lsof, a failed create step, a failed or timed-out Launch or
-// Doctor, a sandbox whose setup failed, a Drive, Evidence or Standalone
+// Doctor, a drive of a sandbox that is not ready or whose unfinished row's
+// group lives, a Drive, Evidence or Standalone
 // command that timed out, was interrupted or was killed, a corrupt record, a store line that
 // does not parse). A Drive, Evidence or Standalone script's own non-zero exit
 // is returned as *CommandFailed. Every check runs before anything is
@@ -130,21 +137,24 @@ import (
 // hyp's wt, tmp, bin or port, or a key a recipe script added), so it is
 // written back as read.
 type Record struct {
-	Format     int                        `json:"format"`
-	ID         string                     `json:"id"`
-	Host       string                     `json:"host"`
-	Base       string                     `json:"base"`
-	HypSHA256  string                     `json:"hyp_sha256"`
-	HypVersion string                     `json:"hyp_version"`
-	Recipes    []Entry                    `json:"recipes"`
-	Inputs     *Inputs                    `json:"inputs,omitempty"`
-	Patches    []PatchSum                 `json:"patches,omitempty"`
-	Commands   []cmdrecord.Run            `json:"commands,omitempty"`
-	Store      string                     `json:"store,omitempty"`
-	Cut        string                     `json:"cut,omitempty"`
-	Created    string                     `json:"created"`
-	Removed    string                     `json:"removed,omitempty"`
-	Extra      map[string]json.RawMessage `json:"-"`
+	Format     int             `json:"format"`
+	ID         string          `json:"id"`
+	Host       string          `json:"host"`
+	Base       string          `json:"base"`
+	HypSHA256  string          `json:"hyp_sha256"`
+	HypVersion string          `json:"hyp_version"`
+	Recipes    []Entry         `json:"recipes"`
+	Inputs     *Inputs         `json:"inputs,omitempty"`
+	Patches    []PatchSum      `json:"patches,omitempty"`
+	Commands   []cmdrecord.Run `json:"commands,omitempty"`
+	Store      string          `json:"store,omitempty"`
+	Cut        string          `json:"cut,omitempty"`
+	Created    string          `json:"created"`
+	Removed    string          `json:"removed,omitempty"`
+	// Removing is when a remove passed its refusals; it is never cleared, and
+	// a record that has it reads as removing (docs/sandbox-spec.md §2).
+	Removing string                     `json:"removing,omitempty"`
+	Extra    map[string]json.RawMessage `json:"-"`
 	// box is the sandbox directory, set by create and when the record is read.
 	box string
 }
@@ -175,7 +185,8 @@ func (r *Record) CopyDir(e Entry) string {
 }
 
 // Entry is one recipe of a Record. Setup is passed, failed or none (nothing
-// to run), and absent for none and in an older record that did not say.
+// to run), written as the recipe's setup ends. It is absent until then, so a
+// hyp killed during setup leaves it absent, and for --recipe none.
 // Cleanup is ok, or "failed: " and each command that failed; it is absent
 // until remove, or a failed setup, ran Cleanup commands.
 type Entry struct {
@@ -510,6 +521,11 @@ func isFile(path string) bool {
 	return err == nil && fi.Mode().IsRegular()
 }
 
+func isDir(path string) bool {
+	fi, err := os.Stat(path)
+	return err == nil && fi.IsDir()
+}
+
 func copyFile(src, dst string, mode fs.FileMode) error {
 	in, err := os.Open(src)
 	if err != nil {
@@ -596,7 +612,11 @@ func lockBox(box, id, step string) (unlock func(), err error) {
 			if data, _ := io.ReadAll(f); len(strings.TrimSpace(string(data))) > 0 {
 				holder = strings.TrimSpace(string(data))
 			}
-			return nil, herr.Env("sandbox %s is busy: %s; wait for it to end or stop it; nothing changed", id, holder)
+			word := ""
+			if rec, err := readBox(box, id); err == nil {
+				word = fmt.Sprintf(" (%s)", deriveState(rec, true))
+			}
+			return nil, herr.Env("sandbox %s is busy%s: %s; wait for it to end or stop it; nothing changed", id, word, holder)
 		}
 		held, err1 := f.Stat()
 		named, err2 := os.Stat(path)
@@ -760,30 +780,30 @@ func Create(o CreateOptions) (*Record, error) {
 	}
 	ictx, stop := interrupted()
 	defer stop()
-	ran := false
 	for i, cp := range cps {
 		e := &rec.Recipes[i]
-		if len(cp.Launch)+len(cp.Doctor) == 0 {
-			continue
+		setup := "none"
+		if len(cp.Launch)+len(cp.Doctor) > 0 {
+			if err := runSetup(ictx, box, rec, *e, cp); err != nil {
+				// A second Ctrl-C during Cleanup stops hyp.
+				stop()
+				e.Setup = "failed"
+				return nil, setupFailed(o.ID, box, rec, cps[:i+1], err)
+			}
+			setup = "passed"
 		}
-		ran = true
-		if err := runSetup(ictx, box, rec, *e, cp); err != nil {
-			// A second Ctrl-C during Cleanup stops hyp.
-			stop()
-			e.Setup = "failed"
-			return nil, setupFailed(o.ID, box, rec, cps[:i+1], err)
+		if i == len(cps)-1 {
+			// The baseline remove diffs wt/ against: what create made, Launch
+			// and Doctor included. Before the last setup value, so a sandbox
+			// that reads as ready has its baseline.
+			if err := writeManifest(box, rec.WTDir()); err != nil {
+				return nil, herr.Env("%v; sandbox kept", err)
+			}
 		}
-		e.Setup = "passed"
-	}
-	if ran {
+		e.Setup = setup
 		if err := writeJSON(filepath.Join(box, "sandbox.json"), rec); err != nil {
 			return nil, herr.Env("%v; sandbox kept", err)
 		}
-	}
-	// The baseline remove diffs wt/ against: what create made, Launch and
-	// Doctor included.
-	if err := writeManifest(box, rec.WTDir()); err != nil {
-		return nil, herr.Env("%v; sandbox kept", err)
 	}
 	return rec, nil
 }
@@ -1161,12 +1181,15 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		if err := os.Mkdir(filepath.Join(tmp, rcp.Name), 0o755); err != nil {
 			return nil, nil, err
 		}
-		e := Entry{Ref: rcp.Ref(), Name: rcp.Name, Version: rcp.Version, SHA256: rcp.Hash, KnownAnswers: kas[i]}
-		if len(cp.Launch)+len(cp.Doctor) == 0 {
-			e.Setup = "none"
-		}
-		rec.Recipes = append(rec.Recipes, e)
+		rec.Recipes = append(rec.Recipes, Entry{Ref: rcp.Ref(), Name: rcp.Name, Version: rcp.Version, SHA256: rcp.Hash, KnownAnswers: kas[i]})
 		cps = append(cps, cp)
+	}
+	// --recipe none runs nothing and reads as ready once its record exists,
+	// so its baseline comes first.
+	if len(rcps) == 0 {
+		if err := writeManifest(box, rec.WTDir()); err != nil {
+			return nil, nil, err
+		}
 	}
 	if err := writeJSON(filepath.Join(box, "sandbox.json"), rec); err != nil {
 		return nil, nil, err
@@ -1242,8 +1265,8 @@ func Remove(o RemoveOptions) (*Record, error) {
 	}
 	box := filepath.Join(r, o.ID)
 	meta := filepath.Join(box, "sandbox.json")
-	if !isFile(meta) {
-		return nil, herr.BadArgs("no sandbox %s (%s missing)", o.ID, meta)
+	if !isDir(box) {
+		return nil, herr.BadArgs("no sandbox %s (%s missing)", o.ID, box)
 	}
 	if ok, _ := inside(r, box); !ok {
 		return nil, herr.Refused("%s is not under %s", box, r)
@@ -1258,19 +1281,19 @@ func Remove(o RemoveOptions) (*Record, error) {
 			return nil, herr.BadArgs("%s is inside the sandbox; choose a path outside %s", o.OutDir, box)
 		}
 	}
-	// Held through the delete. Another remove may have deleted the sandbox
-	// between the check above and the lock, so check again.
+	// Held through the delete. lockBox reports no sandbox when another remove
+	// deleted it between the check above and the lock.
 	unlock, err := lockBox(box, o.ID, "remove")
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
-	if !isFile(meta) {
-		return nil, herr.BadArgs("no sandbox %s (%s missing)", o.ID, meta)
-	}
-	rec, err := readRecord(meta, o.ID)
+	rec, err := readBox(box, o.ID)
 	if err != nil {
 		return nil, err
+	}
+	if rec == nil {
+		return removeNoRecord(o, box)
 	}
 	// Recipes are cleaned up in reverse stack order.
 	type cleanup struct {
@@ -1298,6 +1321,15 @@ func Remove(o RemoveOptions) (*Record, error) {
 		return nil, err
 	}
 
+	// Past every refusal that changes nothing. Stopping processes matters more
+	// than the trace, so a failed write only warns.
+	rec.Removing = now()
+	if err := writeJSON(meta, rec); err != nil && o.Warn != nil {
+		fmt.Fprintf(o.Warn, "sandbox: %v; the sandbox's record does not say remove started\n", err)
+	}
+	// Before Cleanup, so what a killed hyp left running changes nothing a
+	// Cleanup has looked at.
+	stopGroups(unfinished(rec.Commands), o.Warn)
 	// A failed Cleanup only warns: the leftover check below decides.
 	for _, c := range cleanups {
 		var report string
@@ -1314,12 +1346,8 @@ func Remove(o RemoveOptions) (*Record, error) {
 			fmt.Fprintf(o.Warn, "sandbox: %v; the sandbox's record does not say how Cleanup went\n", err)
 		}
 	}
-	held, err := leftovers(box)
-	if err != nil {
+	if err := refuseLeftovers(box); err != nil {
 		return nil, err
-	}
-	if held != "" {
-		return nil, herr.Env("%s\nsandbox: processes still run in %s; stop them, then remove again; nothing deleted. A shell or editor of your own whose working directory is in wt/ counts: cd out of the sandbox first", held, box)
 	}
 
 	if !o.Discard {
@@ -1332,6 +1360,42 @@ func Remove(o RemoveOptions) (*Record, error) {
 		return nil, herr.Env("%v", err)
 	}
 	return rec, nil
+}
+
+// removeNoRecord clears a sandbox directory with no record, which a hyp killed
+// before it wrote one leaves. Nothing ran in it that hyp can name, so there is
+// no Cleanup and nothing to keep, and only --discard says so. The caller holds
+// the lock.
+func removeNoRecord(o RemoveOptions, box string) (*Record, error) {
+	if !o.Discard {
+		return nil, herr.BadArgs("sandbox %s has no record, so there is nothing to keep: hyp stopped while making it; run hyp sandbox remove %s --discard", o.ID, o.ID)
+	}
+	if err := needTools("lsof"); err != nil {
+		return nil, err
+	}
+	if _, err := keepPaths(box, o.Keep); err != nil {
+		return nil, err
+	}
+	if err := refuseLeftovers(box); err != nil {
+		return nil, err
+	}
+	if err := os.RemoveAll(box); err != nil {
+		return nil, herr.Env("%v", err)
+	}
+	return &Record{ID: o.ID, box: box}, nil
+}
+
+// refuseLeftovers refuses with 3 when a process still runs in box, or when hyp
+// could not check.
+func refuseLeftovers(box string) error {
+	held, err := leftovers(box)
+	if err != nil {
+		return err
+	}
+	if held != "" {
+		return herr.Env("%s\nsandbox: processes still run in %s; stop them, then remove again; nothing deleted. A shell or editor of your own whose working directory is in wt/ counts: cd out of the sandbox first", held, box)
+	}
+	return nil
 }
 
 // openCopy opens e's bundle copy at dir, in the sandbox root r, by e's ref;
@@ -1388,6 +1452,15 @@ func readRecord(path, id string) (*Record, error) {
 		return nil, herr.Env("corrupt record %s", path)
 	}
 	return &rec, nil
+}
+
+// readBox reads the record of the sandbox directory box, nil when it has none.
+func readBox(box, id string) (*Record, error) {
+	meta := filepath.Join(box, "sandbox.json")
+	if !isFile(meta) {
+		return nil, nil
+	}
+	return readRecord(meta, id)
 }
 
 // The names hyp writes into OUT_DIR when it removes a sandbox.

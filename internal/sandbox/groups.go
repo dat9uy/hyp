@@ -32,22 +32,7 @@ var interrupted = func() (context.Context, context.CancelFunc) {
 // of the user or hyp itself. A group id reused by an unrelated group after
 // the recorded group ended is not told apart (a documented limit).
 func stopGroups(rows []cmdrecord.Run, warn io.Writer) {
-	seen := map[int]bool{}
-	var live []int
-	for _, c := range rows {
-		switch c.Step {
-		case recipe.Launch, recipe.Doctor, recipe.Drive, recipe.Cleanup:
-		default:
-			continue
-		}
-		if c.PGID < 2 || c.PGID == syscall.Getpgrp() || seen[c.PGID] {
-			continue
-		}
-		seen[c.PGID] = true
-		if groupAlive(c.PGID) {
-			live = append(live, c.PGID)
-		}
-	}
+	live := liveGroups(rows)
 	if len(live) == 0 {
 		return
 	}
@@ -76,6 +61,41 @@ func stopGroups(rows []cmdrecord.Run, warn io.Writer) {
 	for _, g := range left {
 		note(g, "SIGKILL")
 	}
+}
+
+// liveGroups lists the process groups of rows' Launch, Doctor, Drive and
+// Cleanup commands that still have a member, each once. It skips a group id
+// below 2 and hyp's own group, which are never signalled.
+func liveGroups(rows []cmdrecord.Run) []int {
+	seen := map[int]bool{}
+	var live []int
+	for _, c := range rows {
+		switch c.Step {
+		case recipe.Launch, recipe.Doctor, recipe.Drive, recipe.Cleanup:
+		default:
+			continue
+		}
+		if c.PGID < 2 || c.PGID == syscall.Getpgrp() || seen[c.PGID] {
+			continue
+		}
+		seen[c.PGID] = true
+		if groupAlive(c.PGID) {
+			live = append(live, c.PGID)
+		}
+	}
+	return live
+}
+
+// unfinished lists the rows with no ended: commands hyp stopped during. Under
+// the sandbox's lock, the hyp that started each is gone.
+func unfinished(rows []cmdrecord.Run) []cmdrecord.Run {
+	var left []cmdrecord.Run
+	for _, c := range rows {
+		if c.Ended == "" {
+			left = append(left, c)
+		}
+	}
+	return left
 }
 
 // groupAlive reports whether process group g has a member.
