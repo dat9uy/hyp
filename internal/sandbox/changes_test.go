@@ -115,7 +115,7 @@ func TestRemoveWithoutManifestWarns(t *testing.T) {
 	if _, err := Remove(RemoveOptions{ID: "nom", OutDir: out, Warn: &warn}); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(warn.String(), "sandbox: no manifest (created by an older hyp); changes.json not written") {
+	if !strings.Contains(warn.String(), "sandbox: no manifest (setup did not finish, or an older hyp made the sandbox); changes.json not written") {
 		t.Errorf("warn = %q", warn.String())
 	}
 	if exists(filepath.Join(out, "changes.json")) {

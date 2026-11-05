@@ -54,7 +54,8 @@ func stepFailed(row cmdrecord.Run, log, tail string) error {
 // order, each in its recipe's copy with the sandbox's variables, and stops
 // at the first that fails. Each command is a row of sandbox.json, so a
 // second drive adds rows. It refuses with 2 a sandbox none of whose recipes
-// has a Drive command, and with 3 one whose setup failed. Every check runs
+// has a Drive command, with 3 one that is not ready (docs/sandbox-spec.md §2),
+// and with 3 one whose unfinished row's group still lives. Every check runs
 // before any command does.
 func Drive(id string, out io.Writer) (*Record, error) {
 	r, err := root()
@@ -66,27 +67,34 @@ func Drive(id string, out io.Writer) (*Record, error) {
 	}
 	box := filepath.Join(r, id)
 	meta := filepath.Join(box, "sandbox.json")
-	if !isFile(meta) {
-		return nil, herr.BadArgs("no sandbox %s (%s missing)", id, meta)
+	if !isDir(box) {
+		return nil, herr.BadArgs("no sandbox %s (%s missing)", id, box)
 	}
-	// A remove may have deleted the sandbox between the check above and the
-	// lock, so check again.
+	// The record is read under the lock, so a create still making it reads as
+	// busy. lockBox reports no sandbox when a remove deleted it since the check
+	// above.
 	unlock, err := lockBox(box, id, "drive")
 	if err != nil {
 		return nil, err
 	}
 	defer unlock()
-	if !isFile(meta) {
-		return nil, herr.BadArgs("no sandbox %s (%s missing)", id, meta)
-	}
-	rec, err := readRecord(meta, id)
+	rec, err := readBox(box, id)
 	if err != nil {
 		return nil, err
 	}
-	for _, e := range rec.Recipes {
-		if e.Setup == "failed" {
-			return nil, herr.Env("sandbox %s: setup failed for %s; nothing driven; remove it", id, e.Ref)
-		}
+	if rec == nil {
+		return nil, herr.Env("sandbox %s has no record: hyp stopped while making it; nothing driven; run hyp sandbox remove %s --discard", id, id)
+	}
+	switch deriveState(rec, false) {
+	case stateInterrupted:
+		return nil, herr.Env("sandbox %s: hyp stopped before setup finished; nothing driven; run hyp sandbox remove %s", id, id)
+	case stateSetupFailed:
+		return nil, herr.Env("sandbox %s: setup failed; nothing driven; run hyp sandbox remove %s", id, id)
+	case stateRemoving:
+		return nil, herr.Env("sandbox %s: a remove already started and did not finish; nothing driven; run hyp sandbox remove %s", id, id)
+	}
+	if live := liveGroups(unfinished(rec.Commands)); len(live) > 0 {
+		return nil, herr.Env("sandbox %s: process group %d of a command whose hyp stopped still runs; nothing driven; stop it and drive again, or run hyp sandbox remove %s, which stops it", id, live[0], id)
 	}
 	type drive struct {
 		e  *Entry

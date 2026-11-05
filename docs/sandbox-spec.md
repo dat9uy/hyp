@@ -27,7 +27,7 @@ A bundle's `recipe.md` has one level-2 section per step (Launch, Doctor, Drive, 
 
 Evidence that the operator gathers by hand while the sandbox exists is not a command, and is unchanged: it is the files saved under `.tree/evidence/<E-id>/`. Scripted Evidence is the same step done by a command, which is why it runs after Cleanup: it reads only the kept files, so it can be run again.
 
-A sandbox is a directory plus its record, not process isolation. Each command hyp starts leads its own process group, which its row records as `pgid` (ADR 0002). After Cleanup, `hyp sandbox remove` stops the groups of the Launch, Doctor, Drive and Cleanup commands that still have members: SIGTERM, up to 5 seconds, then SIGKILL. A timeout or Ctrl-C kills the running command's group (its row says `interrupted` for Ctrl-C), and an Evidence or Standalone group ends with its command; create still runs Cleanup after a Ctrl-C. Limits: a daemon that leaves its group, as Postgres's postmaster does by calling `setsid`, still needs its recipe's Cleanup, and the leftover check still applies; a group id reused after its group ended is not told apart; what a check cannot see is listed under [replay-spec.md](replay-spec.md) §7.6 and ADR 0003. "Runs in a sandbox" means only that the command runs while the sandbox exists and gets that sandbox's `HYP_SANDBOX_*` variables (§1.3).
+A sandbox is a directory plus its record, not process isolation. Each command hyp starts leads its own process group, which its row records as `pgid` (ADR 0002). Before Cleanup, `hyp sandbox remove` stops the groups of commands a killed hyp left unfinished (§4); after Cleanup, it stops the groups of the Launch, Doctor, Drive and Cleanup commands that still have members: SIGTERM, up to 5 seconds, then SIGKILL. A timeout or Ctrl-C kills the running command's group (its row says `interrupted` for Ctrl-C), and an Evidence or Standalone group ends with its command; create still runs Cleanup after a Ctrl-C. Limits: a daemon that leaves its group, as Postgres's postmaster does by calling `setsid`, still needs its recipe's Cleanup, and the leftover check still applies; a group id reused after its group ended is not told apart; what a check cannot see is listed under [replay-spec.md](replay-spec.md) §7.6 and ADR 0003. "Runs in a sandbox" means only that the command runs while the sandbox exists and gets that sandbox's `HYP_SANDBOX_*` variables (§1.3).
 
 ### 1.2 hyp runs every command
 
@@ -50,7 +50,7 @@ hyp's Go learns no replay concepts. It runs a script with its arguments and reco
 
 ## 2. The sandbox machine
 
-**[not built: #44]** A sandbox's state is derived from stored facts, as a tree's statuses are: each recipe's `setup`, the lock and one stored `removing` field. It is never stored as a word. `interrupted` means hyp stopped during setup: an unfinished setup or no record, with the lock free. Each command refuses by state, in this table, and a create, drive and remove that does not refuse runs as §1 says.
+A sandbox's state is derived from stored facts, as a tree's statuses are, and is never stored as a word: each recipe's `setup`, the lock and the record's `removing` field. Each command refuses by state, as this table says; a cell that says "runs" runs as §1 says. In code, `deriveState` in `internal/sandbox/state.go` is the rule, and `TestStateTable` mirrors the table by hand, row for row.
 
 | State | Derived from | create | drive | remove OUT_DIR | remove --discard |
 |---|---|---|---|---|---|
@@ -63,26 +63,67 @@ hyp's Go learns no replay concepts. It runs a script with its arguments and reco
 | `setup_failed` | any recipe's `setup` is `failed` | 2 | 3 | runs | runs |
 | `removing` | `removing` is set | 2 | 3 | runs | runs |
 
-The first match wins, in this order: lock held, `removing` set, `failed`, unfinished, otherwise `ready`. A lock held by another hyp is the existing busy refusal, whichever command holds it.
+A `setup` is unfinished when it is absent on a recipe other than `none`. The first match wins, in this order: lock held, `removing` set, `failed`, unfinished, otherwise `ready`. A lock held by another hyp is the busy refusal, whichever command holds it and whatever the record says, because a command takes the lock before it reads the state: a drive running on a `ready` sandbox refuses a second drive the same way. Create refuses any directory that exists with 2, before it looks at the lock.
+
+A record that does not parse is not a missing one: every command but create refuses it with 3, as a corrupt record, and hyp changes nothing. A crash cannot produce one, because records are written through a temporary file and a rename (§5.1).
 
 ## 3. How the levels relate
 
-**[not built: #44]** Three levels write the facts: the sandbox (the lock and `removing`), each recipe (`setup` and `cleanup`) and each command (its row). A higher level's state is read from the level below it, never kept in step with it.
+Three levels write the facts, and a higher level's state is read from the level below it, never kept in step with it.
+
+| Level | What it writes | Who writes it |
+|---|---|---|
+| The sandbox | the lock (`sandbox.lock`), `removing`, `removed` | create, drive and remove hold the lock; remove writes `removing`, and `removed` in OUT_DIR |
+| Each recipe | `setup`, `cleanup` | create writes `setup` as each recipe's setup ends; create or remove writes `cleanup` after its Cleanup |
+| Each command | its row in `commands`, with `pgid`, `ended`, and `exit` or `error` | hyp, before the command starts, once it has a group, and when it ends |
+
+The order within create is fixed so a reader of the record is never told more than happened. Create writes the record with every `setup` absent. It runs each recipe in turn and writes the record once that recipe's `setup` is known. It writes `manifest.json` before the last recipe's `setup`, so a sandbox that reads as `ready` has its baseline. `--recipe none` has no recipe to wait for and reads as `ready` once its record exists, so its manifest comes before its record.
 
 ## 4. Crashes
 
-**[not built: #44]** Remove can always clear what a killed hyp left. Refusals that change nothing come first and leave state unchanged. Then, in order, it writes `removing`, stops the groups of unfinished rows, runs every Cleanup, stops every remaining group, checks for leftovers, saves the record and deletes. `remove --discard` clears a directory with no record.
+A crash here means hyp was killed or the machine stopped. A Ctrl-C or SIGTERM is not one: hyp ends the running command's group itself and runs Cleanup, as §1.1 says.
+
+**What survives a killed hyp.** The record survives as of its last write. The rows hold every command that started, and a row with no `ended` is one hyp stopped during. The lock goes, because the kernel drops an flock when its process dies. The command hyp was running does not stop: it leads its own group, so it keeps running with no hyp watching it.
+
+**What a kill leaves, by where it lands.**
+
+| Killed during | The sandbox reads as | Then |
+|---|---|---|
+| making the sandbox, before its record | `interrupted`, no record | `remove --discard` clears it; there is nothing to keep |
+| a recipe's Launch or Doctor | `interrupted` | remove runs; drive is refused |
+| after the last Doctor, before the last `setup` is written | `interrupted`, with a manifest | remove runs; drive is refused, so the operator makes a new sandbox |
+| a Cleanup after a failed setup | `setup_failed` | remove runs and Cleanup runs again |
+| a Drive | `ready`, with an unfinished row | while the row's group lives, drive exits 3 and remove stops it; once the group is gone, drive runs again |
+| a remove | `removing` | remove runs again, Cleanup included |
+
+**Remove always gets through what it can.** Refusals that change nothing come first and leave the state as it was: bad arguments, busy, a missing `lsof`, a bad `--keep`, an existing `OUT_DIR`, and a directory with no record given an OUT_DIR. Then, in order, remove:
+
+1. writes `removing`;
+2. stops the groups of unfinished rows;
+3. runs every Cleanup, the last recipe first;
+4. stops every remaining group;
+5. checks for leftovers, and exits 3 if a process still runs in the sandbox;
+6. saves the record to OUT_DIR, unless `--discard`;
+7. deletes the sandbox.
+
+A command a killed hyp left running is stopped before Cleanup, so it cannot change what a Cleanup has already looked at. A failed write of `removing` only warns, as a failed Cleanup row write does, because stopping processes matters more than the trace. Once `removing` is written it stays: a remove refused at step 5 leaves a sandbox that drive refuses and remove can run again, so a Cleanup that already ran is never followed by a Drive. A directory with no record has no rows and no Cleanup, so `--discard` takes the lock, runs the leftover check and deletes.
+
+"Can be removed" means once any process that left its group has stopped. Such a process still runs in the sandbox, and remove keeps exiting 3 and listing it until the operator stops it.
+
+**Limits.** A group id reused after its group ended is not told apart from it. So an unrelated group holding a recorded unfinished id refuses a drive, whose refusal says remove still works, and remove can signal it (§1.1). hyp does not check for a killed run's scratch outside the sandbox (§1.3). `hyp recipe evidence` does not read how far setup got; the kept record's `setup` and rows show it, and #46 holds the open question.
+
+**Older records.** A record's format decides nothing here: every format is read by the same rule. An older record that says `none` or `passed` reads as `ready`. One whose recipe has no `setup` at all reads as `interrupted`, so it cannot be driven and can be removed.
 
 ## 5. Records, choices and the subject
 
 ### 5.1 Records
 
-- **Sandbox record.** `hyp sandbox create` writes `sandbox.json`, and only hyp writes it; `hyp sandbox remove` copies it to OUT_DIR. Each command's output goes to `recipe.log` after a `== REF step: command` line. The fields are listed under "The sandbox record" in `RECIPE-FORMAT.md`. It names no host path for anything a replay needs: `host` is the host's directory name, a store inside the host is `<host>/REL`, and the sandbox's clone, scratch, `bin/`, inputs copy and recipe copies are derived from its id, not recorded (format 3). `patches` names each Arm's patch by its sha256 (§5.3). Its `commands` list holds each command hyp ran in the sandbox (Launch, Doctor, Drive, Cleanup), in order, with its step, its arguments and its exit code; `hyp sandbox drive` adds to it.
+- **Sandbox record.** `hyp sandbox create` writes `sandbox.json`, and only hyp writes it; `hyp sandbox remove` copies it to OUT_DIR. Each command's output goes to `recipe.log` after a `== REF step: command` line. The fields are listed under "The sandbox record" in `RECIPE-FORMAT.md`. It names no host path for anything a replay needs: `host` is the host's directory name, a store inside the host is `<host>/REL`, and the sandbox's clone, scratch, `bin/`, inputs copy and recipe copies are derived from its id, not recorded (format 3). Format 4 adds `removing`, which a remove writes once it has passed its refusals and which the sandbox's state reads (§2). `patches` names each Arm's patch by its sha256 (§5.3). Its `commands` list holds each command hyp ran in the sandbox (Launch, Doctor, Drive, Cleanup), in order, with its step, its arguments and its exit code; `hyp sandbox drive` adds to it.
 - **Command record.** For each run of Evidence or Standalone commands, hyp writes a command record in the new directory that `--record DIR` names (refused with exit 2 if it exists, is or resolves inside a `recipes/` directory the recipe lookup searches, or, for Evidence, inside OUT_DIR, comparing directories by identity so symlinks and other spellings do not get past it; with exit 3 if its path cannot be resolved): `command.json`, naming the recipe ref, its hash, the library path and the working directory (each `<repo>/REL`, see Kept inputs), the step, with one row per command (its arguments as shown, its exit code or why it has none, and when it ran) and `inputs`, each file an operator argument names; `command.log`, the output after `== REF step: command` lines; and each check's product, its stdout in `stdout` and its `$HYP_OUT` tree in `out/` (Standalone), or `stdout/<n>` and `out/<n>/` (Evidence command `n`), kept even when the check fails (ADR 0003). The fields are listed under "The command record" in `RECIPE-FORMAT.md`.
 - **Kept inputs.** An operator argument of `hyp recipe run` or `hyp recipe evidence`, alone or as the VALUE of a `KEY=VALUE` word, is a file argument when it is written as a path (absolute, or relative with a `/`; a relative one is read against the caller's directory) and names a regular file, symlinks followed. A bare word is never one, even when a file of that name exists. Before the first command runs, hyp copies each file argument N (ARGS counted from 1) under the run's temporary directory, which the script gets in its place, hashes that copy, and keeps a second copy beside the record at `DIR/inputs/N/<base name>`, so a script that writes to its argument changes neither the original nor the kept bytes. A file over 1 MB is not kept; its sha256 and size are. `command.json` (format 4) lists each in `inputs` (`arg`, `path`, `sha256`, `size`, `kept`), and the row shows `inputs/N/<base name>` in its place. A file inside the tree is copied too. A directory argument (such as Evidence's OUT_DIR) is passed as an absolute path and shown as `<repo>/REL`, `<repo>` being the directory name of the caller's git work tree (or of the caller's directory outside one); one outside it is shown as given, and hyp warns that a replay cannot reach it. `path` and `cwd` are written the same way. So neither the record nor the `==` lines name a host path for anything a replay needs. The inputs are bound at run time, not when the Experiment is added (ADR 0008). Limits: a file the command reads without being given it is not kept; its `External:` line names it. A format-3 record's `arg_sha256` (each absolute file argument's sha256) is still read.
 - **Known answers.** Each recipe entry of `sandbox.json`, and `command.json`, holds `known_answers`: `hyp_sha256`, the hyp that ran the cases, and `cases`, one `name` and `outcome` per case ([replay-spec.md](replay-spec.md) §7.6). Each case's stderr goes to `known-answers.log` after a `== REF known answer NAME` line: in the sandbox, kept in OUT_DIR on remove, and in the command record's directory (ADR 0002).
 - **Format.** `sandbox.json` and `command.json` each carry `"format"`, the shape number of that file (ADR 0002). A golden test per file fails `go test` when its shape changes without a new number, so a reader can compare the number before reading the rest. A record without the key was written before it.
-- **Changes.** When create finishes, hyp writes `manifest.json` in the sandbox, a list of every path in `wt/` with its size, mode and hash. `hyp sandbox remove` diffs `wt/` against it and writes `changes.json` (format 1) to OUT_DIR, with the added and modified files up to 10 MB under `changes/`. The fields are listed under "Changes" in `RECIPE-FORMAT.md`.
+- **Changes.** Before the last recipe's `setup` is written (§3), hyp writes `manifest.json` in the sandbox, a list of every path in `wt/` with its size, mode and hash. `hyp sandbox remove` diffs `wt/` against it and writes `changes.json` (format 1) to OUT_DIR, with the added and modified files up to 10 MB under `changes/`. The fields are listed under "Changes" in `RECIPE-FORMAT.md`.
 - **Writes.** hyp writes `sandbox.json` and `command.json` to a temporary file in the same directory and renames it over the record, so a reader sees the old record or the new one, never part of one. A hyp killed between the two leaves a `.sandbox.json-*` or `.command.json-*` file that nothing reads; a sandbox's goes with it at remove.
 - **Rows.** hyp writes each command's row before the command starts and rewrites it when the command ends. A row with no `ended` (and so no `exit` or `error`) is a command hyp stopped during: hyp was killed, or the machine stopped. Its output so far is in the log. When the write before a command fails, the command does not run and hyp exits 3, except under Cleanup, which runs every command anyway and reports the failed write as a failed Cleanup. A remove refused for a leftover process keeps the Cleanup rows it ran, and each recipe's `cleanup`, in the sandbox's record.
 - **One hyp command per sandbox.** `hyp sandbox create`, `drive` and `remove` hold a lock on `sandbox.lock` in the sandbox while they run. A second one on the same sandbox is refused with exit 3, naming the hyp command that holds it, and changes nothing. The lock goes away when its hyp exits, however it exits. `hyp recipe evidence` and `hyp recipe run` take no lock, because each writes only the new directory it made.
