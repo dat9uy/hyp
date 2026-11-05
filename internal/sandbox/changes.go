@@ -164,13 +164,13 @@ func diffManifests(before, after []entry) []Change {
 
 // writeChanges writes OUT_DIR/changes.json, diffing wt/ against the
 // manifest create wrote, and copies each added or modified regular file up
-// to copyCap to OUT_DIR/changes/<path>. A sandbox with no manifest (made by
-// an older hyp) gets a warning and no changes.json.
+// to copyCap to OUT_DIR/changes/<path>. A sandbox with no manifest (setup did not
+// finish, or an older hyp made it) gets a warning and no changes.json.
 func writeChanges(box, wt, outDir string, warn io.Writer) error {
 	data, err := os.ReadFile(filepath.Join(box, "manifest.json"))
 	if errors.Is(err, fs.ErrNotExist) {
 		if warn != nil {
-			fmt.Fprintln(warn, "sandbox: no manifest (created by an older hyp); changes.json not written")
+			fmt.Fprintln(warn, "sandbox: no manifest (setup did not finish, or an older hyp made the sandbox); changes.json not written")
 		}
 		return nil
 	}

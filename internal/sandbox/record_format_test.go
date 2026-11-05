@@ -41,7 +41,7 @@ func TestAnchor(t *testing.T) {
 	}
 }
 
-// A format-3 record names no host path: host is a directory name, a store
+// A record names no host path: host is a directory name, a store
 // inside the host is anchored to it, and every live path is derived.
 func TestRecordNamesNoHostPath(t *testing.T) {
 	setup(t)
@@ -71,7 +71,7 @@ func TestRecordNamesNoHostPath(t *testing.T) {
 		}
 	}
 	name := filepath.Base(h)
-	if rec.Host != name || rec.Store != name+"/inv" || rec.Format != 3 {
+	if rec.Host != name || rec.Store != name+"/inv" || rec.Format != 4 {
 		t.Errorf("host = %q, store = %q, format = %d", rec.Host, rec.Store, rec.Format)
 	}
 	if rec.WTDir() != filepath.Join(box, "wt") || rec.InputsFile() != filepath.Join(box, "inputs", "params.json") {
