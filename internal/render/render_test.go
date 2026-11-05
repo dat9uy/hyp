@@ -885,3 +885,151 @@ func TestShowListsCandidates(t *testing.T) {
 		t.Fatalf("missing %q:\n%s", want, out)
 	}
 }
+
+// AWAITING OWNER names at most one step per question, and only for a question
+// FRONTIER prints. OPEN LIMITS lists every open limit regardless.
+func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
+	type tree struct {
+		b                      *testutil.B
+		q, h1, h2, sub, s1, s2 string
+	}
+	limit := func(b *testutil.B, h, rival string) {
+		e := b.Exp(h, "none", rival)
+		b.Emit(event.TypeResultRecord, "", event.ResultRecord{Parent: e,
+			Verdicts:    map[string]string{h: event.VerdictSupports, rival: event.VerdictSupports},
+			Observation: "o", Limits: []string{"a limit"}})
+	}
+	// top: q has two supported rivals and an open limit.
+	top := func() tree {
+		b := testutil.New()
+		q := b.DQ(b.Goal("g"), "q")
+		h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+		limit(b, h1, h2)
+		return tree{b: b, q: q, h1: h1, h2: h2}
+	}
+	// nested: the two supported rivals and the limit are under sub, on q's rival h2.
+	nested := func() tree {
+		b := testutil.New()
+		q := b.DQ(b.Goal("g"), "q")
+		h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+		sub := b.DQ(h2, "sub")
+		s1, s2 := b.Hyp(sub, "s1"), b.Hyp(sub, "s2")
+		limit(b, s1, s2)
+		return tree{b: b, q: q, h1: h1, h2: h2, sub: sub, s1: s1, s2: s2}
+	}
+	confirmed := func(x tree, q, h string, tradeoff bool) {
+		sel := x.b.As("a").Select(q, h, "", tradeoff)
+		x.b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	}
+	cases := []struct {
+		name  string
+		build func() tree
+		want  string // the AWAITING OWNER line kind, or "" for none
+	}{
+		{"open, no select", func() tree { return top() }, "trade-off"},
+		{"open, plain select before the verifier", func() tree {
+			x := top()
+			x.b.As("a").Select(x.q, x.h1, "", false)
+			return x
+		}, "trade-off"},
+		{"open, plain select, verifier confirmed", func() tree {
+			x := top()
+			confirmed(x, x.q, x.h1, false)
+			return x
+		}, "awaiting_owner"},
+		{"open, trade-off select before the verifier", func() tree {
+			x := top()
+			x.b.As("a").Select(x.q, x.h1, "", true)
+			return x
+		}, ""},
+		{"open, trade-off select, verifier confirmed", func() tree {
+			x := top()
+			confirmed(x, x.q, x.h1, true)
+			return x
+		}, "awaiting_owner"},
+		{"deferred, no select", func() tree {
+			x := top()
+			x.b.Defer(x.q)
+			return x
+		}, ""},
+		{"deferred, plain select, verifier confirmed", func() tree {
+			x := top()
+			confirmed(x, x.q, x.h1, false)
+			x.b.Defer(x.q)
+			return x
+		}, ""},
+		{"deferred, trade-off select, verifier confirmed", func() tree {
+			x := top()
+			confirmed(x, x.q, x.h1, true)
+			x.b.Defer(x.q)
+			return x
+		}, ""},
+		{"resumed, plain select, verifier confirmed", func() tree {
+			x := top()
+			confirmed(x, x.q, x.h1, false)
+			x.b.Defer(x.q)
+			x.b.Resume(x.q)
+			return x
+		}, "awaiting_owner"},
+		{"withdrawn", func() tree {
+			x := top()
+			x.b.Withdraw(x.q)
+			return x
+		}, ""},
+		{"sub in play", func() tree { return nested() }, "trade-off"},
+		{"sub, parent deferred", func() tree {
+			x := nested()
+			x.b.Defer(x.q)
+			return x
+		}, ""},
+		{"sub, parent withdrawn", func() tree {
+			x := nested()
+			x.b.Withdraw(x.q)
+			return x
+		}, ""},
+		{"sub, rival abandoned", func() tree {
+			x := nested()
+			x.b.Abandon(x.h2)
+			return x
+		}, ""},
+		{"sub, rival contradicted", func() tree {
+			x := nested()
+			x.b.Contradicts(x.h2)
+			return x
+		}, ""},
+		{"sub deferred, parent in play", func() tree {
+			x := nested()
+			x.b.Defer(x.sub)
+			return x
+		}, ""},
+		{"sub awaiting the owner, parent deferred", func() tree {
+			x := nested()
+			confirmed(x, x.sub, x.s1, false)
+			x.b.Defer(x.q)
+			return x
+		}, ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			out := Status(replay.Replay(c.build().b.Evs, nil, ""), 0)
+			_, rest, _ := strings.Cut(out, "AWAITING OWNER\n")
+			section, limits, ok := strings.Cut(rest, "OPEN LIMITS\n")
+			if !ok {
+				t.Fatalf("OPEN LIMITS missing, though it is a ledger:\n%s", out)
+			}
+			if !strings.Contains(limits, " — a limit\n") {
+				t.Fatalf("limit missing from OPEN LIMITS:\n%s", out)
+			}
+			got := ""
+			if lines := strings.Split(strings.TrimSpace(section), "\n"); section != "" {
+				if len(lines) > 1 {
+					t.Fatalf("more than one owner step:\n%s", out)
+				}
+				got = strings.TrimSuffix(strings.Fields(lines[0])[1], ":")
+			}
+			if got != c.want {
+				t.Fatalf("owner step = %q, want %q:\n%s", got, c.want, out)
+			}
+		})
+	}
+}

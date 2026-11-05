@@ -49,6 +49,12 @@ _Avoid_: option, idea, solution
 The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred question that keeps its printed Hypothesis at `awaiting_subquestions` also prints. Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
 _Avoid_: hidden, for a question that does not print
 
+**Awaiting owner**:
+The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `trade-off: H…, H…` when they should choose between the candidates, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints.
+
+**Open limits**:
+The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a ledger, not open work.
+
 **Rival**:
 Another Hypothesis under the same DesignQuestion. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
 _Avoid_: alternative, competitor
@@ -130,8 +136,8 @@ _Avoid_: reviewer, checker
 **Owner**:
 The person hyp asks to act on a trade-off, and the confirm role they act in. They act twice, in order:
 
-1. **Choose.** Before the select, the owner chooses between the candidates. This is a procedure with no event: whoever runs the tree records the choice as the select, with `--tradeoff` and the owner's words in `--why`. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, the flag can be set without asking the owner, and no rule reads `--why`. So a question can reach `answered` without this step.
-2. **Confirm.** After the verifier's sufficient confirm, the owner confirms the select. This is the only owner act replay reads, and a question that requires the owner cannot reach `answered` without it. It comes after the choice because it judges the evidence as the verifier left it, it lapses when the Dossier changes, and only it accepts limits.
+1. **Choose.** Before the select, the owner chooses between the candidates. This is a procedure with no event: whoever runs the tree records the choice as the select, with `--tradeoff` and the owner's words in `--why`. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, the flag can be set without asking the owner, and no status reads `--why`. So a question can reach `answered` without this step.
+2. **Confirm.** After the verifier's sufficient confirm, the owner confirms the select. This is the only owner act replay reads, and a question that requires the owner cannot reach `answered` without it. It comes after the choice because it judges the evidence as the verifier left it, it lapses when the Dossier changes, and only it accepts limits. hyp does not authenticate actors, so an owner confirm records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure.
 
 An owner confirm is required when the current select is a trade-off or a scope change, or when the question has two or more candidates now ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: `event.RoleOwner`; the requirement is `ownerRequired` in `replay`.
 _Avoid_: user, stakeholder, approver, pick, decide (alone)

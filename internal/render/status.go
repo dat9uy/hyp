@@ -62,9 +62,18 @@ func Status(p replay.Projection, maxLines int) string {
 	blocker := func(h, sub string) bool {
 		return p.Status[h].Status == replay.HypAwaitingSubquestions && p.Status[sub].Status == replay.DQDeferred
 	}
+	// awaitingOwner collects, for each question FRONTIER prints, the one step
+	// due from the owner: confirm the select, or choose between the candidates.
+	var awaitingOwner []string
 	printQuestion := func(dq, indent string) {
 		ns := p.Status[dq]
 		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.Status, ns.Reason, Cut(p.Nodes[dq].Title, 60))
+		switch {
+		case ns.Reason == replay.ReasonAwaitingOwner:
+			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s", r.id(dq), r.id(SelectedHyp(p, dq))))
+		case len(ns.Candidates) >= 2 && chosenCandidate(p, dq) == "":
+			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s", r.id(dq), r.ids(ns.Candidates)))
+		}
 		if ns.Reason == replay.ReasonVerifierInsufficient {
 			add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
 		}
@@ -174,20 +183,12 @@ func Status(p replay.Projection, maxLines int) string {
 	}
 
 	add(kKeep, "AWAITING OWNER")
-	for _, ev := range p.Applied {
-		if ev.Type != event.TypeNodeAdd || p.Nodes[ev.ID].Kind != event.KindDesignQuestion {
-			continue
-		}
-		ns := p.Status[ev.ID]
-		if ns.Reason == replay.ReasonAwaitingOwner {
-			add(kKeep, "  %s awaiting_owner: %s", r.id(ev.ID), r.id(SelectedHyp(p, ev.ID)))
-		}
-		if len(ns.Candidates) >= 2 && ns.Status != replay.DQAnswered && ns.Status != replay.DQWithdrawn &&
-			chosenCandidate(p, ev.ID) == "" {
-			add(kKeep, "  %s trade-off: %s", r.id(ev.ID), r.ids(ns.Candidates))
-		}
+	for _, s := range awaitingOwner {
+		add(kKeep, "%s", s)
 	}
 
+	// OPEN LIMITS is a ledger, not open work: it lists every open limit, whatever
+	// the state of its question or whether FRONTIER prints it.
 	var open []string
 	for _, ev := range p.Applied {
 		if ev.Type != event.TypeNodeAdd || p.Nodes[ev.ID].Kind != event.KindDesignQuestion {
