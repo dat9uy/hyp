@@ -77,12 +77,12 @@ RUNS = [
     dict(name="seed_lone", parent="h-inline", target="h-outbox", verdicts={"h-inline": "contradicts"},
          title="In-process retry under a restart of the web process",
          total=500, lost=118, restart="restart of the web process at delivery 275", cfg=CFG_INLINE_MEM, side=None, failed=True,
-         middle="Each delivery had its own retry timer in the web process, and each attempt was appended to the attempt log, which the process kept in memory as a Ruby array and read back at start-up. The web process was restarted at delivery 275.",
+         middle="Each delivery had its own retry timer in the web process, and each attempt was appended to the attempt log, which the process kept in memory as an in-process array and read back at start-up. The web process was restarted at delivery 275.",
          obs="118 of 500 deliveries never reached the receiver after the web process restarted at delivery 275. The attempt log replay at start-up found 0 entries, so no retry timer came back. Pending deliveries do not survive a restart on this path."),
     dict(name="ctrl", parent="h-broker", target="h-outbox", verdicts={"h-broker": "contradicts"},
          title="Broker queue under a consumer restart",
          total=500, lost=20, restart="restart of the consumer at delivery 310", cfg=CFG_BROKER, side=None, failed=True,
-         middle="The consumer ran with at-most-once delivery as written, with `ack_mode=auto` and a prefetch of 20, so the broker removed each message as it handed it over. The consumer was restarted at delivery 310 with 20 messages handed over and not yet delivered.",
+         middle="The consumer ran with at-most-once delivery, with `ack_mode=auto` and a prefetch of 20, so the broker removed each message as it handed it over. The consumer was restarted at delivery 310 with 20 messages handed over and not yet delivered.",
          obs="20 of 500 deliveries never reached the receiver after the consumer restarted at delivery 310. The broker had already removed those 20 messages when it handed them over, and nothing retried them. Pending deliveries do not survive a restart on this path."),
 ]
 

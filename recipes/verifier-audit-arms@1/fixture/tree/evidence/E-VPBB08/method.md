@@ -1,14 +1,14 @@
-# In-process retry under a restart of the web process
+# Broker queue under a consumer restart
 
 ## Setup
 
 The load generator posted one order change per 100 ms, and each change queued one webhook to a local receiver that records every delivery id it answers.
 
-The receiver answered 503 on about one call in six, to keep retries running through the event under test. The event was: restart of the web process at delivery 275.
+The receiver answered 503 on about one call in six, to keep retries running through the event under test. The event was: restart of the consumer at delivery 310.
 
 ## Run
 
-Each delivery had its own retry timer in the web process, and each attempt was appended to the attempt log, which the process kept in memory as a Ruby array and read back at start-up. The web process was restarted at delivery 275.
+The consumer ran with at-most-once delivery, with `ack_mode=auto` and a prefetch of 20, so the broker removed each message as it handed it over. The consumer was restarted at delivery 310 with 20 messages handed over and not yet delivered.
 
 The run used one process of each kind on a single 4-core host, with local disks, so timings in the log say nothing about capacity.
 
