@@ -72,7 +72,11 @@ func Status(p replay.Projection, maxLines int) string {
 		case ns.Reason == replay.ReasonAwaitingOwner:
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s", r.id(dq), r.id(SelectedHyp(p, dq))))
 		case len(ns.Candidates) >= 2 && chosenCandidate(p, dq) == "":
-			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s", r.id(dq), r.ids(ns.Candidates)))
+			mark := ""
+			if !resultSeparates(p, ns.Candidates) {
+				mark = " (no Result separates them)"
+			}
+			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s%s", r.id(dq), r.ids(ns.Candidates), mark))
 		}
 		if ns.Reason == replay.ReasonVerifierInsufficient {
 			add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
@@ -186,6 +190,11 @@ func Status(p replay.Projection, maxLines int) string {
 	add(kKeep, "AWAITING OWNER")
 	for _, s := range awaitingOwner {
 		add(kKeep, "%s", s)
+	}
+	for _, l := range p.Readings {
+		if l.By == "" {
+			add(kKeep, "  %s reading: %s", r.limitLabel(l.Result, l.Key), Cut(l.Text, 80))
+		}
 	}
 
 	// OPEN LIMITS is a ledger, not open work: it lists every open limit, whatever
@@ -407,4 +416,28 @@ func Minute(ts string) string {
 		return ts
 	}
 	return t.UTC().Format("2006-01-02 15:04")
+}
+
+// resultSeparates reports whether a non-retracted Result supports one candidate
+// and gives another candidate a different verdict.
+func resultSeparates(p replay.Projection, candidates []string) bool {
+	for _, ev := range p.Applied {
+		if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == replay.ResRetracted {
+			continue
+		}
+		verdicts := p.Nodes[ev.ID].Verdicts
+		supports, other := false, false
+		for _, h := range candidates {
+			switch v, ok := verdicts[h]; {
+			case ok && v == event.VerdictSupports:
+				supports = true
+			case ok:
+				other = true
+			}
+		}
+		if supports && other {
+			return true
+		}
+	}
+	return false
 }

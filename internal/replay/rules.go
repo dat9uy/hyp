@@ -58,7 +58,7 @@ var rules = map[string]rule{
 			_ = event.DecodePayload(ev, &p)
 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
-				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes})
+				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings})
 			for h := range p.Verdicts {
 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
 			}
@@ -216,7 +216,10 @@ var rules = map[string]rule{
 			if _, err := f.need(ev.Node, event.KindGoal); err != nil {
 				return err
 			}
-			return textLimit("summary", p.Summary, 1, event.MaxText)
+			if err := textLimit("summary", p.Summary, 1, event.MaxText); err != nil {
+				return err
+			}
+			return f.checkClosesReadings(ev, p)
 		},
 		apply: noApply,
 	},

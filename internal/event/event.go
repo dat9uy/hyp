@@ -136,6 +136,8 @@ type ResultRecord struct {
 	EvidenceHashes map[string]string `json:"evidence_hashes,omitempty"`
 	Limits         []string          `json:"limits,omitempty"`
 	Closes         []string          `json:"closes,omitempty"`
+	// Readings states how the run read a line of the Goal that a verdict rests on.
+	Readings []string `json:"readings,omitempty"`
 }
 
 // EvidenceRef returns the recipe ref (name@version) that an evidence pointer
@@ -212,6 +214,10 @@ type Confirm struct {
 // Checkpoint is the payload of checkpoint.
 type Checkpoint struct {
 	Summary string `json:"summary"`
+	// Role is RoleOwner on a checkpoint that closes readings, and empty otherwise.
+	Role string `json:"role,omitempty"`
+	// Closes lists the reading keys the owner's summary answers.
+	Closes []string `json:"closes,omitempty"`
 }
 
 // Edge is the payload of edge.add and edge.remove.
@@ -303,6 +309,20 @@ func LimitKey(r string, n int) string { return fmt.Sprintf("%s#%d", r, n) }
 // ParseLimitKey splits "<ref>#<n>" into ref and n; ok is false unless n >= 1.
 func ParseLimitKey(k string) (ref string, n int, ok bool) {
 	ref, num, found := strings.Cut(k, "#")
+	n, err := strconv.Atoi(num)
+	if !found || ref == "" || err != nil || n < 1 {
+		return "", 0, false
+	}
+	return ref, n, true
+}
+
+// ReadingKey names reading n (counted from 1) of Result r, for example
+// 01J…W6V06D#r1.
+func ReadingKey(r string, n int) string { return fmt.Sprintf("%s#r%d", r, n) }
+
+// ParseReadingKey splits "<ref>#r<n>" into ref and n; ok is false unless n >= 1.
+func ParseReadingKey(k string) (ref string, n int, ok bool) {
+	ref, num, found := strings.Cut(k, "#r")
 	n, err := strconv.Atoi(num)
 	if !found || ref == "" || err != nil || n < 1 {
 		return "", 0, false

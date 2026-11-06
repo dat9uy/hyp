@@ -50,7 +50,10 @@ The section of `hyp status` that shows the open work: the tree pruned to it, fro
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
-The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `trade-off: H…, H…` when they should choose between the candidates, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints.
+The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `trade-off: H…, H…` when they should choose between the candidates, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing.
+
+**Reading**:
+How a run read a line of the Goal that a verdict rests on, recorded on the Result with `hyp record --reading`. It stays open until an owner checkpoint closes it with their answer.
 
 **Open limits**:
 The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a ledger, not open work.

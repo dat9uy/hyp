@@ -56,7 +56,7 @@ One JSON object per line:
 | `dq.request_verify` | DesignQuestion id | read-only history: older binaries wrote `select`; replay accepts the event, whatever it holds, and does nothing with it |
 | `confirm` | DesignQuestion id | `select` (a `dq.select` event id on this DQ), `role` (`verifier` or `owner`), `verdict` (`sufficient` or `insufficient`), `accepts` (optional list of limit keys `<result-id>#<n>`) |
 | `reaffirm` | Hypothesis or DesignQuestion id | `{}` |
-| `checkpoint` | Goal id | `summary` |
+| `checkpoint` | Goal id | `summary`, `role` (optional, `owner`), `closes` (optional list of reading keys `<result-id>#r<n>`) |
 | `edge.add`, `edge.remove` | the edge's `from` node id | `type` (`depends_on`, `supersedes` between two Hypotheses or two Experiments, `external_ref`), `to` (node id; for `external_ref` a string such as `gh:976` or a URL, at most 300 runes) |
 
 **[added] `dq.resume`**: undoes a defer or withdraw. Without it a mistaken defer is permanent in an append-only log.
@@ -65,6 +65,8 @@ One JSON object per line:
 **[added] `experiment.withdraw`**: closes an Experiment that will not run and that no other Experiment replaces; one that is replaced gets a `supersedes` edge from its replacement instead (ADR 0008). Without either, an Experiment that will never run stays `planned`.
 **[added] `hypothesis.amend`**: replaces a Hypothesis body. Without it a wrong body can only be fixed by superseding the Hypothesis.
 **[added] limits**: a Result names the limits of the design it found but did not test or fix (`limits`), and a later Result closes them (`closes`). A limit's key is `<result-id>#<n>`: the Result's full ULID, then `n`, which counts the Result's `limits` from 1. The CLI accepts any node reference before the `#` (§2) and stores the full id. An owner confirm accepts limits (`accepts`). §8 derives each limit's state.
+
+**[added] readings**: a Result names a line of the Goal that a verdict rests on and how the run read it (`readings`). A reading's key is `<result-id>#r<n>`, and `n` counts the Result's `readings` from 1. Its states are open and closed, and both are derived. An owner checkpoint closes it: `role` is `owner`, `closes` names the key, and `summary` holds the owner's answer. The first such checkpoint in merge order wins, so a merged log with two closes keeps the first. A reading of a retracted Result is left out. It refuses, at exit 1, a close without the owner role, a key that names no reading, a retracted Result, and a close under the actor that recorded the Result. An open reading prints under AWAITING OWNER and blocks nothing, so it never changes a question's state or the Goal's. Closing one does not change the Goal's text. Without this, a verdict's reliance on an unclear Goal line stays in prose the owner has to go looking for.
 
 Content limits, in runes: `title` ≤ 120 and non-empty; `body`, `observation` and `summary` ≤ 600 (an amend's `body` is also non-empty), except a Goal's `body` ≤ 2000, because it holds the owner's met rule; `why` 1–300.
 
@@ -191,6 +193,8 @@ The state is decided by the first matching rule:
 
 The verifier-loop chain (`Decision.Chain`), which the verifier-loop signal reads, holds the insufficient verifier verdicts in a row on the current select. A sufficient verdict, an unselect, a select that does not continue the current one (the same Hypothesis or one that supersedes it) and a `hypothesis.amend` of the selected Hypothesis clear it, so verdicts on an old body never count towards a loop. The signal fires at two or more.
 
+**Status mark:** the `trade-off:` line under AWAITING OWNER ends `(no Result separates them)` unless a non-retracted Result supports one candidate and gives another candidate a different verdict. The mark is derived at render and changes no state.
+
 **Suggestion:** `hyp select Q` with no Hypothesis reads the candidates. With two or more, it prints "trade-off: owner decides" and lists them. With exactly one, it suggests that one when its status is `supported`, it is not stale and it has no open sub-question. With an open sub-question it prints `suggested: none (awaiting_subquestions)`. Otherwise it suggests none.
 
 ### 7.5 Goal
@@ -227,6 +231,7 @@ type Projection struct {
     Goal       GoalStatus
     Rejections []Rejection
     Applied    []Event              // events that applied, in merge order
+    Readings []Reading  // readings of non-retracted Results, in creation order
     LastCheckpoint *Event
     RivalsAtAdd map[string][]string  // Experiment id → the live rivals (§7.1) of its parent just before its add
     Exps       map[string]*Exp       // Experiment id → its derived record, built once per projection

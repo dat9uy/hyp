@@ -243,6 +243,36 @@ func (st *State) decisions() map[string]*Decision {
 	return out
 }
 
+// readings derives every reading, in creation order. The first owner checkpoint
+// that names a reading closes it. Readings of a retracted Result are left out.
+func (st *State) readings(applied []event.Event) []Reading {
+	closedBy := map[string]string{}
+	for _, ev := range applied {
+		if ev.Type != event.TypeCheckpoint {
+			continue
+		}
+		var c event.Checkpoint
+		_ = event.DecodePayload(ev, &c)
+		for _, k := range c.Closes {
+			if _, ok := closedBy[k]; !ok {
+				closedBy[k] = ev.ID
+			}
+		}
+	}
+	var out []Reading
+	for _, id := range st.Order {
+		n := st.Nodes[id]
+		if n.Kind != event.KindResult || st.Retracted[id] {
+			continue
+		}
+		for i, text := range n.Readings {
+			k := event.ReadingKey(id, i+1)
+			out = append(out, Reading{Key: k, Result: id, Text: text, By: closedBy[k]})
+		}
+	}
+	return out
+}
+
 // limits derives each question's limits. A limit is closed when a
 // non-retracted Result closes it, accepted when a counting owner confirm on
 // the question's current select accepted it (Decision.accepted), and open

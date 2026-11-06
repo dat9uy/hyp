@@ -29,6 +29,11 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	if n.Body != "" {
 		w("body: %s", n.Body)
 	}
+	if n.Kind == event.KindGoal {
+		for _, l := range p.Readings {
+			w("%s", readingLine(r, l))
+		}
+	}
 	crumbs := make([]string, 0, len(ancestors)+1)
 	for i := len(ancestors) - 1; i >= 0; i-- {
 		crumbs = append(crumbs, r.id(ancestors[i]))
@@ -105,6 +110,11 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		for _, k := range n.Closes {
 			res, _, _ := event.ParseLimitKey(k)
 			w("closes: %s", r.limitLabel(res, k))
+		}
+		for _, l := range p.Readings {
+			if l.Result == id {
+				w("%s", readingLine(r, l))
+			}
 		}
 		if resOf(p, id).Questionable {
 			w("questionable: recipe changed since this Result")
@@ -191,6 +201,10 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				var s event.Checkpoint
 				_ = json.Unmarshal(ev.Payload, &s)
 				w("    summary: %s", Cut(s.Summary, event.MaxText))
+				for _, k := range s.Closes {
+					res, _, _ := event.ParseReadingKey(k)
+					w("    closes: %s", r.limitLabel(res, k))
+				}
 			}
 			if amended && (ev.Type == event.TypeNodeAdd || ev.Type == event.TypeHypothesisAmend) {
 				var rev struct {
@@ -202,6 +216,15 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		}
 	}
 	return b.String()
+}
+
+// readingLine is one reading as hyp show prints it.
+func readingLine(r renderer, l replay.Reading) string {
+	state := "open"
+	if l.By != "" {
+		state = "closed by owner checkpoint " + l.By
+	}
+	return fmt.Sprintf("reading %s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
 }
 
 // limitLabel shows limit key k of Result res as R-W6V06D#1.
