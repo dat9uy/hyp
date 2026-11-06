@@ -77,7 +77,11 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 	if err := textLimit("title", p.Title, 1, event.MaxTitle); err != nil {
 		return err
 	}
-	if err := textLimit("body", p.Body, 0, event.MaxText); err != nil {
+	maxBody := event.MaxText
+	if p.Kind == event.KindGoal {
+		maxBody = event.MaxGoalBody // a Goal's body holds the owner's met rule
+	}
+	if err := textLimit("body", p.Body, 0, maxBody); err != nil {
 		return err
 	}
 	if p.Alias != "" {

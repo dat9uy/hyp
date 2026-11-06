@@ -670,3 +670,14 @@ func TestSelectWithNoHypothesisReadsCandidates(t *testing.T) {
 		want(t, hyp(t, "select", q), 0, "trade-off: owner decides between")
 	})
 }
+
+func TestGoalBodyHoldsLongerTextThanOtherNodes(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	t.Setenv("HYP_ACTOR", "a")
+	must(t, "init")
+	want(t, hyp(t, "add", "goal", "--title", "G", "--body", strings.Repeat("x", 2001), "--why", "w"), 1, "body")
+	g := must(t, "add", "goal", "--title", "G", "--body", strings.Repeat("x", 2000), "--why", "w")
+	must(t, "add", "dq", "--parent", g, "--title", "Q", "--body", strings.Repeat("x", 600), "--why", "w")
+	want(t, hyp(t, "add", "dq", "--parent", g, "--title", "Q", "--body", strings.Repeat("x", 601), "--why", "w"), 1, "body")
+}

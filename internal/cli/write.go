@@ -189,7 +189,11 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	kind := addKinds[args[0]]
 	w := newWriter("add "+args[0], stdout, stderr)
 	title := w.fs.String("title", "", fmt.Sprintf("title (required, at most %d runes)", event.MaxTitle))
-	body := w.fs.String("body", "", fmt.Sprintf("body (at most %d runes)", event.MaxText))
+	maxBody := event.MaxText
+	if kind == event.KindGoal {
+		maxBody = event.MaxGoalBody
+	}
+	body := w.fs.String("body", "", fmt.Sprintf("body (at most %d runes)", maxBody))
 	alias := w.fs.String("alias", "", "optional unique alias")
 	var parent, recipeRef, decidedBy *string
 	var targets multi
