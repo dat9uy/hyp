@@ -134,3 +134,58 @@ func TestInsufficientOwnerConfirmReopensLimit(t *testing.T) {
 		t.Fatalf("status still lists open limits after the second acceptance:\n%s", s)
 	}
 }
+
+func TestReadingAwaitsOwnerUntilOwnerCloses(t *testing.T) {
+	_, g, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--reading", "read the line as code-only", "--why", "w")
+	key := r + "#r1"
+
+	want(t, hyp(t, "status"), 0, "  "+key+" reading: read the line as code-only")
+	want(t, hyp(t, "show", r), 0, "reading "+key+" open — read the line as code-only")
+	want(t, hyp(t, "show", g), 0, "reading "+key+" open")
+
+	// The flag pair is a usage error, a bad reference and the recording actor are refusals.
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--closes", key, "--why", "w"), 2, "--closes needs --role owner")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "verifier", "--why", "w"), 2, "--role must be owner")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", r+"#r2", "--actor", "owner-dat", "--why", "w"), 1, "has 1 readings")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", key, "--why", "w"), 1, "separation of duties")
+
+	must(t, "checkpoint", "--summary", "code only", "--role", "owner", "--closes", key, "--actor", "owner-dat", "--why", "w")
+	out := hyp(t, "status")
+	want(t, out, 0, "AWAITING OWNER")
+	if strings.Contains(out.stdout, key+" reading:") {
+		t.Fatalf("closed reading still under AWAITING OWNER:\n%s", out.stdout)
+	}
+	want(t, hyp(t, "show", r), 0, "reading "+key+" closed by owner checkpoint")
+	want(t, hyp(t, "show", g), 0, "    closes: "+key)
+	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+}
+
+func TestRetractedResultDropsItsReading(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--reading", "a reading", "--why", "w")
+	must(t, "retract", r, "--why", "w")
+	if out := hyp(t, "status"); strings.Contains(out.stdout, "reading:") {
+		t.Fatalf("retracted Result's reading still shows:\n%s", out.stdout)
+	}
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w"), 1, "is retracted")
+}
+
+func TestTradeoffMarkedWhenNoResultSeparatesCandidates(t *testing.T) {
+	_, _, q := setup(t)
+	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--why", "w")
+	h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
+	want(t, hyp(t, "status"), 0, "trade-off: "+h1+", "+h2+" (no Result separates them)")
+
+	// One Result supporting h1 and not h2 separates them, though both stay supported.
+	e2 := must(t, "add", "exp", "--parent", h1, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
+	must(t, "record", "--exp", e2, "--verdict", h1+"=supports", "--verdict", h2+"=inconclusive", "--observation", "o", "--why", "w")
+	out := hyp(t, "status")
+	want(t, out, 0, "trade-off: "+h1+", "+h2+"\n")
+}

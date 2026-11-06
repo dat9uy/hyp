@@ -22,6 +22,7 @@ type Projection struct {
 	Results        map[string]*Res      // Result → its derived record (result.go)
 	Edges          []Edge               // every edge in apply order; Live is false once removed
 	Decisions      map[string]*Decision // DQ → its Decision record (decision.go)
+	Readings       []Reading            // readings of non-retracted Results, in creation order
 }
 
 // HypStatus, QuestionState, ExpStatus, ResStatus and GoalState are the status
@@ -107,7 +108,7 @@ type Node struct {
 	Observation                                                                         string
 	Evidence                                                                            []string
 	EvidenceHashes                                                                      map[string]string
-	Limits, Closes                                                                      []string
+	Limits, Closes, Readings                                                            []string
 }
 
 // Pin is a recipe ref and the bundle hash an event recorded for it. Pointer
@@ -176,6 +177,13 @@ func (p Projection) CurrentSelect(dq string) (rec SelectRec, ok bool) {
 		return SelectRec{}, false
 	}
 	return sel.Selects[sel.Current], true
+}
+
+// Reading is one reading of a Goal line recorded in a Result, with its derived
+// state. By is the owner checkpoint that closed it, or "" while it is open.
+type Reading struct {
+	Key, Result, Text string
+	By                string
 }
 
 // LimitsOf lists the limits recorded under question dq, in creation order.

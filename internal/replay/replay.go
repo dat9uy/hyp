@@ -81,6 +81,7 @@ func (st *State) Projection() Projection {
 		Results:     st.results(),
 		Edges:       st.Edges,
 		Decisions:   st.decisions(),
+		Readings:    st.readings(st.Applied),
 	}
 }
 

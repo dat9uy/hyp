@@ -151,7 +151,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
   one and select that.
 - Amending the selected Hypothesis changes that evidence, because the confirms
   judged the old text. Start a new verifier as above.
-- AWAITING OWNER lists two kinds of line. Stop and ask the owner for either.
+- AWAITING OWNER lists two kinds of line that stop the work. Stop and ask the owner for either.
   Show them `hyp show <Q-id>` and the rivals' `hyp show` output.
   - `Q-… trade-off: H-…, H-…` means two or more candidates are supported
     and the owner must choose; it appears before any trade-off select.
@@ -171,6 +171,11 @@ that no longer matters is `hyp withdraw <Q-id>`.
     each such limit the owner accepts, with their words in `--why`. A limit
     marked `does not gate` came from a Result on other rivals and needs no
     `--accept`.
+- AWAITING OWNER also lists `R-…#r1 reading: …`, a reading of the Goal that a
+  verdict rests on. It blocks nothing, so carry on with other work and ask the
+  owner at the next stop. Record it with `hyp record --reading "<the line>: <how
+  you read it>"`. Record their answer under their own actor name:
+  `hyp checkpoint --role owner --closes <R-id>#r1 --summary "<their words>" --why "<why>" --actor <owner-name>`.
 - A question is answered only when its selection is supported, not stale,
   confirmed by the verifier and, when required, by the owner. The Goal
   completes when it has at least one top-level question and every one

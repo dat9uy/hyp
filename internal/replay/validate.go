@@ -215,6 +215,14 @@ func (f *Facts) validateResult(ev event.Event) error {
 			return err
 		}
 	}
+	if len(p.Readings) > event.MaxLimits {
+		return fmt.Errorf("over limit: readings has %d items (max %d)", len(p.Readings), event.MaxLimits)
+	}
+	for _, l := range p.Readings {
+		if err := textLimit("reading", l, 1, event.MaxLimitItem); err != nil {
+			return err
+		}
+	}
 	q := f.Nodes[exp.Parent].Parent
 	for _, k := range p.Closes {
 		if err := f.checkLimitRef(k, q); err != nil {
@@ -271,6 +279,37 @@ func (f *Facts) checkLimitRef(key, q string) error {
 	}
 	if f.resultQuestion(r) != q {
 		return fmt.Errorf("bad limit ref: %s is not under %s", r, q)
+	}
+	return nil
+}
+
+// checkClosesReadings reports why a checkpoint may not close its readings: only
+// an owner closes one, and not under the actor that recorded it.
+func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
+	if p.Role != "" && p.Role != event.RoleOwner {
+		return fmt.Errorf("bad checkpoint: role %q (want owner or none)", p.Role)
+	}
+	if len(p.Closes) > 0 && p.Role != event.RoleOwner {
+		return errors.New("bad checkpoint: only an owner closes a reading")
+	}
+	for _, k := range p.Closes {
+		r, n, ok := event.ParseReadingKey(k)
+		if !ok {
+			return fmt.Errorf("bad reading ref: %q (want <result>#r<n>)", k)
+		}
+		node := f.Nodes[r]
+		if node == nil || node.Kind != event.KindResult {
+			return fmt.Errorf("bad reading ref: %s is not a Result", r)
+		}
+		if f.Retracted[r] {
+			return fmt.Errorf("bad reading ref: %s is retracted", r)
+		}
+		if n > len(node.Readings) {
+			return fmt.Errorf("bad reading ref: %s has %d readings", r, len(node.Readings))
+		}
+		if node.Actor == ev.Actor {
+			return fmt.Errorf("separation of duties: %s recorded the reading it closes", ev.Actor)
+		}
 	}
 	return nil
 }

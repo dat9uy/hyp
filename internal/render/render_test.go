@@ -349,7 +349,7 @@ func TestStatusDecidedTradeoffLeavesAwaitingOwner(t *testing.T) {
 	h2id := event.DisplayID(event.KindHypothesis, h2)
 
 	before := Status(replay.Replay(b.Evs, nil, ""), 0)
-	if !strings.Contains(before, "  "+qid+" trade-off: "+h1id+", "+h2id+"\n") {
+	if !strings.Contains(before, "  "+qid+" trade-off: "+h1id+", "+h2id+" (no Result separates them)\n") {
 		t.Fatalf("undecided trade-off missing from AWAITING OWNER:\n%s", before)
 	}
 
@@ -385,7 +385,7 @@ func TestStatusContradictedChoiceAwaitsOwnerAgain(t *testing.T) {
 	h3id := event.DisplayID(event.KindHypothesis, h3)
 
 	out := Status(replay.Replay(b.Evs, nil, ""), 0)
-	if !strings.Contains(out, "  "+qid+" trade-off: "+h2id+", "+h3id+"\n") {
+	if !strings.Contains(out, "  "+qid+" trade-off: "+h2id+", "+h3id+" (no Result separates them)\n") {
 		t.Fatalf("trade-off line missing from AWAITING OWNER after the pick was contradicted:\n%s", out)
 	}
 	if strings.Contains(out, "trade-off decided") {

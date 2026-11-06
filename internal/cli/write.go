@@ -306,11 +306,12 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("record", stdout, stderr)
 	exp := w.fs.String("exp", "", "Experiment the Result belongs to (required)")
 	observation := w.fs.String("observation", "", fmt.Sprintf("what was observed (required, at most %d runes)", event.MaxText))
-	var verdicts, evidence, limits, closes multi
+	var verdicts, evidence, limits, closes, readings multi
 	w.fs.Var(&verdicts, "verdict", "REF=supports|contradicts|inconclusive (repeatable, at least one)")
 	w.fs.Var(&evidence, "evidence", fmt.Sprintf("URL, or path under .tree/evidence or recipes; recipes/NAME@VERSION/FILE is looked up like --recipe (repeatable, at most %d, each at most %d runes)", event.MaxEvidence, event.MaxEvidenceItem))
 	w.fs.Var(&limits, "limit", fmt.Sprintf("an open limit of the tested design (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	w.fs.Var(&closes, "closes", "R-id#n of a limit this Result closes (repeatable)")
+	w.fs.Var(&readings, "reading", fmt.Sprintf("how you read a Goal line a verdict rests on (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
@@ -357,7 +358,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		p := event.ResultRecord{Parent: expID, Verdicts: map[string]string{}, Observation: *observation, Evidence: evidence,
-			EvidenceHashes: hashes, Limits: limits}
+			EvidenceHashes: hashes, Limits: limits, Readings: readings}
 		if _, err := admitted(w.st.AdmitResult(p, w.recipeFacts(expID), refHash)); err != nil {
 			return draft{}, err
 		}
@@ -690,17 +691,38 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
+	role := w.fs.String("role", "", "owner, required with --closes")
+	var closes multi
+	w.fs.Var(&closes, "closes", "R-id#rn of a reading this owner checkpoint answers (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
 	if err := required("--summary", summary); err != nil {
 		return err
 	}
+	if *role != "" && *role != event.RoleOwner {
+		return usageErr("--role must be owner")
+	}
+	if len(closes) > 0 && *role != event.RoleOwner {
+		return usageErr("--closes needs --role owner")
+	}
 	return w.run(func() (draft, error) {
 		if w.st.GoalID == "" {
 			return draft{}, refusedErr("no Goal yet")
 		}
-		return draft{event.TypeCheckpoint, w.st.GoalID, event.Checkpoint{Summary: *summary}}, nil
+		p := event.Checkpoint{Summary: *summary, Role: *role}
+		for _, s := range closes {
+			ref, n, ok := event.ParseReadingKey(s)
+			if !ok {
+				return draft{}, usageErr("--closes %q: want <R-id>#r<n>", s)
+			}
+			id, err := w.ref(ref)
+			if err != nil {
+				return draft{}, err
+			}
+			p.Closes = append(p.Closes, event.ReadingKey(id, n))
+		}
+		return draft{event.TypeCheckpoint, w.st.GoalID, p}, nil
 	})
 }
 

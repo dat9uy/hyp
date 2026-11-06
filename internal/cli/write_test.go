@@ -360,8 +360,8 @@ func TestRecordHelpStatesListCaps(t *testing.T) {
 	r := hyp(t, "record", "-h")
 	cap := "repeatable, at most 10, each at most 300 runes"
 	want(t, r, 0, cap)
-	if n := strings.Count(r.stdout+r.stderr, cap); n != 2 {
-		t.Fatalf("%q occurs %d times in record help, want 2 (--evidence and --limit)", cap, n)
+	if n := strings.Count(r.stdout+r.stderr, cap); n != 3 {
+		t.Fatalf("%q occurs %d times in record help, want 3 (--evidence, --limit and --reading)", cap, n)
 	}
 }
 
