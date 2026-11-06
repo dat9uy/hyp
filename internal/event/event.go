@@ -103,6 +103,7 @@ var (
 const (
 	MaxTitle        = 120
 	MaxText         = 600
+	MaxGoalBody     = 2000
 	MaxWhy          = 300
 	MaxEvidence     = 10
 	MaxEvidenceItem = 300
