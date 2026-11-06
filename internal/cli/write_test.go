@@ -222,6 +222,11 @@ func TestRequestVerifyIsRemoved(t *testing.T) {
 	}
 }
 
+func TestAddExpRefusesGoalAsParent(t *testing.T) {
+	_, g, _ := setup(t)
+	want(t, hyp(t, "add", "exp", "--parent", g, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w"), 1, "refused: wrong parent kind: Experiment under Goal")
+}
+
 func TestAddExpRefusesUntargetedLiveRival(t *testing.T) {
 	dir, _, q := setup(t)
 	ha := must(t, "add", "hyp", "--parent", q, "--title", "A", "--alias", "h-authority", "--why", "w")
