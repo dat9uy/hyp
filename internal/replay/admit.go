@@ -67,6 +67,11 @@ func (st *State) AdmitExp(p event.NodeAdd, f RecipeFacts, noTarget bool) []Findi
 	if st == nil {
 		return out
 	}
+	// The rival rules read a Hypothesis's siblings. Any other parent is
+	// refused when the event is validated.
+	if parent := st.Nodes[p.Parent]; parent == nil || parent.Kind != event.KindHypothesis {
+		return out
+	}
 	if !noTarget {
 		if text := st.oneRivalRefusal(p.Parent, p.Targets); text != "" {
 			out = append(out, Finding{FindRefuse, text})
