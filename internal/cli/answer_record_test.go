@@ -189,3 +189,25 @@ func TestTradeoffMarkedWhenNoResultSeparatesCandidates(t *testing.T) {
 	out := hyp(t, "status")
 	want(t, out, 0, "trade-off: "+h1+", "+h2+"\n")
 }
+
+func TestHypothesisPageShowsWhatJudgedIt(t *testing.T) {
+	_, _, q := setup(t)
+	h1 := must(t, "add", "hyp", "--parent", q, "--alias", "h-one", "--title", "H1", "--body", "b", "--why", "w")
+	h2 := must(t, "add", "hyp", "--parent", q, "--alias", "h-two", "--title", "H2", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=contradicts", "--observation", "h-two failed the line", "--reading", "a long reading that names how the line was read and must print in full under awaiting owner", "--why", "w")
+
+	// h2 is judged only as a target, so nothing lists this Result among its children.
+	page := hyp(t, "show", h2)
+	want(t, page, 0, "judged by:\n  "+r+" ("+e+") contradicts — h-two failed the line\n")
+	want(t, page, 0, "    reading "+r+"#r1 open — a long reading")
+	want(t, hyp(t, "show", q), 0, "  "+h2+" (h-two) contradicted")
+	st := hyp(t, "status")
+	want(t, st, 0, h1+" (h-one) supported")
+	want(t, st, 0, "must print in full under awaiting owner")
+
+	must(t, "retract", r, "--why", "w")
+	if out := hyp(t, "show", h2); strings.Contains(out.stdout, "judged by:") {
+		t.Fatalf("a retracted Result still judges:\n%s", out.stdout)
+	}
+}
