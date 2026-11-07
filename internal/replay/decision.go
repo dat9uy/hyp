@@ -246,7 +246,7 @@ func (st *State) decisions() map[string]*Decision {
 // readings derives every reading, in creation order. The first owner checkpoint
 // that names a reading closes it. Readings of a retracted Result are left out.
 func (st *State) readings(applied []event.Event) []Reading {
-	closedBy := map[string]string{}
+	closedBy, answers := map[string]string{}, map[string]string{}
 	for _, ev := range applied {
 		if ev.Type != event.TypeCheckpoint {
 			continue
@@ -255,7 +255,7 @@ func (st *State) readings(applied []event.Event) []Reading {
 		_ = event.DecodePayload(ev, &c)
 		for _, k := range c.Closes {
 			if _, ok := closedBy[k]; !ok {
-				closedBy[k] = ev.ID
+				closedBy[k], answers[k] = ev.ID, c.Summary
 			}
 		}
 	}
@@ -267,7 +267,7 @@ func (st *State) readings(applied []event.Event) []Reading {
 		}
 		for i, text := range n.Readings {
 			k := event.ReadingKey(id, i+1)
-			out = append(out, Reading{Key: k, Result: id, Text: text, By: closedBy[k]})
+			out = append(out, Reading{Key: k, Result: id, Text: text, By: closedBy[k], Answer: answers[k]})
 		}
 	}
 	return out

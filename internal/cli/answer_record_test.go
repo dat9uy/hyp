@@ -159,8 +159,18 @@ func TestReadingAwaitsOwnerUntilOwnerCloses(t *testing.T) {
 		t.Fatalf("closed reading still under AWAITING OWNER:\n%s", out.stdout)
 	}
 	want(t, hyp(t, "show", r), 0, "reading "+key+" closed by owner checkpoint")
+	want(t, hyp(t, "show", r), 0, `answer: "code only" — `)
 	want(t, hyp(t, "show", g), 0, "    closes: "+key)
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+}
+
+func TestReadingHoldsSixHundredRunes(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	over := strings.Repeat("é", 601)
+	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--reading", over, "--why", "w"), 1, "reading")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--reading", over[:len(over)-2], "--why", "w")
 }
 
 func TestRetractedResultDropsItsReading(t *testing.T) {

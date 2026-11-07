@@ -245,7 +245,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 func readingLine(r renderer, l replay.Reading) string {
 	state := "open"
 	if l.By != "" {
-		state = "closed by owner checkpoint " + l.By
+		state = fmt.Sprintf("closed by owner checkpoint %s, answer: %q", l.By, l.Answer)
 	}
 	return fmt.Sprintf("reading %s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
 }
