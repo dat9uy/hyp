@@ -219,7 +219,7 @@ func (f *Facts) validateResult(ev event.Event) error {
 		return fmt.Errorf("over limit: readings has %d items (max %d)", len(p.Readings), event.MaxLimits)
 	}
 	for _, l := range p.Readings {
-		if err := textLimit("reading", l, 1, event.MaxLimitItem); err != nil {
+		if err := textLimit("reading", l, 1, event.MaxReadingItem); err != nil {
 			return err
 		}
 	}

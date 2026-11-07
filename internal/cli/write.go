@@ -311,7 +311,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	w.fs.Var(&evidence, "evidence", fmt.Sprintf("URL, or path under .tree/evidence or recipes; recipes/NAME@VERSION/FILE is looked up like --recipe (repeatable, at most %d, each at most %d runes)", event.MaxEvidence, event.MaxEvidenceItem))
 	w.fs.Var(&limits, "limit", fmt.Sprintf("an open limit of the tested design (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	w.fs.Var(&closes, "closes", "R-id#n of a limit this Result closes (repeatable)")
-	w.fs.Var(&readings, "reading", fmt.Sprintf("how you read a Goal line a verdict rests on (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
+	w.fs.Var(&readings, "reading", fmt.Sprintf("how you read a Goal line a verdict rests on (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxReadingItem))
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}

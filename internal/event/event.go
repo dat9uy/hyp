@@ -110,6 +110,7 @@ const (
 	MaxExternalRef  = 300
 	MaxLimits       = 10
 	MaxLimitItem    = 300
+	MaxReadingItem  = 600
 )
 
 // NodeAdd is the payload of node.add.
