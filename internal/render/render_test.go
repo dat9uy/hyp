@@ -212,7 +212,9 @@ func TestPredecessorEvidenceAlsoCounted(t *testing.T) {
 	bothID := event.DisplayID(event.KindResult, both)
 	onlyID := event.DisplayID(event.KindResult, only)
 	var sawBoth, sawOnly bool
-	for _, line := range strings.Split(show, "\n") {
+	// The Result that judged nw also prints under "judged by:", so read only this section.
+	_, preds, _ := strings.Cut(show, "predecessor evidence")
+	for _, line := range strings.Split(preds, "\n") {
 		switch {
 		case strings.Contains(line, bothID):
 			sawBoth = true

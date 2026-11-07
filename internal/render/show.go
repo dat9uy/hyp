@@ -53,7 +53,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		w("stale: %s", r.chain(ns.Stale))
 	}
 	if q := p.Questions[id]; q != nil && len(q.Candidates) > 0 {
-		w("candidates: %s", r.ids(q.Candidates))
+		w("candidates: %s", r.named(q.Candidates))
 	}
 	if n.Kind == event.KindDesignQuestion {
 		rec, ok := p.CurrentSelect(id)
@@ -127,7 +127,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		w("children:")
 		for _, c := range n.Children {
 			cs, _ := p.Display(c)
-			line := fmt.Sprintf("  %s %s", r.id(c), cs.Word)
+			line := fmt.Sprintf("  %s %s", r.withAlias(c), cs.Word)
 			if cs.Reason != "" {
 				line += "/" + cs.Reason
 			}
@@ -149,6 +149,29 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		}
 	}
 	if n.Kind == event.KindHypothesis {
+		// A Hypothesis may be judged as another Experiment's target, so its
+		// children do not list every Result that judged it.
+		judged := false
+		for _, ev := range p.Applied {
+			if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == replay.ResRetracted {
+				continue
+			}
+			rn := p.Nodes[ev.ID]
+			verdict, ok := rn.Verdicts[id]
+			if !ok {
+				continue
+			}
+			if !judged {
+				w("judged by:")
+				judged = true
+			}
+			w("  %s (%s) %s — %s", r.id(ev.ID), r.id(rn.Parent), verdict, rn.Observation)
+			for _, l := range p.Readings {
+				if l.Result == ev.ID {
+					w("    %s", readingLine(r, l))
+				}
+			}
+		}
 		var preds []string
 		seen := map[string]bool{id: true}
 		edges := p.LiveEdges()

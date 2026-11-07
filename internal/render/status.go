@@ -76,7 +76,7 @@ func Status(p replay.Projection, maxLines int) string {
 			if !resultSeparates(p, ns.Candidates) {
 				mark = " (no Result separates them)"
 			}
-			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s%s", r.id(dq), r.ids(ns.Candidates), mark))
+			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
 		if ns.Reason == replay.ReasonVerifierInsufficient {
 			add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
@@ -103,7 +103,7 @@ func Status(p replay.Projection, maxLines int) string {
 				sup += " (supersedes " + r.id(e.To) + ")"
 			}
 		}
-		add(kind, "%s  %s %s%s%s %s", indent, r.id(h), hs.Status, stale, sup, Cut(p.Nodes[h].Title, 60))
+		add(kind, "%s  %s %s%s%s %s", indent, r.withAlias(h), hs.Status, stale, sup, Cut(p.Nodes[h].Title, 60))
 		for _, e := range p.Nodes[h].Children {
 			if p.Nodes[e].Kind == event.KindExperiment && p.Exps[e].Status == replay.ExpPlanned && len(r.marks(e)) == 0 {
 				add(kExp, "%s    %s planned %s", indent, r.id(e), Cut(p.Nodes[e].Title, 60))
@@ -193,7 +193,7 @@ func Status(p replay.Projection, maxLines int) string {
 	}
 	for _, l := range p.Readings {
 		if l.By == "" {
-			add(kKeep, "  %s reading: %s", r.limitLabel(l.Result, l.Key), Cut(l.Text, 80))
+			add(kKeep, "  %s reading: %s", r.limitLabel(l.Result, l.Key), l.Text)
 		}
 	}
 
@@ -321,6 +321,23 @@ func (r renderer) marks(e string) []string {
 		m = append(m, "unjudged "+r.id(h))
 	}
 	return m
+}
+
+// withAlias shows a node as H-DFKM5P (h-path), or as its id when it has no alias.
+func (r renderer) withAlias(id string) string {
+	if n := r.p.Nodes[id]; n != nil && n.Alias != "" {
+		return r.id(id) + " (" + n.Alias + ")"
+	}
+	return r.id(id)
+}
+
+// named is ids with each node's alias beside it.
+func (r renderer) named(ids []string) string {
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = r.withAlias(id)
+	}
+	return strings.Join(out, ", ")
 }
 
 func (r renderer) ids(ids []string) string {
