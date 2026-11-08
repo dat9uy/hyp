@@ -157,3 +157,19 @@ func TestReadingOfAnAnswer(t *testing.T) {
 	want(t, hyp(t, "show", g), 0, "reading "+first+" closed by owner checkpoint")
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }
+
+// hyp record prints the key of each limit and reading it records, so the
+// runner names them later without counting flags.
+func TestRecordPrintsItsKeys(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	out := hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "first", "--limit", "second", "--reading", "a line", "--why", "w")
+	r := strings.Fields(out.stdout)[0]
+	want(t, out, 0, r+" result.record\n  limit "+r+"#1: first\n  limit "+r+"#2: second\n  reading "+r+"#r1: a line\n")
+	must(t, "checkpoint", "--summary", "yes", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w")
+	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	out = hyp(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "o", "--reading-of", r+"#r1=does yes cover helpers?", "--why", "w")
+	r2 := strings.Fields(out.stdout)[0]
+	want(t, out, 0, "  reading "+r2+"#r1 of "+r+"#r1: does yes cover helpers?\n")
+}

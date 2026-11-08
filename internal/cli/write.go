@@ -15,6 +15,7 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/replay"
 	"github.com/dat9uy/hyp/internal/store"
 )
@@ -160,7 +161,29 @@ func (w *writer) run(build func() (draft, error)) error {
 		kind = n.Kind
 	}
 	fmt.Fprintf(w.stdout, "%s %s\n", event.DisplayID(kind, ev.Node), ev.Type)
+	if ev.Type == event.TypeResultRecord {
+		printKeys(w.stdout, ev)
+	}
 	return nil
+}
+
+// printKeys prints the key of each limit and reading a Result records, so
+// a later --closes, --aims, --applies or --reading-of can name it without
+// counting flags.
+func printKeys(out io.Writer, ev event.Event) {
+	var p event.ResultRecord
+	_ = json.Unmarshal(ev.Payload, &p)
+	id := event.DisplayID(event.KindResult, ev.Node)
+	for i, l := range p.Limits {
+		fmt.Fprintf(out, "  limit %s#%d: %s\n", id, i+1, render.Cut(l, 80))
+	}
+	for i, l := range p.Readings {
+		of := ""
+		if l.Of != "" {
+			of = " of " + event.DisplayID(event.KindResult, event.KeyResult(l.Of)) + l.Of[len(event.KeyResult(l.Of)):]
+		}
+		fmt.Fprintf(out, "  reading %s#r%d%s: %s\n", id, i+1, of, render.Cut(l.Text, 80))
+	}
 }
 
 // currentSelect returns the current selection id of DQ dq ("" if none).
