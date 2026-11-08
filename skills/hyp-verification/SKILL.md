@@ -6,7 +6,7 @@ description: Run one hyp Experiment honestly through Launch, Doctor, Drive, Evid
 # hyp-verification
 
 This skill runs one Experiment (`E-` id) created by the hyp-prototype skill and
-leaves evidence that a verifier can check without you. It does not decide what
+leaves evidence that anyone can check without you. It does not decide what
 the result means; that is the `hyp record` verdict.
 
 ## Find or write a recipe

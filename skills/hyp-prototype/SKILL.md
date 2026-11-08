@@ -62,7 +62,7 @@ never type one. Run `hyp help` for every command and flag.
   refuses and lists them: name the rival the result would count against, or
   pass `--target none` to proceed without one.
 - `hyp signals` prints the waste signals for the whole tree (`wasted`,
-  `no-movement`, `one-rival`, `D1`, `spin`, `verifier-loop`), one line each;
+  `no-movement`, `one-rival`, `D1`, `spin`), one line each;
   a `one-rival` line names the rivals the next experiment could target.
 - Ids look like `Q-GRM5AG` (the first word a write prints). Give a node an
   easier name with `--alias` when you add it, and use the alias anywhere.
@@ -116,70 +116,49 @@ that no longer matters is `hyp withdraw <Q-id>`.
 - `hyp select <Q-id>` with no hypothesis writes nothing and prints the tool's
   suggestion: one candidate, `trade-off: owner decides between …`, or
   `suggested: none (<reason>)`.
-- The suggestion is mechanical: it is the only supported, non-stale candidate,
-  not a recommendation. Select only a suggested candidate, and only when the
-  evidence would convince an independent verifier:
-  `hyp select <Q-id> <H-id> --why "..."`. Add `--scope-change` when it
-  changes the Goal's scope; that requires the owner's confirmation. The
-  owner is also required automatically while two or more candidates are
-  supported: that is a trade-off, and no flag records it.
-- To change a selection, select the other candidate; the new select replaces
-  the old one.
-
-## Confirm
-
-- Every select needs an independent verifier; follow [VERIFIER.md](VERIFIER.md).
-  The CLI refuses a verifier confirm from the actor that made the select.
-- `Q-… open/verifier_insufficient` with a `verifier:` line under it is the
-  verifier's to-do. Do it (experiments, records, retracts). The evidence
-  then differs from what the verdict judged, so the question returns to
-  `awaiting_verifier`; start a new verifier with a new actor name, following
-  VERIFIER.md. Do not re-select to reach the verifier: a new select
-  re-snapshots dependencies and leaves any owner confirm on the old one
-  behind.
-- A confirm counts only while the evidence it judged stands: what
-  `hyp show <Q-id>` lists under `dossier:`, which is the selected body, the
-  live Hypotheses, their Results and the links going out from them. When that
-  changes, verifier and owner confirms lapse, the question reopens, and
-  `hyp show <Q-id>` prints a `changed since` line. If the evidence returns,
-  for example after a retract, they count again.
-- A reopened question closes by appending, never by touching old events. When
-  the claim is unchanged, a fresh verifier confirm on the same select is
-  enough, plus a fresh owner confirm if the owner is required. When the
-  evidence changes the claim, add a new Hypothesis that `supersedes` the old
-  one and select that.
-- Amending the selected Hypothesis changes that evidence, because the confirms
-  judged the old text. Start a new verifier as above.
-- AWAITING OWNER lists two kinds of line that stop the work. Stop and ask the owner for either.
+- Select only when OWED lists `select` for that Hypothesis:
+  `hyp select <Q-id> <H-id> --why "..."`. hyp refuses a select that the tree
+  does not owe and names what comes first: a runner item on the question, an
+  open reading, or a premise in a question that is still open. Decide that
+  question first.
+- A gap you know at select time is a `--limit` on a Result, never only words
+  in `--why`.
+- `hyp select` warns when open limits under the question judged other
+  Hypotheses. Read each one. If it applies to the selected Hypothesis and no
+  test within the Goal's lines can close it, refer it:
+  `hyp checkpoint --refers <R-id>#<n> --summary "<why no test can close it>"`.
+  The owner then accepts it.
+- The select answers the question while it stands: the selected Hypothesis is
+  supported and not stale, it has no open sub-question, and no candidate is
+  new since the select. A new candidate reopens the question
+  (`new_candidate`); OWED then lists `select` or `choose` again.
+- Add `--scope-change` when the select changes the Goal's scope. Only then
+  does the owner confirm: `Q-… awaiting_owner: H-… (scope change)` waits
+  for `hyp confirm <Q-id> --role owner --verdict sufficient --why "<their words>" --actor <owner-name>`,
+  with `--accept <R-id>#<n>` for each open limit they accept.
+- To change a selection, select the other candidate when OWED lists it. When
+  the evidence changes the claim, add a new Hypothesis that `supersedes` the
+  old one and select that.
+- AWAITING OWNER lists the lines that stop the work. Stop and ask the owner.
   Show them `hyp show <Q-id>` and the rivals' `hyp show` output.
-  - `Q-… choose: H-…, H-…` means two or more candidates are supported
-    and the owner must choose. It appears only when OWED lists nothing for
-    the runner on that question and no reading on it is open, because either
-    may change the candidates. Record the owner's choice as
-    `hyp select <Q-id> <H-id> --why "<the owner's words>"`.
-    The line then leaves AWAITING OWNER and FRONTIER shows
-    `trade-off decided: H-… over H-…` under the question. Start the
-    verifier; it judges a trade-off select without requiring the rivals
-    to be excluded.
-  - `Q-… awaiting_owner: H-…` appears after the verifier confirms a select
-    that needs the owner. Record their answer under the owner's own actor
-    name (lowercase letters, digits and hyphens, for example `owner-dat`):
-    `hyp confirm <Q-id> --role owner --verdict sufficient --why "<their words>" --actor <owner-name>`.
-    Show the owner the question's `limits:` lines. A sufficient owner
-    confirm is refused while an open limit from a Result that judged the
-    selected Hypothesis is not accepted; pass `--accept <R-id>#<n>` for
-    each such limit the owner accepts, with their words in `--why`. A limit
-    marked `does not gate` came from a Result on other rivals and needs no
-    `--accept`.
-- AWAITING OWNER also lists `R-…#r1 reading: …`, a reading of the Goal that a
-  verdict rests on. It blocks nothing, so carry on with other work and ask the
-  owner at the next stop. Record it with `hyp record --reading "<the line>: <how
-  you read it>"`. Record their answer under their own actor name:
-  `hyp checkpoint --role owner --closes <R-id>#r1 --summary "<their words>" --why "<why>" --actor <owner-name>`.
-- A question is answered only when its selection is supported, not stale,
-  confirmed by the verifier and, when required, by the owner. The Goal
-  completes when it has at least one top-level question and every one
-  is answered.
+  - `Q-… choose: H-…, H-…` means two or more candidates are supported and the
+    owner must choose. It appears only when OWED lists nothing for the runner
+    on that question and no reading on it is open, because either may change
+    the candidates. Record the owner's choice as
+    `hyp select <Q-id> <H-id> --why "<the owner's words>"`. That select
+    answers the question; no confirm follows.
+  - `R-…#r1 reading: …` is a reading of the Goal that a verdict rests on. It
+    changes no status, but it holds back new rivals and the owner's choice on
+    its question until the owner answers. Carry on with other work and ask
+    the owner at the next stop. Record it with `hyp record --reading "<the
+    line>: <how you read it>"`. Record the owner's answer under their own
+    actor name (lowercase letters, digits and hyphens, for example
+    `owner-dat`):
+    `hyp checkpoint --role owner --closes <R-id>#r1 --summary "<their words>" --why "<why>" --actor <owner-name>`.
+    If they give new words for a reading they already answered, use
+    `--revises <R-id>#r1` instead.
+- The Goal completes when it has at least one top-level question and every
+  one is answered.
 
 ## End of session
 
