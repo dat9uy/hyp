@@ -774,7 +774,7 @@ Limits:
 2. A hand-made output file cited beside a real command record is not seen.
 3. A script with none of the marks in reason 1 is not seen.
 4. A hand-written `command.json` that claims a clean run with passing
-   known answers satisfies reason 2. A verifier checks the record's
+   known answers satisfies reason 2. A reader checks the record's
    `command.log` and `known-answers.log`.
 5. A script that only a Launch, Doctor, Drive or Cleanup command reaches,
    cited from another Experiment, is held by its hash alone. hyp runs it
