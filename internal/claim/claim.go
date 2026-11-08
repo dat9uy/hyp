@@ -1,6 +1,6 @@
 // Package claim reports where a Result's text disagrees with the files it
 // cites: a typed verdict that a cited `verdict:` line contradicts, and a
-// commit or hash in the observation that no cited file holds. These are
+// commit or hash in the observation or a limit that no cited file holds. These are
 // warnings: hyp never reads a verdict rule, and replay never reads files
 // (ADR 0004, spec §7.6).
 package claim
@@ -12,6 +12,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
@@ -29,7 +30,7 @@ var (
 // Warnings lists the warn lines for Result id: one per Hypothesis whose
 // typed verdict no cited `verdict:` line for it agrees with, while some
 // cited line names it, and one per hex token of 7 or more characters (a
-// commit or hash) in the observation that no cited file holds. Only local
+// commit or hash) in the observation or a limit that no cited file holds. Only local
 // cited files are read; a URL is skipped, and a Result citing no readable
 // file gives no hex warning.
 func Warnings(root string, p replay.Projection, id string) []string {
@@ -71,14 +72,22 @@ func Warnings(root string, p replay.Projection, id string) []string {
 			disp, label(p, h), r.Verdicts[h], strings.Join(words, ", ")))
 	}
 
-	seen := map[string]bool{}
-	for _, tok := range hexToken.FindAllString(r.Observation, -1) {
-		if seen[tok] || !strings.ContainsAny(tok, "0123456789") || !strings.ContainsAny(tok, "abcdef") {
-			continue
-		}
-		seen[tok] = true
-		if !slices.ContainsFunc(texts, func(t string) bool { return strings.Contains(t, tok) }) {
-			out = append(out, fmt.Sprintf("warn: uncited %s: %s is in the observation but in no cited file", disp, tok))
+	// fields are the texts that state facts about the run: the observation
+	// and each limit. A reading quotes the owner, so it is not read.
+	fields := []struct{ name, text string }{{"the observation", r.Observation}}
+	for i, l := range r.Limits {
+		fields = append(fields, struct{ name, text string }{"limit " + disp + "#" + strconv.Itoa(i+1), l})
+	}
+	for _, f := range fields {
+		seen := map[string]bool{}
+		for _, tok := range hexToken.FindAllString(f.text, -1) {
+			if seen[tok] || !strings.ContainsAny(tok, "0123456789") || !strings.ContainsAny(tok, "abcdef") {
+				continue
+			}
+			seen[tok] = true
+			if !slices.ContainsFunc(texts, func(t string) bool { return strings.Contains(t, tok) }) {
+				out = append(out, fmt.Sprintf("warn: uncited %s: %s is in %s but in no cited file", disp, tok, f.name))
+			}
 		}
 	}
 	return out

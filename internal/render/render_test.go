@@ -878,14 +878,15 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		b                      *testutil.B
 		q, h1, h2, sub, s1, s2 string
 	}
-	// limit makes h and rival candidates, and records an open limit on a third
-	// rival it contradicts, so the limit is listed but no runner owes it.
-	limit := func(b *testutil.B, q, h, rival string) {
+	// limit makes h and rival candidates, and records an open limit under
+	// question lq, whose only Hypothesis it contradicts: a question with no
+	// candidate owes no limit, so the limit is listed but nobody owes it.
+	limit := func(b *testutil.B, lq, q, h, rival string) {
 		e := b.Exp(h, "none", rival)
 		b.Emit(event.TypeResultRecord, "", event.ResultRecord{Parent: e,
 			Verdicts:    map[string]string{h: event.VerdictSupports, rival: event.VerdictSupports},
 			Observation: "o"})
-		third := b.Hyp(q, "third")
+		third := b.Hyp(lq, "third")
 		e3 := b.Exp(third, "none")
 		b.Emit(event.TypeResultRecord, "", event.ResultRecord{Parent: e3,
 			Verdicts:    map[string]string{third: event.VerdictContradicts},
@@ -894,19 +895,21 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 	// top: q has two supported rivals and an open limit.
 	top := func() tree {
 		b := testutil.New()
-		q := b.DQ(b.Goal("g"), "q")
+		g := b.Goal("g")
+		q, lq := b.DQ(g, "q"), b.DQ(g, "lq")
 		h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-		limit(b, q, h1, h2)
+		limit(b, lq, q, h1, h2)
 		return tree{b: b, q: q, h1: h1, h2: h2}
 	}
 	// nested: the two supported rivals and the limit are under sub, on q's rival h2.
 	nested := func() tree {
 		b := testutil.New()
-		q := b.DQ(b.Goal("g"), "q")
+		g := b.Goal("g")
+		q, lq := b.DQ(g, "q"), b.DQ(g, "lq")
 		h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
 		sub := b.DQ(h2, "sub")
 		s1, s2 := b.Hyp(sub, "s1"), b.Hyp(sub, "s2")
-		limit(b, sub, s1, s2)
+		limit(b, lq, sub, s1, s2)
 		return tree{b: b, q: q, h1: h1, h2: h2, sub: sub, s1: s1, s2: s2}
 	}
 	selects := func(x tree, q, h string, scopeChange bool) { x.b.As("a").Select(q, h, "", scopeChange) }

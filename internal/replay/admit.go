@@ -221,9 +221,7 @@ func (p Projection) AdmitConfirm(q string, c event.Confirm) []Finding {
 // AdmitSelect lists what admitting a select of Hypothesis h on question q
 // would break, then its warnings. The select is admitted only when the ledger
 // owes it: a select of h, or a choice on q with h a candidate. A refusal
-// names what is owed instead (SelectBlock). An admitted select warns of the
-// open limits under q whose Result did not judge h, since a limit on a
-// rival's Result may also apply to the chosen one. h must be a resolved id.
+// names what is owed instead (SelectBlock). h must be a resolved id.
 // It reads derived state, so Validate does not repeat it: replay still
 // applies a select in a merged log.
 func (p Projection) AdmitSelect(q, h string) []Finding {
@@ -238,20 +236,7 @@ func (p Projection) AdmitSelect(q, h string) []Finding {
 		}
 		return []Finding{{FindRefuse, text}}
 	}
-	var other []string
-	for _, l := range p.LimitsOf(q) {
-		if l.State == LimitOpen && !slices.Contains(l.Hyps, h) {
-			other = append(other, p.keyLabel(l.Key))
-		}
-	}
-	if len(other) == 0 {
-		return nil
-	}
-	noun := "limits"
-	if len(other) == 1 {
-		noun = "limit"
-	}
-	return []Finding{{FindWarn, fmt.Sprintf("%d open %s judged other Hypotheses: %s", len(other), noun, strings.Join(other, ", "))}}
+	return nil
 }
 
 // SelectOwed returns the Hypotheses a select of question q may name now:
