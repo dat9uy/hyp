@@ -109,6 +109,7 @@ type Node struct {
 	Evidence                                                                            []string
 	EvidenceHashes                                                                      map[string]string
 	Limits, Closes, Readings                                                            []string
+	Aims, Applies                                                                       []string
 }
 
 // Pin is a recipe ref and the bundle hash an event recorded for it. Pointer
@@ -150,6 +151,7 @@ type Limit struct {
 	State             string   // LimitOpen, LimitClosed or LimitAccepted
 	By                string   // the closing Result id, or the accepting owner's actor
 	Gating            bool     // Gates the Hypothesis of the question's current select
+	Referred          string   // the checkpoint that first referred it to the owner, or ""
 }
 
 // Gates reports whether the limit gates the owner confirm of a select of
@@ -182,11 +184,14 @@ func (p Projection) CurrentSelect(dq string) (rec SelectRec, ok bool) {
 // Reading is one reading of a Goal line recorded in a Result, with its derived
 // state. By is the owner checkpoint that closed it, or "" while it is open, and
 // Answer is that checkpoint's summary, the owner's words. Question is the
-// DesignQuestion the Result belongs to.
+// DesignQuestion the Result belongs to. Applied is the Result that applies
+// the answer: one whose applies names the key, or, when no Experiment aims
+// at the reading, the first Result under its question after the close.
 type Reading struct {
 	Key, Result, Text string
 	By, Answer        string
 	Question          string
+	Applied           string
 }
 
 // LimitsOf lists the limits recorded under question dq, in creation order.
@@ -254,6 +259,8 @@ type Facts struct {
 	Decisions map[string]*Decision     // DQ → its Decision record (decision.go)
 	GoalID    string
 	Aliases   map[string]string // alias → node id
+	// ClosedReadings holds each reading key an applied owner checkpoint closed.
+	ClosedReadings map[string]bool
 
 	// Lookup indexes over the stored state, maintained by apply so that a
 	// full recompute per event stays fast.
@@ -285,17 +292,18 @@ type State struct {
 func NewState() *State {
 	return &State{
 		Facts: Facts{
-			Nodes:        map[string]*Node{},
-			SeenIDs:      map[string]bool{},
-			Retracted:    map[string]bool{},
-			Abandoned:    map[string]bool{},
-			Withdrawn:    map[string]bool{},
-			Hold:         map[string]QuestionState{},
-			Decisions:    map[string]*Decision{},
-			Aliases:      map[string]string{},
-			ResultsByHyp: map[string][]string{},
-			EdgesFrom:    map[string][]int{},
-			SupersededN:  map[string]int{},
+			Nodes:          map[string]*Node{},
+			SeenIDs:        map[string]bool{},
+			Retracted:      map[string]bool{},
+			Abandoned:      map[string]bool{},
+			Withdrawn:      map[string]bool{},
+			Hold:           map[string]QuestionState{},
+			Decisions:      map[string]*Decision{},
+			Aliases:        map[string]string{},
+			ClosedReadings: map[string]bool{},
+			ResultsByHyp:   map[string][]string{},
+			EdgesFrom:      map[string][]int{},
+			SupersededN:    map[string]int{},
 		},
 		Snaps:        map[string][]Snap{},
 		EverAnswered: map[string]bool{},

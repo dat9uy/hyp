@@ -11,6 +11,8 @@ FRONTIER
 STALE
   H-000005 stale ← H-000006 stale ← H-000007 contradicted ← R-000023
   H-000006 stale ← H-000007 contradicted ← R-000023
+OWED
+  runner: Q-000004 add rival Hypotheses
 AWAITING OWNER
 RECENT
   2026-10-24 00:00 a result.record R-000023 — test

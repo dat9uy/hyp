@@ -23,6 +23,7 @@ const (
 	kExp           // then planned Experiments under the frontier
 	kHyp           // then Hypotheses under the frontier
 	kStale         // then STALE lines beyond the first five
+	kOwed          // then OWED lines beyond the first five
 )
 
 type line struct {
@@ -81,8 +82,8 @@ func Status(p replay.Projection, maxLines int) string {
 			if !resultSeparates(p, ns.Candidates) {
 				mark = " (no Result separates them)"
 			}
-			if n := answersSinceResult(p, dq); n > 0 {
-				mark += fmt.Sprintf(" (answered readings with no Result since: %d)", n)
+			if n := unapplied(p, dq); n > 0 {
+				mark += fmt.Sprintf(" (answered readings not applied: %d)", n)
 			}
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
@@ -195,9 +196,34 @@ func Status(p replay.Projection, maxLines int) string {
 		}
 	}
 
+	// OWED is the ledger: what the runner and the verifier owe on each open
+	// question. Its last line is the stop clause a run reads.
+	owed := p.Owed()
+	add(kKeep, "OWED")
+	n = 0
+	for _, o := range owed {
+		if o.Who == replay.OwedOwner {
+			continue
+		}
+		kind := kKeep
+		if n >= 5 {
+			kind = kOwed
+		}
+		add(kind, "  %s: %s", o.Who, r.owedLine(o))
+		n++
+	}
+	if !replay.RunnerOwes(owed) {
+		add(kKeep, "  runner owes nothing: stop and report to the owner")
+	}
+
 	add(kKeep, "AWAITING OWNER")
 	for _, s := range awaitingOwner {
 		add(kKeep, "%s", s)
+	}
+	for _, o := range owed {
+		if o.Who == replay.OwedOwner {
+			add(kKeep, "  %s", r.owedLine(o))
+		}
 	}
 	for _, l := range p.Readings {
 		if l.By == "" {
@@ -268,7 +294,7 @@ func truncate(out []line, maxLines int) []line {
 	excess := len(out) - (maxLines - 1)
 	dropped := 0
 	drop := make([]bool, len(out))
-	for _, kind := range []int{kRecent, kExp, kHyp, kStale} {
+	for _, kind := range []int{kRecent, kExp, kHyp, kStale, kOwed} {
 		for i := len(out) - 1; i >= 0 && dropped < excess; i-- {
 			if out[i].kind == kind && !drop[i] {
 				drop[i] = true
@@ -445,36 +471,59 @@ func Minute(ts string) string {
 
 // resultSeparates reports whether a non-retracted Result supports one candidate
 // and gives another candidate a different verdict.
-// answersSinceResult counts the closed readings of question dq whose owner
-// checkpoint comes after the last Result recorded under dq. Closing a reading
-// changes no status, so until a Result follows, the owner's answer cannot
-// have changed the trade-off.
-func answersSinceResult(p replay.Projection, dq string) int {
-	pos, last := map[string]int{}, -1
-	for i, ev := range p.Applied {
-		pos[ev.ID] = i
-		if ev.Type == event.TypeResultRecord && p.Results[ev.ID].Status != replay.ResRetracted && resultUnder(p, ev.ID, dq) {
-			last = i
+// owedLine is one ledger item as hyp status prints it.
+func (r renderer) owedLine(o replay.Owed) string {
+	q := r.id(o.Question)
+	switch o.Kind {
+	case replay.OwedRivals:
+		return q + " add rival Hypotheses"
+	case replay.OwedUntested:
+		return q + " test " + r.withAlias(o.Key)
+	case replay.OwedPlanned:
+		return q + " run " + r.id(o.Key) + " " + Cut(r.p.Nodes[o.Key].Title, 60)
+	case replay.OwedLimit, replay.OwedReading, replay.OwedReferred:
+		res := event.KeyResult(o.Key)
+		text := ""
+		for _, l := range r.p.LimitsOf(o.Question) {
+			if l.Key == o.Key {
+				text = l.Text
+			}
 		}
+		for _, l := range r.p.Readings {
+			if l.Key == o.Key {
+				text = l.Answer
+			}
+		}
+		what := map[string]string{replay.OwedLimit: "limit", replay.OwedReading: "apply answer", replay.OwedReferred: "limit referred, accept or refuse"}[o.Kind]
+		state := ""
+		if o.Kind != replay.OwedReferred {
+			state = " [" + o.State
+			if len(o.AimedBy) > 0 {
+				state += " by " + r.ids(o.AimedBy)
+			}
+			state += "]"
+		}
+		return fmt.Sprintf("%s %s %s%s — %s", q, what, r.limitLabel(res, o.Key), state, Cut(text, 80))
+	case replay.OwedSelect:
+		return q + " select " + r.withAlias(o.Key) + ", the only candidate"
+	case replay.OwedConfirm:
+		return q + " confirm the select"
+	case replay.OwedRespond:
+		return q + " answer the verifier's insufficient confirm"
 	}
+	return q + " " + o.Kind
+}
+
+// unapplied counts the closed readings of question dq that no Result
+// applies yet.
+func unapplied(p replay.Projection, dq string) int {
 	n := 0
 	for _, l := range p.Readings {
-		if l.Question == dq && l.By != "" && pos[l.By] > last {
+		if l.Question == dq && l.By != "" && l.Applied == "" {
 			n++
 		}
 	}
 	return n
-}
-
-// resultUnder reports whether dq is the nearest question above Result r, the
-// question its readings belong to.
-func resultUnder(p replay.Projection, r, dq string) bool {
-	for id := p.Nodes[r].Parent; id != ""; id = p.Nodes[id].Parent {
-		if p.Nodes[id].Kind == event.KindDesignQuestion {
-			return id == dq
-		}
-	}
-	return false
 }
 
 func resultSeparates(p replay.Projection, candidates []string) bool {

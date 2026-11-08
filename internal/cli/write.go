@@ -196,7 +196,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	body := w.fs.String("body", "", fmt.Sprintf("body (at most %d runes)", maxBody))
 	alias := w.fs.String("alias", "", "optional unique alias")
 	var parent, recipeRef, decidedBy *string
-	var targets multi
+	var targets, aims multi
 	if kind != event.KindGoal {
 		parent = w.fs.String("parent", "", "parent node (required)")
 	}
@@ -204,6 +204,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		recipeRef = w.fs.String("recipe", "", "NAME@VERSION or none (required)")
 		w.fs.Var(&targets, "target", "sibling Hypothesis this Experiment also tests (repeatable), or none")
 		decidedBy = w.fs.String("decided-by", "", "reading: the verdicts are decided by reading; required when the recipe is none or not an instrument")
+		w.fs.Var(&aims, "aims", "R-id#n of a limit, or R-id#rn of an answered reading, this Experiment means to settle (repeatable)")
 	}
 	if _, err := w.begin(args[1:], 0); err != nil {
 		return err
@@ -266,6 +267,9 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			}
 			p.Targets = append(p.Targets, id)
 		}
+		if p.Aims, err = w.itemKeys("--aims", aims); err != nil {
+			return draft{}, err
+		}
 		if kind == event.KindExperiment {
 			if warns, err = admitted(w.st.AdmitExp(p, facts, noTarget)); err != nil {
 				return draft{}, err
@@ -306,12 +310,13 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("record", stdout, stderr)
 	exp := w.fs.String("exp", "", "Experiment the Result belongs to (required)")
 	observation := w.fs.String("observation", "", fmt.Sprintf("what was observed (required, at most %d runes)", event.MaxText))
-	var verdicts, evidence, limits, closes, readings multi
+	var verdicts, evidence, limits, closes, readings, applies multi
 	w.fs.Var(&verdicts, "verdict", "REF=supports|contradicts|inconclusive (repeatable, at least one)")
 	w.fs.Var(&evidence, "evidence", fmt.Sprintf("URL, or path under .tree/evidence or recipes; recipes/NAME@VERSION/FILE is looked up like --recipe (repeatable, at most %d, each at most %d runes)", event.MaxEvidence, event.MaxEvidenceItem))
 	w.fs.Var(&limits, "limit", fmt.Sprintf("an open limit of the tested design (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	w.fs.Var(&closes, "closes", "R-id#n of a limit this Result closes (repeatable)")
 	w.fs.Var(&readings, "reading", fmt.Sprintf("how you read a Goal line a verdict rests on (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxReadingItem))
+	w.fs.Var(&applies, "applies", "R-id#rn of an answered reading whose answer these verdicts apply; the Experiment must aim at it (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
@@ -371,6 +376,9 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			p.Verdicts[id] = verdict
 		}
 		if p.Closes, err = w.limitKeys("--closes", closes); err != nil {
+			return draft{}, err
+		}
+		if p.Applies, err = w.itemKeys("--applies", applies); err != nil {
 			return draft{}, err
 		}
 		return draft{event.TypeResultRecord, "", p}, nil
@@ -474,6 +482,30 @@ func (w *writer) limitKeys(flag string, refs []string) ([]string, error) {
 			return nil, err
 		}
 		keys = append(keys, event.LimitKey(id, n))
+	}
+	return keys, nil
+}
+
+// itemKeys resolves limit keys (<R-id>#<n>) and reading keys (<R-id>#r<n>).
+func (w *writer) itemKeys(flag string, refs []string) ([]string, error) {
+	var keys []string
+	for _, s := range refs {
+		if ref, n, ok := event.ParseReadingKey(s); ok {
+			id, err := w.ref(ref)
+			if err != nil {
+				return nil, err
+			}
+			keys = append(keys, event.ReadingKey(id, n))
+			continue
+		}
+		if _, _, ok := event.ParseLimitKey(s); !ok {
+			return nil, usageErr("%s %q: want <R-id>#<n> or <R-id>#r<n>", flag, s)
+		}
+		k, err := w.limitKeys(flag, []string{s})
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, k...)
 	}
 	return keys, nil
 }
@@ -692,8 +724,9 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
 	role := w.fs.String("role", "", "owner, required with --closes")
-	var closes multi
-	w.fs.Var(&closes, "closes", "R-id#rn of a reading this owner checkpoint answers (repeatable)")
+	var closes, refers multi
+	w.fs.Var(&closes, "closes", "R-id#rn of a reading this owner checkpoint answers, or R-id#n of a limit the owner accepts (repeatable)")
+	w.fs.Var(&refers, "refers", "R-id#n of a limit no test within the Goal's lines can settle, handed to the owner; --summary says why (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
@@ -711,16 +744,12 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 			return draft{}, refusedErr("no Goal yet")
 		}
 		p := event.Checkpoint{Summary: *summary, Role: *role}
-		for _, s := range closes {
-			ref, n, ok := event.ParseReadingKey(s)
-			if !ok {
-				return draft{}, usageErr("--closes %q: want <R-id>#r<n>", s)
-			}
-			id, err := w.ref(ref)
-			if err != nil {
-				return draft{}, err
-			}
-			p.Closes = append(p.Closes, event.ReadingKey(id, n))
+		var err error
+		if p.Closes, err = w.itemKeys("--closes", closes); err != nil {
+			return draft{}, err
+		}
+		if p.Refers, err = w.limitKeys("--refers", refers); err != nil {
+			return draft{}, err
 		}
 		return draft{event.TypeCheckpoint, w.st.GoalID, p}, nil
 	})

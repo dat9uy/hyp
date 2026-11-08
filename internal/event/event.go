@@ -124,6 +124,9 @@ type NodeAdd struct {
 	RecipeHash string   `json:"recipe_hash,omitempty"`
 	Targets    []string `json:"targets,omitempty"`
 	DecidedBy  string   `json:"decided_by,omitempty"`
+	// Aims lists the limit and reading keys an Experiment means to settle.
+	// It is intent: only a Result's closes or applies settles one.
+	Aims []string `json:"aims,omitempty"`
 }
 
 // ResultRecord is the payload of result.record.
@@ -139,6 +142,9 @@ type ResultRecord struct {
 	Closes         []string          `json:"closes,omitempty"`
 	// Readings states how the run read a line of the Goal that a verdict rests on.
 	Readings []string `json:"readings,omitempty"`
+	// Applies lists the closed readings whose owner answers this Result's
+	// verdicts apply. Each must be one its Experiment aims at.
+	Applies []string `json:"applies,omitempty"`
 }
 
 // EvidenceRef returns the recipe ref (name@version) that an evidence pointer
@@ -217,8 +223,12 @@ type Checkpoint struct {
 	Summary string `json:"summary"`
 	// Role is RoleOwner on a checkpoint that closes readings, and empty otherwise.
 	Role string `json:"role,omitempty"`
-	// Closes lists the reading keys the owner's summary answers.
+	// Closes lists the reading keys the owner's summary answers, and the limit
+	// keys the owner accepts.
 	Closes []string `json:"closes,omitempty"`
+	// Refers lists the limit keys the writer hands to the owner, because no
+	// test within the Goal's lines can settle them; Summary says why.
+	Refers []string `json:"refers,omitempty"`
 }
 
 // Edge is the payload of edge.add and edge.remove.
@@ -329,6 +339,12 @@ func ParseReadingKey(k string) (ref string, n int, ok bool) {
 		return "", 0, false
 	}
 	return ref, n, true
+}
+
+// KeyResult returns the Result a limit or reading key names.
+func KeyResult(k string) string {
+	ref, _, _ := strings.Cut(k, "#")
+	return ref
 }
 
 // Runes counts runes; every content limit is measured with it.

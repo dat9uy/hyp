@@ -97,6 +97,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		if len(n.Targets) > 0 {
 			w("targets: %s", r.ids(n.Targets))
 		}
+		for _, k := range n.Aims {
+			w("aims: %s", r.limitLabel(event.KeyResult(k), k))
+		}
 	}
 	if n.Kind == event.KindResult {
 		w("observation: %s", n.Observation)
@@ -110,6 +113,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		for _, k := range n.Closes {
 			res, _, _ := event.ParseLimitKey(k)
 			w("closes: %s", r.limitLabel(res, k))
+		}
+		for _, k := range n.Applies {
+			w("applies: %s", r.limitLabel(event.KeyResult(k), k))
 		}
 		for _, l := range p.Readings {
 			if l.Result == id {
@@ -225,8 +231,10 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				_ = json.Unmarshal(ev.Payload, &s)
 				w("    summary: %s", Cut(s.Summary, event.MaxText))
 				for _, k := range s.Closes {
-					res, _, _ := event.ParseReadingKey(k)
-					w("    closes: %s", r.limitLabel(res, k))
+					w("    closes: %s", r.limitLabel(event.KeyResult(k), k))
+				}
+				for _, k := range s.Refers {
+					w("    refers: %s", r.limitLabel(event.KeyResult(k), k))
 				}
 			}
 			if amended && (ev.Type == event.TypeNodeAdd || ev.Type == event.TypeHypothesisAmend) {

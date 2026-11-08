@@ -92,8 +92,8 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 			return fmt.Errorf("alias already used: %q", p.Alias)
 		}
 	}
-	if p.Kind != event.KindExperiment && (p.Recipe != "" || p.RecipeHash != "" || len(p.Targets) > 0 || p.DecidedBy != "") {
-		return errors.New("unknown field: recipe, recipe_hash, targets and decided_by are for Experiments only")
+	if p.Kind != event.KindExperiment && (p.Recipe != "" || p.RecipeHash != "" || len(p.Targets) > 0 || p.DecidedBy != "" || len(p.Aims) > 0) {
+		return errors.New("unknown field: recipe, recipe_hash, targets, decided_by and aims are for Experiments only")
 	}
 
 	if p.Kind == event.KindGoal {
@@ -154,6 +154,34 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 			return fmt.Errorf("bad target: %s listed twice", t)
 		}
 		seen[t] = true
+	}
+	return f.checkAims(p.Aims)
+}
+
+// checkAims reports why an Experiment may not aim at keys: each must name a
+// limit, or a reading the owner has closed, of a non-retracted Result, once.
+func (f *Facts) checkAims(keys []string) error {
+	if len(keys) > event.MaxLimits {
+		return fmt.Errorf("over limit: aims has %d items (max %d)", len(keys), event.MaxLimits)
+	}
+	seen := map[string]bool{}
+	for _, k := range keys {
+		if seen[k] {
+			return fmt.Errorf("bad aim: %s listed twice", k)
+		}
+		seen[k] = true
+		if _, _, ok := event.ParseReadingKey(k); ok {
+			if err := f.checkReadingRef(k); err != nil {
+				return fmt.Errorf("bad aim: %w", err)
+			}
+			if !f.ClosedReadings[k] {
+				return fmt.Errorf("bad aim: reading %s is open; only an answered reading can be applied", k)
+			}
+			continue
+		}
+		if err := f.checkLimitRef(k, ""); err != nil {
+			return fmt.Errorf("bad aim: %w", err)
+		}
 	}
 	return nil
 }
@@ -225,8 +253,25 @@ func (f *Facts) validateResult(ev event.Event) error {
 	}
 	q := f.Nodes[exp.Parent].Parent
 	for _, k := range p.Closes {
-		if err := f.checkLimitRef(k, q); err != nil {
+		// A limit under another question may be closed by a Result whose
+		// Experiment aims at it.
+		scope := q
+		if contains(exp.Aims, k) {
+			scope = ""
+		}
+		if err := f.checkLimitRef(k, scope); err != nil {
 			return err
+		}
+	}
+	if len(p.Applies) > event.MaxLimits {
+		return fmt.Errorf("over limit: applies has %d items (max %d)", len(p.Applies), event.MaxLimits)
+	}
+	for _, k := range p.Applies {
+		if _, _, ok := event.ParseReadingKey(k); !ok {
+			return fmt.Errorf("bad applies: %q (want <result>#r<n>)", k)
+		}
+		if !contains(exp.Aims, k) {
+			return fmt.Errorf("bad applies: %s is not among %s's aims", k, p.Parent)
 		}
 	}
 	return nil
@@ -261,7 +306,7 @@ func (f *Facts) resultQuestion(r string) string {
 }
 
 // checkLimitRef reports why key does not name a limit of a non-retracted
-// Result under question q.
+// Result under question q, or under any question when q is "".
 func (f *Facts) checkLimitRef(key, q string) error {
 	r, n, ok := event.ParseLimitKey(key)
 	if !ok {
@@ -277,7 +322,7 @@ func (f *Facts) checkLimitRef(key, q string) error {
 	if n > len(node.Limits) {
 		return fmt.Errorf("bad limit ref: %s has %d limits", r, len(node.Limits))
 	}
-	if f.resultQuestion(r) != q {
+	if q != "" && f.resultQuestion(r) != q {
 		return fmt.Errorf("bad limit ref: %s is not under %s", r, q)
 	}
 	return nil
@@ -290,26 +335,47 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		return fmt.Errorf("bad checkpoint: role %q (want owner or none)", p.Role)
 	}
 	if len(p.Closes) > 0 && p.Role != event.RoleOwner {
-		return errors.New("bad checkpoint: only an owner closes a reading")
+		return errors.New("bad checkpoint: only an owner closes a reading or accepts a limit")
 	}
 	for _, k := range p.Closes {
-		r, n, ok := event.ParseReadingKey(k)
-		if !ok {
-			return fmt.Errorf("bad reading ref: %q (want <result>#r<n>)", k)
+		if _, _, ok := event.ParseReadingKey(k); ok {
+			if err := f.checkReadingRef(k); err != nil {
+				return err
+			}
+		} else if err := f.checkLimitRef(k, ""); err != nil {
+			return fmt.Errorf("bad closes: %q is neither a reading (<result>#r<n>) nor a limit: %w", k, err)
 		}
-		node := f.Nodes[r]
-		if node == nil || node.Kind != event.KindResult {
-			return fmt.Errorf("bad reading ref: %s is not a Result", r)
+		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
+			return fmt.Errorf("separation of duties: %s recorded the item it closes", ev.Actor)
 		}
-		if f.Retracted[r] {
-			return fmt.Errorf("bad reading ref: %s is retracted", r)
+	}
+	if len(p.Refers) > event.MaxLimits {
+		return fmt.Errorf("over limit: refers has %d items (max %d)", len(p.Refers), event.MaxLimits)
+	}
+	for _, k := range p.Refers {
+		if err := f.checkLimitRef(k, ""); err != nil {
+			return fmt.Errorf("bad refers: %w", err)
 		}
-		if n > len(node.Readings) {
-			return fmt.Errorf("bad reading ref: %s has %d readings", r, len(node.Readings))
-		}
-		if node.Actor == ev.Actor {
-			return fmt.Errorf("separation of duties: %s recorded the reading it closes", ev.Actor)
-		}
+	}
+	return nil
+}
+
+// checkReadingRef reports why key does not name a reading of a non-retracted
+// Result.
+func (f *Facts) checkReadingRef(key string) error {
+	r, n, ok := event.ParseReadingKey(key)
+	if !ok {
+		return fmt.Errorf("bad reading ref: %q (want <result>#r<n>)", key)
+	}
+	node := f.Nodes[r]
+	if node == nil || node.Kind != event.KindResult {
+		return fmt.Errorf("bad reading ref: %s is not a Result", r)
+	}
+	if f.Retracted[r] {
+		return fmt.Errorf("bad reading ref: %s is retracted", r)
+	}
+	if n > len(node.Readings) {
+		return fmt.Errorf("bad reading ref: %s has %d readings", r, len(node.Readings))
 	}
 	return nil
 }

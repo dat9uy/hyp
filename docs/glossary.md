@@ -50,14 +50,14 @@ The section of `hyp status` that shows the open work: the tree pruned to it, fro
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
-The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `trade-off: H…, H…` when they should choose between the candidates, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing.
+The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `trade-off: H…, H…` when they should choose between the candidates, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
 
 **Reading**:
 How a run read a line of the Goal that a verdict rests on, recorded on the Result with `hyp record --reading`. It stays open until an owner checkpoint closes it with their answer.
-A reading asks what the owner's words mean, and a trade-off asks which candidate to choose. Closing a reading changes no status, because statuses come only from verdicts. An answer that rules out a candidate takes effect when a later Result records `contradicts` on it, and a trade-off it would settle stays under Awaiting owner until then, marked `(answered readings with no Result since: N)`.
+A reading asks what the owner's words mean, and a trade-off asks which candidate to choose. Closing a reading changes no status, because statuses come only from verdicts. An answer that rules out a candidate takes effect when a later Result records `contradicts` on it. A closed reading is owed by the runner until a Result applies it (`hyp record --applies`, from an Experiment that aims at it), and a trade-off it would settle stays under Awaiting owner until then, marked `(answered readings not applied: N)`.
 
 **Re-judge**:
-The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer becomes a check in a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until one follows, `hyp status` marks the trade-off with its answered readings.
+The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer becomes a check in a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until a Result applies each answer, `hyp status` lists it under Owed and marks the trade-off with its answered readings.
 _Avoid_: update the tree, recalculate (replay already derives every status; a re-judge adds Results), re-confirm (a confirm judges a select, not a Hypothesis)
 
 **Open limits**:
@@ -152,8 +152,16 @@ An owner confirm is required when the current select is a trade-off or a scope c
 _Avoid_: user, stakeholder, approver, pick, decide (alone)
 
 **Limit**:
-A limit of the tested design that a Result found but did not test or fix, keyed `<result-id>#<n>`. It is open until a later Result closes it or an owner confirm on the current select accepts it, and an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). In code: `replay.Limit`.
+A limit of the tested design that a Result found but did not test or fix, keyed `<result-id>#<n>`. It is open until a later Result closes it, or the owner accepts it with an owner checkpoint that closes its key or an owner confirm on the current select. A runner refers a limit no test within the Goal can close (`hyp checkpoint --refers`), which moves it from the runner's Owed items to Awaiting owner. An open limit on a candidate is owed until then, and an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). In code: `replay.Limit`.
 _Avoid_: caveat, TODO, known issue
+
+**Owed**:
+The ledger `hyp status` prints under OWED: each item of open work on an open question and who owes it, the runner or the verifier; the owner's items print under Awaiting owner ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)). It is derived, never stored, and owing an item changes no status. When the runner owes nothing, OWED ends with `runner owes nothing: stop and report to the owner`, the stop a run reads. In code: `replay.Projection.Owed`.
+_Avoid_: todo list, backlog, next steps (those are prose; the ledger is derived)
+
+**Aim**:
+A limit or answered reading an Experiment is planned to settle, named with `hyp add exp --aims`. An aim is intent: it moves the item to `in_progress`, and to `aimed_not_settled` when every aiming Experiment has a Result and none closed or applied it. Only a Result's `--closes` or `--applies` settles the item, and settling it never answers a question.
+_Avoid_: target (that names a rival Hypothesis an Experiment judges), plan
 
 **depends_on**:
 An edge from a Hypothesis or DesignQuestion to a Hypothesis whose support it relies on. Stale follows it ([spec §7.3](replay-spec.md#73-stale-snapshot-rule-the-minimal-form-of-truth-maintenance)), and it may not close a cycle in the combined status graph ([spec §7.2](replay-spec.md#72-combined-status-graph-for-cycle-refusal)).

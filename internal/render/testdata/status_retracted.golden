@@ -1,6 +1,8 @@
 GOAL G-000001 ship the data design — complete (answered 3, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
 FRONTIER
 STALE
+OWED
+  runner owes nothing: stop and report to the owner
 AWAITING OWNER
 RECENT
   2026-10-24 00:00 a result.retract R-000023 — test

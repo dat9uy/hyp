@@ -32,7 +32,7 @@ func TestEveryEventTypeHasARule(t *testing.T) {
 // ask whether it is stored.
 var factsFields = []string{
 	"Nodes", "Order", "SeenIDs", "Retracted", "Abandoned", "Withdrawn", "Edges", "Hold", "Decisions", "Aliases", "GoalID",
-	"ResultsByHyp", "EdgesFrom", "SupersededN",
+	"ResultsByHyp", "EdgesFrom", "SupersededN", "ClosedReadings",
 }
 
 // derivedFields record derived status, so a replay rule must not reach them
