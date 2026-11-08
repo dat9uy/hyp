@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/dat9uy/hyp/internal/claim"
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/recipe"
 	"github.com/dat9uy/hyp/internal/replay"
@@ -89,6 +90,10 @@ func Run(root string) (report []string, errorsFound int) {
 		for _, why := range p.Results[id].Uncontained {
 			warns = append(warns, fmt.Sprintf("warn: uncontained %s (%s)", display(id), why))
 		}
+	}
+	// A Result whose text disagrees with the files it cites (spec §7.6).
+	for _, id := range resultIDs(p) {
+		warns = append(warns, claim.Warnings(root, p, id)...)
 	}
 	// Two questions whose candidates assume each other's Hypotheses hold
 	// each other's select (spec §8.1).

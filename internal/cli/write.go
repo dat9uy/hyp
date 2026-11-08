@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/dat9uy/hyp/internal/claim"
 	"github.com/dat9uy/hyp/internal/contain"
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
@@ -422,14 +423,15 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 		return draft{event.TypeResultRecord, "", p}, nil
 	})
 	if err == nil {
-		warnUncontained(w.root, w.last.Node, stderr)
+		warnResult(w.root, w.last.Node, stderr)
 	}
 	return err
 }
 
-// warnUncontained prints the reasons Result id is uncontained (spec §7.6).
-// The event is already appended, so nothing here changes the exit code.
-func warnUncontained(root, id string, stderr io.Writer) {
+// warnResult prints the reasons Result id is uncontained (spec §7.6) and
+// where its text disagrees with the files it cites (spec §7.6). The event
+// is already appended, so nothing here changes the exit code.
+func warnResult(root, id string, stderr io.Writer) {
 	evs, _, err := store.Events(root)
 	if err != nil {
 		fmt.Fprintf(stderr, "warn: uncontained check skipped: %v\n", err)
@@ -438,6 +440,9 @@ func warnUncontained(root, id string, stderr io.Writer) {
 	p := replay.Replay(evs, recipe.Hashes(root), "")
 	for _, why := range contain.Reasons(root, p, id) {
 		fmt.Fprintf(stderr, "warn: uncontained %s (%s)\n", event.DisplayID(event.KindResult, id), why)
+	}
+	for _, w := range claim.Warnings(root, p, id) {
+		fmt.Fprintln(stderr, w)
 	}
 }
 
