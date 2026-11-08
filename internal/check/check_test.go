@@ -76,8 +76,8 @@ func TestCheckCleanStore(t *testing.T) {
 	}
 }
 
-// Every synthetic tree under internal/testutil/testdata, written by the
-// current hyp, replays with no rejected event.
+// Every synthetic tree under internal/testutil/testdata replays with no
+// rejected event.
 func TestRunTreesReplayWithoutRejections(t *testing.T) {
 	trees, _ := filepath.Glob("../testutil/testdata/*/.tree")
 	if len(trees) == 0 {

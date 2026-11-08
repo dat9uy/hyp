@@ -441,6 +441,11 @@ func (f *Facts) validateConfirm(ev event.Event) error {
 	if _, err := f.need(ev.Node, event.KindDesignQuestion); err != nil {
 		return err
 	}
+	if p.Role == event.RoleVerifier {
+		// Read-only history: replay accepts an old verifier confirm and it
+		// applies nothing (spec §4, ADR 0015).
+		return nil
+	}
 	if !event.Roles[p.Role] {
 		return fmt.Errorf("bad confirm: unknown role %q", p.Role)
 	}
@@ -451,12 +456,8 @@ func (f *Facts) validateConfirm(ev event.Event) error {
 	if sel == nil {
 		return fmt.Errorf("bad confirm: %s is not a dq.select on %s", p.Select, ev.Node)
 	}
-	rec, ok := sel.Selects[p.Select]
-	if !ok {
+	if _, ok := sel.Selects[p.Select]; !ok {
 		return fmt.Errorf("bad confirm: %s is not a dq.select on %s", p.Select, ev.Node)
-	}
-	if p.Role == event.RoleVerifier && rec.Actor == ev.Actor {
-		return fmt.Errorf("separation of duties: verifier %s also made the select", ev.Actor)
 	}
 	if len(p.Accepts) > 0 && (p.Role != event.RoleOwner || p.Verdict != event.ConfirmSufficient) {
 		return errors.New("bad confirm: only a sufficient owner confirm accepts limits")

@@ -20,10 +20,10 @@ func copySynth(t *testing.T) {
 	t.Chdir(dir)
 }
 
-// Amending the selected Hypothesis of an answered question reopens it for the
-// verifier; a sufficient verdict answers it again with the new body as the
-// design, and the first body stays in the Hypothesis's history.
-func TestAmendShowsVerifiedDesign(t *testing.T) {
+// Amending the selected Hypothesis of an answered question keeps it answered
+// with the new body as the design, and the first body stays in the
+// Hypothesis's history. The synthetic store's verifier confirms are history.
+func TestAmendShowsTheNewDesign(t *testing.T) {
 	copySynth(t)
 	want(t, hyp(t, "show", "Q-WRT7N9"), 0, "status: answered")
 	want(t, hyp(t, "show", "Q-WRT7N9"), 0, "design: Each process keeps an LRU of 10k entries; no shared state.")
@@ -31,11 +31,6 @@ func TestAmendShowsVerifiedDesign(t *testing.T) {
 	body := "Each process keeps an LRU of 10k entries, about 40MB, with no shared state."
 	want(t, hyp(t, "amend", "H-WEE8KQ", "--body", body, "--why", "R-6B1D8V measured the memory", "--actor", "runner-2"),
 		0, "H-WEE8KQ hypothesis.amend")
-	want(t, hyp(t, "show", "Q-WRT7N9"), 0, "status: reopened/awaiting_verifier")
-
-	must(t, "confirm", "Q-WRT7N9", "--role", "verifier", "--verdict", "sufficient",
-		"--why", "The body states the memory R-6B1D8V measured", "--actor", "verifier-4")
-
 	show := hyp(t, "show", "Q-WRT7N9")
 	for _, s := range []string{"status: answered", "design: " + body} {
 		want(t, show, 0, s)
@@ -46,6 +41,12 @@ func TestAmendShowsVerifiedDesign(t *testing.T) {
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }
 
+// refer hands limit key k to the owner with a runner checkpoint.
+func refer(t *testing.T, k string) {
+	t.Helper()
+	must(t, "checkpoint", "--summary", "no test within the Goal settles it", "--refers", k, "--why", "w")
+}
+
 func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	_, _, q := setup(t)
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
@@ -54,15 +55,20 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	want(t, hyp(t, "show", q), 0, r1+"#1 open — raw SQL org gets no row")
 	want(t, hyp(t, "status"), 0, "OPEN LIMITS")
 
-	// No owner needed: the limit stays visible but does not block the answer.
+	// The open limit on the candidate is the runner's: the select is refused
+	// until the limit is closed or referred to the owner.
+	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: "+q+" owes the runner first: limit "+r1+"#1")
+	refer(t, r1+"#1")
 	must(t, "select", q, h, "--why", "w")
-	must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 	want(t, hyp(t, "show", q), 0, "status: answered")
 	want(t, hyp(t, "show", q), 0, r1+"#1 open")
+	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or refuse "+r1+"#1 — raw SQL org gets no row\n")
 
-	// Owner gate: a sufficient owner confirm must accept the open limit.
+	// Owner gate: a sufficient owner confirm on a scope change must accept
+	// the open limit.
+	want(t, hyp(t, "select", q, h, "--scope-change", "--why", "w2"), 1, q+" is answered; hyp unselect it first")
+	must(t, "unselect", q, "--why", "w2")
 	must(t, "select", q, h, "--scope-change", "--why", "w2")
-	must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 1, "open limits under")
 	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o"), 0, "")
 	want(t, hyp(t, "show", q), 0, r1+"#1 accepted by o")
@@ -96,8 +102,16 @@ func TestRivalLimitDoesNotGateOwner(t *testing.T) {
 				args = append(args, "--verdict", h1+"=supports")
 			}
 			r := must(t, args...)
-			must(t, "select", q, h1, "--scope-change", "--why", "w")
-			must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
+			if judgesSelected {
+				refer(t, r+"#1")
+			} else {
+				e1 := must(t, "add", "exp", "--parent", h1, "--title", "E1", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+				must(t, "record", "--exp", e1, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
+			}
+			sel := hyp(t, "select", q, h1, "--scope-change", "--why", "w")
+			if !judgesSelected {
+				want(t, sel, 0, "warn: 1 open limit judged other Hypotheses: "+r+"#1")
+			}
 			owner := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 			if judgesSelected {
 				want(t, owner, 1, r+"#1 only tried one org")
@@ -116,8 +130,8 @@ func TestInsufficientOwnerConfirmReopensLimit(t *testing.T) {
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
 	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "only tried one org", "--why", "w")
+	refer(t, r+"#1")
 	must(t, "select", q, h, "--scope-change", "--why", "w")
-	must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r+"#1", "--why", "w", "--actor", "o")
 	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
 

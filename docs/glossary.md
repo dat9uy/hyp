@@ -19,7 +19,7 @@ One line of `.tree/events/<actor>.jsonl`: an id, a time, an actor, a type from a
 _Avoid_: entry, record (a record is what hyp writes for a sandbox or a command)
 
 **Actor**:
-The name a write records as its author, from `--actor` or `HYP_ACTOR` ([spec §1](replay-spec.md#1-names-and-locations)). Each actor appends to its own events file, so logs from several worktrees merge ([spec §6](replay-spec.md#6-merge-order)). An actor is not a role: verifier and owner are the roles a confirm names.
+The name a write records as its author, from `--actor` or `HYP_ACTOR` ([spec §1](replay-spec.md#1-names-and-locations)). Each actor appends to its own events file, so logs from several worktrees merge ([spec §6](replay-spec.md#6-merge-order)). An actor is not a role: owner is the role a confirm names (the verifier role is retired, ADR 0015).
 _Avoid_: user, author (alone)
 
 **Replay**:
@@ -50,7 +50,7 @@ The section of `hyp status` that shows the open work: the tree pruned to it, fro
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
-The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `choose: H…, H…` when they should choose between the candidates and the runner owes nothing on the question, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
+The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `choose: H…, H…` when they should choose between the candidates and the runner owes nothing on the question, or `awaiting_owner: H (scope change)` when they should confirm a scope-change select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
 
 **Reading**:
 How a run read owner words that a verdict rests on: a line of the Goal, recorded with `hyp record --reading`, or the owner's answer to an earlier reading, recorded with `hyp record --reading-of R-…#rN=TEXT`, which stores that reading's key as the new reading's `of`. A reading of an answer narrows it and never reopens it: the earlier reading stays closed and its answer stays in force. A reading stays open until an owner checkpoint closes it with their answer.
@@ -62,7 +62,7 @@ The step after the owner answers readings: new Results judge the live Hypotheses
 _Avoid_: update the tree, recalculate (replay already derives every status; a re-judge adds Results), re-confirm (a confirm judges a select, not a Hypothesis)
 
 **Open limits**:
-The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a ledger, not open work.
+The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a list, not open work: the open work in it is what Owed and Awaiting owner name.
 
 **Rival**:
 Another Hypothesis under the same DesignQuestion. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
@@ -89,7 +89,7 @@ A Result's label for one Hypothesis it judges: supports, contradicts or inconclu
 _Avoid_: verdict for the rule or the script that led to the label
 
 **Verdict rule**:
-The author's rule, written in a body before the run, that says which outcome gives which verdict. It is prose, or a verdict check when the rule can be computed. hyp derives status from recorded verdicts only and reads neither, so only its author and the verifier can make sure prose has one reading; a verdict check's cases pin it down (ADR 0004). A script that applies the rule is an instrument.
+The author's rule, written in a body before the run, that says which outcome gives which verdict. It is prose, or a verdict check when the rule can be computed. hyp derives status from recorded verdicts only and reads neither, so only its author and a reader of the Result can make sure prose has one reading; a verdict check's cases pin it down (ADR 0004). A script that applies the rule is an instrument.
 _Avoid_: conclusion method
 
 **Check**:
@@ -116,24 +116,24 @@ A live Hypothesis or DesignQuestion whose basis may no longer hold: a `depends_o
 _Avoid_: outdated, questionable (that is about recipe hashes)
 
 **Candidate**:
-A live child Hypothesis of a DesignQuestion whose status is `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. Every candidate is a live rival (see Rival); a live rival with no Result yet, or only inconclusive ones, is not a candidate. In code: `replay.Question.Candidates`.
+A live child Hypothesis of a DesignQuestion whose status is `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when the ledger owes its select; two or more make the question a trade-off. Replay stores the candidates when a select applies, and a candidate that was not one then reopens the question (`new_candidate`); one that falls does not. Every candidate is a live rival (see Rival); a live rival with no Result yet, or only inconclusive ones, is not a candidate. In code: `replay.Question.Candidates`.
 _Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for a lone ready candidate), rival (a rival need not be supported)
 
 **Trade-off**:
-The state of a DesignQuestion with two or more candidates now. It is derived, never recorded, and it makes the owner required ([spec §7.4](replay-spec.md#74-designquestion-state)); `hyp status` marks it `(trade-off)` on the question's candidates line. A select of one of those candidates is the owner's choice, and `hyp show` prints it `(trade-off)`; the verifier treats a supported rival as left on purpose.
-A trade-off is between candidates, not about what a Goal line means, which is a Reading. It ends when Results leave one candidate, or when the owner chooses one and confirms it. The owner's turn to choose is the ledger item `choose`, owed only when the runner owes nothing on the question and no reading on it is open ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)).
+The state of a DesignQuestion with two or more candidates now. It is derived, never recorded ([spec §7.4](replay-spec.md#74-designquestion-state)); `hyp status` marks it `(trade-off)` on the question's candidates line. A select of one of those candidates is the owner's choice, and `hyp show` prints it `(trade-off)`.
+A trade-off is between candidates, not about what a Goal line means, which is a Reading. It ends when Results leave one candidate, or when the owner chooses one, recorded as the select (ADR 0015); no confirm follows the choice. The owner's turn to choose is the ledger item `choose`, owed only when the runner owes nothing on the question and no reading on it is open ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)).
 _Avoid_: `--tradeoff` (removed: a flag cannot record a state hyp derives), tie
 
 **Select**:
-The `dq.select` event that records one Hypothesis as a DesignQuestion's answer. It is written by whoever runs the tree, never in the owner's role. A verifier confirm must then count on it, and an owner confirm too when the owner is required ([spec §7.4](replay-spec.md#74-designquestion-state)). On a trade-off the owner chooses first (see Owner). In code: the question's `replay.Decision`.
+The `dq.select` event that records one Hypothesis as a DesignQuestion's answer. It is written by whoever runs the tree, never in the owner's role. The select is the gate: `hyp select` admits it only when the ledger owes a `select` of that Hypothesis or the owner's `choose` on the question, and otherwise refuses, naming what is owed ([spec §5.1](replay-spec.md#51-write-time-refusals)). An admitted select answers the question unless it is a scope change, which an owner confirm must then count on ([spec §7.4](replay-spec.md#74-designquestion-state)). On a trade-off the owner chooses first (see Owner). In code: the question's `replay.Decision` and `replay.Projection.AdmitSelect`.
 _Avoid_: pick, choose (the owner chooses; the select records it), accept, decide (alone)
 
 **Confirm**:
-The `confirm` event in which the verifier or the owner judges a select `sufficient` or `insufficient` ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §7.4](replay-spec.md#74-designquestion-state)). An owner confirm may also accept limits.
+The `confirm` event in which the owner judges a scope-change select `sufficient` or `insufficient` ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §7.4](replay-spec.md#74-designquestion-state)). An owner confirm may also accept limits. A verifier confirm in an old log is history and applies nothing; `hyp confirm --role verifier` is refused.
 _Avoid_: approve, review; verdict (alone: a confirm's answer is a confirm verdict)
 
 **Decision**:
-A DesignQuestion's current Select and the Confirms that still count.
+A DesignQuestion's current Select, the candidates when it applied, and the owner Confirms that still count.
 _Avoid_: answer (`answered` is a status)
 
 **Dossier**:
@@ -141,29 +141,40 @@ The evidence a DesignQuestion's Decision rests on: the selected Hypothesis's bod
 _Avoid_: basis (a basis event belongs to the Stale rule), case (a Case belongs to a known answer)
 
 **Lapse**:
-What happens to a Confirm when the Dossier differs from the one it judged: it stops counting, and counts again if the Dossier returns to what it judged.
+What happens to an owner Confirm when the Dossier differs from the one it judged: it stops counting, and counts again if the Dossier returns to what it judged. A select does not lapse: after it, only a new candidate reopens the question.
 _Avoid_: drop, invalidate
 
 **Verifier**:
-The role that confirms every select, independently of the actor who made it: a verifier confirm by the select's own actor is refused ([spec §5](replay-spec.md#5-refusals) rule 9). In code: `event.RoleVerifier`.
-_Avoid_: reviewer, checker
+Retired by ADR 0015. It was the role that confirmed every select, independently of the actor who made it. Old verifier confirms replay as history and apply nothing, and `hyp confirm --role verifier` is refused. Any actor may still review: a defect is recorded as a Result, a retract or a limit. In code: `event.RoleVerifier`, read only from old logs.
+_Avoid_: reviewer, checker (as a role)
 
 **Owner**:
-The person hyp asks to act on a trade-off, and the confirm role they act in. They act twice, in order:
+The person hyp asks to act on real choices, and the confirm role they act in. On a trade-off they act once:
 
-1. **Choose.** Before the select, the owner chooses between the candidates. This is a procedure with no event: whoever runs the tree records the choice as the select, with the owner's words in `--why`, once `hyp status` lists `choose:` for the question. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, and no status reads `--why`. So a question can reach `answered` without this step.
-2. **Confirm.** After the verifier's sufficient confirm, the owner confirms the select. This is the only owner act replay reads, and a question that requires the owner cannot reach `answered` without it. It comes after the choice because it judges the evidence as the verifier left it, it lapses when the Dossier changes, and only it accepts limits. hyp does not authenticate actors, so an owner confirm records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure.
+1. **Choose.** The owner chooses between the candidates once `hyp status` lists `choose:` for the question. Whoever runs the tree records the choice as the select, with the owner's words in `--why`, and `hyp select` admits it only while the ledger owes the choice. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, and no status reads `--why`. The choice ends the trade-off (ADR 0015).
 
-An owner confirm is required when the question has two or more candidates now (a trade-off), or when the current select is a scope change ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: `event.RoleOwner`; the requirement is `ownerRequired` in `replay`.
+They also answer readings, accept referred limits with an owner checkpoint, and confirm a scope-change select: an owner confirm is required only when the current select is a scope change ([spec §7.4](replay-spec.md#74-designquestion-state)). That confirm lapses when the Dossier changes, and with an owner checkpoint it is what accepts limits. hyp does not authenticate actors, so an owner act records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure. In code: `event.RoleOwner`; the requirement is `SelectRec.ScopeChange` in `replay`.
 _Avoid_: user, stakeholder, approver, pick, decide (alone)
 
 **Limit**:
-A limit of the tested design that a Result found but did not test or fix, keyed `<result-id>#<n>`. It is open until a later Result closes it, or the owner accepts it with `--accept` on an owner checkpoint or on an owner confirm of the current select. A runner refers a limit no test within the Goal can close (`hyp checkpoint --refers`), which moves it from the runner's Owed items to Awaiting owner. An open limit on a candidate is owed until then, and an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). In code: `replay.Limit`.
+A limit of the tested design that a Result found but did not test or fix, keyed `<result-id>#<n>`. It is open until a later Result closes it, or the owner accepts it with `--accept` on an owner checkpoint or on an owner confirm of the current select. A runner refers a limit no test within the Goal can close (`hyp checkpoint --refers`), which moves it from the runner's Owed items to Awaiting owner, whichever Hypothesis its Result judged. An open limit on a candidate is owed until then, so it holds the select; an admitted select warns of open limits whose Results judged other Hypotheses; and an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). In code: `replay.Limit`.
 _Avoid_: caveat, TODO, known issue
 
 **Owed**:
-The ledger `hyp status` prints under OWED: each item of open work on an open question and who owes it, the runner or the verifier; the owner's items print under Awaiting owner ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)). It is derived, never stored, and owing an item changes no status. When the runner owes nothing, OWED ends with `runner owes nothing: stop and report to the owner`, the stop a run reads. In code: `replay.Projection.Owed`.
+The ledger `hyp status` prints under OWED: each item of open work on a question and who owes it, the runner; the owner's items print under Awaiting owner ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)). An answered question owes only its limit, reading, referred and premise items. It is derived, never stored, and owing an item changes no status; `hyp select` reads it to admit a select. When the runner owes nothing, OWED ends with `runner owes nothing: stop and report to the owner`, the stop a run reads. In code: `replay.Projection.Owed`.
 _Avoid_: todo list, backlog, next steps (those are prose; the ledger is derived)
+
+**undecided**:
+A ledger item the runner owes: a live Hypothesis that is `inconclusive`, neither supported nor contradicted, with no planned Experiment as parent or target. It holds the select of a lone candidate, because the rival may yet be one.
+_Avoid_: untested (that is a proposed Hypothesis with no Experiment)
+
+**premise**:
+A live `depends_on` target of a candidate, under another question. While that question is open or reopened, neither a select nor a choice is owed on the candidate's question (the premise hold). Once it selects a Hypothesis other than the target, the runner owes a `premise` item until the edge is re-pointed, the dependent superseded, or the target selected. `hyp check` warns of two questions whose premises hold each other ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)).
+_Avoid_: assumption (prose), sub-question (that is an obligation, not a premise)
+
+**new_candidate**:
+The reason a question with a current select reads open or reopened when a candidate now was not a candidate when the select applied, such as a rival whose deciding `contradicts` was retracted. The owner's choice is owed again, and a new select of a candidate answers it ([spec §7.4](replay-spec.md#74-designquestion-state)).
+_Avoid_: lapse (a select does not lapse)
 
 **Aim**:
 A limit or answered reading an Experiment is planned to settle, named with `hyp add exp --aims`. An aim is intent: it moves the item to `in_progress`, and to `aimed_not_settled` when every aiming Experiment has a Result and none closed or applied it. Only a Result's `--closes` or `--applies` settles the item, and settling it never answers a question.
@@ -182,7 +193,7 @@ An edge from a node to something outside the tree, such as `gh:976` or a URL ([s
 _Avoid_: link (alone), reference
 
 **Admission**:
-The write-time rules the CLI checks before it appends an Experiment, a Result or a Confirm. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult`, `replay.Projection.AdmitConfirm` and `replay.Finding`.
+The write-time rules the CLI checks before it appends an Experiment, a Result, a Select or a Confirm. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult`, `replay.Projection.AdmitSelect`, `replay.Projection.AdmitConfirm` and `replay.Finding`.
 _Avoid_: validation (that is `replay.Validate`, which replay also runs on every event)
 
 **Refusal**:
@@ -198,7 +209,7 @@ One Experiment as `hyp signals` judges it by its non-retracted Results: wasted, 
 _Avoid_: iteration, cycle, step
 
 **Signal**:
-A mark of possible waste that `hyp signals` reports from the events alone: wasted, no-movement, one-rival, D1, spin, verifier-loop or unjudged. Signals never change a status. In code: `signals.Signal`, computed by `signals.Compute`.
+A mark of possible waste that `hyp signals` reports from the events alone: wasted, no-movement, one-rival, D1, spin or unjudged. Signals never change a status. In code: `signals.Signal`, computed by `signals.Compute`.
 _Avoid_: alert, error
 
 **wasted**:
@@ -223,10 +234,10 @@ _Avoid_: dead rival, invalid target
 
 **spin**:
 Three Results in a row that judge a Hypothesis as their Experiment's parent and each leave its status unchanged. Rivals an Experiment only targets do not count.
-_Avoid_: loop (alone: the verifier-loop is a different signal)
+_Avoid_: loop (alone: the verifier-loop was a different signal)
 
 **verifier-loop**:
-A select that collected two or more insufficient verifier verdicts in one chain ([spec §7.4](replay-spec.md#74-designquestion-state)).
+Retired with the verifier role (ADR 0015). It was a select that collected two or more insufficient verifier verdicts in one chain.
 _Avoid_: spin (that is about a Hypothesis's status)
 
 **unjudged**:

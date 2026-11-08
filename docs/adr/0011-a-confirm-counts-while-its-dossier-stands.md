@@ -1,8 +1,10 @@
 ---
-status: accepted
+status: accepted; its verifier half superseded by ADR 0015
 ---
 
 # A Confirm counts while its Dossier stands
+
+> Superseded in part by [ADR 0015](0015-the-select-is-the-gate.md) (2026-11-08): the verifier role is retired, the select is the gate, and only a scope-change select needs an owner confirm. The Dossier, its lapse rule for the owner confirm, and the Decision record stand.
 
 A Confirm judges a body of evidence, but hyp never modelled that evidence. So hyp could not say what a verifier must read, or whether a Confirm still stood once the evidence changed. Two events showed it. In #24, a question stayed answered after a Result its verifier had judged was retracted. In #26, a wrong `contradicts` (R-KA7Y6Z) sat outside the walk the verifier's brief describes, because that walk follows tree parents while a Hypothesis's status follows verdict edges.
 

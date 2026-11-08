@@ -108,11 +108,7 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) {
 			var p event.HypothesisAmend
 			_ = event.DecodePayload(ev, &p)
-			n := st.Nodes[ev.Node]
-			n.Body = p.Body
-			if sel := st.Decisions[n.Parent]; sel != nil && sel.Current != "" && sel.Selects[sel.Current].Hyp == ev.Node {
-				sel.onAmend()
-			}
+			st.Nodes[ev.Node].Body = p.Body
 		},
 	},
 	event.TypeDQSelect: {
@@ -120,10 +116,10 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) {
 			var p event.DQSelect
 			_ = event.DecodePayload(ev, &p)
-			sel := st.Decisions[ev.Node]
-			continues := sel.Current != "" && (p.Hypothesis == sel.Selects[sel.Current].Hyp || st.supersedes(p.Hypothesis, sel.Selects[sel.Current].Hyp))
-			sel.onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor,
-				ScopeChange: p.ScopeChange, Why: ev.Why}, p.PrevSelect, continues)
+			// candidates reads stored facts only, so they are the candidates
+			// just before this select, as the Dossier lists them.
+			st.Decisions[ev.Node].onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor,
+				ScopeChange: p.ScopeChange, Why: ev.Why, Candidates: st.candidates(ev.Node)}, p.PrevSelect)
 		},
 		basis: onNode,
 	},
@@ -180,6 +176,10 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) {
 			var p event.Confirm
 			_ = event.DecodePayload(ev, &p)
+			if p.Role == event.RoleVerifier {
+				// Read-only history: the verifier role was retired (ADR 0015).
+				return
+			}
 			sel := st.Decisions[ev.Node]
 			sel.onConfirm(ev, p, st.dossierItems(ev.Node, sel.Selects[p.Select].Hyp))
 		},

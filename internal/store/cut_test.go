@@ -46,7 +46,7 @@ func writeCut(t *testing.T, src, at string) string {
 	return dest
 }
 
-// synthDir is the synthetic store generate.sh writes with the current hyp.
+// synthDir is the synthetic store generate.sh wrote.
 const synthDir = "../testutil/testdata/synth"
 
 // TestCutMatchesExpected cuts the synthetic store at chosen events and checks

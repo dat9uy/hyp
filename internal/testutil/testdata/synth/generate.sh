@@ -7,12 +7,18 @@
 # cut events), so a regenerated store means updating those tests. The ids are
 # fixed once the store is committed.
 #
+# The committed store is history: it was written by a hyp from before the
+# select became the gate (ADR 0015). A current hyp refuses its verifier
+# confirms (the role is retired) and the q-cache select (h-none and h-cdn are
+# undecided), so this script no longer runs to the end; replay reads every
+# event it wrote, and the verifier confirms apply nothing.
+#
 # Rounds, in order, and what the waste tripwire reports for them:
 #   e-one     targets none: one-rival
 #   e-redis   targets h-none and judges only its parent h-redis: unjudged
 #   e-split   moves h-none and h-cdn to inconclusive
 #   e-lru-2..4  move nothing: wasted each, no-movement for each pair, spin on h-lru
-#   q-cache   two insufficient verifier verdicts: verifier-loop. Two
+#   q-cache   two insufficient verifier verdicts, once verifier-loop. Two
 #             dq.request_verify events, which older binaries wrote and replay
 #             reads as history, keep that old shape in the log
 #   e-short   pins count-check@1 and cites its command record

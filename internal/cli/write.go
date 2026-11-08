@@ -646,15 +646,31 @@ func cmdSelect(args []string, stdout, stderr io.Writer) error {
 	if pos, err = w.begin(args, 2); err != nil {
 		return err
 	}
-	return w.run(func() (draft, error) {
+	var warns []string
+	err = w.run(func() (draft, error) {
 		dq, err := w.ref(pos[0])
 		if err != nil {
 			return draft{}, err
 		}
 		h, err := w.ref(pos[1])
-		return draft{event.TypeDQSelect, dq, event.DQSelect{Hypothesis: h,
-			PrevSelect: w.currentSelect(dq), ScopeChange: *scope}}, err
+		if err != nil {
+			return draft{}, err
+		}
+		d := draft{event.TypeDQSelect, dq, event.DQSelect{Hypothesis: h,
+			PrevSelect: w.currentSelect(dq), ScopeChange: *scope}}
+		// A select replay would refuse keeps replay's own refusal.
+		if n := w.p.Nodes[h]; w.p.Questions[dq] == nil || n.Kind != event.KindHypothesis || n.Parent != dq || !replay.LiveHypStatus(w.p.Hyps[h].Status) {
+			return d, nil
+		}
+		warns, err = admitted(w.p.AdmitSelect(dq, h))
+		return d, err
 	})
+	if err == nil {
+		for _, l := range warns {
+			fmt.Fprintln(stderr, l)
+		}
+	}
+	return err
 }
 
 // suggest prints the tool's suggestion for a DQ and writes nothing, so it
@@ -675,29 +691,20 @@ func suggest(w *writer, ref string) error {
 	if p.Nodes[dq].Kind != event.KindDesignQuestion {
 		return refusedErr("%s is not a DesignQuestion", ref)
 	}
-	q := p.Questions[dq]
+	// The suggestion reads the ledger, as admission does, so a suggested
+	// select is one hyp admits.
+	owed, choose := p.SelectOwed(dq)
 	var ids []string
-	for _, h := range q.Candidates {
+	for _, h := range owed {
 		ids = append(ids, display(p, h))
 	}
-	lone := ""
-	if len(q.Candidates) == 1 {
-		lone = q.Candidates[0]
-	}
-	ready := lone != "" && p.Hyps[lone].Status == replay.HypSupported && p.Hyps[lone].Stale == nil
 	switch {
-	case len(ids) > 1:
+	case choose:
 		fmt.Fprintf(w.stdout, "trade-off: owner decides between %s\n", strings.Join(ids, ", "))
-	case ready && p.HasOpenSubquestion(lone):
-		fmt.Fprintf(w.stdout, "suggested: none (%s)\n", replay.ReasonAwaitingSubquestions)
-	case ready:
+	case len(ids) == 1:
 		fmt.Fprintf(w.stdout, "suggested: %s\n", ids[0])
 	default:
-		reason := q.Reason
-		if reason == "" {
-			reason = string(q.State)
-		}
-		fmt.Fprintf(w.stdout, "suggested: none (%s)\n", reason)
+		fmt.Fprintf(w.stdout, "suggested: none (%s)\n", p.SelectBlock(dq))
 	}
 	return nil
 }
@@ -716,7 +723,7 @@ func cmdUnselect(args []string, stdout, stderr io.Writer) error {
 
 func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("confirm", stdout, stderr)
-	role := w.fs.String("role", "", "verifier or owner (required)")
+	role := w.fs.String("role", "", "owner (required); the verifier role was retired")
 	verdict := w.fs.String("verdict", "", "sufficient or insufficient (required)")
 	var accepts multi
 	w.fs.Var(&accepts, "accept", "R-id#n of an open limit the owner accepts (repeatable)")
@@ -726,6 +733,9 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 	}
 	if *role == "" || *verdict == "" {
 		return usageErr("confirm needs --role and --verdict")
+	}
+	if *role == event.RoleVerifier {
+		return refusedErr("the verifier role was retired; a review that finds a defect records a Result, a retract or a limit")
 	}
 	return w.run(func() (draft, error) {
 		dq, err := w.ref(pos[0])

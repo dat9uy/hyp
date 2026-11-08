@@ -389,21 +389,21 @@ func (r renderer) limitLine(l replay.Limit, hyp string) string {
 	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
 }
 
-// confirms prints the verifier confirm that counts, or else the latest one,
-// then, for each role whose latest confirm has lapsed, what changed since it.
+// confirms prints the owner confirm that counts, or else the latest one, and,
+// when the latest has lapsed, what changed since it. Only a scope-change
+// select needs one; a verifier confirm in an old log applies nothing.
 func (r renderer) confirms(w func(string, ...any), dec *replay.Decision) {
-	v := dec.Counting(event.RoleVerifier)
-	if v == nil {
-		v = dec.Latest(event.RoleVerifier)
+	o := dec.Counting(event.RoleOwner)
+	if o == nil {
+		o = dec.Latest(event.RoleOwner)
 	}
-	if v != nil {
-		w("verifier: %s — %s", v.Verdict, v.Why)
+	if o == nil {
+		return
 	}
-	for _, role := range []string{event.RoleVerifier, event.RoleOwner} {
-		if c := dec.Latest(role); c != nil {
-			if changed := r.changed(dec.ChangedSince(c)); changed != "" {
-				w("changed since %s: %s", c.Actor, changed)
-			}
+	w("owner: %s — %s", o.Verdict, o.Why)
+	if c := dec.Latest(event.RoleOwner); c != nil {
+		if changed := r.changed(dec.ChangedSince(c)); changed != "" {
+			w("changed since %s: %s", c.Actor, changed)
 		}
 	}
 }
@@ -434,8 +434,8 @@ func (r renderer) changed(added, removed []replay.DossierItem) string {
 // dossier lists question q's Dossier: each live Hypothesis with its status,
 // the Results with a verdict on it, and the links going out from both. It
 // marks a contradicts that alone keeps a rival from being a trade-off
-// candidate, so the verifier sees which verdict decides whether the owner must
-// sign.
+// candidate, so the reader sees which verdict decides whether the question is
+// a trade-off.
 func (r renderer) dossier(w func(string, ...any), q, selected string) {
 	d := r.p.Decisions[q].Dossier
 	if d == nil {
@@ -469,7 +469,7 @@ func (r renderer) dossier(w func(string, ...any), q, selected string) {
 			}
 			mark := ""
 			if slices.Contains(d.Deciding[h], res.Node) {
-				mark = " [decides the owner requirement: alone keeps this rival from being a candidate]"
+				mark = " [decides the trade-off: alone keeps this rival from being a candidate]"
 			}
 			w("    %s %s%s", r.id(res.Node), res.Word, mark)
 			links(res.Node)

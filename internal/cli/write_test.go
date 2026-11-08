@@ -153,7 +153,6 @@ func TestHappyPath(t *testing.T) {
 		"--observation", "H1 holds, H2 fails", "--why", "w"), 0, "R-")
 	want(t, hyp(t, "select", q), 0, "suggested: "+h1)
 	want(t, hyp(t, "select", q, h1, "--why", "pick the supported one"), 0, q+" dq.select")
-	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "checked", "--actor", "b"), 0, q+" confirm")
 	want(t, hyp(t, "checkpoint", "--summary", "Q answered by H1", "--why", "w"), 0, "checkpoint")
 
 	p, _, err := store.Load(dir)
@@ -170,14 +169,42 @@ func TestHappyPath(t *testing.T) {
 	}
 }
 
-func TestSameActorVerifierRefused(t *testing.T) {
-	_, _, q := setup(t)
+// The verifier role is retired: hyp confirm refuses it at write time,
+// whether or not a select is current, and appends nothing.
+func TestVerifierConfirmRefused(t *testing.T) {
+	dir, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
 	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
-	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w"), 1, "refused: no current selection")
+	retired := "refused: the verifier role was retired; a review that finds a defect records a Result, a retract or a limit"
+	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w"), 1, retired)
 	must(t, "select", q, h1, "--why", "w")
-	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w"), 1, "refused: separation of duties")
+	before := logLines(t, dir)
+	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v"), 1, retired)
+	if n := logLines(t, dir); n != before {
+		t.Fatalf("refused confirm appended: %d lines, was %d", n, before)
+	}
+}
+
+// hyp select is admitted only when the ledger owes it: refused while the
+// runner owes an item on the question, admitted once nothing is owed but the
+// select, and refused again once the question is answered.
+func TestSelectAdmittedOnlyWhenOwed(t *testing.T) {
+	dir, _, q := setup(t)
+	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
+	h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
+	before := logLines(t, dir)
+	want(t, hyp(t, "select", q, h1, "--why", "w"), 1, "refused: "+q+" owes the runner first: untested "+h2)
+	if n := logLines(t, dir); n != before {
+		t.Fatalf("refused select appended: %d lines, was %d", n, before)
+	}
+	want(t, hyp(t, "select", q), 0, "suggested: none ("+q+" owes the runner first: untested "+h2+")")
+	must(t, "abandon", h2, "--why", "w")
+	want(t, hyp(t, "select", q, h2, "--why", "w"), 1, "bad select")
+	want(t, hyp(t, "select", q, h1, "--why", "w"), 0, q+" dq.select")
+	want(t, hyp(t, "select", q, h1, "--why", "w"), 1, "refused: "+q+" is answered; hyp unselect it first")
 }
 
 // A single file recipes/<name>.md is not a recipe: a ref only it could answer
@@ -325,13 +352,13 @@ func TestLimitFlags(t *testing.T) {
 	r1 := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "raw SQL org gets no row", "--why", "w")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--closes", "nope", "--why", "w"), 2, "want <R-id>#<n>")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--closes", r1+"#2", "--why", "w"), 1, "bad limit ref")
+	refer(t, r1+"#1")
 	must(t, "select", q, h, "--scope-change", "--why", "w")
-	must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 	r := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 	want(t, r, 1, "open limits under")
 	want(t, r, 1, "raw SQL org gets no row")
 	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o")
-	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "v2"),
+	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "insufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o"),
 		1, "only a sufficient owner confirm accepts limits")
 }
 
@@ -609,10 +636,11 @@ func TestConfirmRefusalOrder(t *testing.T) {
 	_, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--limit", "one host", "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--limit", "one host", "--why", "w")
 	owner := []string{"confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w"}
 	bad := append(append([]string{}, owner...), "--accept", "nope")
 	want(t, hyp(t, bad...), 1, "refused: no current selection")
+	refer(t, r+"#1")
 	must(t, "select", q, h1, "--why", "w")
 	want(t, hyp(t, bad...), 2, "nope")
 	want(t, hyp(t, owner...), 1, "open limits under")
@@ -643,25 +671,22 @@ func TestSelectWithNoHypothesisReadsCandidates(t *testing.T) {
 		stalePremise(g, supported(q, "H"))
 		want(t, hyp(t, "select", q), 0, "suggested: none (")
 	})
-	t.Run("lone with an open sub-question", func(t *testing.T) {
-		_, _, q := setup(t)
-		h := supported(q, "H")
-		must(t, "add", "dq", "--parent", h, "--title", "Sub", "--why", "w")
-		want(t, hyp(t, "select", q), 0, "suggested: none (")
-	})
+	// The suggestion reads the ledger, as admission does.
 	t.Run("lone with an open sub-question names it, then is suggested once settled", func(t *testing.T) {
 		_, _, q := setup(t)
 		h := supported(q, "H")
 		sub := must(t, "add", "dq", "--parent", h, "--title", "Sub", "--why", "w")
-		want(t, hyp(t, "select", q), 0, "suggested: none (awaiting_subquestions)")
+		want(t, hyp(t, "select", q), 0, "suggested: none (awaiting_subquestions: "+h+" has a sub-question not answered)")
+		want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: awaiting_subquestions: "+h)
 		must(t, "withdraw", sub, "--why", "w")
 		want(t, hyp(t, "select", q), 0, "suggested: "+h)
 	})
-	t.Run("two with one stale", func(t *testing.T) {
+	t.Run("two with one stale on an open premise", func(t *testing.T) {
 		_, g, q := setup(t)
 		supported(q, "H1")
 		stalePremise(g, supported(q, "H2"))
-		want(t, hyp(t, "select", q), 0, "trade-off: owner decides between")
+		want(t, hyp(t, "select", q), 0, "suggested: none (")
+		want(t, hyp(t, "select", q), 0, ", in ")
 	})
 	t.Run("two with one waiting", func(t *testing.T) {
 		_, _, q := setup(t)

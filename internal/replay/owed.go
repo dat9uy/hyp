@@ -8,23 +8,22 @@ import (
 
 // Who owes an item of the ledger.
 const (
-	OwedRunner   = "runner"
-	OwedOwner    = "owner"
-	OwedVerifier = "verifier"
+	OwedRunner = "runner"
+	OwedOwner  = "owner"
 )
 
 // What an owed item is.
 const (
-	OwedRivals   = "rivals"   // an open question has no live rival and no open reading
-	OwedUntested = "untested" // a live Hypothesis has no Result and no Experiment that would give one
-	OwedPlanned  = "planned"  // a planned Experiment has no Result
-	OwedLimit    = "limit"    // an open limit on a candidate
-	OwedReading  = "reading"  // a closed reading no Result applies
-	OwedReferred = "referred" // a limit referred to the owner, not yet accepted
-	OwedSelect   = "select"   // a lone candidate with nothing else owed on its question
-	OwedConfirm  = "confirm"  // a select waits for the verifier
-	OwedRespond  = "respond"  // the verifier found a select insufficient
-	OwedChoose   = "choose"   // the owner chooses between two or more candidates
+	OwedRivals    = "rivals"    // an open question has no live rival and no open reading
+	OwedUntested  = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
+	OwedUndecided = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
+	OwedPlanned   = "planned"   // a planned Experiment has no Result
+	OwedLimit     = "limit"     // an open limit on a candidate
+	OwedReading   = "reading"   // a closed reading no Result applies
+	OwedReferred  = "referred"  // a limit referred to the owner, not yet accepted
+	OwedPremise   = "premise"   // a candidate assumes a Hypothesis its question did not select
+	OwedSelect    = "select"    // a lone candidate with nothing else owed on its question
+	OwedChoose    = "choose"    // the owner chooses between two or more candidates
 )
 
 // How far an aimable item (a limit or a reading) has got.
@@ -34,17 +33,21 @@ const (
 	AimUnsettled = "aimed_not_settled" // every aiming Experiment has a Result, and none settled it
 )
 
-// Owed is one item of the ledger: open work that someone owes on an open or
-// reopened question. Settling an item is always an explicit event; owing one
-// never changes a status.
+// Owed is one item of the ledger: open work that someone owes on a question.
+// Settling an item is always an explicit event; owing one never changes a
+// status.
 type Owed struct {
 	Who, Kind, Question string
 	Key                 string   // a node id, or a limit or reading key
 	State               string   // for a limit or reading: AimNone, AimPlanned or AimUnsettled
 	AimedBy             []string // live Experiments that aim at the key
+	To                  string   // for a premise: the depends_on target Key assumes
 }
 
-// Owed derives the ledger in question creation order. An open reading and an
+// Owed derives the ledger in question creation order. An open or reopened
+// question owes every kind of item; an answered one owes only the limit,
+// reading, referred and premise items, so evidence that lands after the
+// answer is owed and not only listed. An open reading and a scope-change
 // owner confirm are owed by the owner too; hyp status prints those under
 // AWAITING OWNER from their own records, so they are not repeated here.
 func (p Projection) Owed() []Owed {
@@ -80,73 +83,149 @@ func (p Projection) Owed() []Owed {
 			continue
 		}
 		q := p.Questions[dq]
-		if q == nil || (q.State != DQOpen && q.State != DQReopened) {
+		if q == nil {
+			continue
+		}
+		open := q.State == DQOpen || q.State == DQReopened
+		if !open && q.State != DQAnswered {
 			continue
 		}
 		var mine []Owed
 		add := func(o Owed) { o.Question = dq; mine = append(mine, o) }
 
-		var live []string
-		for _, h := range n.Children {
-			if hs := p.Hyps[h]; hs != nil && hs.Status != HypSuperseded && hs.Status != HypAbandoned {
-				live = append(live, h)
-			}
-		}
-		// With no live rival, new rivals are owed, unless an open reading on
-		// the question's Results waits for the owner, whose answer may revive one.
-		rivals := slices.ContainsFunc(live, func(h string) bool { return p.Hyps[h].Status != HypContradicted })
 		waiting := slices.ContainsFunc(p.Readings, func(l Reading) bool { return l.Question == dq && l.By == "" })
-		if !rivals && !waiting {
-			add(Owed{Who: OwedRunner, Kind: OwedRivals, Key: dq})
-		}
-		for _, h := range live {
-			if p.Hyps[h].Status == HypProposed && !p.hasLiveExp(h) {
-				add(Owed{Who: OwedRunner, Kind: OwedUntested, Key: h})
+		if open {
+			var live []string
+			for _, h := range n.Children {
+				if hs := p.Hyps[h]; hs != nil && hs.Status != HypSuperseded && hs.Status != HypAbandoned {
+					live = append(live, h)
+				}
 			}
-			for _, e := range p.Nodes[h].Children {
-				if p.Nodes[e].Kind == event.KindExperiment && p.Exps[e].Status == ExpPlanned {
-					add(Owed{Who: OwedRunner, Kind: OwedPlanned, Key: e})
+			// With no live rival, new rivals are owed, unless an open reading on
+			// the question's Results waits for the owner, whose answer may revive one.
+			rivals := slices.ContainsFunc(live, func(h string) bool { return p.Hyps[h].Status != HypContradicted })
+			if !rivals && !waiting {
+				add(Owed{Who: OwedRunner, Kind: OwedRivals, Key: dq})
+			}
+			for _, h := range live {
+				switch {
+				case p.Hyps[h].Status == HypProposed && !p.hasLiveExp(h):
+					add(Owed{Who: OwedRunner, Kind: OwedUntested, Key: h})
+				case p.Hyps[h].Status == HypInconclusive && !p.hasPlannedExp(h):
+					add(Owed{Who: OwedRunner, Kind: OwedUndecided, Key: h})
+				}
+				for _, e := range p.Nodes[h].Children {
+					if p.Nodes[e].Kind == event.KindExperiment && p.Exps[e].Status == ExpPlanned {
+						add(Owed{Who: OwedRunner, Kind: OwedPlanned, Key: e})
+					}
 				}
 			}
 		}
 		for _, l := range p.LimitsOf(dq) {
-			if l.State != LimitOpen || !overlaps(l.Hyps, q.Candidates) {
-				continue
-			}
-			if l.Referred != "" {
+			switch {
+			case l.State != LimitOpen:
+			case l.Referred != "":
 				add(Owed{Who: OwedOwner, Kind: OwedReferred, Key: l.Key})
-				continue
+			case overlaps(l.Hyps, q.Candidates):
+				add(aim(Owed{Who: OwedRunner, Kind: OwedLimit, Key: l.Key}))
 			}
-			add(aim(Owed{Who: OwedRunner, Kind: OwedLimit, Key: l.Key}))
 		}
 		for _, l := range p.Readings {
 			if l.Question == dq && l.By != "" && l.Applied == "" {
 				add(aim(Owed{Who: OwedRunner, Kind: OwedReading, Key: l.Key}))
 			}
 		}
-		// A select counts only while it names a candidate: once its Hypothesis
-		// is contradicted, the question needs a select or a choice again.
-		rec, selected := p.CurrentSelect(dq)
-		selected = selected && slices.Contains(q.Candidates, rec.Hyp)
-		if len(q.Candidates) == 1 && !selected && !slices.ContainsFunc(mine, func(o Owed) bool { return o.Who == OwedRunner }) {
-			add(Owed{Who: OwedRunner, Kind: OwedSelect, Key: q.Candidates[0]})
+		for _, pr := range p.premisesOf(dq) {
+			if rec, ok := p.CurrentSelect(p.Nodes[pr.To].Parent); ok && rec.Hyp != pr.To {
+				add(Owed{Who: OwedRunner, Kind: OwedPremise, Key: pr.From, To: pr.To})
+			}
 		}
-		// A trade-off is a state: two or more candidates. Choosing between them
-		// is the owner's turn only once the runner owes nothing on the question
-		// and no reading on it waits for the owner, since either may change
-		// the candidates.
-		if len(q.Candidates) >= 2 && !selected && !waiting && !slices.ContainsFunc(mine, func(o Owed) bool { return o.Who == OwedRunner }) {
-			add(Owed{Who: OwedOwner, Kind: OwedChoose, Key: dq})
-		}
-		switch q.Reason {
-		case ReasonAwaitingVerifier:
-			add(Owed{Who: OwedVerifier, Kind: OwedConfirm, Key: dq})
-		case ReasonVerifierInsufficient:
-			add(Owed{Who: OwedRunner, Kind: OwedRespond, Key: dq})
+		// A select or a choice is owed only once the runner owes nothing on
+		// the question, no premise's question is still open, and the current
+		// select does not stand. A lone candidate's select also waits for its
+		// sub-questions (ADR 0014). Choosing also waits for any reading on
+		// the question that waits for the owner, since either may change the
+		// candidates.
+		if open && p.PremiseHold(dq) == nil && !p.selectStands(dq) && !RunnerOwes(mine) {
+			switch {
+			case len(q.Candidates) == 1 && !p.HasOpenSubquestion(q.Candidates[0]):
+				add(Owed{Who: OwedRunner, Kind: OwedSelect, Key: q.Candidates[0]})
+			case len(q.Candidates) >= 2 && !waiting:
+				add(Owed{Who: OwedOwner, Kind: OwedChoose, Key: dq})
+			}
 		}
 		out = append(out, mine...)
 	}
 	return out
+}
+
+// selectStands reports whether question dq's current select still holds for
+// the ledger: no conflict, it names a candidate, and no candidate is new since
+// it applied. A candidate that fell since does not undo it.
+func (p Projection) selectStands(dq string) bool {
+	rec, ok := p.CurrentSelect(dq)
+	q := p.Questions[dq]
+	return ok && len(p.Decisions[dq].Conflicts) == 0 && slices.Contains(q.Candidates, rec.Hyp) && !newCandidate(rec, q.Candidates)
+}
+
+// Premise is a live depends_on edge from a candidate of a question to a
+// Hypothesis under another question.
+type Premise struct {
+	From, To string
+}
+
+// premisesOf lists the premises of question dq's candidates, in candidate
+// and edge order. An edge to a Hypothesis under dq itself is no premise:
+// the choice between them is dq's own.
+func (p Projection) premisesOf(dq string) []Premise {
+	var out []Premise
+	for _, c := range p.Questions[dq].Candidates {
+		for _, e := range p.Edges {
+			if !e.Live || e.Type != event.EdgeDependsOn || e.From != c {
+				continue
+			}
+			if t := p.Nodes[e.To]; t != nil && t.Kind == event.KindHypothesis && t.Parent != dq {
+				out = append(out, Premise{From: c, To: e.To})
+			}
+		}
+	}
+	return out
+}
+
+// PremiseCycles lists each pair of questions, in question creation order,
+// whose candidates assume each other's Hypotheses. Neither owes a select
+// while the other is open, so each holds the other until an edge goes.
+func (p Projection) PremiseCycles() [][2]string {
+	var qs []string
+	for _, ev := range p.Applied {
+		if n := p.Nodes[ev.ID]; ev.Type == event.TypeNodeAdd && n != nil && n.Kind == event.KindDesignQuestion {
+			qs = append(qs, ev.ID)
+		}
+	}
+	assumes := func(a, b string) bool {
+		return slices.ContainsFunc(p.premisesOf(a), func(pr Premise) bool { return p.Nodes[pr.To].Parent == b })
+	}
+	var out [][2]string
+	for i, a := range qs {
+		for _, b := range qs[i+1:] {
+			if assumes(a, b) && assumes(b, a) {
+				out = append(out, [2]string{a, b})
+			}
+		}
+	}
+	return out
+}
+
+// PremiseHold returns the first premise of question dq whose target's
+// question is open or reopened, or nil. While it stands, neither a select
+// nor a choice is owed on dq: the premise's question is decided first.
+func (p Projection) PremiseHold(dq string) *Premise {
+	for _, pr := range p.premisesOf(dq) {
+		if t := p.Questions[p.Nodes[pr.To].Parent]; t != nil && (t.State == DQOpen || t.State == DQReopened) {
+			return &pr
+		}
+	}
+	return nil
 }
 
 // RunnerOwes reports whether the ledger holds an item the runner owes.
@@ -160,6 +239,21 @@ func (p Projection) hasLiveExp(h string) bool {
 	for id, e := range p.Exps {
 		n := p.Nodes[id]
 		if closedExp(e) || n == nil {
+			continue
+		}
+		if n.Parent == h || slices.Contains(n.Targets, h) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasPlannedExp reports whether a planned Experiment has h as its parent or
+// a target.
+func (p Projection) hasPlannedExp(h string) bool {
+	for id, e := range p.Exps {
+		n := p.Nodes[id]
+		if closedExp(e) || n == nil || e.Status != ExpPlanned {
 			continue
 		}
 		if n.Parent == h || slices.Contains(n.Targets, h) {

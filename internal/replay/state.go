@@ -155,8 +155,8 @@ type Limit struct {
 	Referred          string   // the checkpoint that first referred it to the owner, or ""
 }
 
-// Gates reports whether the limit gates the owner confirm of a select of
-// hyp: it is open and its Result judged hyp.
+// Gates reports whether the limit gates the owner confirm of a scope-change
+// select of hyp: it is open and its Result judged hyp.
 func (l Limit) Gates(hyp string) bool {
 	return l.State == LimitOpen && slices.Contains(l.Hyps, hyp)
 }
@@ -229,16 +229,14 @@ type Edge struct {
 	Live               bool
 }
 
-// SelectRec is one applied dq.select.
+// SelectRec is one applied dq.select. Candidates is not typed: replay
+// stores the question's candidates when the select applies, as it stores
+// RivalsAtAdd, so a later candidate reopens the question (new_candidate).
 type SelectRec struct {
 	ID, Hyp, Actor string
 	ScopeChange    bool
 	Why            string
-}
-
-// Verdict is one insufficient verifier confirm: its event id and its actor.
-type Verdict struct {
-	ID, Actor string
+	Candidates     []string // the question's candidates just before the select applied
 }
 
 // Snap records each depends_on target's state right after a basis event.
@@ -355,8 +353,7 @@ const (
 	ReasonSelectedNotSupport   = "selected_not_supported"
 	ReasonSelectedStale        = "selected_stale"
 	ReasonAwaitingSubquestions = "awaiting_subquestions"
-	ReasonVerifierInsufficient = "verifier_insufficient"
-	ReasonAwaitingVerifier     = "awaiting_verifier"
+	ReasonNewCandidate         = "new_candidate"
 	ReasonAwaitingOwner        = "awaiting_owner"
 	ReasonNoCandidates         = "no_candidates"
 	ReasonUntested             = "untested"

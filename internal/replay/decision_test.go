@@ -1,14 +1,15 @@
 package replay
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
-// answered is a question whose selected h1 has two supporting Results and a
-// sufficient verifier confirm, with a second, untested rival.
+// answered is a question whose selected h1 has two supporting Results, with
+// a second, untested rival. The select alone answers it (ADR 0015).
 func answered() (b *testutil.B, q, h1, h2, sel, r2 string) {
 	b = testutil.New()
 	q = b.DQ(b.Goal("g"), "q")
@@ -16,157 +17,119 @@ func answered() (b *testutil.B, q, h1, h2, sel, r2 string) {
 	b.Supports(h1)
 	r2 = b.Supports(h1)
 	sel = b.As("a").Select(q, h1, "", false)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	b.As("a")
 	return b, q, h1, h2, sel, r2
 }
 
-// The event of #24: a Result the verifier judged is retracted.
-func TestRetractOfAJudgedResultReopens(t *testing.T) {
-	b, q, _, _, _, r2 := answered()
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-	b.Retract(r2)
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQReopened, ReasonAwaitingVerifier)
-}
-
-func TestRetractOfALaterResultRestoresTheConfirm(t *testing.T) {
-	b, q, h1, _, _, _ := answered()
-	r := b.Supports(h1)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-	b.Retract(r)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-func TestNewResultOnARivalLapsesTheConfirm(t *testing.T) {
-	b, q, _, h2, _, _ := answered()
-	b.Contradicts(h2)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-}
-
-func TestNewRivalLapsesAndAbandoningItRestores(t *testing.T) {
-	b, q, _, _, _, _ := answered()
-	h3 := b.Hyp(q, "h3")
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-	b.Abandon(h3)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-func TestAbandonedRivalLapsesTheConfirm(t *testing.T) {
-	b, q, _, h2, _, _ := answered()
-	b.Abandon(h2)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-}
-
-func TestExternalRefAndIncomingLinkKeepTheConfirm(t *testing.T) {
-	b, q, h1, _, _, _ := answered()
-	b.Edge(h1, event.EdgeExternalRef, "gh:1")
-	q2 := b.DQ(b.Evs[0].ID, "other")
-	b.Edge(b.Hyp(q2, "points in"), event.EdgeDependsOn, h1)
+func TestSelectAloneAnswers(t *testing.T) {
+	b, q, h1, _, sel, _ := answered()
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
+	if got := p.Decisions[q].Selects[sel].Candidates; !slices.Equal(got, []string{h1}) {
+		t.Fatalf("candidates at the select = %v, want [%s]", got, h1)
+	}
 }
 
-func TestOutgoingLinkLapsesAndRemovingItRestores(t *testing.T) {
-	b, q, h1, _, _, _ := answered()
+// A Dossier change that adds no candidate leaves the question answered: a
+// retract that keeps h1 supported, a new rival, a link, an amend.
+func TestDossierChangeWithoutANewCandidateKeepsTheAnswer(t *testing.T) {
+	b, q, h1, h2, _, r2 := answered()
+	b.Retract(r2)
+	b.Hyp(q, "h3")
+	b.Contradicts(h2)
 	q2 := b.DQ(b.Evs[0].ID, "other")
 	dep := b.Hyp(q2, "dep")
 	b.Supports(dep)
+	b.Answer(q2, dep, "")
 	b.Edge(h1, event.EdgeDependsOn, dep)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-	b.Unedge(h1, event.EdgeDependsOn, dep)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-func TestAmendLapsesAndAmendBackRestores(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
-	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", false)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	amend(b.As("a"), h, "new")
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-	amend(b, h, "old")
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-func TestAmendOfARivalKeepsTheConfirm(t *testing.T) {
-	b, q, _, h2, _, _ := answered()
-	amend(b, h2, "rival's body")
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-// The latest Confirm whose Dossier matches is the one that counts: D1
-// sufficient, D2 insufficient, then back at D1 the verdict is sufficient.
-func TestLatestMatchingConfirmCounts(t *testing.T) {
-	b, q, h1, _, sel, _ := answered()
-	r := b.Supports(h1)
-	b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonVerifierInsufficient)
-	b.As("a").Retract(r)
-	p := replayB(b)
-	wantStatus(t, p, q, DQAnswered, "")
-	if c := p.Decisions[q].Counting(event.RoleVerifier); c.Verdict != event.ConfirmSufficient || c.Actor != "v" {
-		t.Fatalf("counting = %+v, want v's sufficient", c)
-	}
-	if c := p.Decisions[q].Latest(event.RoleVerifier); c.Actor != "w" {
-		t.Fatalf("latest = %+v, want w's", c)
-	}
-}
-
-func TestNewVerifierConfirmOnTheSameDossierSupersedes(t *testing.T) {
-	b, q, _, _, sel, _ := answered()
-	b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonVerifierInsufficient)
-	b.As("x").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-// A reopened question closes by appending: a fresh verifier confirm when the
-// claim is unchanged.
-func TestFreshConfirmClosesAReopenedQuestion(t *testing.T) {
-	b, q, _, _, sel, r2 := answered()
-	b.Retract(r2)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-	b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-// ... and a new superseding Hypothesis when the claim changed.
-func TestSupersedingHypothesisClosesAReopenedQuestion(t *testing.T) {
-	b, q, h1, _, sel, r2 := answered()
-	b.Retract(r2)
-	h3 := b.Hyp(q, "h3")
-	b.Edge(h3, event.EdgeSupersedes, h1)
-	b.Supports(h3)
-	s2 := b.Select(q, h3, sel, false)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingVerifier)
-	b.As("w").Confirm(q, s2, event.RoleVerifier, event.ConfirmSufficient)
+	amend(b, h1, "new body")
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
 }
 
-// ownerAnswered is a trade-off select with a limit, confirmed by both roles,
-// the owner accepting the limit.
-func ownerAnswered() (b *testutil.B, q, h, sel string) {
+func TestNewCandidateReopensAndReselectAnswers(t *testing.T) {
+	b, q, h1, h2, sel, _ := answered()
+	b.Supports(h2)
+	wantStatus(t, replayB(b), q, DQReopened, ReasonNewCandidate)
+	b.Select(q, h1, sel, false)
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+}
+
+// Retracting the contradicts that kept a rival out makes it a candidate again.
+func TestRetractedDecidingContradictsIsANewCandidate(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	b.Supports(h1)
+	b.Supports(h2)
+	c := b.Contradicts(h2)
+	b.As("a").Select(q, h1, "", false)
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+	b.Retract(c)
+	wantStatus(t, replayB(b), q, DQReopened, ReasonNewCandidate)
+}
+
+// A candidate that falls after the select does not reopen: the chosen one
+// still stands.
+func TestFallenCandidateKeepsTheAnswer(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	b.Supports(h1)
+	b.Supports(h2)
+	b.As("a").Select(q, h1, "", false) // the owner's choice between two
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+	b.Contradicts(h2)
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+}
+
+// The new_candidate reason comes after awaiting_subquestions.
+func TestNewCandidateIsAfterAwaitingSubquestions(t *testing.T) {
+	b, q, h1, h2, _, _ := answered()
+	b.DQ(h1, "sub")
+	b.Supports(h2)
+	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingSubquestions)
+}
+
+// A trade-off is derived from the candidates, so an older select's stored
+// tradeoff flag changes nothing.
+func TestOldTradeoffFlagNeedsNoOwner(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h := b.Hyp(q, "h")
+	b.Supports(h)
+	b.As("a").Emit(event.TypeDQSelect, q, event.DQSelect{Hypothesis: h, Tradeoff: true})
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+}
+
+// scopeAnswered is a scope-change select with a limit, confirmed by the
+// owner, who accepts the limit.
+func scopeAnswered() (b *testutil.B, q, h, sel string) {
 	b = testutil.New()
 	q = b.DQ(b.Goal("g"), "q")
 	h = b.Hyp(q, "h")
 	r := limitResult(b, h, []string{"l1"}, nil)
 	sel = b.As("a").Select(q, h, "", true)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
 	b.As("o").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleOwner,
 		Verdict: event.ConfirmSufficient, Accepts: []string{event.LimitKey(r, 1)}})
 	b.As("a")
 	return b, q, h, sel
 }
 
+func TestScopeChangeAwaitsTheOwner(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h := b.Hyp(q, "h")
+	b.Supports(h)
+	sel := b.As("a").Select(q, h, "", true)
+	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingOwner)
+	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+}
+
 func TestOwnerConfirmAndLimitLapseAndRestore(t *testing.T) {
-	b, q, h, sel := ownerAnswered()
+	b, q, h, _ := scopeAnswered()
 	p := replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
 	wantLimit(t, p, q, 0, LimitAccepted, "o")
@@ -174,23 +137,33 @@ func TestOwnerConfirmAndLimitLapseAndRestore(t *testing.T) {
 	r := b.Supports(h)
 	p = replayB(b)
 	wantLimit(t, p, q, 0, LimitOpen, "")
-	wantStatus(t, p, q, DQReopened, ReasonAwaitingVerifier)
+	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
 	if !p.LimitsOf(q)[0].Gating {
 		t.Fatal("a lapsed acceptance leaves the limit not gating")
 	}
 
-	// A fresh verifier is not enough: the owner's sign-off lapsed too.
-	b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingOwner)
-
-	b.As("a").Retract(r)
+	b.Retract(r)
 	p = replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
 	wantLimit(t, p, q, 0, LimitAccepted, "o")
 }
 
+func TestAmendLapsesTheOwnerConfirmAndAmendBackRestores(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
+	b.Supports(h)
+	sel := b.As("a").Select(q, h, "", true)
+	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+	amend(b.As("a"), h, "new")
+	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingOwner)
+	amend(b, h, "old")
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+}
+
 func TestOwnerInsufficientAtTheSameDossierWithdrawsAcceptance(t *testing.T) {
-	b, q, h, sel := ownerAnswered()
+	b, q, h, sel := scopeAnswered()
 	r := b.Supports(h)
 	// An owner's no at another Dossier leaves the acceptance at the first one.
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
@@ -205,62 +178,27 @@ func TestOwnerInsufficientAtTheSameDossierWithdrawsAcceptance(t *testing.T) {
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
 }
 
-// Replaces the owner_required frozen at the select: two candidates now
-// require the owner, whatever held at the select.
-func TestOwnerRequiredFromCandidatesNow(t *testing.T) {
-	b, q, _, h2, sel, _ := answered()
-	b.Supports(h2)
-	b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingOwner)
-	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-func TestOwnerNotRequiredOnceCandidatesAreGone(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	b.Supports(h1)
-	b.Supports(h2)
-	sel := b.As("a").Select(q, h1, "", false) // two candidates here
-	b.Contradicts(h2)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-// A trade-off is derived from the candidates, so an older select's stored
-// tradeoff flag no longer requires the owner on a lone candidate.
-func TestOldTradeoffFlagNeedsNoOwner(t *testing.T) {
+// An old verifier confirm is read-only history: replay accepts it, whatever
+// its verdict and actor, and it applies nothing.
+func TestOldVerifierConfirmHasNoEffect(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Hyp(q, "h")
 	b.Supports(h)
-	sel := b.As("a").Emit(event.TypeDQSelect, q, event.DQSelect{Hypothesis: h, Tradeoff: true})
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-func TestOwnerRequiredByTheSelectsFlags(t *testing.T) {
-	for name, payload := range map[string]func(h string) event.DQSelect{
-		"scope change": func(h string) event.DQSelect { return event.DQSelect{Hypothesis: h, ScopeChange: true} },
-	} {
-		t.Run(name, func(t *testing.T) {
-			b := testutil.New()
-			q := b.DQ(b.Goal("g"), "q")
-			h := b.Hyp(q, "h")
-			b.Supports(h)
-			sel := b.As("a").Emit(event.TypeDQSelect, q, payload(h))
-			b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-			wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingOwner)
-			b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
-			wantStatus(t, replayB(b), q, DQAnswered, "")
-		})
+	sel := b.As("a").Select(q, h, "", false)
+	// The same actor as the select: separation of duties refused this once.
+	b.Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
+	b.As("v").Confirm(q, "not-a-select", event.RoleVerifier, event.ConfirmInsufficient)
+	p := replayB(b)
+	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQAnswered, "")
+	if cs := p.Decisions[q].Confirms; len(cs) != 0 {
+		t.Fatalf("confirms = %v, want none applied", cs)
 	}
 }
 
 // Replaces rule 16 and the re-verify flag: an old dq.request_verify is
-// read-only history. It applies whatever it holds, including what rule 16
-// refused, and changes no status, chain or limit.
+// read-only history. It applies whatever it holds and changes no status.
 func TestOldRequestVerifyHasNoEffect(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
@@ -269,28 +207,10 @@ func TestOldRequestVerifyHasNoEffect(t *testing.T) {
 	request := func(sel string) { b.Emit(event.TypeDQRequestVerify, q, event.DQRequestVerify{Select: sel}) }
 
 	sel := b.As("a").Select(q, h, "", false)
-	request(sel) // no verifier confirm yet: rule 16 refused this
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
-
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a")
 	request(sel)
-	request(sel) // a request already open: rule 16 refused this
 	request("not-a-select")
 	b.Emit(event.TypeDQRequestVerify, q, map[string]any{"unknown": true})
-	p = replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonVerifierInsufficient)
-	if s := p.Decisions[q]; len(s.Chain) != 1 {
-		t.Fatalf("chain = %v, want the one verdict", s.Chain)
-	}
-
-	b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	b.As("a")
-	request(sel) // latest confirm not insufficient: rule 16 refused this
-	p = replayB(b)
+	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
 }

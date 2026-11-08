@@ -13,7 +13,7 @@ import (
 )
 
 // synth reads the synthetic store's events (internal/testutil/testdata/synth,
-// written by its generate.sh with the current hyp), cut after the event with
+// written by its generate.sh), cut after the event with
 // id cut, or whole when cut is "".
 func synth(t *testing.T, cut string) []event.Event {
 	t.Helper()
@@ -54,7 +54,8 @@ func signalLines(r Report) string {
 
 // The golden files hold every signal generate.sh's comment names for the
 // synthetic store: one-rival, unjudged, wasted, no-movement and spin over the
-// whole log, and verifier-loop at the cut after the second insufficient verdict.
+// whole log, and the same at the cut after the second insufficient verifier
+// verdict, which fires nothing now that the verifier role is retired.
 func TestSynthMatchesGolden(t *testing.T) {
 	for _, c := range []struct{ name, cut string }{
 		{"full.golden", ""},
