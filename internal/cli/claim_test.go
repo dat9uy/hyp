@@ -90,3 +90,16 @@ func writeEvidence(t *testing.T, exp, name, body string) string {
 	writeFile(t, ptr, body)
 	return ptr
 }
+
+func TestRecordWarnsUncitedHexInALimit(t *testing.T) {
+	ha, hb, ex := claimStore(t)
+	ptr := writeEvidence(t, ex, "out.txt", "ran\n")
+	rec := hyp(t, "record", "--exp", ex, "--verdict", ha+"=supports", "--verdict", hb+"=contradicts",
+		"--observation", "o", "--limit", "one subject, built from b085464", "--reading", "Goal line A: does 1a2b3c4 mean one org?",
+		"--evidence", ptr, "--why", "w")
+	r := strings.Fields(rec.stdout)[0]
+	want(t, rec, 0, "warn: uncited "+r+": b085464 is in limit "+r+"#1 but in no cited file")
+	if strings.Contains(rec.stderr, "1a2b3c4") {
+		t.Fatalf("a reading was read: %q", rec.stderr)
+	}
+}
