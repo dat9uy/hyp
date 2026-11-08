@@ -77,11 +77,14 @@ never type one. Run `hyp help` for every command and flag.
 - Record every result, including inconclusive ones, with one verdict per
   targeted hypothesis:
   `hyp record --exp <E-id> --verdict <H-id>=supports --verdict <H2-id>=contradicts --observation "<what happened>" --evidence .tree/evidence/<E-id>/run.log --why "..."`.
-- When a Result shows a limit of the design that is not yet tested or
-  fixed, name it on the Result with `--limit "<the limit>"` (repeatable,
-  at most 300 characters), not only in the observation. It stays under the
-  question in `hyp show <Q-id>` and in `hyp status` (OPEN LIMITS) until a
-  later Result closes it with `--closes <R-id>#<n>` or the owner accepts it.
+- A limit is a case the Goal covers that no check ran. When a Result
+  leaves such a case, name it on the Result with `--limit "<the case>"`
+  (repeatable, at most 300 characters), not only in the observation. Close
+  it with an Experiment that aims at it (`--aims <R-id>#<n>`) and runs the
+  case on every candidate; its Result names `--closes <R-id>#<n>`, and its
+  verdicts separate the rivals. The scope of a run goes in the Experiment
+  body, a procedure note or a commit goes in the observation, and a premise
+  is a `depends_on` edge; none of these is a limit.
 - A weakness you observe against a hypothesis belongs in its verdict
   (`contradicts` or `inconclusive`), not only in the observation text; status
   is derived from verdicts and never reads prose.
@@ -123,9 +126,10 @@ that no longer matters is `hyp withdraw <Q-id>`.
   question first.
 - A gap you know at select time is a `--limit` on a Result, never only words
   in `--why`.
-- `hyp select` warns when open limits under the question judged other
-  Hypotheses. Read each one. If it applies to the selected Hypothesis and no
-  test within the Goal's lines can close it, refer it:
+- An open limit under the question holds the select, whichever Hypothesis
+  its Result judged, and `hyp select` names it. Run its case on the
+  candidates. If no test within the Goal's lines can close it, or its case
+  is void for every candidate, refer it:
   `hyp checkpoint --refers <R-id>#<n> --summary "<why no test can close it>"`.
   The owner then accepts it.
 - The select answers the question while it stands: the selected Hypothesis is
