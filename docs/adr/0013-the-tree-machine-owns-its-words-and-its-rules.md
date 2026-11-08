@@ -28,3 +28,7 @@ The tree machine (`internal/replay`, `State.Step`) existed, but its status words
 
 - **Typed constants on one field.** One field cannot hold two word types without an interface or casts at every read, and the kinds would still share a record that a Result has no use for.
 - **A status interface.** It gives nothing `Display` does not. A method per kind on a shared interface moves the kind check into a type switch at each reader, where it can be forgotten.
+
+## Amended 2026-11-08: a payload field is a word too
+
+PR #76 let one checkpoint field, `closes`, name a reading key, which closed the reading, or a limit key, which accepted the limit. Replay stayed total, but one word meant two transitions, and every reader repeated the kind check that this decision rejected for statuses. So a payload field that names keyed items names one kind of item and one transition: a Result's `closes` closes limits, a checkpoint's `closes` closes readings and its `accepts` accepts limits, as a confirm's `accepts` does, and a reading's `of` names the answered reading it reads. A generic `answers` field whose effect depends on the key was rejected for the same reason, and a stored flag that copies a derived state goes: the select's `tradeoff` is ignored, because a trade-off is two or more candidates, and the owner's turn to choose is the ledger item `choose` (replay spec §4, §8.1).

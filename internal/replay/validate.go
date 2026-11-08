@@ -247,8 +247,19 @@ func (f *Facts) validateResult(ev event.Event) error {
 		return fmt.Errorf("over limit: readings has %d items (max %d)", len(p.Readings), event.MaxLimits)
 	}
 	for _, l := range p.Readings {
-		if err := textLimit("reading", l, 1, event.MaxReadingItem); err != nil {
+		if err := textLimit("reading", l.Text, 1, event.MaxReadingItem); err != nil {
 			return err
+		}
+		if l.Of == "" {
+			continue
+		}
+		// A reading of an answer reads one the owner gave: it narrows that
+		// answer and never reopens it, so the chain points back in merge order.
+		if err := f.checkReadingRef(l.Of); err != nil {
+			return fmt.Errorf("bad reading of: %w", err)
+		}
+		if !f.ClosedReadings[l.Of] {
+			return fmt.Errorf("bad reading of: %s is open; the owner has not answered it", l.Of)
 		}
 	}
 	q := f.Nodes[exp.Parent].Parent
@@ -335,18 +346,33 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		return fmt.Errorf("bad checkpoint: role %q (want owner or none)", p.Role)
 	}
 	if len(p.Closes) > 0 && p.Role != event.RoleOwner {
-		return errors.New("bad checkpoint: only an owner closes a reading or accepts a limit")
+		return errors.New("bad checkpoint: only an owner closes a reading")
 	}
+	if len(p.Accepts) > 0 && p.Role != event.RoleOwner {
+		return errors.New("bad checkpoint: only an owner accepts a limit")
+	}
+	// Each field names one kind of item and one transition: closes closes
+	// readings, accepts accepts limits.
 	for _, k := range p.Closes {
-		if _, _, ok := event.ParseReadingKey(k); ok {
-			if err := f.checkReadingRef(k); err != nil {
-				return err
-			}
-		} else if err := f.checkLimitRef(k, ""); err != nil {
-			return fmt.Errorf("bad closes: %q is neither a reading (<result>#r<n>) nor a limit: %w", k, err)
+		if _, _, ok := event.ParseLimitKey(k); ok {
+			return fmt.Errorf("bad closes: %s is a limit; an owner accepts a limit with accepts", k)
+		}
+		if err := f.checkReadingRef(k); err != nil {
+			return err
 		}
 		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
-			return fmt.Errorf("separation of duties: %s recorded the item it closes", ev.Actor)
+			return fmt.Errorf("separation of duties: %s recorded the reading it closes", ev.Actor)
+		}
+	}
+	if len(p.Accepts) > event.MaxLimits {
+		return fmt.Errorf("over limit: accepts has %d items (max %d)", len(p.Accepts), event.MaxLimits)
+	}
+	for _, k := range p.Accepts {
+		if err := f.checkLimitRef(k, ""); err != nil {
+			return fmt.Errorf("bad accepts: %w", err)
+		}
+		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
+			return fmt.Errorf("separation of duties: %s recorded the limit it accepts", ev.Actor)
 		}
 	}
 	if len(p.Refers) > event.MaxLimits {

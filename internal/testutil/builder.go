@@ -64,8 +64,8 @@ func (b *B) Result(exp string, verdicts map[string]string) string {
 func (b *B) Retract(r string) string { return b.Emit(event.TypeResultRetract, r, event.Empty{}) }
 func (b *B) Abandon(h string) string { return b.Emit(event.TypeHypothesisAbandon, h, event.Empty{}) }
 
-func (b *B) Select(dq, h, prev string, tradeoff bool) string {
-	return b.Emit(event.TypeDQSelect, dq, event.DQSelect{Hypothesis: h, PrevSelect: prev, Tradeoff: tradeoff})
+func (b *B) Select(dq, h, prev string, scopeChange bool) string {
+	return b.Emit(event.TypeDQSelect, dq, event.DQSelect{Hypothesis: h, PrevSelect: prev, ScopeChange: scopeChange})
 }
 
 func (b *B) Unselect(dq, prev string) string {

@@ -110,7 +110,7 @@ func TestOwedReadingAppliedByAimedResult(t *testing.T) {
 // leaves the runner's ledger, waits under AWAITING OWNER, and only the owner
 // accepts it.
 func TestOwedReferredLimitWaitsForOwner(t *testing.T) {
-	_, _, q := setup(t)
+	_, g, q := setup(t)
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
 	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "needs prod data", "--why", "w")
@@ -121,9 +121,39 @@ func TestOwedReferredLimitWaitsForOwner(t *testing.T) {
 	want(t, hyp(t, "status"), 0, "\n  "+q+" limit referred, accept or refuse "+key+" — needs prod data\n")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" select "+h+", the only candidate\n")
 
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", key, "--why", "w"), 1, "separation of duties")
-	must(t, "checkpoint", "--summary", "accept", "--role", "owner", "--closes", key, "--actor", "owner-dat", "--why", "w")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", key, "--actor", "owner-dat", "--why", "w"), 2, "an owner accepts a limit with --accept")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--accept", key, "--why", "w"), 2, "--accept needs --role owner")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--accept", key, "--why", "w"), 1, "separation of duties")
+	must(t, "checkpoint", "--summary", "accept", "--role", "owner", "--accept", key, "--actor", "owner-dat", "--why", "w")
+	want(t, hyp(t, "show", g), 0, "    accepts: "+key+"\n")
 	want(t, hyp(t, "show", q), 0, key+" accepted by owner-dat")
 	notIn(t, "limit referred")
+	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+}
+
+// A reading of an answer names the reading the owner answered. It narrows
+// that answer and never reopens it, so it may read only an answered reading.
+func TestReadingOfAnAnswer(t *testing.T) {
+	_, g, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--reading", "shared logic fails when?", "--why", "w")
+	first := r + "#r1"
+
+	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	rec := func(of string) result {
+		return hyp(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "o", "--reading-of", of+"=does logic include helpers?", "--why", "w")
+	}
+	want(t, rec(first), 1, "is open; the owner has not answered it")
+	want(t, rec(r+"#1"), 2, "want <R-id>#r<n>")
+	want(t, hyp(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "o", "--reading-of", first, "--why", "w"), 2, "want <R-id>#r<n>=TEXT")
+
+	must(t, "checkpoint", "--summary", "any sharing fails", "--role", "owner", "--closes", first, "--actor", "owner-dat", "--why", "w")
+	r2 := must(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "o", "--reading", "a Goal line", "--reading-of", first+"=does logic include helpers?", "--why", "w")
+	second := r2 + "#r2"
+	want(t, hyp(t, "show", r2), 0, "reading "+r2+"#r1 open — a Goal line\n")
+	want(t, hyp(t, "show", r2), 0, "reading "+second+" of "+first+" open — does logic include helpers?\n")
+	want(t, hyp(t, "status"), 0, "  "+second+" of "+first+" reading: does logic include helpers?\n")
+	want(t, hyp(t, "show", g), 0, "reading "+first+" closed by owner checkpoint")
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }

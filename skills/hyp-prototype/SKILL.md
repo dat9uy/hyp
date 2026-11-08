@@ -119,11 +119,10 @@ that no longer matters is `hyp withdraw <Q-id>`.
 - The suggestion is mechanical: it is the only supported, non-stale candidate,
   not a recommendation. Select only a suggested candidate, and only when the
   evidence would convince an independent verifier:
-  `hyp select <Q-id> <H-id> --why "..."`. Add `--tradeoff` when the choice
-  gives up something the owner cares about, and `--scope-change` when it
-  changes the Goal's scope; either one requires the owner's confirmation. The
+  `hyp select <Q-id> <H-id> --why "..."`. Add `--scope-change` when it
+  changes the Goal's scope; that requires the owner's confirmation. The
   owner is also required automatically while two or more candidates are
-  supported.
+  supported: that is a trade-off, and no flag records it.
 - To change a selection, select the other candidate; the new select replaces
   the old one.
 
@@ -153,10 +152,11 @@ that no longer matters is `hyp withdraw <Q-id>`.
   judged the old text. Start a new verifier as above.
 - AWAITING OWNER lists two kinds of line that stop the work. Stop and ask the owner for either.
   Show them `hyp show <Q-id>` and the rivals' `hyp show` output.
-  - `Q-… trade-off: H-…, H-…` means two or more candidates are supported
-    and the owner must choose; it appears before any trade-off select.
-    Record the owner's choice as
-    `hyp select <Q-id> <H-id> --tradeoff --why "<the owner's words>"`.
+  - `Q-… choose: H-…, H-…` means two or more candidates are supported
+    and the owner must choose. It appears only when OWED lists nothing for
+    the runner on that question and no reading on it is open, because either
+    may change the candidates. Record the owner's choice as
+    `hyp select <Q-id> <H-id> --why "<the owner's words>"`.
     The line then leaves AWAITING OWNER and FRONTIER shows
     `trade-off decided: H-… over H-…` under the question. Start the
     verifier; it judges a trade-off select without requiring the rivals

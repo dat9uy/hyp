@@ -140,8 +140,9 @@ type ResultRecord struct {
 	EvidenceHashes map[string]string `json:"evidence_hashes,omitempty"`
 	Limits         []string          `json:"limits,omitempty"`
 	Closes         []string          `json:"closes,omitempty"`
-	// Readings states how the run read a line of the Goal that a verdict rests on.
-	Readings []string `json:"readings,omitempty"`
+	// Readings states how the run read owner words a verdict rests on: a line
+	// of the Goal, or an answer the owner gave to an earlier reading (Of).
+	Readings []ReadingItem `json:"readings,omitempty"`
 	// Applies lists the closed readings whose owner answers this Result's
 	// verdicts apply. Each must be one its Experiment aims at.
 	Applies []string `json:"applies,omitempty"`
@@ -193,10 +194,12 @@ type Empty struct{}
 
 // DQSelect is the payload of dq.select.
 type DQSelect struct {
-	Hypothesis  string `json:"hypothesis"`
-	PrevSelect  string `json:"prev_select"`
-	Tradeoff    bool   `json:"tradeoff"`
-	ScopeChange bool   `json:"scope_change"`
+	Hypothesis string `json:"hypothesis"`
+	PrevSelect string `json:"prev_select"`
+	// Tradeoff is kept so that older events decode; nothing reads it. A
+	// trade-off is derived from the question's candidates.
+	Tradeoff    bool `json:"tradeoff,omitempty"`
+	ScopeChange bool `json:"scope_change"`
 }
 
 // DQUnselect is the payload of dq.unselect.
@@ -221,11 +224,13 @@ type Confirm struct {
 // Checkpoint is the payload of checkpoint.
 type Checkpoint struct {
 	Summary string `json:"summary"`
-	// Role is RoleOwner on a checkpoint that closes readings, and empty otherwise.
+	// Role is RoleOwner on a checkpoint that closes readings or accepts
+	// limits, and empty otherwise.
 	Role string `json:"role,omitempty"`
-	// Closes lists the reading keys the owner's summary answers, and the limit
-	// keys the owner accepts.
+	// Closes lists the reading keys the owner's summary answers.
 	Closes []string `json:"closes,omitempty"`
+	// Accepts lists the limit keys the owner accepts untested.
+	Accepts []string `json:"accepts,omitempty"`
 	// Refers lists the limit keys the writer hands to the owner, because no
 	// test within the Goal's lines can settle them; Summary says why.
 	Refers []string `json:"refers,omitempty"`
@@ -356,4 +361,37 @@ func set(items ...string) map[string]bool {
 		m[it] = true
 	}
 	return m
+}
+
+// ReadingItem is one reading of a Result. Of names the reading whose owner
+// answer this reading reads, or is empty when it reads a line of the Goal.
+// A reading with no Of is stored as a bare string, so older events decode
+// and encode unchanged.
+type ReadingItem struct {
+	Of   string `json:"of,omitempty"`
+	Text string `json:"text"`
+}
+
+type readingItem ReadingItem
+
+func (r ReadingItem) MarshalJSON() ([]byte, error) {
+	if r.Of == "" {
+		return json.Marshal(r.Text)
+	}
+	return json.Marshal(readingItem(r))
+}
+
+func (r *ReadingItem) UnmarshalJSON(b []byte) error {
+	if t := bytes.TrimSpace(b); len(t) > 0 && t[0] == '"' {
+		*r = ReadingItem{}
+		return json.Unmarshal(t, &r.Text)
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
+	d.DisallowUnknownFields()
+	var p readingItem
+	if err := d.Decode(&p); err != nil {
+		return err
+	}
+	*r = ReadingItem(p)
+	return nil
 }

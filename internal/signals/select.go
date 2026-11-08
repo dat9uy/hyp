@@ -14,7 +14,6 @@ type verdict struct{ id, actor string }
 // verifier verdicts.
 type selState struct {
 	q, sel, hyp string
-	tradeoff    bool
 	chain       []verdict
 }
 
@@ -26,7 +25,7 @@ func viewOf(q string, sel *replay.Decision) *selState {
 		return nil
 	}
 	rec := sel.Selects[sel.Current]
-	s := &selState{q: q, sel: sel.Current, hyp: rec.Hyp, tradeoff: rec.Tradeoff}
+	s := &selState{q: q, sel: sel.Current, hyp: rec.Hyp}
 	for _, v := range sel.Chain {
 		s.chain = append(s.chain, verdict{v.ID, v.Actor})
 	}
@@ -34,12 +33,8 @@ func viewOf(q string, sel *replay.Decision) *selState {
 }
 
 // describe names the select and its verdicts, for example
-// "Q-KW0PWZ selected H-BDTKAB (trade-off, select 8VPZAQ): verifier insufficient x2 (verifier-s3-1, verifier-s4-1)".
+// "Q-KW0PWZ selected H-BDTKAB (select 8VPZAQ): verifier insufficient x2 (verifier-s3-1, verifier-s4-1)".
 func (s *selState) describe(display func(string) string) string {
-	kind := ""
-	if s.tradeoff {
-		kind = "trade-off, "
-	}
 	verdicts := "no insufficient verdict"
 	if len(s.chain) > 0 {
 		var actors []string
@@ -48,5 +43,5 @@ func (s *selState) describe(display func(string) string) string {
 		}
 		verdicts = fmt.Sprintf("verifier insufficient x%d (%s)", len(s.chain), strings.Join(actors, ", "))
 	}
-	return fmt.Sprintf("%s selected %s (%sselect %s): %s", display(s.q), display(s.hyp), kind, s.sel[len(s.sel)-6:], verdicts)
+	return fmt.Sprintf("%s selected %s (select %s): %s", display(s.q), display(s.hyp), s.sel[len(s.sel)-6:], verdicts)
 }

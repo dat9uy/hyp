@@ -313,10 +313,8 @@ func TestShowPrintsSelectKindAndWhy(t *testing.T) {
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
 	h1 := b.Hyp(q, "h1")
-	h2 := b.Hyp(q, "h2")
-	b.Supports(h1)
-	b.Supports(h2)
 	hid := event.DisplayID(event.KindHypothesis, h1)
+	b.Supports(h1)
 
 	plain := b.Select(q, h1, "", false)
 	p := replay.Replay(b.Evs, nil, "")
@@ -324,14 +322,16 @@ func TestShowPrintsSelectKindAndWhy(t *testing.T) {
 		t.Fatalf("plain select line wrong:\n%s", show)
 	}
 
-	trade := b.Select(q, h1, plain, true)
+	// A second candidate makes the select a trade-off; no flag says so.
+	b.Supports(b.Hyp(q, "h2"))
+	trade := b.Select(q, h1, plain, false)
 	b.Evs[len(b.Evs)-1].Why = "owner picked h1: DB-enforced revisions"
 	p = replay.Replay(b.Evs, nil, "")
 	if show := Show(p, q, []string{g}); !strings.Contains(show, "selected: "+hid+" (trade-off) — owner picked h1: DB-enforced revisions\n") {
 		t.Fatalf("trade-off select line wrong:\n%s", show)
 	}
 
-	b.Emit(event.TypeDQSelect, q, event.DQSelect{Hypothesis: h1, PrevSelect: trade, Tradeoff: true, ScopeChange: true})
+	b.Select(q, h1, trade, true)
 	p = replay.Replay(b.Evs, nil, "")
 	if len(p.Rejections) != 0 {
 		t.Fatalf("rejections: %v", p.Rejections)
@@ -354,14 +354,14 @@ func TestStatusDecidedTradeoffLeavesAwaitingOwner(t *testing.T) {
 	h2id := event.DisplayID(event.KindHypothesis, h2)
 
 	before := Status(replay.Replay(b.Evs, nil, ""), 0)
-	if !strings.Contains(before, "  "+qid+" trade-off: "+h1id+", "+h2id+" (no Result separates them)\n") {
+	if !strings.Contains(before, "  "+qid+" choose: "+h1id+", "+h2id+" (no Result separates them)\n") {
 		t.Fatalf("undecided trade-off missing from AWAITING OWNER:\n%s", before)
 	}
 
 	sel := b.As("a").Select(q, h1, "", true)
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	after := Status(replay.Replay(b.Evs, nil, ""), 0)
-	if strings.Contains(after, qid+" trade-off: ") {
+	if strings.Contains(after, qid+" choose: ") {
 		t.Fatalf("decided trade-off still under AWAITING OWNER:\n%s", after)
 	}
 	if !strings.Contains(after, "    trade-off decided: "+h1id+" over "+h2id+"\n") {
@@ -390,7 +390,7 @@ func TestStatusContradictedChoiceAwaitsOwnerAgain(t *testing.T) {
 	h3id := event.DisplayID(event.KindHypothesis, h3)
 
 	out := Status(replay.Replay(b.Evs, nil, ""), 0)
-	if !strings.Contains(out, "  "+qid+" trade-off: "+h2id+", "+h3id+" (no Result separates them)\n") {
+	if !strings.Contains(out, "  "+qid+" choose: "+h2id+", "+h3id+" (no Result separates them)\n") {
 		t.Fatalf("trade-off line missing from AWAITING OWNER after the pick was contradicted:\n%s", out)
 	}
 	if strings.Contains(out, "trade-off decided") {
@@ -898,10 +898,17 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		b                      *testutil.B
 		q, h1, h2, sub, s1, s2 string
 	}
-	limit := func(b *testutil.B, h, rival string) {
+	// limit makes h and rival candidates, and records an open limit on a third
+	// rival it contradicts, so the limit is listed but no runner owes it.
+	limit := func(b *testutil.B, q, h, rival string) {
 		e := b.Exp(h, "none", rival)
 		b.Emit(event.TypeResultRecord, "", event.ResultRecord{Parent: e,
 			Verdicts:    map[string]string{h: event.VerdictSupports, rival: event.VerdictSupports},
+			Observation: "o"})
+		third := b.Hyp(q, "third")
+		e3 := b.Exp(third, "none")
+		b.Emit(event.TypeResultRecord, "", event.ResultRecord{Parent: e3,
+			Verdicts:    map[string]string{third: event.VerdictContradicts},
 			Observation: "o", Limits: []string{"a limit"}})
 	}
 	// top: q has two supported rivals and an open limit.
@@ -909,7 +916,7 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		b := testutil.New()
 		q := b.DQ(b.Goal("g"), "q")
 		h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-		limit(b, h1, h2)
+		limit(b, q, h1, h2)
 		return tree{b: b, q: q, h1: h1, h2: h2}
 	}
 	// nested: the two supported rivals and the limit are under sub, on q's rival h2.
@@ -919,7 +926,7 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
 		sub := b.DQ(h2, "sub")
 		s1, s2 := b.Hyp(sub, "s1"), b.Hyp(sub, "s2")
-		limit(b, s1, s2)
+		limit(b, sub, s1, s2)
 		return tree{b: b, q: q, h1: h1, h2: h2, sub: sub, s1: s1, s2: s2}
 	}
 	confirmed := func(x tree, q, h string, tradeoff bool) {
@@ -931,12 +938,12 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		build func() tree
 		want  string // the AWAITING OWNER line kind, or "" for none
 	}{
-		{"open, no select", func() tree { return top() }, "trade-off"},
+		{"open, no select", func() tree { return top() }, "choose"},
 		{"open, plain select before the verifier", func() tree {
 			x := top()
 			x.b.As("a").Select(x.q, x.h1, "", false)
 			return x
-		}, "trade-off"},
+		}, ""},
 		{"open, plain select, verifier confirmed", func() tree {
 			x := top()
 			confirmed(x, x.q, x.h1, false)
@@ -981,7 +988,7 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 			x.b.Withdraw(x.q)
 			return x
 		}, ""},
-		{"sub in play", func() tree { return nested() }, "trade-off"},
+		{"sub in play", func() tree { return nested() }, "choose"},
 		{"sub, parent deferred", func() tree {
 			x := nested()
 			x.b.Defer(x.q)

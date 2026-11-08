@@ -50,14 +50,14 @@ The section of `hyp status` that shows the open work: the tree pruned to it, fro
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
-The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `trade-off: H…, H…` when they should choose between the candidates, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
+The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `choose: H…, H…` when they should choose between the candidates and the runner owes nothing on the question, or `awaiting_owner: H` when they should confirm the select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
 
 **Reading**:
-How a run read a line of the Goal that a verdict rests on, recorded on the Result with `hyp record --reading`. It stays open until an owner checkpoint closes it with their answer.
-A reading asks what the owner's words mean, and a trade-off asks which candidate to choose. Closing a reading changes no status, because statuses come only from verdicts. An answer that rules out a candidate takes effect when a later Result records `contradicts` on it. A closed reading is owed by the runner until a Result applies it (`hyp record --applies`, from an Experiment that aims at it), and a trade-off it would settle stays under Awaiting owner until then, marked `(answered readings not applied: N)`.
+How a run read owner words that a verdict rests on: a line of the Goal, recorded with `hyp record --reading`, or the owner's answer to an earlier reading, recorded with `hyp record --reading-of R-…#rN=TEXT`, which stores that reading's key as the new reading's `of`. A reading of an answer narrows it and never reopens it: the earlier reading stays closed and its answer stays in force. A reading stays open until an owner checkpoint closes it with their answer.
+A reading asks what the owner's words mean, and a trade-off asks which candidate to choose. Closing a reading changes no status, because statuses come only from verdicts. An answer that rules out a candidate takes effect when a later Result records `contradicts` on it. A closed reading is owed by the runner until a Result applies it (`hyp record --applies`, from an Experiment that aims at it), and the owner is not asked to choose on its question until then.
 
 **Re-judge**:
-The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer becomes a check in a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until a Result applies each answer, `hyp status` lists it under Owed and marks the trade-off with its answered readings.
+The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer becomes a check in a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until a Result applies each answer, `hyp status` lists it under Owed.
 _Avoid_: update the tree, recalculate (replay already derives every status; a re-judge adds Results), re-confirm (a confirm judges a select, not a Hypothesis)
 
 **Open limits**:
@@ -115,8 +115,9 @@ A live child Hypothesis of a DesignQuestion whose status is `supported`, whether
 _Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for a lone ready candidate), rival (a rival need not be supported)
 
 **Trade-off**:
-A DesignQuestion with two or more candidates now, or a select written with `--tradeoff`. Either one requires the owner ([spec §7.4](replay-spec.md#74-designquestion-state)). On a `--tradeoff` select, the verifier also treats a supported rival as left on purpose.
-A trade-off is between candidates, not about what a Goal line means, which is a Reading. It ends when Results leave one candidate, or when the owner chooses one, recorded as a `--tradeoff` select, and confirms it.
+The state of a DesignQuestion with two or more candidates now. It is derived, never recorded, and it makes the owner required ([spec §7.4](replay-spec.md#74-designquestion-state)); `hyp status` marks it `(trade-off)` on the question's candidates line. A select of one of those candidates is the owner's choice, and `hyp show` prints it `(trade-off)`; the verifier treats a supported rival as left on purpose.
+A trade-off is between candidates, not about what a Goal line means, which is a Reading. It ends when Results leave one candidate, or when the owner chooses one and confirms it. The owner's turn to choose is the ledger item `choose`, owed only when the runner owes nothing on the question and no reading on it is open ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)).
+_Avoid_: `--tradeoff` (removed: a flag cannot record a state hyp derives), tie
 
 **Select**:
 The `dq.select` event that records one Hypothesis as a DesignQuestion's answer. It is written by whoever runs the tree, never in the owner's role. A verifier confirm must then count on it, and an owner confirm too when the owner is required ([spec §7.4](replay-spec.md#74-designquestion-state)). On a trade-off the owner chooses first (see Owner). In code: the question's `replay.Decision`.
@@ -145,14 +146,14 @@ _Avoid_: reviewer, checker
 **Owner**:
 The person hyp asks to act on a trade-off, and the confirm role they act in. They act twice, in order:
 
-1. **Choose.** Before the select, the owner chooses between the candidates. This is a procedure with no event: whoever runs the tree records the choice as the select, with `--tradeoff` and the owner's words in `--why`. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, the flag can be set without asking the owner, and no status reads `--why`. So a question can reach `answered` without this step.
+1. **Choose.** Before the select, the owner chooses between the candidates. This is a procedure with no event: whoever runs the tree records the choice as the select, with the owner's words in `--why`, once `hyp status` lists `choose:` for the question. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, and no status reads `--why`. So a question can reach `answered` without this step.
 2. **Confirm.** After the verifier's sufficient confirm, the owner confirms the select. This is the only owner act replay reads, and a question that requires the owner cannot reach `answered` without it. It comes after the choice because it judges the evidence as the verifier left it, it lapses when the Dossier changes, and only it accepts limits. hyp does not authenticate actors, so an owner confirm records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure.
 
-An owner confirm is required when the current select is a trade-off or a scope change, or when the question has two or more candidates now ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: `event.RoleOwner`; the requirement is `ownerRequired` in `replay`.
+An owner confirm is required when the question has two or more candidates now (a trade-off), or when the current select is a scope change ([spec §7.4](replay-spec.md#74-designquestion-state)). In code: `event.RoleOwner`; the requirement is `ownerRequired` in `replay`.
 _Avoid_: user, stakeholder, approver, pick, decide (alone)
 
 **Limit**:
-A limit of the tested design that a Result found but did not test or fix, keyed `<result-id>#<n>`. It is open until a later Result closes it, or the owner accepts it with an owner checkpoint that closes its key or an owner confirm on the current select. A runner refers a limit no test within the Goal can close (`hyp checkpoint --refers`), which moves it from the runner's Owed items to Awaiting owner. An open limit on a candidate is owed until then, and an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). In code: `replay.Limit`.
+A limit of the tested design that a Result found but did not test or fix, keyed `<result-id>#<n>`. It is open until a later Result closes it, or the owner accepts it with `--accept` on an owner checkpoint or on an owner confirm of the current select. A runner refers a limit no test within the Goal can close (`hyp checkpoint --refers`), which moves it from the runner's Owed items to Awaiting owner. An open limit on a candidate is owed until then, and an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). In code: `replay.Limit`.
 _Avoid_: caveat, TODO, known issue
 
 **Owed**:

@@ -161,9 +161,9 @@ func (s *Decision) accepted(id string, now []DossierItem) map[string]string {
 }
 
 // ownerRequired derives whether select rec needs the owner: the question has
-// two or more candidates now, or the select says so.
+// two or more candidates now, a trade-off, or the select is a scope change.
 func ownerRequired(rec SelectRec, candidates []string) bool {
-	return len(candidates) >= 2 || rec.Tradeoff || rec.ScopeChange
+	return len(candidates) >= 2 || rec.ScopeChange
 }
 
 // reason is the first reason question id is not answered (spec §7.4), or ""
@@ -287,9 +287,9 @@ func (st *State) readings(applied []event.Event) []Reading {
 		if n.Kind != event.KindResult || st.Retracted[id] {
 			continue
 		}
-		for i, text := range n.Readings {
+		for i, item := range n.Readings {
 			k := event.ReadingKey(id, i+1)
-			l := Reading{Key: k, Result: id, Text: text, By: closedBy[k], Answer: answers[k], Question: st.resultQuestion(id), Applied: appliedBy[k]}
+			l := Reading{Key: k, Result: id, Text: item.Text, Of: item.Of, By: closedBy[k], Answer: answers[k], Question: st.resultQuestion(id), Applied: appliedBy[k]}
 			if l.Applied == "" && l.By != "" && !aimed[k] {
 				l.Applied = st.firstResultAfter(l.Question, pos, pos[l.By])
 			}
@@ -333,7 +333,7 @@ func (st *State) limits() map[string][]Limit {
 			}
 		}
 	}
-	// An owner checkpoint accepts the limits its closes names, and any
+	// An owner checkpoint accepts the limits its accepts names, and any
 	// checkpoint refers the limits its refers names to the owner.
 	ownerAccepted, referred := map[string]string{}, map[string]string{}
 	for _, ev := range st.Applied {
@@ -342,11 +342,9 @@ func (st *State) limits() map[string][]Limit {
 		}
 		var c event.Checkpoint
 		_ = event.DecodePayload(ev, &c)
-		for _, k := range c.Closes {
-			if _, _, ok := event.ParseLimitKey(k); ok {
-				if _, seen := ownerAccepted[k]; !seen {
-					ownerAccepted[k] = ev.Actor
-				}
+		for _, k := range c.Accepts {
+			if _, seen := ownerAccepted[k]; !seen {
+				ownerAccepted[k] = ev.Actor
 			}
 		}
 		for _, k := range c.Refers {

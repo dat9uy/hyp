@@ -122,7 +122,7 @@ var rules = map[string]rule{
 			_ = event.DecodePayload(ev, &p)
 			sel := st.Decisions[ev.Node]
 			continues := sel.Current != "" && (p.Hypothesis == sel.Selects[sel.Current].Hyp || st.supersedes(p.Hypothesis, sel.Selects[sel.Current].Hyp))
-			sel.onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor, Tradeoff: p.Tradeoff,
+			sel.onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor,
 				ScopeChange: p.ScopeChange, Why: ev.Why}, p.PrevSelect, continues)
 		},
 		basis: onNode,
@@ -225,9 +225,7 @@ var rules = map[string]rule{
 			var p event.Checkpoint
 			_ = event.DecodePayload(ev, &p)
 			for _, k := range p.Closes {
-				if _, _, ok := event.ParseReadingKey(k); ok {
-					st.ClosedReadings[k] = true
-				}
+				st.ClosedReadings[k] = true
 			}
 		},
 	},

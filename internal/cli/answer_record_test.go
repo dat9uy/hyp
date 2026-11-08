@@ -61,7 +61,7 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	want(t, hyp(t, "show", q), 0, r1+"#1 open")
 
 	// Owner gate: a sufficient owner confirm must accept the open limit.
-	must(t, "select", q, h, "--tradeoff", "--why", "w2")
+	must(t, "select", q, h, "--scope-change", "--why", "w2")
 	must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 1, "open limits under")
 	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o"), 0, "")
@@ -96,7 +96,7 @@ func TestRivalLimitDoesNotGateOwner(t *testing.T) {
 				args = append(args, "--verdict", h1+"=supports")
 			}
 			r := must(t, args...)
-			must(t, "select", q, h1, "--tradeoff", "--why", "w")
+			must(t, "select", q, h1, "--scope-change", "--why", "w")
 			must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 			owner := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 			if judgesSelected {
@@ -116,7 +116,7 @@ func TestInsufficientOwnerConfirmReopensLimit(t *testing.T) {
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
 	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "only tried one org", "--why", "w")
-	must(t, "select", q, h, "--tradeoff", "--why", "w")
+	must(t, "select", q, h, "--scope-change", "--why", "w")
 	must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r+"#1", "--why", "w", "--actor", "o")
 	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
@@ -185,28 +185,25 @@ func TestRetractedResultDropsItsReading(t *testing.T) {
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w"), 1, "is retracted")
 }
 
-func TestTradeoffMarksAnswersNotApplied(t *testing.T) {
+// An answered reading the runner has not applied is the runner's item, so the
+// owner is not asked to choose until a Result applies it.
+func TestChooseWaitsForAnswersToApply(t *testing.T) {
 	_, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--why", "w")
 	h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
 	r := must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--reading", "a reading", "--why", "w")
-	mark := "(answered readings not applied: 1)"
-	if out := hyp(t, "status"); strings.Contains(out.stdout, mark) {
-		t.Fatalf("open reading marked as answered:\n%s", out.stdout)
-	}
+	want(t, hyp(t, "status"), 0, "  candidates (2): "+h1+", "+h2+" (trade-off)\n")
+	notIn(t, " choose: ") // the open reading waits for the owner
 	must(t, "checkpoint", "--summary", "my words", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w")
-	want(t, hyp(t, "status"), 0, "trade-off: "+h1+", "+h2+" (no Result separates them) "+mark+"\n")
-
 	want(t, hyp(t, "status"), 0, "runner: "+q+" apply answer "+r+"#r1 [owed] — my words\n")
+	notIn(t, " choose: ")
 
 	// With no Experiment aiming at the reading, a Result under the question
 	// after the answer applies it, as before aims existed.
 	e2 := must(t, "add", "exp", "--parent", h1, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
 	must(t, "record", "--exp", e2, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
-	if out := hyp(t, "status"); strings.Contains(out.stdout, mark) {
-		t.Fatalf("mark stays after a later Result:\n%s", out.stdout)
-	}
+	want(t, hyp(t, "status"), 0, "  "+q+" choose: "+h1+", "+h2+" (no Result separates them)\n")
 }
 
 func TestStatusNamesTheCandidatesLeft(t *testing.T) {
@@ -218,25 +215,25 @@ func TestStatusNamesTheCandidatesLeft(t *testing.T) {
 	}
 	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
 	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
-	want(t, hyp(t, "status"), 0, "  candidates (2): "+h1+" (h-one), "+h2+" (h-two)\n")
+	want(t, hyp(t, "status"), 0, "  candidates (2): "+h1+" (h-one), "+h2+" (h-two) (trade-off)\n")
 	e2 := must(t, "add", "exp", "--parent", h2, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", h1, "--why", "w")
 	must(t, "record", "--exp", e2, "--verdict", h2+"=contradicts", "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
 	want(t, hyp(t, "status"), 0, "  candidates (1): "+h1+" (h-one)\n")
 }
 
-func TestTradeoffMarkedWhenNoResultSeparatesCandidates(t *testing.T) {
+func TestChooseMarkedWhenNoResultSeparatesCandidates(t *testing.T) {
 	_, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--why", "w")
 	h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
 	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
-	want(t, hyp(t, "status"), 0, "trade-off: "+h1+", "+h2+" (no Result separates them)")
+	want(t, hyp(t, "status"), 0, "choose: "+h1+", "+h2+" (no Result separates them)")
 
 	// One Result supporting h1 and not h2 separates them, though both stay supported.
 	e2 := must(t, "add", "exp", "--parent", h1, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
 	must(t, "record", "--exp", e2, "--verdict", h1+"=supports", "--verdict", h2+"=inconclusive", "--observation", "o", "--why", "w")
 	out := hyp(t, "status")
-	want(t, out, 0, "trade-off: "+h1+", "+h2+"\n")
+	want(t, out, 0, "choose: "+h1+", "+h2+"\n")
 }
 
 func TestHypothesisPageShowsWhatJudgedIt(t *testing.T) {
