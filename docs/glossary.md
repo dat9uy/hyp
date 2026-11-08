@@ -58,7 +58,7 @@ A reading asks what the owner's words mean, and a trade-off asks which candidate
 _Avoid_: reopen, re-answer, amend (for changing an answer)
 
 **Re-judge**:
-The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer becomes a check in a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until a Result applies each answer, `hyp status` lists it under Owed.
+The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer is written into a check of a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until a Result applies each answer, `hyp status` lists it under Owed.
 _Avoid_: update the tree, recalculate (replay already derives every status; a re-judge adds Results), re-confirm (a confirm judges a select, not a Hypothesis)
 
 **Open limits**:
@@ -91,6 +91,10 @@ _Avoid_: verdict for the rule or the script that led to the label
 **Verdict rule**:
 The author's rule, written in a body before the run, that says which outcome gives which verdict. It is prose, or a verdict check when the rule can be computed. hyp derives status from recorded verdicts only and reads neither, so only its author and the verifier can make sure prose has one reading; a verdict check's cases pin it down (ADR 0004). A script that applies the rule is an instrument.
 _Avoid_: conclusion method
+
+**Check**:
+An Evidence or Standalone command of a recipe. hyp runs it the same way in the gate and in a run (ADR 0003), its known-answer cases pin its exit code and its whole stdout, and `hyp recipe check` warns per command and per verdict label (ADR 0004). What a check tests inside, such as one line of its stdout like `A1 hold`, is the author's rule: hyp gives that line no identity, no case of its own and no pin of its own.
+_Avoid_: check for one such line ("adds two checks" when one command gained two lines); checker (see Instrument)
 
 **Verdict check**:
 A check (an Evidence or Standalone command) whose known answers print `verdict: LABEL=WORD` lines. Its cases are the verdict rule's specification, and `hyp recipe check` warns when a label lacks a supports or a contradicts case (ADR 0004).
