@@ -181,10 +181,12 @@ func (p Projection) CurrentSelect(dq string) (rec SelectRec, ok bool) {
 
 // Reading is one reading of a Goal line recorded in a Result, with its derived
 // state. By is the owner checkpoint that closed it, or "" while it is open, and
-// Answer is that checkpoint's summary, the owner's words.
+// Answer is that checkpoint's summary, the owner's words. Question is the
+// DesignQuestion the Result belongs to.
 type Reading struct {
 	Key, Result, Text string
 	By, Answer        string
+	Question          string
 }
 
 // LimitsOf lists the limits recorded under question dq, in creation order.

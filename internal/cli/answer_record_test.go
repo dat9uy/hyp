@@ -185,6 +185,27 @@ func TestRetractedResultDropsItsReading(t *testing.T) {
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w"), 1, "is retracted")
 }
 
+func TestTradeoffMarksAnswersWithNoResultSince(t *testing.T) {
+	_, _, q := setup(t)
+	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--why", "w")
+	h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--reading", "a reading", "--why", "w")
+	mark := "(answered readings with no Result since: 1)"
+	if out := hyp(t, "status"); strings.Contains(out.stdout, mark) {
+		t.Fatalf("open reading marked as answered:\n%s", out.stdout)
+	}
+	must(t, "checkpoint", "--summary", "my words", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w")
+	want(t, hyp(t, "status"), 0, "trade-off: "+h1+", "+h2+" (no Result separates them) "+mark+"\n")
+
+	// A Result under the question after the answer clears the mark.
+	e2 := must(t, "add", "exp", "--parent", h1, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
+	must(t, "record", "--exp", e2, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
+	if out := hyp(t, "status"); strings.Contains(out.stdout, mark) {
+		t.Fatalf("mark stays after a later Result:\n%s", out.stdout)
+	}
+}
+
 func TestTradeoffMarkedWhenNoResultSeparatesCandidates(t *testing.T) {
 	_, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--why", "w")

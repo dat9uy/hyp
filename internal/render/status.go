@@ -76,6 +76,9 @@ func Status(p replay.Projection, maxLines int) string {
 			if !resultSeparates(p, ns.Candidates) {
 				mark = " (no Result separates them)"
 			}
+			if n := answersSinceResult(p, dq); n > 0 {
+				mark += fmt.Sprintf(" (answered readings with no Result since: %d)", n)
+			}
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
 		if ns.Reason == replay.ReasonVerifierInsufficient {
@@ -437,6 +440,38 @@ func Minute(ts string) string {
 
 // resultSeparates reports whether a non-retracted Result supports one candidate
 // and gives another candidate a different verdict.
+// answersSinceResult counts the closed readings of question dq whose owner
+// checkpoint comes after the last Result recorded under dq. Closing a reading
+// changes no status, so until a Result follows, the owner's answer cannot
+// have changed the trade-off.
+func answersSinceResult(p replay.Projection, dq string) int {
+	pos, last := map[string]int{}, -1
+	for i, ev := range p.Applied {
+		pos[ev.ID] = i
+		if ev.Type == event.TypeResultRecord && p.Results[ev.ID].Status != replay.ResRetracted && resultUnder(p, ev.ID, dq) {
+			last = i
+		}
+	}
+	n := 0
+	for _, l := range p.Readings {
+		if l.Question == dq && l.By != "" && pos[l.By] > last {
+			n++
+		}
+	}
+	return n
+}
+
+// resultUnder reports whether dq is the nearest question above Result r, the
+// question its readings belong to.
+func resultUnder(p replay.Projection, r, dq string) bool {
+	for id := p.Nodes[r].Parent; id != ""; id = p.Nodes[id].Parent {
+		if p.Nodes[id].Kind == event.KindDesignQuestion {
+			return id == dq
+		}
+	}
+	return false
+}
+
 func resultSeparates(p replay.Projection, candidates []string) bool {
 	for _, ev := range p.Applied {
 		if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == replay.ResRetracted {

@@ -267,7 +267,7 @@ func (st *State) readings(applied []event.Event) []Reading {
 		}
 		for i, text := range n.Readings {
 			k := event.ReadingKey(id, i+1)
-			out = append(out, Reading{Key: k, Result: id, Text: text, By: closedBy[k], Answer: answers[k]})
+			out = append(out, Reading{Key: k, Result: id, Text: text, By: closedBy[k], Answer: answers[k], Question: st.resultQuestion(id)})
 		}
 	}
 	return out
