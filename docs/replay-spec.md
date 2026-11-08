@@ -44,8 +44,8 @@ One JSON object per line:
 
 | type | `node` | payload fields |
 |---|---|---|
-| `node.add` | the new id (= event id) | `kind` (Goal, DesignQuestion, Hypothesis, Experiment), `parent` (id; `""` only for Goal), `title`, `body` (optional), `alias` (optional), `recipe` (Experiment only, required: `"name@version"` or `"none"`), `recipe_hash` (hex sha256, required when recipe ≠ none), `targets` (Experiment only, optional list of Hypothesis ids), `decided_by` (Experiment only, optional: `"reading"`, the verdicts are decided by reading) |
-| `result.record` | the new Result id (= event id) | `parent` (Experiment id), `verdicts` (object: Hypothesis id → `supports` / `contradicts` / `inconclusive`; at least one entry), `observation`, `evidence` (list of at most 10 strings, each at most 300 runes), `evidence_hashes` (optional object: evidence pointer → hex sha256 of the recipe bundle it names; each key is an entry of `evidence` that cleans to `recipes/<name>@<version>/<file>`), `limits` (optional list of at most 10 strings, each 1–300 runes), `closes` (optional list of limit keys `<result-id>#<n>`) |
+| `node.add` | the new id (= event id) | `kind` (Goal, DesignQuestion, Hypothesis, Experiment), `parent` (id; `""` only for Goal), `title`, `body` (optional), `alias` (optional), `recipe` (Experiment only, required: `"name@version"` or `"none"`), `recipe_hash` (hex sha256, required when recipe ≠ none), `targets` (Experiment only, optional list of Hypothesis ids), `decided_by` (Experiment only, optional: `"reading"`, the verdicts are decided by reading), `aims` (Experiment only, optional list of at most 10 limit or reading keys the Experiment is planned to settle) |
+| `result.record` | the new Result id (= event id) | `parent` (Experiment id), `verdicts` (object: Hypothesis id → `supports` / `contradicts` / `inconclusive`; at least one entry), `observation`, `evidence` (list of at most 10 strings, each at most 300 runes), `evidence_hashes` (optional object: evidence pointer → hex sha256 of the recipe bundle it names; each key is an entry of `evidence` that cleans to `recipes/<name>@<version>/<file>`), `limits` (optional list of at most 10 strings, each 1–300 runes), `closes` (optional list of limit keys `<result-id>#<n>`), `applies` (optional list of reading keys `<result-id>#r<n>` whose owner answer this Result applies) |
 | `result.retract` | Result id | `{}` |
 | `hypothesis.abandon` | Hypothesis id | `{}` |
 | `hypothesis.amend` | Hypothesis id | `body` (the new body, required) |
@@ -56,7 +56,7 @@ One JSON object per line:
 | `dq.request_verify` | DesignQuestion id | read-only history: older binaries wrote `select`; replay accepts the event, whatever it holds, and does nothing with it |
 | `confirm` | DesignQuestion id | `select` (a `dq.select` event id on this DQ), `role` (`verifier` or `owner`), `verdict` (`sufficient` or `insufficient`), `accepts` (optional list of limit keys `<result-id>#<n>`) |
 | `reaffirm` | Hypothesis or DesignQuestion id | `{}` |
-| `checkpoint` | Goal id | `summary`, `role` (optional, `owner`), `closes` (optional list of reading keys `<result-id>#r<n>`) |
+| `checkpoint` | Goal id | `summary`, `role` (optional, `owner`), `closes` (optional list of reading keys `<result-id>#r<n>` the owner answers or limit keys `<result-id>#<n>` the owner accepts), `refers` (optional list of at most 10 limit keys referred to the owner) |
 | `edge.add`, `edge.remove` | the edge's `from` node id | `type` (`depends_on`, `supersedes` between two Hypotheses or two Experiments, `external_ref`), `to` (node id; for `external_ref` a string such as `gh:976` or a URL, at most 300 runes) |
 
 **[added] `dq.resume`**: undoes a defer or withdraw. Without it a mistaken defer is permanent in an append-only log.
@@ -66,7 +66,7 @@ One JSON object per line:
 **[added] `hypothesis.amend`**: replaces a Hypothesis body. Without it a wrong body can only be fixed by superseding the Hypothesis.
 **[added] limits**: a Result names the limits of the design it found but did not test or fix (`limits`), and a later Result closes them (`closes`). A limit's key is `<result-id>#<n>`: the Result's full ULID, then `n`, which counts the Result's `limits` from 1. The CLI accepts any node reference before the `#` (§2) and stores the full id. An owner confirm accepts limits (`accepts`). §8 derives each limit's state.
 
-**[added] readings**: a Result names a line of the Goal that a verdict rests on and how the run read it (`readings`). A reading's key is `<result-id>#r<n>`, and `n` counts the Result's `readings` from 1. Its states are open and closed, and both are derived. An owner checkpoint closes it: `role` is `owner`, `closes` names the key, and `summary` holds the owner's answer, which `hyp show` prints beside the closed reading. The first such checkpoint in merge order wins, so a merged log with two closes keeps the first. A reading of a retracted Result is left out. It refuses, at exit 1, a close without the owner role, a key that names no reading, a retracted Result, and a close under the actor that recorded the Result. An open reading prints under AWAITING OWNER and blocks nothing, so it never changes a question's state or the Goal's. A trade-off line counts the closed readings of its question whose closing checkpoint comes after the question's last non-retracted Result, because until a Result follows, the owner's answer cannot have changed the trade-off. Closing one does not change the Goal's text. Without this, a verdict's reliance on an unclear Goal line stays in prose the owner has to go looking for.
+**[added] readings**: a Result names a line of the Goal that a verdict rests on and how the run read it (`readings`). A reading's key is `<result-id>#r<n>`, and `n` counts the Result's `readings` from 1. Its states are open and closed, and both are derived. An owner checkpoint closes it: `role` is `owner`, `closes` names the key, and `summary` holds the owner's answer, which `hyp show` prints beside the closed reading. The first such checkpoint in merge order wins, so a merged log with two closes keeps the first. A reading of a retracted Result is left out. It refuses, at exit 1, a close without the owner role, a key that names no reading, a retracted Result, and a close under the actor that recorded the Result. An open reading prints under AWAITING OWNER and blocks nothing, so it never changes a question's state or the Goal's. A closed reading is **applied** by the first non-retracted Result that lists its key in `applies`. A reading closed with no Experiment aiming at it is also applied by the first non-retracted Result under its question after the closing checkpoint, so a tree written before `applies` keeps its meaning. A trade-off line counts the closed readings of its question that are not applied, because until a Result applies it, the owner's answer cannot have changed the trade-off. Closing one does not change the Goal's text. Without this, a verdict's reliance on an unclear Goal line stays in prose the owner has to go looking for.
 
 Content limits, in runes: `title` ≤ 120 and non-empty; `body`, `observation` and `summary` ≤ 600 (an amend's `body` is also non-empty), except a Goal's `body` ≤ 2000, because it holds the owner's met rule; a reading ≤ 600, because it holds both meanings of a Goal line and the question for the owner; `why` 1–300.
 
@@ -98,6 +98,9 @@ An event is refused when any of these holds:
 18. A `result.record` `evidence_hashes` key that is not an entry of `evidence` or does not clean to `recipes/<name>@<version>/<file>` (`bad evidence_hashes: …`), or a value that is not lowercase hex (`invalid evidence_hashes value for …`).
 19. `decided_by` on a node that is not an Experiment (`unknown field`), or a value other than `reading` (`invalid decided_by`).
 20. `experiment.withdraw` on a node that is not an Experiment (`wrong kind`), on one already withdrawn (`already withdrawn: <id>`) or superseded (`already superseded: <id>`), or on one that has a non-retracted Result (`bad withdraw: <id> has the non-retracted Result <id>`). `hyp withdraw REF` writes `experiment.withdraw` for an Experiment and `dq.withdraw` for any other node.
+21. `aims` on a node that is not an Experiment (`unknown field`); more than 10 (`over limit`); a key named twice, a reading key that names no reading or a retracted Result's reading, a reading still open (`bad aim: reading <key> is open; only an answered reading can be applied`), or a limit key that names no limit under any question (all `bad aim: …`).
+22. A `result.record` `closes` key under another question than the Result's, unless its Experiment's `aims` names the key (`bad limit ref`). An `applies` key that is not among its Experiment's `aims` (`bad applies: <key> is not among <exp>'s aims`).
+23. A `checkpoint` `closes` without the owner role (`bad checkpoint: only an owner closes a reading or accepts a limit`), a key that names neither a reading (as in §4 readings) nor a limit (`bad closes: …`), or a close under the actor that recorded the key's Result (separation of duties). A `refers` with more than 10 keys (`over limit`) or a key that names no limit (`bad refers: …`).
 
 CLI error text is `refused: <reason>` on stderr, with exit code 1. A help request (`-h` or `--help` on any command, and `help` at the top level and on a group command) prints usage on stdout and exits 0 at every level, while a missing or unknown subcommand exits 2.
 
@@ -274,6 +277,7 @@ type Limit struct {
     State string               // "open", "closed" or "accepted"
     By    string               // the closing Result id, or the accepting owner's actor
     Gating bool                // open, and Hyps contains the Hypothesis of the question's current select
+    Referred string            // the first checkpoint that refers it, or ""
 }
 type Hyp struct {
     Status HypStatus   // §7.1
@@ -293,10 +297,31 @@ type Edge struct { ID, From, Type, To string; Live bool } // ID is the edge.add 
 
 Limits **[added]**: a Result's limits are filed under its question, the parent DQ of its Experiment's Hypothesis, whichever Hypotheses it judged. Limits of a retracted Result are left out. A limit is:
 - `closed` when a non-retracted Result lists its key in `closes`; `By` is the first such Result in creation order. Retracting that Result reopens the limit unless another one closes it.
+- otherwise `accepted` when an owner checkpoint lists its key in `closes`; `By` is that checkpoint's actor. A Result that closes it comes first.
 - otherwise `accepted` when a sufficient owner confirm on the question's **current** select, with the current Dossier, accepted it, and no later owner `insufficient` has that Dossier; `By` is that owner's actor. A new select, a Dossier change or an insufficient owner confirm at this Dossier makes the limit open again, and a Dossier that returns restores it.
-- otherwise `open`.
+- otherwise `open`. An open limit whose key a checkpoint lists in `refers` is **referred**: the runner says no test within the Goal can close it, and only the owner can settle it, by accepting it.
 
 Limits never change a derived status. Only the CLI reads them: `hyp show` and `hyp status` list them, and `hyp confirm --role owner --verdict sufficient` is refused while a limit has `Gating` set (it is open and its Result has a verdict for the Hypothesis of the current select) and the confirm does not accept it (§5.1). An open limit whose Result judged only other Hypotheses does not gate; it stays listed, and `hyp show <Q>` marks it `open, does not gate (judges …)`.
+
+### 8.1 Ledger: what the tree owes
+
+`Projection.Owed()` derives the ledger: each item of open work on an open or reopened question, with who owes it. Nothing stores it, and owing an item never changes a status. Settling one is always an explicit event; a planned test is intent, not an outcome, so an Experiment's `aims` never settles a limit or a reading, and settling an item never selects, answers a question or meets the Goal. Items, per question in creation order:
+
+| Item | Who | Owed while | Settled by |
+|---|---|---|---|
+| `rivals` | runner | the question has no live, non-contradicted Hypothesis and no open reading on its Results | a new Hypothesis |
+| `untested` | runner | a proposed Hypothesis has no planned or run Experiment as parent or target | an Experiment |
+| `planned` | runner | an Experiment is planned | its Result |
+| `limit` | runner | an open, unreferred limit's Hypotheses include a candidate | a Result that `closes` it, or a `refers` |
+| `referred` | owner | an open, referred limit's Hypotheses include a candidate | an owner checkpoint that `closes` it |
+| `reading` | runner | a closed reading is not applied | a Result that `applies` it |
+| `select` | runner | the question has one candidate, no current select and no other runner item | `dq.select` |
+| `confirm` | verifier | the question awaits the verifier | a verifier confirm |
+| `respond` | runner | the verifier found the select insufficient | a new select or Result |
+
+A `limit` or `reading` item also has an aim state: `owed` when no live Experiment aims at its key, `in_progress` while an aiming Experiment is planned, and `aimed_not_settled` once every aiming Experiment has a Result and none settled it. An open reading, a trade-off and an owner confirm are owed by the owner too; `hyp status` prints those under AWAITING OWNER.
+
+`hyp status` prints the runner's and verifier's items under OWED, keeping the first five when it truncates, and the owner's under AWAITING OWNER. When no item is the runner's, OWED ends with `runner owes nothing: stop and report to the owner`, the stop clause a run reads.
 
 Rivals at add **[added]**: when an Experiment is applied, replay stores the live rivals of its parent Hypothesis under the same question, read from the derived state just before that event. A target is **unjudged** when it is in that list and no non-retracted Result of the Experiment has a verdict for it; an Experiment with no non-retracted Result has no unjudged target. An Experiment is **one-rival** when that list is not empty and its `targets` name none of it. Both are read at the Experiment's add, so a rival that dies later does not clear a mark, and a rival added later does not create one. `hyp signals` reports an unjudged target, and `hyp status` and `hyp show <Q>` mark the Experiment. They never change a derived status.
 

@@ -134,14 +134,17 @@ func TestShowMarkdownDiff(t *testing.T) {
 	}
 }
 
-func TestStatusFrontierOverBudgetHasNoTrailer(t *testing.T) {
+// Frontier questions are never dropped. Past five OWED lines, ledger items
+// are dropped like other detail, and the trailer counts only them.
+func TestStatusFrontierOverBudgetKeepsEveryQuestion(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	for i := 0; i < 70; i++ {
 		b.DQ(g, fmt.Sprintf("q%d", i))
 	}
 	out := Status(replay.Replay(b.Evs, nil, ""), 60)
-	if strings.Contains(out, "truncated") || strings.Count(out, "\n  Q-") != 70 {
+	if strings.Count(out, "\n  Q-") != 70 || strings.Count(out, "\n  runner: ") != 5 ||
+		!strings.Contains(out, "… 65 lines truncated") {
 		t.Fatalf("frontier-only overflow:\n%s", out)
 	}
 }
@@ -560,7 +563,7 @@ func TestStatusPlannedOneRivalIsOneLine(t *testing.T) {
 	id := event.DisplayID(event.KindExperiment, e)
 	var lines []string
 	for _, l := range strings.Split(out, "\n") {
-		if strings.Contains(l, id) {
+		if strings.Contains(l, id) && !strings.HasPrefix(l, "  runner: ") {
 			lines = append(lines, l)
 		}
 	}

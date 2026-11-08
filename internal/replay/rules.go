@@ -39,7 +39,7 @@ var rules = map[string]rule{
 			}
 			st.addNode(&Node{ID: ev.ID, Kind: p.Kind, Parent: p.Parent, Title: p.Title, Body: p.Body,
 				Alias: p.Alias, Recipe: p.Recipe, RecipeHash: p.RecipeHash, DecidedBy: p.DecidedBy, Actor: ev.Actor,
-				AddedBy: ev.ID, Targets: p.Targets})
+				AddedBy: ev.ID, Targets: p.Targets, Aims: p.Aims})
 			if p.Alias != "" {
 				st.Aliases[p.Alias] = ev.ID
 			}
@@ -58,7 +58,7 @@ var rules = map[string]rule{
 			_ = event.DecodePayload(ev, &p)
 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
-				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings})
+				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies})
 			for h := range p.Verdicts {
 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
 			}
@@ -221,7 +221,15 @@ var rules = map[string]rule{
 			}
 			return f.checkClosesReadings(ev, p)
 		},
-		apply: noApply,
+		apply: func(st *State, ev event.Event) {
+			var p event.Checkpoint
+			_ = event.DecodePayload(ev, &p)
+			for _, k := range p.Closes {
+				if _, _, ok := event.ParseReadingKey(k); ok {
+					st.ClosedReadings[k] = true
+				}
+			}
+		},
 	},
 	event.TypeEdgeAdd: {
 		validate: (*Facts).validateEdge,

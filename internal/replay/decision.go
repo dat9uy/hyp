@@ -259,6 +259,28 @@ func (st *State) readings(applied []event.Event) []Reading {
 			}
 		}
 	}
+	// appliedBy names, for each reading key, the first Result whose applies
+	// names it; aimed holds the keys some Experiment aims at.
+	appliedBy, aimed := map[string]string{}, map[string]bool{}
+	for _, id := range st.Order {
+		n := st.Nodes[id]
+		switch {
+		case n.Kind == event.KindExperiment:
+			for _, k := range n.Aims {
+				aimed[k] = true
+			}
+		case n.Kind == event.KindResult && !st.Retracted[id]:
+			for _, k := range n.Applies {
+				if _, ok := appliedBy[k]; !ok {
+					appliedBy[k] = id
+				}
+			}
+		}
+	}
+	pos := map[string]int{}
+	for i, ev := range applied {
+		pos[ev.ID] = i
+	}
 	var out []Reading
 	for _, id := range st.Order {
 		n := st.Nodes[id]
@@ -267,10 +289,31 @@ func (st *State) readings(applied []event.Event) []Reading {
 		}
 		for i, text := range n.Readings {
 			k := event.ReadingKey(id, i+1)
-			out = append(out, Reading{Key: k, Result: id, Text: text, By: closedBy[k], Answer: answers[k], Question: st.resultQuestion(id)})
+			l := Reading{Key: k, Result: id, Text: text, By: closedBy[k], Answer: answers[k], Question: st.resultQuestion(id), Applied: appliedBy[k]}
+			if l.Applied == "" && l.By != "" && !aimed[k] {
+				l.Applied = st.firstResultAfter(l.Question, pos, pos[l.By])
+			}
+			out = append(out, l)
 		}
 	}
 	return out
+}
+
+// firstResultAfter returns the first non-retracted Result under question q
+// whose position is after at, or "". It is how a reading closed before aims
+// existed counts as applied.
+func (st *State) firstResultAfter(q string, pos map[string]int, at int) string {
+	best, bestPos := "", -1
+	for _, id := range st.Order {
+		n := st.Nodes[id]
+		if n.Kind != event.KindResult || st.Retracted[id] || st.resultQuestion(id) != q {
+			continue
+		}
+		if p, ok := pos[id]; ok && p > at && (bestPos < 0 || p < bestPos) {
+			best, bestPos = id, p
+		}
+	}
+	return best
 }
 
 // limits derives each question's limits. A limit is closed when a
@@ -290,6 +333,28 @@ func (st *State) limits() map[string][]Limit {
 			}
 		}
 	}
+	// An owner checkpoint accepts the limits its closes names, and any
+	// checkpoint refers the limits its refers names to the owner.
+	ownerAccepted, referred := map[string]string{}, map[string]string{}
+	for _, ev := range st.Applied {
+		if ev.Type != event.TypeCheckpoint {
+			continue
+		}
+		var c event.Checkpoint
+		_ = event.DecodePayload(ev, &c)
+		for _, k := range c.Closes {
+			if _, _, ok := event.ParseLimitKey(k); ok {
+				if _, seen := ownerAccepted[k]; !seen {
+					ownerAccepted[k] = ev.Actor
+				}
+			}
+		}
+		for _, k := range c.Refers {
+			if _, seen := referred[k]; !seen {
+				referred[k] = ev.ID
+			}
+		}
+	}
 	out := map[string][]Limit{}
 	accepted := map[string]map[string]string{}
 	for _, id := range st.Order {
@@ -303,10 +368,12 @@ func (st *State) limits() map[string][]Limit {
 			accepted[q] = s.accepted(s.Current, st.dossierItems(q, s.Selects[s.Current].Hyp))
 		}
 		for i, text := range n.Limits {
-			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen}
+			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen, Referred: referred[event.LimitKey(id, i+1)]}
 			if by, ok := closedBy[l.Key]; ok {
 				l.State, l.By = LimitClosed, by
 			} else if actor, ok := accepted[q][l.Key]; ok {
+				l.State, l.By = LimitAccepted, actor
+			} else if actor, ok := ownerAccepted[l.Key]; ok {
 				l.State, l.By = LimitAccepted, actor
 			}
 			if s.Current != "" {
