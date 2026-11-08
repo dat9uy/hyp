@@ -42,7 +42,7 @@ _Avoid_: issue, decision; withdrawn for an Experiment (see Experiment status)
 A DesignQuestion whose parent is a Hypothesis, asked because it only matters if that Hypothesis holds. It is an obligation: while it is not withdrawn and not answered, deferred included, the question that selected its parent cannot be answered, and reads `awaiting_subquestions` ([spec §7.4](replay-spec.md#74-designquestion-state)). Any answer discharges it and withdrawing it releases it, whichever way it was going. That is its only effect on the parent: the parent's status does not change, a Result under it judges its own Hypotheses, its answer gives the parent no support, and the Dossier does not list it. It blocks the Goal only through this rule ([spec §7.5](replay-spec.md#75-goal)). A claim that rests on an answer is a premise, and a premise is `depends_on`.
 
 **Hypothesis**:
-A node, `H-`, under a DesignQuestion, that states one candidate answer as a claim an Experiment can test. Its status comes from the verdicts of non-retracted Results, or from a supersedes edge or an abandon ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)).
+A node, `H-`, under a DesignQuestion, that states one possible answer as a claim an Experiment can test. Its status comes from the verdicts of non-retracted Results, or from a supersedes edge or an abandon ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)).
 _Avoid_: option, idea, solution
 
 **Frontier**:
@@ -55,6 +55,10 @@ The section of `hyp status` that names the one step due from the owner on each q
 **Reading**:
 How a run read a line of the Goal that a verdict rests on, recorded on the Result with `hyp record --reading`. It stays open until an owner checkpoint closes it with their answer.
 A reading asks what the owner's words mean, and a trade-off asks which candidate to choose. Closing a reading changes no status, because statuses come only from verdicts. An answer that rules out a candidate takes effect when a later Result records `contradicts` on it, and a trade-off it would settle stays under Awaiting owner until then, marked `(answered readings with no Result since: N)`.
+
+**Re-judge**:
+The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer becomes a check in a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until one follows, `hyp status` marks the trade-off with its answered readings.
+_Avoid_: update the tree, recalculate (replay already derives every status; a re-judge adds Results), re-confirm (a confirm judges a select, not a Hypothesis)
 
 **Open limits**:
 The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a ledger, not open work.
@@ -107,7 +111,7 @@ A live Hypothesis or DesignQuestion whose basis may no longer hold: a `depends_o
 _Avoid_: outdated, questionable (that is about recipe hashes)
 
 **Candidate**:
-A live child Hypothesis of a DesignQuestion whose status is `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. In code: `replay.Question.Candidates`.
+A live child Hypothesis of a DesignQuestion whose status is `supported`, whether or not it is stale or has an open sub-question ([spec §7.4](replay-spec.md#74-designquestion-state)). `hyp select Q` suggests a lone candidate when it is ready; two or more make the question a trade-off. Every candidate is a live rival (see Rival); a live rival with no Result yet, or only inconclusive ones, is not a candidate. In code: `replay.Question.Candidates`.
 _Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for a lone ready candidate), rival (a rival need not be supported)
 
 **Trade-off**:
