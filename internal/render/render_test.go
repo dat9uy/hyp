@@ -149,7 +149,9 @@ func TestStatusFrontierOverBudgetKeepsEveryQuestion(t *testing.T) {
 	}
 }
 
-func TestStatusVerifierInsufficientShowsWhy(t *testing.T) {
+// An old verifier confirm is history: the select alone answers, and neither
+// status nor show prints a verifier line.
+func TestStatusOldVerifierConfirmChangesNothing(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
@@ -159,15 +161,11 @@ func TestStatusVerifierInsufficientShowsWhy(t *testing.T) {
 	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	b.Evs[len(b.Evs)-1].Why = "no outputs were run; run the transformation twice"
 	p := replay.Replay(b.Evs, nil, "")
-	out := Status(p, 0)
-	for _, want := range []string{"open/verifier_insufficient", "verifier: no outputs were run; run the transformation twice"} {
-		if !strings.Contains(out, want) {
-			t.Fatalf("status lacks %q:\n%s", want, out)
-		}
+	if out := Status(p, 0); !strings.Contains(out, "complete (answered 1") || strings.Contains(out, "verifier:") {
+		t.Fatalf("status:\n%s", out)
 	}
-	show := Show(p, q, []string{g})
-	if !strings.Contains(show, "verifier: insufficient — no outputs were run") {
-		t.Fatalf("show lacks verifier line:\n%s", show)
+	if show := Show(p, q, []string{g}); strings.Contains(show, "verifier:") {
+		t.Fatalf("show prints a verifier line:\n%s", show)
 	}
 }
 
@@ -358,8 +356,10 @@ func TestStatusDecidedTradeoffLeavesAwaitingOwner(t *testing.T) {
 		t.Fatalf("undecided trade-off missing from AWAITING OWNER:\n%s", before)
 	}
 
-	sel := b.As("a").Select(q, h1, "", true)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
+	// The choice answers the question; an open sub-question of the chosen
+	// one keeps it on FRONTIER, where the decided line prints.
+	b.DQ(h1, "sub")
+	b.As("a").Select(q, h1, "", false)
 	after := Status(replay.Replay(b.Evs, nil, ""), 0)
 	if strings.Contains(after, qid+" choose: ") {
 		t.Fatalf("decided trade-off still under AWAITING OWNER:\n%s", after)
@@ -796,7 +796,7 @@ func TestShowListsTheDossier(t *testing.T) {
 	for _, want := range []string{
 		"dossier:\n  " + id(h1) + " supported (selected) picked\n    " + id(sup) + " supports\n",
 		"  " + id(h2) + " contradicted rival\n",
-		"    " + id(over) + " contradicts [decides the owner requirement",
+		"    " + id(over) + " contradicts [decides the trade-off",
 		"    " + id(s2) + " supports\n",
 	} {
 		if !strings.Contains(show, want) {
@@ -808,24 +808,6 @@ func TestShowListsTheDossier(t *testing.T) {
 	}
 }
 
-func TestShowNamesAContradictsOnARivalAsChangedSinceTheVerifier(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	b.Supports(h1)
-	b.Supports(h2)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	r := b.As("a").Contradicts(h2)
-	p := replay.Replay(b.Evs, nil, "")
-	show := Show(p, q, []string{g})
-	want := "changed since v: +" + event.DisplayID(p.Nodes[r].Kind, r)
-	if !strings.Contains(show, want) {
-		t.Fatalf("missing %q in:\n%s", want, show)
-	}
-}
-
 func TestShowPrintsWhatChangedSinceALapsedConfirm(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
@@ -834,7 +816,6 @@ func TestShowPrintsWhatChangedSinceALapsedConfirm(t *testing.T) {
 	gone := b.Supports(h)
 	b.Supports(h)
 	sel := b.As("a").Select(q, h, "", true)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
 	show := Show(replay.Replay(b.Evs, nil, ""), q, []string{g})
 	if strings.Contains(show, "changed since") {
@@ -848,8 +829,7 @@ func TestShowPrintsWhatChangedSinceALapsedConfirm(t *testing.T) {
 	show = Show(p, q, []string{g})
 	id := func(i string) string { return event.DisplayID(p.Nodes[i].Kind, i) }
 	for _, want := range []string{
-		"verifier: sufficient — test\n",
-		"changed since v: ",
+		"owner: sufficient — test\n",
 		"changed since o: ",
 		"+" + id(added),
 		"+" + id(rival),
@@ -929,34 +909,21 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		limit(b, sub, s1, s2)
 		return tree{b: b, q: q, h1: h1, h2: h2, sub: sub, s1: s1, s2: s2}
 	}
-	confirmed := func(x tree, q, h string, tradeoff bool) {
-		sel := x.b.As("a").Select(q, h, "", tradeoff)
-		x.b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	}
+	selects := func(x tree, q, h string, scopeChange bool) { x.b.As("a").Select(q, h, "", scopeChange) }
 	cases := []struct {
 		name  string
 		build func() tree
 		want  string // the AWAITING OWNER line kind, or "" for none
 	}{
 		{"open, no select", func() tree { return top() }, "choose"},
-		{"open, plain select before the verifier", func() tree {
+		{"answered by the choice", func() tree {
 			x := top()
-			x.b.As("a").Select(x.q, x.h1, "", false)
+			selects(x, x.q, x.h1, false)
 			return x
 		}, ""},
-		{"open, plain select, verifier confirmed", func() tree {
+		{"open, scope-change select", func() tree {
 			x := top()
-			confirmed(x, x.q, x.h1, false)
-			return x
-		}, "awaiting_owner"},
-		{"open, trade-off select before the verifier", func() tree {
-			x := top()
-			x.b.As("a").Select(x.q, x.h1, "", true)
-			return x
-		}, ""},
-		{"open, trade-off select, verifier confirmed", func() tree {
-			x := top()
-			confirmed(x, x.q, x.h1, true)
+			selects(x, x.q, x.h1, true)
 			return x
 		}, "awaiting_owner"},
 		{"deferred, no select", func() tree {
@@ -964,21 +931,15 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 			x.b.Defer(x.q)
 			return x
 		}, ""},
-		{"deferred, plain select, verifier confirmed", func() tree {
+		{"deferred, scope-change select", func() tree {
 			x := top()
-			confirmed(x, x.q, x.h1, false)
+			selects(x, x.q, x.h1, true)
 			x.b.Defer(x.q)
 			return x
 		}, ""},
-		{"deferred, trade-off select, verifier confirmed", func() tree {
+		{"resumed, scope-change select", func() tree {
 			x := top()
-			confirmed(x, x.q, x.h1, true)
-			x.b.Defer(x.q)
-			return x
-		}, ""},
-		{"resumed, plain select, verifier confirmed", func() tree {
-			x := top()
-			confirmed(x, x.q, x.h1, false)
+			selects(x, x.q, x.h1, true)
 			x.b.Defer(x.q)
 			x.b.Resume(x.q)
 			return x
@@ -1016,7 +977,7 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		}, ""},
 		{"sub awaiting the owner, parent deferred", func() tree {
 			x := nested()
-			confirmed(x, x.sub, x.s1, false)
+			selects(x, x.sub, x.s1, true)
 			x.b.Defer(x.q)
 			return x
 		}, ""},

@@ -7,20 +7,18 @@ import (
 )
 
 // Decision is the record of one DesignQuestion's selection (spec §7.4), the
-// one owner of its select history, conflicts, Confirms, owner requirement,
-// limit acceptances, reason order and verifier-loop chain. Only the methods in
-// this file write it. Render, signals, check and the CLI read it, through
+// one owner of its select history, conflicts, owner Confirms, owner
+// requirement, limit acceptances and reason order. Only the methods in this
+// file write it. Render, signals, check and the CLI read it, through
 // Projection.Decisions.
 type Decision struct {
 	Current   string
 	Conflicts []string
 	Selects   map[string]SelectRec
-	// Confirms holds every applied confirm on each select, verifier and owner
-	// in one list, in log order, each with the Dossier at its place in the log.
+	// Confirms holds every applied owner confirm on each select, in log
+	// order, each with the Dossier at its place in the log. A verifier
+	// confirm in an old log applies nothing (ADR 0015).
 	Confirms map[string][]ConfirmRec
-	// Chain is the verifier-loop signal's view: the insufficient verdicts in a
-	// row on the current select.
-	Chain []Verdict
 	// Limits and Dossier are derived when a Projection is built; a record
 	// stored in State holds neither.
 	Limits  []Limit  // the limits recorded under the question, in creation order
@@ -55,42 +53,20 @@ func (s *Decision) setCurrent(evID, next, prev string) {
 	s.Current = next
 }
 
-// onSelect applies dq.select rec. The chain survives only when the select
-// continues the current one: the same Hypothesis or one that supersedes it.
-func (s *Decision) onSelect(rec SelectRec, prev string, continues bool) {
-	if !continues {
-		s.Chain = nil
-	}
+// onSelect applies dq.select rec, whose Candidates replay stored at apply.
+func (s *Decision) onSelect(rec SelectRec, prev string) {
 	s.Selects[rec.ID] = rec
 	s.setCurrent(rec.ID, rec.ID, prev)
 }
 
-// onUnselect applies a dq.unselect and forgets the chain.
-func (s *Decision) onUnselect(evID, prev string) {
-	s.setCurrent(evID, "", prev)
-	s.Chain = nil
-}
+// onUnselect applies a dq.unselect.
+func (s *Decision) onUnselect(evID, prev string) { s.setCurrent(evID, "", prev) }
 
-// onAmend runs on an amend of the current select's Hypothesis. The Dossier
-// holds the body, so the Confirms need nothing here. The chain restarts, so
-// verdicts on the old body never count towards a loop.
-func (s *Decision) onAmend() { s.Chain = nil }
-
-// onConfirm applies confirm ev on select p.Select, whose Dossier just then
-// was items. A verifier confirm on the current select extends the chain when
-// insufficient and clears it when sufficient.
+// onConfirm applies owner confirm ev on select p.Select, whose Dossier just
+// then was items.
 func (s *Decision) onConfirm(ev event.Event, p event.Confirm, items []DossierItem) {
 	s.Confirms[p.Select] = append(s.Confirms[p.Select], ConfirmRec{ID: ev.ID, Role: p.Role, Verdict: p.Verdict,
 		Actor: ev.Actor, Why: ev.Why, Accepts: p.Accepts, Items: items})
-	if p.Role != event.RoleVerifier || p.Select != s.Current {
-		return
-	}
-	switch p.Verdict {
-	case event.ConfirmInsufficient:
-		s.Chain = append(s.Chain, Verdict{ev.ID, ev.Actor})
-	case event.ConfirmSufficient:
-		s.Chain = nil
-	}
 }
 
 // counting is the Confirm by role that counts on select id when the Dossier is
@@ -160,16 +136,17 @@ func (s *Decision) accepted(id string, now []DossierItem) map[string]string {
 	return out
 }
 
-// ownerRequired derives whether select rec needs the owner: the question has
-// two or more candidates now, a trade-off, or the select is a scope change.
-func ownerRequired(rec SelectRec, candidates []string) bool {
-	return len(candidates) >= 2 || rec.ScopeChange
+// newCandidate reports whether a candidate now was not a candidate when
+// select rec applied. A candidate that fell since does not count: the chosen
+// one still stands.
+func newCandidate(rec SelectRec, candidates []string) bool {
+	return slices.ContainsFunc(candidates, func(c string) bool { return !slices.Contains(rec.Candidates, c) })
 }
 
 // reason is the first reason question id is not answered (spec §7.4), or ""
 // when it is. live lists its live child Hypotheses, candidates its trade-off
 // candidates, and stale says the question itself is stale. The Dossier is read
-// only for a select with a Confirm to compare, since this runs on every event.
+// only for a scope-change select, since this runs on every event.
 func (d *derivation) reason(id string, live, candidates []string, stale bool) string {
 	st := d.st
 	s := st.Decisions[id]
@@ -187,19 +164,13 @@ func (d *derivation) reason(id string, live, candidates []string, stale bool) st
 		return ReasonSelectedStale
 	case st.awaitsSubquestions(rec.Hyp, func(c string) QuestionState { return d.dqState(c).State }):
 		return ReasonAwaitingSubquestions
-	case len(s.Confirms[rec.ID]) == 0:
-		return ReasonAwaitingVerifier
+	case newCandidate(rec, candidates):
+		return ReasonNewCandidate
 	}
-	now := st.dossierItems(id, rec.Hyp)
-	v := s.counting(rec.ID, event.RoleVerifier, now)
-	switch {
-	case v == nil:
-		return ReasonAwaitingVerifier
-	case v.Verdict == event.ConfirmInsufficient:
-		return ReasonVerifierInsufficient
-	}
-	if ownerRequired(rec, candidates) {
-		if o := s.counting(rec.ID, event.RoleOwner, now); o == nil || o.Verdict != event.ConfirmSufficient {
+	// Only a scope change needs the owner's confirm: a trade-off ends with
+	// the owner's choice, recorded as the select (ADR 0015).
+	if rec.ScopeChange {
+		if o := s.counting(rec.ID, event.RoleOwner, st.dossierItems(id, rec.Hyp)); o == nil || o.Verdict != event.ConfirmSufficient {
 			return ReasonAwaitingOwner
 		}
 	}

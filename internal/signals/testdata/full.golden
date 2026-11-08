@@ -1,4 +1,4 @@
-no-movement:R-6B1D8V	7	no-movement E-QN9H45,E-MB1818: R-JXN1QF, R-6B1D8V moved no live rival; Q-WRT7N9 selected H-WEE8KQ (select D82WFX): verifier insufficient x2 (verifier-1, verifier-2); the next experiment may not change anything
+no-movement:R-6B1D8V	7	no-movement E-QN9H45,E-MB1818: R-JXN1QF, R-6B1D8V moved no live rival; Q-WRT7N9 selected H-WEE8KQ (select D82WFX); the next experiment may not change anything
 no-movement:R-JXN1QF	6	no-movement E-H0V76P,E-QN9H45: R-TMCVWP, R-JXN1QF moved no live rival
 no-movement:R-TMCVWP	5	no-movement E-SER338,E-H0V76P: R-W7PVPF, R-TMCVWP moved no live rival
 one-rival:E-BMYN16	1	one-rival E-BMYN16 at add: H-WEE8KQ=proposed (parent), H-6XPT7T=proposed, H-E1Y3CP=proposed, H-S737Y1=proposed; targets: none; could target: H-6XPT7T,H-E1Y3CP,H-S737Y1

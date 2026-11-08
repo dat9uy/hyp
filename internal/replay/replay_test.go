@@ -88,15 +88,13 @@ func TestScenario01SupportedUnselected(t *testing.T) {
 	}
 }
 
-func TestScenario02SelectThenVerifier(t *testing.T) {
+func TestScenario02SelectAnswers(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
 	h1 := b.Hyp(q, "h1")
 	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingVerifier)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	b.As("a").Select(q, h1, "", false)
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
@@ -105,7 +103,9 @@ func TestScenario02SelectThenVerifier(t *testing.T) {
 	}
 }
 
-func TestScenario03OwnerGateOnTwoSupported(t *testing.T) {
+// The owner's choice between two candidates, recorded as the select, ends
+// the trade-off: no confirm follows it.
+func TestScenario03ChoiceOnTwoSupportedAnswers(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
@@ -117,10 +117,7 @@ func TestScenario03OwnerGateOnTwoSupported(t *testing.T) {
 	if len(p.Questions[q].Candidates) != 2 {
 		t.Fatalf("candidates = %v, want both candidates (trade-off)", p.Questions[q].Candidates)
 	}
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingOwner)
-	b.As("owner").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
+	b.As("a").Select(q, h1, "", false)
 	p = replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
@@ -278,11 +275,11 @@ func TestScenario08ConflictingSelections(t *testing.T) {
 	b.Supports(h2)
 	b.As("a").Select(q, h1, "", false)
 	sb := b.As("b").Select(q, h2, "", false)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonConflicting)
+	wantStatus(t, replayB(b), q, DQReopened, ReasonConflicting)
 	b.As("a").Select(q, h1, sb, false)
 	p := replayB(b)
 	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
+	wantStatus(t, p, q, DQAnswered, "")
 }
 
 func TestScenario09DeferResumeWithdraw(t *testing.T) {
@@ -440,21 +437,6 @@ func TestEvidenceHashesValidated(t *testing.T) {
 	}
 }
 
-func TestScenario12VerifierSameActorRefused(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	bad := b.As("a").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	p := replayB(b)
-	if len(p.Rejections) != 1 || p.Rejections[0].EventID != bad {
-		t.Fatalf("rejections = %+v, want %s", p.Rejections, bad)
-	}
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
-}
-
 func TestScenario13ChildUnderAbandonedDoesNotBlock(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
@@ -528,22 +510,6 @@ func TestScenario16InconclusiveReason(t *testing.T) {
 	wantNoRejections(t, p)
 	wantStatus(t, p, h1, HypInconclusive, "")
 	wantStatus(t, p, q, DQOpen, ReasonInconclusive)
-}
-
-func TestScenario17VerifierInsufficient(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingVerifier)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonVerifierInsufficient)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
 }
 
 func TestMergeKeepsFileOrder(t *testing.T) {
@@ -629,9 +595,7 @@ func TestRefusals(t *testing.T) {
 		{"8 select abandoned", mk(event.TypeDQSelect, q, "a", event.DQSelect{Hypothesis: h4}), "bad select"},
 		{"8 select superseded", mk(event.TypeDQSelect, q, "a", event.DQSelect{Hypothesis: h2}), "bad select"},
 		{"9 confirm unknown select", mk(event.TypeConfirm, q2, "b", event.Confirm{Select: sel,
-			Role: event.RoleVerifier, Verdict: event.ConfirmSufficient}), "bad confirm"},
-		{"9 verifier is selector", mk(event.TypeConfirm, q, "a", event.Confirm{Select: sel,
-			Role: event.RoleVerifier, Verdict: event.ConfirmSufficient}), "separation of duties"},
+			Role: event.RoleOwner, Verdict: event.ConfirmSufficient}), "bad confirm"},
 		{"10 supersedes self", mk(event.TypeEdgeAdd, h1, "a", event.Edge{Type: event.EdgeSupersedes, To: h1}), "self edge"},
 		{"10 cross-DQ supersedes", mk(event.TypeEdgeAdd, h1, "a", event.Edge{Type: event.EdgeSupersedes, To: h3}), "cross-DQ supersedes"},
 		{"10 supersedes cycle", mk(event.TypeEdgeAdd, h2, "a", event.Edge{Type: event.EdgeSupersedes, To: h5}), "supersedes cycle"},
@@ -706,64 +670,19 @@ func limitResult(b *testutil.B, h string, limits, closes []string) string {
 		Verdicts: map[string]string{h: sup}, Observation: "obs", Limits: limits, Closes: closes})
 }
 
-func TestAmendReplacesBodyAndDropsSufficientConfirms(t *testing.T) {
+func TestAmendReplacesBody(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
 	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", false)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-	amend(b.As("a"), h, "new")
+	b.As("a").Select(q, h, "", false)
+	amend(b, h, "new")
 	p := replayB(b)
 	wantNoRejections(t, p)
 	if got := p.Nodes[h].Body; got != "new" {
 		t.Fatalf("body = %q, want new", got)
 	}
-	wantStatus(t, p, q, DQReopened, ReasonAwaitingVerifier)
-}
-
-// Replaces the rule that an amend keeps an insufficient verdict: it judged the
-// old body, so it lapses like any other Confirm, and counts again on the way back.
-func TestAmendLapsesInsufficientVerdict(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
-	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", false)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	amend(b.As("a"), h, "new")
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
-	amend(b, h, "old")
-	wantStatus(t, replayB(b), q, DQOpen, ReasonVerifierInsufficient)
-}
-
-// The verifier-loop chain starts again from the next verdict after an amend,
-// even when the body returns to what the earlier verdict judged.
-func TestAmendRestartsChain(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
-	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", false)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	amend(b.As("a"), h, "new")
-	p := replayB(b)
-	wantNoRejections(t, p)
-	if s := p.Decisions[q]; len(s.Chain) != 0 {
-		t.Fatalf("after an amend: chain %v, want empty", s.Chain)
-	}
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
-
-	v2 := b.As("w").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	p = replayB(b)
-	wantNoRejections(t, p)
-	if s := p.Decisions[q]; len(s.Chain) != 1 || s.Chain[0].ID != v2 {
-		t.Fatalf("chain after the second verdict = %v, want only %s", s.Chain, v2)
-	}
-	wantStatus(t, p, q, DQOpen, ReasonVerifierInsufficient)
+	wantStatus(t, p, q, DQAnswered, "")
 }
 
 func TestAmendRefusals(t *testing.T) {
@@ -818,7 +737,6 @@ func TestLimitAcceptance(t *testing.T) {
 	h := b.Hyp(q, "h")
 	r1 := limitResult(b, h, []string{"l1"}, nil)
 	sel := b.As("a").Select(q, h, "", true)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
 	b.As("o").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleOwner,
 		Verdict: event.ConfirmSufficient, Accepts: []string{event.LimitKey(r1, 1)}})
 	p := replayB(b)
@@ -837,7 +755,6 @@ func TestInsufficientOwnerConfirmCancelsAcceptance(t *testing.T) {
 	h := b.Hyp(q, "h")
 	r1 := limitResult(b, h, []string{"l1"}, nil)
 	sel := b.As("a").Select(q, h, "", true)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
 	accept := func() {
 		b.As("o").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleOwner,
 			Verdict: event.ConfirmSufficient, Accepts: []string{event.LimitKey(r1, 1)}})
@@ -848,12 +765,11 @@ func TestInsufficientOwnerConfirmCancelsAcceptance(t *testing.T) {
 	wantStatus(t, p, q, DQAnswered, "")
 	wantLimit(t, p, q, 0, LimitAccepted, "o")
 
-	// A verifier's no leaves the owner's acceptance in place.
+	// An old verifier's no is history: the owner's acceptance stays.
 	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	p = replayB(b)
 	wantNoRejections(t, p)
 	wantLimit(t, p, q, 0, LimitAccepted, "o")
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
 
 	// The owner's no withdraws their acceptance; the status is unchanged by it.
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
@@ -879,13 +795,21 @@ func TestLimitRefusals(t *testing.T) {
 	bad := limitResult(b, h, nil, []string{"nope"})
 	tooBig := limitResult(b, h, nil, []string{event.LimitKey(r1, 2)})
 	other := limitResult(b, h2, nil, []string{event.LimitKey(r1, 1)})
-	verifier := b.As("v").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleVerifier,
+	no := b.As("o").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleOwner,
+		Verdict: event.ConfirmInsufficient, Accepts: []string{event.LimitKey(r1, 1)}})
+	// An old verifier confirm that accepts a limit is history: replay takes
+	// it and it accepts nothing.
+	b.As("v").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleVerifier,
 		Verdict: event.ConfirmSufficient, Accepts: []string{event.LimitKey(r1, 1)}})
 	p := replayB(b)
 	wantRejected(t, p, bad, "bad limit ref")
 	wantRejected(t, p, tooBig, "bad limit ref")
 	wantRejected(t, p, other, "bad limit ref")
-	wantRejected(t, p, verifier, "only a sufficient owner confirm accepts limits")
+	wantRejected(t, p, no, "only a sufficient owner confirm accepts limits")
+	if len(p.Rejections) != 4 {
+		t.Fatalf("rejections = %+v, want the four above", p.Rejections)
+	}
+	wantLimit(t, p, q, 0, LimitOpen, "")
 }
 
 func TestLimitAcceptanceOnStaleSelectDoesNotOverride(t *testing.T) {
@@ -908,7 +832,9 @@ func TestLimitAcceptanceOnStaleSelectDoesNotOverride(t *testing.T) {
 	wantLimit(t, replayB(b), q, 0, LimitOpen, "")
 }
 
-func TestStaleSupportedSiblingRequiresOwner(t *testing.T) {
+// A stale supported sibling is still a candidate, so selecting h1 is the
+// owner's choice between two, and it answers.
+func TestStaleSupportedSiblingIsACandidate(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
@@ -928,113 +854,8 @@ func TestStaleSupportedSiblingRequiresOwner(t *testing.T) {
 	if !reflect.DeepEqual(p.Questions[q].Candidates, []string{h1, h2}) {
 		t.Fatalf("candidates = %v, want [%s %s]", p.Questions[q].Candidates, h1, h2)
 	}
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	b.As("a").Select(q, h1, "", false)
 	p = replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingOwner)
-}
-
-// awaitingOwner builds two supported rivals, h1 selected and a sufficient
-// verifier confirm, with h2 depending on a supported t in a second question.
-func awaitingOwner(t *testing.T) (b *testutil.B, q, h1, h2, tgt, sel string) {
-	t.Helper()
-	b = testutil.New()
-	g := b.Goal("g")
-	q = b.DQ(g, "q")
-	h1, h2 = b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	tgt = b.Hyp(b.DQ(g, "q2"), "t")
-	b.Supports(h1)
-	b.Supports(h2)
-	b.Supports(tgt)
-	b.Edge(h2, event.EdgeDependsOn, tgt)
-	sel = b.As("a").Select(q, h1, "", false)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingOwner)
-	return b, q, h1, h2, tgt, sel
-}
-
-// wantOwnerHeld asserts the question still awaits the owner on the Dossier it
-// had, so no Confirm lapsed and no owner confirm was needed to get here.
-func wantOwnerHeld(t *testing.T, p Projection, q string, was *Dossier) {
-	t.Helper()
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingOwner)
-	if !p.Decisions[q].Dossier.Equal(was) {
-		t.Fatalf("the Dossier changed: %+v, was %+v", p.Decisions[q].Dossier.Items, was.Items)
-	}
-}
-
-func TestOpenSubquestionOnRivalKeepsTheOwner(t *testing.T) {
-	b, q, _, h2, _, _ := awaitingOwner(t)
-	was := replayB(b).Decisions[q].Dossier
-	sub := b.As("a").DQ(h2, "sub")
-	p := replayB(b)
-	wantOwnerHeld(t, p, q, was)
-	if p.Goal.Status != GoalInProgress {
-		t.Fatalf("goal = %s, want in_progress", p.Goal.Status)
-	}
-	b.Withdraw(sub)
-	wantOwnerHeld(t, replayB(b), q, was)
-}
-
-func TestContradictedPremiseOfRivalKeepsTheOwner(t *testing.T) {
-	b, q, _, h2, tgt, _ := awaitingOwner(t)
-	was := replayB(b).Decisions[q].Dossier
-	r := b.As("a").Contradicts(tgt)
-	p := replayB(b)
-	if p.Hyps[h2].Stale == nil {
-		t.Fatalf("h2 is not stale; the test needs its premise to have fallen")
-	}
-	wantOwnerHeld(t, p, q, was)
-	b.Retract(r)
-	wantOwnerHeld(t, replayB(b), q, was)
-}
-
-func TestOpenSubquestionOnRivalsPremiseKeepsTheOwner(t *testing.T) {
-	b, q, _, _, tgt, _ := awaitingOwner(t)
-	was := replayB(b).Decisions[q].Dossier
-	b.As("a").DQ(tgt, "sub")
-	wantOwnerHeld(t, replayB(b), q, was)
-}
-
-func TestSubquestionBeforeTheSelectStillRequiresOwner(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	b.Supports(h1)
-	b.Supports(h2)
-	b.DQ(h2, "sub")
-	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
-		t.Fatalf("candidates = %v, want [%s %s]", got, h1, h2)
-	}
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingOwner)
-}
-
-func TestDirectContradictsOnRivalLapsesTheVerifier(t *testing.T) {
-	b, q, _, h2, _, _ := awaitingOwner(t)
-	r := b.As("a").Contradicts(h2)
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingVerifier)
-	dec := p.Decisions[q]
-	added, _ := dec.ChangedSince(dec.Latest(event.RoleVerifier))
-	if !slices.ContainsFunc(added, func(it DossierItem) bool { return it.Kind == DossierResult && it.Node == r }) {
-		t.Fatalf("changed since = %+v, want it to name %s", added, r)
-	}
-}
-
-func TestAbandoningRivalWithFallenPremiseAnswersOnAFreshVerifier(t *testing.T) {
-	b, q, _, h2, tgt, sel := awaitingOwner(t)
-	b.As("a").Contradicts(tgt)
-	b.Abandon(h2)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingVerifier)
-	b.As("b").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
 }
@@ -1066,13 +887,28 @@ func TestLoneCandidateStaysACandidateWhenNotReady(t *testing.T) {
 	}
 }
 
+// twoCandidates builds two supported rivals with h2 depending on a supported
+// t in a second question.
+func twoCandidates() (b *testutil.B, q, h1, h2, tgt string) {
+	b = testutil.New()
+	g := b.Goal("g")
+	q = b.DQ(g, "q")
+	h1, h2 = b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	tgt = b.Hyp(b.DQ(g, "q2"), "t")
+	b.Supports(h1)
+	b.Supports(h2)
+	b.Supports(tgt)
+	b.Edge(h2, event.EdgeDependsOn, tgt)
+	return b, q, h1, h2, tgt
+}
+
 func TestTwoCandidatesWithOneNotReadyStayATradeoff(t *testing.T) {
-	b, q, h1, h2, tgt, _ := awaitingOwner(t)
+	b, q, h1, h2, tgt := twoCandidates()
 	b.As("a").Contradicts(tgt)
 	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
 		t.Fatalf("one stale: candidates = %v, want both", got)
 	}
-	b, q, h1, h2, _, _ = awaitingOwner(t)
+	b, q, h1, h2, _ = twoCandidates()
 	b.As("a").DQ(h2, "sub")
 	if got := replayB(b).Questions[q].Candidates; !reflect.DeepEqual(got, []string{h1, h2}) {
 		t.Fatalf("one waiting: candidates = %v, want both", got)
@@ -1179,31 +1015,31 @@ func TestSelectRecKeepsScopeChangeAndWhy(t *testing.T) {
 	}
 }
 
-func TestDecisionKeepsLatestVerifier(t *testing.T) {
+func TestDecisionKeepsLatestOwnerConfirm(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
 	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", false)
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
+	sel := b.As("a").Select(q, h, "", true)
+	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
 	why(b, "thin")
-	if c := replayB(b).Decisions[q].Latest(event.RoleVerifier); c.Verdict != event.ConfirmInsufficient || c.Why != "thin" {
+	if c := replayB(b).Decisions[q].Latest(event.RoleOwner); c.Verdict != event.ConfirmInsufficient || c.Why != "thin" {
 		t.Fatalf("after an insufficient confirm: %+v, want insufficient %q", c, "thin")
 	}
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
 	why(b, "good")
-	if c := replayB(b).Decisions[q].Latest(event.RoleVerifier); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
+	if c := replayB(b).Decisions[q].Latest(event.RoleOwner); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
 		t.Fatalf("after a sufficient confirm: %+v, want sufficient %q", c, "good")
 	}
 
 	// An amend stops the sufficient confirm counting, but the record keeps it:
-	// hyp show still prints the latest verifier confirm.
+	// hyp show still prints the latest owner confirm.
 	amend(b.As("a"), h, "new")
 	dec := replayB(b).Decisions[q]
-	if c := dec.Counting(event.RoleVerifier); c != nil {
+	if c := dec.Counting(event.RoleOwner); c != nil {
 		t.Fatalf("after an amend a confirm still counts: %+v", c)
 	}
-	if c := dec.Latest(event.RoleVerifier); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
+	if c := dec.Latest(event.RoleOwner); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
 		t.Fatalf("after an amend: %+v, want sufficient %q kept", c, "good")
 	}
 }
@@ -1216,11 +1052,11 @@ func TestConfirmOnEarlierSelectChangesOnlyIt(t *testing.T) {
 	b.Supports(h2)
 	s1 := b.As("a").Select(q, h1, "", true)
 	s2 := b.Select(q, h2, s1, true)
-	b.As("v").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
+	b.As("o").Confirm(q, s1, event.RoleOwner, event.ConfirmInsufficient)
 	why(b, "late")
 	p := replayB(b)
-	if rec, dec := currentSelect(t, p, q), p.Decisions[q]; rec.ID != s2 || dec.Latest(event.RoleVerifier) != nil {
-		t.Fatalf("current select = %+v with verifier %+v, want %s with none", rec, dec.Latest(event.RoleVerifier), s2)
+	if rec, dec := currentSelect(t, p, q), p.Decisions[q]; rec.ID != s2 || dec.Latest(event.RoleOwner) != nil {
+		t.Fatalf("current select = %+v with owner %+v, want %s with none", rec, dec.Latest(event.RoleOwner), s2)
 	}
 	if cs := p.Decisions[q].Confirms[s1]; len(cs) != 1 || cs[0].Verdict != event.ConfirmInsufficient || cs[0].Why != "late" {
 		t.Fatalf("earlier select's confirms = %+v, want insufficient %q", cs, "late")

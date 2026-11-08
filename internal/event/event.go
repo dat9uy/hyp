@@ -74,7 +74,7 @@ const (
 
 // Confirm roles and confirm verdicts.
 const (
-	RoleVerifier = "verifier"
+	RoleVerifier = "verifier" // retired by ADR 0015: only old logs hold it, and it applies nothing
 	RoleOwner    = "owner"
 
 	ConfirmSufficient   = "sufficient"

@@ -67,11 +67,11 @@ write:
   record   --exp REF --verdict REF=supports|contradicts|inconclusive... --observation O [--evidence P]... [--limit L]... [--closes R#N]...
   retract REF | abandon REF | reaffirm REF
   supersede NEW --old OLD
-  amend HYP --body B                     revise a Hypothesis body; re-verify if it is selected
+  amend HYP --body B                     revise a Hypothesis body
   link FROM depends_on|external_ref TO   unlink FROM TYPE TO
-  select DQ [HYP] [--scope-change]   (no HYP: print the suggestion only)
+  select DQ [HYP] [--scope-change]   admitted only when hyp status owes it (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ
-  confirm DQ --role verifier|owner --verdict sufficient|insufficient [--accept R#N]...
+  confirm DQ --role owner --verdict sufficient|insufficient [--accept R#N]...   (a scope-change select)
   checkpoint --summary S
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
@@ -80,7 +80,7 @@ read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
   check                                       rejected events, bad lines, warnings
-  signals [--json]                            waste tripwire signals: wasted, no-movement, one-rival, D1, spin, verifier-loop, unjudged
+  signals [--json]                            waste tripwire signals: wasted, no-movement, one-rival, D1, spin, unjudged
   events --json                               applied events in merge order, and rejected ones, as JSON for scripts
 
 recipe:

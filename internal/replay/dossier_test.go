@@ -161,22 +161,22 @@ func TestDecidingIgnoresARivalsOpenSubquestion(t *testing.T) {
 
 func TestDecisionKeepsEveryConfirmWithItsDossier(t *testing.T) {
 	b, q, _, h2, sel := selectedDossier()
-	v1 := b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
+	o1 := b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
 	r := b.As("a").Supports(h2)
-	o := b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
-	v2 := b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient) // history: applies nothing
+	o2 := b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
 	p := replayB(b)
 	dec := p.Decisions[q]
 	got := dec.Confirms[sel]
-	if len(got) != 3 || got[0].ID != v1 || got[1].ID != o || got[2].ID != v2 {
-		t.Fatalf("confirms = %+v, want v1, o, v2 in log order", got)
+	if len(got) != 2 || got[0].ID != o1 || got[1].ID != o2 {
+		t.Fatalf("confirms = %+v, want o1, o2 in log order", got)
 	}
 	it := DossierItem{Kind: DossierResult, Node: r, To: h2, Word: sup}
 	if slices.Contains(got[0].Items, it) {
 		t.Fatalf("the first confirm's Dossier holds a later Result: %+v", got[0].Items)
 	}
-	if !slices.Equal(got[2].Items, dec.Dossier.Items) {
-		t.Fatalf("the last confirm's Dossier %+v differs from the current %+v", got[2].Items, dec.Dossier.Items)
+	if !slices.Equal(got[1].Items, dec.Dossier.Items) {
+		t.Fatalf("the last confirm's Dossier %+v differs from the current %+v", got[1].Items, dec.Dossier.Items)
 	}
 }
 

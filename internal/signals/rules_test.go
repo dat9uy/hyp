@@ -79,67 +79,9 @@ func TestD1WhenATargetIsDead(t *testing.T) {
 	}
 }
 
-func TestVerifierLoopAcrossReselectsOfOneHypothesis(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	s1 := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
-	s2 := b.As("a").Select(q, h1, s1, false)
-	noSignal(t, Compute(b.Evs), "verifier-loop:")
-	v2 := b.As("v2").Confirm(q, s2, event.RoleVerifier, event.ConfirmInsufficient)
-	r := Compute(b.Evs)
-	want := "verifier-loop Q-" + q[len(q)-6:] + " selected " + h(h1) + " (select " + s2[len(s2)-6:] + "): verifier insufficient x2 (v1, v2)"
-	if got := detail(t, r, "verifier-loop:Q-"+q[len(q)-6:]+":"+v2); got != want {
-		t.Fatalf("got %q\nwant %q", got, want)
-	}
-}
-
-// Replaces the request path of verifier-loop: an old dq.request_verify event
-// is read-only history, so one verdict and a request are not a loop, with or
-// without anything new.
-func TestOldRequestIsNotALoop(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").Emit(event.TypeDQRequestVerify, q, event.DQRequestVerify{Select: sel})
-	noSignal(t, compute(t, b), "verifier-loop:")
-	b.Supports(h1)
-	b.Emit(event.TypeDQRequestVerify, q, event.DQRequestVerify{Select: sel})
-	noSignal(t, compute(t, b), "verifier-loop:")
-}
-
-func TestUnselectResetsTheChain(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	s1 := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").Unselect(q, s1)
-	s2 := b.As("a").Select(q, h1, "", false)
-	b.As("v2").Confirm(q, s2, event.RoleVerifier, event.ConfirmInsufficient)
-	noSignal(t, compute(t, b), "verifier-loop:")
-}
-
-func TestSufficientClearsTheChain(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	s1 := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("v2").Confirm(q, s1, event.RoleVerifier, event.ConfirmSufficient)
-	s2 := b.As("a").Select(q, h1, s1, false)
-	b.As("v3").Confirm(q, s2, event.RoleVerifier, event.ConfirmInsufficient)
-	noSignal(t, compute(t, b), "verifier-loop:")
-}
-
-func TestAmendRestartsTheChain(t *testing.T) {
+// The verifier-loop signal was retired with the verifier role (ADR 0015):
+// old insufficient verifier confirms in a row are history and fire nothing.
+func TestOldVerifierVerdictsFireNoSignal(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h1 := b.Hyp(q, "h1")
@@ -147,95 +89,6 @@ func TestAmendRestartsTheChain(t *testing.T) {
 	sel := b.As("a").Select(q, h1, "", false)
 	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
 	b.As("v2").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").Emit(event.TypeHypothesisAmend, h1, event.HypothesisAmend{Body: "new body"})
-	b.As("v3").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	noSignal(t, compute(t, b), "verifier-loop:")
-}
-
-func TestAmendAfterSufficientKeepsOnlyLaterVerdicts(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("v2").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("v3").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
-	b.As("a").Emit(event.TypeHypothesisAmend, h1, event.HypothesisAmend{Body: "new body"})
-	b.As("v4").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	noSignal(t, compute(t, b), "verifier-loop:")
-}
-
-func TestAmendOfRivalKeepsTheChain(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").Emit(event.TypeHypothesisAmend, h2, event.HypothesisAmend{Body: "new body"})
-	v2 := b.As("v2").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	if got := detail(t, compute(t, b), "verifier-loop:Q-"+q[len(q)-6:]+":"+v2); !strings.Contains(got, "insufficient x2 (v1, v2)") {
-		t.Fatalf("got %q, want the chain kept across a rival amend", got)
-	}
-}
-
-func TestAmendRestartsTheLoop(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	sel := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	b.As("a").Emit(event.TypeHypothesisAmend, h1, event.HypothesisAmend{Body: "new body"})
-	b.As("v2").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	noSignal(t, compute(t, b), "verifier-loop:")
-}
-
-func TestVerifierLoopFollowsSupersedes(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	s1 := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
-	h2 := b.As("a").Hyp(q, "h1 with the fix")
-	b.Edge(h2, event.EdgeSupersedes, h1)
-	b.Supports(h2)
-	s2 := b.Select(q, h2, s1, false)
-	v2 := b.As("v2").Confirm(q, s2, event.RoleVerifier, event.ConfirmInsufficient)
-	want := "verifier-loop Q-" + q[len(q)-6:] + " selected " + h(h2) + " (select " + s2[len(s2)-6:] + "): verifier insufficient x2 (v1, v2)"
-	if got := detail(t, compute(t, b), "verifier-loop:Q-"+q[len(q)-6:]+":"+v2); got != want {
-		t.Fatalf("got %q\nwant %q", got, want)
-	}
-}
-
-func TestSelectOfAPlainRivalStillResetsTheChain(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	b.Supports(h1)
-	b.Supports(h2)
-	s1 := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
-	s2 := b.As("a").Select(q, h2, s1, false)
-	b.As("v2").Confirm(q, s2, event.RoleVerifier, event.ConfirmInsufficient)
-	noSignal(t, compute(t, b), "verifier-loop:")
-}
-
-func TestRemovedSupersedesResetsTheChain(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1 := b.Hyp(q, "h1")
-	b.Supports(h1)
-	s1 := b.As("a").Select(q, h1, "", false)
-	b.As("v1").Confirm(q, s1, event.RoleVerifier, event.ConfirmInsufficient)
-	h2 := b.As("a").Hyp(q, "h2")
-	b.Edge(h2, event.EdgeSupersedes, h1)
-	b.Unedge(h2, event.EdgeSupersedes, h1)
-	b.Supports(h2)
-	s2 := b.Select(q, h2, s1, false)
-	b.As("v2").Confirm(q, s2, event.RoleVerifier, event.ConfirmInsufficient)
 	noSignal(t, compute(t, b), "verifier-loop:")
 }
 

@@ -25,7 +25,7 @@ func TestOwedRunnerWalksToSelect(t *testing.T) {
 	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" select "+h+", the only candidate\n")
 	must(t, "select", q, h, "--why", "w")
-	want(t, hyp(t, "status"), 0, "verifier: "+q+" confirm the select\n")
+	want(t, hyp(t, "status"), 0, "complete (answered 1")
 	want(t, hyp(t, "status"), 0, "runner owes nothing: stop and report to the owner\n")
 }
 
@@ -215,4 +215,24 @@ func TestOwnerRevisesAnAnswer(t *testing.T) {
 		t.Fatalf("revised answer still owed after a Result applied it:\n%s", out.stdout)
 	}
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+}
+
+// Two questions whose candidates assume each other's Hypotheses hold each
+// other's select; hyp check names the cycle.
+func TestCheckWarnsOnPremiseCycle(t *testing.T) {
+	_, g, q1 := setup(t)
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	supported := func(q, title string) string {
+		h := must(t, "add", "hyp", "--parent", q, "--title", title, "--why", "w")
+		e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+		must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w")
+		return h
+	}
+	a1, a2 := supported(q1, "A1"), supported(q1, "A2")
+	c1, c2 := supported(q2, "C1"), supported(q2, "C2")
+	must(t, "link", a1, "depends_on", c2, "--why", "w")
+	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+	must(t, "link", c1, "depends_on", a2, "--why", "w")
+	want(t, hyp(t, "check"), 0, "warn: premise cycle between "+q1+" and "+q2+"; remove a depends_on edge to break it")
+	want(t, hyp(t, "select", q1), 0, "suggested: none ("+a1+" assumes "+c2+", in "+q2+" open; decide "+q2+" first)")
 }

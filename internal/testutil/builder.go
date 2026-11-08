@@ -100,12 +100,11 @@ func (b *B) Contradicts(h string) string {
 	return b.Result(b.Exp(h, event.RecipeNone), map[string]string{h: event.VerdictContradicts})
 }
 
-// Answer selects h on dq as actor a and confirms it as verifier b, then
-// restores the previous actor. It returns the select id.
+// Answer selects h on dq as actor a, then restores the previous actor. A
+// select of the lone candidate answers the question. It returns the select id.
 func (b *B) Answer(dq, h, prev string) string {
 	saved := b.actor
 	sel := b.As("a").Select(dq, h, prev, false)
-	b.As("b").Confirm(dq, sel, event.RoleVerifier, event.ConfirmSufficient)
 	b.As(saved)
 	return sel
 }

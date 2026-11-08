@@ -155,7 +155,6 @@ func TestAdmitConfirm(t *testing.T) {
 	for name, c := range map[string]event.Confirm{
 		"accepted":           owner(key),
 		"owner insufficient": {Role: event.RoleOwner, Verdict: event.ConfirmInsufficient},
-		"verifier":           {Role: event.RoleVerifier, Verdict: event.ConfirmSufficient},
 	} {
 		if fs := p.AdmitConfirm(q, c); len(fs) != 0 {
 			t.Fatalf("%s: findings = %+v, want none", name, fs)

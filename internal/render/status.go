@@ -65,7 +65,8 @@ func Status(p replay.Projection, maxLines int) string {
 		return p.Hyps[h].Status == replay.HypSupported && p.Questions[sub].State == replay.DQDeferred
 	}
 	// awaitingOwner collects, for each question FRONTIER prints, the one step
-	// due from the owner: confirm the select, or choose between the candidates.
+	// due from the owner: choose between the candidates, or confirm a
+	// scope-change select.
 	var awaitingOwner []string
 	printQuestion := func(dq, indent string) {
 		ns := p.Questions[dq]
@@ -100,16 +101,13 @@ func Status(p replay.Projection, maxLines int) string {
 		}
 		switch {
 		case ns.Reason == replay.ReasonAwaitingOwner:
-			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s", r.id(dq), r.id(SelectedHyp(p, dq))))
+			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s (scope change)", r.id(dq), r.id(SelectedHyp(p, dq))))
 		case slices.ContainsFunc(owed, func(o replay.Owed) bool { return o.Kind == replay.OwedChoose && o.Key == dq }):
 			mark := ""
 			if !resultSeparates(p, ns.Candidates) {
 				mark = " (no Result separates them)"
 			}
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s choose: %s%s", r.id(dq), r.named(ns.Candidates), mark))
-		}
-		if ns.Reason == replay.ReasonVerifierInsufficient {
-			add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
 		}
 		if chosen := chosenCandidate(p, dq); chosen != "" {
 			var rivals []string
@@ -217,8 +215,8 @@ func Status(p replay.Projection, maxLines int) string {
 		}
 	}
 
-	// OWED is the ledger: what the runner and the verifier owe on each open
-	// question. Its last line is the stop clause a run reads.
+	// OWED is the ledger: what the runner owes on each question. Its last
+	// line is the stop clause a run reads.
 	add(kKeep, "OWED")
 	n = 0
 	for _, o := range owed {
@@ -501,6 +499,11 @@ func (r renderer) owedLine(o replay.Owed) string {
 		return q + " add rival Hypotheses"
 	case replay.OwedUntested:
 		return q + " test " + r.withAlias(o.Key)
+	case replay.OwedUndecided:
+		return q + " decide " + r.withAlias(o.Key) + ", inconclusive with no planned Experiment"
+	case replay.OwedPremise:
+		t := r.p.Nodes[o.To].Parent
+		return q + " premise " + r.id(o.Key) + " assumes " + r.id(o.To) + ", but " + r.id(t) + " selected " + r.id(SelectedHyp(r.p, t))
 	case replay.OwedPlanned:
 		return q + " run " + r.id(o.Key) + " " + Cut(r.p.Nodes[o.Key].Title, 60)
 	case replay.OwedLimit, replay.OwedReading, replay.OwedReferred:
@@ -530,10 +533,6 @@ func (r renderer) owedLine(o replay.Owed) string {
 		return q + " choose: " + r.named(r.p.Questions[o.Question].Candidates)
 	case replay.OwedSelect:
 		return q + " select " + r.withAlias(o.Key) + ", the only candidate"
-	case replay.OwedConfirm:
-		return q + " confirm the select"
-	case replay.OwedRespond:
-		return q + " answer the verifier's insufficient confirm"
 	}
 	return q + " " + o.Kind
 }

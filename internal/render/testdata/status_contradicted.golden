@@ -11,20 +11,19 @@ FRONTIER
   Q-000004 reopened/selected_not_supported which ingest path
     H-000007 contradicted nightly CSV import
 STALE
-  H-000005 stale ← H-000006 stale ← H-000007 contradicted ← R-000023
-  H-000006 stale ← H-000007 contradicted ← R-000023
+  H-000005 stale ← H-000006 stale ← H-000007 contradicted ← R-000020
+  H-000006 stale ← H-000007 contradicted ← R-000020
 OWED
   runner: Q-000004 add rival Hypotheses
 AWAITING OWNER
 RECENT
-  2026-10-24 00:00 a result.record R-000023 — test
-  2026-10-24 00:00 b confirm Q-000004 — test
+  2026-10-24 00:00 a result.record R-000020 — test
   2026-10-24 00:00 a dq.select Q-000004 — test
-  2026-10-24 00:00 b confirm Q-000003 — test
   2026-10-24 00:00 a dq.select Q-000003 — test
-  2026-10-24 00:00 b confirm Q-000002 — test
   2026-10-24 00:00 a dq.select Q-000002 — test
   2026-10-24 00:00 a edge.add H-000005 — test
   2026-10-24 00:00 a edge.add H-000006 — test
   2026-10-24 00:00 a result.record R-000013 — test
+  2026-10-24 00:00 a result.record R-000011 — test
+  2026-10-24 00:00 a result.record R-000009 — test
 CHECKPOINT 2026-10-24 00:00 a: all three questions answered

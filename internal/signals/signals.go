@@ -1,5 +1,5 @@
 // Package signals computes the waste tripwire's signals from an event log:
-// wasted, no-movement, one-rival, D1, spin, verifier-loop and unjudged. Each signal line
+// wasted, no-movement, one-rival, D1, spin and unjudged. Each signal line
 // names the statuses or verdicts its rule used. It is pure, like replay: no
 // file I/O and no clock.
 package signals
@@ -259,22 +259,6 @@ func Compute(evs []event.Event) Report {
 				moves = append(moves, fmt.Sprintf("%s→%s at %s", s.before, s.after, s.rid))
 			}
 			add("spin:"+display(h)+":"+w[2].rid, roundOf[expOf[w[2].rid]], "spin "+display(h)+" "+strings.Join(moves, ", "))
-		}
-	}
-
-	var questions []string
-	for _, ev := range full.Applied {
-		if ev.Type == event.TypeDQSelect && !slices.Contains(questions, ev.Node) {
-			questions = append(questions, ev.Node)
-		}
-	}
-	for _, q := range questions {
-		s := viewOf(q, full.Decisions[q])
-		if s == nil {
-			continue
-		}
-		if len(s.chain) >= 2 {
-			add("verifier-loop:"+display(q)+":"+s.chain[len(s.chain)-1].id, len(rounds), "verifier-loop "+s.describe(display))
 		}
 	}
 

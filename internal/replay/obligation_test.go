@@ -101,7 +101,7 @@ func TestSubquestionIsAnObligation(t *testing.T) {
 			o.b.Withdraw(sub)
 			wantStatus(t, replayB(o.b), o.q, DQAnswered, "")
 		}},
-		{"a premise goes through depends_on and lapses the Confirm", func(t *testing.T, o obligation) {
+		{"a premise goes through depends_on and reaffirm restores the answer", func(t *testing.T, o obligation) {
 			sub, ans, sel := o.answered(o.h1)
 			o.b.Edge(o.h1, event.EdgeDependsOn, ans)
 			o.b.Reaffirm(o.h1)
@@ -121,7 +121,7 @@ func TestSubquestionIsAnObligation(t *testing.T) {
 			o.b.Unedge(o.h1, event.EdgeDependsOn, ans)
 			o.b.Edge(o.h1, event.EdgeDependsOn, ans2)
 			o.b.Reaffirm(o.h1)
-			wantStatus(t, replayB(o.b), o.q, DQReopened, ReasonAwaitingVerifier)
+			wantStatus(t, replayB(o.b), o.q, DQAnswered, "")
 		}},
 		{"a basis taken while the target had an open sub-question stays good", func(t *testing.T, o obligation) {
 			q2 := o.b.DQ(o.g, "q2")

@@ -18,15 +18,16 @@ the run goes well:
 
 - **Write-time refusals.** The binary refuses events that would corrupt the
   tree or skip a step, for example an experiment that ignores live rivals
-  without saying so, or a verifier confirming its own select. The list is
+  without saying so, or a select the ledger does not owe. The list is
   owned by [replay-spec.md](replay-spec.md) §5.
 - **Waste signals.** `hyp signals` computes them from the event log
   (`internal/signals/signals.go`). The tripwire policy, which warns first and
   then stops, and the round cap lived in the session-replay recipe's
   `tripwire.py`. Records made before the public release stay in the private
   development history.
-- **An independent verifier on every select**, and the owner on trade-offs
-  ([VERIFIER.md](../skills/hyp-prototype/VERIFIER.md)).
+- **The select is the gate.** `hyp select` is admitted only when the ledger
+  owes it, and the owner decides trade-offs
+  ([ADR 0015](adr/0015-the-select-is-the-gate.md)).
 
 A run that reaches a verified decision with no tripwire events is a success.
 It needs no further study.

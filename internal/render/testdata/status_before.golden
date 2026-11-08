@@ -5,14 +5,12 @@ OWED
   runner owes nothing: stop and report to the owner
 AWAITING OWNER
 RECENT
-  2026-10-24 00:00 b confirm Q-000004 — test
   2026-10-24 00:00 a dq.select Q-000004 — test
-  2026-10-24 00:00 b confirm Q-000003 — test
   2026-10-24 00:00 a dq.select Q-000003 — test
-  2026-10-24 00:00 b confirm Q-000002 — test
   2026-10-24 00:00 a dq.select Q-000002 — test
   2026-10-24 00:00 a edge.add H-000005 — test
   2026-10-24 00:00 a edge.add H-000006 — test
   2026-10-24 00:00 a result.record R-000013 — test
   2026-10-24 00:00 a result.record R-000011 — test
+  2026-10-24 00:00 a result.record R-000009 — test
 CHECKPOINT 2026-10-24 00:00 a: all three questions answered

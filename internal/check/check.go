@@ -90,6 +90,11 @@ func Run(root string) (report []string, errorsFound int) {
 			warns = append(warns, fmt.Sprintf("warn: uncontained %s (%s)", display(id), why))
 		}
 	}
+	// Two questions whose candidates assume each other's Hypotheses hold
+	// each other's select (spec §8.1).
+	for _, c := range p.PremiseCycles() {
+		warns = append(warns, fmt.Sprintf("warn: premise cycle between %s and %s; remove a depends_on edge to break it", display(c[0]), display(c[1])))
+	}
 	// A recipe left out of the hashes makes its Results questionable; say why.
 	for _, pr := range problems {
 		warns = append(warns, "warn: "+pr)
