@@ -54,6 +54,7 @@ The section of `hyp status` that names the one step due from the owner on each q
 
 **Reading**:
 How a run read a line of the Goal that a verdict rests on, recorded on the Result with `hyp record --reading`. It stays open until an owner checkpoint closes it with their answer.
+A reading asks what the owner's words mean, and a trade-off asks which candidate to choose. Closing a reading changes no status, because statuses come only from verdicts. An answer that rules out a candidate takes effect when a later Result records `contradicts` on it, and a trade-off it would settle stays under Awaiting owner until then, marked `(answered readings with no Result since: N)`.
 
 **Open limits**:
 The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a ledger, not open work.
@@ -111,6 +112,7 @@ _Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for 
 
 **Trade-off**:
 A DesignQuestion with two or more candidates now, or a select written with `--tradeoff`. Either one requires the owner ([spec §7.4](replay-spec.md#74-designquestion-state)). On a `--tradeoff` select, the verifier also treats a supported rival as left on purpose.
+A trade-off is between candidates, not about what a Goal line means, which is a Reading. It ends when Results leave one candidate, or when the owner chooses one, recorded as a `--tradeoff` select, and confirms it.
 
 **Select**:
 The `dq.select` event that records one Hypothesis as a DesignQuestion's answer. It is written by whoever runs the tree, never in the owner's role. A verifier confirm must then count on it, and an owner confirm too when the owner is required ([spec §7.4](replay-spec.md#74-designquestion-state)). On a trade-off the owner chooses first (see Owner). In code: the question's `replay.Decision`.
