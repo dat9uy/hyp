@@ -68,6 +68,11 @@ func Status(p replay.Projection, maxLines int) string {
 	printQuestion := func(dq, indent string) {
 		ns := p.Questions[dq]
 		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.State, ns.Reason, Cut(p.Nodes[dq].Title, 60))
+		// The candidates line says whether one or several are left; with none,
+		// the question's reason already says so.
+		if len(ns.Candidates) > 0 {
+			add(kKeep, "%s  candidates (%d): %s", indent, len(ns.Candidates), r.named(ns.Candidates))
+		}
 		switch {
 		case ns.Reason == replay.ReasonAwaitingOwner:
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s", r.id(dq), r.id(SelectedHyp(p, dq))))

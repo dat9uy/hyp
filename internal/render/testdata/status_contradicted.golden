@@ -1,8 +1,10 @@
 GOAL G-000001 ship the data design — in_progress (answered 0, open 0, reopened 3, deferred 0, withdrawn 0, stale 2)
 FRONTIER
   Q-000002 reopened/selected_stale which API shape
+    candidates (1): H-000005
     H-000005 supported STALE REST over the ledger
   Q-000003 reopened/selected_stale which storage
+    candidates (1): H-000006
     H-000006 supported STALE ledger table in Postgres
   Q-000004 reopened/selected_not_supported which ingest path
     H-000007 contradicted nightly CSV import
