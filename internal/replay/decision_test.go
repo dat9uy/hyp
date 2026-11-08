@@ -228,9 +228,20 @@ func TestOwnerNotRequiredOnceCandidatesAreGone(t *testing.T) {
 	wantStatus(t, replayB(b), q, DQAnswered, "")
 }
 
+// A trade-off is derived from the candidates, so an older select's stored
+// tradeoff flag no longer requires the owner on a lone candidate.
+func TestOldTradeoffFlagNeedsNoOwner(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h := b.Hyp(q, "h")
+	b.Supports(h)
+	sel := b.As("a").Emit(event.TypeDQSelect, q, event.DQSelect{Hypothesis: h, Tradeoff: true})
+	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmSufficient)
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+}
+
 func TestOwnerRequiredByTheSelectsFlags(t *testing.T) {
 	for name, payload := range map[string]func(h string) event.DQSelect{
-		"tradeoff":     func(h string) event.DQSelect { return event.DQSelect{Hypothesis: h, Tradeoff: true} },
 		"scope change": func(h string) event.DQSelect { return event.DQSelect{Hypothesis: h, ScopeChange: true} },
 	} {
 		t.Run(name, func(t *testing.T) {

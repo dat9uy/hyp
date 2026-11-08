@@ -59,7 +59,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		rec, ok := p.CurrentSelect(id)
 		if ok {
 			kind := ""
-			if k := SelectKind(rec); k != "" {
+			if k := SelectKind(p, id, rec); k != "" {
 				kind = " (" + k + ")"
 			}
 			w("selected: %s%s — %s", r.id(rec.Hyp), kind, rec.Why)
@@ -233,6 +233,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				for _, k := range s.Closes {
 					w("    closes: %s", r.limitLabel(event.KeyResult(k), k))
 				}
+				for _, k := range s.Accepts {
+					w("    accepts: %s", r.limitLabel(event.KeyResult(k), k))
+				}
 				for _, k := range s.Refers {
 					w("    refers: %s", r.limitLabel(event.KeyResult(k), k))
 				}
@@ -255,7 +258,15 @@ func readingLine(r renderer, l replay.Reading) string {
 	if l.By != "" {
 		state = fmt.Sprintf("closed by owner checkpoint %s, answer: %q", l.By, l.Answer)
 	}
-	return fmt.Sprintf("reading %s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
+	return fmt.Sprintf("reading %s%s %s — %s", r.limitLabel(l.Result, l.Key), r.of(l), state, l.Text)
+}
+
+// of names the answer a reading reads, as " of R-W6V06D#r1", or "".
+func (r renderer) of(l replay.Reading) string {
+	if l.Of == "" {
+		return ""
+	}
+	return " of " + r.limitLabel(event.KeyResult(l.Of), l.Of)
 }
 
 // limitLabel shows limit key k of Result res as R-W6V06D#1.

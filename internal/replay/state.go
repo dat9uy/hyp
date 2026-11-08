@@ -108,7 +108,8 @@ type Node struct {
 	Observation                                                                         string
 	Evidence                                                                            []string
 	EvidenceHashes                                                                      map[string]string
-	Limits, Closes, Readings                                                            []string
+	Limits, Closes                                                                      []string
+	Readings                                                                            []event.ReadingItem
 	Aims, Applies                                                                       []string
 }
 
@@ -189,6 +190,7 @@ func (p Projection) CurrentSelect(dq string) (rec SelectRec, ok bool) {
 // at the reading, the first Result under its question after the close.
 type Reading struct {
 	Key, Result, Text string
+	Of                string // the reading whose owner answer this one reads, or ""
 	By, Answer        string
 	Question          string
 	Applied           string
@@ -222,7 +224,6 @@ type Edge struct {
 // SelectRec is one applied dq.select.
 type SelectRec struct {
 	ID, Hyp, Actor string
-	Tradeoff       bool
 	ScopeChange    bool
 	Why            string
 }

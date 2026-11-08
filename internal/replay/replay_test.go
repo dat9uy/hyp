@@ -1174,7 +1174,7 @@ func TestSelectRecKeepsScopeChangeAndWhy(t *testing.T) {
 	b.Emit(event.TypeDQSelect, q, event.DQSelect{Hypothesis: h, ScopeChange: true})
 	sel := why(b, "pick h")
 	rec := currentSelect(t, replayB(b), q)
-	if rec.ID != sel || rec.Hyp != h || !rec.ScopeChange || rec.Tradeoff || rec.Why != "pick h" {
+	if rec.ID != sel || rec.Hyp != h || !rec.ScopeChange || rec.Why != "pick h" {
 		t.Fatalf("current select = %+v, want %s on %s, scope-change, why %q", rec, sel, h, "pick h")
 	}
 }

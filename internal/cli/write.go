@@ -310,12 +310,13 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("record", stdout, stderr)
 	exp := w.fs.String("exp", "", "Experiment the Result belongs to (required)")
 	observation := w.fs.String("observation", "", fmt.Sprintf("what was observed (required, at most %d runes)", event.MaxText))
-	var verdicts, evidence, limits, closes, readings, applies multi
+	var verdicts, evidence, limits, closes, readings, readingsOf, applies multi
 	w.fs.Var(&verdicts, "verdict", "REF=supports|contradicts|inconclusive (repeatable, at least one)")
 	w.fs.Var(&evidence, "evidence", fmt.Sprintf("URL, or path under .tree/evidence or recipes; recipes/NAME@VERSION/FILE is looked up like --recipe (repeatable, at most %d, each at most %d runes)", event.MaxEvidence, event.MaxEvidenceItem))
 	w.fs.Var(&limits, "limit", fmt.Sprintf("an open limit of the tested design (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	w.fs.Var(&closes, "closes", "R-id#n of a limit this Result closes (repeatable)")
 	w.fs.Var(&readings, "reading", fmt.Sprintf("how you read a Goal line a verdict rests on (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxReadingItem))
+	w.fs.Var(&readingsOf, "reading-of", "R-id#rn=TEXT: how you read the owner's answer to that reading; it narrows the answer and never reopens it (repeatable; numbered after the --reading items)")
 	w.fs.Var(&applies, "applies", "R-id#rn of an answered reading whose answer these verdicts apply; the Experiment must aim at it (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
 		return err
@@ -363,7 +364,21 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		p := event.ResultRecord{Parent: expID, Verdicts: map[string]string{}, Observation: *observation, Evidence: evidence,
-			EvidenceHashes: hashes, Limits: limits, Readings: readings}
+			EvidenceHashes: hashes, Limits: limits}
+		for _, t := range readings {
+			p.Readings = append(p.Readings, event.ReadingItem{Text: t})
+		}
+		for _, s := range readingsOf {
+			ref, text, ok := strings.Cut(s, "=")
+			if !ok {
+				return draft{}, usageErr("--reading-of %q: want <R-id>#r<n>=TEXT", s)
+			}
+			keys, err := w.readingKeys("--reading-of", []string{ref})
+			if err != nil {
+				return draft{}, err
+			}
+			p.Readings = append(p.Readings, event.ReadingItem{Of: keys[0], Text: text})
+		}
 		if _, err := admitted(w.st.AdmitResult(p, w.recipeFacts(expID), refHash)); err != nil {
 			return draft{}, err
 		}
@@ -486,6 +501,26 @@ func (w *writer) limitKeys(flag string, refs []string) ([]string, error) {
 	return keys, nil
 }
 
+// readingKeys resolves "<REF>#r<n>" arguments to reading keys of full ids.
+func (w *writer) readingKeys(flag string, refs []string) ([]string, error) {
+	var keys []string
+	for _, s := range refs {
+		ref, n, ok := event.ParseReadingKey(s)
+		if !ok {
+			if _, _, isLimit := event.ParseLimitKey(s); isLimit && flag == "--closes" {
+				return nil, usageErr("--closes %q is a limit: an owner accepts a limit with --accept", s)
+			}
+			return nil, usageErr("%s %q: want <R-id>#r<n>", flag, s)
+		}
+		id, err := w.ref(ref)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, event.ReadingKey(id, n))
+	}
+	return keys, nil
+}
+
 // itemKeys resolves limit keys (<R-id>#<n>) and reading keys (<R-id>#r<n>).
 func (w *writer) itemKeys(flag string, refs []string) ([]string, error) {
 	var keys []string
@@ -604,7 +639,6 @@ func cmdLink(name, typ string) func([]string, io.Writer, io.Writer) error {
 
 func cmdSelect(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("select", stdout, stderr)
-	tradeoff := w.fs.Bool("tradeoff", false, "the choice trades off owner-visible properties")
 	scope := w.fs.Bool("scope-change", false, "the choice changes the Goal's scope")
 	pos, err := parse(w.fs, args)
 	if err != nil {
@@ -615,7 +649,7 @@ func cmdSelect(args []string, stdout, stderr io.Writer) error {
 		return suggest(w, pos[0])
 	case 2:
 	default:
-		return usageErr("usage: hyp select DQ [HYP] [--tradeoff] [--scope-change]")
+		return usageErr("usage: hyp select DQ [HYP] [--scope-change]")
 	}
 	if pos, err = w.begin(args, 2); err != nil {
 		return err
@@ -627,7 +661,7 @@ func cmdSelect(args []string, stdout, stderr io.Writer) error {
 		}
 		h, err := w.ref(pos[1])
 		return draft{event.TypeDQSelect, dq, event.DQSelect{Hypothesis: h,
-			PrevSelect: w.currentSelect(dq), Tradeoff: *tradeoff, ScopeChange: *scope}}, err
+			PrevSelect: w.currentSelect(dq), ScopeChange: *scope}}, err
 	})
 }
 
@@ -723,9 +757,10 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
-	role := w.fs.String("role", "", "owner, required with --closes")
-	var closes, refers multi
-	w.fs.Var(&closes, "closes", "R-id#rn of a reading this owner checkpoint answers, or R-id#n of a limit the owner accepts (repeatable)")
+	role := w.fs.String("role", "", "owner, required with --closes and --accept")
+	var closes, accepts, refers multi
+	w.fs.Var(&closes, "closes", "R-id#rn of a reading this owner checkpoint answers; --summary holds the owner's words (repeatable)")
+	w.fs.Var(&accepts, "accept", "R-id#n of a limit the owner accepts untested (repeatable)")
 	w.fs.Var(&refers, "refers", "R-id#n of a limit no test within the Goal's lines can settle, handed to the owner; --summary says why (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
 		return err
@@ -739,13 +774,19 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	if len(closes) > 0 && *role != event.RoleOwner {
 		return usageErr("--closes needs --role owner")
 	}
+	if len(accepts) > 0 && *role != event.RoleOwner {
+		return usageErr("--accept needs --role owner")
+	}
 	return w.run(func() (draft, error) {
 		if w.st.GoalID == "" {
 			return draft{}, refusedErr("no Goal yet")
 		}
 		p := event.Checkpoint{Summary: *summary, Role: *role}
 		var err error
-		if p.Closes, err = w.itemKeys("--closes", closes); err != nil {
+		if p.Closes, err = w.readingKeys("--closes", closes); err != nil {
+			return draft{}, err
+		}
+		if p.Accepts, err = w.limitKeys("--accept", accepts); err != nil {
 			return draft{}, err
 		}
 		if p.Refers, err = w.limitKeys("--refers", refers); err != nil {

@@ -69,7 +69,7 @@ write:
   supersede NEW --old OLD
   amend HYP --body B                     revise a Hypothesis body; re-verify if it is selected
   link FROM depends_on|external_ref TO   unlink FROM TYPE TO
-  select DQ [HYP] [--tradeoff] [--scope-change]   (no HYP: print the suggestion only)
+  select DQ [HYP] [--scope-change]   (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ
   confirm DQ --role verifier|owner --verdict sufficient|insufficient [--accept R#N]...
   checkpoint --summary S

@@ -47,6 +47,7 @@ func Status(p replay.Projection, maxLines int) string {
 		r.id(g.ID), Cut(g.Title, 60), p.Goal.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
 		c[string(replay.DQReopened)], c[string(replay.DQDeferred)], c[string(replay.DQWithdrawn)], c[replay.StaleReasonStale])
 
+	owed := p.Owed()
 	add(kKeep, "FRONTIER")
 	// FRONTIER is the tree pruned to open work. The walk visits every question
 	// once. A node prints only beneath its parent, and a sub-question prints only
@@ -71,21 +72,25 @@ func Status(p replay.Projection, maxLines int) string {
 		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.State, ns.Reason, Cut(p.Nodes[dq].Title, 60))
 		// The candidates line says whether one or several are left; with none,
 		// the question's reason already says so.
+		// Two or more candidates are a trade-off, a state named where it is
+		// computed; the owner's turn to choose prints under AWAITING OWNER only
+		// when the ledger owes it.
 		if len(ns.Candidates) > 0 {
-			add(kKeep, "%s  candidates (%d): %s", indent, len(ns.Candidates), r.named(ns.Candidates))
+			state := ""
+			if len(ns.Candidates) >= 2 {
+				state = " (trade-off)"
+			}
+			add(kKeep, "%s  candidates (%d): %s%s", indent, len(ns.Candidates), r.named(ns.Candidates), state)
 		}
 		switch {
 		case ns.Reason == replay.ReasonAwaitingOwner:
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s", r.id(dq), r.id(SelectedHyp(p, dq))))
-		case len(ns.Candidates) >= 2 && chosenCandidate(p, dq) == "":
+		case slices.ContainsFunc(owed, func(o replay.Owed) bool { return o.Kind == replay.OwedChoose && o.Key == dq }):
 			mark := ""
 			if !resultSeparates(p, ns.Candidates) {
 				mark = " (no Result separates them)"
 			}
-			if n := unapplied(p, dq); n > 0 {
-				mark += fmt.Sprintf(" (answered readings not applied: %d)", n)
-			}
-			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s trade-off: %s%s", r.id(dq), r.named(ns.Candidates), mark))
+			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s choose: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
 		if ns.Reason == replay.ReasonVerifierInsufficient {
 			add(kKeep, "%s  verifier: %s", indent, Cut(p.Decisions[dq].Counting(event.RoleVerifier).Why, event.MaxWhy))
@@ -198,7 +203,6 @@ func Status(p replay.Projection, maxLines int) string {
 
 	// OWED is the ledger: what the runner and the verifier owe on each open
 	// question. Its last line is the stop clause a run reads.
-	owed := p.Owed()
 	add(kKeep, "OWED")
 	n = 0
 	for _, o := range owed {
@@ -221,13 +225,14 @@ func Status(p replay.Projection, maxLines int) string {
 		add(kKeep, "%s", s)
 	}
 	for _, o := range owed {
-		if o.Who == replay.OwedOwner {
+		// A choose item prints with its question, from the walk above.
+		if o.Who == replay.OwedOwner && o.Kind != replay.OwedChoose {
 			add(kKeep, "  %s", r.owedLine(o))
 		}
 	}
 	for _, l := range p.Readings {
 		if l.By == "" {
-			add(kKeep, "  %s reading: %s", r.limitLabel(l.Result, l.Key), l.Text)
+			add(kKeep, "  %s%s reading: %s", r.limitLabel(l.Result, l.Key), r.of(l), l.Text)
 		}
 	}
 
@@ -406,11 +411,12 @@ func SelectedHyp(p replay.Projection, dq string) string {
 	return rec.Hyp
 }
 
-// SelectKind names what a select needs the owner for: "trade-off",
-// "scope-change", both joined by ", ", or "" for a plain select.
-func SelectKind(rec replay.SelectRec) string {
+// SelectKind names what a select needs the owner for: "trade-off" when its
+// Hypothesis is one of two or more candidates, "scope-change", both joined by
+// ", ", or "" for a plain select.
+func SelectKind(p replay.Projection, dq string, rec replay.SelectRec) string {
 	var kinds []string
-	if rec.Tradeoff {
+	if cands := p.Questions[dq].Candidates; len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
 		kinds = append(kinds, "trade-off")
 	}
 	if rec.ScopeChange {
@@ -420,11 +426,11 @@ func SelectKind(rec replay.SelectRec) string {
 }
 
 // chosenCandidate returns the Hypothesis of the DQ's current select when that
-// select records the owner's choice: it has --tradeoff and its Hypothesis is
-// one of two or more candidates ("" otherwise).
+// select records the owner's choice: its Hypothesis is one of two or more
+// candidates ("" otherwise).
 func chosenCandidate(p replay.Projection, dq string) string {
 	cands := p.Questions[dq].Candidates
-	if rec, ok := p.CurrentSelect(dq); ok && rec.Tradeoff && len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
+	if rec, ok := p.CurrentSelect(dq); ok && len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
 		return rec.Hyp
 	}
 	return ""
@@ -504,6 +510,8 @@ func (r renderer) owedLine(o replay.Owed) string {
 			state += "]"
 		}
 		return fmt.Sprintf("%s %s %s%s — %s", q, what, r.limitLabel(res, o.Key), state, Cut(text, 80))
+	case replay.OwedChoose:
+		return q + " choose: " + r.named(r.p.Questions[o.Question].Candidates)
 	case replay.OwedSelect:
 		return q + " select " + r.withAlias(o.Key) + ", the only candidate"
 	case replay.OwedConfirm:
@@ -512,18 +520,6 @@ func (r renderer) owedLine(o replay.Owed) string {
 		return q + " answer the verifier's insufficient confirm"
 	}
 	return q + " " + o.Kind
-}
-
-// unapplied counts the closed readings of question dq that no Result
-// applies yet.
-func unapplied(p replay.Projection, dq string) int {
-	n := 0
-	for _, l := range p.Readings {
-		if l.Question == dq && l.By != "" && l.Applied == "" {
-			n++
-		}
-	}
-	return n
 }
 
 func resultSeparates(p replay.Projection, candidates []string) bool {

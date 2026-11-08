@@ -24,6 +24,7 @@ const (
 	OwedSelect   = "select"   // a lone candidate with nothing else owed on its question
 	OwedConfirm  = "confirm"  // a select waits for the verifier
 	OwedRespond  = "respond"  // the verifier found a select insufficient
+	OwedChoose   = "choose"   // the owner chooses between two or more candidates
 )
 
 // How far an aimable item (a limit or a reading) has got.
@@ -43,9 +44,9 @@ type Owed struct {
 	AimedBy             []string // live Experiments that aim at the key
 }
 
-// Owed derives the ledger in question creation order. An open reading, a
-// trade-off and an owner confirm are owed by the owner too; hyp status
-// prints those under AWAITING OWNER, so they are not repeated here.
+// Owed derives the ledger in question creation order. An open reading and an
+// owner confirm are owed by the owner too; hyp status prints those under
+// AWAITING OWNER from their own records, so they are not repeated here.
 func (p Projection) Owed() []Owed {
 	aimers := map[string][]string{}
 	for _, ev := range p.Applied {
@@ -123,9 +124,19 @@ func (p Projection) Owed() []Owed {
 				add(aim(Owed{Who: OwedRunner, Kind: OwedReading, Key: l.Key}))
 			}
 		}
-		_, selected := p.CurrentSelect(dq)
+		// A select counts only while it names a candidate: once its Hypothesis
+		// is contradicted, the question needs a select or a choice again.
+		rec, selected := p.CurrentSelect(dq)
+		selected = selected && slices.Contains(q.Candidates, rec.Hyp)
 		if len(q.Candidates) == 1 && !selected && !slices.ContainsFunc(mine, func(o Owed) bool { return o.Who == OwedRunner }) {
 			add(Owed{Who: OwedRunner, Kind: OwedSelect, Key: q.Candidates[0]})
+		}
+		// A trade-off is a state: two or more candidates. Choosing between them
+		// is the owner's turn only once the runner owes nothing on the question
+		// and no reading on it waits for the owner, since either may change
+		// the candidates.
+		if len(q.Candidates) >= 2 && !selected && !waiting && !slices.ContainsFunc(mine, func(o Owed) bool { return o.Who == OwedRunner }) {
+			add(Owed{Who: OwedOwner, Kind: OwedChoose, Key: dq})
 		}
 		switch q.Reason {
 		case ReasonAwaitingVerifier:

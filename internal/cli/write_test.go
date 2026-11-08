@@ -325,7 +325,7 @@ func TestLimitFlags(t *testing.T) {
 	r1 := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "raw SQL org gets no row", "--why", "w")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--closes", "nope", "--why", "w"), 2, "want <R-id>#<n>")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--closes", r1+"#2", "--why", "w"), 1, "bad limit ref")
-	must(t, "select", q, h, "--tradeoff", "--why", "w")
+	must(t, "select", q, h, "--scope-change", "--why", "w")
 	must(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v")
 	r := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 	want(t, r, 1, "open limits under")
