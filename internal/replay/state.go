@@ -191,9 +191,17 @@ func (p Projection) CurrentSelect(dq string) (rec SelectRec, ok bool) {
 type Reading struct {
 	Key, Result, Text string
 	Of                string // the reading whose owner answer this one reads, or ""
-	By, Answer        string
+	By                string // the owner checkpoint that closed it, or "" while open
+	Answer            string // the answer in force: the latest of Answers
+	Answers           []Answer
 	Question          string
-	Applied           string
+	Applied           string // the Result that applied the answer in force, or ""
+}
+
+// Answer is one owner answer to a reading: the close, then each revision, in
+// merge order. Applied is the Result that applied it, or "".
+type Answer struct {
+	By, Text, Applied string
 }
 
 // LimitsOf lists the limits recorded under question dq, in creation order.

@@ -224,11 +224,14 @@ type Confirm struct {
 // Checkpoint is the payload of checkpoint.
 type Checkpoint struct {
 	Summary string `json:"summary"`
-	// Role is RoleOwner on a checkpoint that closes readings or accepts
-	// limits, and empty otherwise.
+	// Role is RoleOwner on a checkpoint that closes or revises readings or
+	// accepts limits, and empty otherwise.
 	Role string `json:"role,omitempty"`
-	// Closes lists the reading keys the owner's summary answers.
+	// Closes lists the open reading keys the owner's summary answers.
 	Closes []string `json:"closes,omitempty"`
+	// Revises lists the answered reading keys whose answer the owner's
+	// summary replaces from this checkpoint on.
+	Revises []string `json:"revises,omitempty"`
 	// Accepts lists the limit keys the owner accepts untested.
 	Accepts []string `json:"accepts,omitempty"`
 	// Refers lists the limit keys the writer hands to the owner, because no
