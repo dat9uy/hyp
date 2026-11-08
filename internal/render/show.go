@@ -111,8 +111,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 			w("limit #%d: %s", i+1, l)
 		}
 		for _, k := range n.Closes {
-			res, _, _ := event.ParseLimitKey(k)
-			w("closes: %s", r.limitLabel(res, k))
+			w("closes: %s", r.limitLabel(event.KeyResult(k), k))
 		}
 		for _, k := range n.Applies {
 			w("applies: %s", r.limitLabel(event.KeyResult(k), k))

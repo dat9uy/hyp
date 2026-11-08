@@ -31,3 +31,20 @@ func TestReadingItemKeepsTheStringForm(t *testing.T) {
 		t.Fatal("unknown field in a reading decoded")
 	}
 }
+
+// A limit key and a reading key never parse as each other.
+func TestParseKeyKeepsTheKindsApart(t *testing.T) {
+	for s, want := range map[string]Key{
+		"R-ABC#1":  {"R-ABC", KeyLimit, 1},
+		"R-ABC#r2": {"R-ABC", KeyReading, 2},
+	} {
+		if got, ok := ParseKey(s); !ok || got != want || got.String() != s {
+			t.Errorf("ParseKey(%q) = %+v, %v; want %+v", s, got, ok, want)
+		}
+	}
+	for _, s := range []string{"R-ABC", "R-ABC#", "#1", "R-ABC#0", "R-ABC#r0", "R-ABC#rx", "R-ABC#x1"} {
+		if k, ok := ParseKey(s); ok {
+			t.Errorf("ParseKey(%q) = %+v, want no key", s, k)
+		}
+	}
+}

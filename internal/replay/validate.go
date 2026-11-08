@@ -170,8 +170,8 @@ func (f *Facts) checkAims(keys []string) error {
 			return fmt.Errorf("bad aim: %s listed twice", k)
 		}
 		seen[k] = true
-		if _, _, ok := event.ParseReadingKey(k); ok {
-			if err := f.checkReadingRef(k); err != nil {
+		if key, _ := event.ParseKey(k); key.Kind == event.KeyReading {
+			if err := f.checkKey(k, event.KeyReading, ""); err != nil {
 				return fmt.Errorf("bad aim: %w", err)
 			}
 			if !f.ClosedReadings[k] {
@@ -179,7 +179,7 @@ func (f *Facts) checkAims(keys []string) error {
 			}
 			continue
 		}
-		if err := f.checkLimitRef(k, ""); err != nil {
+		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad aim: %w", err)
 		}
 	}
@@ -255,7 +255,7 @@ func (f *Facts) validateResult(ev event.Event) error {
 		}
 		// A reading of an answer reads one the owner gave: it narrows that
 		// answer and never reopens it, so the chain points back in merge order.
-		if err := f.checkReadingRef(l.Of); err != nil {
+		if err := f.checkKey(l.Of, event.KeyReading, ""); err != nil {
 			return fmt.Errorf("bad reading of: %w", err)
 		}
 		if !f.ClosedReadings[l.Of] {
@@ -270,7 +270,7 @@ func (f *Facts) validateResult(ev event.Event) error {
 		if contains(exp.Aims, k) {
 			scope = ""
 		}
-		if err := f.checkLimitRef(k, scope); err != nil {
+		if err := f.checkKey(k, event.KeyLimit, scope); err != nil {
 			return err
 		}
 	}
@@ -278,7 +278,7 @@ func (f *Facts) validateResult(ev event.Event) error {
 		return fmt.Errorf("over limit: applies has %d items (max %d)", len(p.Applies), event.MaxLimits)
 	}
 	for _, k := range p.Applies {
-		if _, _, ok := event.ParseReadingKey(k); !ok {
+		if key, ok := event.ParseKey(k); !ok || key.Kind != event.KeyReading {
 			return fmt.Errorf("bad applies: %q (want <result>#r<n>)", k)
 		}
 		if !contains(exp.Aims, k) {
@@ -316,25 +316,27 @@ func (f *Facts) resultQuestion(r string) string {
 	return f.Nodes[exp.Parent].Parent
 }
 
-// checkLimitRef reports why key does not name a limit of a non-retracted
-// Result under question q, or under any question when q is "".
-func (f *Facts) checkLimitRef(key, q string) error {
-	r, n, ok := event.ParseLimitKey(key)
-	if !ok {
-		return fmt.Errorf("bad limit ref: %q (want <result>#<n>)", key)
+// checkKey reports why s does not name an item of kind want in a
+// non-retracted Result: a limit under question q (any question when q is ""),
+// or a reading.
+func (f *Facts) checkKey(s string, want event.KeyKind, q string) error {
+	k, ok := event.ParseKey(s)
+	if !ok || k.Kind != want {
+		form := map[event.KeyKind]string{event.KeyLimit: "<result>#<n>", event.KeyReading: "<result>#r<n>"}[want]
+		return fmt.Errorf("bad %s ref: %q (want %s)", want, s, form)
 	}
-	node := f.Nodes[r]
+	node := f.Nodes[k.Result]
 	if node == nil || node.Kind != event.KindResult {
-		return fmt.Errorf("bad limit ref: %s is not a Result", r)
+		return fmt.Errorf("bad %s ref: %s is not a Result", want, k.Result)
 	}
-	if f.Retracted[r] {
-		return fmt.Errorf("bad limit ref: %s is retracted", r)
+	if f.Retracted[k.Result] {
+		return fmt.Errorf("bad %s ref: %s is retracted", want, k.Result)
 	}
-	if n > len(node.Limits) {
-		return fmt.Errorf("bad limit ref: %s has %d limits", r, len(node.Limits))
+	if n := map[event.KeyKind]int{event.KeyLimit: len(node.Limits), event.KeyReading: len(node.Readings)}[want]; k.N > n {
+		return fmt.Errorf("bad %s ref: %s has %d %ss", want, k.Result, n, want)
 	}
-	if q != "" && f.resultQuestion(r) != q {
-		return fmt.Errorf("bad limit ref: %s is not under %s", r, q)
+	if want == event.KeyLimit && q != "" && f.resultQuestion(k.Result) != q {
+		return fmt.Errorf("bad limit ref: %s is not under %s", k.Result, q)
 	}
 	return nil
 }
@@ -354,10 +356,10 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 	// Each field names one kind of item and one transition: closes closes
 	// readings, accepts accepts limits.
 	for _, k := range p.Closes {
-		if _, _, ok := event.ParseLimitKey(k); ok {
+		if key, ok := event.ParseKey(k); ok && key.Kind == event.KeyLimit {
 			return fmt.Errorf("bad closes: %s is a limit; an owner accepts a limit with accepts", k)
 		}
-		if err := f.checkReadingRef(k); err != nil {
+		if err := f.checkKey(k, event.KeyReading, ""); err != nil {
 			return err
 		}
 		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
@@ -368,7 +370,7 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		return fmt.Errorf("over limit: accepts has %d items (max %d)", len(p.Accepts), event.MaxLimits)
 	}
 	for _, k := range p.Accepts {
-		if err := f.checkLimitRef(k, ""); err != nil {
+		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad accepts: %w", err)
 		}
 		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
@@ -379,29 +381,9 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		return fmt.Errorf("over limit: refers has %d items (max %d)", len(p.Refers), event.MaxLimits)
 	}
 	for _, k := range p.Refers {
-		if err := f.checkLimitRef(k, ""); err != nil {
+		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad refers: %w", err)
 		}
-	}
-	return nil
-}
-
-// checkReadingRef reports why key does not name a reading of a non-retracted
-// Result.
-func (f *Facts) checkReadingRef(key string) error {
-	r, n, ok := event.ParseReadingKey(key)
-	if !ok {
-		return fmt.Errorf("bad reading ref: %q (want <result>#r<n>)", key)
-	}
-	node := f.Nodes[r]
-	if node == nil || node.Kind != event.KindResult {
-		return fmt.Errorf("bad reading ref: %s is not a Result", r)
-	}
-	if f.Retracted[r] {
-		return fmt.Errorf("bad reading ref: %s is retracted", r)
-	}
-	if n > len(node.Readings) {
-		return fmt.Errorf("bad reading ref: %s has %d readings", r, len(node.Readings))
 	}
 	return nil
 }
@@ -457,7 +439,7 @@ func (f *Facts) validateConfirm(ev event.Event) error {
 		return errors.New("bad confirm: only a sufficient owner confirm accepts limits")
 	}
 	for _, k := range p.Accepts {
-		if err := f.checkLimitRef(k, ev.Node); err != nil {
+		if err := f.checkKey(k, event.KeyLimit, ev.Node); err != nil {
 			return err
 		}
 	}

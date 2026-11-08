@@ -318,37 +318,52 @@ func DisplayID(kind, id string) string {
 	return fmt.Sprintf("%s-%s", letter, tail)
 }
 
-// LimitKey names limit n (counted from 1) of Result r, for example
-// 01J…W6V06D#1.
-func LimitKey(r string, n int) string { return fmt.Sprintf("%s#%d", r, n) }
+// KeyKind is the kind of item a key names inside a Result.
+type KeyKind string
 
-// ParseLimitKey splits "<ref>#<n>" into ref and n; ok is false unless n >= 1.
-func ParseLimitKey(k string) (ref string, n int, ok bool) {
-	ref, num, found := strings.Cut(k, "#")
-	n, err := strconv.Atoi(num)
-	if !found || ref == "" || err != nil || n < 1 {
-		return "", 0, false
-	}
-	return ref, n, true
+const (
+	KeyLimit   KeyKind = "limit"   // <result>#<n>
+	KeyReading KeyKind = "reading" // <result>#r<n>
+)
+
+// Key names item N (counted from 1) of one kind in Result's list: a limit,
+// 01J…W6V06D#1, or a reading, 01J…W6V06D#r1. Result is a full id once
+// stored, or any node reference on the command line.
+type Key struct {
+	Result string
+	Kind   KeyKind
+	N      int
 }
 
-// ReadingKey names reading n (counted from 1) of Result r, for example
-// 01J…W6V06D#r1.
-func ReadingKey(r string, n int) string { return fmt.Sprintf("%s#r%d", r, n) }
+// LimitKey and ReadingKey spell the key of limit or reading n of Result r.
+func LimitKey(r string, n int) string   { return Key{r, KeyLimit, n}.String() }
+func ReadingKey(r string, n int) string { return Key{r, KeyReading, n}.String() }
 
-// ParseReadingKey splits "<ref>#r<n>" into ref and n; ok is false unless n >= 1.
-func ParseReadingKey(k string) (ref string, n int, ok bool) {
-	ref, num, found := strings.Cut(k, "#r")
-	n, err := strconv.Atoi(num)
-	if !found || ref == "" || err != nil || n < 1 {
-		return "", 0, false
+func (k Key) String() string {
+	if k.Kind == KeyReading {
+		return fmt.Sprintf("%s#r%d", k.Result, k.N)
 	}
-	return ref, n, true
+	return fmt.Sprintf("%s#%d", k.Result, k.N)
 }
 
-// KeyResult returns the Result a limit or reading key names.
-func KeyResult(k string) string {
-	ref, _, _ := strings.Cut(k, "#")
+// ParseKey splits "<ref>#<n>" or "<ref>#r<n>"; ok is false unless ref is not
+// empty and n >= 1. The two forms never overlap.
+func ParseKey(s string) (Key, bool) {
+	ref, num, found := strings.Cut(s, "#")
+	kind := KeyLimit
+	if rest, isReading := strings.CutPrefix(num, "r"); isReading {
+		kind, num = KeyReading, rest
+	}
+	n, err := strconv.Atoi(num)
+	if !found || ref == "" || err != nil || n < 1 {
+		return Key{}, false
+	}
+	return Key{ref, kind, n}, true
+}
+
+// KeyResult returns the Result a stored key names.
+func KeyResult(s string) string {
+	ref, _, _ := strings.Cut(s, "#")
 	return ref
 }
 
