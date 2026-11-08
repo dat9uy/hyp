@@ -102,16 +102,14 @@ func TestRivalLimitDoesNotGateOwner(t *testing.T) {
 				args = append(args, "--verdict", h1+"=supports")
 			}
 			r := must(t, args...)
-			if judgesSelected {
-				refer(t, r+"#1")
-			} else {
+			// The limit is owed whichever Hypothesis it judged, so it is
+			// referred before the select either way.
+			refer(t, r+"#1")
+			if !judgesSelected {
 				e1 := must(t, "add", "exp", "--parent", h1, "--title", "E1", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
 				must(t, "record", "--exp", e1, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
 			}
-			sel := hyp(t, "select", q, h1, "--scope-change", "--why", "w")
-			if !judgesSelected {
-				want(t, sel, 0, "warn: 1 open limit judged other Hypotheses: "+r+"#1")
-			}
+			want(t, hyp(t, "select", q, h1, "--scope-change", "--why", "w"), 0, "")
 			owner := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 			if judgesSelected {
 				want(t, owner, 1, r+"#1 only tried one org")

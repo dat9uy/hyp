@@ -18,7 +18,7 @@ const (
 	OwedUntested  = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
 	OwedUndecided = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
 	OwedPlanned   = "planned"   // a planned Experiment has no Result
-	OwedLimit     = "limit"     // an open limit on a candidate
+	OwedLimit     = "limit"     // an open limit under a question that has a candidate
 	OwedReading   = "reading"   // a closed reading no Result applies
 	OwedReferred  = "referred"  // a limit referred to the owner, not yet accepted
 	OwedPremise   = "premise"   // a candidate assumes a Hypothesis its question did not select
@@ -126,7 +126,9 @@ func (p Projection) Owed() []Owed {
 			case l.State != LimitOpen:
 			case l.Referred != "":
 				add(Owed{Who: OwedOwner, Kind: OwedReferred, Key: l.Key})
-			case overlaps(l.Hyps, q.Candidates):
+			case len(q.Candidates) > 0:
+				// A limit names a case no check ran; it may apply to every
+				// candidate, whichever Hypotheses its Result judged.
 				add(aim(Owed{Who: OwedRunner, Kind: OwedLimit, Key: l.Key}))
 			}
 		}
@@ -265,8 +267,4 @@ func (p Projection) hasPlannedExp(h string) bool {
 
 func closedExp(e *Exp) bool {
 	return e == nil || e.Closed != "" || e.Status == ExpSuperseded || e.Status == ExpWithdrawn
-}
-
-func overlaps(a, b []string) bool {
-	return slices.ContainsFunc(a, func(x string) bool { return slices.Contains(b, x) })
 }

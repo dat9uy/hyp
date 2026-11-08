@@ -173,9 +173,10 @@ func TestPremiseCycles(t *testing.T) {
 	}
 }
 
-// A referred limit is owed by the owner whichever Hypothesis its Result
-// judged, and an open limit on a candidate stays owed after the answer.
-func TestReferredLimitNeedsNoCandidateOverlap(t *testing.T) {
+// An open limit is owed while its question has a candidate, whichever
+// Hypothesis its Result judged: the runner owes it until it is referred,
+// then the owner owes it, and an open limit stays owed after the answer.
+func TestLimitOwedWhileQuestionHasCandidate(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
@@ -185,13 +186,16 @@ func TestReferredLimitNeedsNoCandidateOverlap(t *testing.T) {
 		Verdicts: map[string]string{h2: con}, Observation: "o", Limits: []string{"instrument runs on SQLite"}})
 	k := event.LimitKey(dead, 1)
 	p := replayB(b)
-	wantOwed(t, p, q, "runner select "+h1)
-	fs := p.AdmitSelect(q, h1)
-	if len(fs) != 1 || fs[0].Kind != FindWarn || fs[0].Text != "1 open limit judged other Hypotheses: "+event.DisplayID(event.KindResult, dead)+"#1" {
-		t.Fatalf("findings = %+v, want the rivals' limit warning", fs)
+	wantOwed(t, p, q, "runner limit "+k)
+	if fs := p.AdmitSelect(q, h1); len(fs) != 1 || fs[0].Kind != FindRefuse || !strings.Contains(fs[0].Text, "limit "+event.DisplayID(event.KindResult, dead)+"#1") {
+		t.Fatalf("findings = %+v, want a refusal naming the rival's limit", fs)
 	}
 	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test within the Goal", Refers: []string{k}})
-	wantOwed(t, replayB(b), q, "owner referred "+k, "runner select "+h1)
+	p = replayB(b)
+	wantOwed(t, p, q, "owner referred "+k, "runner select "+h1)
+	if fs := p.AdmitSelect(q, h1); len(fs) != 0 {
+		t.Fatalf("findings = %+v, want none once the limit is referred", fs)
+	}
 
 	b.As("a").Select(q, h1, "", false)
 	r := limitResult(b, h1, []string{"one host"}, nil)
