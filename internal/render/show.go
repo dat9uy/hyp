@@ -31,7 +31,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	}
 	if n.Kind == event.KindGoal {
 		for _, l := range p.Readings {
-			w("%s", readingLine(r, l))
+			for _, line := range readingLines(r, l) {
+				w("%s", line)
+			}
 		}
 	}
 	crumbs := make([]string, 0, len(ancestors)+1)
@@ -118,7 +120,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		}
 		for _, l := range p.Readings {
 			if l.Result == id {
-				w("%s", readingLine(r, l))
+				for _, line := range readingLines(r, l) {
+					w("%s", line)
+				}
 			}
 		}
 		if resOf(p, id).Questionable {
@@ -173,7 +177,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 			w("  %s (%s) %s — %s", r.id(ev.ID), r.id(rn.Parent), verdict, rn.Observation)
 			for _, l := range p.Readings {
 				if l.Result == ev.ID {
-					w("    %s", readingLine(r, l))
+					for _, line := range readingLines(r, l) {
+						w("    %s", line)
+					}
 				}
 			}
 		}
@@ -232,6 +238,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				for _, k := range s.Closes {
 					w("    closes: %s", r.limitLabel(event.KeyResult(k), k))
 				}
+				for _, k := range s.Revises {
+					w("    revises: %s", r.limitLabel(event.KeyResult(k), k))
+				}
 				for _, k := range s.Accepts {
 					w("    accepts: %s", r.limitLabel(event.KeyResult(k), k))
 				}
@@ -251,13 +260,26 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	return b.String()
 }
 
-// readingLine is one reading as hyp show prints it.
-func readingLine(r renderer, l replay.Reading) string {
+// readingLines is one reading as hyp show prints it: the reading with the
+// answer in force, then one indented line per earlier answer it replaced.
+func readingLines(r renderer, l replay.Reading) []string {
 	state := "open"
 	if l.By != "" {
-		state = fmt.Sprintf("closed by owner checkpoint %s, answer: %q", l.By, l.Answer)
+		revised := ""
+		if n := len(l.Answers); n > 1 {
+			revised = ", revised by owner checkpoint " + l.Answers[n-1].By
+		}
+		state = fmt.Sprintf("closed by owner checkpoint %s%s, answer: %q", l.By, revised, l.Answer)
 	}
-	return fmt.Sprintf("reading %s%s %s — %s", r.limitLabel(l.Result, l.Key), r.of(l), state, l.Text)
+	out := []string{fmt.Sprintf("reading %s%s %s — %s", r.limitLabel(l.Result, l.Key), r.of(l), state, l.Text)}
+	for _, a := range l.Answers[:max(len(l.Answers)-1, 0)] {
+		applied := ", not applied"
+		if a.Applied != "" {
+			applied = ", applied by " + r.id(a.Applied)
+		}
+		out = append(out, fmt.Sprintf("  earlier answer: %q (owner checkpoint %s%s)", a.Text, a.By, applied))
+	}
+	return out
 }
 
 // of names the answer a reading reads, as " of R-W6V06D#r1", or "".

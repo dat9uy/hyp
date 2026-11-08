@@ -522,6 +522,9 @@ func (w *writer) keys(flag string, refs []string, kinds ...event.KeyKind) ([]str
 			if ok && flag == "--closes" && k.Kind == event.KeyLimit {
 				return nil, usageErr("--closes %q is a limit: an owner accepts a limit with --accept", s)
 			}
+			if ok && flag == "--revises" && k.Kind == event.KeyLimit {
+				return nil, usageErr("--revises %q is a limit: a limit is never revised", s)
+			}
 			return nil, usageErr("%s %q: want %s", flag, s, strings.Join(want, " or "))
 		}
 		id, err := w.ref(k.Result)
@@ -746,9 +749,10 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
-	role := w.fs.String("role", "", "owner, required with --closes and --accept")
-	var closes, accepts, refers multi
-	w.fs.Var(&closes, "closes", "R-id#rn of a reading this owner checkpoint answers; --summary holds the owner's words (repeatable)")
+	role := w.fs.String("role", "", "owner, required with --closes, --revises and --accept")
+	var closes, revises, accepts, refers multi
+	w.fs.Var(&closes, "closes", "R-id#rn of an open reading this owner checkpoint answers; --summary holds the owner's words (repeatable)")
+	w.fs.Var(&revises, "revises", "R-id#rn of an answered reading whose answer --summary replaces from now on (repeatable)")
 	w.fs.Var(&accepts, "accept", "R-id#n of a limit the owner accepts untested (repeatable)")
 	w.fs.Var(&refers, "refers", "R-id#n of a limit no test within the Goal's lines can settle, handed to the owner; --summary says why (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
@@ -763,6 +767,9 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	if len(closes) > 0 && *role != event.RoleOwner {
 		return usageErr("--closes needs --role owner")
 	}
+	if len(revises) > 0 && *role != event.RoleOwner {
+		return usageErr("--revises needs --role owner")
+	}
 	if len(accepts) > 0 && *role != event.RoleOwner {
 		return usageErr("--accept needs --role owner")
 	}
@@ -773,6 +780,9 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 		p := event.Checkpoint{Summary: *summary, Role: *role}
 		var err error
 		if p.Closes, err = w.keys("--closes", closes, event.KeyReading); err != nil {
+			return draft{}, err
+		}
+		if p.Revises, err = w.keys("--revises", revises, event.KeyReading); err != nil {
 			return draft{}, err
 		}
 		if p.Accepts, err = w.keys("--accept", accepts, event.KeyLimit); err != nil {

@@ -173,3 +173,46 @@ func TestRecordPrintsItsKeys(t *testing.T) {
 	r2 := strings.Fields(out.stdout)[0]
 	want(t, out, 0, "  reading "+r2+"#r1 of "+r+"#r1: does yes cover helpers?\n")
 }
+
+// An owner revises an answer they gave with --revises: the new words are in
+// force from that checkpoint on, the earlier answer stays in history, and the
+// revised answer is owed until a later Result applies it. A second --closes
+// on an answered reading and --revises on an open one are refused.
+func TestOwnerRevisesAnAnswer(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
+	exp := func() string {
+		return must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	}
+	r := must(t, "record", "--exp", exp(), "--verdict", h+"=supports", "--observation", "o", "--reading", "is a reader a logic?", "--why", "w")
+	k := r + "#r1"
+	owner := func(flag, summary string) result {
+		return hyp(t, "checkpoint", "--summary", summary, "--role", "owner", flag, k, "--actor", "owner-dat", "--why", "w")
+	}
+
+	want(t, owner("--revises", "no"), 1, "is open; an owner answers an open reading with closes")
+	want(t, owner("--closes", "a reader is a logic"), 0, "checkpoint")
+	// The first answer is applied by the next Result under the question, as before.
+	r2 := must(t, "record", "--exp", exp(), "--verdict", h+"=supports", "--observation", "o", "--why", "w")
+	want(t, owner("--closes", "again"), 1, "is answered; an owner revises an answer with revises")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--revises", k, "--why", "w"), 2, "--revises needs --role owner")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--revises", r+"#1", "--why", "w"), 2, "is a limit: a limit is never revised")
+
+	want(t, owner("--revises", "a reader is a logic of the file, not of a Section"), 0, "checkpoint")
+	want(t, hyp(t, "show", r), 0, ", answer: \"a reader is a logic of the file, not of a Section\" — is a reader a logic?\n")
+	want(t, hyp(t, "show", r), 0, "revised by owner checkpoint ")
+	want(t, hyp(t, "show", r), 0, "  earlier answer: \"a reader is a logic\" (owner checkpoint ")
+	want(t, hyp(t, "show", r), 0, ", applied by "+r2+")\n")
+	owed := "runner: " + q + " apply answer " + k
+	want(t, hyp(t, "status"), 0, owed)
+
+	// A revised answer is not applied by the next Result alone.
+	must(t, "record", "--exp", exp(), "--verdict", h+"=supports", "--observation", "o", "--why", "w")
+	want(t, hyp(t, "status"), 0, owed)
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--aims", k, "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--applies", k, "--why", "w")
+	if out := hyp(t, "status"); strings.Contains(out.stdout, owed) {
+		t.Fatalf("revised answer still owed after a Result applied it:\n%s", out.stdout)
+	}
+	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+}

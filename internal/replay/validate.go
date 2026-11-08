@@ -350,11 +350,14 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 	if len(p.Closes) > 0 && p.Role != event.RoleOwner {
 		return errors.New("bad checkpoint: only an owner closes a reading")
 	}
+	if len(p.Revises) > 0 && p.Role != event.RoleOwner {
+		return errors.New("bad checkpoint: only an owner revises an answer")
+	}
 	if len(p.Accepts) > 0 && p.Role != event.RoleOwner {
 		return errors.New("bad checkpoint: only an owner accepts a limit")
 	}
-	// Each field names one kind of item and one transition: closes closes
-	// readings, accepts accepts limits.
+	// Each field names one kind of item and one transition: closes answers an
+	// open reading, revises replaces an answer, accepts accepts a limit.
 	for _, k := range p.Closes {
 		if key, ok := event.ParseKey(k); ok && key.Kind == event.KeyLimit {
 			return fmt.Errorf("bad closes: %s is a limit; an owner accepts a limit with accepts", k)
@@ -362,8 +365,28 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		if err := f.checkKey(k, event.KeyReading, ""); err != nil {
 			return err
 		}
+		if f.ClosedReadings[k] {
+			return fmt.Errorf("bad closes: %s is answered; an owner revises an answer with revises", k)
+		}
 		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
 			return fmt.Errorf("separation of duties: %s recorded the reading it closes", ev.Actor)
+		}
+	}
+	for _, k := range p.Revises {
+		if key, ok := event.ParseKey(k); ok && key.Kind == event.KeyLimit {
+			return fmt.Errorf("bad revises: %s is a limit; a limit is closed, accepted or referred, never revised", k)
+		}
+		if err := f.checkKey(k, event.KeyReading, ""); err != nil {
+			return err
+		}
+		if slices.Contains(p.Closes, k) {
+			return fmt.Errorf("bad revises: %s is also in closes", k)
+		}
+		if !f.ClosedReadings[k] {
+			return fmt.Errorf("bad revises: %s is open; an owner answers an open reading with closes", k)
+		}
+		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
+			return fmt.Errorf("separation of duties: %s recorded the reading it revises", ev.Actor)
 		}
 	}
 	if len(p.Accepts) > event.MaxLimits {

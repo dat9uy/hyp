@@ -243,10 +243,12 @@ func (st *State) decisions() map[string]*Decision {
 	return out
 }
 
-// readings derives every reading, in creation order. The first owner checkpoint
-// that names a reading closes it. Readings of a retracted Result are left out.
+// readings derives every reading, in creation order. The owner checkpoint that
+// closes a reading gives its first answer, and each later one that revises it
+// gives the answer in force from then on. Readings of a retracted Result are
+// left out.
 func (st *State) readings(applied []event.Event) []Reading {
-	closedBy, answers := map[string]string{}, map[string]string{}
+	answers := map[string][]Answer{}
 	for _, ev := range applied {
 		if ev.Type != event.TypeCheckpoint {
 			continue
@@ -254,26 +256,21 @@ func (st *State) readings(applied []event.Event) []Reading {
 		var c event.Checkpoint
 		_ = event.DecodePayload(ev, &c)
 		for _, k := range c.Closes {
-			if _, ok := closedBy[k]; !ok {
-				closedBy[k], answers[k] = ev.ID, c.Summary
+			if len(answers[k]) == 0 {
+				answers[k] = []Answer{{By: ev.ID, Text: c.Summary}}
+			}
+		}
+		for _, k := range c.Revises {
+			if len(answers[k]) > 0 {
+				answers[k] = append(answers[k], Answer{By: ev.ID, Text: c.Summary})
 			}
 		}
 	}
-	// appliedBy names, for each reading key, the first Result whose applies
-	// names it; aimed holds the keys some Experiment aims at.
-	appliedBy, aimed := map[string]string{}, map[string]bool{}
+	aimed := map[string]bool{}
 	for _, id := range st.Order {
-		n := st.Nodes[id]
-		switch {
-		case n.Kind == event.KindExperiment:
+		if n := st.Nodes[id]; n.Kind == event.KindExperiment {
 			for _, k := range n.Aims {
 				aimed[k] = true
-			}
-		case n.Kind == event.KindResult && !st.Retracted[id]:
-			for _, k := range n.Applies {
-				if _, ok := appliedBy[k]; !ok {
-					appliedBy[k] = id
-				}
 			}
 		}
 	}
@@ -289,9 +286,24 @@ func (st *State) readings(applied []event.Event) []Reading {
 		}
 		for i, item := range n.Readings {
 			k := event.ReadingKey(id, i+1)
-			l := Reading{Key: k, Result: id, Text: item.Text, Of: item.Of, By: closedBy[k], Answer: answers[k], Question: st.resultQuestion(id), Applied: appliedBy[k]}
-			if l.Applied == "" && l.By != "" && !aimed[k] {
-				l.Applied = st.firstResultAfter(l.Question, pos, pos[l.By])
+			l := Reading{Key: k, Result: id, Text: item.Text, Of: item.Of, Question: st.resultQuestion(id)}
+			as := slices.Clone(answers[k])
+			for j := range as {
+				until := -1
+				if j+1 < len(as) {
+					until = pos[as[j+1].By]
+				}
+				as[j].Applied = st.applierBetween(k, pos, pos[as[j].By], until)
+				// Only a first answer is applied without applies, so a tree
+				// written before applies keeps its meaning; a revised answer
+				// waits for a Result that names it.
+				if j == 0 && as[j].Applied == "" && !aimed[k] {
+					as[j].Applied = st.resultBetween(func(r string) bool { return st.resultQuestion(r) == l.Question }, pos, pos[as[j].By], until)
+				}
+			}
+			if len(as) > 0 {
+				last := as[len(as)-1]
+				l.By, l.Answer, l.Answers, l.Applied = as[0].By, last.Text, as, last.Applied
 			}
 			out = append(out, l)
 		}
@@ -299,17 +311,23 @@ func (st *State) readings(applied []event.Event) []Reading {
 	return out
 }
 
-// firstResultAfter returns the first non-retracted Result under question q
-// whose position is after at, or "". It is how a reading closed before aims
-// existed counts as applied.
-func (st *State) firstResultAfter(q string, pos map[string]int, at int) string {
+// applierBetween returns the first non-retracted Result whose applies names
+// key k and whose position is after at and, when until >= 0, before until.
+func (st *State) applierBetween(k string, pos map[string]int, at, until int) string {
+	return st.resultBetween(func(r string) bool { return slices.Contains(st.Nodes[r].Applies, k) }, pos, at, until)
+}
+
+// resultBetween returns the first non-retracted Result for which keep holds
+// and whose position is after at and, when until >= 0, before until, or "".
+func (st *State) resultBetween(keep func(string) bool, pos map[string]int, at, until int) string {
 	best, bestPos := "", -1
 	for _, id := range st.Order {
 		n := st.Nodes[id]
-		if n.Kind != event.KindResult || st.Retracted[id] || st.resultQuestion(id) != q {
+		if n.Kind != event.KindResult || st.Retracted[id] || !keep(id) {
 			continue
 		}
-		if p, ok := pos[id]; ok && p > at && (bestPos < 0 || p < bestPos) {
+		p, ok := pos[id]
+		if ok && p > at && (until < 0 || p < until) && (bestPos < 0 || p < bestPos) {
 			best, bestPos = id, p
 		}
 	}
