@@ -1045,3 +1045,31 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 		})
 	}
 }
+
+// A candidate's premise prints under its question's candidates line, with the
+// premise's status, its own question, and which candidates assume it.
+func TestStatusNamesTheCandidatesPremises(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	other := b.DQ(g, "other")
+	several := b.Hyp(other, "several")
+	b.Supports(several)
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	b.Supports(h1)
+	b.Supports(h2)
+	b.Edge(h1, event.EdgeDependsOn, several)
+	b.Edge(h2, event.EdgeDependsOn, several)
+	hyp := func(n string) string { return event.DisplayID(event.KindHypothesis, n) }
+	out := Status(replay.Replay(b.Evs, nil, ""), 0)
+	want := "  assumes " + hyp(several) + " supported, in " + event.DisplayID(event.KindDesignQuestion, other) + " open — by every candidate"
+	if !strings.Contains(out, want) {
+		t.Fatalf("missing %q:\n%s", want, out)
+	}
+
+	b.Unedge(h2, event.EdgeDependsOn, several)
+	out = Status(replay.Replay(b.Evs, nil, ""), 0)
+	if want := "— by " + hyp(h1) + "\n"; !strings.Contains(out, want) {
+		t.Fatalf("missing %q:\n%s", want, out)
+	}
+}

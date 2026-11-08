@@ -81,6 +81,22 @@ func Status(p replay.Projection, maxLines int) string {
 				state = " (trade-off)"
 			}
 			add(kKeep, "%s  candidates (%d): %s%s", indent, len(ns.Candidates), r.named(ns.Candidates), state)
+			// A premise a candidate rests on prints beside it, so the reader
+			// sees which other answer the choice assumes.
+			for _, pr := range premises(p, ns.Candidates) {
+				by := ""
+				switch {
+				case len(pr.by) < len(ns.Candidates):
+					by = " — by " + r.ids(pr.by)
+				case len(ns.Candidates) >= 2:
+					by = " — by every candidate"
+				}
+				where := ""
+				if q := p.Nodes[pr.to].Parent; q != dq && p.Questions[q] != nil {
+					where = fmt.Sprintf(", in %s %s", r.id(q), p.Questions[q].State)
+				}
+				add(kKeep, "%s  assumes %s %s%s%s", indent, r.withAlias(pr.to), p.Hyps[pr.to].Status, where, by)
+			}
 		}
 		switch {
 		case ns.Reason == replay.ReasonAwaitingOwner:
@@ -542,4 +558,32 @@ func resultSeparates(p replay.Projection, candidates []string) bool {
 		}
 	}
 	return false
+}
+
+// premise is a Hypothesis that candidates rest on through depends_on.
+type premise struct {
+	to string
+	by []string
+}
+
+// premises lists the live depends_on targets of the candidates, in the order
+// the candidates and their edges give, each with the candidates that assume it.
+func premises(p replay.Projection, candidates []string) []premise {
+	var out []premise
+	for _, h := range candidates {
+		for _, e := range p.Edges {
+			if !e.Live || e.Type != event.EdgeDependsOn || e.From != h {
+				continue
+			}
+			i := slices.IndexFunc(out, func(pr premise) bool { return pr.to == e.To })
+			if i < 0 {
+				out = append(out, premise{to: e.To})
+				i = len(out) - 1
+			}
+			if !slices.Contains(out[i].by, h) {
+				out[i].by = append(out[i].by, h)
+			}
+		}
+	}
+	return out
 }
