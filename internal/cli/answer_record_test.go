@@ -206,6 +206,21 @@ func TestTradeoffMarksAnswersWithNoResultSince(t *testing.T) {
 	}
 }
 
+func TestStatusNamesTheCandidatesLeft(t *testing.T) {
+	_, _, q := setup(t)
+	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--alias", "h-one", "--why", "w")
+	h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--body", "b", "--alias", "h-two", "--why", "w")
+	if out := hyp(t, "status"); strings.Contains(out.stdout, "candidates (") {
+		t.Fatalf("candidates line with none supported:\n%s", out.stdout)
+	}
+	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
+	want(t, hyp(t, "status"), 0, "  candidates (2): "+h1+" (h-one), "+h2+" (h-two)\n")
+	e2 := must(t, "add", "exp", "--parent", h2, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", h1, "--why", "w")
+	must(t, "record", "--exp", e2, "--verdict", h2+"=contradicts", "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
+	want(t, hyp(t, "status"), 0, "  candidates (1): "+h1+" (h-one)\n")
+}
+
 func TestTradeoffMarkedWhenNoResultSeparatesCandidates(t *testing.T) {
 	_, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--why", "w")

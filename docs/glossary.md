@@ -46,7 +46,7 @@ A node, `H-`, under a DesignQuestion, that states one possible answer as a claim
 _Avoid_: option, idea, solution
 
 **Frontier**:
-The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred sub-question that a printed supported Hypothesis still owes also prints. Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
+The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred sub-question that a printed supported Hypothesis still owes also prints. A printed question with candidates has a `candidates (N)` line naming them, so after a re-judge it shows whether one or several are left; with none, the question's reason says so. Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
