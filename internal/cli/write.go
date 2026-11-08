@@ -267,7 +267,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			}
 			p.Targets = append(p.Targets, id)
 		}
-		if p.Aims, err = w.itemKeys("--aims", aims); err != nil {
+		if p.Aims, err = w.keys("--aims", aims, event.KeyLimit, event.KeyReading); err != nil {
 			return draft{}, err
 		}
 		if kind == event.KindExperiment {
@@ -373,7 +373,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			if !ok {
 				return draft{}, usageErr("--reading-of %q: want <R-id>#r<n>=TEXT", s)
 			}
-			keys, err := w.readingKeys("--reading-of", []string{ref})
+			keys, err := w.keys("--reading-of", []string{ref}, event.KeyReading)
 			if err != nil {
 				return draft{}, err
 			}
@@ -390,10 +390,10 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			}
 			p.Verdicts[id] = verdict
 		}
-		if p.Closes, err = w.limitKeys("--closes", closes); err != nil {
+		if p.Closes, err = w.keys("--closes", closes, event.KeyLimit); err != nil {
 			return draft{}, err
 		}
-		if p.Applies, err = w.itemKeys("--applies", applies); err != nil {
+		if p.Applies, err = w.keys("--applies", applies, event.KeyLimit, event.KeyReading); err != nil {
 			return draft{}, err
 		}
 		return draft{event.TypeResultRecord, "", p}, nil
@@ -484,65 +484,31 @@ func notDir(e string, fi os.FileInfo) error {
 	return nil
 }
 
-// limitKeys resolves "<REF>#<n>" arguments to limit keys of full ids.
-func (w *writer) limitKeys(flag string, refs []string) ([]string, error) {
-	var keys []string
-	for _, s := range refs {
-		ref, n, ok := event.ParseLimitKey(s)
-		if !ok {
-			return nil, usageErr("%s %q: want <R-id>#<n>", flag, s)
-		}
-		id, err := w.ref(ref)
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, event.LimitKey(id, n))
+// keys resolves "<REF>#<n>" and "<REF>#r<n>" arguments to keys of full ids;
+// each must be one of kinds.
+func (w *writer) keys(flag string, refs []string, kinds ...event.KeyKind) ([]string, error) {
+	form := map[event.KeyKind]string{event.KeyLimit: "<R-id>#<n>", event.KeyReading: "<R-id>#r<n>"}
+	var want []string
+	for _, k := range kinds {
+		want = append(want, form[k])
 	}
-	return keys, nil
-}
-
-// readingKeys resolves "<REF>#r<n>" arguments to reading keys of full ids.
-func (w *writer) readingKeys(flag string, refs []string) ([]string, error) {
-	var keys []string
+	var out []string
 	for _, s := range refs {
-		ref, n, ok := event.ParseReadingKey(s)
-		if !ok {
-			if _, _, isLimit := event.ParseLimitKey(s); isLimit && flag == "--closes" {
+		k, ok := event.ParseKey(s)
+		if !ok || !slices.Contains(kinds, k.Kind) {
+			if ok && flag == "--closes" && k.Kind == event.KeyLimit {
 				return nil, usageErr("--closes %q is a limit: an owner accepts a limit with --accept", s)
 			}
-			return nil, usageErr("%s %q: want <R-id>#r<n>", flag, s)
+			return nil, usageErr("%s %q: want %s", flag, s, strings.Join(want, " or "))
 		}
-		id, err := w.ref(ref)
+		id, err := w.ref(k.Result)
 		if err != nil {
 			return nil, err
 		}
-		keys = append(keys, event.ReadingKey(id, n))
+		k.Result = id
+		out = append(out, k.String())
 	}
-	return keys, nil
-}
-
-// itemKeys resolves limit keys (<R-id>#<n>) and reading keys (<R-id>#r<n>).
-func (w *writer) itemKeys(flag string, refs []string) ([]string, error) {
-	var keys []string
-	for _, s := range refs {
-		if ref, n, ok := event.ParseReadingKey(s); ok {
-			id, err := w.ref(ref)
-			if err != nil {
-				return nil, err
-			}
-			keys = append(keys, event.ReadingKey(id, n))
-			continue
-		}
-		if _, _, ok := event.ParseLimitKey(s); !ok {
-			return nil, usageErr("%s %q: want <R-id>#<n> or <R-id>#r<n>", flag, s)
-		}
-		k, err := w.limitKeys(flag, []string{s})
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, k...)
-	}
-	return keys, nil
+	return out, nil
 }
 
 // cmdOnNode handles commands whose only argument is the node they act on.
@@ -740,7 +706,7 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return draft{}, err
 		}
-		keys, keyErr := w.limitKeys("--accept", accepts)
+		keys, keyErr := w.keys("--accept", accepts, event.KeyLimit)
 		// No current selection outranks a bad --accept, and AdmitConfirm refuses it.
 		sel := w.currentSelect(dq)
 		if keyErr != nil && sel != "" {
@@ -783,13 +749,13 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 		}
 		p := event.Checkpoint{Summary: *summary, Role: *role}
 		var err error
-		if p.Closes, err = w.readingKeys("--closes", closes); err != nil {
+		if p.Closes, err = w.keys("--closes", closes, event.KeyReading); err != nil {
 			return draft{}, err
 		}
-		if p.Accepts, err = w.limitKeys("--accept", accepts); err != nil {
+		if p.Accepts, err = w.keys("--accept", accepts, event.KeyLimit); err != nil {
 			return draft{}, err
 		}
-		if p.Refers, err = w.limitKeys("--refers", refers); err != nil {
+		if p.Refers, err = w.keys("--refers", refers, event.KeyLimit); err != nil {
 			return draft{}, err
 		}
 		return draft{event.TypeCheckpoint, w.st.GoalID, p}, nil
