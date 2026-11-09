@@ -152,7 +152,7 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if len(pos) != 1 {
-		return usageErr("usage: hyp show REF [--as-of REF|TIME]")
+		return usageErr("usage: hyp show REF|R-id#n [--as-of REF|TIME]")
 	}
 	r, err := openReader()
 	if err != nil {
@@ -161,6 +161,19 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 	p, err := r.at(*asOf)
 	if err != nil {
 		return err
+	}
+	if k, ok := event.ParseKey(pos[0]); ok && k.Kind == event.KeyLimit {
+		res, err := resolveRef(p, k.Result)
+		if err != nil {
+			return err
+		}
+		k.Result = res
+		l, ok := p.Limit(k.String())
+		if !ok {
+			return usageErr("%s names no limit of a live Result", pos[0])
+		}
+		fmt.Fprint(stdout, render.ShowLimit(p, l))
+		return nil
 	}
 	id, err := resolveRef(p, pos[0])
 	if err != nil {
