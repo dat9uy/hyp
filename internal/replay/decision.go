@@ -258,6 +258,7 @@ func (st *State) readings(applied []event.Event) []Reading {
 		for i, item := range n.Readings {
 			k := event.ReadingKey(id, i+1)
 			l := Reading{Key: k, Result: id, Text: item.Text, Of: item.Of, Question: st.resultQuestion(id)}
+			l.Reach = st.reach(id, l.Question)
 			as := slices.Clone(answers[k])
 			for j := range as {
 				until := -1
@@ -367,6 +368,31 @@ func (st *State) limits() map[string][]Limit {
 				l.Gating = l.Gates(s.Selects[s.Current].Hyp)
 			}
 			out[q] = append(out[q], l)
+		}
+	}
+	return out
+}
+
+// reach lists the Hypotheses under question q that an answer to a reading on
+// Result r can move: a candidate r judged, which a changed verdict could
+// drop, and a contradicted rival whose only contradicts is r's, which a
+// changed verdict could revive. Only r's verdicts count, since a reading
+// states how those verdicts read the owner's words.
+func (st *State) reach(r, q string) []string {
+	var out []string
+	n := st.Nodes[r]
+	for _, h := range n.VerdictOrder {
+		hn, hs := st.Nodes[h], st.Hyps[h]
+		if hn == nil || hs == nil || hn.Parent != q {
+			continue
+		}
+		switch hs.Status {
+		case HypSupported:
+			out = append(out, h)
+		case HypContradicted:
+			if cs := st.Contradictions(h); len(cs) == 1 && cs[0] == r {
+				out = append(out, h)
+			}
 		}
 	}
 	return out

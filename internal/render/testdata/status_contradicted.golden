@@ -14,7 +14,7 @@ STALE
   H-000005 stale ← H-000006 stale ← H-000007 contradicted ← R-000020
   H-000006 stale ← H-000007 contradicted ← R-000020
 OWED
-  runner: Q-000004 add rival Hypotheses
+  runner: Q-000004 add rival Hypotheses; ruled out: H-000007 by R-000020
 AWAITING OWNER
 RECENT
   2026-10-24 00:00 a result.record R-000020 — test

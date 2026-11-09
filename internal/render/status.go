@@ -114,22 +114,18 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 			}
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s choose: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
-		// An open reading on the question's Results holds its rivals and its
-		// choice (spec §8.1). When the question owes no runner item and no
-		// choice, the line names the readings that hold it, so the owner sees
-		// why the runner owes nothing there. A premise hold has its assumes
-		// line above.
+		// An open reading whose answer can move a Hypothesis on the question
+		// holds its rivals, select and choice (spec §8.1). When the question
+		// owes no runner item and no choice, the line names each such reading
+		// and what its answer can move, so the owner sees why the runner owes
+		// nothing there. A premise hold has its assumes line above.
 		if !slices.ContainsFunc(owed, func(o replay.Owed) bool {
 			return o.Question == dq && (o.Who == replay.OwedRunner || o.Kind == replay.OwedChoose)
 		}) {
-			var waits []string
 			for _, l := range p.Readings {
-				if l.Question == dq && l.By == "" {
-					waits = append(waits, r.limitLabel(l.Result, l.Key))
+				if l.Question == dq && l.By == "" && len(l.Reach) > 0 {
+					add(kKeep, "%s  held: open reading %s waits for the owner; its answer can move %s", indent, r.limitLabel(l.Result, l.Key), r.named(l.Reach))
 				}
-			}
-			if len(waits) > 0 {
-				add(kKeep, "%s  held: open reading %s waits for the owner", indent, strings.Join(waits, ", "))
 			}
 		}
 		if chosen := chosenCandidate(p, dq); chosen != "" {
@@ -414,6 +410,30 @@ func (r renderer) id(id string) string {
 }
 
 // closed reports whether an Experiment is superseded or withdrawn.
+// ruledOut names each contradicted live Hypothesis under question dq with the
+// Results that contradict it, so a new rival's author sees what it must
+// survive: "h-module by R-5JYRA0, h-path by R-9SFQMB".
+func (r renderer) ruledOut(dq string) string {
+	var parts []string
+	for _, h := range r.p.Nodes[dq].Children {
+		if hs := r.p.Hyps[h]; hs == nil || hs.Status != replay.HypContradicted {
+			continue
+		}
+		var by []string
+		for _, ev := range r.p.Applied {
+			if ev.Type == event.TypeResultRecord && r.p.Results[ev.ID].Status != replay.ResRetracted && r.p.Nodes[ev.ID].Verdicts[h] == event.VerdictContradicts {
+				by = append(by, r.id(ev.ID))
+			}
+		}
+		name := r.p.Nodes[h].Alias
+		if name == "" {
+			name = r.id(h)
+		}
+		parts = append(parts, name+" by "+strings.Join(by, ", "))
+	}
+	return strings.Join(parts, "; ")
+}
+
 // reach says what an answer to reading l can touch on its Result's question:
 // the question's candidates, and each Hypothesis the Result judged with its
 // verdict and its status now.
@@ -580,6 +600,9 @@ func (r renderer) owedLine(o replay.Owed) string {
 	q := r.id(o.Question)
 	switch o.Kind {
 	case replay.OwedRivals:
+		if out := r.ruledOut(o.Question); out != "" {
+			return q + " add rival Hypotheses; ruled out: " + out
+		}
 		return q + " add rival Hypotheses"
 	case replay.OwedUntested:
 		return q + " test " + r.withAlias(o.Key)

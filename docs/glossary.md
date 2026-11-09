@@ -65,7 +65,7 @@ _Avoid_: update the tree, recalculate (replay already derives every status; a re
 The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a list, not open work: the open work in it is what Owed and Awaiting owner name.
 
 **Rival**:
-Another Hypothesis under the same DesignQuestion. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
+Another Hypothesis under the same DesignQuestion. Two live rivals are **separated** when a non-retracted Result gives them different verdicts; exhaustiveness is a property of the cases run on the candidates (see Limit), never of the set of rivals, which the owner may reserve. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
 _Avoid_: alternative, competitor
 
 **Experiment**:
@@ -121,7 +121,7 @@ _Avoid_: trade-off candidate, suggested (that is what `hyp select Q` prints for 
 
 **Trade-off**:
 The state of a DesignQuestion with two or more candidates now. It is derived, never recorded ([spec §7.4](replay-spec.md#74-designquestion-state)); `hyp status` marks it `(trade-off)` on the question's candidates line. A select of one of those candidates is the owner's choice, and `hyp show` prints it `(trade-off)`.
-A trade-off is between candidates, not about what a Goal line means, which is a Reading. It ends when Results leave one candidate, or when the owner chooses one, recorded as the select (ADR 0015); no confirm follows the choice. The owner's turn to choose is the ledger item `choose`, owed only when the runner owes nothing on the question and no reading on it is open ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)).
+A trade-off is between candidates, not about what a Goal line means, which is a Reading. It ends when Results leave one candidate, or when the owner chooses one, recorded as the select (ADR 0015); no confirm follows the choice. The owner's turn to choose is the ledger item `choose`, owed only when the runner owes nothing on the question and no open reading on it can move a Hypothesis there ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)).
 _Avoid_: `--tradeoff` (removed: a flag cannot record a state hyp derives), tie
 
 **Select**:

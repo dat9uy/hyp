@@ -30,16 +30,15 @@ func TestSameAskReadingsPrintAndCloseAsOne(t *testing.T) {
 		t.Fatalf("same question printed more than once:\n%s", out.stdout)
 	}
 	// Under the grouped line, each key names its question, the candidates
-	// and what its Result judged. Q2's two candidates owe the owner's choice,
-	// which its open readings hold, so FRONTIER names them; Q1's lone
-	// candidate owes the runner's select, so nothing is held there.
+	// and what its Result judged. Each reading's answer can move the
+	// candidate its Result supported, so it holds Q1's lone select and Q2's
+	// choice, and FRONTIER names each one with what it can move.
 	want(t, out, 0, "    "+k1+": "+q1+" candidates H-")
 	want(t, out, 0, "    "+k2+": "+q2+" candidates H-")
 	want(t, out, 0, " supports, now supported")
-	want(t, out, 0, "    held: open reading "+k2+", "+k3+" waits for the owner")
-	if strings.Count(out.stdout, "held:") != 1 {
-		t.Fatalf("held line printed for a question that owes the runner:\n%s", out.stdout)
-	}
+	want(t, out, 0, "    held: open reading "+k1+" waits for the owner; its answer can move H-")
+	want(t, out, 0, "    held: open reading "+k2+" waits for the owner; its answer can move H-")
+	want(t, out, 0, "    held: open reading "+k3+" waits for the owner; its answer can move H-")
 
 	want(t, hyp(t, "checkpoint", "--summary", "yes", "--role", "owner", "--closes", k1, "--actor", "owner-dat", "--why", "w"), 0,
 		"warn: "+k2+" asks the same as "+k1+" and stays open; add --closes "+k2)
