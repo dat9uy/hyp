@@ -114,6 +114,24 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 			}
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s choose: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
+		// An open reading on the question's Results holds its rivals and its
+		// choice (spec §8.1). When the question owes no runner item and no
+		// choice, the line names the readings that hold it, so the owner sees
+		// why the runner owes nothing there. A premise hold has its assumes
+		// line above.
+		if !slices.ContainsFunc(owed, func(o replay.Owed) bool {
+			return o.Question == dq && (o.Who == replay.OwedRunner || o.Kind == replay.OwedChoose)
+		}) {
+			var waits []string
+			for _, l := range p.Readings {
+				if l.Question == dq && l.By == "" {
+					waits = append(waits, r.limitLabel(l.Result, l.Key))
+				}
+			}
+			if len(waits) > 0 {
+				add(kKeep, "%s  held: open reading %s waits for the owner", indent, strings.Join(waits, ", "))
+			}
+		}
 		if chosen := chosenCandidate(p, dq); chosen != "" {
 			var rivals []string
 			for _, h := range ns.Candidates {
@@ -281,6 +299,12 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 			labels[i] = fmt.Sprintf("%s (%s)", r.limitLabel(m.Result, k), r.id(m.Question))
 		}
 		add(kKeep, "  %s%s reading: %s", strings.Join(labels, ", "), r.of(l), l.Text)
+		// Each copy holds its own Result's question: name what the answer
+		// can touch there, from stored verdicts and derived candidates.
+		for _, k := range open {
+			m, _ := p.Reading(k)
+			add(kKeep, "    %s: %s", r.limitLabel(m.Result, k), r.reach(m))
+		}
 	}
 
 	// OPEN LIMITS is a ledger, not open work: it lists every open limit, whatever
@@ -390,6 +414,22 @@ func (r renderer) id(id string) string {
 }
 
 // closed reports whether an Experiment is superseded or withdrawn.
+// reach says what an answer to reading l can touch on its Result's question:
+// the question's candidates, and each Hypothesis the Result judged with its
+// verdict and its status now.
+func (r renderer) reach(l replay.Reading) string {
+	cands := "no candidate"
+	if c := r.p.Questions[l.Question].Candidates; len(c) > 0 {
+		cands = "candidates " + r.named(c)
+	}
+	n := r.p.Nodes[l.Result]
+	var judged []string
+	for _, h := range n.VerdictOrder {
+		judged = append(judged, fmt.Sprintf("%s %s, now %s", r.withAlias(h), n.Verdicts[h], r.p.Hyps[h].Status))
+	}
+	return fmt.Sprintf("%s %s; judged %s", r.id(l.Question), cands, strings.Join(judged, "; "))
+}
+
 // marked says Hypothesis h holds an open Experiment FRONTIER marks one-rival
 // or unjudged, so --live keeps it and that mark in view.
 func (r renderer) marked(h string) bool {

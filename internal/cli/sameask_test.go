@@ -6,7 +6,8 @@ import (
 )
 
 // Two open readings with the same text ask the owner one question: AWAITING
-// OWNER prints them as one line, each key with the question it holds, and a
+// OWNER prints them as one line, each key with the question it holds and what
+// the answer can touch there, and a
 // checkpoint that answers one of them warns about the other. A reading with
 // other words stays on its own line.
 func TestSameAskReadingsPrintAndCloseAsOne(t *testing.T) {
@@ -27,6 +28,17 @@ func TestSameAskReadingsPrintAndCloseAsOne(t *testing.T) {
 	want(t, out, 0, "  "+k3+" reading: another question")
 	if strings.Count(out.stdout, "stored record?") != 1 {
 		t.Fatalf("same question printed more than once:\n%s", out.stdout)
+	}
+	// Under the grouped line, each key names its question, the candidates
+	// and what its Result judged. Q2's two candidates owe the owner's choice,
+	// which its open readings hold, so FRONTIER names them; Q1's lone
+	// candidate owes the runner's select, so nothing is held there.
+	want(t, out, 0, "    "+k1+": "+q1+" candidates H-")
+	want(t, out, 0, "    "+k2+": "+q2+" candidates H-")
+	want(t, out, 0, " supports, now supported")
+	want(t, out, 0, "    held: open reading "+k2+", "+k3+" waits for the owner")
+	if strings.Count(out.stdout, "held:") != 1 {
+		t.Fatalf("held line printed for a question that owes the runner:\n%s", out.stdout)
 	}
 
 	want(t, hyp(t, "checkpoint", "--summary", "yes", "--role", "owner", "--closes", k1, "--actor", "owner-dat", "--why", "w"), 0,
