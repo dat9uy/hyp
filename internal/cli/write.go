@@ -806,7 +806,8 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	if len(accepts) > 0 && *role != event.RoleOwner {
 		return usageErr("--accept needs --role owner")
 	}
-	return w.run(func() (draft, error) {
+	var warns []string
+	err := w.run(func() (draft, error) {
 		if w.st.GoalID == "" {
 			return draft{}, refusedErr("no Goal yet")
 		}
@@ -824,8 +825,40 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 		if p.Refers, err = w.keys("--refers", refers, event.KeyLimit); err != nil {
 			return draft{}, err
 		}
+		warns = sameAskWarnings(w.p, p.Closes, p.Revises)
 		return draft{event.TypeCheckpoint, w.st.GoalID, p}, nil
 	})
+	if err == nil {
+		for _, l := range warns {
+			fmt.Fprintln(stderr, l)
+		}
+	}
+	return err
+}
+
+// sameAskWarnings names each reading that asks the same question as one the
+// checkpoint closes or revises (spec §4 readings) and that the checkpoint
+// leaves behind: an open copy it does not close, or an answered copy it does
+// not revise. The owner may answer them apart on purpose, so it warns.
+func sameAskWarnings(p replay.Projection, closes, revises []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	check := func(keys []string, open bool, flag, left string) {
+		for _, k := range keys {
+			for _, m := range p.SameAsk(k) {
+				l, _ := p.Reading(m)
+				if m == k || (l.By == "") != open || slices.Contains(keys, m) || seen[flag+m] {
+					continue
+				}
+				seen[flag+m] = true
+				out = append(out, fmt.Sprintf("warn: %s asks the same as %s and %s; add %s %s",
+					p.KeyLabel(m), p.KeyLabel(k), left, flag, p.KeyLabel(m)))
+			}
+		}
+	}
+	check(closes, true, "--closes", "stays open")
+	check(revises, false, "--revises", "keeps its earlier answer")
+	return out
 }
 
 // required trims a required text flag in place and reports a usage error

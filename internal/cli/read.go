@@ -120,10 +120,11 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("status", stderr)
 	asOf := fs.String("as-of", "", "event id, node ref or RFC3339 time")
 	maxLines := fs.Int("max-lines", render.DefaultMaxLines, "line budget (0 for unlimited)")
+	live := fs.Bool("live", false, "leave out of FRONTIER each contradicted Hypothesis with no marked Experiment, counted under its question; for the owner, since a runner needs the contradicted rivals")
 	if pos, err := parse(fs, args); err != nil {
 		return err
 	} else if len(pos) != 0 {
-		return usageErr("usage: hyp status [--as-of REF|TIME] [--max-lines N]")
+		return usageErr("usage: hyp status [--as-of REF|TIME] [--max-lines N] [--live]")
 	}
 	r, err := openReader()
 	if err != nil {
@@ -139,7 +140,7 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	for _, le := range r.lineErrs {
 		fmt.Fprintf(stderr, "warn: skipped %s:%d: %v; run hyp check\n", le.File, le.Line, le.Err)
 	}
-	fmt.Fprint(stdout, render.Status(p, *maxLines))
+	fmt.Fprint(stdout, render.StatusLive(p, *maxLines, *live))
 	return nil
 }
 
