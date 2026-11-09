@@ -255,6 +255,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				for _, k := range s.Refers {
 					w("    refers: %s", r.limitLabel(event.KeyResult(k), k))
 				}
+				for _, k := range s.Returns {
+					w("    returns: %s", r.limitLabel(event.KeyResult(k), k))
+				}
 			}
 			if amended && (ev.Type == event.TypeNodeAdd || ev.Type == event.TypeHypothesisAmend) {
 				var rev struct {

@@ -321,9 +321,11 @@ func (st *State) limits() map[string][]Limit {
 			closers[k] = append(closers[k], id)
 		}
 	}
-	// An owner checkpoint accepts the limits its accepts names, and any
-	// checkpoint refers the limits its refers names to the owner.
-	ownerAccepted, referred := map[string]string{}, map[string]string{}
+	// An owner checkpoint accepts the limits its accepts names, any
+	// checkpoint refers the limits its refers names to the owner, and an
+	// owner checkpoint returns the referred limits its returns names to the
+	// runner. The latest refer or return names whose turn an open limit is.
+	ownerAccepted, referred, returned := map[string]string{}, map[string]string{}, map[string]string{}
 	for _, ev := range st.Applied {
 		if ev.Type != event.TypeCheckpoint {
 			continue
@@ -336,9 +338,10 @@ func (st *State) limits() map[string][]Limit {
 			}
 		}
 		for _, k := range c.Refers {
-			if _, seen := referred[k]; !seen {
-				referred[k] = ev.ID
-			}
+			referred[k], returned[k] = ev.ID, ""
+		}
+		for _, k := range c.Returns {
+			referred[k], returned[k] = "", ev.ID
 		}
 	}
 	out := map[string][]Limit{}
@@ -354,7 +357,7 @@ func (st *State) limits() map[string][]Limit {
 			accepted[q] = s.accepted(s.Current, st.dossierItems(q, s.Selects[s.Current].Hyp))
 		}
 		for i, text := range n.Limits {
-			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen, Referred: referred[event.LimitKey(id, i+1)]}
+			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen, Referred: referred[event.LimitKey(id, i+1)], Returned: returned[event.LimitKey(id, i+1)]}
 			if cs := closers[l.Key]; len(cs) > 0 {
 				l.State, l.By, l.Closers = LimitClosed, cs[0], cs
 			} else if actor, ok := accepted[q][l.Key]; ok {

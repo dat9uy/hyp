@@ -793,12 +793,13 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
-	role := w.fs.String("role", "", "owner, required with --closes, --revises and --accept")
-	var closes, revises, accepts, refers multi
+	role := w.fs.String("role", "", "owner, required with --closes, --revises, --accept and --returns")
+	var closes, revises, accepts, refers, returns multi
 	w.fs.Var(&closes, "closes", "R-id#rn of an open reading this owner checkpoint answers; --summary holds the owner's words (repeatable)")
 	w.fs.Var(&revises, "revises", "R-id#rn of an answered reading whose answer --summary replaces from now on (repeatable)")
 	w.fs.Var(&accepts, "accept", "R-id#n of a limit the owner accepts untested (repeatable)")
 	w.fs.Var(&refers, "refers", "R-id#n of a limit no test within the Goal's lines can settle, handed to the owner; --summary says why (repeatable)")
+	w.fs.Var(&returns, "returns", "R-id#n of a referred limit whose case the Goal covers, handed back to the runner to run; --summary holds the owner's words (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
@@ -817,6 +818,9 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	if len(accepts) > 0 && *role != event.RoleOwner {
 		return usageErr("--accept needs --role owner")
 	}
+	if len(returns) > 0 && *role != event.RoleOwner {
+		return usageErr("--returns needs --role owner")
+	}
 	var warns []string
 	err := w.run(func() (draft, error) {
 		if w.st.GoalID == "" {
@@ -834,6 +838,9 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		if p.Refers, err = w.keys("--refers", refers, event.KeyLimit); err != nil {
+			return draft{}, err
+		}
+		if p.Returns, err = w.keys("--returns", returns, event.KeyLimit); err != nil {
 			return draft{}, err
 		}
 		warns = sameAskWarnings(w.p, p.Closes, p.Revises)

@@ -227,6 +227,12 @@ var rules = map[string]rule{
 			for _, k := range p.Closes {
 				st.ClosedReadings[k] = true
 			}
+			for _, k := range p.Refers {
+				st.LimitHand[k] = HandRefer
+			}
+			for _, k := range p.Returns {
+				st.LimitHand[k] = HandReturn
+			}
 		},
 	},
 	event.TypeEdgeAdd: {

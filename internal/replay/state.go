@@ -153,8 +153,15 @@ type Limit struct {
 	By                string   // the first closing Result id, or the accepting owner's actor
 	Closers           []string // every non-retracted Result that closes it, in creation order
 	Gating            bool     // Gates the Hypothesis of the question's current select
-	Referred          string   // the checkpoint that first referred it to the owner, or ""
+	Referred          string   // the latest refer, while no return follows it: the owner's turn; or ""
+	Returned          string   // the latest return, while no refer follows it: the runner's turn again; or ""
 }
+
+// HandRefer and HandReturn are the values of Facts.LimitHand.
+const (
+	HandRefer  = "refer"
+	HandReturn = "return"
+)
 
 // Gates reports whether the limit gates the owner confirm of a scope-change
 // select of hyp: it is open and its Result judged hyp.
@@ -273,6 +280,9 @@ type Facts struct {
 	Aliases   map[string]string // alias → node id
 	// ClosedReadings holds each reading key an applied owner checkpoint closed.
 	ClosedReadings map[string]bool
+	// LimitHand holds, for each limit key a checkpoint referred or returned,
+	// the latest of the two in merge order: HandRefer or HandReturn.
+	LimitHand map[string]string
 
 	// Lookup indexes over the stored state, maintained by apply so that a
 	// full recompute per event stays fast.
@@ -313,6 +323,7 @@ func NewState() *State {
 			Decisions:      map[string]*Decision{},
 			Aliases:        map[string]string{},
 			ClosedReadings: map[string]bool{},
+			LimitHand:      map[string]string{},
 			ResultsByHyp:   map[string][]string{},
 			EdgesFrom:      map[string][]int{},
 			SupersededN:    map[string]int{},
