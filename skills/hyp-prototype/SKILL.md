@@ -148,8 +148,10 @@ that no longer matters is `hyp withdraw <Q-id>`.
   (`new_candidate`); OWED then lists `select` or `choose` again.
 - Add `--scope-change` when the select changes the Goal's scope. Only then
   does the owner confirm: `Q-… awaiting_owner: H-… (scope change)` waits
-  for `hyp confirm <Q-id> --role owner --verdict sufficient --why "<their words>" --actor <owner-name>`,
-  with `--accept <R-id>#<n>` for each open limit they accept.
+  for `hyp confirm <Q-id> --role owner --verdict sufficient --why "<their words>" --actor <owner-name>`.
+  An open limit holds the confirm: the runner refers each one it cannot
+  run with `hyp checkpoint --refers <key>`, and the owner accepts it first
+  with `hyp checkpoint --role owner --accept <key> --actor <owner-name>`.
 - To change a selection, select the other candidate when OWED lists it. When
   the evidence changes the claim, add a new Hypothesis that `supersedes` the
   old one and select that.
