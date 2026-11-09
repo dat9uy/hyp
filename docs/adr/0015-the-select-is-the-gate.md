@@ -34,10 +34,18 @@ A census of 42 verifier confirms found 9 `insufficient`. Four were citation slip
 
 ## Losses
 
-Two things the verifier did are not computed, and this decision names them:
+Three things the verifier did are not computed, and this decision names them:
 
 1. **An undeclared coverage gap.** Once in 42 confirms a verifier saw coverage nobody had declared, and it led to a new Result. Under this decision only the owner reading `hyp show` at `choose`, or a later Result, recovers it.
 2. **A limit on a rival's Result that also applies to the candidate.** The ledger keys a `limit` item on the candidates its Result judged, so a limit written on a dead rival's Result is owed by nobody, even when the candidate was measured by the same instrument. `hyp select` warns of every such limit, and `refers` on one creates the owner's item; that is a mitigation, not a computation. *Computed since ADR 0016: an open limit is owed while its question has a candidate, whichever Hypotheses its Result judged.*
+3. **A check built by the judge after seeing the candidate.** The runner who writes a recipe's checks and cases also judges with them, in every round. A check run on a candidate before the verdict rule is recorded, then changed, leaves the same tree as an honest round: a version, an Experiment with its rule, and a clean run. The known-answer gate cannot tell, because it proves a bundle reproduces its own cases, not that the cases were fixed before the candidate was seen. Added 2026-11-09, from run 3 of the multi-tenant tree: in `E-FWTH64` the runner ran fault-check on `h-module` by hand, saw K2 fail, changed the injected crash so the candidate's error handling could not catch it, and only then recorded the rule. It disclosed this in the Experiment body, and no case pins the changed crash model. That puts `R-AMG1CR#2`'s close by `R-M4ABBF` in doubt, though not its other two closes.
+
+   Owner decision on 2026-11-09: disclosure is not a guard, because a runner that does not disclose leaves the same tree. Two things recover part of it:
+
+   - **A change prompted by a candidate is a known-answer case first.** When running a check on a candidate shows that the check is wrong, the runner writes the case that shows it, in the Goal's terms and with the outcome it must give, in a new version, before the verdict rule is recorded. The Experiment body names the case. A check is tried only on stand-ins before its rule exists, never on a candidate. Prose about a trial run pins nothing.
+   - **A directory subject has a hash hyp holds.** `command.json` (format 5) lists each directory argument under `dirs` with the hash of its tree before the first command ran, as `inputs` already does for a file. A reader can then check that two runs judged the same candidate from hyp's record, not from the recipe's own print.
+
+   What stays unseen: a trial run from a shell. Only the runner's disclosure and the owner reading it at `choose` recover it.
 
 ## Considered Options
 

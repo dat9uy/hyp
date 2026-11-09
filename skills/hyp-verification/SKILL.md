@@ -38,7 +38,10 @@ the result means; that is the `hyp record` verdict.
   `hyp recipe evidence --record DIR REF OUT_DIR` runs scripted Evidence,
   and `hyp recipe run --record DIR REF NAME ARGS` runs a Standalone
   command. When the sandbox ran them, Launch and Doctor are already done.
-  Never run a bundle's script yourself.
+  Never run a bundle's script yourself, and never run a check on a
+  candidate before the Experiment that judges it records its verdict rule.
+  When a candidate shows a check is wrong, write the case that shows it in
+  a new version first, and name the case in the Experiment body.
 - A bundle with an Evidence or Standalone command is an instrument and
   must have known answers. hyp runs them before every
   `hyp sandbox create`, `hyp recipe run` and `hyp recipe evidence`, and

@@ -290,6 +290,51 @@ func TestRunKeepsInputs(t *testing.T) {
 	}
 }
 
+// A directory argument, such as a candidate's subject folder, is passed in
+// place and recorded in dirs with the hash of its tree before the first
+// command ran: a script that writes into it does not change the recorded
+// hash, and a changed file gives the next run another hash.
+func TestRunHashesDirectoryArgs(t *testing.T) {
+	root := recipeRoot(t, "tool", passCase(map[string]string{
+		"recipe.md": recipeMD("tool", "## Standalone\n\nRun go: ./go.sh\n"),
+		"go.sh":     "#!/bin/sh\n[ \"$1\" = case ] && { echo case; exit 0; }\necho new > \"$1/written.txt\"\n",
+	}, "standalone", "go", []string{"case"}, 0, "case\n"), "go.sh")
+	subject := filepath.Join(root, "subject")
+	writeFile(t, filepath.Join(subject, "h-module.py"), "x = 1\n")
+	writeFile(t, filepath.Join(subject, ".hidden", "note"), "n\n")
+	run := func() cmdrecord.Dir {
+		t.Helper()
+		want, files, err := dirSum(subject)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out := filepath.Join(t.TempDir(), "rec")
+		if _, err := Run(RunOptions{Dir: root, Ref: "tool@1", Step: "standalone", Label: "go", Args: []string{"./subject"}, Record: out}); err != nil {
+			t.Fatal(err)
+		}
+		rec := readCommandRecord(t, out)
+		if len(rec.Dirs) != 1 || rec.Dirs[0] != (cmdrecord.Dir{Arg: 1, Path: filepath.Base(root) + "/subject", SHA256: want, Files: files}) {
+			t.Fatalf("dirs = %+v, want one with sha256 %s and %d files", rec.Dirs, want, files)
+		}
+		return rec.Dirs[0]
+	}
+	first := run()
+	if first.Files != 2 {
+		t.Errorf("files = %d, want 2 (dot-entries count)", first.Files)
+	}
+	if err := os.Remove(filepath.Join(subject, "written.txt")); err != nil {
+		t.Fatal(err)
+	}
+	if again := run(); again.SHA256 != first.SHA256 {
+		t.Errorf("the same tree hashed %s, then %s", first.SHA256, again.SHA256)
+	}
+	os.Remove(filepath.Join(subject, "written.txt"))
+	writeFile(t, filepath.Join(subject, "h-module.py"), "x = 2\n")
+	if changed := run(); changed.SHA256 == first.SHA256 {
+		t.Errorf("a changed file kept the hash %s", first.SHA256)
+	}
+}
+
 // A file over the cap is not kept: its sha256 and size are recorded, and the
 // script still gets a copy.
 func TestRunBigInputNotKept(t *testing.T) {

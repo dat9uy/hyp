@@ -107,7 +107,8 @@ func fullRecord() Record {
 func fullCommandRecord() cmdrecord.Record {
 	return cmdrecord.Record{Format: cmdrecord.Format, Ref: event.Ref{Name: "r", Version: "1"}, Name: "r", Version: "1", SHA256: "s", Path: "p", Step: "standalone", Cwd: "c", Created: "c",
 		Commands: []cmdrecord.Run{fullCommand()}, KnownAnswers: fullKnownAnswers(),
-		Inputs: []cmdrecord.Input{{Arg: 1, Path: "inputs/1/f", SHA256: "h", Size: 1, Kept: true}}}
+		Inputs: []cmdrecord.Input{{Arg: 1, Path: "inputs/1/f", SHA256: "h", Size: 1, Kept: true}},
+		Dirs:   []cmdrecord.Dir{{Arg: 2, Path: "repo/d", SHA256: "h", Files: 1}}}
 }
 
 func fullChanges() Changes {

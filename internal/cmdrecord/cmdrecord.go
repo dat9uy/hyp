@@ -15,7 +15,7 @@ import (
 )
 
 // Format is the shape number of command.json.
-const Format = 4
+const Format = 5
 
 // Run is one command hyp ran, a row of the sandbox record or of a command
 // record (docs/sandbox-spec.md §5.1). Exit is set when the script exited,
@@ -102,6 +102,10 @@ type Record struct {
 	// Inputs is each operator argument that names a regular file, in ARGS
 	// order; absent when none does.
 	Inputs []Input `json:"inputs,omitempty"`
+	// Dirs is each operator argument that names a directory, in ARGS order,
+	// with the hash of what it held before the first command ran; absent
+	// when none does.
+	Dirs []Dir `json:"dirs,omitempty"`
 	// ArgSHA256 is a format-3 record's arg_sha256, each file argument's
 	// absolute path to its sha256. It is read, and never written.
 	ArgSHA256 map[string]string `json:"-"`
@@ -117,6 +121,17 @@ type Input struct {
 	SHA256 string `json:"sha256"`
 	Size   int64  `json:"size"`
 	Kept   bool   `json:"kept"`
+}
+
+// Dir is one directory argument: ARGS word Arg (counted from 1) named a
+// directory, shown as Path, which hyp passed in place and did not copy.
+// SHA256 hashes its tree just before the first command ran (DirSum), and
+// Files counts its regular files.
+type Dir struct {
+	Arg    int    `json:"arg"`
+	Path   string `json:"path"`
+	SHA256 string `json:"sha256"`
+	Files  int    `json:"files"`
 }
 
 type plainRecord Record
