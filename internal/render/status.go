@@ -33,7 +33,12 @@ type line struct {
 
 // Status renders the orientation screen for a fresh agent. maxLines <= 0
 // means unlimited.
-func Status(p replay.Projection, maxLines int) string {
+func Status(p replay.Projection, maxLines int) string { return StatusLive(p, maxLines, false) }
+
+// StatusLive is Status; with live set, FRONTIER leaves out each contradicted
+// Hypothesis that holds no marked Experiment, and counts them under their
+// question. The owner reads it; a runner reads the full Status.
+func StatusLive(p replay.Projection, maxLines int, live bool) string {
 	if p.Goal.GoalID == "" {
 		return "GOAL none (hyp add goal --title T --why W)\n"
 	}
@@ -163,6 +168,7 @@ func Status(p replay.Projection, maxLines int) string {
 		} else if onFrontier(dq) {
 			unprinted++
 		}
+		hidden := 0
 		for _, h := range p.Nodes[dq].Children {
 			listed := prints && replay.LiveHypStatus(p.Hyps[h].Status)
 			subInPlay := listed && replay.RivalStatus(p.Hyps[h].Status)
@@ -179,7 +185,11 @@ func Status(p replay.Projection, maxLines int) string {
 				if slices.ContainsFunc(subs, func(sub string) bool { return subInPlay && onFrontier(sub) || blocker(h, sub) }) {
 					kind = kKeep
 				}
-				printHypothesis(h, indent, kind)
+				if live && kind == kHyp && p.Hyps[h].Status == replay.HypContradicted && !r.marked(h) {
+					hidden++
+				} else {
+					printHypothesis(h, indent, kind)
+				}
 			}
 			for _, sub := range subs {
 				if listed && blocker(h, sub) {
@@ -187,6 +197,9 @@ func Status(p replay.Projection, maxLines int) string {
 				}
 				walk(sub, depth+2, subInPlay)
 			}
+		}
+		if hidden > 0 {
+			add(kKeep, "%s  (%d contradicted hidden)", indent, hidden)
 		}
 	}
 	for _, dq := range g.Children {
@@ -244,10 +257,30 @@ func Status(p replay.Projection, maxLines int) string {
 			add(kKeep, "  %s", r.owedLine(o))
 		}
 	}
+	// Open readings that ask the same question print as one line, each key
+	// with the question it holds, so the owner answers them once.
+	printed := map[string]bool{}
 	for _, l := range p.Readings {
-		if l.By == "" {
-			add(kKeep, "  %s%s reading: %s", r.limitLabel(l.Result, l.Key), r.of(l), l.Text)
+		if l.By != "" || printed[l.Key] {
+			continue
 		}
+		var open []string
+		for _, k := range p.SameAsk(l.Key) {
+			if m, _ := p.Reading(k); m.By == "" {
+				open = append(open, k)
+			}
+		}
+		if len(open) == 1 {
+			add(kKeep, "  %s%s reading: %s", r.limitLabel(l.Result, l.Key), r.of(l), l.Text)
+			continue
+		}
+		labels := make([]string, len(open))
+		for i, k := range open {
+			printed[k] = true
+			m, _ := p.Reading(k)
+			labels[i] = fmt.Sprintf("%s (%s)", r.limitLabel(m.Result, k), r.id(m.Question))
+		}
+		add(kKeep, "  %s%s reading: %s", strings.Join(labels, ", "), r.of(l), l.Text)
 	}
 
 	// OPEN LIMITS is a ledger, not open work: it lists every open limit, whatever
@@ -357,6 +390,17 @@ func (r renderer) id(id string) string {
 }
 
 // closed reports whether an Experiment is superseded or withdrawn.
+// marked says Hypothesis h holds an open Experiment FRONTIER marks one-rival
+// or unjudged, so --live keeps it and that mark in view.
+func (r renderer) marked(h string) bool {
+	for _, e := range r.p.Nodes[h].Children {
+		if r.p.Nodes[e].Kind == event.KindExperiment && len(r.marks(e)) > 0 && !closed(r.p.Exps[e]) {
+			return true
+		}
+	}
+	return false
+}
+
 func closed(x *replay.Exp) bool {
 	return x.Status == replay.ExpSuperseded || x.Status == replay.ExpWithdrawn
 }

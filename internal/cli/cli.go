@@ -75,7 +75,7 @@ write:
   checkpoint --summary S
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
-  status [--as-of REF|TIME] [--max-lines N]   orientation screen, 60 lines by default
+  status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals
   show REF [--as-of REF|TIME]                 one node in full, with its history
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
