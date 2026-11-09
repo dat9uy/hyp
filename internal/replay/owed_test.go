@@ -192,16 +192,23 @@ func TestLimitOwedWhileQuestionHasCandidate(t *testing.T) {
 	}
 	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test within the Goal", Refers: []string{k}})
 	p = replayB(b)
-	wantOwed(t, p, q, "owner referred "+k, "runner select "+h1)
+	// A referred limit holds the select until the owner accepts or returns it.
+	wantOwed(t, p, q, "owner referred "+k)
+	if fs := p.AdmitSelect(q, h1); len(fs) != 1 || !strings.Contains(fs[0].Text, "referred limit "+event.DisplayID(event.KindResult, dead)+"#1 waits for the owner") {
+		t.Fatalf("findings = %+v, want a refusal naming the referred limit", fs)
+	}
+	b.As("o").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "accept", Role: event.RoleOwner, Accepts: []string{k}})
+	p = replayB(b)
+	wantOwed(t, p, q, "runner select "+h1)
 	if fs := p.AdmitSelect(q, h1); len(fs) != 0 {
-		t.Fatalf("findings = %+v, want none once the limit is referred", fs)
+		t.Fatalf("findings = %+v, want none once the limit is accepted", fs)
 	}
 
 	b.As("a").Select(q, h1, "", false)
 	r := limitResult(b, h1, []string{"one host"}, nil)
 	p = replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
-	wantOwed(t, p, q, "owner referred "+k, "runner limit "+event.LimitKey(r, 1))
+	wantOwed(t, p, q, "runner limit "+event.LimitKey(r, 1))
 }
 
 // A scope-change select still waits for the owner's confirm.

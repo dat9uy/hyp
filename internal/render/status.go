@@ -127,6 +127,9 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 					add(kKeep, "%s  held: open reading %s waits for the owner; its answer can move %s", indent, r.limitLabel(l.Result, l.Key), r.named(l.Reach))
 				}
 			}
+			if k := p.ReferredLimit(dq); k != "" && len(ns.Candidates) > 0 {
+				add(kKeep, "%s  held: referred limit %s waits for the owner; an accept releases the select, a return sends its case to run", indent, r.limitLabel(event.KeyResult(k), k))
+			}
 		}
 		if chosen := chosenCandidate(p, dq); chosen != "" {
 			var rivals []string

@@ -148,13 +148,15 @@ func (p Projection) Owed() []Owed {
 		// the question, no premise's question is still open, and the current
 		// select does not stand. A lone candidate's select also waits for its
 		// sub-questions (ADR 0014). Both also wait for an open reading whose
-		// answer can move a Hypothesis on the question, since it may change
-		// the candidates.
+		// answer can move a Hypothesis on the question, and for a referred
+		// limit on it: the owner's return sends its case back to run, which
+		// may change the candidates (ADR 0016).
+		held := waiting || p.ReferredLimit(dq) != ""
 		if open && p.PremiseHold(dq) == nil && !p.selectStands(dq) && !RunnerOwes(mine) {
 			switch {
-			case len(q.Candidates) == 1 && !p.HasOpenSubquestion(q.Candidates[0]) && !waiting:
+			case len(q.Candidates) == 1 && !p.HasOpenSubquestion(q.Candidates[0]) && !held:
 				add(Owed{Who: OwedRunner, Kind: OwedSelect, Key: q.Candidates[0]})
-			case len(q.Candidates) >= 2 && !waiting:
+			case len(q.Candidates) >= 2 && !held:
 				add(Owed{Who: OwedOwner, Kind: OwedChoose, Key: dq})
 			}
 		}
@@ -269,4 +271,16 @@ func (p Projection) hasPlannedExp(h string) bool {
 
 func closedExp(e *Exp) bool {
 	return e == nil || e.Closed != "" || e.Status == ExpSuperseded || e.Status == ExpWithdrawn
+}
+
+// ReferredLimit is the key of the first open limit under question dq whose
+// latest refer or return is a refer, or "". It holds the question's select
+// and choice until the owner accepts or returns it.
+func (p Projection) ReferredLimit(dq string) string {
+	for _, l := range p.LimitsOf(dq) {
+		if l.State == LimitOpen && l.Referred != "" {
+			return l.Key
+		}
+	}
+	return ""
 }
