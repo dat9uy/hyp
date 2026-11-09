@@ -400,7 +400,9 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	if recordHashed != nil {
 		recordHashed()
 	}
+	var warns []string
 	err := w.run(func() (draft, error) {
+		warns = nil
 		expID, err := w.ref(*exp)
 		if err != nil {
 			return draft{}, err
@@ -421,9 +423,11 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			}
 			p.Readings = append(p.Readings, event.ReadingItem{Of: keys[0], Text: text})
 		}
-		if _, err := admitted(w.st.AdmitResult(p, w.recipeFacts(expID), refHash)); err != nil {
+		admitWarns, err := admitted(w.st.AdmitResult(p, w.recipeFacts(expID), refHash))
+		if err != nil {
 			return draft{}, err
 		}
+		warns = admitWarns
 		for _, v := range verdicts {
 			ref, verdict, _ := strings.Cut(v, "=")
 			id, err := w.ref(ref)
@@ -438,9 +442,16 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 		if p.Applies, err = w.keys("--applies", applies, event.KeyLimit, event.KeyReading); err != nil {
 			return draft{}, err
 		}
+		for _, k := range w.p.UnclosedAims(expID, p.Closes, len(p.Limits)) {
+			warns = append(warns, fmt.Sprintf("warn: %s aims at %s and this Result does not close it; a close records that the case ran, whatever the verdicts (add --closes %s), and a case the run did not reach is a new --limit",
+				event.DisplayID(event.KindExperiment, expID), w.p.KeyLabel(k), w.p.KeyLabel(k)))
+		}
 		return draft{event.TypeResultRecord, "", p}, nil
 	})
 	if err == nil {
+		for _, l := range warns {
+			fmt.Fprintln(stderr, l)
+		}
 		warnResult(w.root, w.last.Node, stderr)
 	}
 	return err

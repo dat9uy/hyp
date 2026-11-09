@@ -380,6 +380,23 @@ func resOf(p replay.Projection, id string) replay.Res {
 	return replay.Res{}
 }
 
+// closers names each Result that closes a limit with its verdicts, as
+// "R-5JYRA0 (H-G1Z4MR (h-module) contradicts)". A close records that the
+// case ran, whatever the verdicts, so the verdicts say what the case did to
+// each Hypothesis it judged.
+func (r renderer) closers(ids []string) string {
+	parts := make([]string, len(ids))
+	for i, id := range ids {
+		n := r.p.Nodes[id]
+		var vs []string
+		for _, h := range n.VerdictOrder {
+			vs = append(vs, r.withAlias(h)+" "+n.Verdicts[h])
+		}
+		parts[i] = r.id(id) + " (" + strings.Join(vs, "; ") + ")"
+	}
+	return strings.Join(parts, ", ")
+}
+
 // limitLine is one limit as hyp show and render --markdown print it:
 // R-…#n, its state, and its text. hyp is the question's selected Hypothesis.
 func (r renderer) limitLine(l replay.Limit, hyp string) string {
@@ -390,7 +407,7 @@ func (r renderer) limitLine(l replay.Limit, hyp string) string {
 			state += ", does not gate (judges " + r.ids(l.Hyps) + ")"
 		}
 	case replay.LimitClosed:
-		state += " by " + r.id(l.By)
+		state += " by " + r.closers(l.Closers)
 	case replay.LimitAccepted:
 		state += " by " + l.By
 	}

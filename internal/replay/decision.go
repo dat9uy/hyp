@@ -311,16 +311,14 @@ func (st *State) resultBetween(keep func(string) bool, pos map[string]int, at, u
 // the question's current select accepted it (Decision.accepted), and open
 // otherwise. Limits of a retracted Result are left out.
 func (st *State) limits() map[string][]Limit {
-	closedBy := map[string]string{}
+	closers := map[string][]string{}
 	for _, id := range st.Order {
 		n := st.Nodes[id]
 		if n.Kind != event.KindResult || st.Retracted[id] {
 			continue
 		}
 		for _, k := range n.Closes {
-			if _, ok := closedBy[k]; !ok {
-				closedBy[k] = id
-			}
+			closers[k] = append(closers[k], id)
 		}
 	}
 	// An owner checkpoint accepts the limits its accepts names, and any
@@ -357,8 +355,8 @@ func (st *State) limits() map[string][]Limit {
 		}
 		for i, text := range n.Limits {
 			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen, Referred: referred[event.LimitKey(id, i+1)]}
-			if by, ok := closedBy[l.Key]; ok {
-				l.State, l.By = LimitClosed, by
+			if cs := closers[l.Key]; len(cs) > 0 {
+				l.State, l.By, l.Closers = LimitClosed, cs[0], cs
 			} else if actor, ok := accepted[q][l.Key]; ok {
 				l.State, l.By = LimitAccepted, actor
 			} else if actor, ok := ownerAccepted[l.Key]; ok {
