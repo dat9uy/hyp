@@ -313,8 +313,8 @@ func TestRunHashesDirectoryArgs(t *testing.T) {
 			t.Fatal(err)
 		}
 		rec := readCommandRecord(t, out)
-		if len(rec.Dirs) != 1 || rec.Dirs[0] != (cmdrecord.Dir{Arg: 1, Path: filepath.Base(root) + "/subject", SHA256: want, Files: files}) {
-			t.Fatalf("dirs = %+v, want one with sha256 %s and %d files", rec.Dirs, want, files)
+		if len(rec.Dirs) != 1 || !reflect.DeepEqual(rec.Dirs[0], cmdrecord.Dir{Arg: 1, Path: filepath.Base(root) + "/subject", SHA256: want, Files: len(files), Entries: files}) {
+			t.Fatalf("dirs = %+v, want one with sha256 %s and the entries %+v", rec.Dirs, want, files)
 		}
 		return rec.Dirs[0]
 	}

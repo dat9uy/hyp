@@ -223,11 +223,15 @@ func stageArgs(args []string, cwd, repo, dir, tmp string, warn io.Writer) (run, 
 			if !in && warn != nil {
 				fmt.Fprintf(warn, "warn: argument %d names a directory outside the repository; a replay cannot reach it\n", n)
 			}
-			sum, files, err := dirSum(abs)
+			sum, entries, err := dirSum(abs)
 			if err != nil {
 				return nil, nil, nil, nil, herr.Env("cannot read argument %d (%s): %v", n, val, err)
 			}
-			dirs = append(dirs, cmdrecord.Dir{Arg: n, Path: show, SHA256: sum, Files: files})
+			d := cmdrecord.Dir{Arg: n, Path: show, SHA256: sum, Files: len(entries)}
+			if len(entries) <= cmdrecord.MaxEntries {
+				d.Entries = entries
+			}
+			dirs = append(dirs, d)
 			run, shown = append(run, prefix+abs), append(shown, prefix+show)
 		default:
 			rel := filepath.ToSlash(filepath.Join("inputs", strconv.Itoa(n), filepath.Base(abs)))
@@ -243,14 +247,15 @@ func stageArgs(args []string, cwd, repo, dir, tmp string, warn io.Writer) (run, 
 	return run, shown, inputs, dirs, nil
 }
 
-// dirSum hashes the tree under root and counts its regular files. It reads
+// dirSum hashes the tree under root and lists its regular files. It reads
 // every entry, dot-entries included, in lexical order: a line "f REL SHA256"
 // for a regular file, "l REL TARGET" for a symlink (not followed), "d REL"
 // for a directory and "o REL" for anything else, REL slash-separated. Two
 // trees hash the same exactly when their names, kinds, file bytes and link
 // targets match; modes and times do not count.
-func dirSum(root string) (string, int, error) {
-	h, files := sha256.New(), 0
+func dirSum(root string) (string, []cmdrecord.Entry, error) {
+	h := sha256.New()
+	var files []cmdrecord.Entry
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -269,7 +274,7 @@ func dirSum(root string) (string, int, error) {
 			if err != nil {
 				return err
 			}
-			files++
+			files = append(files, cmdrecord.Entry{Path: rel, SHA256: sum})
 			fmt.Fprintf(h, "f %s %s\n", rel, sum)
 		case t&fs.ModeSymlink != 0:
 			target, err := os.Readlink(p)
@@ -285,7 +290,7 @@ func dirSum(root string) (string, int, error) {
 		return nil
 	})
 	if err != nil {
-		return "", 0, err
+		return "", nil, err
 	}
 	return hex.EncodeToString(h.Sum(nil)), files, nil
 }

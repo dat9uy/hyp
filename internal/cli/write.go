@@ -166,6 +166,9 @@ func (w *writer) run(build func() (draft, error)) error {
 		printKeys(w.stdout, ev)
 		printClosed(w.stdout, w.st, ev)
 	}
+	if ev.Type == event.TypeCheckpoint {
+		printLines(w.stdout, ev)
+	}
 	return nil
 }
 
@@ -179,10 +182,17 @@ func printClosed(out io.Writer, st *replay.State, ev event.Event) {
 	for _, c := range p.Closes {
 		k, ok := event.ParseKey(c)
 		n := st.Nodes[k.Result]
-		if !ok || n == nil || k.N > len(n.Limits) {
+		if !ok || n == nil {
 			continue
 		}
-		fmt.Fprintf(out, "  closes %s#%d: %s\n", event.DisplayID(event.KindResult, k.Result), k.N, n.Limits[k.N-1])
+		texts := n.Limits
+		if n.Kind == event.KindGoal {
+			texts = st.Lines
+		}
+		if k.N > len(texts) {
+			continue
+		}
+		fmt.Fprintf(out, "  closes %s: %s\n", event.DisplayKey(n.Kind, c), texts[k.N-1])
 	}
 }
 
@@ -238,9 +248,12 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	body := w.fs.String("body", "", fmt.Sprintf("body (at most %d runes)", maxBody))
 	alias := w.fs.String("alias", "", "optional unique alias")
 	var parent, recipeRef, decidedBy *string
-	var targets, aims multi
+	var targets, aims, subject multi
 	if kind != event.KindGoal {
 		parent = w.fs.String("parent", "", "parent node (required)")
+	}
+	if kind == event.KindHypothesis {
+		w.fs.Var(&subject, "subject", "a file or directory that embodies the claim; hyp ties the Hypothesis to each file's sha256 (repeatable)")
 	}
 	if kind == event.KindExperiment {
 		recipeRef = w.fs.String("recipe", "", "NAME@VERSION or none (required)")
@@ -291,6 +304,13 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 	}
+	var files []event.SubjectFile
+	if len(subject) > 0 {
+		var err error
+		if files, err = subjectFiles(w.root, subject); err != nil {
+			return err
+		}
+	}
 	err := w.run(func() (draft, error) {
 		var err error
 		if parent != nil {
@@ -319,6 +339,12 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		}
 		return draft{event.TypeNodeAdd, "", p}, nil
 	})
+	if err == nil && len(files) > 0 {
+		id := w.last.ID
+		err = w.run(func() (draft, error) {
+			return draft{event.TypeHypothesisSubject, id, event.HypothesisSubject{Files: files}}, nil
+		})
+	}
 	if err == nil {
 		for _, l := range warns {
 			fmt.Fprintln(stderr, l)
@@ -397,6 +423,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 		}
 		hashes[e] = h
 	}
+	prints := fingerprints(w.root, evidence)
 	if recordHashed != nil {
 		recordHashed()
 	}
@@ -408,7 +435,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		p := event.ResultRecord{Parent: expID, Verdicts: map[string]string{}, Observation: *observation, Evidence: evidence,
-			EvidenceHashes: hashes, Limits: limits}
+			EvidenceHashes: hashes, Limits: limits, Fingerprints: prints}
 		for _, t := range readings {
 			p.Readings = append(p.Readings, event.ReadingItem{Text: t})
 		}
@@ -544,7 +571,7 @@ func notDir(e string, fi os.FileInfo) error {
 // keys resolves "<REF>#<n>" and "<REF>#r<n>" arguments to keys of full ids;
 // each must be one of kinds.
 func (w *writer) keys(flag string, refs []string, kinds ...event.KeyKind) ([]string, error) {
-	form := map[event.KeyKind]string{event.KeyLimit: "<R-id>#<n>", event.KeyReading: "<R-id>#r<n>"}
+	form := map[event.KeyKind]string{event.KeyLimit: "<R-id>#<n> or <G-id>#<n>", event.KeyReading: "<R-id>#r<n>"}
 	var want []string
 	for _, k := range kinds {
 		want = append(want, form[k])
@@ -760,10 +787,13 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 	role := w.fs.String("role", "", "owner (required); the verifier role was retired")
 	verdict := w.fs.String("verdict", "", "sufficient or insufficient (required)")
 	var accepts multi
-	w.fs.Var(&accepts, "accept", "R-id#n of an open limit the owner accepts (repeatable)")
+	w.fs.Var(&accepts, "accept", "retired: the owner accepts a referred limit with hyp checkpoint --role owner --accept")
 	pos, err := w.begin(args, 1)
 	if err != nil {
 		return err
+	}
+	if len(accepts) > 0 {
+		return usageErr("confirm --accept was retired: the runner refers the limit with hyp checkpoint --refers, the owner accepts it with hyp checkpoint --role owner --accept, then confirms")
 	}
 	if *role == "" || *verdict == "" {
 		return usageErr("confirm needs --role and --verdict")
@@ -776,13 +806,7 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return draft{}, err
 		}
-		keys, keyErr := w.keys("--accept", accepts, event.KeyLimit)
-		// No current selection outranks a bad --accept, and AdmitConfirm refuses it.
-		sel := w.currentSelect(dq)
-		if keyErr != nil && sel != "" {
-			return draft{}, keyErr
-		}
-		p := event.Confirm{Select: sel, Role: *role, Verdict: *verdict, Accepts: keys}
+		p := event.Confirm{Select: w.currentSelect(dq), Role: *role, Verdict: *verdict}
 		if _, err := admitted(w.p.AdmitConfirm(dq, p)); err != nil {
 			return draft{}, err
 		}
@@ -793,13 +817,14 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
-	role := w.fs.String("role", "", "owner, required with --closes, --revises, --accept and --returns")
-	var closes, revises, accepts, refers, returns multi
+	role := w.fs.String("role", "", "owner, required with --closes, --revises, --accept, --returns and --line")
+	var closes, revises, accepts, refers, returns, lines multi
 	w.fs.Var(&closes, "closes", "R-id#rn of an open reading this owner checkpoint answers; --summary holds the owner's words (repeatable)")
 	w.fs.Var(&revises, "revises", "R-id#rn of an answered reading whose answer --summary replaces from now on (repeatable)")
-	w.fs.Var(&accepts, "accept", "R-id#n of a limit the owner accepts untested (repeatable)")
-	w.fs.Var(&refers, "refers", "R-id#n of a limit no test within the Goal's lines can settle, handed to the owner; --summary says why (repeatable)")
-	w.fs.Var(&returns, "returns", "R-id#n of a referred limit whose case the Goal covers, handed back to the runner to run; --summary holds the owner's words (repeatable)")
+	w.fs.Var(&accepts, "accept", "R-id#n or G-id#n of a referred limit the owner accepts untested (repeatable)")
+	w.fs.Var(&refers, "refers", "R-id#n or G-id#n of a limit no test within the Goal's lines can settle, handed to the owner; --summary says why (repeatable)")
+	w.fs.Var(&returns, "returns", "R-id#n or G-id#n of a referred or accepted limit whose case the Goal covers, handed back to the runner to run; --summary holds the owner's words (repeatable)")
+	w.fs.Var(&lines, "line", fmt.Sprintf("a line of the Goal: a case every candidate must meet, keyed G-id#n; written once, on one owner checkpoint (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
@@ -821,12 +846,15 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	if len(returns) > 0 && *role != event.RoleOwner {
 		return usageErr("--returns needs --role owner")
 	}
+	if len(lines) > 0 && *role != event.RoleOwner {
+		return usageErr("--line needs --role owner")
+	}
 	var warns []string
 	err := w.run(func() (draft, error) {
 		if w.st.GoalID == "" {
 			return draft{}, refusedErr("no Goal yet")
 		}
-		p := event.Checkpoint{Summary: *summary, Role: *role}
+		p := event.Checkpoint{Summary: *summary, Role: *role, Lines: lines}
 		var err error
 		if p.Closes, err = w.keys("--closes", closes, event.KeyReading); err != nil {
 			return draft{}, err

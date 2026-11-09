@@ -128,7 +128,10 @@ func TestScopeChangeAwaitsTheOwner(t *testing.T) {
 	wantStatus(t, replayB(b), q, DQAnswered, "")
 }
 
-func TestOwnerConfirmAndLimitLapseAndRestore(t *testing.T) {
+// An owner confirm lapses with its Dossier, but the accept an old confirm
+// made is replayed as an accept at its place in the log (keyed.go), so it
+// stays when the confirm lapses.
+func TestOwnerConfirmLapsesAndItsAcceptStays(t *testing.T) {
 	b, q, h, _ := scopeAnswered()
 	p := replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
@@ -136,10 +139,10 @@ func TestOwnerConfirmAndLimitLapseAndRestore(t *testing.T) {
 
 	r := b.Supports(h)
 	p = replayB(b)
-	wantLimit(t, p, q, 0, LimitOpen, "")
+	wantLimit(t, p, q, 0, LimitAccepted, "o")
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
-	if !p.LimitsOf(q)[0].Gating {
-		t.Fatal("a lapsed acceptance leaves the limit not gating")
+	if p.LimitsOf(q)[0].Gating {
+		t.Fatal("an accepted limit gates the confirm")
 	}
 
 	b.Retract(r)
@@ -162,19 +165,13 @@ func TestAmendLapsesTheOwnerConfirmAndAmendBackRestores(t *testing.T) {
 	wantStatus(t, replayB(b), q, DQAnswered, "")
 }
 
-func TestOwnerInsufficientAtTheSameDossierWithdrawsAcceptance(t *testing.T) {
-	b, q, h, sel := scopeAnswered()
-	r := b.Supports(h)
-	// An owner's no at another Dossier leaves the acceptance at the first one.
+// An owner's no reopens the question and leaves an accept standing: only a
+// return lifts an accept.
+func TestOwnerInsufficientLeavesTheAccept(t *testing.T) {
+	b, q, _, sel := scopeAnswered()
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
-	b.As("a").Retract(r)
 	p := replayB(b)
 	wantLimit(t, p, q, 0, LimitAccepted, "o")
-	wantStatus(t, p, q, DQAnswered, "")
-
-	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
-	p = replayB(b)
-	wantLimit(t, p, q, 0, LimitOpen, "")
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
 }
 

@@ -6,8 +6,14 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 )
 
-// Limit returns the limit keyed k, on whichever question its Result is.
+// Limit returns the limit keyed k, on whichever question its Result is, or
+// the Goal's line keyed k.
 func (p Projection) Limit(k string) (Limit, bool) {
+	for _, l := range p.Lines {
+		if l.Key == k {
+			return l, true
+		}
+	}
 	for _, s := range p.Decisions {
 		for _, l := range s.Limits {
 			if l.Key == k {

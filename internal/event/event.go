@@ -35,6 +35,7 @@ const (
 	TypeResultRetract      = "result.retract"
 	TypeHypothesisAbandon  = "hypothesis.abandon"
 	TypeHypothesisAmend    = "hypothesis.amend"
+	TypeHypothesisSubject  = "hypothesis.subject"
 	TypeDQSelect           = "dq.select"
 	TypeDQUnselect         = "dq.unselect"
 	TypeDQDefer            = "dq.defer"
@@ -89,7 +90,7 @@ const RecipeNone = "none"
 const DecidedReading = "reading"
 
 var (
-	EventTypes = set(TypeNodeAdd, TypeResultRecord, TypeResultRetract, TypeHypothesisAbandon, TypeHypothesisAmend,
+	EventTypes = set(TypeNodeAdd, TypeResultRecord, TypeResultRetract, TypeHypothesisAbandon, TypeHypothesisAmend, TypeHypothesisSubject,
 		TypeDQSelect, TypeDQUnselect, TypeDQDefer, TypeDQWithdraw, TypeDQResume, TypeDQRequestVerify,
 		TypeExperimentWithdraw, TypeConfirm, TypeReaffirm, TypeCheckpoint, TypeEdgeAdd, TypeEdgeRemove)
 	Kinds           = set(KindGoal, KindDesignQuestion, KindHypothesis, KindExperiment, KindResult)
@@ -111,6 +112,8 @@ const (
 	MaxLimits       = 10
 	MaxLimitItem    = 300
 	MaxReadingItem  = 600
+	MaxSubjectFiles = 50
+	MaxFingerprints = 2000
 )
 
 // NodeAdd is the payload of node.add.
@@ -146,6 +149,36 @@ type ResultRecord struct {
 	// Applies lists the closed readings whose owner answers this Result's
 	// verdicts apply. Each must be one its Experiment aims at.
 	Applies []string `json:"applies,omitempty"`
+	// Fingerprints is the sorted set of file sha256s the Result's cited
+	// command and sandbox records say the run was given. hyp record copies
+	// it from those records, as it copies EvidenceHashes; no runner types it.
+	Fingerprints []string `json:"fingerprints,omitempty"`
+}
+
+// HypothesisSubject is the payload of hypothesis.subject: the files that
+// embody the Hypothesis's claim, each named by its sha256. Path is a
+// pointer for readers, relative to the store root; the sha256 is the identity.
+type HypothesisSubject struct {
+	Files []SubjectFile `json:"files"`
+}
+
+// SubjectFile is one file of a Hypothesis's subject.
+type SubjectFile struct {
+	Path   string `json:"path"`
+	SHA256 string `json:"sha256"`
+}
+
+// IsSHA256 reports whether s is 64 lowercase hex digits.
+func IsSHA256(s string) bool {
+	if len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // EvidenceRef returns the recipe ref (name@version) that an evidence pointer
@@ -237,11 +270,14 @@ type Checkpoint struct {
 	// Refers lists the limit keys the writer hands to the owner, because no
 	// test within the Goal's lines can settle them; Summary says why.
 	Refers []string `json:"refers,omitempty"`
-	// Returns lists the referred limit keys the owner hands back to the
-	// runner, because the Goal covers their case; Summary says why. It is
-	// the mirror of Refers, and the latest of the two names whose turn an
-	// open limit is.
+	// Returns lists the referred or accepted limit keys the owner hands
+	// back to the runner, because the Goal covers their case; Summary says
+	// why. It is the mirror of Refers.
 	Returns []string `json:"returns,omitempty"`
+	// Lines lists the Goal's lines, the cases every candidate must meet,
+	// keyed <goal-id>#<n>. Only an owner checkpoint carries them, and only
+	// the first one that does: a line is written once and never edited.
+	Lines []string `json:"lines,omitempty"`
 }
 
 // Edge is the payload of edge.add and edge.remove.
@@ -335,8 +371,9 @@ const (
 )
 
 // Key names item N (counted from 1) of one kind in Result's list: a limit,
-// 01J…W6V06D#1, or a reading, 01J…W6V06D#r1. Result is a full id once
-// stored, or any node reference on the command line.
+// 01J…W6V06D#1, or a reading, 01J…W6V06D#r1. A Goal's line is a limit
+// keyed on the Goal, 01J…WH6GK5#1. Result is the full id of the node that
+// holds the item once stored, or any node reference on the command line.
 type Key struct {
 	Result string
 	Kind   KeyKind
@@ -369,10 +406,18 @@ func ParseKey(s string) (Key, bool) {
 	return Key{ref, kind, n}, true
 }
 
-// KeyResult returns the Result a stored key names.
+// KeyResult returns the node a stored key names: its Result, or the Goal
+// for a line.
 func KeyResult(s string) string {
 	ref, _, _ := strings.Cut(s, "#")
 	return ref
+}
+
+// DisplayKey shows key k of a node of kind as R-W6V06D#1, R-W6V06D#r1 or
+// G-WH6GK5#1.
+func DisplayKey(kind, k string) string {
+	r := KeyResult(k)
+	return DisplayID(kind, r) + k[len(r):]
 }
 
 // Runes counts runes; every content limit is measured with it.

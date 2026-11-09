@@ -58,7 +58,10 @@ func TestOwnerReturnReopensAnAcceptedLimit(t *testing.T) {
 	want(t, hyp(t, "show", key), 0, "state: open, returned: the runner runs its case\n")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" limit "+key+" [owed] — torn write\n")
 
-	// Accepting it again ends the case once more.
+	// An accept answers a refer, so accepting it again needs a fresh refer.
+	want(t, hyp(t, "checkpoint", "--summary", "skip after all", "--role", "owner", "--accept", key, "--actor", "owner-dat", "--why", "w"), 1,
+		"bad accepts: "+key+" is not referred; only a referred limit is accepted, so the runner refers it first")
+	must(t, "checkpoint", "--summary", "still no test", "--refers", key, "--why", "w")
 	must(t, "checkpoint", "--summary", "skip after all", "--role", "owner", "--accept", key, "--actor", "owner-dat", "--why", "w")
 	want(t, hyp(t, "show", key), 0, "state: accepted by owner-dat\n")
 	want(t, hyp(t, "check"), 0, "check: 0 errors")

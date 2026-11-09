@@ -731,9 +731,13 @@ func TestLimitHyps(t *testing.T) {
 	}
 }
 
-func TestLimitAcceptance(t *testing.T) {
+// An old owner confirm's accepts replay as accepts at their place in the
+// log: an amend lapses the confirm and leaves the accept, and an owner's no
+// reopens the question and leaves it too. Only a return lifts an accept.
+func TestOldConfirmAcceptReplaysAsAnAccept(t *testing.T) {
 	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
 	h := b.Hyp(q, "h")
 	r1 := limitResult(b, h, []string{"l1"}, nil)
 	sel := b.As("a").Select(q, h, "", true)
@@ -744,45 +748,16 @@ func TestLimitAcceptance(t *testing.T) {
 	wantStatus(t, p, q, DQAnswered, "")
 	wantLimit(t, p, q, 0, LimitAccepted, "o")
 	amend(b.As("a"), h, "new")
-	p = replayB(b)
-	wantNoRejections(t, p)
-	wantLimit(t, p, q, 0, LimitOpen, "")
-}
-
-func TestInsufficientOwnerConfirmCancelsAcceptance(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Hyp(q, "h")
-	r1 := limitResult(b, h, []string{"l1"}, nil)
-	sel := b.As("a").Select(q, h, "", true)
-	accept := func() {
-		b.As("o").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleOwner,
-			Verdict: event.ConfirmSufficient, Accepts: []string{event.LimitKey(r1, 1)}})
-	}
-	accept()
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQAnswered, "")
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
-
-	// An old verifier's no is history: the owner's acceptance stays.
-	b.As("v").Confirm(q, sel, event.RoleVerifier, event.ConfirmInsufficient)
-	p = replayB(b)
-	wantNoRejections(t, p)
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
-
-	// The owner's no withdraws their acceptance; the status is unchanged by it.
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
 	p = replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
-	wantLimit(t, p, q, 0, LimitOpen, "")
-
-	accept()
+	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	// A limit an old confirm accepted can be returned.
+	b.As("o").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "run it", Role: event.RoleOwner, Returns: []string{event.LimitKey(r1, 1)}})
 	p = replayB(b)
 	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQAnswered, "")
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	wantLimit(t, p, q, 0, LimitOpen, "")
 }
 
 func TestLimitRefusals(t *testing.T) {
@@ -810,26 +785,6 @@ func TestLimitRefusals(t *testing.T) {
 		t.Fatalf("rejections = %+v, want the four above", p.Rejections)
 	}
 	wantLimit(t, p, q, 0, LimitOpen, "")
-}
-
-func TestLimitAcceptanceOnStaleSelectDoesNotOverride(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Hyp(q, "h")
-	r1 := limitResult(b, h, []string{"l1"}, nil)
-	old := b.As("a").Select(q, h, "", true)
-	cur := b.As("a").Select(q, h, old, true)
-	accept := func(sel string) {
-		b.As("o").Emit(event.TypeConfirm, q, event.Confirm{Select: sel, Role: event.RoleOwner,
-			Verdict: event.ConfirmSufficient, Accepts: []string{event.LimitKey(r1, 1)}})
-	}
-	accept(cur)
-	accept(old)
-	p := replayB(b)
-	wantNoRejections(t, p)
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
-	b.As("a").Select(q, h, cur, true)
-	wantLimit(t, replayB(b), q, 0, LimitOpen, "")
 }
 
 // A stale supported sibling is still a candidate, so selecting h1 is the

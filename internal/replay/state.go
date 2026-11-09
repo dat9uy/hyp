@@ -17,12 +17,14 @@ type Projection struct {
 	Rejections     []Rejection
 	Applied        []event.Event // events that applied, in merge order
 	LastCheckpoint *event.Event
-	RivalsAtAdd    map[string][]string  // Experiment → live rivals of its parent just before its add
-	Exps           map[string]*Exp      // Experiment → its derived record (experiment.go)
-	Results        map[string]*Res      // Result → its derived record (result.go)
-	Edges          []Edge               // every edge in apply order; Live is false once removed
-	Decisions      map[string]*Decision // DQ → its Decision record (decision.go)
-	Readings       []Reading            // readings of non-retracted Results, in creation order
+	RivalsAtAdd    map[string][]string            // Experiment → live rivals of its parent just before its add
+	Exps           map[string]*Exp                // Experiment → its derived record (experiment.go)
+	Results        map[string]*Res                // Result → its derived record (result.go)
+	Edges          []Edge                         // every edge in apply order; Live is false once removed
+	Decisions      map[string]*Decision           // DQ → its Decision record (decision.go)
+	Readings       []Reading                      // readings of non-retracted Results, in creation order
+	Lines          []Limit                        // the Goal's lines, in order (spec §8.2)
+	Subjects       map[string][]event.SubjectFile // Hypothesis → its subject, the latest tie
 }
 
 // HypStatus, QuestionState, ExpStatus, ResStatus and GoalState are the status
@@ -111,6 +113,7 @@ type Node struct {
 	Limits, Closes                                                                      []string
 	Readings                                                                            []event.ReadingItem
 	Aims, Applies                                                                       []string
+	Fingerprints                                                                        []string // a Result's: the file sha256s its cited records say the run was given
 }
 
 // Pin is a recipe ref and the bundle hash an event recorded for it. Pointer
@@ -145,25 +148,23 @@ func pins(nodes map[string]*Node, id string) []Pin {
 	return pins
 }
 
-// Limit is one named limit recorded in a Result, with its derived state.
+// Limit is one keyed limit with its derived state: a limit a Result
+// recorded, keyed <result-id>#<n>, or a line of the Goal, keyed
+// <goal-id>#<n>, whose Result is the Goal id and whose Question is "".
 type Limit struct {
 	Key, Result, Text string
-	Question          string   // the question of its Result
-	Hyps              []string // Hypotheses the Result has a verdict for, sorted
-	State             string   // LimitOpen, LimitClosed or LimitAccepted
+	Question          string   // the question of its Result; "" for a line
+	Hyps              []string // Hypotheses the Result has a verdict for, sorted; none for a line
+	State             string   // LimitOpen, LimitClosed or LimitAccepted; a line is never LimitClosed
 	By                string   // the first closing Result id, or the accepting owner's actor
 	Closers           []string // every non-retracted Result that closes it, in creation order
 	Gating            bool     // Gates the Hypothesis of the question's current select
-	Referred          string   // the latest refer, while no return follows it: the owner's turn; or ""
+	Referred          string   // the latest refer, while no return or accept follows it: the owner's turn; or ""
 	Returned          string   // the latest return, while no refer or accept follows it: the runner's turn again; or ""
 }
 
-// HandRefer, HandReturn and HandAccept are the values of Facts.LimitHand.
-const (
-	HandRefer  = "refer"
-	HandReturn = "return"
-	HandAccept = "accept" // an owner checkpoint accepted it; only a return lifts it
-)
+// IsLine reports whether l is a line of the Goal.
+func (l Limit) IsLine() bool { return l.Question == "" }
 
 // Gates reports whether the limit gates the owner confirm of a scope-change
 // select of hyp: it is open and its Result judged hyp.
@@ -280,12 +281,18 @@ type Facts struct {
 	Decisions map[string]*Decision     // DQ → its Decision record (decision.go)
 	GoalID    string
 	Aliases   map[string]string // alias → node id
-	// ClosedReadings holds each reading key an applied owner checkpoint closed.
-	ClosedReadings map[string]bool
+	// Answers holds, for each reading key an owner checkpoint closed, the
+	// close and then each revise, in merge order (keyed.go).
+	Answers map[string][]Answer
 	// LimitHand holds, for each limit key a checkpoint referred, returned or
-	// accepted, the latest of the three in merge order: HandRefer,
-	// HandReturn or HandAccept.
-	LimitHand map[string]string
+	// accepted, the latest of the three in merge order (keyed.go).
+	LimitHand map[string]Hand
+	// Lines are the Goal's lines, and LinesBy the owner checkpoint that
+	// wrote them, or "" before one did.
+	Lines   []string
+	LinesBy string
+	// Subjects holds each Hypothesis's subject, the latest tie.
+	Subjects map[string][]event.SubjectFile
 
 	// Lookup indexes over the stored state, maintained by apply so that a
 	// full recompute per event stays fast.
@@ -317,19 +324,20 @@ type State struct {
 func NewState() *State {
 	return &State{
 		Facts: Facts{
-			Nodes:          map[string]*Node{},
-			SeenIDs:        map[string]bool{},
-			Retracted:      map[string]bool{},
-			Abandoned:      map[string]bool{},
-			Withdrawn:      map[string]bool{},
-			Hold:           map[string]QuestionState{},
-			Decisions:      map[string]*Decision{},
-			Aliases:        map[string]string{},
-			ClosedReadings: map[string]bool{},
-			LimitHand:      map[string]string{},
-			ResultsByHyp:   map[string][]string{},
-			EdgesFrom:      map[string][]int{},
-			SupersededN:    map[string]int{},
+			Nodes:        map[string]*Node{},
+			SeenIDs:      map[string]bool{},
+			Retracted:    map[string]bool{},
+			Abandoned:    map[string]bool{},
+			Withdrawn:    map[string]bool{},
+			Hold:         map[string]QuestionState{},
+			Decisions:    map[string]*Decision{},
+			Aliases:      map[string]string{},
+			Answers:      map[string][]Answer{},
+			LimitHand:    map[string]Hand{},
+			Subjects:     map[string][]event.SubjectFile{},
+			ResultsByHyp: map[string][]string{},
+			EdgesFrom:    map[string][]int{},
+			SupersededN:  map[string]int{},
 		},
 		Snaps:        map[string][]Snap{},
 		EverAnswered: map[string]bool{},

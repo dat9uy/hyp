@@ -21,6 +21,11 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 	var b strings.Builder
 	w := func(format string, a ...any) { fmt.Fprintf(&b, format+"\n", a...) }
 	label := r.limitLabel(l.Result, l.Key)
+	if l.IsLine() {
+		showLine(r, w, l, label)
+		r.limitHistory(w, l)
+		return b.String()
+	}
 
 	w("Limit %s", label)
 	w("text: %s", l.Text)
@@ -78,6 +83,54 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 		w("aimed by: %s", strings.Join(aimed, ", "))
 	}
 
+	r.limitHistory(w, l)
+	return b.String()
+}
+
+// showLine renders a line of the Goal: its text and whose turn it is, and
+// for each live top-level question the candidates, what each closer ran on,
+// and the candidates no closer covers, which the ledger owes the line for.
+func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) {
+	p := r.p
+	w("Line %s", label)
+	w("text: %s", l.Text)
+	w("state: %s", r.lineState(l))
+	for _, q := range p.TopQuestions() {
+		cands := p.Questions[q].Candidates
+		w("question %s: candidates %s", r.withAlias(q), map[bool]string{true: "none", false: r.named(cands)}[len(cands) == 0])
+		if un := p.Uncovered(l, q); len(un) > 0 {
+			w("  not covered by a closer: %s", r.named(un))
+		}
+	}
+	for _, c := range l.Closers {
+		var hyps []string
+		for _, q := range p.TopQuestions() {
+			for _, h := range p.Nodes[q].Children {
+				if p.Covers(c, h) {
+					hyps = append(hyps, h)
+				}
+			}
+		}
+		w("closed by %s: %s", r.id(c), r.ranOn(c, hyps))
+	}
+	if sel := p.NotTogether(l); len(sel) > 0 {
+		w("(no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
+	}
+	var aimed []string
+	for _, ev := range p.Applied {
+		if ev.Type == event.TypeNodeAdd && slices.Contains(p.Nodes[ev.Node].Aims, l.Key) {
+			aimed = append(aimed, r.id(ev.Node)+" "+string(p.Exps[ev.Node].Status))
+		}
+	}
+	if len(aimed) > 0 {
+		w("aimed by: %s", strings.Join(aimed, ", "))
+	}
+}
+
+// limitHistory prints the events that recorded, closed, referred, returned
+// or accepted limit l, oldest first.
+func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
+	p := r.p
 	w("history:")
 	for _, ev := range p.Applied {
 		var what string
@@ -92,6 +145,9 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 				if slices.Contains(f.keys, l.Key) {
 					what = f.verb + ": " + Cut(c.Summary, event.MaxText)
 				}
+			}
+			if l.IsLine() && len(c.Lines) > 0 {
+				what = "writes it"
 			}
 		case event.TypeConfirm:
 			var c event.Confirm
@@ -110,5 +166,4 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 			w("  %s %s %s — %s", Minute(ev.TS), ev.Actor, ev.Type, what)
 		}
 	}
-	return b.String()
 }

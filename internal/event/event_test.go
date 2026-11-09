@@ -49,7 +49,7 @@ func TestClosedSets(t *testing.T) {
 		set  map[string]bool
 		want int
 	}{
-		{"EventTypes", EventTypes, 17},
+		{"EventTypes", EventTypes, 18},
 		{"Kinds", Kinds, 5},
 		{"EdgeTypes", EdgeTypes, 3},
 		{"Verdicts", Verdicts, 3},

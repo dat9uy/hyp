@@ -58,7 +58,8 @@ var rules = map[string]rule{
 			_ = event.DecodePayload(ev, &p)
 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
-				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies})
+				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
+				Fingerprints: p.Fingerprints})
 			for h := range p.Verdicts {
 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
 			}
@@ -109,6 +110,14 @@ var rules = map[string]rule{
 			var p event.HypothesisAmend
 			_ = event.DecodePayload(ev, &p)
 			st.Nodes[ev.Node].Body = p.Body
+		},
+	},
+	event.TypeHypothesisSubject: {
+		validate: (*Facts).validateSubject,
+		apply: func(st *State, ev event.Event) {
+			var p event.HypothesisSubject
+			_ = event.DecodePayload(ev, &p)
+			st.Subjects[ev.Node] = p.Files
 		},
 	},
 	event.TypeDQSelect: {
@@ -182,6 +191,11 @@ var rules = map[string]rule{
 			}
 			sel := st.Decisions[ev.Node]
 			sel.onConfirm(ev, p, st.dossierItems(ev.Node, sel.Selects[p.Select].Hyp))
+			// An owner confirm no longer accepts a limit; one in an old log
+			// is replayed as the accept it made, at its place in the log.
+			for _, k := range p.Accepts {
+				st.applyLimitMove(HandAccept, k, ev)
+			}
 		},
 	},
 	event.TypeDQRequestVerify: {
@@ -219,22 +233,25 @@ var rules = map[string]rule{
 			if err := textLimit("summary", p.Summary, 1, event.MaxText); err != nil {
 				return err
 			}
+			if err := f.checkLines(p); err != nil {
+				return err
+			}
 			return f.checkClosesReadings(ev, p)
 		},
 		apply: func(st *State, ev event.Event) {
 			var p event.Checkpoint
 			_ = event.DecodePayload(ev, &p)
-			for _, k := range p.Closes {
-				st.ClosedReadings[k] = true
+			st.applyReadingMoves(ev, p)
+			for _, mv := range []struct {
+				move string
+				keys []string
+			}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
+				for _, k := range mv.keys {
+					st.applyLimitMove(mv.move, k, ev)
+				}
 			}
-			for _, k := range p.Refers {
-				st.LimitHand[k] = HandRefer
-			}
-			for _, k := range p.Returns {
-				st.LimitHand[k] = HandReturn
-			}
-			for _, k := range p.Accepts {
-				st.LimitHand[k] = HandAccept
+			if len(p.Lines) > 0 {
+				st.Lines, st.LinesBy = p.Lines, ev.ID
 			}
 		},
 	},

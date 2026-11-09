@@ -174,7 +174,7 @@ func (f *Facts) checkAims(keys []string) error {
 			if err := f.checkKey(k, event.KeyReading, ""); err != nil {
 				return fmt.Errorf("bad aim: %w", err)
 			}
-			if !f.ClosedReadings[k] {
+			if !f.ReadingClosed(k) {
 				return fmt.Errorf("bad aim: reading %s is open; only an answered reading can be applied", k)
 			}
 			continue
@@ -238,6 +238,17 @@ func (f *Facts) validateResult(ev event.Event) error {
 	if len(p.Limits) > event.MaxLimits {
 		return fmt.Errorf("over limit: limits has %d items (max %d)", len(p.Limits), event.MaxLimits)
 	}
+	if len(p.Fingerprints) > event.MaxFingerprints {
+		return fmt.Errorf("over limit: fingerprints has %d items (max %d)", len(p.Fingerprints), event.MaxFingerprints)
+	}
+	for i, h := range p.Fingerprints {
+		if !event.IsSHA256(h) {
+			return fmt.Errorf("bad fingerprints: %q is not a sha256", h)
+		}
+		if i > 0 && h <= p.Fingerprints[i-1] {
+			return errors.New("bad fingerprints: not sorted and unique")
+		}
+	}
 	for _, l := range p.Limits {
 		if err := textLimit("limit", l, 1, event.MaxLimitItem); err != nil {
 			return err
@@ -258,7 +269,7 @@ func (f *Facts) validateResult(ev event.Event) error {
 		if err := f.checkKey(l.Of, event.KeyReading, ""); err != nil {
 			return fmt.Errorf("bad reading of: %w", err)
 		}
-		if !f.ClosedReadings[l.Of] {
+		if !f.ReadingClosed(l.Of) {
 			return fmt.Errorf("bad reading of: %s is open; the owner has not answered it", l.Of)
 		}
 	}
@@ -286,6 +297,79 @@ func (f *Facts) validateResult(ev event.Event) error {
 		}
 	}
 	return nil
+}
+
+// validateSubject is the replay rule of hypothesis.subject. The latest tie
+// stands until a non-retracted Result's fingerprints hold it; after that
+// the bytes ran as this Hypothesis, and a different subject is a different
+// Hypothesis, added and superseding this one.
+func (f *Facts) validateSubject(ev event.Event) error {
+	var p event.HypothesisSubject
+	if err := decode(ev, &p); err != nil {
+		return err
+	}
+	if _, err := f.need(ev.Node, event.KindHypothesis); err != nil {
+		return err
+	}
+	if f.superseded(ev.Node) || f.Abandoned[ev.Node] {
+		return fmt.Errorf("bad subject: %s is superseded or abandoned", ev.Node)
+	}
+	if len(p.Files) == 0 {
+		return errors.New("bad subject: no files")
+	}
+	if len(p.Files) > event.MaxSubjectFiles {
+		return fmt.Errorf("over limit: files has %d items (max %d)", len(p.Files), event.MaxSubjectFiles)
+	}
+	seen := map[string]bool{}
+	for _, file := range p.Files {
+		if err := textLimit("path", file.Path, 1, event.MaxEvidenceItem); err != nil {
+			return err
+		}
+		if seen[file.Path] {
+			return fmt.Errorf("bad subject: %s listed twice", file.Path)
+		}
+		seen[file.Path] = true
+		if !event.IsSHA256(file.SHA256) {
+			return fmt.Errorf("bad subject: %q is not a sha256", file.SHA256)
+		}
+	}
+	cur := f.Subjects[ev.Node]
+	if slices.Equal(cur, p.Files) {
+		return errors.New("bad subject: unchanged")
+	}
+	if r := f.subjectRan(ev.Node); r != "" {
+		return fmt.Errorf("bad subject: %s's subject ran in %s; a different subject is a new Hypothesis: add it and supersede %s", event.DisplayID(event.KindHypothesis, ev.Node), event.DisplayID(event.KindResult, r), event.DisplayID(event.KindHypothesis, ev.Node))
+	}
+	return nil
+}
+
+// subjectRan is the first non-retracted Result whose fingerprints hold every
+// file of Hypothesis h's subject, or "".
+func (f *Facts) subjectRan(h string) string {
+	sub := f.Subjects[h]
+	if len(sub) == 0 {
+		return ""
+	}
+	for _, id := range f.Order {
+		n := f.Nodes[id]
+		if n.Kind == event.KindResult && !f.Retracted[id] && HoldsSubject(n.Fingerprints, sub) {
+			return id
+		}
+	}
+	return ""
+}
+
+// HoldsSubject reports whether the sorted fingerprints hold every file of sub.
+func HoldsSubject(fingerprints []string, sub []event.SubjectFile) bool {
+	if len(sub) == 0 {
+		return false
+	}
+	for _, file := range sub {
+		if _, ok := slices.BinarySearch(fingerprints, file.SHA256); !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func (f *Facts) validateAmend(ev event.Event) error {
@@ -326,6 +410,14 @@ func (f *Facts) checkKey(s string, want event.KeyKind, q string) error {
 		return fmt.Errorf("bad %s ref: %q (want %s)", want, s, form)
 	}
 	node := f.Nodes[k.Result]
+	if want == event.KeyLimit && node != nil && node.Kind == event.KindGoal {
+		// A line of the Goal: its scope is the Goal, so it is under every
+		// question.
+		if k.N > len(f.Lines) {
+			return fmt.Errorf("bad limit ref: the Goal has %d lines", len(f.Lines))
+		}
+		return nil
+	}
 	if node == nil || node.Kind != event.KindResult {
 		return fmt.Errorf("bad %s ref: %s is not a Result", want, k.Result)
 	}
@@ -341,8 +433,9 @@ func (f *Facts) checkKey(s string, want event.KeyKind, q string) error {
 	return nil
 }
 
-// checkClosesReadings reports why a checkpoint may not close its readings: only
-// an owner closes one, and not under the actor that recorded it.
+// checkClosesReadings reports why a checkpoint may not make its moves on
+// readings and limits: the move tables in keyed.go say which move applies
+// from which state, and by whom.
 func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 	if p.Role != "" && p.Role != event.RoleOwner {
 		return fmt.Errorf("bad checkpoint: role %q (want owner or none)", p.Role)
@@ -353,104 +446,20 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 	if len(p.Revises) > 0 && p.Role != event.RoleOwner {
 		return errors.New("bad checkpoint: only an owner revises an answer")
 	}
-	if len(p.Accepts) > 0 && p.Role != event.RoleOwner {
-		return errors.New("bad checkpoint: only an owner accepts a limit")
-	}
-	if len(p.Returns) > 0 && p.Role != event.RoleOwner {
-		return errors.New("bad checkpoint: only an owner returns a limit")
-	}
-	// Each field names one kind of item and one transition: closes answers an
-	// open reading, revises replaces an answer, accepts accepts a limit.
 	for _, k := range p.Closes {
-		if key, ok := event.ParseKey(k); ok && key.Kind == event.KeyLimit {
-			return fmt.Errorf("bad closes: %s is a limit; an owner accepts a limit with accepts", k)
-		}
-		if err := f.checkKey(k, event.KeyReading, ""); err != nil {
+		if err := f.checkReadingMove("closes", k, ev.Actor); err != nil {
 			return err
-		}
-		if f.ClosedReadings[k] {
-			return fmt.Errorf("bad closes: %s is answered; an owner revises an answer with revises", k)
-		}
-		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
-			return fmt.Errorf("separation of duties: %s recorded the reading it closes", ev.Actor)
 		}
 	}
 	for _, k := range p.Revises {
-		if key, ok := event.ParseKey(k); ok && key.Kind == event.KeyLimit {
-			return fmt.Errorf("bad revises: %s is a limit; a limit is closed, accepted or referred, never revised", k)
-		}
-		if err := f.checkKey(k, event.KeyReading, ""); err != nil {
-			return err
-		}
 		if slices.Contains(p.Closes, k) {
 			return fmt.Errorf("bad revises: %s is also in closes", k)
 		}
-		if !f.ClosedReadings[k] {
-			return fmt.Errorf("bad revises: %s is open; an owner answers an open reading with closes", k)
-		}
-		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
-			return fmt.Errorf("separation of duties: %s recorded the reading it revises", ev.Actor)
-		}
-	}
-	if len(p.Accepts) > event.MaxLimits {
-		return fmt.Errorf("over limit: accepts has %d items (max %d)", len(p.Accepts), event.MaxLimits)
-	}
-	for _, k := range p.Accepts {
-		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
-			return fmt.Errorf("bad accepts: %w", err)
-		}
-		if err := f.closedAccept(k); err != nil {
+		if err := f.checkReadingMove("revises", k, ev.Actor); err != nil {
 			return err
 		}
-		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
-			return fmt.Errorf("separation of duties: %s recorded the limit it accepts", ev.Actor)
-		}
 	}
-	if len(p.Refers) > event.MaxLimits {
-		return fmt.Errorf("over limit: refers has %d items (max %d)", len(p.Refers), event.MaxLimits)
-	}
-	for _, k := range p.Refers {
-		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
-			return fmt.Errorf("bad refers: %w", err)
-		}
-		if f.LimitHand[k] == HandAccept {
-			return fmt.Errorf("bad refers: %s is accepted; only the owner reopens it, with returns", limitDisplay(k))
-		}
-	}
-	if len(p.Returns) > event.MaxLimits {
-		return fmt.Errorf("over limit: returns has %d items (max %d)", len(p.Returns), event.MaxLimits)
-	}
-	// A return hands a referred or accepted limit back to the runner: the Goal
-	// covers its case, so a check must run it. It applies only when the
-	// limit's latest refer, return or accept is a refer or an accept, so an
-	// owner can reopen a case they accepted with one checkpoint.
-	for _, k := range p.Returns {
-		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
-			return fmt.Errorf("bad returns: %w", err)
-		}
-		if slices.Contains(p.Refers, k) {
-			return fmt.Errorf("bad returns: %s is also in refers", limitDisplay(k))
-		}
-		if slices.Contains(p.Accepts, k) {
-			return fmt.Errorf("bad returns: %s is also in accepts", limitDisplay(k))
-		}
-		if h := f.LimitHand[k]; h != HandRefer && h != HandAccept {
-			return fmt.Errorf("bad returns: %s is not referred or accepted; only a referred or accepted limit is returned", limitDisplay(k))
-		}
-		if by := f.limitCloser(k); by != "" {
-			return fmt.Errorf("bad returns: %s is closed by %s", limitDisplay(k), event.DisplayID(event.KindResult, by))
-		}
-		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
-			return fmt.Errorf("separation of duties: %s recorded the limit it returns", ev.Actor)
-		}
-	}
-	return nil
-}
-
-// limitDisplay shows limit key k as R-W6V06D#1.
-func limitDisplay(k string) string {
-	r := event.KeyResult(k)
-	return event.DisplayID(event.KindResult, r) + k[len(r):]
+	return f.checkLimitMoves(ev, p)
 }
 
 // limitCloser is the first non-retracted Result that closes limit k, or "".
@@ -531,7 +540,7 @@ func (f *Facts) validateConfirm(ev event.Event) error {
 // would change nothing.
 func (f *Facts) closedAccept(k string) error {
 	if by := f.limitCloser(k); by != "" {
-		return fmt.Errorf("bad accepts: %s is closed by %s; its case ran, so there is nothing to accept", limitDisplay(k), event.DisplayID(event.KindResult, by))
+		return fmt.Errorf("bad accepts: %s is closed by %s; its case ran, so there is nothing to accept", f.keyDisplay(k), event.DisplayID(event.KindResult, by))
 	}
 	return nil
 }
