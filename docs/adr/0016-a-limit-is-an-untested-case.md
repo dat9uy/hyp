@@ -57,3 +57,11 @@ Displays and checks that follow, in order:
 - the re-owe rule, when a successor is added.
 
 Kongming's report `plans/reports/kongming-261109-1529-typed-limit-promotion.md` holds the options weighed.
+
+## Amended 2026-11-09: a referred limit holds the select
+
+The run that prompted this: `R-KHDA9E#1` on Q-QSDM8H was referred to the owner, and `hyp status` still owed the runner `select H-47B370 (h-several)`. A runner could select before the owner answered. If the owner then returned the limit, its case would run against a question already answered.
+
+Owner decision on 2026-11-09: a referred limit holds its question's `select` and `choose` until the owner accepts or returns it, the way an open reading with a reach already holds them. An accept releases the select. A return makes the limit the runner's `limit` item, which holds the select until a Result closes it. The hold does not reach new rivals, because a refer says nothing about the rivals. `hyp select` names the limit in its refusal, and `hyp status` prints a `held:` line under the question.
+
+A limit referred after the select still waits for the owner, and a scope-change owner confirm still accepts it with `--accept`.

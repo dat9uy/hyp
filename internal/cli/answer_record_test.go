@@ -58,20 +58,28 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	// The open limit on the candidate is the runner's: the select is refused
 	// until the limit is closed or referred to the owner.
 	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: "+q+" owes the runner first: limit "+r1+"#1")
+	// A referred limit still holds the select: the owner's return would
+	// send its case back to run.
 	refer(t, r1+"#1")
+	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: referred limit "+r1+"#1 waits for the owner")
+	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or return "+r1+"#1 — raw SQL org gets no row\n")
+	want(t, hyp(t, "status"), 0, "held: referred limit "+r1+"#1 waits for the owner")
+	must(t, "checkpoint", "--summary", "accept", "--role", "owner", "--accept", r1+"#1", "--actor", "o", "--why", "w")
 	must(t, "select", q, h, "--why", "w")
 	want(t, hyp(t, "show", q), 0, "status: answered")
-	want(t, hyp(t, "show", q), 0, r1+"#1 open")
-	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or return "+r1+"#1 — raw SQL org gets no row\n")
+	want(t, hyp(t, "show", q), 0, r1+"#1 accepted by o")
 
 	// Owner gate: a sufficient owner confirm on a scope change must accept
-	// the open limit.
+	// a limit that is open under the question.
 	want(t, hyp(t, "select", q, h, "--scope-change", "--why", "w2"), 1, q+" is answered; hyp unselect it first")
 	must(t, "unselect", q, "--why", "w2")
 	must(t, "select", q, h, "--scope-change", "--why", "w2")
+	e4 := must(t, "add", "exp", "--parent", h, "--title", "E4", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	r4 := must(t, "record", "--exp", e4, "--verdict", h+"=supports", "--observation", "o4", "--limit", "one tenant only", "--why", "w")
+	refer(t, r4+"#1")
 	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 1, "open limits under")
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o"), 0, "")
-	want(t, hyp(t, "show", q), 0, r1+"#1 accepted by o")
+	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r4+"#1", "--why", "w", "--actor", "o"), 0, "")
+	want(t, hyp(t, "show", q), 0, r4+"#1 accepted by o")
 	if s := hyp(t, "status").stdout; strings.Contains(s, "OPEN LIMITS") {
 		t.Fatalf("status still lists open limits after acceptance:\n%s", s)
 	}
@@ -97,19 +105,19 @@ func TestRivalLimitDoesNotGateOwner(t *testing.T) {
 				target = h1
 			}
 			e := must(t, "add", "exp", "--parent", h2, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", target, "--why", "w")
-			args := []string{"record", "--exp", e, "--verdict", h2 + "=contradicts", "--observation", "o", "--limit", "only tried one org", "--why", "w"}
+			args := []string{"record", "--exp", e, "--verdict", h2 + "=contradicts", "--observation", "o", "--why", "w"}
 			if judgesSelected {
 				args = append(args, "--verdict", h1+"=supports")
-			}
-			r := must(t, args...)
-			// The limit is owed whichever Hypothesis it judged, so it is
-			// referred before the select either way.
-			refer(t, r+"#1")
-			if !judgesSelected {
+			} else {
 				e1 := must(t, "add", "exp", "--parent", h1, "--title", "E1", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
 				must(t, "record", "--exp", e1, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
 			}
+			must(t, args...)
+			// The limit holds the select whichever Hypothesis it judged, so
+			// its Result comes after the select, and the runner refers it.
 			want(t, hyp(t, "select", q, h1, "--scope-change", "--why", "w"), 0, "")
+			r := must(t, append(args, "--limit", "only tried one org")...)
+			refer(t, r+"#1")
 			owner := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 			if judgesSelected {
 				want(t, owner, 1, r+"#1 only tried one org")
@@ -127,9 +135,11 @@ func TestInsufficientOwnerConfirmReopensLimit(t *testing.T) {
 	_, _, q := setup(t)
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "only tried one org", "--why", "w")
-	refer(t, r+"#1")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w")
 	must(t, "select", q, h, "--scope-change", "--why", "w")
+	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	r := must(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "o", "--limit", "only tried one org", "--why", "w")
+	refer(t, r+"#1")
 	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r+"#1", "--why", "w", "--actor", "o")
 	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
 

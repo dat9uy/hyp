@@ -271,6 +271,9 @@ func (p Projection) SelectBlock(q string) string {
 			return fmt.Sprintf("open reading %s waits for the owner; its answer can move %s", p.keyLabel(l.Key), p.labels(l.Reach))
 		}
 	}
+	if k := p.ReferredLimit(q); k != "" {
+		return fmt.Sprintf("referred limit %s waits for the owner: an accept releases the select, a return sends its case to run", p.keyLabel(k))
+	}
 	if pr := p.PremiseHold(q); pr != nil {
 		t := p.Nodes[pr.To].Parent
 		return fmt.Sprintf("%s assumes %s, in %s %s; decide %s first", p.label(pr.From), p.label(pr.To), p.label(t), p.Questions[t].State, p.label(t))
