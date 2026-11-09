@@ -150,7 +150,8 @@ type Limit struct {
 	Key, Result, Text string
 	Hyps              []string // Hypotheses the Result has a verdict for, sorted
 	State             string   // LimitOpen, LimitClosed or LimitAccepted
-	By                string   // the closing Result id, or the accepting owner's actor
+	By                string   // the first closing Result id, or the accepting owner's actor
+	Closers           []string // every non-retracted Result that closes it, in creation order
 	Gating            bool     // Gates the Hypothesis of the question's current select
 	Referred          string   // the checkpoint that first referred it to the owner, or ""
 }
