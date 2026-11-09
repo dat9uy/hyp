@@ -47,6 +47,12 @@ func refer(t *testing.T, k string) {
 	must(t, "checkpoint", "--summary", "no test within the Goal settles it", "--refers", k, "--why", "w")
 }
 
+// accept records the owner o's accept of referred limit k.
+func accept(t *testing.T, k string) {
+	t.Helper()
+	must(t, "checkpoint", "--summary", "accept", "--role", "owner", "--accept", k, "--actor", "o", "--why", "w")
+}
+
 func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	_, _, q := setup(t)
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
@@ -78,7 +84,8 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	r4 := must(t, "record", "--exp", e4, "--verdict", h+"=supports", "--observation", "o4", "--limit", "one tenant only", "--why", "w")
 	refer(t, r4+"#1")
 	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 1, "open limits under")
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r4+"#1", "--why", "w", "--actor", "o"), 0, "")
+	accept(t, r4+"#1")
+	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 0, "")
 	want(t, hyp(t, "show", q), 0, r4+"#1 accepted by o")
 	if s := hyp(t, "status").stdout; strings.Contains(s, "OPEN LIMITS") {
 		t.Fatalf("status still lists open limits after acceptance:\n%s", s)
@@ -131,7 +138,9 @@ func TestRivalLimitDoesNotGateOwner(t *testing.T) {
 	}
 }
 
-func TestInsufficientOwnerConfirmReopensLimit(t *testing.T) {
+// An owner's no reopens the question and leaves the accept standing: only a
+// return reopens an accepted limit.
+func TestInsufficientOwnerConfirmLeavesTheAccept(t *testing.T) {
 	_, _, q := setup(t)
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
@@ -140,21 +149,19 @@ func TestInsufficientOwnerConfirmReopensLimit(t *testing.T) {
 	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--why", "w")
 	r := must(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "o", "--limit", "only tried one org", "--why", "w")
 	refer(t, r+"#1")
-	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r+"#1", "--why", "w", "--actor", "o")
+	accept(t, r+"#1")
+	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
 
-	// The owner's no reopens the limit they had accepted.
 	must(t, "confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "changed my mind", "--actor", "o")
 	want(t, hyp(t, "show", q), 0, "status: reopened/awaiting_owner")
+	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
+	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
+	want(t, hyp(t, "show", q), 0, "status: answered")
+
+	must(t, "checkpoint", "--summary", "run it", "--role", "owner", "--returns", r+"#1", "--actor", "o", "--why", "w")
 	want(t, hyp(t, "show", q), 0, r+"#1 open — only tried one org")
 	want(t, hyp(t, "status"), 0, "OPEN LIMITS")
-
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 1, "open limits under")
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r+"#1", "--why", "w", "--actor", "o"), 0, "")
-	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
-	if s := hyp(t, "status").stdout; strings.Contains(s, "OPEN LIMITS") {
-		t.Fatalf("status still lists open limits after the second acceptance:\n%s", s)
-	}
 }
 
 func TestReadingAwaitsOwnerUntilOwnerCloses(t *testing.T) {

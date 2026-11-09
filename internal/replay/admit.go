@@ -196,7 +196,8 @@ func (st *State) AdmitResult(p event.ResultRecord, f RecipeFacts, refHash map[st
 
 // AdmitConfirm lists what admitting confirm p on question q would break: q has
 // no current selection, or it is a sufficient owner confirm that leaves a
-// gating limit unaccepted. p.Accepts must be resolved limit keys. Both rules
+// gating limit unaccepted. A confirm accepts no limit (ADR 0016): the owner
+// accepts a referred limit with a checkpoint first. Both rules
 // read derived state, so Validate does not repeat them.
 func (p Projection) AdmitConfirm(q string, c event.Confirm) []Finding {
 	if _, ok := p.CurrentSelect(q); !ok {
@@ -207,14 +208,14 @@ func (p Projection) AdmitConfirm(q string, c event.Confirm) []Finding {
 	}
 	var open []string
 	for _, l := range p.LimitsOf(q) {
-		if l.Gating && !slices.Contains(c.Accepts, l.Key) {
+		if l.Gating {
 			open = append(open, fmt.Sprintf("  %s#%s %s", event.DisplayID(event.KindResult, l.Result), strings.TrimPrefix(l.Key, l.Result+"#"), l.Text))
 		}
 	}
 	if len(open) == 0 {
 		return nil
 	}
-	return []Finding{{FindRefuse, fmt.Sprintf("open limits under %s are not accepted:\n%s\npass --accept <R-id>#<n> for each limit you accept, or close it first with hyp record --closes <R-id>#<n>",
+	return []Finding{{FindRefuse, fmt.Sprintf("open limits under %s are not accepted:\n%s\nthe runner closes each with hyp record --closes <R-id>#<n>, or refers it with hyp checkpoint --refers <R-id>#<n>; the owner accepts a referred one with hyp checkpoint --role owner --accept <R-id>#<n>",
 		event.DisplayID(p.Nodes[q].Kind, q), strings.Join(open, "\n"))}}
 }
 
@@ -329,8 +330,11 @@ func (p Projection) labels(ids []string) string {
 	return strings.Join(out, ", ")
 }
 
-// keyLabel is a limit or reading key as R-…#n or R-…#rn.
+// keyLabel is a limit or reading key as R-…#n or R-…#rn, or a line as G-…#n.
 func (p Projection) keyLabel(k string) string {
-	r := event.KeyResult(k)
-	return event.DisplayID(event.KindResult, r) + k[len(r):]
+	kind := event.KindResult
+	if n := p.Nodes[event.KeyResult(k)]; n != nil {
+		kind = n.Kind
+	}
+	return event.DisplayKey(kind, k)
 }

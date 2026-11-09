@@ -358,9 +358,10 @@ func TestLimitFlags(t *testing.T) {
 	r := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 	want(t, r, 1, "open limits under")
 	want(t, r, 1, "raw SQL org gets no row")
-	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o")
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "insufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o"),
-		1, "only a sufficient owner confirm accepts limits")
+	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o"),
+		2, "confirm --accept was retired")
+	accept(t, r1+"#1")
+	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 }
 
 func TestBuildSuffix(t *testing.T) {
@@ -631,8 +632,8 @@ func TestCheckNamesRunExperimentClosedInMergedLog(t *testing.T) {
 	want(t, hyp(t, "check"), 0, "warn: "+e+" is withdrawn but reads run: its Result R-ZZZZZZ applied after the close")
 }
 
-// No current selection outranks a bad --accept, and a bad --accept outranks the
-// limit gate, in the order the refusals have always had.
+// The retired --accept is refused before anything else, and no current
+// selection outranks the limit gate.
 func TestConfirmRefusalOrder(t *testing.T) {
 	_, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
@@ -640,11 +641,11 @@ func TestConfirmRefusalOrder(t *testing.T) {
 	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
 	owner := []string{"confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w"}
 	bad := append(append([]string{}, owner...), "--accept", "nope")
-	want(t, hyp(t, bad...), 1, "refused: no current selection")
+	want(t, hyp(t, bad...), 2, "confirm --accept was retired")
+	want(t, hyp(t, owner...), 1, "refused: no current selection")
 	must(t, "select", q, h1, "--why", "w")
 	r := must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--limit", "one host", "--why", "w")
 	refer(t, r+"#1")
-	want(t, hyp(t, bad...), 2, "nope")
 	want(t, hyp(t, owner...), 1, "open limits under")
 }
 

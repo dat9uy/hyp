@@ -152,12 +152,16 @@ func TestAdmitConfirm(t *testing.T) {
 	b.As("a").Select(q, h, "", true)
 	p := replayB(b)
 	refused(p.AdmitConfirm(q, owner()), "open limits under "+event.DisplayID(event.KindDesignQuestion, q)+" are not accepted:\n  "+event.DisplayID(event.KindResult, r)+"#1 l1\n")
-	for name, c := range map[string]event.Confirm{
-		"accepted":           owner(key),
-		"owner insufficient": {Role: event.RoleOwner, Verdict: event.ConfirmInsufficient},
-	} {
-		if fs := p.AdmitConfirm(q, c); len(fs) != 0 {
-			t.Fatalf("%s: findings = %+v, want none", name, fs)
-		}
+	if fs := p.AdmitConfirm(q, event.Confirm{Role: event.RoleOwner, Verdict: event.ConfirmInsufficient}); len(fs) != 0 {
+		t.Fatalf("owner insufficient: findings = %+v, want none", fs)
+	}
+	// A confirm accepts no limit: the runner refers it and the owner
+	// accepts it with a checkpoint, and then the confirm is admitted.
+	refused(p.AdmitConfirm(q, owner(key)), "are not accepted")
+	g := p.Goal.GoalID
+	b.As("a").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []string{key}})
+	b.As("o").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "ok", Role: event.RoleOwner, Accepts: []string{key}})
+	if fs := replayB(b).AdmitConfirm(q, owner()); len(fs) != 0 {
+		t.Fatalf("after the accept: findings = %+v, want none", fs)
 	}
 }

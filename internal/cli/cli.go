@@ -62,21 +62,22 @@ setup:
 write:
   add goal --title T [--body B] [--alias A]
   add dq   --parent REF --title T [--body B] [--alias A]
-  add hyp  --parent REF --title T [--body B] [--alias A]
+  add hyp  --parent REF --title T [--body B] [--alias A] [--subject PATH]...
   add exp  --parent REF --title T --recipe NAME@V|none [--decided-by reading] [--target REF|none]... [--alias A]
   record   --exp REF --verdict REF=supports|contradicts|inconclusive... --observation O [--evidence P]... [--limit L]... [--closes R#N]...
   retract REF | abandon REF | reaffirm REF
   supersede NEW --old OLD
   amend HYP --body B                     revise a Hypothesis body
+  subject HYP PATH...                    tie a Hypothesis to the files that embody its claim, by sha256
   link FROM depends_on|external_ref TO   unlink FROM TYPE TO
   select DQ [HYP] [--scope-change]   admitted only when hyp status owes it (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ
-  confirm DQ --role owner --verdict sufficient|insufficient [--accept R#N]...   (a scope-change select)
-  checkpoint --summary S
+  confirm DQ --role owner --verdict sufficient|insufficient   (a scope-change select)
+  checkpoint --summary S [--refers K]... [--role owner [--accept K]... [--returns K]... [--closes R#rN]... [--revises R#rN]... [--line L]...]
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals
-  show REF|R-id#n [--as-of REF|TIME]         one node, or one limit, in full, with its history
+  show REF|R-id#n|G-id#n [--as-of REF|TIME]  one node, or one limit or line, in full, with its history
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
   check                                       rejected events, bad lines, warnings
@@ -112,6 +113,7 @@ var commands = map[string]command{
 	"resume":     cmdOnNode("resume", event.TypeDQResume),
 	"supersede":  cmdSupersede,
 	"amend":      cmdAmend,
+	"subject":    cmdSubject,
 	"link":       cmdLink("link", event.TypeEdgeAdd),
 	"unlink":     cmdLink("unlink", event.TypeEdgeRemove),
 	"select":     cmdSelect,

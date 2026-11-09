@@ -52,6 +52,19 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 		r.id(g.ID), Cut(g.Title, 60), p.Goal.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
 		c[string(replay.DQReopened)], c[string(replay.DQDeferred)], c[string(replay.DQWithdrawn)], c[replay.StaleReasonStale])
 
+	// LINES are the Goal's lines: whose turn each is, the Results that ran
+	// its case, and a mark when no one closer ran the selected Hypotheses
+	// together. The ledger owes a line on each question (OWED).
+	if len(p.Lines) > 0 {
+		add(kKeep, "LINES")
+		for _, l := range p.Lines {
+			add(kKeep, "  %s", Cut(r.lineLine(l), 160))
+			if sel := p.NotTogether(l); len(sel) > 0 && l.State == replay.LimitOpen {
+				add(kKeep, "    (no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
+			}
+		}
+	}
+
 	owed := p.Owed()
 	add(kKeep, "FRONTIER")
 	// FRONTIER is the tree pruned to open work. The walk visits every question
@@ -619,10 +632,8 @@ func (r renderer) owedLine(o replay.Owed) string {
 	case replay.OwedLimit, replay.OwedReading, replay.OwedReferred:
 		res := event.KeyResult(o.Key)
 		text := ""
-		for _, l := range r.p.LimitsOf(o.Question) {
-			if l.Key == o.Key {
-				text = l.Text
-			}
+		if l, ok := r.p.Limit(o.Key); ok {
+			text = l.Text
 		}
 		for _, l := range r.p.Readings {
 			if l.Key == o.Key {

@@ -30,6 +30,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		w("body: %s", n.Body)
 	}
 	if n.Kind == event.KindGoal {
+		for _, l := range p.Lines {
+			w("line %s", r.lineLine(l))
+		}
 		for _, l := range p.Readings {
 			for _, line := range readingLines(r, l) {
 				w("%s", line)
@@ -56,6 +59,13 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	}
 	if q := p.Questions[id]; q != nil && len(q.Candidates) > 0 {
 		w("candidates: %s", r.named(q.Candidates))
+	}
+	if sub := p.Subjects[id]; len(sub) > 0 {
+		var files []string
+		for _, f := range sub {
+			files = append(files, f.Path+" "+f.SHA256[:12])
+		}
+		w("subject: %s", strings.Join(files, ", "))
 	}
 	if n.Kind == event.KindDesignQuestion {
 		rec, ok := p.CurrentSelect(id)
@@ -398,6 +408,48 @@ func (r renderer) closers(ids []string) string {
 		parts[i] = r.id(id) + " (" + strings.Join(vs, "; ") + ")"
 	}
 	return strings.Join(parts, ", ")
+}
+
+// lineLine is one line of the Goal as hyp show and hyp status print it:
+// G-…#n, whose turn it is or who accepted it, the Results that ran its case,
+// and its text.
+func (r renderer) lineLine(l replay.Limit) string {
+	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), r.lineState(l), l.Text)
+}
+
+// lineState is whose turn a line is, or who accepted it, and the Results
+// that ran its case.
+func (r renderer) lineState(l replay.Limit) string {
+	state := l.State
+	switch {
+	case l.State == replay.LimitAccepted:
+		state += " by " + l.By
+	case l.Referred != "":
+		state += ", referred: the owner accepts or returns it"
+	case l.Returned != "":
+		state += ", returned"
+	}
+	if len(l.Closers) > 0 {
+		state += ", ran in " + r.ids(l.Closers)
+	}
+	return state
+}
+
+// ranOn names, for one closer of a line, each Hypothesis it ran on: its
+// verdict when it judged it, and none when only its subject ran. A verdict
+// is per Hypothesis, never per line, so it never says which line failed.
+func (r renderer) ranOn(res string, hyps []string) string {
+	n := r.p.Nodes[res]
+	var parts []string
+	for _, h := range hyps {
+		switch v, ok := n.Verdicts[h]; {
+		case ok:
+			parts = append(parts, "ran on "+r.withAlias(h)+": "+v)
+		case r.p.Covers(res, h):
+			parts = append(parts, "ran on "+r.withAlias(h))
+		}
+	}
+	return strings.Join(parts, "; ")
 }
 
 // limitLine is one limit as hyp show and render --markdown print it:

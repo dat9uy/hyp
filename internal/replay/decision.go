@@ -117,25 +117,6 @@ func (s *Decision) ChangedSince(c *ConfirmRec) (added, removed []DossierItem) {
 	return diffItems(c.Items, s.Dossier.Items)
 }
 
-// accepted maps each limit key an owner Confirm accepted on select id with
-// the Dossier now to that owner's actor: a sufficient owner Confirm with this
-// Dossier accepted it, and no later owner insufficient has this Dossier.
-func (s *Decision) accepted(id string, now []DossierItem) map[string]string {
-	out := map[string]string{}
-	for _, c := range s.Confirms[id] {
-		if c.Role != event.RoleOwner || !slices.Equal(c.Items, now) {
-			continue
-		}
-		if c.Verdict == event.ConfirmInsufficient {
-			clear(out)
-		}
-		for _, k := range c.Accepts {
-			out[k] = c.Actor
-		}
-	}
-	return out
-}
-
 // newCandidate reports whether a candidate now was not a candidate when
 // select rec applied. A candidate that fell since does not count: the chosen
 // one still stands.
@@ -219,24 +200,7 @@ func (st *State) decisions() map[string]*Decision {
 // gives the answer in force from then on. Readings of a retracted Result are
 // left out.
 func (st *State) readings(applied []event.Event) []Reading {
-	answers := map[string][]Answer{}
-	for _, ev := range applied {
-		if ev.Type != event.TypeCheckpoint {
-			continue
-		}
-		var c event.Checkpoint
-		_ = event.DecodePayload(ev, &c)
-		for _, k := range c.Closes {
-			if len(answers[k]) == 0 {
-				answers[k] = []Answer{{By: ev.ID, Text: c.Summary}}
-			}
-		}
-		for _, k := range c.Revises {
-			if len(answers[k]) > 0 {
-				answers[k] = append(answers[k], Answer{By: ev.ID, Text: c.Summary})
-			}
-		}
-	}
+	answers := st.Answers
 	pos := map[string]int{}
 	for i, ev := range applied {
 		pos[ev.ID] = i
@@ -295,48 +259,14 @@ func (st *State) resultBetween(keep func(string) bool, pos map[string]int, at, u
 	return best
 }
 
-// limits derives each question's limits. A limit is closed when a
-// non-retracted Result closes it, accepted when a counting owner confirm on
-// the question's current select accepted it (Decision.accepted), and open
-// otherwise. Limits of a retracted Result are left out.
+// limits derives each question's limits from what the move table recorded
+// (keyed.go). A limit is closed when a non-retracted Result closes it,
+// accepted when its latest hand is an accept, and open otherwise; the latest
+// refer or return names whose turn an open limit is. Limits of a retracted
+// Result are left out.
 func (st *State) limits() map[string][]Limit {
-	closers := map[string][]string{}
-	for _, id := range st.Order {
-		n := st.Nodes[id]
-		if n.Kind != event.KindResult || st.Retracted[id] {
-			continue
-		}
-		for _, k := range n.Closes {
-			closers[k] = append(closers[k], id)
-		}
-	}
-	// An owner checkpoint accepts the limits its accepts names, any
-	// checkpoint refers the limits its refers names to the owner, and an
-	// owner checkpoint returns the referred limits its returns names to the
-	// runner. The latest refer or return names whose turn an open limit is.
-	ownerAccepted, referred, returned := map[string]string{}, map[string]string{}, map[string]string{}
-	for _, ev := range st.Applied {
-		if ev.Type != event.TypeCheckpoint {
-			continue
-		}
-		var c event.Checkpoint
-		_ = event.DecodePayload(ev, &c)
-		// The latest of refer, return and accept stands; a return lifts an
-		// earlier accept, and Validate refuses a refer after an accept.
-		for _, k := range c.Refers {
-			referred[k], returned[k] = ev.ID, ""
-		}
-		for _, k := range c.Returns {
-			referred[k], returned[k] = "", ev.ID
-			delete(ownerAccepted, k)
-		}
-		for _, k := range c.Accepts {
-			referred[k], returned[k] = "", ""
-			ownerAccepted[k] = ev.Actor
-		}
-	}
+	closers := st.closers()
 	out := map[string][]Limit{}
-	accepted := map[string]map[string]string{}
 	for _, id := range st.Order {
 		n := st.Nodes[id]
 		if n.Kind != event.KindResult || st.Retracted[id] || len(n.Limits) == 0 {
@@ -344,22 +274,58 @@ func (st *State) limits() map[string][]Limit {
 		}
 		q := st.resultQuestion(id)
 		s := st.Decisions[q]
-		if _, ok := accepted[q]; !ok && s.Current != "" {
-			accepted[q] = s.accepted(s.Current, st.dossierItems(q, s.Selects[s.Current].Hyp))
-		}
 		for i, text := range n.Limits {
-			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Question: q, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen, Referred: referred[event.LimitKey(id, i+1)], Returned: returned[event.LimitKey(id, i+1)]}
-			if cs := closers[l.Key]; len(cs) > 0 {
-				l.State, l.By, l.Closers = LimitClosed, cs[0], cs
-			} else if actor, ok := accepted[q][l.Key]; ok {
-				l.State, l.By = LimitAccepted, actor
-			} else if actor, ok := ownerAccepted[l.Key]; ok {
-				l.State, l.By = LimitAccepted, actor
+			l := st.keyedLimit(event.LimitKey(id, i+1), id, text, closers)
+			l.Question, l.Hyps = q, sortedKeys(n.Verdicts)
+			if len(l.Closers) > 0 {
+				l.State, l.By = LimitClosed, l.Closers[0]
 			}
 			if s.Current != "" {
 				l.Gating = l.Gates(s.Selects[s.Current].Hyp)
 			}
 			out[q] = append(out[q], l)
+		}
+	}
+	return out
+}
+
+// lines derives the Goal's lines. A line is never closed: a close records
+// that its case ran on the Hypotheses the closer covers, and the ledger
+// owes it on each question with a candidate no closer covers (owed.go).
+func (st *State) lines() []Limit {
+	closers := st.closers()
+	var out []Limit
+	for i, text := range st.Lines {
+		out = append(out, st.keyedLimit(event.LimitKey(st.GoalID, i+1), st.GoalID, text, closers))
+	}
+	return out
+}
+
+// keyedLimit is limit key k of node res with its hand and closers.
+func (st *State) keyedLimit(k, res, text string, closers map[string][]string) Limit {
+	l := Limit{Key: k, Result: res, Text: text, State: LimitOpen, Closers: closers[k]}
+	switch h := st.LimitHand[k]; h.Move {
+	case HandRefer:
+		l.Referred = h.Event
+	case HandReturn:
+		l.Returned = h.Event
+	case HandAccept:
+		l.State, l.By = LimitAccepted, h.Actor
+	}
+	return l
+}
+
+// closers maps each limit key to the non-retracted Results that close it,
+// in creation order.
+func (st *State) closers() map[string][]string {
+	out := map[string][]string{}
+	for _, id := range st.Order {
+		n := st.Nodes[id]
+		if n.Kind != event.KindResult || st.Retracted[id] {
+			continue
+		}
+		for _, k := range n.Closes {
+			out[k] = append(out[k], id)
 		}
 	}
 	return out

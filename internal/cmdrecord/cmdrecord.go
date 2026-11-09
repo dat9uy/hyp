@@ -15,7 +15,7 @@ import (
 )
 
 // Format is the shape number of command.json.
-const Format = 5
+const Format = 6
 
 // Run is one command hyp ran, a row of the sandbox record or of a command
 // record (docs/sandbox-spec.md §5.1). Exit is set when the script exited,
@@ -126,12 +126,41 @@ type Input struct {
 // Dir is one directory argument: ARGS word Arg (counted from 1) named a
 // directory, shown as Path, which hyp passed in place and did not copy.
 // SHA256 hashes its tree just before the first command ran (DirSum), and
-// Files counts its regular files.
+// Files counts its regular files. Entries (format 6) names each regular
+// file, relative to the directory, with its sha256, so a Hypothesis's
+// subject can be matched by file; it is absent when the directory holds
+// more than MaxEntries regular files.
 type Dir struct {
-	Arg    int    `json:"arg"`
+	Arg     int     `json:"arg"`
+	Path    string  `json:"path"`
+	SHA256  string  `json:"sha256"`
+	Files   int     `json:"files"`
+	Entries []Entry `json:"entries,omitempty"`
+}
+
+// Entry is one regular file of a directory argument.
+type Entry struct {
 	Path   string `json:"path"`
 	SHA256 string `json:"sha256"`
-	Files  int    `json:"files"`
+}
+
+// MaxEntries caps a Dir's Entries, so an output directory cannot bloat
+// the record.
+const MaxEntries = 200
+
+// Fingerprints lists the sha256 of every file the record says the run was
+// given: each kept or hashed input and each entry of a directory argument.
+func (r Record) Fingerprints() []string {
+	var out []string
+	for _, in := range r.Inputs {
+		out = append(out, in.SHA256)
+	}
+	for _, d := range r.Dirs {
+		for _, e := range d.Entries {
+			out = append(out, e.SHA256)
+		}
+	}
+	return out
 }
 
 type plainRecord Record

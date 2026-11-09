@@ -18,7 +18,7 @@ const (
 	OwedUntested  = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
 	OwedUndecided = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
 	OwedPlanned   = "planned"   // a planned Experiment has no Result
-	OwedLimit     = "limit"     // an open limit under a question that has a candidate
+	OwedLimit     = "limit"     // an open limit under a question that has a candidate, or a line of the Goal a candidate has not met
 	OwedReading   = "reading"   // a closed reading no Result applies
 	OwedReferred  = "referred"  // a limit referred to the owner, not yet accepted
 	OwedPremise   = "premise"   // a candidate assumes a Hypothesis its question did not select
@@ -132,6 +132,19 @@ func (p Projection) Owed() []Owed {
 				// A limit names a case no check ran; it may apply to every
 				// candidate, whichever Hypotheses its Result judged.
 				add(aim(Owed{Who: OwedRunner, Kind: OwedLimit, Key: l.Key}))
+			}
+		}
+		// A line of the Goal is owed on each live top-level question with a
+		// candidate no closer covers; a referred one is the owner's there.
+		if n.Parent == p.Goal.GoalID {
+			for _, l := range p.Lines {
+				switch {
+				case l.State != LimitOpen:
+				case l.Referred != "":
+					add(Owed{Who: OwedOwner, Kind: OwedReferred, Key: l.Key})
+				case len(p.Uncovered(l, dq)) > 0:
+					add(aim(Owed{Who: OwedRunner, Kind: OwedLimit, Key: l.Key}))
+				}
 			}
 		}
 		for _, l := range p.Readings {
@@ -273,11 +286,16 @@ func closedExp(e *Exp) bool {
 	return e == nil || e.Closed != "" || e.Status == ExpSuperseded || e.Status == ExpWithdrawn
 }
 
-// ReferredLimit is the key of the first open limit under question dq whose
-// latest refer or return is a refer, or "". It holds the question's select
-// and choice until the owner accepts or returns it.
+// ReferredLimit is the key of the first open limit under question dq, or
+// line of the Goal when dq is a top-level question, whose latest hand is a
+// refer, or "". It holds the question's select and choice until the owner
+// accepts or returns it.
 func (p Projection) ReferredLimit(dq string) string {
-	for _, l := range p.LimitsOf(dq) {
+	ls := p.LimitsOf(dq)
+	if n := p.Nodes[dq]; n != nil && n.Parent == p.Goal.GoalID {
+		ls = append(slices.Clone(ls), p.Lines...)
+	}
+	for _, l := range ls {
 		if l.State == LimitOpen && l.Referred != "" {
 			return l.Key
 		}
