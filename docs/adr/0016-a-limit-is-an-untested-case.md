@@ -29,3 +29,29 @@ Owner decision on 2026-11-08: a limit is a case the Goal covers that no check ra
 
 - **A `kind` on each limit.** Rejected: one payload field means one item kind and one transition (ADR 0013), and a kind field would split the transitions without making them computable.
 - **Keep the select warning.** Rejected: it warned of work the ledger can owe.
+
+## Amended 2026-11-09: a limit's category is derived, and the owner can return a referred limit
+
+The owner asked whether a limit belongs to the Result, which is provable because the run already happened, or to the Hypothesis or the Goal, which cannot be known in advance, and how a limit is promoted up the tree. A new Goal is a new tree and a new Hypothesis is a new branch, and turning a Result's limit into a rethink of the design or of the Goal is how thinking works, so it must be a visible, cheap path made of ordinary events.
+
+The run that prompted this: `R-P424P1#1` (the missed-deploy case) was referred. `E-ZVN0EM` aimed at it, and its Result `R-5JYRA0` ran the case and contradicted h-module on D2 and D3. But `R-5JYRA0` did not close the limit, following the Experiment's own rule ("Closes R-P424P1#1 if D1-D3 hold"), so `hyp status` still asked the owner to accept or refuse a case that had been run.
+
+Owner decision on 2026-11-09:
+
+- **A limit has one stored scope, its Result's.** At record time, the one provable fact is "this run did not cover case C". No category, kind or scope is stored, because choosing one at record time would ask the runner to judge what it cannot yet know.
+- **Its category is derived by rules over typed fields, never from prose.** A Result's `closes` and its `verdicts` say whether the case ran and what it did to each Hypothesis judged: a contradicted Hypothesis means the design failed the case, and a supported one means it passed. An owner `accepts` means this tree does not run the case. The latest `refers` or `returns` says whose turn an open limit is. Summaries and observations explain the reason, and no rule reads them.
+- **A close records that the case ran, whatever the verdicts.** A Result that runs a limit's case closes it whether its verdicts support or contradict. Closing only on a pass is the misreading that left `R-P424P1#1` open. Displays show the closer's verdicts next to `closed by`, so the promotion into the design is visible.
+- **The owner can return a referred limit.** "The Goal covers this case, run it" is the owner's answer to a refer, and it is a typed transition: `hyp checkpoint --role owner --returns <R-id>#<n>`, the mirror of `--refers`. A returned limit is an ordinary open limit again, owed to the runner while its question has a candidate. Whose turn an open limit is follows the latest `refers` or `returns` in merge order. A RULE CHANGE checkpoint that widens the Goal stays allowed, and names the keys it brings into the Goal with `--returns`.
+- **A new Goal is a new tree.** The new tree cites the old tree's keys in text and with an `external_ref` edge. No typed cross-tree cite is added, because nothing would be computed from it.
+- **A candidate that no closer judged is owed the case again.** This settles the "Not decided" item above in principle: once a closed limit's question has a supported candidate that no closing Result judged, the limit is owed to the runner for that candidate. It is built when the first successor of a Hypothesis that a closer contradicted is added, because that is its real event.
+
+No kind field, no edge to a limit key, no `--answers` on `add hyp`, and no change of turn on `--aims` are added (ADR 0013). `aims` names intent and settles nothing, so it cannot carry the owner's answer.
+
+Displays and checks that follow, in order:
+- a limit's line shows its closers' verdicts;
+- `hyp record` warns when the Experiment aims at a limit that the Result neither closes nor replaces with a new `--limit`, and prints the admit warnings it drops today;
+- `hyp show <R-id>#<n>` prints the limit, the Hypotheses judged and their status now, whose turn it is with the refer and return summaries, the aimers, the closers with their verdicts, and the acceptor;
+- `--returns`;
+- the re-owe rule, when a successor is added.
+
+Kongming's report `plans/reports/kongming-261109-1529-typed-limit-promotion.md` holds the options weighed.
