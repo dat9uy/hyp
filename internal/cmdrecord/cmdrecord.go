@@ -149,6 +149,27 @@ func Read(path string) (Record, error) {
 	return r, nil
 }
 
+// Unclean says why r, a record of ref at hash, is not a clean run: the first
+// command that failed, or known answers that did not pass. It is "" when r
+// names another ref or hash, is no Evidence or Standalone record, or records
+// no command: such a record is not a run, so there is nothing to explain.
+func (r Record) Unclean(ref event.Ref, hash string) string {
+	if r.Ref != ref || r.SHA256 != hash || (r.Step != recipe.Evidence && r.Step != recipe.Standalone) || len(r.Commands) == 0 {
+		return ""
+	}
+	for _, c := range r.Commands {
+		if c.Failed() && c.Shown() == "" {
+			return "a command " + c.Outcome()
+		} else if c.Failed() {
+			return c.Shown() + " " + c.Outcome()
+		}
+	}
+	if !r.KnownAnswers.Passed() {
+		return "the known answers did not pass"
+	}
+	return ""
+}
+
 // CleanRun reports whether r is a clean run of ref at hash: an Evidence or
 // Standalone record with at least one command, every one of which exited 0,
 // whose known answers ran before it with at least one case, every one ok.

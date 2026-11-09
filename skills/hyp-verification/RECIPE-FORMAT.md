@@ -366,11 +366,18 @@ Rules:
   stdin `/dev/null` and only this environment: `PATH` (a directory holding
   the copy of the running hyp the gate used, named `hyp`, then the
   caller's `PATH`), a scratch `HOME` and `TMPDIR`, `GIT_CONFIG_NOSYSTEM=1`
-  and `HYP_OUT`, an empty directory for the check's files. A hyp killed
-  while it runs leaves the copy (`hyp-run-*` in the system temp
-  directory); hyp does not clean it up, and you may delete it. A script
-  finds its own files from its own path and never relies on where the
-  library is.
+  and `HYP_OUT`, an empty directory for the check's files. The copy and
+  the check's directory have the same paths in a known-answer case and in
+  a run, apart from the random digits in their names, so a script cannot
+  tell the gate from the run. A hyp killed while it runs leaves the copy
+  (`hyp-bundle-*` in the system temp directory); hyp does not clean it up,
+  and you may delete it. A script finds its own files from its own path
+  and never relies on where the library is.
+- The check's `TMPDIR`, `HOME` and working directory are deleted when it
+  ends, also when it fails. Send what explains a failure, such as a
+  server's log, to stderr: hyp keeps it in `command.log` (or
+  `known-answers.log` for a case) and prints its last lines with the
+  error. A file the record must keep goes under `$HYP_OUT`.
 - Timeouts: each Drive command 60 minutes, each Evidence command 10
   minutes, a Standalone command 60 minutes.
 - When the script exits non-zero, hyp exits with its code unchanged; a
@@ -721,7 +728,19 @@ hyp, a passed gate carries over to the run, except for what a case cannot
 see: a read of a fixed absolute path, a read from the network,
 the versions of the tools on the host `PATH` after hyp (the Python that
 runs a `#!/usr/bin/env python3` script among them), and a write outside
-`$HYP_OUT`.
+`$HYP_OUT`. The paths of the ARGS a run is given are the subject's, so a
+case cannot see them either, and a limit of the host, such as the length
+of a Unix socket path, can differ from one machine to another.
+
+Use the gate to fix a recipe before it costs an Experiment:
+
+- Give each external resource a check starts, such as a server, a socket
+  or a port, a must-pass case that starts it. The gate then fails where
+  the run would.
+- Run `hyp recipe known-answers <name>@<N>` after every change and before
+  `hyp add exp` pins the version. When a case fails, read its stderr in
+  the message, fix the Draft or make the next version, and run the gate
+  again. A failure the gate catches leaves nothing in the tree.
 
 ## Verdict scripts
 
@@ -754,7 +773,10 @@ reason is reported once, in this order:
    Experiment's recipe or an evidence pin), and cites no `command.json`
    that names that ref at that hash, records at least one command, every
    one of which exited 0, and holds `known_answers` with at least one case,
-   every one `ok`. A record of a failed run is not a run.
+   every one `ok`. A record of a failed run is not a run. When a cited
+   record of that ref and hash ran but is not clean, the reason goes on
+   with `; in the cited record, ` and the first command that failed (its
+   words and outcome) or `the known answers did not pass`.
 3. `command record of <ref> at <h12> matches no pin of this Result`: a cited
    `command.json` names a ref and hash that match none of its pins. One that
    hyp cannot read, or that names no ref or hash, gives

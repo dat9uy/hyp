@@ -22,6 +22,8 @@ Each finding sits where two rows differ. With a stub `hyp` first on the caller's
 - **One product.** A check's product is its exit code, its stdout and the tree it leaves under `$HYP_OUT`, an empty directory hyp gives each check. A case may hold `expect/` beside `input/`. Its out tree must equal `expect/` (paths and bytes, with the case directory's path in file contents written `$CASE`), and a case without `expect/` must leave the out tree empty. The double run compares the out trees too. The run keeps the tree in `DIR/out/` and stdout in `DIR/stdout` (Standalone), or `DIR/out/<n>/` and `DIR/stdout/<n>` (Evidence command `n`, from 0), even when the check fails.
 - **One read of the executable.** `hyp recipe run` and `evidence` read the running hyp once. The gate's cases and the run's commands find that one copy first on `PATH`, so `known_answers.hyp_sha256` names the bytes the commands ran.
 
+- **One root (2026-11-09).** One function makes a check's directory and one makes the bundle copy, for a known-answer case and for a run alike, so their paths differ only in random digits. Before this, the gate used `hyp-ka-…` and the run `hyp-check-…/root`, 8 characters longer, and the bundle copies had different prefixes. Run 3 of the multi-tenant tree hit it: `tenant-lines@12`'s gate started Postgres with a 103-character socket path, the run needed 111, over macOS's limit, and `R-AN0AZA` recorded the failed start as inconclusive. The parity test compares the paths themselves, with only digits masked. Owner decision the same day: the recipe practice goes with it, so a failure is fixed in the gate before it costs an Experiment. A check sends what explains a failure to stderr, which hyp prints the tail of with the error, because its `TMPDIR` is deleted when it ends, and a must-pass case starts each external resource a check starts.
+
 ## Considered Options
 
 - **Keep comparing stdout only, and say so.** Rejected because a check whose product is a file, such as extract-exp's `item.md` read by a judge, would stay unchecked, and the run would keep files the gate never saw.
@@ -33,6 +35,7 @@ Each finding sits where two rows differ. With a stub `hyp` first on the caller's
 ## Consequences
 
 - A passed gate now carries over to the run, except for the limits: reads of fixed absolute paths, the network, the versions of tools on the host `PATH` after hyp (the Python that runs a `#!/usr/bin/env python3` script among them), and writes outside `$HYP_OUT`. Environment variables leave the list of limits.
+- The paths of a run's ARGS are the subject's and stay outside the gate, and a limit of the host can differ between machines (2026-11-09).
 - A Standalone command given a relative path as an ARG no longer finds it. Recipes take absolute paths.
 - A check writes its product to `$HYP_OUT`, not to a path passed as an argument, when it wants the gate to compare it and the record to keep it.
 - `command.json` keeps its shape. The record directory gains `out/` and `stdout`.

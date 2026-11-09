@@ -56,6 +56,11 @@ func TestEvidenceCrashRecordsExit(t *testing.T) {
 	if log, _ := os.ReadFile(filepath.Join(dir, "command.log")); !strings.Contains(string(log), "RuntimeError: injected check crash") {
 		t.Errorf("command.log = %q", log)
 	}
+	// The error carries the log's last lines, so the cause is read without
+	// opening the record: the check's root is deleted when it ends.
+	if !strings.Contains(err.Error(), "RuntimeError: injected check crash") {
+		t.Errorf("error = %q, want the log's tail", err)
+	}
 }
 
 // scratch-pg stacked under a Drive recipe: create passes, drive passes,

@@ -238,15 +238,11 @@ func shown(bundle string, argv []string) string { return strings.Join(rowArgs(bu
 func RunKnownAnswers(r *recipe.Recipe, hyp *SandboxHyp, log io.Writer) (*cmdrecord.KnownAnswers, error) {
 	ref := r.Ref()
 	ka := &cmdrecord.KnownAnswers{HypSHA256: hyp.SHA256, Cases: []cmdrecord.Case{}}
-	tmp, err := os.MkdirTemp("", "hyp-ka-bundle-")
-	if err != nil {
-		return nil, herr.Env("%v", err)
-	}
-	defer os.RemoveAll(tmp)
-	cp, err := copyRecipe(ref.String(), r, tmp)
+	cp, _, removeCopy, err := newBundleCopy(ref.String(), r)
 	if err != nil {
 		return nil, err
 	}
+	defer removeCopy()
 	cases, err := readCases(cp)
 	if err != nil {
 		return nil, err
@@ -479,15 +475,11 @@ type caseRun struct {
 // files, never a pipe, so a process left in the background cannot keep hyp
 // waiting.
 func runCase(gate context.Context, c knownCase, bin string, log io.Writer) (r caseRun, timedOut bool, err error) {
-	tmp, err := os.MkdirTemp("", "hyp-ka-")
-	if err != nil {
-		return r, false, herr.Env("%v", err)
-	}
-	defer os.RemoveAll(tmp)
-	dir, err := checkRoot(tmp)
+	dir, removeRoot, err := newCheckRoot()
 	if err != nil {
 		return r, false, err
 	}
+	defer removeRoot()
 	if err := os.CopyFS(filepath.Join(dir, "input"), os.DirFS(filepath.Join(c.Dir, "input"))); err != nil {
 		return r, false, herr.Env("known answer %s: copying input: %v", c.Name, err)
 	}
