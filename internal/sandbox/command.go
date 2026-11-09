@@ -316,15 +316,11 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 	if _, err := pick(rcp, o); err != nil {
 		return nil, err
 	}
-	tmp, err := os.MkdirTemp("", "hyp-run-")
-	if err != nil {
-		return nil, herr.Env("%v", err)
-	}
-	defer os.RemoveAll(tmp)
-	cp, err := copyRecipe(o.Ref, rcp, tmp)
+	cp, tmp, removeCopy, err := newBundleCopy(o.Ref, rcp)
 	if err != nil {
 		return nil, err
 	}
+	defer removeCopy()
 	argvs, err := pick(cp, o)
 	if err != nil {
 		return nil, err
@@ -424,7 +420,7 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 		}
 		// A failed command's exit code wins over a problem with its product.
 		if row.Failed() {
-			return rec, stepFailed(row, filepath.Join(o.Record, "command.log"), "")
+			return rec, stepFailed(row, filepath.Join(o.Record, "command.log"), fileTail(logPath, 30))
 		}
 		if product != nil {
 			return rec, product
@@ -441,19 +437,18 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 // broke those rules (what it could read is kept), or an exit 3 when keeping
 // the product failed. err means the command did not run.
 func runCheck(ctx context.Context, log *os.File, ref string, step recipe.Step, bundle, bin string, argv, shown []string, timeout time.Duration, save func(cmdrecord.Run) error, out, stdout string) (row cmdrecord.Run, product, err error) {
-	tmp, err := os.MkdirTemp("", "hyp-check-")
+	root, removeRoot, err := newCheckRoot()
 	if err != nil {
 		return row, nil, err
 	}
-	defer os.RemoveAll(tmp)
-	if err := os.Mkdir(filepath.Join(tmp, "root"), 0o755); err != nil {
-		return row, nil, err
-	}
-	root, err := checkRoot(filepath.Join(tmp, "root"))
+	defer removeRoot()
+	// Outside root, so the command cannot see or change it, as in a case.
+	outs, err := os.MkdirTemp("", "hyp-check-out-")
 	if err != nil {
 		return row, nil, err
 	}
-	outF, err := os.Create(filepath.Join(tmp, "stdout"))
+	defer os.RemoveAll(outs)
+	outF, err := os.Create(filepath.Join(outs, "stdout"))
 	if err != nil {
 		return row, nil, err
 	}

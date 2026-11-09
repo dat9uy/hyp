@@ -78,7 +78,16 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 			continue
 		}
 		if !slices.ContainsFunc(records, func(c cited) bool { return c.rec.CleanRun(pin.Ref, pin.Hash) }) {
-			why = append(why, "no command record of "+pin.Ref.String()+" at "+h12(pin.Hash)+" with passing known answers")
+			reason := "no command record of " + pin.Ref.String() + " at " + h12(pin.Hash) + " with passing known answers"
+			// Name why a cited record of this pin is not clean, so a failed
+			// command is not read as failed known answers.
+			for _, c := range records {
+				if u := c.rec.Unclean(pin.Ref, pin.Hash); u != "" {
+					reason += "; in the cited record, " + u
+					break
+				}
+			}
+			why = append(why, reason)
 		}
 	}
 

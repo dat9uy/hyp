@@ -269,19 +269,19 @@ func TestContainMarkMatchesReasons(t *testing.T) {
 }
 
 func TestContainFailedRunIsNoRun(t *testing.T) {
-	for name, commands := range map[string]string{
-		"exited 1":    `[{"step":"evidence","exit":1}]`,
-		"did not end": `[{"step":"evidence"}]`,
-		"no commands": `[]`,
+	for name, c := range map[string]struct{ commands, why string }{
+		"exited 1":    {`[{"step":"evidence","exit":1}]`, "; in the cited record, a command exited 1"},
+		"did not end": {`[{"step":"evidence"}]`, "; in the cited record, a command did not end"},
+		"no commands": {`[]`, ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			s := containStore(t)
 			if err := os.MkdirAll(filepath.Join(s.dir, ".tree/evidence", s.em, "f"), 0o755); err != nil {
 				t.Fatal(err)
 			}
-			f := s.file(t, "f/command.json", 0o644, `{"ref":"ana@1","sha256":"`+s.hash+`","step":"evidence","commands":`+commands+`,`+passingKA+`}`)
+			f := s.file(t, "f/command.json", 0o644, `{"ref":"ana@1","sha256":"`+s.hash+`","step":"evidence","commands":`+c.commands+`,`+passingKA+`}`)
 			r := s.record(t, s.em, []string{evPy(s), f})
-			wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers")
+			wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers"+c.why)
 		})
 	}
 }
@@ -309,7 +309,7 @@ func TestContainRecordKnownAnswers(t *testing.T) {
 				wantReasons(t, reasonsOf(t, s.dir, r))
 				return
 			}
-			wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers")
+			wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers; in the cited record, the known answers did not pass")
 		})
 	}
 }

@@ -1054,8 +1054,12 @@ func sandboxEnv(rec *Record, e Entry) []string {
 }
 
 // logTail returns the last n lines of <box>/recipe.log, or "" without one.
-func logTail(box string, n int) string {
-	data, err := os.ReadFile(filepath.Join(box, "recipe.log"))
+func logTail(box string, n int) string { return fileTail(filepath.Join(box, "recipe.log"), n) }
+
+// fileTail is the last n lines of the file at path, or "" when it cannot be
+// read.
+func fileTail(path string, n int) string {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return ""
 	}

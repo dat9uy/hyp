@@ -6,6 +6,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -68,6 +69,9 @@ func TestRunUsesTheGatedHyp(t *testing.T) {
 	}
 }
 
+// digits matches the random part of a temporary directory's name.
+var digits = regexp.MustCompile(`[0-9]+`)
+
 // tokenized replaces in out the root a check ran under (the parent of the
 // pwd it printed last) and the hyp directory first on its PATH.
 func tokenized(t *testing.T, out string) string {
@@ -83,9 +87,10 @@ func tokenized(t *testing.T, out string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(out, bin, "$BIN"), root, "$ROOT")
 }
 
-// A check gets the same environment, working directory and stdin as a
-// known-answer case and as a Standalone run, apart from its scratch root
-// and hyp directory, and nothing of the caller's environment but PATH.
+// A check gets the same environment, working directory, stdin and paths as a
+// known-answer case and as a Standalone run, with its scratch root and its
+// bundle copy of the same shape, and nothing of the caller's environment but
+// PATH. Only the random digits of a temporary directory's name may differ.
 func TestCheckEnvSameInCaseAndRun(t *testing.T) {
 	t.Setenv("FOO", "leak")
 	t.Setenv("GIT_DIR", "/nonexistent")
@@ -93,7 +98,7 @@ func TestCheckEnvSameInCaseAndRun(t *testing.T) {
 	caseOut, runOut := filepath.Join(t.TempDir(), "case"), filepath.Join(t.TempDir(), "run")
 	root := recipeRoot(t, "env", passCase(map[string]string{
 		"recipe.md": recipeMD("env", "## Standalone\n\nRun env: ./env.sh\n"),
-		"env.sh":    "#!/bin/sh\n{ env | sort; echo \"pwd=$(pwd)\"; echo \"ls=$(ls -A)\"; echo \"stdin=$(cat)\"; } > \"$1\"\n",
+		"env.sh":    "#!/bin/sh\n{ env | sort; echo \"self=$0\"; echo \"pwd=$(pwd)\"; echo \"ls=$(ls -A)\"; echo \"stdin=$(cat)\"; } > \"$1\"\n",
 	}, "standalone", "env", []string{caseOut}, 0, ""), "env.sh")
 	if _, err := Run(RunOptions{Dir: root, Ref: "env@1", Step: "standalone", Label: "env", Args: []string{runOut}, Record: filepath.Join(t.TempDir(), "rec")}); err != nil {
 		t.Fatal(err)
@@ -103,10 +108,12 @@ func TestCheckEnvSameInCaseAndRun(t *testing.T) {
 	if err1 != nil || err2 != nil {
 		t.Fatal(err1, err2)
 	}
-	got, want := tokenized(t, string(r)), tokenized(t, string(c))
-	if got != want {
+	// The paths themselves are compared, with only their digits masked, so a
+	// root or bundle copy of another prefix or depth fails here.
+	if got, want := digits.ReplaceAllString(string(r), "N"), digits.ReplaceAllString(string(c), "N"); got != want {
 		t.Errorf("run environment differs from the case's:\nrun:\n%s\ncase:\n%s", got, want)
 	}
+	got := tokenized(t, string(r))
 	for _, k := range []string{"FOO=", "GIT_DIR=", "HYP_SANDBOX_ID="} {
 		if strings.Contains(got, "\n"+k) || strings.HasPrefix(got, k) {
 			t.Errorf("the check inherited %s:\n%s", k, got)

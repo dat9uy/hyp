@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/recipe"
 )
 
 // A check is an Evidence or Standalone command. It runs the same way in
@@ -65,6 +66,38 @@ func checkEnv(root, bin string) []string {
 		"GIT_CONFIG_NOSYSTEM=1",
 		"HYP_OUT=" + filepath.Join(root, "out"),
 	}
+}
+
+// newCheckRoot makes a new check root, with checkRoot's layout, and returns
+// it and the function that removes it. A known-answer case and a run's check
+// both get their root here, so a check cannot tell the gate from the run by
+// its paths: they differ only in the random digits of the name.
+func newCheckRoot() (root string, remove func(), err error) {
+	tmp, err := os.MkdirTemp("", "hyp-check-")
+	if err != nil {
+		return "", nil, herr.Env("%v", err)
+	}
+	if root, err = checkRoot(tmp); err != nil {
+		os.RemoveAll(tmp)
+		return "", nil, err
+	}
+	return root, func() { os.RemoveAll(tmp) }, nil
+}
+
+// newBundleCopy copies the bundle r into a new temporary directory, for the
+// gate and the run alike, and returns the copy and the function that removes
+// it. Its path has the same shape in both, so a script that reads its own
+// path cannot tell the gate from the run.
+func newBundleCopy(ref string, r *recipe.Recipe) (cp *recipe.Recipe, dir string, remove func(), err error) {
+	dir, err = os.MkdirTemp("", "hyp-bundle-")
+	if err != nil {
+		return nil, "", nil, herr.Env("%v", err)
+	}
+	if cp, err = copyRecipe(ref, r, dir); err != nil {
+		os.RemoveAll(dir)
+		return nil, "", nil, err
+	}
+	return cp, dir, func() { os.RemoveAll(dir) }, nil
 }
 
 // checkRoot makes root's empty cwd, home, tmp and out, and returns root with
