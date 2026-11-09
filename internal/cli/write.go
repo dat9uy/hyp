@@ -164,8 +164,26 @@ func (w *writer) run(build func() (draft, error)) error {
 	fmt.Fprintf(w.stdout, "%s %s\n", event.DisplayID(kind, ev.Node), ev.Type)
 	if ev.Type == event.TypeResultRecord {
 		printKeys(w.stdout, ev)
+		printClosed(w.stdout, w.st, ev)
 	}
 	return nil
+}
+
+// printClosed prints, in full, the text of each limit a Result closes, so
+// the runner rereads every case the limit names at the moment it claims to
+// have run them. A case it did not run is a new --limit, referred when it
+// is void (ADR 0016).
+func printClosed(out io.Writer, st *replay.State, ev event.Event) {
+	var p event.ResultRecord
+	_ = json.Unmarshal(ev.Payload, &p)
+	for _, c := range p.Closes {
+		k, ok := event.ParseKey(c)
+		n := st.Nodes[k.Result]
+		if !ok || n == nil || k.N > len(n.Limits) {
+			continue
+		}
+		fmt.Fprintf(out, "  closes %s#%d: %s\n", event.DisplayID(event.KindResult, k.Result), k.N, n.Limits[k.N-1])
+	}
 }
 
 // printKeys prints the key of each limit and reading a Result records, so

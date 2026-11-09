@@ -49,7 +49,9 @@ func TestOwedLimitAimedThenClosed(t *testing.T) {
 	want(t, hyp(t, "status"), 0, "runner: "+q+" limit "+key+" [aimed_not_settled by "+e2+"]")
 
 	e3 := must(t, "add", "exp", "--parent", h, "--title", "E3", "--recipe", "none", "--decided-by", "reading", "--aims", key, "--why", "w")
-	must(t, "record", "--exp", e3, "--verdict", h+"=supports", "--observation", "o3", "--closes", key, "--why", "w")
+	// The close prints the limit's whole text, so the runner rereads every
+	// case it names while claiming them.
+	want(t, hyp(t, "record", "--exp", e3, "--verdict", h+"=supports", "--observation", "o3", "--closes", key, "--why", "w"), 0, "  closes "+key+": one org only\n")
 	notIn(t, "limit "+key)
 	want(t, hyp(t, "status"), 0, "runner: "+q+" select "+h+", the only candidate\n")
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
