@@ -563,7 +563,7 @@ rename, before each command starts and after it ends.
 
 | Field | Value |
 |---|---|
-| `format` | the record's shape number, now `4` (`inputs` replaced `arg_sha256`, and `path`, `cwd` and directory arguments name no host path; `3` added `arg_sha256`; `2` added `pgid` to rows); absent (read as `0`) in a record written before it |
+| `format` | the record's shape number, now `5` (`5` added `dirs`; `4` replaced `arg_sha256` with `inputs`, and its `path`, `cwd` and directory arguments name no host path; `3` added `arg_sha256`; `2` added `pgid` to rows); absent (read as `0`) in a record written before it |
 | `ref` | the recipe ref as given |
 | `name`, `version`, `sha256` | the recipe's name, version and hash, the hash of what ran |
 | `path` | the library bundle the temporary copy came from, as `<repo>/REL` (`<repo>` is the directory name of the git work tree that holds `cwd`, or of `cwd` outside one), or as given outside it |
@@ -573,6 +573,7 @@ rename, before each command starts and after it ends.
 | `commands` | one entry per command, with the fields of the sandbox record's `commands` |
 | `known_answers` | as in the sandbox record's `recipes` |
 | `inputs` | one entry per file argument, in ARGS order: `arg` (its place in ARGS, from 1), `path` (`inputs/<arg>/<base name>`, beside `command.json`), `sha256` and `size` (of the copy the script got) and `kept` (`false` over 1 MB, when no copy is at `path`). A row shows `path` in the argument's place, and a directory argument as `<repo>/REL`, or as given outside the repository, which hyp warns about. Absent when no argument names a file |
+| `dirs` | one entry per directory argument, in ARGS order: `arg` (its place in ARGS, from 1), `path` (as the row shows it), `sha256` (of its tree just before the first command ran: each entry's slash path and kind, a file's sha256 and a symlink's target, dot-entries included, in lexical order) and `files` (its regular files). hyp passes the directory in place and keeps no copy. Absent when no argument names a directory |
 
 ## Changes
 
@@ -741,6 +742,14 @@ Use the gate to fix a recipe before it costs an Experiment:
   `hyp add exp` pins the version. When a case fails, read its stderr in
   the message, fix the Draft or make the next version, and run the gate
   again. A failure the gate catches leaves nothing in the tree.
+- Try a check only on its cases' stand-ins, never on a candidate, until
+  the Experiment that judges the candidate records its verdict rule. A
+  check fixed after it saw a candidate's verdict measures the candidate
+  against the check, not against the Goal.
+- When a candidate shows that a check is wrong, write the case that shows
+  it first: a stand-in in the Goal's terms, with the outcome the check
+  must give, in a new version. Name the case in the Experiment body. A
+  sentence about a trial run pins nothing; a case does.
 
 ## Verdict scripts
 

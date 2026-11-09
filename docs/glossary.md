@@ -311,7 +311,7 @@ The `External:` line under an Evidence or Standalone command that names what the
 _Avoid_: dependencies line, inputs line
 
 **Kept input**:
-A file an operator argument names, which hyp copies beside the command record as `inputs/N/<base name>`, hashes and lists under `inputs` in `command.json` before the first command runs; the script gets another copy. A file over 1 MB is hashed, not kept ([sandbox spec §5.1](sandbox-spec.md#51-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). In code: `cmdrecord.Input`.
+A file an operator argument names, which hyp copies beside the command record as `inputs/N/<base name>`, hashes and lists under `inputs` in `command.json` before the first command runs; the script gets another copy. A file over 1 MB is hashed, not kept ([sandbox spec §5.1](sandbox-spec.md#51-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). A directory argument is not copied; its tree's hash is listed under `dirs`. In code: `cmdrecord.Input` and `cmdrecord.Dir`.
 _Avoid_: input binding, arg hashes, inputs field (ADR 0008 rejected one on the Experiment)
 
 **Containment**:

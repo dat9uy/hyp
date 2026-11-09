@@ -28,7 +28,7 @@ The verdict rule of a verdict check lives in the check and its cases. This decis
 ## Consequences
 
 - Deleting a case that covers a label's supports or contradicts makes `hyp recipe check` warn, so hyp now depends on the verdict lines it once ignored.
-- The ADR 0002 limit carries over: the gate proves a check reproduces its cases, not that the cases are the right specification. Whether each label's cases match the Hypothesis it names is still the verifier's question.
+- The ADR 0002 limit carries over: the gate proves a check reproduces its cases, not that the cases are the right specification. Whether each label's cases match the Hypothesis it names was the verifier's question; since ADR 0015 retired the verifier, it is read by the owner at `choose`, and a case changed after a candidate was seen is ADR 0015's third loss.
 - The session-replay recipe's Draft version prints `verdict: h-step=WORD` and `verdict: h-same=WORD` and holds a case for each of its branches. Older bundles are hashed only and do not change.
 - Out of scope: comparing a Result's typed verdict with the check's output, trial counts in the check's product, and reading verdict lines from `$HYP_OUT` or at run time.
 - The glossary, `RECIPE-FORMAT.md`, the spec §7.6 and the hyp-prototype `VERIFIER.md` change to match. Each change is a correction that cites this decision. ADR 0001 to 0003 stand.

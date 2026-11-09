@@ -3,6 +3,8 @@ package sandbox
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -197,10 +199,11 @@ func anchored(repo, p, given string) (string, bool) {
 // gets, hashes that copy, and keeps a second copy at dir/inputs/<n>/<base>
 // unless it is over maxKeptInput; the row shows inputs/<n>/<base>. One that
 // names a directory is passed as an absolute path and shown anchored to
-// repo, with a warning when it is outside. A relative path is read against
-// cwd. Every other word is passed and shown as given. A file argument that
-// cannot be read is an environment failure.
-func stageArgs(args []string, cwd, repo, dir, tmp string, warn io.Writer) (run, shown []string, inputs []cmdrecord.Input, err error) {
+// repo, with a warning when it is outside, and its tree is hashed (dirSum).
+// A relative path is read against cwd. Every other word is passed and shown
+// as given. A file or directory argument that cannot be read is an
+// environment failure.
+func stageArgs(args []string, cwd, repo, dir, tmp string, warn io.Writer) (run, shown []string, inputs []cmdrecord.Input, dirs []cmdrecord.Dir, err error) {
 	for i, a := range args {
 		n := i + 1
 		prefix, val := "", a
@@ -220,19 +223,71 @@ func stageArgs(args []string, cwd, repo, dir, tmp string, warn io.Writer) (run, 
 			if !in && warn != nil {
 				fmt.Fprintf(warn, "warn: argument %d names a directory outside the repository; a replay cannot reach it\n", n)
 			}
+			sum, files, err := dirSum(abs)
+			if err != nil {
+				return nil, nil, nil, nil, herr.Env("cannot read argument %d (%s): %v", n, val, err)
+			}
+			dirs = append(dirs, cmdrecord.Dir{Arg: n, Path: show, SHA256: sum, Files: files})
 			run, shown = append(run, prefix+abs), append(shown, prefix+show)
 		default:
 			rel := filepath.ToSlash(filepath.Join("inputs", strconv.Itoa(n), filepath.Base(abs)))
 			in, err := keepInput(abs, fi.Mode().Perm(), filepath.Join(tmp, filepath.FromSlash(rel)), filepath.Join(dir, filepath.FromSlash(rel)))
 			if err != nil {
-				return nil, nil, nil, herr.Env("cannot read argument %d (%s): %v", n, val, err)
+				return nil, nil, nil, nil, herr.Env("cannot read argument %d (%s): %v", n, val, err)
 			}
 			in.Arg, in.Path = n, rel
 			inputs = append(inputs, in)
 			run, shown = append(run, prefix+filepath.Join(tmp, filepath.FromSlash(rel))), append(shown, prefix+rel)
 		}
 	}
-	return run, shown, inputs, nil
+	return run, shown, inputs, dirs, nil
+}
+
+// dirSum hashes the tree under root and counts its regular files. It reads
+// every entry, dot-entries included, in lexical order: a line "f REL SHA256"
+// for a regular file, "l REL TARGET" for a symlink (not followed), "d REL"
+// for a directory and "o REL" for anything else, REL slash-separated. Two
+// trees hash the same exactly when their names, kinds, file bytes and link
+// targets match; modes and times do not count.
+func dirSum(root string) (string, int, error) {
+	h, files := sha256.New(), 0
+	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if p == root {
+			return nil
+		}
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
+		}
+		rel = filepath.ToSlash(rel)
+		switch t := d.Type(); {
+		case t.IsRegular():
+			sum, err := fileSum(p)
+			if err != nil {
+				return err
+			}
+			files++
+			fmt.Fprintf(h, "f %s %s\n", rel, sum)
+		case t&fs.ModeSymlink != 0:
+			target, err := os.Readlink(p)
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(h, "l %s %s\n", rel, target)
+		case t.IsDir():
+			fmt.Fprintf(h, "d %s\n", rel)
+		default:
+			fmt.Fprintf(h, "o %s\n", rel)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", 0, err
+	}
+	return hex.EncodeToString(h.Sum(nil)), files, nil
 }
 
 // statPath stats s, read against cwd when relative, when it is written as a
@@ -366,7 +421,7 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 		}
 	}
 	repo := repoOf(o.Dir)
-	runArgs, shownArgs, inputs, err := stageArgs(o.Args, o.Dir, repo, dir, filepath.Join(tmp, "args"), o.Warn)
+	runArgs, shownArgs, inputs, dirs, err := stageArgs(o.Args, o.Dir, repo, dir, filepath.Join(tmp, "args"), o.Warn)
 	if err != nil {
 		os.RemoveAll(dir)
 		return nil, err
@@ -374,7 +429,7 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 	path, _ := anchored(repo, rcp.Path, rcp.Path)
 	cwd, _ := anchored(repo, o.Dir, o.Dir)
 	rec := &cmdrecord.Record{Format: cmdrecord.Format, Ref: rcp.Ref(), Name: rcp.Name, Version: rcp.Version, SHA256: rcp.Hash, Path: path,
-		Step: o.Step, Cwd: cwd, Created: now(), Commands: []cmdrecord.Run{}, KnownAnswers: ka, Inputs: inputs}
+		Step: o.Step, Cwd: cwd, Created: now(), Commands: []cmdrecord.Run{}, KnownAnswers: ka, Inputs: inputs, Dirs: dirs}
 	if err := writeJSON(meta, rec); err != nil {
 		os.RemoveAll(dir)
 		return nil, herr.Env("%v", err)
