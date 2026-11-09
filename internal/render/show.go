@@ -78,6 +78,14 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				w("  %s", r.limitLine(l, rec.Hyp))
 			}
 		}
+		// Live rivals no Result tells apart: each pair may be one claim, or
+		// a case that would separate them was never run on both.
+		if pairs := p.Unseparated(id); len(pairs) > 0 {
+			w("not separated:")
+			for _, pr := range pairs {
+				w("  %s and %s: no Result gives them different verdicts", r.withAlias(pr[0]), r.withAlias(pr[1]))
+			}
+		}
 		r.experiments(w, id)
 		r.dossier(w, id, rec.Hyp)
 	}

@@ -65,7 +65,7 @@ _Avoid_: update the tree, recalculate (replay already derives every status; a re
 The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a list, not open work: the open work in it is what Owed and Awaiting owner name.
 
 **Rival**:
-Another Hypothesis under the same DesignQuestion. Two live rivals are **separated** when a non-retracted Result gives them different verdicts; exhaustiveness is a property of the cases run on the candidates (see Limit), never of the set of rivals, which the owner may reserve. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
+Another Hypothesis under the same DesignQuestion. Two live rivals are **separated** when a non-retracted Result gives them different verdicts, and `hyp show Q` lists the pairs that are not; exhaustiveness is a property of the cases run on the candidates (see Limit), never of the set of rivals, which the owner may reserve. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
 _Avoid_: alternative, competitor
 
 **Experiment**:
