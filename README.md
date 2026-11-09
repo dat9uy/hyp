@@ -13,7 +13,7 @@ An agent that investigates a design question usually keeps its account in prose:
 - **Statuses are derived, never typed.** Every write is an event in an append-only log under `.tree/`, committed with the work. `supported`, `contradicted`, `stale` and `answered` are computed from those events; no command can set one.
 - **Every decision is owed first.** hyp admits a select only when its ledger owes it, so a question is answered only once the open work on it is done, and the owner decides trade-offs.
 
-The binary refuses events that would corrupt the tree or skip a step, and `hyp signals` flags rounds that taught nothing. [loop-philosophy.md](docs/loop-philosophy.md) explains why these guards run during an investigation instead of before it.
+The binary refuses events that would corrupt the tree or skip a step, the ledger in `hyp status` names what the tree still owes, and `hyp signals` lists Experiments set up against no live rival. [loop-philosophy.md](docs/loop-philosophy.md) explains why these guards run during an investigation instead of before it.
 
 ## Where hyp comes from
 

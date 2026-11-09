@@ -52,22 +52,10 @@ func signalLines(r Report) string {
 	return b.String()
 }
 
-// The golden files hold every signal generate.sh's comment names for the
-// synthetic store: one-rival, unjudged, wasted, no-movement and spin over the
-// whole log, and the same at the cut after the second insufficient verifier
-// verdict, which fires nothing now that the verifier role is retired.
+// The golden file holds every signal generate.sh's comment names for the
+// synthetic store: one-rival and unjudged.
 func TestSynthMatchesGolden(t *testing.T) {
-	for _, c := range []struct{ name, cut string }{
-		{"full.golden", ""},
-		{"cut-loop.golden", "01M6A4QYZCM5RGD6AZ58XJTSBW"},
-	} {
-		wantGolden(t, c.name, signalLines(Compute(synth(t, c.cut))))
-	}
-	var b strings.Builder
-	for _, r := range Compute(synth(t, "")).Rounds {
-		b.WriteString(r.Line + "\n")
-	}
-	wantGolden(t, "rounds-full.golden", b.String())
+	wantGolden(t, "full.golden", signalLines(Compute(synth(t, ""))))
 }
 
 // A refused event changes no round and no signal: Compute steps the whole log

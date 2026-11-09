@@ -73,7 +73,7 @@ A node, `E-`, under a Hypothesis, that plans one bounded test. Its body pre-regi
 _Avoid_: test, trial (a trial is one scored repeat inside it), run (that is a status)
 
 **Experiment status**:
-An Experiment is planned, run, superseded or withdrawn (spec §7.6). It is run while it has a non-retracted Result, which wins over a close. Otherwise it is superseded when another Experiment under the same question has a live `supersedes` edge to it (`hyp supersede NEW --old OLD`), withdrawn when `hyp withdraw` closed it with nothing to replace it, and planned otherwise. A superseded or withdrawn Experiment is closed: `hyp status` drops it, `hyp record` refuses a Result under it, and `hyp signals` counts its round as neither pending nor wasted (ADR 0008). In code: `replay.Exp`, built once per projection in `Projection.Exps`.
+An Experiment is planned, run, superseded or withdrawn (spec §7.6). It is run while it has a non-retracted Result, which wins over a close. Otherwise it is superseded when another Experiment under the same question has a live `supersedes` edge to it (`hyp supersede NEW --old OLD`), withdrawn when `hyp withdraw` closed it with nothing to replace it, and planned otherwise. A superseded or withdrawn Experiment is closed: `hyp status` drops it, `hyp record` refuses a Result under it, and `hyp signals` keeps its round's D1 and one-rival marks (ADR 0008). In code: `replay.Exp`, built once per projection in `Projection.Exps`.
 _Avoid_: abandoned for an Experiment (abandoning is a judgement about a Hypothesis's claim); withdrawn for a DesignQuestion's hold (see DesignQuestion)
 
 **Target**:
@@ -205,24 +205,16 @@ A token in a write command's text that names a node: a display id such as `R-BV4
 _Avoid_: reference for this (a reference is what a flag such as `--parent` resolves)
 
 **Round**:
-One Experiment as `hyp signals` judges it by its non-retracted Results: wasted, pending, ok, or closed (superseded or withdrawn), with the signals it fired at its add. In code: `signals.Round`.
+One Experiment as `hyp signals` lists it: its statuses at add, its design marks and its non-retracted Results with their status moves. In code: `signals.Round`.
 _Avoid_: iteration, cycle, step
 
 **Signal**:
-A mark of possible waste that `hyp signals` reports from the events alone: wasted, no-movement, one-rival, D1, spin or unjudged. Signals never change a status. In code: `signals.Signal`, computed by `signals.Compute`.
+A design mark that `hyp signals` lists from the events alone: one-rival, D1 or unjudged. Signals never change a status, and none judges progress: that is the ledger's (ADR 0017). In code: `signals.Signal`, computed by `signals.Compute`.
 _Avoid_: alert, error
 
-**wasted**:
-A round with Results and no close, none of whose Results changed the status of its parent, a target or a live rival at its add.
-_Avoid_: failed, useless (a wasted round can still record a correct Result)
-
-**pending**:
-A round whose Experiment is not closed and has no non-retracted Result yet. It is neither wasted nor ok.
-_Avoid_: planned (that is an Experiment status), open
-
-**no-movement**:
-Two wasted rounds in a row, in the order of their last Results. It names the question's current selection when there is one.
-_Avoid_: stall (alone), stuck
+**wasted**, **pending**, **no-movement**, **spin**:
+Retired (ADR 0017). They judged a round by whether a Result changed a status. The ledger (spec §8.1) is the one account of progress.
+_Avoid_: stall (alone: a stall is a ledger item that does not settle)
 
 **one-rival**:
 A round whose parent had live rivals at its add and whose targets name none of them ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add). `hyp add exp` refuses such an Experiment unless `--target none` is passed ([spec §5.1](replay-spec.md#51-write-time-refusals)).
@@ -232,13 +224,9 @@ _Avoid_: no-rival, single-rival
 A round whose parent or a target was not a live rival at its add. `hyp add exp` warns `D1:` for the same Hypotheses, because both read one rule ([spec §5.1](replay-spec.md#51-write-time-refusals)).
 _Avoid_: dead rival, invalid target
 
-**spin**:
-Three Results in a row that judge a Hypothesis as their Experiment's parent and each leave its status unchanged. Rivals an Experiment only targets do not count.
-_Avoid_: loop (alone: the verifier-loop was a different signal)
-
 **verifier-loop**:
 Retired with the verifier role (ADR 0015). It was a select that collected two or more insufficient verifier verdicts in one chain.
-_Avoid_: spin (that is about a Hypothesis's status)
+_Avoid_: spin (retired; it was about a Hypothesis's status)
 
 **unjudged**:
 A target, live at its Experiment's add, that no non-retracted Result of the Experiment judged ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).

@@ -37,7 +37,7 @@ Three rules keep the boundary honest: a concept stays core when self-review is w
 
 hyp is changed the way it asks its users to decide things: with a tree of rival Hypotheses, Experiments run from recipes, and a select hyp admits only when the ledger owes it. The loop:
 
-1. **A real event points at hyp.** A waste signal or tripwire fires in a real run (`hyp signals` reports wasted, no-movement, one-rival, D1, spin and unjudged), or the owner flags a round. A change is never proposed on speculation.
+1. **A real event points at hyp.** In a real run the ledger shows an item that does not settle, a refusal or warning fires, `hyp signals` reports a design mark (one-rival, D1 or unjudged), or the owner flags a round. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
 3. **A tree holds the question.** Under `investigations/<topic>/`, run `hyp init`, add the goal, the design question and at least two rival Hypotheses, and pre-register each Experiment's verdict rule in its body before running it. The [hyp-prototype skill](skills/hyp-prototype/SKILL.md) describes each step.
 4. **Experiments run from a pinned, versioned recipe.** The [hyp-verification skill](skills/hyp-verification/SKILL.md) and [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md) describe Launch, Doctor, Drive, Evidence and Cleanup. hyp admits a select only when the ledger owes it; the owner decides trade-offs.
