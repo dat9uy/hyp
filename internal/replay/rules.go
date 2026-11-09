@@ -233,6 +233,9 @@ var rules = map[string]rule{
 			for _, k := range p.Returns {
 				st.LimitHand[k] = HandReturn
 			}
+			for _, k := range p.Accepts {
+				st.LimitHand[k] = HandAccept
+			}
 		},
 	},
 	event.TypeEdgeAdd: {

@@ -321,16 +321,18 @@ func (st *State) limits() map[string][]Limit {
 		}
 		var c event.Checkpoint
 		_ = event.DecodePayload(ev, &c)
-		for _, k := range c.Accepts {
-			if _, seen := ownerAccepted[k]; !seen {
-				ownerAccepted[k] = ev.Actor
-			}
-		}
+		// The latest of refer, return and accept stands; a return lifts an
+		// earlier accept, and Validate refuses a refer after an accept.
 		for _, k := range c.Refers {
 			referred[k], returned[k] = ev.ID, ""
 		}
 		for _, k := range c.Returns {
 			referred[k], returned[k] = "", ev.ID
+			delete(ownerAccepted, k)
+		}
+		for _, k := range c.Accepts {
+			referred[k], returned[k] = "", ""
+			ownerAccepted[k] = ev.Actor
 		}
 	}
 	out := map[string][]Limit{}
