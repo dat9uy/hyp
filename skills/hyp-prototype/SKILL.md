@@ -129,8 +129,8 @@ that no longer matters is `hyp withdraw <Q-id>`.
 - Select only when OWED lists `select` for that Hypothesis:
   `hyp select <Q-id> <H-id> --why "..."`. hyp refuses a select that the tree
   does not owe and names what comes first: a runner item on the question, an
-  open reading, or a premise in a question that is still open. Decide that
-  question first.
+  open reading, a referred limit, or a premise in a question that is still
+  open. Decide that question first.
 - A gap you know at select time is a `--limit` on a Result, never only words
   in `--why`.
 - An open limit under the question holds the select, whichever Hypothesis
@@ -139,7 +139,8 @@ that no longer matters is `hyp withdraw <Q-id>`.
   is void for every candidate, refer it:
   `hyp checkpoint --refers <R-id>#<n> --summary "<why no test can close it>"`.
   The owner then accepts it, or returns it with `--returns <R-id>#<n>` when
-  the Goal covers its case, and it is yours to run again. A Result that runs
+  the Goal covers its case, and it is yours to run again. Until the owner
+  does one of these, the referred limit holds the select. A Result that runs
   the case closes it, whatever its verdicts.
 - The select answers the question while it stands: the selected Hypothesis is
   supported and not stale, it has no open sub-question, and no candidate is
