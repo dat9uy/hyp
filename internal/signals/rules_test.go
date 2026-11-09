@@ -74,7 +74,7 @@ func TestD1WhenATargetIsDead(t *testing.T) {
 	if got, want := detail(t, r, "D1:"+e(x)), "D1 "+e(x)+" at add: "+h(h2)+"=contradicted"; got != want {
 		t.Fatalf("got %q, want %q", got, want)
 	}
-	if s := r.Rounds[1]; s.OneRival || s.Line != e(x)+" pending; D1 at add: "+h(h2)+"=contradicted" {
+	if s := r.Rounds[1]; s.OneRival {
 		t.Fatalf("round 2 = %+v", s)
 	}
 }
@@ -92,56 +92,29 @@ func TestOldVerifierVerdictsFireNoSignal(t *testing.T) {
 	noSignal(t, compute(t, b), "verifier-loop:")
 }
 
-// A round whose only Result is retracted has nothing to judge, so it is
-// pending and never wasted.
-func TestRetractedOnlyResultIsPending(t *testing.T) {
+// A retracted Result is not listed in its round.
+func TestRetractedResultIsNotListed(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h1 := b.Hyp(q, "h1")
 	x := b.Exp(h1, event.RecipeNone)
 	b.Retract(b.Result(x, map[string]string{h1: event.VerdictSupports}))
-	r := compute(t, b)
-	if s := r.Rounds[0]; !s.Pending || s.Wasted || len(s.Results) != 0 || s.Line != e(x)+" pending" {
+	if s := compute(t, b).Rounds[0]; len(s.Results) != 0 {
 		t.Fatalf("round 1 = %+v", s)
 	}
-	noSignal(t, r, "wasted:")
 }
 
-func r(id string) string { return event.DisplayID(event.KindResult, id) }
-
-// spinRun gives h1 a Result that moves it to supported, then three that do
-// not move it.
-func spinRun() (b *testutil.B, h1 string, rs []string) {
-	b = testutil.New()
-	h1 = b.Hyp(b.DQ(b.Goal("g"), "q"), "h1")
+// Progress is the ledger's (ADR 0017): Results that move nothing fire no
+// signal, however many there are.
+func TestResultsThatMoveNothingFireNoSignal(t *testing.T) {
+	b := testutil.New()
+	h1 := b.Hyp(b.DQ(b.Goal("g"), "q"), "h1")
 	for range 4 {
-		rs = append(rs, b.Supports(h1))
+		b.Supports(h1)
 	}
-	return b, h1, rs
-}
-
-func TestSpinOnThreeResultsThatDoNotMove(t *testing.T) {
-	b, h1, rs := spinRun()
-	want := "spin " + h(h1) + " supported→supported at " + r(rs[1]) + ", supported→supported at " + r(rs[2]) + ", supported→supported at " + r(rs[3])
-	if got := detail(t, compute(t, b), "spin:"+h(h1)+":"+r(rs[3])); got != want {
-		t.Fatalf("got %q\nwant %q", got, want)
+	if r := compute(t, b); len(r.Signals) != 0 {
+		t.Fatalf("signals = %+v, want none", r.Signals)
 	}
-}
-
-// A retracted Result does not count toward spin, as it does not count toward
-// wasted: the Results either side of it are not three in a row.
-func TestRetractedResultDoesNotCountTowardSpin(t *testing.T) {
-	b, _, rs := spinRun()
-	b.Retract(rs[2])
-	noSignal(t, compute(t, b), "spin:")
-}
-
-// Spin reads each Result's statuses from when it was recorded, as wasted does,
-// so retracting the Result that moved does not make the later ones move.
-func TestRetractingTheMovingResultKeepsSpin(t *testing.T) {
-	b, h1, rs := spinRun()
-	b.Retract(rs[0])
-	detail(t, compute(t, b), "spin:"+h(h1)+":"+r(rs[3]))
 }
 
 func TestEmptyLogHasEmptyLists(t *testing.T) {
@@ -178,9 +151,8 @@ func TestUnjudgedSignal(t *testing.T) {
 	}
 }
 
-// A closed round is neither pending nor wasted, and keeps its add-time
-// one-rival and D1 marks.
-func TestClosedRoundIsNotPendingOrWasted(t *testing.T) {
+// A closed round keeps its add-time one-rival and D1 marks.
+func TestClosedRoundKeepsItsMarks(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h1, h2, h3 := b.Hyp(q, "h1"), b.Hyp(q, "h2"), b.Hyp(q, "h3")
@@ -191,20 +163,6 @@ func TestClosedRoundIsNotPendingOrWasted(t *testing.T) {
 	b.Edge(repl, event.EdgeSupersedes, old)
 	b.Emit(event.TypeExperimentWithdraw, gone, event.Empty{})
 	r := compute(t, b)
-	byExp := map[string]Round{}
-	for _, x := range r.Rounds {
-		byExp[x.Exp] = x
-	}
-	for id, want := range map[string]string{old: "superseded by " + e(repl), gone: "withdrawn"} {
-		x := byExp[e(id)]
-		if x.Pending || x.Wasted || x.Closed != want || !strings.HasPrefix(x.Line, e(id)+" "+want) {
-			t.Errorf("%s: pending %v wasted %v closed %q line %q, want closed %q", e(id), x.Pending, x.Wasted, x.Closed, x.Line, want)
-		}
-	}
-	if !byExp[e(repl)].Pending {
-		t.Errorf("open %s: want pending", e(repl))
-	}
 	detail(t, r, "D1:"+e(old))
 	detail(t, r, "one-rival:"+e(gone))
-	noSignal(t, r, "wasted:")
 }

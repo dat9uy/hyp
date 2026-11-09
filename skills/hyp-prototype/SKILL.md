@@ -61,9 +61,9 @@ never type one. Run `hyp help` for every command and flag.
   question has live rivals and the experiment targets none of them, hyp
   refuses and lists them: name the rival the result would count against, or
   pass `--target none` to proceed without one.
-- `hyp signals` prints the waste signals for the whole tree (`wasted`,
-  `no-movement`, `one-rival`, `D1`, `spin`), one line each;
-  a `one-rival` line names the rivals the next experiment could target.
+- `hyp signals` prints the design marks for the whole tree (`one-rival`,
+  `D1`, `unjudged`), one line each; a `one-rival` line names the rivals the
+  next experiment could target. Progress is what OWED in `hyp status` shows.
 - Ids look like `Q-GRM5AG` (the first word a write prints). Give a node an
   easier name with `--alias` when you add it, and use the alias anywhere.
 - Use a recipe from `recipes/` when one fits (`name@version` from its
