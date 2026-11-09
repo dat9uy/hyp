@@ -194,8 +194,11 @@ func TestOwnerRevisesAnAnswer(t *testing.T) {
 
 	want(t, owner("--revises", "no"), 1, "is open; an owner answers an open reading with closes")
 	want(t, owner("--closes", "a reader is a logic"), 0, "checkpoint")
-	// The first answer is applied by the next Result under the question, as before.
-	r2 := must(t, "record", "--exp", exp(), "--verdict", h+"=supports", "--observation", "o", "--why", "w")
+	// The first answer is applied only by a Result that names it in applies.
+	must(t, "record", "--exp", exp(), "--verdict", h+"=supports", "--observation", "o", "--why", "w")
+	want(t, hyp(t, "status"), 0, "runner: "+q+" apply answer "+k)
+	ea := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--aims", k, "--why", "w")
+	r2 := must(t, "record", "--exp", ea, "--verdict", h+"=supports", "--observation", "o", "--applies", k, "--why", "w")
 	want(t, owner("--closes", "again"), 1, "is answered; an owner revises an answer with revises")
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--revises", k, "--why", "w"), 2, "--revises needs --role owner")
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--revises", r+"#1", "--why", "w"), 2, "is a limit: a limit is never revised")
