@@ -159,8 +159,10 @@ that no longer matters is `hyp withdraw <Q-id>`.
     `hyp select <Q-id> <H-id> --why "<the owner's words>"`. That select
     answers the question; no confirm follows.
   - `R-…#r1 reading: …` is a reading of the Goal that a verdict rests on. It
-    changes no status, but it holds back new rivals and the owner's choice on
-    its question until the owner answers. Carry on with other work and ask
+    changes no status. While its answer can move a Hypothesis on its
+    question, a candidate its Result judged or a rival only its Result
+    contradicts, it holds back new rivals, the select and the owner's choice
+    there, and hyp status prints a held line. Carry on with other work and ask
     the owner at the next stop. Record it with `hyp record --reading "<the
     line>: <how you read it>"`. Record the owner's answer under their own
     actor name (lowercase letters, digits and hyphens, for example

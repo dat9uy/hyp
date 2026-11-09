@@ -14,7 +14,7 @@ const (
 
 // What an owed item is.
 const (
-	OwedRivals    = "rivals"    // an open question has no live rival and no open reading
+	OwedRivals    = "rivals"    // an open question has no live rival and no open reading that can revive one
 	OwedUntested  = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
 	OwedUndecided = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
 	OwedPlanned   = "planned"   // a planned Experiment has no Result
@@ -93,7 +93,9 @@ func (p Projection) Owed() []Owed {
 		var mine []Owed
 		add := func(o Owed) { o.Question = dq; mine = append(mine, o) }
 
-		waiting := slices.ContainsFunc(p.Readings, func(l Reading) bool { return l.Question == dq && l.By == "" })
+		// An open reading holds the question only while its answer can move
+		// a Hypothesis there (its Reach).
+		waiting := slices.ContainsFunc(p.Readings, func(l Reading) bool { return l.Question == dq && l.By == "" && len(l.Reach) > 0 })
 		if open {
 			var live []string
 			for _, h := range n.Children {
@@ -101,8 +103,8 @@ func (p Projection) Owed() []Owed {
 					live = append(live, h)
 				}
 			}
-			// With no live rival, new rivals are owed, unless an open reading on
-			// the question's Results waits for the owner, whose answer may revive one.
+			// With no live rival, new rivals are owed, unless an open reading
+			// whose answer may revive one waits for the owner.
 			rivals := slices.ContainsFunc(live, func(h string) bool { return p.Hyps[h].Status != HypContradicted })
 			if !rivals && !waiting {
 				add(Owed{Who: OwedRunner, Kind: OwedRivals, Key: dq})
@@ -145,12 +147,12 @@ func (p Projection) Owed() []Owed {
 		// A select or a choice is owed only once the runner owes nothing on
 		// the question, no premise's question is still open, and the current
 		// select does not stand. A lone candidate's select also waits for its
-		// sub-questions (ADR 0014). Choosing also waits for any reading on
-		// the question that waits for the owner, since either may change the
-		// candidates.
+		// sub-questions (ADR 0014). Both also wait for an open reading whose
+		// answer can move a Hypothesis on the question, since it may change
+		// the candidates.
 		if open && p.PremiseHold(dq) == nil && !p.selectStands(dq) && !RunnerOwes(mine) {
 			switch {
-			case len(q.Candidates) == 1 && !p.HasOpenSubquestion(q.Candidates[0]):
+			case len(q.Candidates) == 1 && !p.HasOpenSubquestion(q.Candidates[0]) && !waiting:
 				add(Owed{Who: OwedRunner, Kind: OwedSelect, Key: q.Candidates[0]})
 			case len(q.Candidates) >= 2 && !waiting:
 				add(Owed{Who: OwedOwner, Kind: OwedChoose, Key: dq})

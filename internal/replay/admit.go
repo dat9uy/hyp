@@ -267,8 +267,8 @@ func (p Projection) SelectBlock(q string) string {
 		}
 	}
 	for _, l := range p.Readings {
-		if l.Question == q && l.By == "" {
-			return fmt.Sprintf("open reading %s waits for the owner", p.keyLabel(l.Key))
+		if l.Question == q && l.By == "" && len(l.Reach) > 0 {
+			return fmt.Sprintf("open reading %s waits for the owner; its answer can move %s", p.keyLabel(l.Key), p.labels(l.Reach))
 		}
 	}
 	if pr := p.PremiseHold(q); pr != nil {

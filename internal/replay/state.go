@@ -196,6 +196,10 @@ type Reading struct {
 	Answers           []Answer
 	Question          string
 	Applied           string // the Result that applied the answer in force, or ""
+	// Reach lists the live Hypotheses under Question whose standing the
+	// answer can move, read from the Result's own verdicts: a candidate it
+	// judged, or a contradicted rival whose only contradicts is its own. An open reading holds its question only while Reach is not empty.
+	Reach []string
 }
 
 // Answer is one owner answer to a reading: the close, then each revision, in
