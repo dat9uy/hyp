@@ -626,7 +626,7 @@ func (r renderer) owedLine(o replay.Owed) string {
 				text = l.Answer
 			}
 		}
-		what := map[string]string{replay.OwedLimit: "limit", replay.OwedReading: "apply answer", replay.OwedReferred: "limit referred, accept or refuse"}[o.Kind]
+		what := map[string]string{replay.OwedLimit: "limit", replay.OwedReading: "apply answer", replay.OwedReferred: "limit referred, accept or return"}[o.Kind]
 		state := ""
 		if o.Kind != replay.OwedReferred {
 			state = " [" + o.State

@@ -237,6 +237,11 @@ type Checkpoint struct {
 	// Refers lists the limit keys the writer hands to the owner, because no
 	// test within the Goal's lines can settle them; Summary says why.
 	Refers []string `json:"refers,omitempty"`
+	// Returns lists the referred limit keys the owner hands back to the
+	// runner, because the Goal covers their case; Summary says why. It is
+	// the mirror of Refers, and the latest of the two names whose turn an
+	// open limit is.
+	Returns []string `json:"returns,omitempty"`
 }
 
 // Edge is the payload of edge.add and edge.remove.

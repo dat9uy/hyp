@@ -138,7 +138,9 @@ that no longer matters is `hyp withdraw <Q-id>`.
   candidates. If no test within the Goal's lines can close it, or its case
   is void for every candidate, refer it:
   `hyp checkpoint --refers <R-id>#<n> --summary "<why no test can close it>"`.
-  The owner then accepts it.
+  The owner then accepts it, or returns it with `--returns <R-id>#<n>` when
+  the Goal covers its case, and it is yours to run again. A Result that runs
+  the case closes it, whatever its verdicts.
 - The select answers the question while it stands: the selected Hypothesis is
   supported and not stale, it has no open sub-question, and no candidate is
   new since the select. A new candidate reopens the question

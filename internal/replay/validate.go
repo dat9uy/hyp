@@ -356,6 +356,9 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 	if len(p.Accepts) > 0 && p.Role != event.RoleOwner {
 		return errors.New("bad checkpoint: only an owner accepts a limit")
 	}
+	if len(p.Returns) > 0 && p.Role != event.RoleOwner {
+		return errors.New("bad checkpoint: only an owner returns a limit")
+	}
 	// Each field names one kind of item and one transition: closes answers an
 	// open reading, revises replaces an answer, accepts accepts a limit.
 	for _, k := range p.Closes {
@@ -408,7 +411,50 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 			return fmt.Errorf("bad refers: %w", err)
 		}
 	}
+	if len(p.Returns) > event.MaxLimits {
+		return fmt.Errorf("over limit: returns has %d items (max %d)", len(p.Returns), event.MaxLimits)
+	}
+	// A return hands a referred limit back to the runner: the Goal covers its
+	// case, so a check must run it. It applies only to an open limit whose
+	// latest refer has no return yet.
+	for _, k := range p.Returns {
+		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
+			return fmt.Errorf("bad returns: %w", err)
+		}
+		if slices.Contains(p.Refers, k) {
+			return fmt.Errorf("bad returns: %s is also in refers", limitDisplay(k))
+		}
+		if slices.Contains(p.Accepts, k) {
+			return fmt.Errorf("bad returns: %s is also in accepts", limitDisplay(k))
+		}
+		if f.LimitHand[k] != HandRefer {
+			return fmt.Errorf("bad returns: %s is not referred; only a referred limit is returned", limitDisplay(k))
+		}
+		if by := f.limitCloser(k); by != "" {
+			return fmt.Errorf("bad returns: %s is closed by %s", limitDisplay(k), event.DisplayID(event.KindResult, by))
+		}
+		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
+			return fmt.Errorf("separation of duties: %s recorded the limit it returns", ev.Actor)
+		}
+	}
 	return nil
+}
+
+// limitDisplay shows limit key k as R-W6V06D#1.
+func limitDisplay(k string) string {
+	r := event.KeyResult(k)
+	return event.DisplayID(event.KindResult, r) + k[len(r):]
+}
+
+// limitCloser is the first non-retracted Result that closes limit k, or "".
+func (f *Facts) limitCloser(k string) string {
+	for _, id := range f.Order {
+		n := f.Nodes[id]
+		if n.Kind == event.KindResult && !f.Retracted[id] && slices.Contains(n.Closes, k) {
+			return id
+		}
+	}
+	return ""
 }
 
 func (f *Facts) validateSelect(ev event.Event) error {

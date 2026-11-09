@@ -62,7 +62,7 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	must(t, "select", q, h, "--why", "w")
 	want(t, hyp(t, "show", q), 0, "status: answered")
 	want(t, hyp(t, "show", q), 0, r1+"#1 open")
-	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or refuse "+r1+"#1 — raw SQL org gets no row\n")
+	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or return "+r1+"#1 — raw SQL org gets no row\n")
 
 	// Owner gate: a sufficient owner confirm on a scope change must accept
 	// the open limit.
