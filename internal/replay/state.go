@@ -148,6 +148,7 @@ func pins(nodes map[string]*Node, id string) []Pin {
 // Limit is one named limit recorded in a Result, with its derived state.
 type Limit struct {
 	Key, Result, Text string
+	Question          string   // the question of its Result
 	Hyps              []string // Hypotheses the Result has a verdict for, sorted
 	State             string   // LimitOpen, LimitClosed or LimitAccepted
 	By                string   // the first closing Result id, or the accepting owner's actor

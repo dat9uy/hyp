@@ -357,7 +357,7 @@ func (st *State) limits() map[string][]Limit {
 			accepted[q] = s.accepted(s.Current, st.dossierItems(q, s.Selects[s.Current].Hyp))
 		}
 		for i, text := range n.Limits {
-			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen, Referred: referred[event.LimitKey(id, i+1)], Returned: returned[event.LimitKey(id, i+1)]}
+			l := Limit{Key: event.LimitKey(id, i+1), Result: id, Question: q, Text: text, Hyps: sortedKeys(n.Verdicts), State: LimitOpen, Referred: referred[event.LimitKey(id, i+1)], Returned: returned[event.LimitKey(id, i+1)]}
 			if cs := closers[l.Key]; len(cs) > 0 {
 				l.State, l.By, l.Closers = LimitClosed, cs[0], cs
 			} else if actor, ok := accepted[q][l.Key]; ok {
