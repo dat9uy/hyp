@@ -155,13 +155,14 @@ type Limit struct {
 	Closers           []string // every non-retracted Result that closes it, in creation order
 	Gating            bool     // Gates the Hypothesis of the question's current select
 	Referred          string   // the latest refer, while no return follows it: the owner's turn; or ""
-	Returned          string   // the latest return, while no refer follows it: the runner's turn again; or ""
+	Returned          string   // the latest return, while no refer or accept follows it: the runner's turn again; or ""
 }
 
-// HandRefer and HandReturn are the values of Facts.LimitHand.
+// HandRefer, HandReturn and HandAccept are the values of Facts.LimitHand.
 const (
 	HandRefer  = "refer"
 	HandReturn = "return"
+	HandAccept = "accept" // an owner checkpoint accepted it; only a return lifts it
 )
 
 // Gates reports whether the limit gates the owner confirm of a scope-change
@@ -281,8 +282,9 @@ type Facts struct {
 	Aliases   map[string]string // alias → node id
 	// ClosedReadings holds each reading key an applied owner checkpoint closed.
 	ClosedReadings map[string]bool
-	// LimitHand holds, for each limit key a checkpoint referred or returned,
-	// the latest of the two in merge order: HandRefer or HandReturn.
+	// LimitHand holds, for each limit key a checkpoint referred, returned or
+	// accepted, the latest of the three in merge order: HandRefer,
+	// HandReturn or HandAccept.
 	LimitHand map[string]string
 
 	// Lookup indexes over the stored state, maintained by apply so that a

@@ -45,6 +45,8 @@ Owner decision on 2026-11-09:
 - **A new Goal is a new tree.** The new tree cites the old tree's keys in text and with an `external_ref` edge. No typed cross-tree cite is added, because nothing would be computed from it.
 - **A candidate that no closer judged is owed the case again.** This settles the "Not decided" item above in principle: once a closed limit's question has a supported candidate that no closing Result judged, the limit is owed to the runner for that candidate. It is built when the first successor of a Hypothesis that a closer contradicted is added, because that is its real event.
 
+A return also reopens an accepted limit (2026-11-09, owner: "fix gap 11"). An accept was final, and a `--returns` on an accepted limit was admitted and changed nothing. Now the latest of accept and return stands, so an owner who changes their mind writes one checkpoint, and a runner's refer of an accepted limit is refused, since only the owner reopens one. An accept of a closed limit is refused too (gap 12): the case ran, so the accept would change nothing.
+
 No kind field, no edge to a limit key, no `--answers` on `add hyp`, and no change of turn on `--aims` are added (ADR 0013). `aims` names intent and settles nothing, so it cannot carry the owner's answer.
 
 Displays and checks that follow, in order:

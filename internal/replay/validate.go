@@ -399,6 +399,9 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad accepts: %w", err)
 		}
+		if err := f.closedAccept(k); err != nil {
+			return err
+		}
 		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
 			return fmt.Errorf("separation of duties: %s recorded the limit it accepts", ev.Actor)
 		}
@@ -410,13 +413,17 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad refers: %w", err)
 		}
+		if f.LimitHand[k] == HandAccept {
+			return fmt.Errorf("bad refers: %s is accepted; only the owner reopens it, with returns", limitDisplay(k))
+		}
 	}
 	if len(p.Returns) > event.MaxLimits {
 		return fmt.Errorf("over limit: returns has %d items (max %d)", len(p.Returns), event.MaxLimits)
 	}
-	// A return hands a referred limit back to the runner: the Goal covers its
-	// case, so a check must run it. It applies only to an open limit whose
-	// latest refer has no return yet.
+	// A return hands a referred or accepted limit back to the runner: the Goal
+	// covers its case, so a check must run it. It applies only when the
+	// limit's latest refer, return or accept is a refer or an accept, so an
+	// owner can reopen a case they accepted with one checkpoint.
 	for _, k := range p.Returns {
 		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad returns: %w", err)
@@ -427,8 +434,8 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		if slices.Contains(p.Accepts, k) {
 			return fmt.Errorf("bad returns: %s is also in accepts", limitDisplay(k))
 		}
-		if f.LimitHand[k] != HandRefer {
-			return fmt.Errorf("bad returns: %s is not referred; only a referred limit is returned", limitDisplay(k))
+		if h := f.LimitHand[k]; h != HandRefer && h != HandAccept {
+			return fmt.Errorf("bad returns: %s is not referred or accepted; only a referred or accepted limit is returned", limitDisplay(k))
 		}
 		if by := f.limitCloser(k); by != "" {
 			return fmt.Errorf("bad returns: %s is closed by %s", limitDisplay(k), event.DisplayID(event.KindResult, by))
@@ -512,6 +519,19 @@ func (f *Facts) validateConfirm(ev event.Event) error {
 		if err := f.checkKey(k, event.KeyLimit, ev.Node); err != nil {
 			return err
 		}
+		if err := f.closedAccept(k); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// closedAccept refuses an accept of limit k once a Result closed it: the
+// case ran, so there is nothing left untested to accept, and the accept
+// would change nothing.
+func (f *Facts) closedAccept(k string) error {
+	if by := f.limitCloser(k); by != "" {
+		return fmt.Errorf("bad accepts: %s is closed by %s; its case ran, so there is nothing to accept", limitDisplay(k), event.DisplayID(event.KindResult, by))
 	}
 	return nil
 }
