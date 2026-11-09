@@ -211,10 +211,15 @@ func TestChooseWaitsForAnswersToApply(t *testing.T) {
 	want(t, hyp(t, "status"), 0, "runner: "+q+" apply answer "+r+"#r1 [owed] — my words\n")
 	notIn(t, " choose: ")
 
-	// With no Experiment aiming at the reading, a Result under the question
-	// after the answer applies it, as before aims existed.
+	// A later Result under the question that does not name the key in
+	// applies does not apply it: it may have run for another reason.
 	e2 := must(t, "add", "exp", "--parent", h1, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
 	must(t, "record", "--exp", e2, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
+	want(t, hyp(t, "status"), 0, "runner: "+q+" apply answer "+r+"#r1 [owed] — my words\n")
+	notIn(t, " choose: ")
+
+	e3 := must(t, "add", "exp", "--parent", h1, "--title", "E3", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--aims", r+"#r1", "--why", "w")
+	must(t, "record", "--exp", e3, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--applies", r+"#r1", "--why", "w")
 	want(t, hyp(t, "status"), 0, "  "+q+" choose: "+h1+", "+h2+" (no Result separates them)\n")
 }
 

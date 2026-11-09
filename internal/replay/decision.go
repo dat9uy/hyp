@@ -237,14 +237,6 @@ func (st *State) readings(applied []event.Event) []Reading {
 			}
 		}
 	}
-	aimed := map[string]bool{}
-	for _, id := range st.Order {
-		if n := st.Nodes[id]; n.Kind == event.KindExperiment {
-			for _, k := range n.Aims {
-				aimed[k] = true
-			}
-		}
-	}
 	pos := map[string]int{}
 	for i, ev := range applied {
 		pos[ev.ID] = i
@@ -265,13 +257,10 @@ func (st *State) readings(applied []event.Event) []Reading {
 				if j+1 < len(as) {
 					until = pos[as[j+1].By]
 				}
+				// Only a Result that names the key in applies applies an
+				// answer: a later Result under the question may have run for
+				// another reason, such as a repair, and never read it.
 				as[j].Applied = st.applierBetween(k, pos, pos[as[j].By], until)
-				// Only a first answer is applied without applies, so a tree
-				// written before applies keeps its meaning; a revised answer
-				// waits for a Result that names it.
-				if j == 0 && as[j].Applied == "" && !aimed[k] {
-					as[j].Applied = st.resultBetween(func(r string) bool { return st.resultQuestion(r) == l.Question }, pos, pos[as[j].By], until)
-				}
 			}
 			if len(as) > 0 {
 				last := as[len(as)-1]
