@@ -63,3 +63,18 @@ func TestOwnerReturnReopensAnAcceptedLimit(t *testing.T) {
 	want(t, hyp(t, "show", key), 0, "state: accepted by owner-dat\n")
 	want(t, hyp(t, "check"), 0, "check: 0 errors")
 }
+
+// A closed limit's case ran, so an owner cannot accept it: the accept would
+// change nothing.
+func TestAcceptRefusesAClosedLimit(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "case C", "--why", "w")
+	key := r + "#1"
+	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--aims", key, "--why", "w")
+	c := must(t, "record", "--exp", e2, "--verdict", h+"=contradicts", "--observation", "ran", "--closes", key, "--why", "w")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--accept", key, "--actor", "owner-dat", "--why", "w"), 1,
+		"bad accepts: "+key+" is closed by "+c+"; its case ran, so there is nothing to accept")
+	want(t, hyp(t, "show", key), 0, "state: closed by "+c)
+}

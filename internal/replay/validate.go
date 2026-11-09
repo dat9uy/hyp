@@ -399,6 +399,9 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad accepts: %w", err)
 		}
+		if err := f.closedAccept(k); err != nil {
+			return err
+		}
 		if f.Nodes[event.KeyResult(k)].Actor == ev.Actor {
 			return fmt.Errorf("separation of duties: %s recorded the limit it accepts", ev.Actor)
 		}
@@ -516,6 +519,19 @@ func (f *Facts) validateConfirm(ev event.Event) error {
 		if err := f.checkKey(k, event.KeyLimit, ev.Node); err != nil {
 			return err
 		}
+		if err := f.closedAccept(k); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// closedAccept refuses an accept of limit k once a Result closed it: the
+// case ran, so there is nothing left untested to accept, and the accept
+// would change nothing.
+func (f *Facts) closedAccept(k string) error {
+	if by := f.limitCloser(k); by != "" {
+		return fmt.Errorf("bad accepts: %s is closed by %s; its case ran, so there is nothing to accept", limitDisplay(k), event.DisplayID(event.KindResult, by))
 	}
 	return nil
 }
