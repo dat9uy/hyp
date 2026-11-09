@@ -82,7 +82,14 @@ never type one. Run `hyp help` for every command and flag.
   (repeatable, at most 300 characters), not only in the observation. Close
   it with an Experiment that aims at it (`--aims <R-id>#<n>`) and runs the
   case on every candidate; its Result names `--closes <R-id>#<n>`, and its
-  verdicts separate the rivals. The scope of a run goes in the Experiment
+  verdicts separate the rivals. Write one case per `--limit`: "not X or Y"
+  is two limits. A close covers every case the limit's text names, and
+  `hyp record` prints that text when it closes it. If the Result did not
+  run some of them, record each one it did not run as a `--limit` on the
+  same Result, and refer that new key when its case is void for every
+  candidate or outside the Goal's lines. A claim that a case is void, out
+  of scope or covered elsewhere is a limit and a refer, never a sentence in
+  an Experiment body or an observation. The scope of a run goes in the Experiment
   body, a procedure note or a commit goes in the observation, and a premise
   is a `depends_on` edge; none of these is a limit.
 - A weakness you observe against a hypothesis belongs in its verdict
