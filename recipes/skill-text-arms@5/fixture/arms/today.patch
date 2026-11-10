@@ -1,0 +1,24 @@
+diff --git a/internal/cli/write.go b/internal/cli/write.go
+index c32d4b9..8108400 100644
+--- a/internal/cli/write.go
++++ b/internal/cli/write.go
+@@ -129,8 +129,7 @@ type draft struct {
+ }
+ 
+ // run appends the event that build returns, with refs resolved inside build
+-// against the locked state, and prints "<display id> <event type>". It
+-// refuses text flags that cite an id that is no node (checkCites).
++// against the locked state, and prints "<display id> <event type>".
+ func (w *writer) run(build func() (draft, error)) error {
+ 	ev, err := store.AppendWith(w.root, *w.actor, func(st *replay.State, p replay.Projection) (event.Event, error) {
+ 		w.st, w.p = st, p
+@@ -138,9 +137,6 @@ func (w *writer) run(build func() (draft, error)) error {
+ 		if err != nil {
+ 			return event.Event{}, err
+ 		}
+-		if err := w.checkCites(); err != nil {
+-			return event.Event{}, err
+-		}
+ 		raw, err := json.Marshal(d.payload)
+ 		if err != nil {
+ 			return event.Event{}, err
