@@ -176,7 +176,8 @@ that no longer matters is `hyp withdraw <Q-id>`.
     If they give new words for a reading they already answered, use
     `--revises <R-id>#r1` instead.
 - The Goal completes when it has at least one top-level question and every
-  one is answered.
+  one is answered. Complete is not met: `hyp status` lists the Goal's lines
+  under LINES, and a line still owed under OWED means the Goal is not met.
 
 ## End of session
 
