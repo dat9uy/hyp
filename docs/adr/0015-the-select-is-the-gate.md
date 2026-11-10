@@ -6,7 +6,7 @@ status: accepted
 
 Since ADR 0011 a question read `answered` only once a verifier typed `sufficient` on its select, and the owner confirmed too on a trade-off. Since 2026-11-08 the ledger (spec §8.1) derives who owes what, and every owner word has one field and one transition (ADR 0013). So the verifier competed with a computed rule, not with nothing, and the question became what a verifier confirm still said that the ledger did not. At the first select of the multi-tenant tree (2026-11-08) the answer was: almost nothing, and what it did say was not computed. Owner decision on 2026-11-08: the owner accepted this design with "choose only", so the owner's choice, recorded as the select, ends a trade-off, and the owner confirm survives only for `--scope-change`.
 
-This supersedes the verifier half of ADR 0011. The Dossier, its lapse rule for the owner confirm, and the Decision record stay.
+This supersedes the verifier half of ADR 0011. The Dossier, its lapse rule for the owner confirm, and the Decision record stay. *ADR 0019 later retired the owner confirm, the Dossier and Lapse: a scope change folds into Goal lines.*
 
 ## Decision
 

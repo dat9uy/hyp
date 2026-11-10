@@ -241,9 +241,7 @@ func (st *State) LiveRivals(q, except string) []string {
 }
 
 // candidates lists the candidates of DesignQuestion q (spec §7.4):
-// live child Hypotheses that rule 3 of §7.1 gives supported. It reads only
-// facts the Dossier lists, so the owner requirement changes only when the
-// Dossier does.
+// live child Hypotheses that rule 3 of §7.1 gives supported.
 func (st *State) candidates(q string) []string {
 	var out []string
 	for _, c := range st.Nodes[q].Children {

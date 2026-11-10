@@ -211,15 +211,3 @@ func TestLimitOwedWhileQuestionHasCandidate(t *testing.T) {
 	wantOwed(t, p, q, "runner limit "+event.LimitKey(r, 1))
 }
 
-// A scope-change select still waits for the owner's confirm.
-func TestScopeChangeSelectAwaitsTheOwnerConfirm(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Hyp(q, "h")
-	b.Supports(h)
-	b.As("a").Select(q, h, "", true)
-	p := replayB(b)
-	wantStatus(t, p, q, DQOpen, ReasonAwaitingOwner)
-	wantOwed(t, p, q)
-	wantRefused(t, p.AdmitSelect(q, h), dq(q)+" owes no select (open/awaiting_owner)")
-}

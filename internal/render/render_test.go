@@ -334,8 +334,9 @@ func TestShowPrintsSelectKindAndWhy(t *testing.T) {
 	if len(p.Rejections) != 0 {
 		t.Fatalf("rejections: %v", p.Rejections)
 	}
-	if show := Show(p, q, []string{g}); !strings.Contains(show, "selected: "+hid+" (trade-off, scope-change) — test\n") {
-		t.Fatalf("two-kind select line wrong:\n%s", show)
+	// An old scope_change flag is history and names no kind.
+	if show := Show(p, q, []string{g}); !strings.Contains(show, "selected: "+hid+" (trade-off) — test\n") {
+		t.Fatalf("select with an old scope_change flag wrong:\n%s", show)
 	}
 }
 
@@ -421,7 +422,9 @@ func TestShowDesignAndRevisions(t *testing.T) {
 	}
 }
 
-func TestShowMarksLimitThatDoesNotGate(t *testing.T) {
+// A limit on a rival's Result is listed like any other: no confirm reads it,
+// so nothing marks whether it gates (ADR 0019).
+func TestShowListsARivalLimit(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q := b.DQ(g, "q")
@@ -433,8 +436,8 @@ func TestShowMarksLimitThatDoesNotGate(t *testing.T) {
 	if len(p.Rejections) != 0 {
 		t.Fatalf("rejections: %v", p.Rejections)
 	}
-	if s := Show(p, q, []string{g}); !strings.Contains(s, " open, does not gate (judges ") {
-		t.Fatalf("show does not mark the rival limit:\n%s", s)
+	if s := Show(p, q, []string{g}); !strings.Contains(s, " — l1\n") || strings.Contains(s, "gate") {
+		t.Fatalf("show does not list the rival limit plainly:\n%s", s)
 	}
 	if s := Status(p, 60); !strings.Contains(s, "OPEN LIMITS\n") || !strings.Contains(s, " — l1") {
 		t.Fatalf("status does not list the rival limit:\n%s", s)
@@ -773,75 +776,6 @@ func TestStatusTruncationKeepsTheHolder(t *testing.T) {
 	}
 }
 
-func TestShowListsTheDossier(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1 := b.Hyp(q, "picked")
-	h2 := b.Hyp(q, "rival")
-	h3 := b.Hyp(q, "gone")
-	b.Abandon(h3)
-	sup := b.Supports(h1)
-	over := b.Result(b.Exp(h1, event.RecipeNone, h2), map[string]string{h2: event.VerdictContradicts})
-	s2 := b.Supports(h2)
-	b.Edge(h1, event.EdgeExternalRef, "gh:1")
-	before := Show(replay.Replay(b.Evs, nil, ""), q, []string{g})
-	if strings.Contains(before, "dossier:") {
-		t.Fatalf("no select, but a Dossier is listed:\n%s", before)
-	}
-	b.Select(q, h1, "", false)
-	p := replay.Replay(b.Evs, nil, "")
-	show := Show(p, q, []string{g})
-	id := func(i string) string { return event.DisplayID(p.Nodes[i].Kind, i) }
-	for _, want := range []string{
-		"dossier:\n  " + id(h1) + " supported (selected) picked\n    " + id(sup) + " supports\n",
-		"  " + id(h2) + " contradicted rival\n",
-		"    " + id(over) + " contradicts [decides the trade-off",
-		"    " + id(s2) + " supports\n",
-	} {
-		if !strings.Contains(show, want) {
-			t.Fatalf("missing %q in:\n%s", want, show)
-		}
-	}
-	if strings.Contains(show, "gh:1\n  ") || strings.Contains(show, "link "+id(h1)) {
-		t.Fatalf("external_ref is listed in the Dossier:\n%s", show)
-	}
-}
-
-func TestShowPrintsWhatChangedSinceALapsedConfirm(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h := b.Hyp(q, "h")
-	gone := b.Supports(h)
-	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", true)
-	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
-	show := Show(replay.Replay(b.Evs, nil, ""), q, []string{g})
-	if strings.Contains(show, "changed since") {
-		t.Fatalf("nothing changed, but:\n%s", show)
-	}
-	b.As("a").Retract(gone)
-	added := b.Supports(h)
-	rival := b.Hyp(q, "rival")
-	b.Emit(event.TypeHypothesisAmend, h, event.HypothesisAmend{Body: "new"})
-	p := replay.Replay(b.Evs, nil, "")
-	show = Show(p, q, []string{g})
-	id := func(i string) string { return event.DisplayID(p.Nodes[i].Kind, i) }
-	for _, want := range []string{
-		"owner: sufficient — test\n",
-		"changed since o: ",
-		"+" + id(added),
-		"+" + id(rival),
-		"-" + id(gone),
-		"body",
-	} {
-		if !strings.Contains(show, want) {
-			t.Fatalf("missing %q in:\n%s", want, show)
-		}
-	}
-}
-
 // A lone candidate has no rival to be chosen over, so a --tradeoff select of it
 // records no choice: the select still requires the owner, and FRONTIER prints
 // no decided line.
@@ -924,11 +858,11 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 			selects(x, x.q, x.h1, false)
 			return x
 		}, ""},
-		{"open, scope-change select", func() tree {
+		{"answered, old scope-change flag", func() tree {
 			x := top()
 			selects(x, x.q, x.h1, true)
 			return x
-		}, "awaiting_owner"},
+		}, ""},
 		{"deferred, no select", func() tree {
 			x := top()
 			x.b.Defer(x.q)
@@ -940,13 +874,13 @@ func TestStatusAwaitingOwnerFollowsFrontier(t *testing.T) {
 			x.b.Defer(x.q)
 			return x
 		}, ""},
-		{"resumed, scope-change select", func() tree {
+		{"resumed, old scope-change flag", func() tree {
 			x := top()
 			selects(x, x.q, x.h1, true)
 			x.b.Defer(x.q)
 			x.b.Resume(x.q)
 			return x
-		}, "awaiting_owner"},
+		}, ""},
 		{"withdrawn", func() tree {
 			x := top()
 			x.b.Withdraw(x.q)

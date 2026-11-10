@@ -194,31 +194,6 @@ func (st *State) AdmitResult(p event.ResultRecord, f RecipeFacts, refHash map[st
 	return nil
 }
 
-// AdmitConfirm lists what admitting confirm p on question q would break: q has
-// no current selection, or it is a sufficient owner confirm that leaves a
-// gating limit unaccepted. A confirm accepts no limit (ADR 0016): the owner
-// accepts a referred limit with a checkpoint first. Both rules
-// read derived state, so Validate does not repeat them.
-func (p Projection) AdmitConfirm(q string, c event.Confirm) []Finding {
-	if _, ok := p.CurrentSelect(q); !ok {
-		return []Finding{{FindRefuse, "no current selection"}}
-	}
-	if c.Role != event.RoleOwner || c.Verdict != event.ConfirmSufficient {
-		return nil
-	}
-	var open []string
-	for _, l := range p.LimitsOf(q) {
-		if l.Gating {
-			open = append(open, fmt.Sprintf("  %s#%s %s", event.DisplayID(event.KindResult, l.Result), strings.TrimPrefix(l.Key, l.Result+"#"), l.Text))
-		}
-	}
-	if len(open) == 0 {
-		return nil
-	}
-	return []Finding{{FindRefuse, fmt.Sprintf("open limits under %s are not accepted:\n%s\nthe runner closes each with hyp record --closes <R-id>#<n>, or refers it with hyp checkpoint --refers <R-id>#<n>; the owner accepts a referred one with hyp checkpoint --role owner --accept <R-id>#<n>",
-		event.DisplayID(p.Nodes[q].Kind, q), strings.Join(open, "\n"))}}
-}
-
 // AdmitSelect lists what admitting a select of Hypothesis h on question q
 // would break, then its warnings. The select is admitted only when the ledger
 // owes it: a select of h, or a choice on q with h a candidate. A refusal

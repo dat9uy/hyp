@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,18 +74,10 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	want(t, hyp(t, "show", q), 0, "status: answered")
 	want(t, hyp(t, "show", q), 0, r1+"#1 accepted by o")
 
-	// Owner gate: a sufficient owner confirm on a scope change must accept
-	// a limit that is open under the question.
-	want(t, hyp(t, "select", q, h, "--scope-change", "--why", "w2"), 1, q+" is answered; hyp unselect it first")
-	must(t, "unselect", q, "--why", "w2")
-	must(t, "select", q, h, "--scope-change", "--why", "w2")
-	e4 := must(t, "add", "exp", "--parent", h, "--title", "E4", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	r4 := must(t, "record", "--exp", e4, "--verdict", h+"=supports", "--observation", "o4", "--limit", "one tenant only", "--why", "w")
-	refer(t, r4+"#1")
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 1, "open limits under")
-	accept(t, r4+"#1")
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 0, "")
-	want(t, hyp(t, "show", q), 0, r4+"#1 accepted by o")
+	// A scope change is no longer a select or a confirm: both commands are
+	// retired at exit 2 and name the refer and accept of a Goal line.
+	want(t, hyp(t, "select", q, h, "--scope-change", "--why", "w2"), 2, "select --scope-change was retired: a scope change is no longer a select: the runner refers the Goal line")
+	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"), 2, "hyp confirm was retired")
 	if s := hyp(t, "status").stdout; strings.Contains(s, "OPEN LIMITS") {
 		t.Fatalf("status still lists open limits after acceptance:\n%s", s)
 	}
@@ -101,62 +92,17 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	want(t, hyp(t, "show", q), 0, r2+"#1 open")
 }
 
-func TestRivalLimitDoesNotGateOwner(t *testing.T) {
-	for _, judgesSelected := range []bool{false, true} {
-		t.Run(fmt.Sprintf("judgesSelected=%v", judgesSelected), func(t *testing.T) {
-			_, _, q := setup(t)
-			h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--body", "b", "--why", "w")
-			h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--body", "b", "--why", "w")
-			target := "none"
-			if judgesSelected {
-				target = h1
-			}
-			e := must(t, "add", "exp", "--parent", h2, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", target, "--why", "w")
-			args := []string{"record", "--exp", e, "--verdict", h2 + "=contradicts", "--observation", "o", "--why", "w"}
-			if judgesSelected {
-				args = append(args, "--verdict", h1+"=supports")
-			} else {
-				e1 := must(t, "add", "exp", "--parent", h1, "--title", "E1", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
-				must(t, "record", "--exp", e1, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
-			}
-			must(t, args...)
-			// The limit holds the select whichever Hypothesis it judged, so
-			// its Result comes after the select, and the runner refers it.
-			want(t, hyp(t, "select", q, h1, "--scope-change", "--why", "w"), 0, "")
-			r := must(t, append(args, "--limit", "only tried one org")...)
-			refer(t, r+"#1")
-			owner := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
-			if judgesSelected {
-				want(t, owner, 1, r+"#1 only tried one org")
-				want(t, hyp(t, "show", q), 0, r+"#1 open — only tried one org")
-				return
-			}
-			want(t, owner, 0, "")
-			want(t, hyp(t, "show", q), 0, r+"#1 open, does not gate (judges "+h2+") — only tried one org")
-			want(t, hyp(t, "status"), 0, "OPEN LIMITS")
-		})
-	}
-}
-
-// An owner's no reopens the question and leaves the accept standing: only a
-// return reopens an accepted limit.
-func TestInsufficientOwnerConfirmLeavesTheAccept(t *testing.T) {
+// Only a return reopens an accepted limit, and the reopened limit is the
+// runner's again even after the question is answered.
+func TestReturnReopensAnAcceptedLimit(t *testing.T) {
 	_, _, q := setup(t)
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w")
-	must(t, "select", q, h, "--scope-change", "--why", "w")
-	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	r := must(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "o", "--limit", "only tried one org", "--why", "w")
+	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "only tried one org", "--why", "w")
 	refer(t, r+"#1")
 	accept(t, r+"#1")
-	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
+	must(t, "select", q, h, "--why", "w")
 	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
-
-	must(t, "confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "changed my mind", "--actor", "o")
-	want(t, hyp(t, "show", q), 0, "status: reopened/awaiting_owner")
-	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
-	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
 	want(t, hyp(t, "show", q), 0, "status: answered")
 
 	must(t, "checkpoint", "--summary", "run it", "--role", "owner", "--returns", r+"#1", "--actor", "o", "--why", "w")

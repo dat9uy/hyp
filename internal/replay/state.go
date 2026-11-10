@@ -3,7 +3,6 @@
 package replay
 
 import (
-	"slices"
 
 	"github.com/dat9uy/hyp/internal/event"
 )
@@ -157,7 +156,6 @@ type Limit struct {
 	Hyps              []string // Hypotheses the Result has a verdict for, sorted; none for a line
 	Hand              Hand     // the latest refer, return or accept (§8.2); Move is "" when none
 	Closers           []string // every non-retracted Result that closes it, in creation order
-	Gating            bool     // Gates the Hypothesis of the question's current select
 }
 
 // A limit has two facts, and no word joins them: its hand, which the move
@@ -185,12 +183,6 @@ func (l Limit) Closed() bool { return !l.IsLine() && len(l.Closers) > 0 }
 // Open reports whether the limit is neither closed nor accepted. For a line
 // it means only that the owner has not accepted it.
 func (l Limit) Open() bool { return !l.Closed() && !l.Accepted() }
-
-// Gates reports whether the limit gates the owner confirm of a scope-change
-// select of hyp: it is open and its Result judged hyp.
-func (l Limit) Gates(hyp string) bool {
-	return l.Open() && slices.Contains(l.Hyps, hyp)
-}
 
 // UnjudgedAfter lists exp's targets that were live rivals at its add and that
 // neither a non-retracted Result of exp nor extra judged, in target order.
@@ -269,7 +261,6 @@ type Edge struct {
 // RivalsAtAdd, so a later candidate reopens the question (new_candidate).
 type SelectRec struct {
 	ID, Hyp, Actor string
-	ScopeChange    bool
 	Why            string
 	Candidates     []string // the question's candidates just before the select applied
 }
@@ -401,7 +392,6 @@ const (
 	ReasonSelectedStale        = "selected_stale"
 	ReasonAwaitingSubquestions = "awaiting_subquestions"
 	ReasonNewCandidate         = "new_candidate"
-	ReasonAwaitingOwner        = "awaiting_owner"
 	ReasonNoCandidates         = "no_candidates"
 	ReasonUntested             = "untested"
 	ReasonAllContradicted      = "all_contradicted"

@@ -7,34 +7,21 @@ import (
 )
 
 // Decision is the record of one DesignQuestion's selection (spec §7.4), the
-// one owner of its select history, conflicts, owner Confirms, owner
-// requirement, limit acceptances and reason order. Only the methods in this
-// file write it. Render, signals, check and the CLI read it, through
-// Projection.Decisions.
+// one owner of its select history, conflicts and reason order. Only the
+// methods in this file write it. Render, signals, check and the CLI read it,
+// through Projection.Decisions. A confirm in an old log applies only the
+// accepts it made (ADR 0019).
 type Decision struct {
 	Current   string
 	Conflicts []string
 	Selects   map[string]SelectRec
-	// Confirms holds every applied owner confirm on each select, in log
-	// order, each with the Dossier at its place in the log. A verifier
-	// confirm in an old log applies nothing (ADR 0015).
-	Confirms map[string][]ConfirmRec
-	// Limits and Dossier are derived when a Projection is built; a record
-	// stored in State holds neither.
-	Limits  []Limit  // the limits recorded under the question, in creation order
-	Dossier *Dossier // of the current select, or nil when there is none
-}
-
-// ConfirmRec is one applied confirm on a select. Items is the Dossier as it
-// stood at the confirm's place in the merged log.
-type ConfirmRec struct {
-	ID, Role, Verdict, Actor, Why string
-	Accepts                       []string
-	Items                         []DossierItem
+	// Limits is derived when a Projection is built; a record stored in
+	// State holds none.
+	Limits []Limit // the limits recorded under the question, in creation order
 }
 
 func newDecision() *Decision {
-	return &Decision{Selects: map[string]SelectRec{}, Confirms: map[string][]ConfirmRec{}}
+	return &Decision{Selects: map[string]SelectRec{}}
 }
 
 // setCurrent applies the conflict rule of spec §7.4 for the select or
@@ -62,61 +49,6 @@ func (s *Decision) onSelect(rec SelectRec, prev string) {
 // onUnselect applies a dq.unselect.
 func (s *Decision) onUnselect(evID, prev string) { s.setCurrent(evID, "", prev) }
 
-// onConfirm applies owner confirm ev on select p.Select, whose Dossier just
-// then was items.
-func (s *Decision) onConfirm(ev event.Event, p event.Confirm, items []DossierItem) {
-	s.Confirms[p.Select] = append(s.Confirms[p.Select], ConfirmRec{ID: ev.ID, Role: p.Role, Verdict: p.Verdict,
-		Actor: ev.Actor, Why: ev.Why, Accepts: p.Accepts, Items: items})
-}
-
-// counting is the Confirm by role that counts on select id when the Dossier is
-// now: the latest one that judged this Dossier (spec §7.4), or nil. A Confirm
-// lapses when the Dossier differs from the one it judged and counts again if
-// the Dossier returns to it.
-func (s *Decision) counting(id, role string, now []DossierItem) *ConfirmRec {
-	cs := s.Confirms[id]
-	for i := len(cs) - 1; i >= 0; i-- {
-		if cs[i].Role == role && slices.Equal(cs[i].Items, now) {
-			return &cs[i]
-		}
-	}
-	return nil
-}
-
-// latest is the last Confirm by role on select id, counting or not, or nil.
-func (s *Decision) latest(id, role string) *ConfirmRec {
-	cs := s.Confirms[id]
-	for i := len(cs) - 1; i >= 0; i-- {
-		if cs[i].Role == role {
-			return &cs[i]
-		}
-	}
-	return nil
-}
-
-// Counting is the Confirm by role that counts on the current select of a
-// projected record, or nil.
-func (s *Decision) Counting(role string) *ConfirmRec {
-	if s == nil || s.Dossier == nil {
-		return nil
-	}
-	return s.counting(s.Current, role, s.Dossier.Items)
-}
-
-// Latest is the last Confirm by role on the current select, or nil.
-func (s *Decision) Latest(role string) *ConfirmRec {
-	if s == nil {
-		return nil
-	}
-	return s.latest(s.Current, role)
-}
-
-// ChangedSince lists what the current Dossier of a projected record holds and
-// c's does not, then the reverse.
-func (s *Decision) ChangedSince(c *ConfirmRec) (added, removed []DossierItem) {
-	return diffItems(c.Items, s.Dossier.Items)
-}
-
 // newCandidate reports whether a candidate now was not a candidate when
 // select rec applied. A candidate that fell since does not count: the chosen
 // one still stands.
@@ -126,8 +58,8 @@ func newCandidate(rec SelectRec, candidates []string) bool {
 
 // reason is the first reason question id is not answered (spec §7.4), or ""
 // when it is. live lists its live child Hypotheses, candidates its trade-off
-// candidates, and stale says the question itself is stale. The Dossier is read
-// only for a scope-change select, since this runs on every event.
+// candidates, and stale says the question itself is stale. The select is the
+// gate: no confirm is needed after it (ADR 0015, ADR 0019).
 func (d *derivation) reason(id string, live, candidates []string, stale bool) string {
 	st := d.st
 	s := st.Decisions[id]
@@ -147,13 +79,6 @@ func (d *derivation) reason(id string, live, candidates []string, stale bool) st
 		return ReasonAwaitingSubquestions
 	case newCandidate(rec, candidates):
 		return ReasonNewCandidate
-	}
-	// Only a scope change needs the owner's confirm: a trade-off ends with
-	// the owner's choice, recorded as the select (ADR 0015).
-	if rec.ScopeChange {
-		if o := s.counting(rec.ID, event.RoleOwner, st.dossierItems(id, rec.Hyp)); o == nil || o.Verdict != event.ConfirmSufficient {
-			return ReasonAwaitingOwner
-		}
 	}
 	return ""
 }
@@ -179,17 +104,14 @@ func (d *derivation) candidateReason(live []string) string {
 }
 
 // decisions builds what Projection.Decisions holds: each question's stored
-// record with its limits and the Dossier of its current select. Each is a
-// copy, so a projection keeps its limits and Dossier as the log goes on.
+// record with its limits. Each is a copy, so a projection keeps its limits
+// as the log goes on.
 func (st *State) decisions() map[string]*Decision {
 	limits := st.limits()
 	out := make(map[string]*Decision, len(st.Decisions))
 	for q, s := range st.Decisions {
 		c := *s
 		c.Limits = limits[q]
-		if s.Current != "" {
-			c.Dossier = st.dossier(q, s.Selects[s.Current].Hyp)
-		}
 		out[q] = &c
 	}
 	return out
@@ -273,13 +195,9 @@ func (st *State) limits() map[string][]Limit {
 			continue
 		}
 		q := st.resultQuestion(id)
-		s := st.Decisions[q]
 		for i, text := range n.Limits {
 			l := st.keyedLimit(event.LimitKey(id, i+1), id, text, closers)
 			l.Question, l.Hyps = q, sortedKeys(n.Verdicts)
-			if s.Current != "" {
-				l.Gating = l.Gates(s.Selects[s.Current].Hyp)
-			}
 			out[q] = append(out[q], l)
 		}
 	}

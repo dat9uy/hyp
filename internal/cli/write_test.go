@@ -169,20 +169,27 @@ func TestHappyPath(t *testing.T) {
 	}
 }
 
-// The verifier role is retired: hyp confirm refuses it at write time,
-// whether or not a select is current, and appends nothing.
-func TestVerifierConfirmRefused(t *testing.T) {
+// hyp confirm is retired in every form: it exits 2 before anything else,
+// with or without a select, and appends nothing (ADR 0015, ADR 0019).
+func TestConfirmRetired(t *testing.T) {
 	dir, _, q := setup(t)
 	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
 	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
-	retired := "refused: the verifier role was retired; a review that finds a defect records a Result, a retract or a limit"
-	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w"), 1, retired)
+	retired := "hyp confirm was retired: the owner's choose, recorded as the select, ends a trade-off"
+	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w"), 2, retired)
 	must(t, "select", q, h1, "--why", "w")
 	before := logLines(t, dir)
-	want(t, hyp(t, "confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v"), 1, retired)
+	for _, args := range [][]string{
+		{"confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o"},
+		{"confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", "nope", "--why", "w", "--actor", "o"},
+		{"confirm", q, "--role", "verifier", "--verdict", "sufficient", "--why", "w", "--actor", "v"},
+	} {
+		want(t, hyp(t, args...), 2, retired)
+	}
+	want(t, hyp(t, "confirm", "--help"), 0, retired)
 	if n := logLines(t, dir); n != before {
-		t.Fatalf("refused confirm appended: %d lines, was %d", n, before)
+		t.Fatalf("retired confirm appended: %d lines, was %d", n, before)
 	}
 }
 
@@ -350,18 +357,12 @@ func TestLimitFlags(t *testing.T) {
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
 	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w")
-	must(t, "select", q, h, "--scope-change", "--why", "w")
 	r1 := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "raw SQL org gets no row", "--why", "w")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--closes", "nope", "--why", "w"), 2, "want <R-id>#<n>")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--closes", r1+"#2", "--why", "w"), 1, "bad limit ref")
 	refer(t, r1+"#1")
-	r := hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
-	want(t, r, 1, "open limits under")
-	want(t, r, 1, "raw SQL org gets no row")
-	want(t, hyp(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--accept", r1+"#1", "--why", "w", "--actor", "o"),
-		2, "confirm --accept was retired")
 	accept(t, r1+"#1")
-	must(t, "confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w", "--actor", "o")
+	must(t, "select", q, h, "--why", "w")
 }
 
 func TestBuildSuffix(t *testing.T) {
@@ -630,23 +631,6 @@ func TestCheckNamesRunExperimentClosedInMergedLog(t *testing.T) {
 	}
 	want(t, hyp(t, "show", e), 0, "status: run")
 	want(t, hyp(t, "check"), 0, "warn: "+e+" is withdrawn but reads run: its Result R-ZZZZZZ applied after the close")
-}
-
-// The retired --accept is refused before anything else, and no current
-// selection outranks the limit gate.
-func TestConfirmRefusalOrder(t *testing.T) {
-	_, _, q := setup(t)
-	h1 := must(t, "add", "hyp", "--parent", q, "--title", "H1", "--why", "w")
-	e := must(t, "add", "exp", "--parent", h1, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
-	owner := []string{"confirm", q, "--role", "owner", "--verdict", "sufficient", "--why", "w"}
-	bad := append(append([]string{}, owner...), "--accept", "nope")
-	want(t, hyp(t, bad...), 2, "confirm --accept was retired")
-	want(t, hyp(t, owner...), 1, "refused: no current selection")
-	must(t, "select", q, h1, "--why", "w")
-	r := must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o", "--limit", "one host", "--why", "w")
-	refer(t, r+"#1")
-	want(t, hyp(t, owner...), 1, "open limits under")
 }
 
 func TestSelectWithNoHypothesisReadsCandidates(t *testing.T) {

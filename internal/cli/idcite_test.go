@@ -7,8 +7,7 @@ import (
 	"testing"
 )
 
-// citeStore builds a store with a scope-change select, so an owner confirm
-// can be written, and returns its ids.
+// citeStore builds a store with a Result and a select, and returns its ids.
 func citeStore(t *testing.T) (dir, q, h, e, r, rULID string) {
 	t.Helper()
 	dir, _, q = setup(t)
@@ -16,7 +15,7 @@ func citeStore(t *testing.T) (dir, q, h, e, r, rULID string) {
 	h2 := must(t, "add", "hyp", "--parent", q, "--title", "beta", "--why", "rival")
 	e = must(t, "add", "exp", "--parent", h, "--target", h2, "--recipe", "none", "--decided-by", "reading", "--title", "E", "--why", "test")
 	r = must(t, "record", "--exp", e, "--verdict", h+"=supports", "--verdict", h2+"=contradicts", "--observation", "alpha holds", "--why", "ran")
-	must(t, "select", q, h, "--scope-change", "--why", "pick")
+	must(t, "select", q, h, "--why", "pick")
 	var evs struct {
 		Events []struct{ Type, Node string }
 	}
@@ -39,19 +38,19 @@ func TestCiteRefusesUnresolvedIDs(t *testing.T) {
 		args        []string
 	}{
 		{"placeholder in why (#240's event)", "--why names R-<new>",
-			[]string{"confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "Done the to-do: R-<new> shows declared honest reading Results clear"}},
-		{"ellipsis in why", "--why names E-…", []string{"confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "done: E-… shows it"}},
+			[]string{"link", h, "external_ref", "gh:9", "--why", "Done the to-do: R-<new> shows declared honest reading Results clear"}},
+		{"ellipsis in why", "--why names E-…", []string{"link", h, "external_ref", "gh:9", "--why", "done: E-… shows it"}},
 		{"dots in summary", "--summary names E-...", []string{"checkpoint", "--summary", "see E-... later", "--why", "x"}},
 		{"Xs in observation", "--observation names R-XXXXXX",
 			[]string{"record", "--exp", e, "--verdict", h + "=supports", "--observation", "R-XXXXXX shows alpha", "--why", "x"}},
-		{"seven Xs", "--why names R-XXXXXXX", []string{"confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "R-XXXXXXX shows alpha"}},
+		{"seven Xs", "--why names R-XXXXXXX", []string{"link", h, "external_ref", "gh:9", "--why", "R-XXXXXXX shows alpha"}},
 		{"braces in body", "--body names H-{id}", []string{"add", "hyp", "--parent", q, "--title", "g", "--body", "follows from H-{id}", "--why", "x"}},
 		{"angle in amend body", "--body names H-<id>", []string{"amend", h, "--body", "as H-<id> says", "--why", "x"}},
 		{"placeholder in limit", "--limit names R-<n>",
 			[]string{"record", "--exp", e, "--verdict", h + "=supports", "--observation", "ok", "--limit", "fine", "--limit", "see R-<n>", "--why", "x"}},
-		{"typo", "--why names " + typo, []string{"confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", typo + " shows alpha holds"}},
-		{"another store's id", "--why names R-64ZZ43", []string{"confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "R-64ZZ43 shows alpha holds"}},
-		{"wrong kind", "--why names H-" + r[2:], []string{"confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "H-" + r[2:] + " holds"}},
+		{"typo", "--why names " + typo, []string{"link", h, "external_ref", "gh:9", "--why", typo + " shows alpha holds"}},
+		{"another store's id", "--why names R-64ZZ43", []string{"link", h, "external_ref", "gh:9", "--why", "R-64ZZ43 shows alpha holds"}},
+		{"wrong kind", "--why names H-" + r[2:], []string{"link", h, "external_ref", "gh:9", "--why", "H-" + r[2:] + " holds"}},
 		{"link why", "--why names Q-<x>", []string{"link", h, "external_ref", "gh:1", "--why", "per Q-<x>"}},
 	}
 	for _, c := range cases {
@@ -91,7 +90,7 @@ func TestCiteAcceptsResolvedIDsAndProse(t *testing.T) {
 }
 
 func TestCiteNamesEveryUnresolvedToken(t *testing.T) {
-	_, q, _, _, _, _ := citeStore(t)
-	res := hyp(t, "confirm", q, "--role", "owner", "--verdict", "insufficient", "--why", "R-<a> and E-<b>")
+	_, _, h, _, _, _ := citeStore(t)
+	res := hyp(t, "link", h, "external_ref", "gh:9", "--why", "R-<a> and E-<b>")
 	want(t, res, 2, "--why names R-<a>, which is no node here; --why names E-<b>, which is no node here; cite an id this store holds")
 }
