@@ -96,16 +96,18 @@ A crash here means hyp was killed or the machine stopped. A Ctrl-C or SIGTERM is
 | after the last Doctor, before the last `setup` is written | `interrupted`, with a manifest | remove runs; drive is refused, so the operator makes a new sandbox |
 | a Cleanup after a failed setup | `setup_failed` | remove runs and Cleanup runs again |
 | a Drive | `ready`, with an unfinished row | while the row's group lives, drive exits 3 and remove stops it; once the group is gone, drive runs again |
-| a remove | `removing` | remove runs again, Cleanup included |
+| a remove, before its save | `removing` | remove runs again to the same OUT_DIR, Cleanup included |
+| a remove's save to OUT_DIR | `removing`, with `OUT_DIR.partial-ID` and no OUT_DIR | remove runs again to the same OUT_DIR: it clears the staging directory and saves again |
+| a remove's delete, after its save | `removing` with the whole record in OUT_DIR, or `interrupted`, no record, if the delete reached `sandbox.json` | remove to the same OUT_DIR exits 2 and names `--discard`, which finishes; the record is already saved |
 
-**Remove always gets through what it can.** Refusals that change nothing come first and leave the state as it was: bad arguments, busy, a missing `lsof`, a bad `--keep`, an existing `OUT_DIR`, and a directory with no record given an OUT_DIR. Then, in order, remove:
+**Remove always gets through what it can.** Refusals that change nothing come first and leave the state as it was: bad arguments, busy, a missing `lsof`, a bad `--keep`, an existing `OUT_DIR`, and a directory with no record given an OUT_DIR. An existing OUT_DIR that holds this sandbox's saved record, with `removed` set, is refused naming `remove ID --discard`, because the remove that saved it stopped before the delete. Then, in order, remove:
 
 1. writes `removing`;
 2. stops the groups of unfinished rows;
 3. runs every Cleanup, the last recipe first;
 4. stops every remaining group;
 5. checks for leftovers, and exits 3 if a process still runs in the sandbox;
-6. saves the record to OUT_DIR, unless `--discard`;
+6. saves the record to OUT_DIR, unless `--discard`: it builds the save in `OUT_DIR.partial-ID` beside OUT_DIR, ID being the sandbox's id, and renames it to OUT_DIR, so OUT_DIR holds a whole record or does not exist. A staging directory of that name, which only a killed remove of this sandbox leaves, is cleared first;
 7. deletes the sandbox.
 
 A command a killed hyp left running is stopped before Cleanup, so it cannot change what a Cleanup has already looked at. A failed write of `removing` only warns, as a failed Cleanup row write does, because stopping processes matters more than the trace. Once `removing` is written it stays: a remove refused at step 5 leaves a sandbox that drive refuses and remove can run again, so a Cleanup that already ran is never followed by a Drive. A directory with no record has no rows and no Cleanup, so `--discard` takes the lock, runs the leftover check and deletes.
