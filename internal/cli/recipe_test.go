@@ -674,7 +674,7 @@ func TestRecipeEvidence(t *testing.T) {
 
 func TestRecipeRecordInsideBundleRefused(t *testing.T) {
 	toolBundle(t)
-	if r := hyp(t, "bundle", "run", "--record", "recipes/tool@1/out", "tool@1", "ok"); r.code != 2 || !strings.Contains(r.stderr, "recipe library") {
+	if r := hyp(t, "bundle", "run", "--record", "recipes/tool@1/out", "tool@1", "ok"); r.code != 2 || !strings.Contains(r.stderr, "bundle library") {
 		t.Errorf("run: %+v, want exit 2 naming the library", r)
 	}
 	if _, err := os.Stat(filepath.Join("recipes", "tool@1", "out")); err == nil {
@@ -695,7 +695,7 @@ func TestRecipeRecordInsideBundleRefused(t *testing.T) {
 	if r := hyp(t, "bundle", "evidence", "--record", "out/rec", "chk@1", "out"); r.code != 2 || !strings.Contains(r.stderr, "OUT_DIR") {
 		t.Errorf("evidence in OUT_DIR: %+v, want exit 2", r)
 	}
-	if r := hyp(t, "bundle", "evidence", "--record", "recipes/chk@1/rec", "chk@1", "out"); r.code != 2 || !strings.Contains(r.stderr, "recipe library") {
+	if r := hyp(t, "bundle", "evidence", "--record", "recipes/chk@1/rec", "chk@1", "out"); r.code != 2 || !strings.Contains(r.stderr, "bundle library") {
 		t.Errorf("evidence in bundle: %+v, want exit 2 naming the library", r)
 	}
 	for _, p := range []string{filepath.Join("out", "rec"), filepath.Join("recipes", "chk@1", "rec")} {

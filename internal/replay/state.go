@@ -124,6 +124,7 @@ type Node struct {
 type Pin struct {
 	Ref           event.Ref
 	Hash, Pointer string
+	Rubric        bool // the Experiment's rubric pin, a bundle in rubrics/
 }
 
 // pins lists the pins the Result id depends on: its Experiment's recipe
@@ -142,7 +143,7 @@ func pins(nodes map[string]*Node, id string) []Pin {
 	if exp := nodes[r.Parent]; exp != nil && exp.RubricHash != "" {
 		// validate admits a rubric_hash only beside a name@version rubric.
 		ref, _ := event.ParseRef(exp.Rubric)
-		pins = append(pins, Pin{Ref: ref, Hash: exp.RubricHash})
+		pins = append(pins, Pin{Ref: ref, Hash: exp.RubricHash, Rubric: true})
 	}
 	seen := map[string]bool{}
 	for _, e := range r.Evidence {

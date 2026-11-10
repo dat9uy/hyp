@@ -767,7 +767,7 @@ func TestRunRefusesRecordInsideBundle(t *testing.T) {
 			}
 			rec, err := Run(RunOptions{Dir: s.root, Ref: s.ref, Step: s.step, Label: s.label, Args: args, Record: record})
 			lib := filepath.Join(s.root, "recipes")
-			if rec != nil || code(err) != 2 || !strings.Contains(err.Error(), "recipe library "+lib) {
+			if rec != nil || code(err) != 2 || !strings.Contains(err.Error(), "bundle library "+lib) {
 				t.Errorf("%s --record %s: rec = %v, err = %v; want exit 2 naming %s", s.step, record, rec, err, lib)
 			}
 			abs := record
@@ -835,7 +835,7 @@ func TestRunRefusesRecordInOuterCopy(t *testing.T) {
 	record := filepath.Join(repo, "recipes", "tool@1", "rec")
 	mark := filepath.Join(t.TempDir(), "mark")
 	rec, err := Run(RunOptions{Dir: sub, Ref: "tool@1", Step: "standalone", Label: "touch", Args: []string{mark}, Record: record})
-	if rec != nil || code(err) != 2 || !strings.Contains(err.Error(), "recipe library "+filepath.Join(repo, "recipes")+",") {
+	if rec != nil || code(err) != 2 || !strings.Contains(err.Error(), "bundle library "+filepath.Join(repo, "recipes")+",") {
 		t.Fatalf("rec = %v, err = %v; want exit 2 naming the outer bundle", rec, err)
 	}
 	if exists(record) || exists(mark) {
@@ -874,7 +874,7 @@ func TestRunRefusesRecordInLibrary(t *testing.T) {
 	} {
 		mark := filepath.Join(t.TempDir(), "mark")
 		rec, err := Run(RunOptions{Dir: sub, Ref: "tool@1", Step: "standalone", Label: "touch", Args: []string{mark}, Record: record})
-		if rec != nil || code(err) != 2 || !strings.Contains(err.Error(), "recipe library") {
+		if rec != nil || code(err) != 2 || !strings.Contains(err.Error(), "bundle library") {
 			t.Errorf("--record %s: rec = %v, err = %v; want exit 2 naming the library", record, rec, err)
 		}
 		if exists(record) || exists(mark) {
@@ -915,8 +915,8 @@ func TestRunRefusesRecordSpelledInOtherCase(t *testing.T) {
 		t.Skip("case-sensitive disk")
 	}
 	for _, c := range []struct{ record, want string }{
-		{filepath.Join(root, "RECIPES", "chk", "rec"), "recipe library"},
-		{filepath.Join(root, "Recipes", "rec"), "recipe library"},
+		{filepath.Join(root, "RECIPES", "chk", "rec"), "bundle library"},
+		{filepath.Join(root, "Recipes", "rec"), "bundle library"},
 		{filepath.Join(filepath.Dir(kept), "OUT", "rec"), "OUT_DIR"},
 	} {
 		rec, err := Run(RunOptions{Dir: root, Ref: "chk@1", Step: "evidence", Args: []string{kept}, Record: c.record})

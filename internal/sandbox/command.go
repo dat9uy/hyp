@@ -558,11 +558,13 @@ func recordOutside(o RunOptions, abs string) error {
 			return err
 		}
 	}
-	// A recipes directory that does not exist yet counts too, so a record
+	// A library directory that does not exist yet counts too, so a record
 	// cannot start a library where the lookup would find it.
-	for _, d := range recipe.Dirs(o.Dir) {
-		if err := refuse(d, "the recipe library "+d+", where it would change a recipe's hash"); err != nil {
-			return err
+	for _, lib := range []string{recipe.Recipes, recipe.Rubrics} {
+		for _, d := range recipe.DirsOf(o.Dir, lib) {
+			if err := refuse(d, "the bundle library "+d+", where it would change a bundle's hash"); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
