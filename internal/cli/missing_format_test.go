@@ -49,7 +49,7 @@ func TestUseRefusesMissingFormat(t *testing.T) {
 	recs := t.TempDir()
 
 	for name, args := range map[string][]string{
-		"add exp":               {"add", "exp", "--parent", h, "--title", "E", "--recipe", "old@1", "--why", "w"},
+		"add exp":               {"add", "exp", "--parent", h, "--title", "E", "--recipe", "old@1", "--rubric", "reading", "--why", "w"},
 		"sandbox create":        {"sandbox", "create", "s-old", "--host", repo, "--base", sha, "--hyp", stub, "--recipe", "old@1", "--recipes", repo},
 		"recipe run":            {"recipe", "run", "--record", filepath.Join(recs, "run"), "old@1", "x"},
 		"recipe evidence":       {"recipe", "evidence", "--record", filepath.Join(recs, "ev"), "old@1", out},

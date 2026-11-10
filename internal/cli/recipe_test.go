@@ -39,7 +39,7 @@ func TestRecipeHashMatchesAddExp(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "known-answers", "ok", "expect.json"), `{"step": "standalone", "command": "check", "exit": 0, "stdout": "ok\n"}`)
 	writeFile(t, filepath.Join(dir, "known-answers", "ok", "input", "a"), "")
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
-	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@1", "--why", "w")
+	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@1", "--rubric", "reading", "--why", "w")
 	rec := recordedHash(t, tree)
 
 	r := hyp(t, "recipe", "hash", dir)
@@ -174,9 +174,9 @@ func TestEvidencePinsLibraryBundle(t *testing.T) {
 		}
 		return hyp(t, args...)
 	}
-	evDir := filepath.Join(tree, ".tree", "evidence", "E-1")
+	evDir := filepath.Join(tree, ".tree", "evidence", e)
 	writeFile(t, filepath.Join(evDir, "log.txt"), "l\n")
-	r := rec("recipes/cases@1/a.txt", "recipes/boot@1/known.txt", ".tree/evidence/E-1/log.txt", "https://example.com/x")
+	r := rec("recipes/cases@1/a.txt", "recipes/boot@1/known.txt", ".tree/evidence/"+e+"/log.txt", "https://example.com/x")
 	want(t, r, 0, "result.record")
 	res := strings.Fields(r.stdout)[0]
 
@@ -458,7 +458,7 @@ func TestRecipeNewCopiesNextVersion(t *testing.T) {
 		t.Fatalf("Open(boot@2) = %v, %v", rc, err)
 	}
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
-	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@2", "--why", "w")
+	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@2", "--rubric", "reading", "--why", "w")
 
 	want(t, hyp(t, "recipe", "new", "boot@3", "--from", "boot@2"), 0, "from: boot@2 ")
 	md, err = os.ReadFile(filepath.Join(repo, "recipes", "boot@3", "recipe.md"))
@@ -523,7 +523,7 @@ func TestAddExpRefusesInstrumentWithoutKnownAnswers(t *testing.T) {
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
 	addExp := func(ref string) result {
 		t.Helper()
-		return hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--why", "w")
+		return hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--rubric", "reading", "--why", "w")
 	}
 	tool := filepath.Join(repo, "recipes", "tool@1")
 	writeFile(t, filepath.Join(tool, "recipe.md"), "---\nname: tool\nversion: 1\nformat: 1\n---\n\n## Standalone\n\nRun ok: ./ok.sh\n")
@@ -582,7 +582,13 @@ func TestRecipeNewSeesHigherVersionInEveryLibrary(t *testing.T) {
 // each file of scripts (a path below the bundle) executable.
 func bundleIn(t *testing.T, dir, name, body string, scripts map[string]string) {
 	t.Helper()
-	b := filepath.Join(dir, "recipes", name+"@1")
+	libIn(t, dir, "recipes", name, body, scripts)
+}
+
+// libIn writes bundle name@1 into library lib (recipes or rubrics) under dir.
+func libIn(t *testing.T, dir, lib, name, body string, scripts map[string]string) {
+	t.Helper()
+	b := filepath.Join(dir, lib, name+"@1")
 	if err := os.MkdirAll(b, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -922,7 +928,7 @@ func TestRecipeCheckWarnsExternal(t *testing.T) {
 
 	// A bundle a tree pins records without the line.
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
-	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "mute@1", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "mute@1", "--rubric", "reading", "--why", "w")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w"), 0, "result.record")
 
 	want(t, hyp(t, "recipe", "new", "mute@2", "--from", "mute@1"), 0, "from: mute@1 ")

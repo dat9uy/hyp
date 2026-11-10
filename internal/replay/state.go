@@ -3,7 +3,6 @@
 package replay
 
 import (
-
 	"github.com/dat9uy/hyp/internal/event"
 )
 
@@ -107,17 +106,17 @@ type Node struct {
 	// RubricReading. Records are its pinned records.
 	Rubric, RubricHash string
 	Records            []event.SubjectFile
-	Targets                                                                             []string
-	Children                                                                            []string
-	Verdicts                                                                            map[string]string
-	VerdictOrder                                                                        []string // Verdicts' keys in recorded order
-	Observation                                                                         string
-	Evidence                                                                            []string
-	EvidenceHashes                                                                      map[string]string
-	Limits, Closes                                                                      []string
-	Readings                                                                            []event.ReadingItem
-	Aims, Applies                                                                       []string
-	Fingerprints                                                                        []string // a Result's: the file sha256s its cited records say the run was given
+	Targets            []string
+	Children           []string
+	Verdicts           map[string]string
+	VerdictOrder       []string // Verdicts' keys in recorded order
+	Observation        string
+	Evidence           []string
+	EvidenceHashes     map[string]string
+	Limits, Closes     []string
+	Readings           []event.ReadingItem
+	Aims, Applies      []string
+	Fingerprints       []string // a Result's: the file sha256s its cited records say the run was given
 }
 
 // Pin is a recipe ref and the bundle hash an event recorded for it. Pointer

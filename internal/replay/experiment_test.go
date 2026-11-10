@@ -132,12 +132,12 @@ func TestAdmitResultRefusesUnderClosedExperiment(t *testing.T) {
 		old:  ed(old) + " is superseded by " + ed(repl) + "; record the Result there, or hyp unlink " + ed(repl) + " supersedes " + ed(old) + " to reopen " + ed(old),
 		gone: ed(gone) + " is withdrawn; add a new Experiment for this Result",
 	} {
-		got := st.AdmitResult(event.ResultRecord{Parent: exp}, RecipeFacts{}, nil)
+		got := st.AdmitResult(event.ResultRecord{Parent: exp}, ResultFacts{}, nil)
 		if len(got) != 1 || got[0] != (Finding{FindRefuse, want}) {
 			t.Errorf("%s: %+v, want refusal %q", exp, got, want)
 		}
 	}
-	if got := st.AdmitResult(event.ResultRecord{Parent: repl}, RecipeFacts{}, nil); got != nil {
+	if got := st.AdmitResult(event.ResultRecord{Parent: repl}, ResultFacts{}, nil); got != nil {
 		t.Errorf("open Experiment: %+v, want nothing", got)
 	}
 }

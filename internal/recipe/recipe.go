@@ -123,18 +123,28 @@ func GoFileWarnings(dir string) []string {
 // first: root/recipes, then recipes/ in each parent up to the repository root,
 // the root RepoRoot returns. Outside a repository only root/recipes is
 // searched.
-func Dirs(root string) []string {
+func Dirs(root string) []string { return DirsOf(root, Recipes) }
+
+// The two libraries a bundle lives in (ADR 0018): a recipe in recipes/, a
+// rubric in rubrics/.
+const (
+	Recipes = "recipes"
+	Rubrics = "rubrics"
+)
+
+// DirsOf is Dirs for library lib, Recipes or Rubrics.
+func DirsOf(root, lib string) []string {
 	abs, err := filepath.Abs(root)
 	if err != nil {
-		return []string{filepath.Join(root, "recipes")}
+		return []string{filepath.Join(root, lib)}
 	}
 	top, ok := RepoRoot(abs)
 	if !ok {
-		return []string{filepath.Join(abs, "recipes")}
+		return []string{filepath.Join(abs, lib)}
 	}
 	var dirs []string
 	for d := abs; ; d = filepath.Dir(d) {
-		dirs = append(dirs, filepath.Join(d, "recipes"))
+		dirs = append(dirs, filepath.Join(d, lib))
 		if d == top {
 			return dirs
 		}
@@ -155,12 +165,18 @@ func Resolve(root, ref string) (name, hash string, err error) {
 // Load resolves ref ("name@version") in the directories Dirs(root) lists,
 // each of which may hold recipes/<name>@<version>/. Every copy found must hash
 // the same; the nearest is returned.
-func Load(root, ref string) (*Recipe, error) {
+func Load(root, ref string) (*Recipe, error) { return LoadFrom(root, Recipes, ref) }
+
+// LoadRubric is Load for a rubric, a bundle in rubrics/ (ADR 0018).
+func LoadRubric(root, ref string) (*Recipe, error) { return LoadFrom(root, Rubrics, ref) }
+
+// LoadFrom is Load in library lib, Recipes or Rubrics.
+func LoadFrom(root, lib, ref string) (*Recipe, error) {
 	r, err := parseRef(ref)
 	if err != nil {
 		return nil, err
 	}
-	dirs := Dirs(root)
+	dirs := DirsOf(root, lib)
 	var found []*Recipe
 	for _, d := range dirs {
 		r, err := loadIn(d, r)
@@ -172,7 +188,7 @@ func Load(root, ref string) (*Recipe, error) {
 		}
 	}
 	if len(found) == 0 {
-		return nil, herr.BadArgs("recipe %s not found; searched %s", ref, strings.Join(dirs, ", "))
+		return nil, herr.BadArgs("%s %s not found; searched %s", kindWord(lib), ref, strings.Join(dirs, ", "))
 	}
 	for _, r := range found[1:] {
 		if r.Hash != found[0].Hash {
@@ -186,6 +202,20 @@ func Load(root, ref string) (*Recipe, error) {
 // scripts decide or filter what a Result counts, so it must have known
 // answers.
 func (r *Recipe) IsInstrument() bool { return len(r.Evidence) > 0 || len(r.Standalone) > 0 }
+
+// HasSteps reports whether r has a command under Launch, Doctor, Drive,
+// Evidence or Cleanup; a rubric has none (ADR 0018).
+func (r *Recipe) HasSteps() bool {
+	return len(r.Launch)+len(r.Doctor)+len(r.Drive)+len(r.Evidence)+len(r.Cleanup) > 0
+}
+
+// kindWord names a bundle of library lib: recipe or rubric.
+func kindWord(lib string) string {
+	if lib == Rubrics {
+		return "rubric"
+	}
+	return "recipe"
+}
 
 // HasKnownAnswers reports whether the bundle in dir has known-answers/ with
 // at least one case directory.

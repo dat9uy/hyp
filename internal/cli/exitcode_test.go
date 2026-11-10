@@ -65,7 +65,7 @@ func TestExitCodeContract(t *testing.T) {
 	}
 
 	addExp := func(ref string) []string {
-		return []string{"add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--why", "w"}
+		return []string{"add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--rubric", "reading", "--why", "w"}
 	}
 	create := func(id, ref string) []string {
 		return []string{"sandbox", "create", id, "--host", repo, "--base", sha, "--hyp", stub, "--recipe", ref, "--recipes", tree}

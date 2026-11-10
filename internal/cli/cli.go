@@ -63,8 +63,8 @@ write:
   add goal --title T [--body B] [--alias A]
   add dq   --parent REF --title T [--body B] [--alias A]
   add hyp  --parent REF --title T [--body B] [--alias A] [--subject PATH]...
-  add exp  --parent REF --title T --recipe NAME@V|none [--decided-by reading] [--target REF|none]... [--alias A]
-  record   --exp REF --verdict REF=supports|contradicts|inconclusive... --observation O [--evidence P]... [--limit L]... [--closes R#N]...
+  add exp  --parent REF --title T --recipe NAME@V|none [--rubric NAME@V|reading] [--records PATH]... [--target REF|none]... [--alias A]
+  record   --exp REF [--verdict REF=supports|contradicts|inconclusive]... --observation O [--evidence P]... [--limit L]... [--closes R#N]...
   retract REF | abandon REF | reaffirm REF
   supersede NEW --old OLD
   amend HYP --body B                     revise a Hypothesis body

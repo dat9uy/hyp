@@ -41,7 +41,7 @@ func containStore(t *testing.T) cstore {
 
 	s.qi = must(t, "add", "dq", "--parent", g, "--title", "Does ana@1 run?", "--why", "w")
 	s.hi = must(t, "add", "hyp", "--parent", s.qi, "--title", "ana@1 gives them", "--why", "w")
-	s.ei = must(t, "add", "exp", "--parent", s.hi, "--title", "cases", "--recipe", "ana@1", "--target", "none", "--why", "w")
+	s.ei = must(t, "add", "exp", "--parent", s.hi, "--title", "cases", "--recipe", "ana@1", "--rubric", "reading", "--target", "none", "--why", "w")
 	must(t, "recipe", "run", "--record", ".tree/evidence/"+s.ei+"/R1", "ana@1", "cases")
 	s.i0 = must(t, "record", "--exp", s.ei, "--verdict", s.hi+"=supports", "--observation", "cases ok",
 		"--evidence", ".tree/evidence/"+s.ei+"/R1/command.json", "--why", "w")
@@ -172,7 +172,7 @@ func TestContainFixturePinNeedsNoInstrument(t *testing.T) {
 
 func TestContainBundleFilesGiveEachReasonOnce(t *testing.T) {
 	s := containStore(t)
-	e := must(t, "add", "exp", "--parent", s.hf, "--title", "own", "--recipe", "ana@1", "--target", s.ht, "--why", "w")
+	e := must(t, "add", "exp", "--parent", s.hf, "--title", "own", "--recipe", "ana@1", "--rubric", "reading", "--target", s.ht, "--why", "w")
 	r := s.record(t, e, []string{evPy(s), "recipes/ana@1/recipe.md"})
 	wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers")
 }
@@ -219,7 +219,8 @@ func TestContainUnversionedRecipesScript(t *testing.T) {
 func TestContainRepeatedCitationGivesReasonOnce(t *testing.T) {
 	s := containStore(t)
 	c := s.file(t, "c.py", 0o644, "print('x')\n")
-	r1 := ".tree/evidence/" + s.ei + "/R1/command.json"
+	must(t, "recipe", "run", "--record", ".tree/evidence/"+s.em+"/R1", "ana@1", "cases")
+	r1 := ".tree/evidence/" + s.em + "/R1/command.json"
 	r := s.record(t, s.em, []string{c, "./" + c, s.r0, r1})
 	wantReasons(t, reasonsOf(t, s.dir, r),
 		"script outside recipes/: "+c,
@@ -358,8 +359,10 @@ func TestContainRetractedResultSkipped(t *testing.T) {
 
 func TestContainOwnRunnableRecipeNeedsRecord(t *testing.T) {
 	s := containStore(t)
-	e := must(t, "add", "exp", "--parent", s.hf, "--title", "own", "--recipe", "ana@1", "--target", s.ht, "--why", "w")
-	r := s.record(t, e, []string{s.file(t, "out.txt", 0o644, "x\n")})
+	e := must(t, "add", "exp", "--parent", s.hf, "--title", "own", "--recipe", "ana@1", "--rubric", "reading", "--target", s.ht, "--why", "w")
+	out := ".tree/evidence/" + e + "/out.txt"
+	writeFile(t, filepath.Join(s.dir, out), "x\n")
+	r := s.record(t, e, []string{out})
 	wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers")
 }
 

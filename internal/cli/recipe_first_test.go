@@ -17,7 +17,7 @@ func TestRecipeNewFirstVersionFlow(t *testing.T) {
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
 	addExp := func() result {
 		t.Helper()
-		return hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "g@1", "--target", "none", "--why", "w")
+		return hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "g@1", "--rubric", "reading", "--target", "none", "--why", "w")
 	}
 
 	bundle := filepath.Join(dir, "recipes", "g@1")
