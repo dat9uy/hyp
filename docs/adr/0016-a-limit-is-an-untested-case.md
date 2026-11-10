@@ -117,3 +117,7 @@ The owner decided (2026-11-10):
 - A line prints its hand when it has one, `covered on Q-…` or `uncovered on Q-…: H-…` per top-level question with a candidate, and `ran in R-…`. It never prints `open` or `closed`. `hyp show G-…#n` prints `ran in R-…:` for each closer.
 
 No event, move, refusal or exit code changes, and old trees replay the same derived records. Only the text of a tree with lines changes. Kongming's report `plans/reports/kongming-261110-0934-line-lifecycle-and-coverage.md` holds the options weighed: a display-only fix was rejected because it leaves the joined word in the code and the spec, and coverage as a state was rejected because no move produces it.
+
+## Amended 2026-11-10: a refer of a closed limit is refused
+
+A refer of a Result's limit that a Result closed was admitted, stored as the latest hand, and never read, since the ledger reads a closed limit first. Spec §8.2 already said a refer applies to an open limit. The owner decided (2026-11-10, #115) that the refer row refuses it, as the accept and return rows do: `bad refers: <key> is closed by R-…; its case ran, so there is nothing to refer`. Retracting the closer opens the limit again, so a refer then applies. A line is never closed, so a line that ran on some candidates can still be referred. No kept tree holds such a refer.

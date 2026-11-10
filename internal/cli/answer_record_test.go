@@ -63,12 +63,12 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	// The open limit on the candidate is the runner's: the select is refused
 	// until the limit is closed or referred to the owner.
 	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: "+q+" owes the runner first: limit "+r1+"#1")
-	// A referred limit still holds the select: the owner's return would
+	// The select still waits on a referred limit: the owner's return would
 	// send its case back to run.
 	refer(t, r1+"#1")
 	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: referred limit "+r1+"#1 waits for the owner")
 	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or return "+r1+"#1 — raw SQL org gets no row\n")
-	want(t, hyp(t, "status"), 0, "held: referred limit "+r1+"#1 waits for the owner")
+	want(t, hyp(t, "status"), 0, "waits on referred limit "+r1+"#1 for the owner")
 	must(t, "checkpoint", "--summary", "accept", "--role", "owner", "--accept", r1+"#1", "--actor", "o", "--why", "w")
 	must(t, "select", q, h, "--why", "w")
 	want(t, hyp(t, "show", q), 0, "status: answered")

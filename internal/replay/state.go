@@ -36,6 +36,10 @@ type (
 	GoalState     string
 )
 
+// Open reports whether a question in state s is open or reopened: the
+// states that owe every kind of ledger item and may owe a select.
+func (s QuestionState) Open() bool { return s == DQOpen || s == DQReopened }
+
 // Hyp is the derived record of one Hypothesis (spec §7.1, §7.3).
 type Hyp struct {
 	Status HypStatus
@@ -221,9 +225,13 @@ type Reading struct {
 	Applied           string // the Result that applied the answer in force, or ""
 	// Reach lists the live Hypotheses under Question whose standing the
 	// answer can move, read from the Result's own verdicts: a candidate it
-	// judged, or a contradicted rival whose only contradicts is its own. An open reading holds its question only while Reach is not empty.
+	// judged, or a contradicted rival whose only contradicts is its own. An
+	// open reading makes its question wait only while Reach is not empty.
 	Reach []string
 }
+
+// Open reports whether no owner checkpoint has closed the reading yet.
+func (l Reading) Open() bool { return l.By == "" }
 
 // Answer is one owner answer to a reading: the close, then each revision, in
 // merge order. Applied is the Result that applied it, or "".

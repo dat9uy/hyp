@@ -22,6 +22,7 @@ const (
 	OwedReading   = "reading"   // a closed reading no Result applies
 	OwedReferred  = "referred"  // a limit referred to the owner, not yet accepted
 	OwedPremise   = "premise"   // a candidate assumes a Hypothesis its question did not select
+	OwedStale     = "stale"     // a reopened question's select is stale and nothing else owed renews it
 	OwedSelect    = "select"    // a lone candidate with nothing else owed on its question
 	OwedChoose    = "choose"    // the owner chooses between two or more candidates
 )
@@ -86,16 +87,16 @@ func (p Projection) Owed() []Owed {
 		if q == nil {
 			continue
 		}
-		open := q.State == DQOpen || q.State == DQReopened
+		open := q.State.Open()
 		if !open && q.State != DQAnswered {
 			continue
 		}
 		var mine []Owed
 		add := func(o Owed) { o.Question = dq; mine = append(mine, o) }
 
-		// An open reading holds the question only while its answer can move
-		// a Hypothesis there (its Reach).
-		waiting := slices.ContainsFunc(p.Readings, func(l Reading) bool { return l.Question == dq && l.By == "" && len(l.Reach) > 0 })
+		// An open reading makes the question wait only while its answer can
+		// move a Hypothesis there (its Reach).
+		waiting := len(p.openReadings(dq)) > 0
 		if open {
 			var live []string
 			for _, h := range n.Children {
@@ -163,19 +164,19 @@ func (p Projection) Owed() []Owed {
 				add(Owed{Who: OwedRunner, Kind: OwedPremise, Key: pr.From, To: pr.To})
 			}
 		}
-		// A select or a choice is owed only once the runner owes nothing on
-		// the question, no premise's question is still open, and the current
-		// select does not stand. A lone candidate's select also waits for its
-		// sub-questions (ADR 0014). Both also wait for an open reading whose
-		// answer can move a Hypothesis on the question, and for a referred
-		// limit on it: the owner's return sends its case back to run, which
-		// may change the candidates (ADR 0016).
-		held := waiting || p.ReferredLimit(dq) != ""
-		if open && p.PremiseHold(dq) == nil && !p.selectStands(dq) && !RunnerOwes(mine) {
-			switch {
-			case len(q.Candidates) == 1 && !p.HasOpenSubquestion(q.Candidates[0]) && !held:
-				add(Owed{Who: OwedRunner, Kind: OwedSelect, Key: q.Candidates[0]})
-			case len(q.Candidates) >= 2 && !held:
+		// A select whose basis changed reopens its question as stale. When
+		// no other runner item and no premise's open question accounts for
+		// it, the runner reaffirms the stale node or re-runs what it rests
+		// on; a select of the same Hypothesis is never owed again.
+		if open && q.Reason == ReasonSelectedStale && !RunnerOwes(mine) && p.OpenPremise(dq) == nil {
+			add(Owed{Who: OwedRunner, Kind: OwedStale, Key: p.staleNode(dq)})
+		}
+		// A select or a choice is owed only when the question's turn is
+		// owed (turn.go): nothing it waits on, and a candidate.
+		if t := p.turnOf(dq, mine); t.Kind == TurnOwed {
+			if len(t.Candidates) == 1 {
+				add(Owed{Who: OwedRunner, Kind: OwedSelect, Key: t.Candidates[0]})
+			} else {
 				add(Owed{Who: OwedOwner, Kind: OwedChoose, Key: dq})
 			}
 		}
@@ -184,13 +185,13 @@ func (p Projection) Owed() []Owed {
 	return out
 }
 
-// selectStands reports whether question dq's current select still holds for
-// the ledger: no conflict, it names a candidate, and no candidate is new since
-// it applied. A candidate that fell since does not undo it.
-func (p Projection) selectStands(dq string) bool {
-	rec, ok := p.CurrentSelect(dq)
-	q := p.Questions[dq]
-	return ok && len(p.Decisions[dq].Conflicts) == 0 && slices.Contains(q.Candidates, rec.Hyp) && !newCandidate(rec, q.Candidates)
+// staleNode is the node a stale select of question dq rests on: the
+// selected Hypothesis when it is stale, otherwise the question itself.
+func (p Projection) staleNode(dq string) string {
+	if rec, ok := p.CurrentSelect(dq); ok && p.Hyps[rec.Hyp] != nil && p.Hyps[rec.Hyp].Stale != nil {
+		return rec.Hyp
+	}
+	return dq
 }
 
 // Premise is a live depends_on edge from a candidate of a question to a
@@ -241,12 +242,12 @@ func (p Projection) PremiseCycles() [][2]string {
 	return out
 }
 
-// PremiseHold returns the first premise of question dq whose target's
-// question is open or reopened, or nil. While it stands, neither a select
-// nor a choice is owed on dq: the premise's question is decided first.
-func (p Projection) PremiseHold(dq string) *Premise {
+// OpenPremise returns the first premise of question dq whose target's
+// question is open or reopened, or nil. While it stands, dq's turn waits:
+// the premise's question is decided first.
+func (p Projection) OpenPremise(dq string) *Premise {
 	for _, pr := range p.premisesOf(dq) {
-		if t := p.Questions[p.Nodes[pr.To].Parent]; t != nil && (t.State == DQOpen || t.State == DQReopened) {
+		if t := p.Questions[p.Nodes[pr.To].Parent]; t != nil && t.State.Open() {
 			return &pr
 		}
 	}
@@ -292,8 +293,8 @@ func closedExp(e *Exp) bool {
 
 // ReferredLimit is the key of the first open limit under question dq, or
 // line of the Goal when dq is a top-level question, whose latest hand is a
-// refer, or "". It holds the question's select and choice until the owner
-// accepts or returns it.
+// refer, or "". The question's select and choice wait for it until the
+// owner accepts or returns it.
 func (p Projection) ReferredLimit(dq string) string {
 	ls := p.LimitsOf(dq)
 	if n := p.Nodes[dq]; n != nil && n.Parent == p.Goal.GoalID {

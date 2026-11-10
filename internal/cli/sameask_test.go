@@ -36,9 +36,9 @@ func TestSameAskReadingsPrintAndCloseAsOne(t *testing.T) {
 	want(t, out, 0, "    "+k1+": "+q1+" candidates H-")
 	want(t, out, 0, "    "+k2+": "+q2+" candidates H-")
 	want(t, out, 0, " supports, now supported")
-	want(t, out, 0, "    held: open reading "+k1+" waits for the owner; its answer can move H-")
-	want(t, out, 0, "    held: open reading "+k2+" waits for the owner; its answer can move H-")
-	want(t, out, 0, "    held: open reading "+k3+" waits for the owner; its answer can move H-")
+	want(t, out, 0, "    waits on open reading "+k1+" for the owner; its answer can move H-")
+	want(t, out, 0, "    waits on open reading "+k2+" for the owner; its answer can move H-")
+	want(t, out, 0, "    waits on open reading "+k3+" for the owner; its answer can move H-")
 
 	want(t, hyp(t, "checkpoint", "--summary", "yes", "--role", "owner", "--closes", k1, "--actor", "owner-dat", "--why", "w"), 0,
 		"warn: "+k2+" asks the same as "+k1+" and stays open; add --closes "+k2)

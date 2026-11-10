@@ -298,32 +298,25 @@ func (p Projection) SelectOwed(q string) (hyps []string, choose bool) {
 	return nil, false
 }
 
-// SelectBlock names why question q owes no select or choice, in the order the
-// ledger reads them: the first item the runner owes on q, a reading on q that
-// waits for the owner, the premise hold, the lone candidate's open
-// sub-question, or else q's state.
+// SelectBlock names why question q owes no select or choice: the first thing
+// its turn waits on, or else q's state.
 func (p Projection) SelectBlock(q string) string {
-	for _, o := range p.Owed() {
-		if o.Question == q && o.Who == OwedRunner {
-			return fmt.Sprintf("%s owes the runner first: %s", p.label(q), p.owedText(o))
+	if t := p.Turn(q); t.Kind == TurnWaits {
+		switch w := t.Waits[0]; w.Kind {
+		case WaitRunner:
+			return fmt.Sprintf("%s owes the runner first: %s", p.label(q), p.owedText(w.Item))
+		case WaitReading:
+			return fmt.Sprintf("open reading %s waits for the owner; its answer can move %s", p.keyLabel(w.Key), p.labels(w.Reach))
+		case WaitReferred:
+			return fmt.Sprintf("referred limit %s waits for the owner: an accept releases the select, a return sends its case to run", p.keyLabel(w.Key))
+		case WaitPremise:
+			t := p.Nodes[w.Premise.To].Parent
+			return fmt.Sprintf("%s assumes %s, in %s %s; decide %s first", p.label(w.Premise.From), p.label(w.Premise.To), p.label(t), p.Questions[t].State, p.label(t))
+		case WaitSubquestion:
+			return fmt.Sprintf("%s: %s has a sub-question not answered", ReasonAwaitingSubquestions, p.label(w.Key))
 		}
-	}
-	for _, l := range p.Readings {
-		if l.Question == q && l.By == "" && len(l.Reach) > 0 {
-			return fmt.Sprintf("open reading %s waits for the owner; its answer can move %s", p.keyLabel(l.Key), p.labels(l.Reach))
-		}
-	}
-	if k := p.ReferredLimit(q); k != "" {
-		return fmt.Sprintf("referred limit %s waits for the owner: an accept releases the select, a return sends its case to run", p.keyLabel(k))
-	}
-	if pr := p.PremiseHold(q); pr != nil {
-		t := p.Nodes[pr.To].Parent
-		return fmt.Sprintf("%s assumes %s, in %s %s; decide %s first", p.label(pr.From), p.label(pr.To), p.label(t), p.Questions[t].State, p.label(t))
 	}
 	qs := p.Questions[q]
-	if len(qs.Candidates) == 1 && p.HasOpenSubquestion(qs.Candidates[0]) {
-		return fmt.Sprintf("%s: %s has a sub-question not answered", ReasonAwaitingSubquestions, p.label(qs.Candidates[0]))
-	}
 	state := string(qs.State)
 	if qs.Reason != "" {
 		state += "/" + qs.Reason
