@@ -83,8 +83,7 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 		return p.Hyps[h].Status == replay.HypSupported && p.Questions[sub].State == replay.DQDeferred
 	}
 	// awaitingOwner collects, for each question FRONTIER prints, the one step
-	// due from the owner: choose between the candidates, or confirm a
-	// scope-change select.
+	// due from the owner: choose between the candidates.
 	var awaitingOwner []string
 	printQuestion := func(dq, indent string) {
 		ns := p.Questions[dq]
@@ -118,8 +117,6 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 			}
 		}
 		switch {
-		case ns.Reason == replay.ReasonAwaitingOwner:
-			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s awaiting_owner: %s (scope change)", r.id(dq), r.id(SelectedHyp(p, dq))))
 		case slices.ContainsFunc(owed, func(o replay.Owed) bool { return o.Kind == replay.OwedChoose && o.Key == dq }):
 			mark := ""
 			if !resultSeparates(p, ns.Candidates) {
@@ -546,15 +543,11 @@ func SelectedHyp(p replay.Projection, dq string) string {
 }
 
 // SelectKind names what a select needs the owner for: "trade-off" when its
-// Hypothesis is one of two or more candidates, "scope-change", both joined by
-// ", ", or "" for a plain select.
+// Hypothesis is one of two or more candidates, or "" for a plain select.
 func SelectKind(p replay.Projection, dq string, rec replay.SelectRec) string {
 	var kinds []string
 	if cands := p.Questions[dq].Candidates; len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
 		kinds = append(kinds, "trade-off")
-	}
-	if rec.ScopeChange {
-		kinds = append(kinds, "scope-change")
 	}
 	return strings.Join(kinds, ", ")
 }

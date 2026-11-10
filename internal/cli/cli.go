@@ -70,9 +70,8 @@ write:
   amend HYP --body B                     revise a Hypothesis body
   subject HYP PATH...                    tie a Hypothesis to the files that embody its claim, by sha256
   link FROM depends_on|external_ref TO   unlink FROM TYPE TO
-  select DQ [HYP] [--scope-change]   admitted only when hyp status owes it (no HYP: print the suggestion only)
+  select DQ [HYP]                        admitted only when hyp status owes it (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ
-  confirm DQ --role owner --verdict sufficient|insufficient   (a scope-change select)
   checkpoint --summary S [--refers K]... [--role owner [--accept K]... [--returns K]... [--closes R#rN]... [--revises R#rN]... [--line L]...]
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):

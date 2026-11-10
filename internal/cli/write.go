@@ -692,17 +692,20 @@ func cmdLink(name, typ string) func([]string, io.Writer, io.Writer) error {
 
 func cmdSelect(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("select", stdout, stderr)
-	scope := w.fs.Bool("scope-change", false, "the choice changes the Goal's scope")
+	scope := w.fs.Bool("scope-change", false, "retired: "+retiredScope)
 	pos, err := parse(w.fs, args)
 	if err != nil {
 		return err
+	}
+	if *scope {
+		return usageErr("select --scope-change was retired: %s", retiredScope)
 	}
 	switch len(pos) {
 	case 1:
 		return suggest(w, pos[0])
 	case 2:
 	default:
-		return usageErr("usage: hyp select DQ [HYP] [--scope-change]")
+		return usageErr("usage: hyp select DQ [HYP]")
 	}
 	if pos, err = w.begin(args, 2); err != nil {
 		return err
@@ -718,7 +721,7 @@ func cmdSelect(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		d := draft{event.TypeDQSelect, dq, event.DQSelect{Hypothesis: h,
-			PrevSelect: w.currentSelect(dq), ScopeChange: *scope}}
+			PrevSelect: w.currentSelect(dq)}}
 		// A select replay would refuse keeps replay's own refusal.
 		if n := w.p.Nodes[h]; w.p.Questions[dq] == nil || n.Kind != event.KindHypothesis || n.Parent != dq || !replay.LiveHypStatus(w.p.Hyps[h].Status) {
 			return d, nil
@@ -782,36 +785,19 @@ func cmdUnselect(args []string, stdout, stderr io.Writer) error {
 	})
 }
 
+// retiredScope is what replaces a scope-change select and its owner confirm
+// (ADR 0019): a Goal line the answer will not meet is referred and accepted,
+// and a Goal that needs more is a new Goal, so a new tree.
+const retiredScope = "a scope change is no longer a select: the runner refers the Goal line the answer will not meet (hyp checkpoint --refers G-…#n) and the owner accepts it (hyp checkpoint --role owner --accept G-…#n); a Goal that needs more is a new Goal, so a new tree that cites this one"
+
+// cmdConfirm is retired: the select is the gate (ADR 0015), and a scope
+// change is a line the owner accepts or a new tree (ADR 0019).
 func cmdConfirm(args []string, stdout, stderr io.Writer) error {
-	w := newWriter("confirm", stdout, stderr)
-	role := w.fs.String("role", "", "owner (required); the verifier role was retired")
-	verdict := w.fs.String("verdict", "", "sufficient or insufficient (required)")
-	var accepts multi
-	w.fs.Var(&accepts, "accept", "retired: the owner accepts a referred limit with hyp checkpoint --role owner --accept")
-	pos, err := w.begin(args, 1)
-	if err != nil {
-		return err
+	const use = "hyp confirm was retired: the owner's choose, recorded as the select, ends a trade-off, and " + retiredScope
+	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {
+		return helpText(use)
 	}
-	if len(accepts) > 0 {
-		return usageErr("confirm --accept was retired: the runner refers the limit with hyp checkpoint --refers, the owner accepts it with hyp checkpoint --role owner --accept, then confirms")
-	}
-	if *role == "" || *verdict == "" {
-		return usageErr("confirm needs --role and --verdict")
-	}
-	if *role == event.RoleVerifier {
-		return refusedErr("the verifier role was retired; a review that finds a defect records a Result, a retract or a limit")
-	}
-	return w.run(func() (draft, error) {
-		dq, err := w.ref(pos[0])
-		if err != nil {
-			return draft{}, err
-		}
-		p := event.Confirm{Select: w.currentSelect(dq), Role: *role, Verdict: *verdict}
-		if _, err := admitted(w.p.AdmitConfirm(dq, p)); err != nil {
-			return draft{}, err
-		}
-		return draft{event.TypeConfirm, dq, p}, nil
-	})
+	return usageErr(use)
 }
 
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {

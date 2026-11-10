@@ -64,7 +64,7 @@ The run that prompted this: `R-KHDA9E#1` on Q-QSDM8H was referred to the owner, 
 
 Owner decision on 2026-11-09: a referred limit holds its question's `select` and `choose` until the owner accepts or returns it, the way an open reading with a reach already holds them. An accept releases the select. A return makes the limit the runner's `limit` item, which holds the select until a Result closes it. The hold does not reach new rivals, because a refer says nothing about the rivals. `hyp select` names the limit in its refusal, and `hyp status` prints a `held:` line under the question.
 
-A limit referred after the select still waits for the owner, and a scope-change owner confirm still accepts it with `--accept`.
+A limit referred after the select still waits for the owner, and a scope-change owner confirm still accepts it with `--accept`. *ADR 0019 retired the owner confirm: the owner accepts a referred limit with a checkpoint.*
 
 ## Amended 2026-11-09: a Goal line is a limit the owner records
 

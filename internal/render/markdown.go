@@ -40,7 +40,7 @@ func Markdown(p replay.Projection) string {
 		if ls := p.LimitsOf(id); len(ls) > 0 {
 			b.WriteString("\nLimits:\n\n")
 			for _, l := range ls {
-				fmt.Fprintf(&b, "- %s\n", r.limitLine(l, hyp))
+				fmt.Fprintf(&b, "- %s\n", r.limitLine(l))
 			}
 		}
 		b.WriteString("\n")

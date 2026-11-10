@@ -747,8 +747,9 @@ func TestLimitHyps(t *testing.T) {
 }
 
 // An old owner confirm's accepts replay as accepts at their place in the
-// log: an amend lapses the confirm and leaves the accept, and an owner's no
-// reopens the question and leaves it too. Only a return lifts an accept.
+// log, and nothing else of the confirm applies: an amend and an owner's no
+// leave the question answered and the accept standing. Only a return lifts
+// an accept.
 func TestOldConfirmAcceptReplaysAsAnAccept(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
@@ -766,7 +767,7 @@ func TestOldConfirmAcceptReplaysAsAnAccept(t *testing.T) {
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
 	p = replayB(b)
 	wantNoRejections(t, p)
-	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
+	wantStatus(t, p, q, DQAnswered, "")
 	wantLimit(t, p, q, 0, limitAccepted, "o")
 	// A limit an old confirm accepted can be returned.
 	b.As("o").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "run it", Role: event.RoleOwner, Returns: []string{event.LimitKey(r1, 1)}})
@@ -902,23 +903,6 @@ func TestLiveRivalsSkipDeadHypotheses(t *testing.T) {
 	}
 }
 
-func TestLimitGatingFollowsCurrentSelect(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	limitResult(b, h1, []string{"only h1"}, nil)
-	limitResult(b, h2, []string{"only h2"}, nil)
-	if p := replayB(b); p.LimitsOf(q)[0].Gating || p.LimitsOf(q)[1].Gating {
-		t.Fatal("with no select, no limit gates")
-	}
-	b.As("a").Select(q, h1, "", false)
-	p := replayB(b)
-	if !p.LimitsOf(q)[0].Gating || p.LimitsOf(q)[1].Gating {
-		t.Fatalf("after selecting h1: gating = %v, %v; want true, false", p.LimitsOf(q)[0].Gating, p.LimitsOf(q)[1].Gating)
-	}
-}
-
 func TestUnjudgedReadsRivalsAtAdd(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
@@ -972,7 +956,8 @@ func currentSelect(t *testing.T, p Projection, q string) SelectRec {
 	return rec
 }
 
-func TestSelectRecKeepsScopeChangeAndWhy(t *testing.T) {
+// A select record keeps its why; an old scope_change flag is history.
+func TestSelectRecKeepsWhy(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Hyp(q, "h")
@@ -980,56 +965,8 @@ func TestSelectRecKeepsScopeChangeAndWhy(t *testing.T) {
 	b.Emit(event.TypeDQSelect, q, event.DQSelect{Hypothesis: h, ScopeChange: true})
 	sel := why(b, "pick h")
 	rec := currentSelect(t, replayB(b), q)
-	if rec.ID != sel || rec.Hyp != h || !rec.ScopeChange || rec.Why != "pick h" {
-		t.Fatalf("current select = %+v, want %s on %s, scope-change, why %q", rec, sel, h, "pick h")
-	}
-}
-
-func TestDecisionKeepsLatestOwnerConfirm(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
-	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", true)
-	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
-	why(b, "thin")
-	if c := replayB(b).Decisions[q].Latest(event.RoleOwner); c.Verdict != event.ConfirmInsufficient || c.Why != "thin" {
-		t.Fatalf("after an insufficient confirm: %+v, want insufficient %q", c, "thin")
-	}
-	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
-	why(b, "good")
-	if c := replayB(b).Decisions[q].Latest(event.RoleOwner); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
-		t.Fatalf("after a sufficient confirm: %+v, want sufficient %q", c, "good")
-	}
-
-	// An amend stops the sufficient confirm counting, but the record keeps it:
-	// hyp show still prints the latest owner confirm.
-	amend(b.As("a"), h, "new")
-	dec := replayB(b).Decisions[q]
-	if c := dec.Counting(event.RoleOwner); c != nil {
-		t.Fatalf("after an amend a confirm still counts: %+v", c)
-	}
-	if c := dec.Latest(event.RoleOwner); c.Verdict != event.ConfirmSufficient || c.Why != "good" {
-		t.Fatalf("after an amend: %+v, want sufficient %q kept", c, "good")
-	}
-}
-
-func TestConfirmOnEarlierSelectChangesOnlyIt(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	b.Supports(h1)
-	b.Supports(h2)
-	s1 := b.As("a").Select(q, h1, "", true)
-	s2 := b.Select(q, h2, s1, true)
-	b.As("o").Confirm(q, s1, event.RoleOwner, event.ConfirmInsufficient)
-	why(b, "late")
-	p := replayB(b)
-	if rec, dec := currentSelect(t, p, q), p.Decisions[q]; rec.ID != s2 || dec.Latest(event.RoleOwner) != nil {
-		t.Fatalf("current select = %+v with owner %+v, want %s with none", rec, dec.Latest(event.RoleOwner), s2)
-	}
-	if cs := p.Decisions[q].Confirms[s1]; len(cs) != 1 || cs[0].Verdict != event.ConfirmInsufficient || cs[0].Why != "late" {
-		t.Fatalf("earlier select's confirms = %+v, want insufficient %q", cs, "late")
+	if rec.ID != sel || rec.Hyp != h || rec.Why != "pick h" {
+		t.Fatalf("current select = %+v, want %s on %s, why %q", rec, sel, h, "pick h")
 	}
 }
 

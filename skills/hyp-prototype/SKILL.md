@@ -146,12 +146,11 @@ that no longer matters is `hyp withdraw <Q-id>`.
   supported and not stale, it has no open sub-question, and no candidate is
   new since the select. A new candidate reopens the question
   (`new_candidate`); OWED then lists `select` or `choose` again.
-- Add `--scope-change` when the select changes the Goal's scope. Only then
-  does the owner confirm: `Q-… awaiting_owner: H-… (scope change)` waits
-  for `hyp confirm <Q-id> --role owner --verdict sufficient --why "<their words>" --actor <owner-name>`.
-  An open limit holds the confirm: the runner refers each one it cannot
-  run with `hyp checkpoint --refers <key>`, and the owner accepts it first
-  with `hyp checkpoint --role owner --accept <key> --actor <owner-name>`.
+- A select never changes the Goal's scope. When the answer will not meet a
+  Goal line, refer the line with `hyp checkpoint --refers G-<id>#<n>`, and
+  the owner accepts it with `hyp checkpoint --role owner --accept G-<id>#<n> --actor <owner-name>`.
+  When the answer needs more than the Goal holds, that is a new Goal, so a
+  new tree that cites this one.
 - To change a selection, select the other candidate when OWED lists it. When
   the evidence changes the claim, add a new Hypothesis that `supersedes` the
   old one and select that.

@@ -70,11 +70,11 @@ rules:
 
 1. **The Goal is written once.** Its lines are written on one owner
    checkpoint and never edited. A new line or a new purpose is a new Goal, so
-   a new tree. A scope-change select, which the owner confirms, is the one
-   change of scope inside a tree.
+   a new tree. A narrower scope is a line the runner refers and the owner
+   accepts; there is no other change of scope inside a tree.
 2. **The owner is asked only on real choices, and only when the runner owes
    nothing on the question.** The ledger routes each one to AWAITING OWNER: a
-   reading, a referred limit, a choice between candidates, a scope change.
+   reading, a referred limit, a choice between candidates.
 3. **Every owner move but the lines answers what the ledger hands them.** A
    reading answer sets what a line or an answer means. An accept says this tree
    does not run a case, and a return sends it back to run. A choice selects one

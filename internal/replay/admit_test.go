@@ -130,38 +130,3 @@ func TestAdmitResultPinRules(t *testing.T) {
 	}
 }
 
-func TestAdmitConfirm(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Hyp(q, "h")
-	r := limitResult(b, h, []string{"l1"}, nil)
-	key := event.LimitKey(r, 1)
-	owner := func(accepts ...string) event.Confirm {
-		return event.Confirm{Role: event.RoleOwner, Verdict: event.ConfirmSufficient, Accepts: accepts}
-	}
-	refused := func(fs []Finding, want string) {
-		t.Helper()
-		if len(fs) != 1 || fs[0].Kind != FindRefuse || !strings.Contains(fs[0].Text, want) {
-			t.Fatalf("findings = %+v, want a refusal with %q", fs, want)
-		}
-	}
-
-	refused(replayB(b).AdmitConfirm(q, owner()), "no current selection")
-	refused(replayB(b).AdmitConfirm(h, owner()), "no current selection")
-
-	b.As("a").Select(q, h, "", true)
-	p := replayB(b)
-	refused(p.AdmitConfirm(q, owner()), "open limits under "+event.DisplayID(event.KindDesignQuestion, q)+" are not accepted:\n  "+event.DisplayID(event.KindResult, r)+"#1 l1\n")
-	if fs := p.AdmitConfirm(q, event.Confirm{Role: event.RoleOwner, Verdict: event.ConfirmInsufficient}); len(fs) != 0 {
-		t.Fatalf("owner insufficient: findings = %+v, want none", fs)
-	}
-	// A confirm accepts no limit: the runner refers it and the owner
-	// accepts it with a checkpoint, and then the confirm is admitted.
-	refused(p.AdmitConfirm(q, owner(key)), "are not accepted")
-	g := p.Goal.GoalID
-	b.As("a").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []string{key}})
-	b.As("o").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "ok", Role: event.RoleOwner, Accepts: []string{key}})
-	if fs := replayB(b).AdmitConfirm(q, owner()); len(fs) != 0 {
-		t.Fatalf("after the accept: findings = %+v, want none", fs)
-	}
-}

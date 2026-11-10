@@ -19,7 +19,7 @@ One line of `.tree/events/<actor>.jsonl`: an id, a time, an actor, a type from a
 _Avoid_: entry, record (a record is what hyp writes for a sandbox or a command)
 
 **Actor**:
-The name a write records as its author, from `--actor` or `HYP_ACTOR` ([spec §1](replay-spec.md#1-names-and-locations)). Each actor appends to its own events file, so logs from several worktrees merge ([spec §6](replay-spec.md#6-merge-order)). An actor is not a role: owner is the role a confirm names (the verifier role is retired, ADR 0015).
+The name a write records as its author, from `--actor` or `HYP_ACTOR` ([spec §1](replay-spec.md#1-names-and-locations)). Each actor appends to its own events file, so logs from several worktrees merge ([spec §6](replay-spec.md#6-merge-order)). An actor is not a role: owner is the role an owner checkpoint names (the verifier role is retired, ADR 0015).
 _Avoid_: user, author (alone)
 
 **Replay**:
@@ -50,7 +50,7 @@ The section of `hyp status` that shows the open work: the tree pruned to it, fro
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
-The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `choose: H…, H…` when they should choose between the candidates and the runner owes nothing on the question, or `awaiting_owner: H (scope change)` when they should confirm a scope-change select. A question the Frontier does not print asks nothing, and the requirement holds again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
+The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `choose: H…, H…` when they should choose between the candidates and the runner owes nothing on the question. A question the Frontier does not print asks nothing, and the choice is owed again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
 
 **Reading**:
 How a run read owner words that a verdict rests on: a line of the Goal, recorded with `hyp record --reading`, or the owner's answer to an earlier reading, recorded with `hyp record --reading-of R-…#rN=TEXT`, which stores that reading's key as the new reading's `of`. A reading of an answer narrows it and never reopens it: the earlier reading stays closed and its answer stays in force. A reading stays open until an owner checkpoint closes it with their answer. Two readings with the same `of` and the same text ask the owner the same question: each holds its own Result's question, `hyp status` prints them as one line, and the owner closes them in one checkpoint.
@@ -125,35 +125,30 @@ A trade-off is between candidates, not about what a Goal line means, which is a 
 _Avoid_: `--tradeoff` (removed: a flag cannot record a state hyp derives), tie
 
 **Select**:
-The `dq.select` event that records one Hypothesis as a DesignQuestion's answer. It is written by whoever runs the tree, never in the owner's role. The select is the gate: `hyp select` admits it only when the ledger owes a `select` of that Hypothesis or the owner's `choose` on the question, and otherwise refuses, naming what is owed ([spec §5.1](replay-spec.md#51-write-time-refusals)). An admitted select answers the question unless it is a scope change, which an owner confirm must then count on ([spec §7.4](replay-spec.md#74-designquestion-state)). On a trade-off the owner chooses first (see Owner). In code: the question's `replay.Decision` and `replay.Projection.AdmitSelect`.
+The `dq.select` event that records one Hypothesis as a DesignQuestion's answer. It is written by whoever runs the tree, never in the owner's role. The select is the gate: `hyp select` admits it only when the ledger owes a `select` of that Hypothesis or the owner's `choose` on the question, and otherwise refuses, naming what is owed ([spec §5.1](replay-spec.md#51-write-time-refusals)). An admitted select answers the question while it stands ([spec §7.4](replay-spec.md#74-designquestion-state)); a scope change is not a select but a Goal line the owner accepts, or a new tree (ADR 0019). On a trade-off the owner chooses first (see Owner). In code: the question's `replay.Decision` and `replay.Projection.AdmitSelect`.
 _Avoid_: pick, choose (the owner chooses; the select records it), accept, decide (alone)
 
 **Confirm**:
-The `confirm` event in which the owner judges a scope-change select `sufficient` or `insufficient` ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §7.4](replay-spec.md#74-designquestion-state)). An owner confirm may also accept limits. A verifier confirm in an old log is history and applies nothing; `hyp confirm --role verifier` is refused.
-_Avoid_: approve, review; verdict (alone: a confirm's answer is a confirm verdict)
+Retired by ADR 0019. It was the `confirm` event in which a role judged a select `sufficient` or `insufficient`; the last use was the owner's confirm of a scope-change select. `hyp confirm` exits 2. An old owner confirm replays only the limits it accepted ([spec §4](replay-spec.md#4-event-types-closed-set)), and an old verifier confirm applies nothing. The owner still "confirms" in plain speech when they choose or accept.
+_Avoid_: approve, review; verdict (alone: a confirm's answer was a confirm verdict)
 
 **Decision**:
-A DesignQuestion's current Select, the candidates when it applied, and the owner Confirms that still count.
+A DesignQuestion's current Select, its select history and conflicts, and the candidates when the select applied.
 _Avoid_: answer (`answered` is a status)
 
-**Dossier**:
-The evidence a DesignQuestion's Decision rests on: the selected Hypothesis's body, the live Hypotheses, every live Result with a verdict on one of them, and the links going out from those Hypotheses and Results, not counting `external_ref`. It is derived, never stored.
-_Avoid_: basis (a basis event belongs to the Stale rule), case (a Case belongs to a known answer)
-
-**Lapse**:
-What happens to an owner Confirm when the Dossier differs from the one it judged: it stops counting, and counts again if the Dossier returns to what it judged. A select does not lapse: after it, only a new candidate reopens the question.
-_Avoid_: drop, invalidate
+**Dossier**, **Lapse**:
+Retired by ADR 0019. The Dossier was the evidence an owner Confirm judged, and a Confirm lapsed when it changed. With no confirm left, nothing reads it: a select stands until a new candidate reopens its question.
 
 **Verifier**:
-Retired by ADR 0015. It was the role that confirmed every select, independently of the actor who made it. Old verifier confirms replay as history and apply nothing, and `hyp confirm --role verifier` is refused. Any actor may still review: a defect is recorded as a Result, a retract or a limit. In code: `event.RoleVerifier`, read only from old logs.
+Retired by ADR 0015. It was the role that confirmed every select, independently of the actor who made it. Old verifier confirms replay as history and apply nothing, and `hyp confirm` is retired (ADR 0019). Any actor may still review: a defect is recorded as a Result, a retract or a limit. In code: `event.RoleVerifier`, read only from old logs.
 _Avoid_: reviewer, checker (as a role)
 
 **Owner**:
-The person hyp asks to act on real choices, and the role they act in. The owner writes the Goal's lines once, and then answers what the ledger lists under Awaiting owner: a reading, a referred limit, a choice between candidates (`choose:`), or a scope-change confirm. Whoever runs the tree records a choice as the select, with the owner's words in `--why`; the tree holds what was chosen, but not who chose it ([ADR 0015](adr/0015-the-select-is-the-gate.md)). hyp does not authenticate actors, so an owner act records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure. The owner's role and what they never do are stated in [principles.md](principles.md#7-who-does-what), and the moves in [spec §8.2](replay-spec.md#82-keyed-items-limits-lines-and-readings). In code: `event.RoleOwner`; a scope-change confirm is required by `SelectRec.ScopeChange` in `replay` ([spec §7.4](replay-spec.md#74-designquestion-state)).
+The person hyp asks to act on real choices, and the role they act in. The owner writes the Goal's lines once, and then answers what the ledger lists under Awaiting owner: a reading, a referred limit, or a choice between candidates (`choose:`). Whoever runs the tree records a choice as the select, with the owner's words in `--why`; the tree holds what was chosen, but not who chose it ([ADR 0015](adr/0015-the-select-is-the-gate.md)). hyp does not authenticate actors, so an owner act records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure. The owner's role and what they never do are stated in [principles.md](principles.md#7-who-does-what), and the moves in [spec §8.2](replay-spec.md#82-keyed-items-limits-lines-and-readings). In code: `event.RoleOwner`.
 _Avoid_: user, stakeholder, approver, pick, decide (alone)
 
 **Limit**:
-A case the Goal covers that no check has yet run on a Hypothesis. It is a keyed item with two births and one life: a Result records a limit its run left uncovered, keyed `<result-id>#<n>` (ADR 0016), and the owner records a line of the Goal, keyed `G-<goal-id>#<n>` (see Line). Its one job is to name the next case to run: an Experiment aims at it (`--aims`), and a later Result that runs the case on the candidates closes it (`--closes`), so its verdicts separate the rivals. A runner refers a limit that no test within the Goal can close, or whose case is void for every candidate (`hyp checkpoint --refers`), which moves it from the runner's Owed items to Awaiting owner. The owner answers the refer: accepts it (`--accept` on an owner checkpoint), so this tree does not run the case, or returns it (`--returns`) when the Goal covers its case, which makes it the runner's again; a return also reopens an accepted limit, and an accept needs a refer first. One move table states each move, from which state and by whom ([spec §8.2](replay-spec.md#82-keyed-items-limits-lines-and-readings)). A close records that the case ran, whatever the verdicts, and a limit's category is never stored: it is what its closers' verdicts, an accept, and the latest refer or return say. A limit's hand (the latest refer, return or accept) and its closers are two facts, and an **open** limit is one neither closed nor accepted; open is said of a Result's limit only. An open limit is owed while its question has a candidate, whichever Hypotheses its Result judged, so it holds the select; an open limit that judges the selected Hypothesis gates the owner's sufficient confirm ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). Other notes a run makes have homes of their own: the scope of a run goes in the Experiment body, a procedure note or a commit goes in the observation with the commit in a cited file, and a premise is a `depends_on` edge. In code: `replay.Limit`.
+A case the Goal covers that no check has yet run on a Hypothesis. It is a keyed item with two births and one life: a Result records a limit its run left uncovered, keyed `<result-id>#<n>` (ADR 0016), and the owner records a line of the Goal, keyed `G-<goal-id>#<n>` (see Line). Its one job is to name the next case to run: an Experiment aims at it (`--aims`), and a later Result that runs the case on the candidates closes it (`--closes`), so its verdicts separate the rivals. A runner refers a limit that no test within the Goal can close, or whose case is void for every candidate (`hyp checkpoint --refers`), which moves it from the runner's Owed items to Awaiting owner. The owner answers the refer: accepts it (`--accept` on an owner checkpoint), so this tree does not run the case, or returns it (`--returns`) when the Goal covers its case, which makes it the runner's again; a return also reopens an accepted limit, and an accept needs a refer first. One move table states each move, from which state and by whom ([spec §8.2](replay-spec.md#82-keyed-items-limits-lines-and-readings)). A close records that the case ran, whatever the verdicts, and a limit's category is never stored: it is what its closers' verdicts, an accept, and the latest refer or return say. A limit's hand (the latest refer, return or accept) and its closers are two facts, and an **open** limit is one neither closed nor accepted; open is said of a Result's limit only. An open limit is owed while its question has a candidate, whichever Hypotheses its Result judged, so it holds the select ([spec §8](replay-spec.md#8-projection-what-replay-returns), Limits). Other notes a run makes have homes of their own: the scope of a run goes in the Experiment body, a procedure note or a commit goes in the observation with the commit in a cited file, and a premise is a `depends_on` edge. In code: `replay.Limit`.
 _Avoid_: caveat, TODO, known issue, scope, assumption, provenance, criterion
 
 **Line**:
@@ -201,7 +196,7 @@ An edge from a node to something outside the tree, such as `gh:976` or a URL ([s
 _Avoid_: link (alone), reference
 
 **Admission**:
-The write-time rules the CLI checks before it appends an Experiment, a Result, a Select or a Confirm. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult`, `replay.Projection.AdmitSelect`, `replay.Projection.AdmitConfirm` and `replay.Finding`.
+The write-time rules the CLI checks before it appends an Experiment, a Result or a Select. Each finding is a refusal (exit 1), a bad-arguments finding (exit 2) or a warning that changes no exit code ([spec §5.1](replay-spec.md#51-write-time-refusals)). Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult`, `replay.Projection.AdmitSelect` and `replay.Finding`.
 _Avoid_: validation (that is `replay.Validate`, which replay also runs on every event)
 
 **Refusal**:

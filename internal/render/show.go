@@ -3,7 +3,6 @@ package render
 import (
 	"encoding/json"
 	"fmt"
-	"slices"
 	"sort"
 	"strings"
 
@@ -79,13 +78,10 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				w("design: %s", body)
 			}
 		}
-		if ok {
-			r.confirms(w, p.Decisions[id])
-		}
 		if ls := p.LimitsOf(id); len(ls) > 0 {
 			w("limits:")
 			for _, l := range ls {
-				w("  %s", r.limitLine(l, rec.Hyp))
+				w("  %s", r.limitLine(l))
 			}
 		}
 		// Live rivals no Result tells apart: each pair may be one claim, or
@@ -97,7 +93,6 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 			}
 		}
 		r.experiments(w, id)
-		r.dossier(w, id, rec.Hyp)
 	}
 
 	for _, e := range p.LiveEdges() {
@@ -493,101 +488,9 @@ func (r renderer) ranOn(res string, hyps []string) string {
 }
 
 // limitLine is one limit as hyp show and render --markdown print it:
-// R-…#n, its state, and its text. hyp is the question's selected Hypothesis.
-func (r renderer) limitLine(l replay.Limit, hyp string) string {
-	state := r.limitState(l)
-	if l.Open() && hyp != "" && !l.Gating {
-		state += ", does not gate (judges " + r.ids(l.Hyps) + ")"
-	}
-	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
-}
-
-// confirms prints the owner confirm that counts, or else the latest one, and,
-// when the latest has lapsed, what changed since it. Only a scope-change
-// select needs one; a verifier confirm in an old log applies nothing.
-func (r renderer) confirms(w func(string, ...any), dec *replay.Decision) {
-	o := dec.Counting(event.RoleOwner)
-	if o == nil {
-		o = dec.Latest(event.RoleOwner)
-	}
-	if o == nil {
-		return
-	}
-	w("owner: %s — %s", o.Verdict, o.Why)
-	if c := dec.Latest(event.RoleOwner); c != nil {
-		if changed := r.changed(dec.ChangedSince(c)); changed != "" {
-			w("changed since %s: %s", c.Actor, changed)
-		}
-	}
-}
-
-// changed names a Dossier diff, one entry per node or link: "+R-…, -H-…",
-// and "body" for an amended selected body.
-func (r renderer) changed(added, removed []replay.DossierItem) string {
-	var parts []string
-	add := func(sign string, items []replay.DossierItem) {
-		for _, it := range items {
-			part := sign + r.id(it.Node)
-			switch it.Kind {
-			case replay.DossierBody:
-				part = "body"
-			case replay.DossierLink:
-				part += " " + it.Word + " " + r.id(it.To)
-			}
-			if !slices.Contains(parts, part) {
-				parts = append(parts, part)
-			}
-		}
-	}
-	add("+", added)
-	add("-", removed)
-	return strings.Join(parts, ", ")
-}
-
-// dossier lists question q's Dossier: each live Hypothesis with its status,
-// the Results with a verdict on it, and the links going out from both. It
-// marks a contradicts that alone keeps a rival from being a trade-off
-// candidate, so the reader sees which verdict decides whether the question is
-// a trade-off.
-func (r renderer) dossier(w func(string, ...any), q, selected string) {
-	d := r.p.Decisions[q].Dossier
-	if d == nil {
-		return
-	}
-	w("dossier:")
-	links := func(from string) {
-		for _, it := range d.Items {
-			if it.Kind == replay.DossierLink && it.Node == from {
-				w("    link %s %s %s", r.id(from), it.Word, r.id(it.To))
-			}
-		}
-	}
-	for _, it := range d.Items {
-		if it.Kind != replay.DossierHyp {
-			continue
-		}
-		h := it.Node
-		line := fmt.Sprintf("  %s %s", r.id(h), r.p.Hyps[h].Status)
-		if r.p.Hyps[h].Stale != nil {
-			line += " STALE"
-		}
-		if h == selected {
-			line += " (selected)"
-		}
-		w("%s %s", line, Cut(r.p.Nodes[h].Title, 60))
-		links(h)
-		for _, res := range d.Items {
-			if res.Kind != replay.DossierResult || res.To != h {
-				continue
-			}
-			mark := ""
-			if slices.Contains(d.Deciding[h], res.Node) {
-				mark = " [decides the trade-off: alone keeps this rival from being a candidate]"
-			}
-			w("    %s %s%s", r.id(res.Node), res.Word, mark)
-			links(res.Node)
-		}
-	}
+// R-…#n, its state, and its text.
+func (r renderer) limitLine(l replay.Limit) string {
+	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), r.limitState(l), l.Text)
 }
 
 // experiments lists every Experiment under question q, grouped by parent

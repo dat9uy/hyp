@@ -47,9 +47,9 @@ type Owed struct {
 // Owed derives the ledger in question creation order. An open or reopened
 // question owes every kind of item; an answered one owes only the limit,
 // reading, referred and premise items, so evidence that lands after the
-// answer is owed and not only listed. An open reading and a scope-change
-// owner confirm are owed by the owner too; hyp status prints those under
-// AWAITING OWNER from their own records, so they are not repeated here.
+// answer is owed and not only listed. An open reading is owed by the owner
+// too; hyp status prints it under AWAITING OWNER from its own record, so it
+// is not repeated here.
 func (p Projection) Owed() []Owed {
 	aimers := map[string][]string{}
 	for _, ev := range p.Applied {

@@ -126,9 +126,10 @@ var rules = map[string]rule{
 			var p event.DQSelect
 			_ = event.DecodePayload(ev, &p)
 			// candidates reads stored facts only, so they are the candidates
-			// just before this select, as the Dossier lists them.
+			// just before this select. A scope_change flag in an old log is
+			// history and changes nothing (ADR 0019).
 			st.Decisions[ev.Node].onSelect(SelectRec{ID: ev.ID, Hyp: p.Hypothesis, Actor: ev.Actor,
-				ScopeChange: p.ScopeChange, Why: ev.Why, Candidates: st.candidates(ev.Node)}, p.PrevSelect)
+				Why: ev.Why, Candidates: st.candidates(ev.Node)}, p.PrevSelect)
 		},
 		basis: onNode,
 	},
@@ -185,14 +186,13 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) {
 			var p event.Confirm
 			_ = event.DecodePayload(ev, &p)
+			// Read-only history: no command writes a confirm (ADR 0019). An
+			// old owner confirm is replayed only as the accepts it made, at
+			// its place in the log, and an old verifier confirm applies
+			// nothing (ADR 0015).
 			if p.Role == event.RoleVerifier {
-				// Read-only history: the verifier role was retired (ADR 0015).
 				return
 			}
-			sel := st.Decisions[ev.Node]
-			sel.onConfirm(ev, p, st.dossierItems(ev.Node, sel.Selects[p.Select].Hyp))
-			// An owner confirm no longer accepts a limit; one in an old log
-			// is replayed as the accept it made, at its place in the log.
 			for _, k := range p.Accepts {
 				st.applyLimitMove(HandAccept, k, ev)
 			}

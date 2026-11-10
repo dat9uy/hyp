@@ -117,62 +117,34 @@ func scopeAnswered() (b *testutil.B, q, h, sel string) {
 	return b, q, h, sel
 }
 
-func TestScopeChangeAwaitsTheOwner(t *testing.T) {
+// A scope_change flag in an old log is history: the select is the gate, so
+// the question is answered with no confirm (ADR 0019).
+func TestOldScopeChangeFlagNeedsNoOwner(t *testing.T) {
 	b := testutil.New()
 	q := b.DQ(b.Goal("g"), "q")
 	h := b.Hyp(q, "h")
 	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", true)
-	wantStatus(t, replayB(b), q, DQOpen, ReasonAwaitingOwner)
-	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
+	b.As("a").Select(q, h, "", true)
 	wantStatus(t, replayB(b), q, DQAnswered, "")
 }
 
-// An owner confirm lapses with its Dossier, but the accept an old confirm
-// made is replayed as an accept at its place in the log (keyed.go), so it
-// stays when the confirm lapses.
-func TestOwnerConfirmLapsesAndItsAcceptStays(t *testing.T) {
-	b, q, h, _ := scopeAnswered()
+// An old owner confirm is replayed only as the accepts it made, at its place
+// in the log (keyed.go). Nothing lapses: new evidence leaves the question
+// answered and the accept standing, and a later insufficient confirm changes
+// nothing.
+func TestOldOwnerConfirmKeepsOnlyItsAccepts(t *testing.T) {
+	b, q, h, sel := scopeAnswered()
 	p := replayB(b)
+	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
 	wantLimit(t, p, q, 0, limitAccepted, "o")
 
-	r := b.Supports(h)
-	p = replayB(b)
-	wantLimit(t, p, q, 0, limitAccepted, "o")
-	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
-	if p.LimitsOf(q)[0].Gating {
-		t.Fatal("an accepted limit gates the confirm")
-	}
-
-	b.Retract(r)
-	p = replayB(b)
-	wantStatus(t, p, q, DQAnswered, "")
-	wantLimit(t, p, q, 0, limitAccepted, "o")
-}
-
-func TestAmendLapsesTheOwnerConfirmAndAmendBackRestores(t *testing.T) {
-	b := testutil.New()
-	q := b.DQ(b.Goal("g"), "q")
-	h := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindHypothesis, Parent: q, Title: "h", Body: "old"})
 	b.Supports(h)
-	sel := b.As("a").Select(q, h, "", true)
-	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmSufficient)
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-	amend(b.As("a"), h, "new")
-	wantStatus(t, replayB(b), q, DQReopened, ReasonAwaitingOwner)
-	amend(b, h, "old")
-	wantStatus(t, replayB(b), q, DQAnswered, "")
-}
-
-// An owner's no reopens the question and leaves an accept standing: only a
-// return lifts an accept.
-func TestOwnerInsufficientLeavesTheAccept(t *testing.T) {
-	b, q, _, sel := scopeAnswered()
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
-	p := replayB(b)
+	p = replayB(b)
+	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQAnswered, "")
 	wantLimit(t, p, q, 0, limitAccepted, "o")
-	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
 }
 
 // An old verifier confirm is read-only history: replay accepts it, whatever
@@ -189,9 +161,6 @@ func TestOldVerifierConfirmHasNoEffect(t *testing.T) {
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
-	if cs := p.Decisions[q].Confirms; len(cs) != 0 {
-		t.Fatalf("confirms = %v, want none applied", cs)
-	}
 }
 
 // Replaces rule 16 and the re-verify flag: an old dq.request_verify is
