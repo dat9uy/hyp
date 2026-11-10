@@ -99,10 +99,10 @@ func TestAdmitSelectOnATradeoff(t *testing.T) {
 	wantStatus(t, replayB(b), q, DQAnswered, "")
 }
 
-// A candidate's premise in an open question holds the select; once that
+// The select waits on a candidate's premise in an open question; once that
 // question selects another Hypothesis, the premise is owed by the runner, and
 // re-pointing the edge settles it.
-func TestPremiseHoldAndPremiseItem(t *testing.T) {
+func TestOpenPremiseAndPremiseItem(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
 	q1, q2 := b.DQ(g, "q1"), b.DQ(g, "q2")
@@ -115,8 +115,8 @@ func TestPremiseHoldAndPremiseItem(t *testing.T) {
 	p := replayB(b)
 	wantOwed(t, p, q1)
 	wantOwed(t, p, q2, "owner choose "+q2)
-	if pr := p.PremiseHold(q1); pr == nil || pr.From != h || pr.To != t1 {
-		t.Fatalf("premise hold = %+v, want %s on %s", pr, h, t1)
+	if pr := p.OpenPremise(q1); pr == nil || pr.From != h || pr.To != t1 {
+		t.Fatalf("open premise = %+v, want %s on %s", pr, h, t1)
 	}
 	wantRefused(t, p.AdmitSelect(q1, h), hid(h)+" assumes "+hid(t1)+", in "+dq(q2)+" open; decide "+dq(q2)+" first")
 
@@ -192,7 +192,7 @@ func TestLimitOwedWhileQuestionHasCandidate(t *testing.T) {
 	}
 	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test within the Goal", Refers: []string{k}})
 	p = replayB(b)
-	// A referred limit holds the select until the owner accepts or returns it.
+	// The select waits on a referred limit until the owner accepts or returns it.
 	wantOwed(t, p, q, "owner referred "+k)
 	if fs := p.AdmitSelect(q, h1); len(fs) != 1 || !strings.Contains(fs[0].Text, "referred limit "+event.DisplayID(event.KindResult, dead)+"#1 waits for the owner") {
 		t.Fatalf("findings = %+v, want a refusal naming the referred limit", fs)

@@ -35,3 +35,16 @@ Owner decision on 2026-11-09: progress on a question has one account, the ledger
 - **Redefine wasted as a round that settled no ledger item and moved no status.** Rejected: it keeps two accounts of progress, and `spin` would still fire on a candidate that holds every case.
 - **Refuse an Experiment that aims at nothing owed.** Rejected: E-S2G7KA, an overlap check the owner asked for, aimed at nothing owed and contradicted a supported candidate. A new case has no key until a Result names it, and `untested` and `undecided` Experiments carry no aims.
 - **A ledger `stalled` state now.** Rejected until a real event: no item in a kept tree was missed by two Experiments.
+
+## Amended 2026-11-10: a question's turn, and a stale select is owed
+
+An architecture review found the decision gate of a question computed three times from conditions joined with `&&`: the ledger, the refusal of `hyp select`, and `hyp status`, each in its own order. A replay probe then showed a stall this ADR's guard missed. A question answered with H reopened as `selected_stale` after H's basis changed while its premise's question stayed answered, and nothing was owed to anyone: the ledger's own test of a standing select ignored stale, so `hyp select` said only "owes no select".
+
+The owner decided (2026-11-10, #115):
+
+- A question's **turn** is one derived value, read by the ledger, `hyp select` and `hyp status`, first match wins: `closed` (answered, deferred or withdrawn), `waits` (on runner work, an open reading with a reach, a referred limit, a premise, a sub-question, all listed in that order), `no_candidate`, `owed`. Spec §8.1 owns the rule.
+- A standing select is an answered question; the ledger has no second definition. A reopened question that keeps its select is never owed a select of the same Hypothesis again: it waits.
+- A stale select owes the runner a `stale` item, keyed on the stale node, when no other runner item and no open premise accounts for it: the runner reaffirms it or renews its basis.
+- The word is "waits". "Pending" is a retired signal word, and "hold" stays the DesignQuestion's defer or withdraw, so "holds the select" is reworded in the spec, the glossary and the skill.
+
+No event or exit code changes. `hyp status` prints `waits on …` where it printed `held: …`, and prints a sub-question the turn waits on. `hyp select` on an answered question names its state instead of a runner item.

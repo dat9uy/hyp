@@ -35,11 +35,11 @@ func TestReadingOnDecidingContradictsHoldsRivals(t *testing.T) {
 	r := must(t, "record", "--exp", e, "--verdict", h+"=contradicts", "--observation", "o", "--reading", "a line", "--why", "w")
 
 	out := hyp(t, "status")
-	want(t, out, 0, "    held: open reading "+r+"#r1 waits for the owner; its answer can move "+h)
+	want(t, out, 0, "    waits on open reading "+r+"#r1 for the owner; its answer can move "+h)
 	want(t, out, 0, "runner owes nothing")
 }
 
-// A reading on the Result that supports a lone candidate holds its select:
+// The select of a lone candidate waits on a reading on its supporting Result:
 // the answer may drop the only candidate.
 func TestReadingHoldsLoneCandidateSelect(t *testing.T) {
 	_, _, q := setup(t)

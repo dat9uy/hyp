@@ -34,8 +34,8 @@ const (
 // limitMove is one row of the limit move table: the payload field that
 // makes the move, the moves the key's latest hand may be for it to apply,
 // and whether only an owner checkpoint makes it. A move that answers a
-// refer is made by an actor other than the referrer, and a move the
-// owner makes is refused once a Result closed a limit of a Result.
+// refer is made by an actor other than the referrer, and every move is
+// refused once a Result closed a limit of a Result: its case ran.
 type limitMove struct {
 	field    string
 	from     []string // the latest hand's Move; "" stands for no hand yet
@@ -48,8 +48,9 @@ type limitMove struct {
 }
 
 var limitMoves = map[string]limitMove{
-	HandRefer: {field: "refers", from: []string{"", HandRefer, HandReturn},
-		refusal: "%s is accepted; only the owner reopens it, with returns"},
+	HandRefer: {field: "refers", from: []string{"", HandRefer, HandReturn}, notRun: true,
+		refusal: "%s is accepted; only the owner reopens it, with returns",
+		ranErr:  "; its case ran, so there is nothing to refer"},
 	HandAccept: {field: "accepts", from: []string{HandRefer}, owner: true, answers: true, notRun: true,
 		refusal:  "%s is not referred; only a referred limit is accepted, so the runner refers it first",
 		ownerErr: "bad checkpoint: only an owner accepts a limit", ranErr: "; its case ran, so there is nothing to accept"},

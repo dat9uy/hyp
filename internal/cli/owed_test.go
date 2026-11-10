@@ -122,7 +122,7 @@ func TestOwedReferredLimitWaitsForOwner(t *testing.T) {
 	notIn(t, "runner: "+q+" limit")
 	want(t, hyp(t, "status"), 0, "\n  "+q+" limit referred, accept or return "+key+" — needs prod data\n")
 	notIn(t, "runner: "+q+" select")
-	want(t, hyp(t, "status"), 0, "held: referred limit "+key+" waits for the owner")
+	want(t, hyp(t, "status"), 0, "waits on referred limit "+key+" for the owner")
 	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: referred limit "+key+" waits for the owner")
 
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", key, "--actor", "owner-dat", "--why", "w"), 2, "an owner accepts a limit with --accept")
@@ -132,7 +132,7 @@ func TestOwedReferredLimitWaitsForOwner(t *testing.T) {
 	want(t, hyp(t, "show", g), 0, "    accepts: "+key+"\n")
 	want(t, hyp(t, "show", q), 0, key+" accepted by owner-dat")
 	notIn(t, "limit referred")
-	notIn(t, "held: referred limit")
+	notIn(t, "waits on referred limit")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" select "+h+", the only candidate\n")
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }

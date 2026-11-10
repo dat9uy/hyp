@@ -124,21 +124,22 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 			}
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s choose: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
-		// An open reading whose answer can move a Hypothesis on the question
-		// holds its rivals, select and choice (spec §8.1). When the question
-		// owes no runner item and no choice, the line names each such reading
-		// and what its answer can move, so the owner sees why the runner owes
-		// nothing there. A premise hold has its assumes line above.
-		if !slices.ContainsFunc(owed, func(o replay.Owed) bool {
-			return o.Question == dq && (o.Who == replay.OwedRunner || o.Kind == replay.OwedChoose)
-		}) {
-			for _, l := range p.Readings {
-				if l.Question == dq && l.By == "" && len(l.Reach) > 0 {
-					add(kKeep, "%s  held: open reading %s waits for the owner; its answer can move %s", indent, r.limitLabel(l.Result, l.Key), r.named(l.Reach))
+		// When the question's turn waits on something other than runner work
+		// (spec §8.1), a line names each thing, so the owner sees why the
+		// runner owes nothing there. Runner work prints under OWED, and a
+		// premise also has its assumes line above.
+		if t := p.Turn(dq); t.Kind == replay.TurnWaits && t.Waits[0].Kind != replay.WaitRunner {
+			for _, w := range t.Waits {
+				switch w.Kind {
+				case replay.WaitReading:
+					add(kKeep, "%s  waits on open reading %s for the owner; its answer can move %s", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.named(w.Reach))
+				case replay.WaitReferred:
+					if len(ns.Candidates) > 0 {
+						add(kKeep, "%s  waits on referred limit %s for the owner; an accept releases the select, a return sends its case to run", indent, r.limitLabel(event.KeyResult(w.Key), w.Key))
+					}
+				case replay.WaitSubquestion:
+					add(kKeep, "%s  waits on a sub-question of %s not answered", indent, r.withAlias(w.Key))
 				}
-			}
-			if k := p.ReferredLimit(dq); k != "" && len(ns.Candidates) > 0 {
-				add(kKeep, "%s  held: referred limit %s waits for the owner; an accept releases the select, a return sends its case to run", indent, r.limitLabel(event.KeyResult(k), k))
 			}
 		}
 		if chosen := chosenCandidate(p, dq); chosen != "" {
@@ -652,6 +653,8 @@ func (r renderer) owedLine(o replay.Owed) string {
 		return q + " choose: " + r.named(r.p.Questions[o.Question].Candidates)
 	case replay.OwedSelect:
 		return q + " select " + r.withAlias(o.Key) + ", the only candidate"
+	case replay.OwedStale:
+		return q + " stale " + r.withAlias(o.Key) + ": reaffirm it, or re-run what its select rests on"
 	}
 	return q + " " + o.Kind
 }
