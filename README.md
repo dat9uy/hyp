@@ -10,10 +10,22 @@ An agent that investigates a design question usually keeps its account in prose:
 
 - **Rival answers, side by side.** Each design question gets at least two rival Hypotheses as siblings. A refinement is a new sibling that supersedes the old one, so the lineage stays visible.
 - **Experiments with rules written first.** An Experiment states its verdict rule before it runs, and can run from a versioned, hash-pinned recipe, so the same procedure can be run again and checked.
-- **Statuses are derived, never typed.** Every write is an event in an append-only log under `.tree/`, committed with the work. `supported`, `contradicted`, `stale` and `answered` are computed from those events; no command can set one.
-- **Every decision is owed first.** hyp admits a select only when its ledger owes it, so a question is answered only once the open work on it is done, and the owner decides trade-offs.
+- **Statuses are derived, never typed.** Every write is an event in an append-only log under `.tree/`, committed with the work. `supported`, `contradicted`, `stale` and `answered` are computed from those events; no command can set one, and a changed mind is a new event, never an edit.
+- **The Goal's lines are the owner's.** The owner writes the cases every candidate must meet once, as the Goal's lines. A line is owed on each question until a Result that ran its case covers every candidate there, and `hyp status` shows each line as covered or uncovered.
+- **A limit is the next case to run.** A Result records what its run did not cover. A later Result closes it by running the case, and a case no test within the Goal can run goes to the owner. A requirement the Goal lacks is a new Goal, so a new tree that cites this one.
+- **Every decision is owed first.** hyp admits a select only when its ledger owes it, so a question is answered only once the open work on it is done.
 
-The binary refuses events that would corrupt the tree or skip a step, the ledger in `hyp status` names what the tree still owes, and `hyp signals` lists Experiments set up against no live rival. [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md) explains why these guards run during an investigation instead of before it, and [principles.md](docs/principles.md) states the principles hyp holds to, among them what the owner decides.
+### Who does what
+
+The ledger asks, the owner answers, the runner runs, and hyp derives.
+
+| | Does | Never does |
+|---|---|---|
+| **Owner** | Writes the Goal's lines once. Answers what `hyp status` lists under AWAITING OWNER: what a line means, whether a referred case runs, which of the candidates that meet every line to choose. | Runs a case, types a verdict or edits what was recorded |
+| **Runner** (the agent) | Settles what OWED lists for it, runs Experiments, records verdicts, and stops when it owes nothing. | Answers for the owner or writes a line |
+| **hyp** | Refuses a write that would corrupt the tree or skip a step, and derives every status and what is owed. | Judges whether an Experiment was well designed |
+
+[principles.md](docs/principles.md) states the principles hyp holds to, among them the owner's role. [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md) explains why the guards run during an investigation instead of before it, and how a change to hyp earns its way in.
 
 ## Where hyp comes from
 
@@ -62,7 +74,9 @@ children:
   H-BMN916 contradicted No change: today's hyp is enough
 ```
 
-Four rivals were written down before anything ran, including a null rival that said no change was needed. One Experiment tested all four and contradicted only the null. Because the evidence could not choose among the other three, the select is marked as a trade-off the owner made, and the owner's choice ended it. The tree was recorded when a verifier also confirmed every select; those confirm events stay in its log as history ([ADR 0015](docs/adr/0015-the-select-is-the-gate.md)).
+Four rivals were written down before anything ran, including a null rival that said no change was needed. One Experiment tested all four and contradicted only the null. Because the evidence could not choose among the other three, the select is marked as a trade-off the owner made, and the owner's choice ended it.
+
+The tree was recorded with an earlier hyp, and its log keeps what that hyp wrote: a verifier confirmed every select, and the owner's confirm accepted the Result's limits. Both are history. Today the select is the gate, with no verifier ([ADR 0015](docs/adr/0015-the-select-is-the-gate.md)), and the owner accepts a limit only after the runner refers it. A log is never rewritten, so the same events replay the same way.
 
 ## Get started
 
@@ -96,7 +110,14 @@ one of them "no change needed". Do not add or run experiments yet.
 Show me `hyp status` and stop.
 ```
 
-From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
+**4. Write the Goal's lines yourself.** They are the cases every candidate must meet, written once, so take your time over them. hyp refuses them from any role but the owner's:
+
+```bash
+hyp checkpoint --role owner --actor <your-name> --summary "the Goal's lines" \
+  --line "<a case every candidate must meet>" --line "<another>" --why "<why these>"
+```
+
+From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. When `hyp status` lists something under AWAITING OWNER, it is yours to answer. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
 
 To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-hyp).
 
