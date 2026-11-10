@@ -55,13 +55,13 @@ func TestEvidencePointerCodes(t *testing.T) {
 	wantCode(t, rec("recipes/bad@1/launch.sh"), 1)
 }
 
-// hyp recipe hash DIR: no recipe.md is a bad argument, a bundle that breaks
+// hyp bundle hash DIR: no recipe.md is a bad argument, a bundle that breaks
 // a rule is a refusal, and one that cannot be read is the environment.
 func TestRecipeHashDirCodes(t *testing.T) {
 	dir := t.TempDir()
-	wantCode(t, hyp(t, "recipe", "hash", dir), 2)
+	wantCode(t, hyp(t, "bundle", "hash", dir), 2)
 	bundleIn(t, dir, "bad", "## Launch\n\nRun: launch.sh\n", map[string]string{"launch.sh": "#!/bin/sh\n"})
-	wantCode(t, hyp(t, "recipe", "hash", filepath.Join(dir, "recipes", "bad@1")), 1)
+	wantCode(t, hyp(t, "bundle", "hash", filepath.Join(dir, "recipes", "bad@1")), 1)
 	bundleIn(t, dir, "shut", "", nil)
 	md := filepath.Join(dir, "recipes", "shut@1", "recipe.md")
 	if err := os.Chmod(md, 0); err != nil {
@@ -71,7 +71,7 @@ func TestRecipeHashDirCodes(t *testing.T) {
 	if _, err := os.ReadFile(md); err == nil {
 		t.Skip("running as a user who reads mode-0 files")
 	}
-	wantCode(t, hyp(t, "recipe", "hash", filepath.Join(dir, "recipes", "shut@1")), 3)
+	wantCode(t, hyp(t, "bundle", "hash", filepath.Join(dir, "recipes", "shut@1")), 3)
 }
 
 // hyp sandbox drive: a copy that is missing is the environment; one outside

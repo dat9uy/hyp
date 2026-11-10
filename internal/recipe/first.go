@@ -22,35 +22,56 @@ const Placeholder = "hyp:placeholder"
 // nameToken is the recipe name in the template's files.
 const nameToken = "__NAME__"
 
-// template is the bundle hyp recipe new NAME@1 writes: a layout with a
+// template is the bundle hyp bundle new NAME@1 writes: a layout with a
 // failing stub check and a must-pass and a must-fail case, not a method
 // (docs/adr/0009-a-first-instrument-starts-from-the-template.md).
 //
 //go:embed template
 var template embed.FS
 
+// rubricTemplate is the bundle hyp bundle new NAME@1 --rubric writes into
+// rubrics/: one stub Standalone rule and a supports and a contradicts case
+// (ADR 0018).
+//
+//go:embed rubric-template
+var rubricTemplate embed.FS
+
 // NewFirst writes the first version target (NAME@1) of a new recipe from
 // the embedded template into root/recipes/, root being the store's
 // directory (the one holding .tree/), and returns its directory. A version
 // other than 1 is a bad argument, since a next version is copied with
 // --from; any NAME@N in a library the lookup searches from root is refused.
-func NewFirst(root, target string) (string, error) {
+func NewFirst(root, target string) (string, error) { return newFirstIn(root, Recipes, target) }
+
+// NewFirstRubric is NewFirst for a rubric: it writes the rubric template
+// into root/rubrics/.
+func NewFirstRubric(root, target string) (string, error) { return newFirstIn(root, Rubrics, target) }
+
+// newFirstIn writes the template of library libName. A name in use in
+// either library is refused, so a name lives in one library only.
+func newFirstIn(root, libName, target string) (string, error) {
 	tref, err := FirstRef(target)
 	if err != nil {
 		return "", err
 	}
-	for _, d := range Dirs(root) {
-		matches, err := filepath.Glob(filepath.Join(d, tref.Name+"@*"))
-		if err != nil {
-			return "", err
-		}
-		for _, m := range matches {
-			if r, err := event.ParseRef(filepath.Base(m)); err == nil && r.Name == tref.Name {
-				return "", herr.Refused("recipe %s exists at %s; make the next version with hyp recipe new %s@<N+1> --from %s", tref.Name, m, tref.Name, filepath.Base(m))
+	for _, l := range []string{Recipes, Rubrics} {
+		for _, d := range DirsOf(root, l) {
+			matches, err := filepath.Glob(filepath.Join(d, tref.Name+"@*"))
+			if err != nil {
+				return "", err
+			}
+			for _, m := range matches {
+				if r, err := event.ParseRef(filepath.Base(m)); err == nil && r.Name == tref.Name {
+					return "", herr.Refused("%s %s exists at %s; make the next version with hyp bundle new %s@<N+1> --from %s", kindWord(l), tref.Name, m, tref.Name, filepath.Base(m))
+				}
 			}
 		}
 	}
-	lib := filepath.Join(root, "recipes")
+	src, srcDir := template, "template"
+	if libName == Rubrics {
+		src, srcDir = rubricTemplate, "rubric-template"
+	}
+	lib := filepath.Join(root, libName)
 	if err := os.MkdirAll(lib, 0o755); err != nil {
 		return "", herr.Env("%v", err)
 	}
@@ -59,7 +80,7 @@ func NewFirst(root, target string) (string, error) {
 		return "", herr.Env("%v", err)
 	}
 	defer os.RemoveAll(tmp)
-	if err := writeTemplate(tmp, tref.Name); err != nil {
+	if err := writeTemplate(src, srcDir, tmp, tref.Name); err != nil {
 		return "", err
 	}
 	dir := filepath.Join(lib, target)
@@ -82,20 +103,20 @@ func FirstRef(target string) (event.Ref, error) {
 	return tref, nil
 }
 
-// writeTemplate writes the embedded template into dst with name in place of
-// nameToken. Embedding drops file modes, so a .sh file gets 0755 and every
-// other file 0644.
-func writeTemplate(dst, name string) error {
-	return fs.WalkDir(template, "template", func(p string, d fs.DirEntry, err error) error {
+// writeTemplate writes the embedded template src, rooted at srcDir, into
+// dst with name in place of nameToken. Embedding drops file modes, so a .sh
+// file gets 0755 and every other file 0644.
+func writeTemplate(src embed.FS, srcDir, dst, name string) error {
+	return fs.WalkDir(src, srcDir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		rel := strings.TrimPrefix(strings.TrimPrefix(p, "template"), "/")
+		rel := strings.TrimPrefix(strings.TrimPrefix(p, srcDir), "/")
 		out := filepath.Join(dst, filepath.FromSlash(rel))
 		if d.IsDir() {
 			return os.MkdirAll(out, 0o755)
 		}
-		data, err := template.ReadFile(p)
+		data, err := src.ReadFile(p)
 		if err != nil {
 			return err
 		}

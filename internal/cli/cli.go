@@ -63,8 +63,8 @@ write:
   add goal --title T [--body B] [--alias A]
   add dq   --parent REF --title T [--body B] [--alias A]
   add hyp  --parent REF --title T [--body B] [--alias A] [--subject PATH]...
-  add exp  --parent REF --title T --recipe NAME@V|none [--decided-by reading] [--target REF|none]... [--alias A]
-  record   --exp REF --verdict REF=supports|contradicts|inconclusive... --observation O [--evidence P]... [--limit L]... [--closes R#N]...
+  add exp  --parent REF --title T --recipe NAME@V|none [--rubric NAME@V|reading] [--records PATH]... [--target REF|none]... [--alias A]
+  record   --exp REF [--verdict REF=supports|contradicts|inconclusive]... --observation O [--evidence P]... [--limit L]... [--closes R#N]...
   retract REF | abandon REF | reaffirm REF
   supersede NEW --old OLD
   amend HYP --body B                     revise a Hypothesis body
@@ -80,17 +80,17 @@ read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
   check                                       rejected events, bad lines, warnings
-  signals [--json]                            design marks for the whole tree: one-rival, D1, unjudged
+  signals [--json]                            design marks for the whole tree: one-rival, D1
   events --json                               applied events in merge order, and rejected ones, as JSON for scripts
 
-recipe:
-  recipe hash DIR [--json]               the bundle hash add exp --recipe records for DIR
-  recipe check                           every pin to a versioned bundle, in every tree under the repo root, still matches it
-  recipe new NAME@1                      write a first bundle beside the nearest .tree/ from hyp's template; fill every hyp:placeholder
-  recipe new NAME@N --from NAME@M        copy bundle NAME@M to the next version NAME@N, writing from:
-  recipe run --record DIR REF NAME [ARGS...]   run one Standalone command with no sandbox; exits with its exit code
-  recipe evidence --record DIR REF OUT_DIR     run REF's Evidence commands on remove's OUT_DIR; exits with the failing one's code
-  recipe known-answers REF                     run every known-answers/NAME/ case of bundle REF, twice each; 1 on a wrong answer
+bundle (a recipe in recipes/ or a rubric in rubrics/; a name lives in one library):
+  bundle hash DIR [--json]               the bundle hash add exp --recipe or --rubric records for DIR
+  bundle check                           every pin to a versioned bundle, in every tree under the repo root, still matches it
+  bundle new NAME@1 [--rubric]           write a first recipe, or with --rubric a first rubric, beside the nearest .tree/ from hyp's template; fill every hyp:placeholder
+  bundle new NAME@N --from NAME@M        copy bundle NAME@M to the next version NAME@N in its library, writing from:
+  bundle run --record DIR REF NAME [ARGS...]   run one Standalone command with no sandbox; exits with its exit code
+  bundle evidence --record DIR REF OUT_DIR     run recipe REF's Evidence commands on remove's OUT_DIR; exits with the failing one's code
+  bundle known-answers REF                     run every known-answers/NAME/ case of bundle REF, twice each; 1 on a wrong answer
 
 sandbox (a disposable clone under ~/.hyp-sandbox/ID for one Experiment):
   sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--store SRC --cut EVENT] [--inputs FILE] [--hyp BIN]
@@ -127,8 +127,13 @@ var commands = map[string]command{
 	"signals":    cmdSignals,
 	"events":     cmdEvents,
 	"sandbox":    cmdSandbox,
-	"recipe":     cmdRecipe,
+	"bundle":     cmdBundle,
 }
+
+// aliases maps an older command name to the one that replaced it. An alias
+// runs but is not listed, so frozen bundles whose scripts call it still run
+// and nothing new names it (ADR 0018: hyp recipe became hyp bundle).
+var aliases = map[string]string{"recipe": "bundle"}
 
 // Commands lists every command name Run dispatches, sorted.
 func Commands() []string {
@@ -156,7 +161,11 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprint(stdout, usage)
 		return 0
 	}
-	cmd, ok := commands[args[0]]
+	name := args[0]
+	if a, ok := aliases[name]; ok {
+		name = a
+	}
+	cmd, ok := commands[name]
 	if !ok {
 		fmt.Fprint(stderr, usage)
 		return 2

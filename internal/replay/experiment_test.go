@@ -74,7 +74,7 @@ func TestExpCloseRefusals(t *testing.T) {
 	q, q2 := b.DQ(g, "q"), b.DQ(g, "q2")
 	h1, h2, h3 := b.Hyp(q, "h1"), b.Hyp(q, "h2"), b.Hyp(q2, "h3")
 	ran := b.Exp(h1, event.RecipeNone, h2)
-	r := b.Result(ran, map[string]string{h1: sup})
+	r := b.Result(ran, map[string]string{h1: sup, h2: inc})
 	e1, e2 := b.Exp(h1, event.RecipeNone, h2), b.Exp(h2, event.RecipeNone, h1)
 	other := b.Exp(h3, event.RecipeNone)
 	gone := b.Exp(h1, event.RecipeNone, h2)
@@ -132,12 +132,12 @@ func TestAdmitResultRefusesUnderClosedExperiment(t *testing.T) {
 		old:  ed(old) + " is superseded by " + ed(repl) + "; record the Result there, or hyp unlink " + ed(repl) + " supersedes " + ed(old) + " to reopen " + ed(old),
 		gone: ed(gone) + " is withdrawn; add a new Experiment for this Result",
 	} {
-		got := st.AdmitResult(event.ResultRecord{Parent: exp}, RecipeFacts{}, nil)
+		got := st.AdmitResult(event.ResultRecord{Parent: exp}, ResultFacts{}, nil)
 		if len(got) != 1 || got[0] != (Finding{FindRefuse, want}) {
 			t.Errorf("%s: %+v, want refusal %q", exp, got, want)
 		}
 	}
-	if got := st.AdmitResult(event.ResultRecord{Parent: repl}, RecipeFacts{}, nil); got != nil {
+	if got := st.AdmitResult(event.ResultRecord{Parent: repl}, ResultFacts{}, nil); got != nil {
 		t.Errorf("open Experiment: %+v, want nothing", got)
 	}
 }

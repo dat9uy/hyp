@@ -32,7 +32,7 @@ Visibility is a separate axis from scope. Every item in this repository is publi
 
 The self-review recipes kept before the public release (session-replay, scratch-pg, readout-read, containment-arms, declaration-shape and signals-replay-proto), their inputs, and the trees that pinned them are not published. Records made before the public release stay in the private development history.
 
-When a question needs an instrument, it is a recipe with known answers, pinned by Experiments that declare `decided_by` or pin it. The skill-text gate in [AGENTS.md](../AGENTS.md) uses `recipes/skill-text-arms@4`; `recipes/verifier-brief-arms@1`, its instrument for the verifier's brief, is retired with the verifier role (ADR 0015). A new self-review recipe gets a row here, with its visibility.
+When a question needs an instrument, it is a recipe with known answers that measures, and a rubric in `rubrics/` that turns its measures into verdicts, both pinned by the Experiments that use them (ADR 0018). The skill-text gate in [AGENTS.md](../AGENTS.md) uses `recipes/skill-text-arms@4`, whose checks print verdicts: Experiments that already pin it record as before, and a new one needs its next version split into a recipe and a rubric; `recipes/verifier-brief-arms@1`, its instrument for the verifier's brief, is retired with the verifier role (ADR 0015). A new self-review recipe gets a row here, with its visibility.
 
 | Item | Why it is self-review | Visibility |
 |---|---|---|

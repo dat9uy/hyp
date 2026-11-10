@@ -133,7 +133,11 @@ func TestEvidenceOutsideStoreRefused(t *testing.T) {
 		"--evidence", "notes.md", "--why", "w"), 2, "evidence notes.md not found")
 	os.WriteFile(filepath.Join(dir, ".tree", "evidence", "log.txt"), []byte("x"), 0o644)
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o",
-		"--evidence", ".tree/evidence/log.txt", "--evidence", "https://example.com/run/1", "--why", "w"), 0, "result.record")
+		"--evidence", ".tree/evidence/log.txt", "--why", "w"), 1, "refused: bad evidence: .tree/evidence/log.txt is a record outside "+e+"'s run and its pinned records")
+	os.MkdirAll(filepath.Join(dir, ".tree", "evidence", e), 0o755)
+	os.WriteFile(filepath.Join(dir, ".tree", "evidence", e, "log.txt"), []byte("x"), 0o644)
+	want(t, hyp(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "o",
+		"--evidence", ".tree/evidence/"+e+"/log.txt", "--evidence", "https://example.com/run/1", "--why", "w"), 0, "result.record")
 	os.MkdirAll(filepath.Join(dir, ".tree", "evidence", "E-RUN001"), 0o755)
 	os.MkdirAll(filepath.Join(dir, "recipes", "boot"), 0o755)
 	for _, ev := range []string{".tree/evidence/E-RUN001", "recipes/boot/"} {
@@ -290,7 +294,7 @@ func TestAddExpDeadSiblingsDoNotRefuse(t *testing.T) {
 	must(t, "add", "hyp", "--parent", q, "--title", "A", "--alias", "ha", "--why", "w")
 	must(t, "add", "hyp", "--parent", q, "--title", "B", "--alias", "hb", "--why", "w")
 	e := must(t, "add", "exp", "--parent", "hb", "--title", "e", "--recipe", "none", "--decided-by", "reading", "--target", "ha", "--why", "w")
-	must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--observation", "o", "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--verdict", "ha=inconclusive", "--observation", "o", "--why", "w")
 	want(t, hyp(t, "add", "exp", "--parent", "ha", "--title", "e2", "--recipe", "none", "--decided-by", "reading", "--why", "w"), 0, "node.add")
 
 	must(t, "add", "hyp", "--parent", q, "--title", "C", "--alias", "hc", "--why", "w")
@@ -303,7 +307,7 @@ func TestAddExpWarnsWhenParentOrTargetIsNotARival(t *testing.T) {
 	ha := must(t, "add", "hyp", "--parent", q, "--title", "A", "--alias", "ha", "--why", "w")
 	hb := must(t, "add", "hyp", "--parent", q, "--title", "B", "--alias", "hb", "--why", "w")
 	e := must(t, "add", "exp", "--parent", "hb", "--title", "e", "--recipe", "none", "--decided-by", "reading", "--target", "ha", "--why", "w")
-	r1 := must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--observation", "o", "--why", "w")
+	r1 := must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--verdict", "ha=inconclusive", "--observation", "o", "--why", "w")
 	addExp := func(parent string, targets ...string) result {
 		args := []string{"add", "exp", "--parent", parent, "--title", "x", "--recipe", "none", "--decided-by", "reading", "--why", "w"}
 		for _, h := range targets {
@@ -494,7 +498,7 @@ func TestLibraryConflictAndMissingRefRefused(t *testing.T) {
 	want(t, r, 0, "warn: recipe boot@1: ")
 	want(t, r, 0, far)
 
-	r = hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "nope@1", "--why", "w")
+	r = hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "nope@1", "--rubric", "reading", "--why", "w")
 	want(t, r, 2, "recipe nope@1 not found; searched ")
 	want(t, r, 2, filepath.Join("tree", "recipes")+", ")
 	if n := strings.Count(r.stdout+r.stderr, string(filepath.Separator)+"recipes"); n != 2 {
@@ -524,46 +528,6 @@ func TestCheckReportsBundleThatDoesNotOpen(t *testing.T) {
 	want(t, r, 0, "its pins still verify")
 	if strings.Contains(r.stdout, "questionable evidence") {
 		t.Fatalf("stdout %q: a bundle that hashes the same made its Result questionable", r.stdout)
-	}
-}
-
-// An Experiment with no measure, --recipe none or a pinned recipe that is not
-// an instrument, is written only when it says its verdicts are decided by
-// reading; a pinned instrument needs no declaration and refuses one.
-func TestAddExpDeclaration(t *testing.T) {
-	dir, _, q := setup(t)
-	bundleIn(t, dir, "env", "## Launch\n\nRun: ./up.sh\n", map[string]string{"up.sh": "#!/bin/sh\n"})
-	bundleIn(t, dir, "tool", "## Standalone\n\nRun ok: ./ok.sh\n", map[string]string{
-		"ok.sh":                        "#!/bin/sh\necho ok\n",
-		"known-answers/ok/expect.json": `{"step": "standalone", "command": "ok", "exit": 0, "stdout": "ok\n"}`,
-		"known-answers/ok/input/a":     "",
-	})
-	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
-	addExp := func(extra ...string) result {
-		t.Helper()
-		return hyp(t, append([]string{"add", "exp", "--parent", h, "--title", "E", "--why", "w"}, extra...)...)
-	}
-	const path = "(RECIPE-FORMAT, Verdict scripts)"
-
-	before := logLines(t, dir)
-	want(t, addExp("--recipe", "none"), 1, "refused: recipe none holds no measure")
-	want(t, addExp("--recipe", "none"), 1, path)
-	want(t, addExp("--recipe", "env@1"), 1, "refused: recipe env@1 holds no measure")
-	want(t, addExp("--recipe", "env@1"), 1, path)
-	if n := logLines(t, dir); n != before {
-		t.Fatalf("refused add exp wrote %d lines", n-before)
-	}
-
-	read := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--why", "w")
-	want(t, addExp("--recipe", "env@1", "--decided-by", "reading"), 0, "node.add")
-	measured := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "tool@1", "--why", "w")
-
-	want(t, addExp("--recipe", "tool@1", "--decided-by", "reading"), 2, "--decided-by reading contradicts recipe tool@1")
-	want(t, addExp("--recipe", "none", "--decided-by", "measure"), 2, `invalid --decided-by "measure"`)
-
-	want(t, hyp(t, "show", read), 0, "decided by: reading")
-	if r := hyp(t, "show", measured); strings.Contains(r.stdout, "decided by") {
-		t.Fatalf("show of a measured Experiment prints a declaration:\n%s", r.stdout)
 	}
 }
 

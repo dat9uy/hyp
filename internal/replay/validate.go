@@ -92,8 +92,9 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 			return fmt.Errorf("alias already used: %q", p.Alias)
 		}
 	}
-	if p.Kind != event.KindExperiment && (p.Recipe != "" || p.RecipeHash != "" || len(p.Targets) > 0 || p.DecidedBy != "" || len(p.Aims) > 0) {
-		return errors.New("unknown field: recipe, recipe_hash, targets, decided_by and aims are for Experiments only")
+	if p.Kind != event.KindExperiment && (p.Recipe != "" || p.RecipeHash != "" || len(p.Targets) > 0 || p.DecidedBy != "" || len(p.Aims) > 0 ||
+		p.Rubric != "" || p.RubricHash != "" || len(p.Records) > 0) {
+		return errors.New("unknown field: recipe, recipe_hash, targets, decided_by, rubric, rubric_hash, records and aims are for Experiments only")
 	}
 
 	if p.Kind == event.KindGoal {
@@ -112,7 +113,7 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 	allowed := map[string][]string{
 		event.KindDesignQuestion: {event.KindGoal, event.KindHypothesis},
 		event.KindHypothesis:     {event.KindDesignQuestion},
-		event.KindExperiment:     {event.KindHypothesis},
+		event.KindExperiment:     {event.KindHypothesis, event.KindDesignQuestion},
 	}[p.Kind]
 	if !contains(allowed, parent.Kind) {
 		return fmt.Errorf("wrong parent kind: %s under %s", p.Kind, parent.Kind)
@@ -138,6 +139,23 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 	if p.DecidedBy != "" && p.DecidedBy != event.DecidedReading {
 		return fmt.Errorf("invalid decided_by: %q (want %s)", p.DecidedBy, event.DecidedReading)
 	}
+	if err := checkRubric(p); err != nil {
+		return err
+	}
+	if err := checkRecords(p.Records); err != nil {
+		return err
+	}
+	if parent.Kind == event.KindDesignQuestion {
+		// An Experiment under a question gives no verdict: it measures, so
+		// it pins a recipe and has no targets and no rubric (ADR 0018).
+		if len(p.Targets) > 0 || p.Rubric != "" || p.RubricHash != "" || p.DecidedBy != "" {
+			return errors.New("bad experiment: an Experiment under a DesignQuestion has no targets and no rubric; it measures")
+		}
+		if p.Recipe == event.RecipeNone {
+			return errors.New("bad experiment: an Experiment under a DesignQuestion measures, so it pins a recipe")
+		}
+		return f.checkAims(p.Aims)
+	}
 	seen := map[string]bool{}
 	for _, t := range p.Targets {
 		tn, err := f.need(t, event.KindHypothesis)
@@ -156,6 +174,54 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 		seen[t] = true
 	}
 	return f.checkAims(p.Aims)
+}
+
+// checkRubric reports why an Experiment's rubric fields are malformed: the
+// rubric is reading or a NAME@VERSION pinned by a hex rubric_hash, and the
+// older decided_by never comes with it.
+func checkRubric(p event.NodeAdd) error {
+	switch {
+	case p.Rubric == "":
+		if p.RubricHash != "" {
+			return errors.New("bad rubric: rubric_hash without a rubric bundle")
+		}
+		return nil
+	case p.DecidedBy != "":
+		return errors.New("bad rubric: rubric and decided_by both given; decided_by is the older spelling of rubric reading")
+	case p.Rubric == event.RubricReading:
+		if p.RubricHash != "" {
+			return errors.New("bad rubric: rubric_hash with rubric reading")
+		}
+		return nil
+	case !recipeRe.MatchString(p.Rubric):
+		return fmt.Errorf("invalid rubric: %q (want name@version or reading)", p.Rubric)
+	case p.RubricHash == "":
+		return errors.New("bad rubric: missing rubric_hash")
+	case !hexRe.MatchString(p.RubricHash):
+		return fmt.Errorf("bad rubric: invalid rubric_hash %q", p.RubricHash)
+	}
+	return nil
+}
+
+// checkRecords reports why an Experiment's pinned records are malformed.
+func checkRecords(files []event.SubjectFile) error {
+	if len(files) > event.MaxRecords {
+		return fmt.Errorf("over limit: records has %d files (max %d)", len(files), event.MaxRecords)
+	}
+	seen := map[string]bool{}
+	for _, f := range files {
+		if err := textLimit("records path", f.Path, 1, event.MaxText/2); err != nil {
+			return fmt.Errorf("bad records: %w", err)
+		}
+		if seen[f.Path] {
+			return fmt.Errorf("bad records: %s named twice", f.Path)
+		}
+		seen[f.Path] = true
+		if !hexRe.MatchString(f.SHA256) {
+			return fmt.Errorf("bad records: %q is not a sha256", f.SHA256)
+		}
+	}
+	return nil
 }
 
 // checkAims reports why an Experiment may not aim at keys: each must name a
@@ -201,15 +267,25 @@ func (f *Facts) validateResult(ev event.Event) error {
 	if exp.Kind != event.KindExperiment {
 		return fmt.Errorf("wrong parent kind: Result under %s", exp.Kind)
 	}
-	if len(p.Verdicts) == 0 {
-		return errors.New("missing field: verdicts needs at least one entry")
+	// A Result gives a verdict on each of its Experiment's targets and on
+	// nothing else (ADR 0018); one under an Experiment with no targets
+	// measures and gives none.
+	targets := targetsOf(f.Nodes, exp)
+	if len(targets) == 0 && len(p.Verdicts) > 0 {
+		return fmt.Errorf("bad verdicts: %s has no targets; it measures", event.DisplayID(event.KindExperiment, exp.ID))
 	}
 	for h, v := range p.Verdicts {
-		if h != exp.Parent && !contains(exp.Targets, h) {
+		if !contains(targets, h) {
 			return fmt.Errorf("bad verdict: %s is not the Experiment's hypothesis or a target", h)
 		}
 		if !event.Verdicts[v] {
 			return fmt.Errorf("bad verdict: %q", v)
+		}
+	}
+	for _, h := range targets {
+		if _, ok := p.Verdicts[h]; !ok {
+			return fmt.Errorf("bad verdicts: %s targets %s; give it a verdict, inconclusive when the run could not decide",
+				event.DisplayID(event.KindExperiment, exp.ID), event.DisplayID(event.KindHypothesis, h))
 		}
 	}
 	if err := textLimit("observation", p.Observation, 1, event.MaxText); err != nil {
@@ -273,7 +349,7 @@ func (f *Facts) validateResult(ev event.Event) error {
 			return fmt.Errorf("bad reading of: %s is open; the owner has not answered it", l.Of)
 		}
 	}
-	q := f.Nodes[exp.Parent].Parent
+	q := questionOf(f.Nodes, exp)
 	for _, k := range p.Closes {
 		// A limit under another question may be closed by a Result whose
 		// Experiment aims at it.
@@ -393,11 +469,10 @@ func (f *Facts) validateAmend(ev event.Event) error {
 	return nil
 }
 
-// resultQuestion returns the DesignQuestion that Result r belongs to: the
-// parent of its Experiment's Hypothesis.
+// resultQuestion returns the DesignQuestion that Result r belongs to: its
+// Experiment's question (questionOf).
 func (f *Facts) resultQuestion(r string) string {
-	exp := f.Nodes[f.Nodes[r].Parent]
-	return f.Nodes[exp.Parent].Parent
+	return questionOf(f.Nodes, f.Nodes[f.Nodes[r].Parent])
 }
 
 // checkKey reports why s does not name an item of kind want in a

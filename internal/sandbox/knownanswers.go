@@ -302,7 +302,7 @@ func Gate(r *recipe.Recipe, hyp *SandboxHyp, log io.Writer) (*cmdrecord.KnownAns
 	return ka, nil
 }
 
-// ExternalWarnings lists, for hyp recipe check, each Evidence command (its
+// ExternalWarnings lists, for hyp bundle check, each Evidence command (its
 // shown form) and Standalone label of r whose External: line is missing,
 // "<command>: no External: line", or does not state its reach, "<command>:
 // External: not stated (TODO)" (recipe.External, ADR 0008).
@@ -542,4 +542,76 @@ func runCase(gate context.Context, c knownCase, bin string, log io.Writer) (r ca
 	r.stdout = strings.ReplaceAll(string(out), dir, "$CASE")
 	r.out, r.problem = readTree(filepath.Join(dir, "out"), "out", dir)
 	return r, false, nil
+}
+
+// PrintsVerdicts reports whether any known-answer case of r expects a
+// stdout line starting with "verdict:". A recipe measures and never prints a
+// verdict, so hyp add exp refuses to pin one that does (ADR 0018); a bundle
+// whose cases do not read prints none.
+func PrintsVerdicts(r *recipe.Recipe) bool {
+	cases, err := readCases(r)
+	if err != nil {
+		return false
+	}
+	for _, c := range cases {
+		for line := range strings.Lines(c.Stdout) {
+			if strings.HasPrefix(line, "verdict:") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// RubricProblems lists why r is not a rubric hyp add exp can pin (ADR
+// 0018): a step section, other than one Standalone command, no known-answer
+// case, cases that do not read, cases that print no verdict line, a
+// malformed or repeated verdict line, and a label no case prints as
+// supports or none as contradicts. None means r is a rubric.
+func RubricProblems(r *recipe.Recipe) []string {
+	var out []string
+	if r.HasSteps() {
+		out = append(out, "it has a step section; a rubric has only its Standalone command")
+	}
+	if len(r.Standalone) != 1 {
+		out = append(out, fmt.Sprintf("it has %d Standalone commands; a rubric has exactly one", len(r.Standalone)))
+	}
+	if !recipe.HasKnownAnswers(r.Dir) {
+		return append(out, "it has no known-answer case")
+	}
+	cases, err := readCases(r)
+	if err != nil {
+		return append(out, herr.Text(err))
+	}
+	words := map[string][]string{}
+	for _, c := range cases {
+		seen := map[string]bool{}
+		for line := range strings.Lines(c.Stdout) {
+			line = strings.TrimSuffix(line, "\n")
+			if !strings.HasPrefix(line, "verdict:") {
+				continue
+			}
+			m := verdictLineRe.FindStringSubmatch(line)
+			switch {
+			case m == nil:
+				out = append(out, fmt.Sprintf("case %s: malformed verdict line %q", c.Name, line))
+			case seen[m[1]]:
+				out = append(out, fmt.Sprintf("case %s: label %s printed twice", c.Name, m[1]))
+			default:
+				seen[m[1]] = true
+				words[m[1]] = append(words[m[1]], m[2])
+			}
+		}
+	}
+	if len(words) == 0 {
+		return append(out, "no case prints a verdict: LABEL=WORD line")
+	}
+	for _, label := range slices.Sorted(maps.Keys(words)) {
+		for _, w := range []string{event.VerdictSupports, event.VerdictContradicts} {
+			if !slices.Contains(words[label], w) {
+				out = append(out, "verdict "+label+": no "+w+" case")
+			}
+		}
+	}
+	return out
 }

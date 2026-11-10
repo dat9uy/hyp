@@ -17,7 +17,7 @@ import (
 	"github.com/dat9uy/hyp/internal/store"
 )
 
-// recipeHash is the --json output of hyp recipe hash.
+// recipeHash is the --json output of hyp bundle hash.
 type recipeHash struct {
 	Ref     string `json:"ref"`
 	Name    string `json:"name"`
@@ -26,10 +26,10 @@ type recipeHash struct {
 	SHA256  string `json:"sha256"`
 }
 
-const recipeUse = "usage: hyp recipe hash DIR [--json] | hyp recipe check | hyp recipe new NAME@1 | hyp recipe new NAME@N --from NAME@M | hyp recipe run --record DIR REF NAME [ARGS...] | hyp recipe evidence --record DIR REF OUT_DIR | hyp recipe known-answers REF"
+const recipeUse = "usage: hyp bundle hash DIR [--json] | hyp bundle check | hyp bundle new NAME@1 | hyp bundle new NAME@N --from NAME@M | hyp bundle run --record DIR REF NAME [ARGS...] | hyp bundle evidence --record DIR REF OUT_DIR | hyp bundle known-answers REF"
 
-// cmdRecipe dispatches the hyp recipe subcommands.
-func cmdRecipe(args []string, stdout, stderr io.Writer) error {
+// cmdRecipe dispatches the hyp bundle subcommands.
+func cmdBundle(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 0 {
 		return usageErr(recipeUse)
 	}
@@ -52,10 +52,10 @@ func cmdRecipe(args []string, stdout, stderr io.Writer) error {
 	return usageErr(recipeUse)
 }
 
-// cmdRecipeHash handles hyp recipe hash DIR: the hash hyp add exp --recipe
+// cmdRecipeHash handles hyp bundle hash DIR: the hash hyp add exp --recipe
 // records for the bundle in DIR, which must open as a recipe.
 func cmdRecipeHash(args []string, stdout, stderr io.Writer) error {
-	fs := readFlags("recipe hash", stderr)
+	fs := readFlags("bundle hash", stderr)
 	asJSON := fs.Bool("json", false, "print ref, name, version, path and sha256 as JSON")
 	pos, err := parse(fs, args)
 	if err != nil {
@@ -86,16 +86,16 @@ func cmdRecipeHash(args []string, stdout, stderr io.Writer) error {
 	return nil
 }
 
-// cmdRecipeCheck handles hyp recipe check: every pin to a versioned bundle in
+// cmdRecipeCheck handles hyp bundle check: every pin to a versioned bundle in
 // every store under the repository root must still match the bundle on disk.
 func cmdRecipeCheck(args []string, stdout, stderr io.Writer) error {
-	fs := readFlags("recipe check", stderr)
+	fs := readFlags("bundle check", stderr)
 	pos, err := parse(fs, args)
 	if err != nil {
 		return err
 	}
 	if len(pos) != 0 {
-		return usageErr("usage: hyp recipe check")
+		return usageErr("usage: hyp bundle check")
 	}
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -103,7 +103,7 @@ func cmdRecipeCheck(args []string, stdout, stderr io.Writer) error {
 	}
 	report, failures, hinted, err := check.Recipes(cwd)
 	if errors.Is(err, check.ErrNoRepo) {
-		return herr.Env("hyp recipe check runs inside a git repository")
+		return herr.Env("hyp bundle check runs inside a git repository")
 	}
 	if err != nil {
 		return herr.Env("%v", err)
@@ -115,19 +115,20 @@ func cmdRecipeCheck(args []string, stdout, stderr io.Writer) error {
 		return herr.Refused("recipe check found %d failures; rename each folder a hint names", failures)
 	}
 	if failures > 0 {
-		return herr.Refused("recipe check found %d failures; a changed bundle needs a new version (hyp recipe new)", failures)
+		return herr.Refused("recipe check found %d failures; a changed bundle needs a new version (hyp bundle new)", failures)
 	}
 	return nil
 }
 
-// cmdRecipeNew handles hyp recipe new NAME@1, which writes a first version
-// from the embedded template beside the nearest store, and hyp recipe new
+// cmdRecipeNew handles hyp bundle new NAME@1, which writes a first version
+// from the embedded template beside the nearest store, and hyp bundle new
 // NAME@N --from NAME@M, which copies the versioned bundle NAME@M to the next
 // version, recording where it came from.
 func cmdRecipeNew(args []string, stdout, stderr io.Writer) error {
-	const use = "usage: hyp recipe new NAME@1 | hyp recipe new NAME@N --from NAME@M"
-	fs := readFlags("recipe new", stderr)
+	const use = "usage: hyp bundle new NAME@1 [--rubric] | hyp bundle new NAME@N --from NAME@M"
+	fs := readFlags("bundle new", stderr)
 	from := fs.String("from", "", "the version to copy, NAME@M; omitted for a first version NAME@1")
+	rubric := fs.Bool("rubric", false, "write a first rubric into rubrics/ instead of a first recipe into recipes/")
 	pos, err := parse(fs, args)
 	if err != nil {
 		return err
@@ -140,7 +141,10 @@ func cmdRecipeNew(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if *from == "" {
-		return newFirst(cwd, pos[0], stdout)
+		return newFirst(cwd, pos[0], *rubric, stdout)
+	}
+	if *rubric {
+		return usageErr("--rubric names the library of a first version; --from copies NAME@M within its own library")
 	}
 	dir, stamped, err := recipe.NewVersion(cwd, pos[0], *from)
 	if err != nil {
@@ -156,7 +160,7 @@ func cmdRecipeNew(args []string, stdout, stderr io.Writer) error {
 
 // newFirst writes the first version target from the embedded template into
 // recipes/ beside the nearest store above cwd and prints its directory.
-func newFirst(cwd, target string, stdout io.Writer) error {
+func newFirst(cwd, target string, rubric bool, stdout io.Writer) error {
 	// A bad ref is a bad argument wherever it is typed, store or not.
 	if _, err := recipe.FirstRef(target); err != nil {
 		return err
@@ -165,7 +169,11 @@ func newFirst(cwd, target string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	dir, err := recipe.NewFirst(root, target)
+	write := recipe.NewFirst
+	if rubric {
+		write = recipe.NewFirstRubric
+	}
+	dir, err := write(root, target)
 	if err != nil {
 		return err
 	}
@@ -173,33 +181,33 @@ func newFirst(cwd, target string, stdout io.Writer) error {
 	return nil
 }
 
-// cmdRecipeRun handles hyp recipe run --record DIR REF NAME [ARGS...]: run
+// cmdRecipeRun handles hyp bundle run --record DIR REF NAME [ARGS...]: run
 // REF's Standalone command NAME with ARGS appended, with no sandbox.
 func cmdRecipeRun(args []string, stdout, stderr io.Writer) error {
-	fs := readFlags("recipe run", stderr)
+	fs := readFlags("bundle run", stderr)
 	record := fs.String("record", "", "new directory for the command record (required)")
 	pos, err := parseHead(fs, args)
 	if err != nil {
 		return err
 	}
 	if *record == "" || len(pos) < 2 {
-		return usageErr("usage: hyp recipe run --record DIR REF NAME [ARGS...]")
+		return usageErr("usage: hyp bundle run --record DIR REF NAME [ARGS...]")
 	}
 	return runOutside(stdout, sandbox.RunOptions{Ref: pos[0], Step: recipe.Standalone, Label: pos[1], Args: pos[2:], Record: *record, Warn: stderr})
 }
 
-// cmdRecipeEvidence handles hyp recipe evidence --record DIR REF OUT_DIR:
+// cmdRecipeEvidence handles hyp bundle evidence --record DIR REF OUT_DIR:
 // run REF's Evidence commands on the files hyp sandbox remove kept in
 // OUT_DIR, whose absolute path each command gets as its last argument.
 func cmdRecipeEvidence(args []string, stdout, stderr io.Writer) error {
-	fs := readFlags("recipe evidence", stderr)
+	fs := readFlags("bundle evidence", stderr)
 	record := fs.String("record", "", "new directory for the command record (required)")
 	pos, err := parseHead(fs, args)
 	if err != nil {
 		return err
 	}
 	if *record == "" || len(pos) != 2 {
-		return usageErr("usage: hyp recipe evidence --record DIR REF OUT_DIR")
+		return usageErr("usage: hyp bundle evidence --record DIR REF OUT_DIR")
 	}
 	kept, err := filepath.Abs(pos[1])
 	if err != nil {
@@ -208,30 +216,30 @@ func cmdRecipeEvidence(args []string, stdout, stderr io.Writer) error {
 	return runOutside(stdout, sandbox.RunOptions{Ref: pos[0], Step: recipe.Evidence, Args: []string{kept}, Record: *record, Warn: stderr})
 }
 
-// cmdRecipeKnownAnswers handles hyp recipe known-answers REF: run every
+// cmdRecipeKnownAnswers handles hyp bundle known-answers REF: run every
 // known-answer case of the bundle REF with no sandbox, one line per case. It
 // exits 3 when a case timed out, 1 when one failed or an instrument has no
 // cases, and 0 when every case is ok.
 func cmdRecipeKnownAnswers(args []string, stdout, stderr io.Writer) error {
-	fs := readFlags("recipe known-answers", stderr)
+	fs := readFlags("bundle known-answers", stderr)
 	pos, err := parse(fs, args)
 	if err != nil {
 		return err
 	}
 	if len(pos) != 1 {
-		return usageErr("usage: hyp recipe known-answers REF")
+		return usageErr("usage: hyp bundle known-answers REF")
 	}
 	cwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
 	ref := pos[0]
-	r, err := recipe.Load(cwd, ref)
+	r, err := recipe.LoadAny(cwd, ref)
 	if err != nil {
 		return err
 	}
 	if len(r.Evidence) == 0 && len(r.Standalone) == 0 {
-		fmt.Fprintf(stdout, "recipe %s has no Evidence or Standalone command; no known answers to run\n", ref)
+		fmt.Fprintf(stdout, "bundle %s has no Evidence or Standalone command; no known answers to run\n", ref)
 		return nil
 	}
 	hyp, err := sandbox.NewSandboxHyp()

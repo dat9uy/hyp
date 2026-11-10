@@ -85,9 +85,17 @@ const (
 // RecipeNone marks an Experiment that follows no recipe.
 const RecipeNone = "none"
 
-// DecidedReading is the one value of NodeAdd.DecidedBy: the Experiment's
-// verdicts are decided by reading, not by a measure.
+// DecidedReading is the one value of NodeAdd.DecidedBy, an older
+// spelling of RubricReading: replay reads it as rubric reading, and no
+// command writes it (ADR 0018).
 const DecidedReading = "reading"
+
+// RubricReading is the NodeAdd.Rubric value that says the Experiment's
+// verdicts are decided by reading the prose rubric in its body (ADR 0018).
+const RubricReading = "reading"
+
+// MaxRecords bounds an Experiment's pinned records.
+const MaxRecords = 500
 
 var (
 	EventTypes = set(TypeNodeAdd, TypeResultRecord, TypeResultRetract, TypeHypothesisAbandon, TypeHypothesisAmend, TypeHypothesisSubject,
@@ -127,6 +135,13 @@ type NodeAdd struct {
 	RecipeHash string   `json:"recipe_hash,omitempty"`
 	Targets    []string `json:"targets,omitempty"`
 	DecidedBy  string   `json:"decided_by,omitempty"`
+	// Rubric is how the Experiment's measures become verdicts: a rubric
+	// bundle's NAME@VERSION, pinned with RubricHash, or RubricReading.
+	Rubric     string `json:"rubric,omitempty"`
+	RubricHash string `json:"rubric_hash,omitempty"`
+	// Records pins the earlier records the Experiment reads beyond its own
+	// run, by path and sha256 (ADR 0018).
+	Records []SubjectFile `json:"records,omitempty"`
 	// Aims lists the limit and reading keys an Experiment means to settle.
 	// It is intent: only a Result's closes or applies settles one.
 	Aims []string `json:"aims,omitempty"`

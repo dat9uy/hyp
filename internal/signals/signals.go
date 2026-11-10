@@ -1,5 +1,5 @@
-// Package signals lists a tree's design marks from its event log: one-rival,
-// D1 and unjudged. Each mark is also a write-time refusal or warning, or a
+// Package signals lists a tree's design marks from its event log: one-rival
+// and D1 (ADR 0018 made a missing verdict a refusal, not a mark). Each mark is also a write-time refusal or warning, or a
 // mark that hyp status and hyp show print; this package lists them for the
 // whole tree. Progress on a question is the ledger's, not a signal's (ADR
 // 0017). It is pure, like replay: no file I/O and no clock.
@@ -33,7 +33,6 @@ type Round struct {
 	OneRival   bool       `json:"one_rival"`
 	D1         [][]string `json:"d1"`
 	Results    []Result   `json:"results"`
-	Unjudged   []string   `json:"unjudged,omitempty"` // targets live at add that no Result judged
 }
 
 // Result is one Result of a round that is not retracted.
@@ -61,7 +60,7 @@ func word(hyps map[string]*replay.Hyp, h string) string {
 
 // Compute replays evs once and returns every round and every signal it
 // shows. Only applied events count; a refused event changes nothing. Facts
-// that hold only at the end of the log (retracts, one-rival, unjudged) are
+// that hold only at the end of the log (retracts, one-rival) are
 // read from the final state's projection.
 func Compute(evs []event.Event) Report {
 	st := replay.NewState()
@@ -85,7 +84,7 @@ func Compute(evs []event.Event) Report {
 		switch ev.Type {
 		case event.TypeNodeAdd:
 			_ = event.DecodePayload(ev, &add)
-			if add.Kind == event.KindExperiment {
+			if add.Kind == event.KindExperiment && st.Nodes[add.Parent] != nil && st.Nodes[add.Parent].Kind == event.KindHypothesis {
 				d1 = st.NotRivals(append([]string{add.Parent}, add.Targets...))
 			}
 		case event.TypeResultRecord:
@@ -100,13 +99,19 @@ func Compute(evs []event.Event) Report {
 		switch {
 		case ev.Type == event.TypeNodeAdd && add.Kind == event.KindExperiment:
 			q := st.Nodes[add.Parent].Parent
+			tested := []string{add.Parent}
+			if st.Nodes[add.Parent].Kind == event.KindDesignQuestion {
+				// A measuring Experiment sits under its question and
+				// tests no Hypothesis (ADR 0018).
+				q, tested = add.Parent, nil
+			}
 			live = st.RivalsAtAdd[ev.Node]
 			r := &Round{Exp: display(ev.Node), Cut: prev, Parent: display(add.Parent), Targets: []string{},
 				Question: display(q), QuestionID: q, AtAdd: [][]string{}, D1: [][]string{}, Results: []Result{}}
 			for _, t := range add.Targets {
 				r.Targets = append(r.Targets, display(t))
 			}
-			for _, h := range append([]string{add.Parent}, live...) {
+			for _, h := range append(tested, live...) {
 				r.AtAdd = append(r.AtAdd, []string{display(h), word(before, h)})
 			}
 			for _, h := range d1 {
@@ -145,9 +150,6 @@ func Compute(evs []event.Event) Report {
 	for i, r := range rounds {
 		x := full.Exps[exps[i]]
 		r.OneRival = x.OneRival
-		for _, h := range x.Unjudged {
-			r.Unjudged = append(r.Unjudged, display(h))
-		}
 		if r.OneRival {
 			add("one-rival:"+r.Exp, i+1, "one-rival "+r.Exp+" "+oneRivalText(r))
 		}
@@ -157,9 +159,6 @@ func Compute(evs []event.Event) Report {
 				sts = append(sts, hs[0]+"="+hs[1])
 			}
 			add("D1:"+r.Exp, i+1, "D1 "+r.Exp+" at add: "+strings.Join(sts, ", "))
-		}
-		if len(r.Unjudged) > 0 {
-			add("unjudged:"+r.Exp, i+1, "unjudged "+r.Exp+" targets "+strings.Join(r.Unjudged, ",")+", which no Result judged")
 		}
 		out.Rounds = append(out.Rounds, *r)
 	}

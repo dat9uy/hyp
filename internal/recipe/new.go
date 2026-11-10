@@ -49,7 +49,7 @@ func NewVersion(start, target, from string) (dir, stamped string, err error) {
 	// Every library Load searches counts, so a nearer copy of an old version
 	// cannot branch past a newer one further up.
 	highest := 0
-	for _, d := range Dirs(start) {
+	for _, d := range DirsOf(start, filepath.Base(lib)) {
 		matches, err := filepath.Glob(filepath.Join(d, name+"@*"))
 		if err != nil {
 			return "", "", err
@@ -67,7 +67,7 @@ func NewVersion(start, target, from string) (dir, stamped string, err error) {
 	if highest > fv {
 		return "", "", herr.Refused("%s@%d exists; the next version is %s@%d", name, highest, name, highest+1)
 	}
-	if r, err := Load(start, target); err == nil {
+	if r, err := LoadAny(start, target); err == nil {
 		return "", "", herr.Refused("%s exists at %s", target, r.Path)
 	}
 	if _, err := os.Lstat(filepath.Join(lib, target)); err == nil {
@@ -113,7 +113,11 @@ func NewVersion(start, target, from string) (dir, stamped string, err error) {
 // hashing each copy without parsing it, and returns the nearest copy and its
 // hash. Every copy must hash the same.
 func findBundle(start, ref string) (path, hash string, err error) {
-	for _, d := range Dirs(start) {
+	var dirs []string
+	for _, l := range []string{Recipes, Rubrics} {
+		dirs = append(dirs, DirsOf(start, l)...)
+	}
+	for _, d := range dirs {
 		dir := filepath.Join(d, ref)
 		if !isFile(filepath.Join(dir, "recipe.md")) {
 			continue
@@ -131,7 +135,7 @@ func findBundle(start, ref string) (path, hash string, err error) {
 	if path != "" {
 		return path, hash, nil
 	}
-	return "", "", herr.BadArgs("bad recipe ref: recipe %s not found; searched %s", ref, strings.Join(Dirs(start), ", "))
+	return "", "", herr.BadArgs("bad recipe ref: bundle %s not found; searched %s", ref, strings.Join(dirs, ", "))
 }
 
 // copyBundle copies every file of the bundle src that the hash covers into
@@ -209,7 +213,7 @@ func stamp(data []byte, version, from string) ([]byte, error) {
 
 // addExternalTODO adds a line "External: TODO", indented as the command, under
 // each Run line in the Evidence and Standalone sections of a recipe.md that
-// has no External: line directly under it, so hyp recipe check names each
+// has no External: line directly under it, so hyp bundle check names each
 // command whose reach is still to be stated. The rest is unchanged.
 func addExternalTODO(data []byte) ([]byte, error) {
 	lines, err := splitLines(data)

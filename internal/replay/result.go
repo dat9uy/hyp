@@ -9,7 +9,7 @@ import "github.com/dat9uy/hyp/internal/event"
 type Res struct {
 	Status       ResStatus // ResRecorded or ResRetracted
 	Questionable bool      // a pin's ref is missing from the current recipe hashes or hashes differently
-	Pins         []Pin     // its Experiment's recipe, then each evidence pin, in the order cited
+	Pins         []Pin     // its Experiment's recipe, its rubric, then each evidence pin, in the order cited
 	Uncontained  []string  // why hyp cannot vouch for its verdict script (spec §7.6); set by contain.Mark
 }
 

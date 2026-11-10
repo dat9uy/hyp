@@ -65,16 +65,16 @@ func TestExitCodeContract(t *testing.T) {
 	}
 
 	addExp := func(ref string) []string {
-		return []string{"add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--why", "w"}
+		return []string{"add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--rubric", "reading", "--why", "w"}
 	}
 	create := func(id, ref string) []string {
 		return []string{"sandbox", "create", id, "--host", repo, "--base", sha, "--hyp", stub, "--recipe", ref, "--recipes", tree}
 	}
 	run := func(row, ref string) []string {
-		return []string{"recipe", "run", "--record", filepath.Join(recs, row), ref, "x"}
+		return []string{"bundle", "run", "--record", filepath.Join(recs, row), ref, "x"}
 	}
 	evidence := func(row, ref string) []string {
-		return []string{"recipe", "evidence", "--record", filepath.Join(recs, row), ref, out}
+		return []string{"bundle", "evidence", "--record", filepath.Join(recs, row), ref, out}
 	}
 	for _, c := range []struct {
 		row  string
@@ -84,7 +84,7 @@ func TestExitCodeContract(t *testing.T) {
 		{"r1", addExp("bad@1"), 1},
 		{"r2", addExp("nope@1"), 2},
 		{"r4", addExp("twin@1"), 1},
-		{"r5", []string{"recipe", "hash", filepath.Join(repo, "recipes", "bad@1")}, 1},
+		{"r5", []string{"bundle", "hash", filepath.Join(repo, "recipes", "bad@1")}, 1},
 		{"r6", create("s6", "bad@1"), 1},
 		{"r7", create("s7", "nope@1"), 2},
 		{"r9", create("s9", "twin@1"), 1},

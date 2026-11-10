@@ -142,7 +142,7 @@ func TestSubjectCoversALineByFingerprint(t *testing.T) {
 
 	// One run judged H and ran H2's bytes: it covers both.
 	e := must(t, "add", "exp", "--parent", h, "--title", "runs the line", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
-	rec := writeCommandRecord(t, dir, "E-RUN", map[string]string{"h-row.py": "row = 1\n"})
+	rec := writeCommandRecord(t, dir, e, map[string]string{"h-row.py": "row = 1\n"})
 	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", rec, "--closes", keys[0], "--why", "w")
 	want(t, hyp(t, "show", keys[0]), 0, "ran in "+res+": ran on "+h+": supports; ran on "+h2+"\n")
 	want(t, hyp(t, "status"), 0, "  "+keys[0]+" covered on "+q+", "+q2+"; ran in "+res+" — one tenant per row\n")

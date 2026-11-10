@@ -37,7 +37,7 @@ Three rules keep the boundary honest: a concept stays core when self-review is w
 
 hyp is changed the way it asks its users to decide things: with a tree of rival Hypotheses, Experiments run from recipes, and a select hyp admits only when the ledger owes it. The loop:
 
-1. **A real event points at hyp.** In a real run the ledger shows an item that does not settle, a refusal or warning fires, `hyp signals` reports a design mark (one-rival, D1 or unjudged), or the owner flags a round. A change is never proposed on speculation.
+1. **A real event points at hyp.** In a real run the ledger shows an item that does not settle, a refusal or warning fires, `hyp signals` reports a design mark (one-rival or D1), or the owner flags a round. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
 3. **A tree holds the question.** Under `investigations/<topic>/`, run `hyp init`, add the goal, the design question and at least two rival Hypotheses, and pre-register each Experiment's verdict rule in its body before running it. The [hyp-prototype skill](skills/hyp-prototype/SKILL.md) describes each step.
 4. **Experiments run from a pinned, versioned recipe.** The [hyp-verification skill](skills/hyp-verification/SKILL.md) and [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md) describe Launch, Doctor, Drive, Evidence and Cleanup. hyp admits a select only when the ledger owes it; the owner decides trade-offs.
@@ -49,7 +49,7 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
    [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md) explains why the loop is guarded while it runs instead of proven in advance.
 6. **The PR cites the Result ids that decided it.**
 
-The skill-text gate's replay instrument is `recipes/skill-text-arms@4`: a fresh runner started at the event's store cut, with the skills at the sandbox's base commit or a SKILL.md variant given as the trial's `--patch`, scored from its transcript and changes. A row its brief and cut cannot reach is not reproduced, so nothing ships for it. `recipes/verifier-brief-arms@1`, the instrument for the verifier's brief, is retired: it measured a role removed by ADR 0015, and it stays frozen.
+The skill-text gate's replay instrument is `recipes/skill-text-arms@4`: a fresh runner started at the event's store cut, with the skills at the sandbox's base commit or a SKILL.md variant given as the trial's `--patch`, scored from its transcript and changes. A row its brief and cut cannot reach is not reproduced, so nothing ships for it. Its checks print verdicts, which a recipe no longer does (ADR 0018), so a new Experiment pins its next version, split into a recipe and a rubric (#110). `recipes/verifier-brief-arms@1`, the instrument for the verifier's brief, is retired: it measured a role removed by ADR 0015, and it stays frozen.
 
 ## Experiment controls
 

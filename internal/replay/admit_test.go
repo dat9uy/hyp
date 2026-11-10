@@ -23,26 +23,63 @@ func kinds(fs []Finding) []string {
 	return out
 }
 
-func TestAdmitExpRecipeRules(t *testing.T) {
+func TestAdmitExpBundleRules(t *testing.T) {
 	instr := RecipeFacts{Instrument: true, HasCases: true}
+	rec := []event.SubjectFile{{Path: ".tree/evidence/E-AAAAAA/out.txt", SHA256: strings.Repeat("a", 64)}}
 	for _, c := range []struct {
-		name string
-		p    event.NodeAdd
-		f    RecipeFacts
-		want []string
-		text string
+		name  string
+		p     event.NodeAdd
+		f, rb RecipeFacts
+		want  []string
+		text  string
 	}{
-		{"instrument without known answers", event.NodeAdd{Recipe: "x@1"}, RecipeFacts{Instrument: true}, []string{FindRefuse}, "recipe x@1 is an instrument with no known answers"},
-		{"measured with decided-by", event.NodeAdd{Recipe: "x@1", DecidedBy: event.DecidedReading}, instr, []string{FindBadArgs}, "--decided-by reading contradicts recipe x@1"},
-		{"recipe none, no decided-by", event.NodeAdd{Recipe: event.RecipeNone}, RecipeFacts{}, []string{FindRefuse}, "recipe none holds no measure"},
-		{"not an instrument, no decided-by", event.NodeAdd{Recipe: "x@1"}, RecipeFacts{}, []string{FindRefuse}, "recipe x@1 holds no measure"},
-		{"reading", event.NodeAdd{Recipe: event.RecipeNone, DecidedBy: event.DecidedReading}, RecipeFacts{}, nil, ""},
-		{"measured", event.NodeAdd{Recipe: "x@1"}, instr, nil, ""},
-		{"template placeholder", event.NodeAdd{Recipe: "x@1"}, RecipeFacts{Instrument: true, HasCases: true, Placeholder: []string{"check.sh", "recipe.md"}},
+		{"instrument without known answers", event.NodeAdd{Recipe: "x@1"}, RecipeFacts{Instrument: true}, RecipeFacts{}, []string{FindRefuse}, "recipe x@1 is an instrument with no known answers"},
+		{"recipe prints verdicts", event.NodeAdd{Recipe: "x@1", Rubric: event.RubricReading}, RecipeFacts{Instrument: true, HasCases: true, Verdicts: true}, RecipeFacts{},
+			[]string{FindRefuse}, "recipe x@1: a recipe measures and never prints a verdict; put the rule in a rubric"},
+		{"reading", event.NodeAdd{Recipe: event.RecipeNone, Rubric: event.RubricReading}, RecipeFacts{}, RecipeFacts{}, nil, ""},
+		{"measured", event.NodeAdd{Recipe: "x@1"}, instr, RecipeFacts{}, nil, ""},
+		{"run and rule", event.NodeAdd{Recipe: "x@1", Rubric: "r@1"}, instr, RecipeFacts{}, nil, ""},
+		{"not a rubric", event.NodeAdd{Recipe: "x@1", Rubric: "r@1"}, instr, RecipeFacts{NotRubric: []string{"it has a step section", "verdict a: no supports case"}},
+			[]string{FindRefuse}, "rubric r@1 is not a rubric: it has a step section; verdict a: no supports case"},
+		{"rubric with nothing to read", event.NodeAdd{Recipe: event.RecipeNone, Rubric: "r@1"}, RecipeFacts{}, RecipeFacts{},
+			[]string{FindRefuse}, "rubric r@1 has no measures to read: pin a recipe or --records"},
+		{"reassess from records", event.NodeAdd{Recipe: event.RecipeNone, Rubric: "r@1", Records: rec}, RecipeFacts{}, RecipeFacts{}, nil, ""},
+		{"template placeholder", event.NodeAdd{Recipe: "x@1"}, RecipeFacts{Instrument: true, HasCases: true, Placeholder: []string{"check.sh", "recipe.md"}}, RecipeFacts{},
 			[]string{FindRefuse}, "recipe x@1 still holds the template placeholder (hyp:placeholder) in check.sh, recipe.md"},
-		{"placeholder on recipe none is ignored", event.NodeAdd{Recipe: event.RecipeNone, DecidedBy: event.DecidedReading}, RecipeFacts{Placeholder: []string{"recipe.md"}}, nil, ""},
+		{"rubric placeholder", event.NodeAdd{Recipe: "x@1", Rubric: "r@1"}, instr, RecipeFacts{Placeholder: []string{"rule.py"}},
+			[]string{FindRefuse}, "rubric r@1 still holds the template placeholder (hyp:placeholder) in rule.py"},
+		{"placeholder on recipe none is ignored", event.NodeAdd{Recipe: event.RecipeNone, Rubric: event.RubricReading}, RecipeFacts{Placeholder: []string{"recipe.md"}}, RecipeFacts{}, nil, ""},
 	} {
-		got := (*State)(nil).AdmitExp(c.p, c.f, false)
+		got := (*State)(nil).AdmitExp(c.p, c.f, c.rb, false)
+		if !reflect.DeepEqual(kinds(got), c.want) || (c.text != "" && !strings.HasPrefix(got[0].Text, c.text)) {
+			t.Errorf("%s: findings %+v, want kinds %v starting %q", c.name, got, c.want, c.text)
+		}
+	}
+}
+
+// Under a Hypothesis an Experiment pins a rubric; under a DesignQuestion it
+// measures, so it has no rubric and no target.
+func TestAdmitExpParentRules(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	q := b.DQ(g, "q")
+	h := b.Hyp(q, "h")
+	st := stateB(b)
+	for _, c := range []struct {
+		name     string
+		p        event.NodeAdd
+		noTarget bool
+		want     []string
+		text     string
+	}{
+		{"hypothesis without rubric", event.NodeAdd{Parent: h, Recipe: event.RecipeNone}, false, []string{FindRefuse}, NoRubric},
+		{"hypothesis with reading", event.NodeAdd{Parent: h, Recipe: event.RecipeNone, Rubric: event.RubricReading}, false, nil, ""},
+		{"question measures", event.NodeAdd{Parent: q, Recipe: "x@1"}, false, nil, ""},
+		{"question with rubric", event.NodeAdd{Parent: q, Recipe: "x@1", Rubric: event.RubricReading}, false, []string{FindBadArgs}, "an Experiment under a DesignQuestion measures"},
+		{"question with target", event.NodeAdd{Parent: q, Recipe: "x@1", Targets: []string{h}}, false, []string{FindBadArgs}, "an Experiment under a DesignQuestion measures"},
+		{"question with target none", event.NodeAdd{Parent: q, Recipe: "x@1"}, true, []string{FindBadArgs}, "an Experiment under a DesignQuestion measures"},
+	} {
+		got := st.AdmitExp(c.p, RecipeFacts{Instrument: true, HasCases: true}, RecipeFacts{}, c.noTarget)
 		if !reflect.DeepEqual(kinds(got), c.want) || (c.text != "" && !strings.HasPrefix(got[0].Text, c.text)) {
 			t.Errorf("%s: findings %+v, want kinds %v starting %q", c.name, got, c.want, c.text)
 		}
@@ -55,17 +92,17 @@ func TestAdmitExpOneRival(t *testing.T) {
 	q := b.DQ(g, "q")
 	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
 	st := stateB(b)
-	reading := event.NodeAdd{Recipe: event.RecipeNone, DecidedBy: event.DecidedReading, Parent: h1}
+	reading := event.NodeAdd{Recipe: event.RecipeNone, Rubric: event.RubricReading, Parent: h1}
 
-	got := st.AdmitExp(reading, RecipeFacts{}, false)
+	got := st.AdmitExp(reading, RecipeFacts{}, RecipeFacts{}, false)
 	if len(got) != 1 || got[0].Kind != FindRefuse || !strings.HasPrefix(got[0].Text, "live rivals of "+event.DisplayID(event.KindHypothesis, h1)+" under ") {
 		t.Fatalf("no target while %s is live: %+v, want the one-rival refusal", h2, got)
 	}
-	if got := st.AdmitExp(reading, RecipeFacts{}, true); got != nil {
+	if got := st.AdmitExp(reading, RecipeFacts{}, RecipeFacts{}, true); got != nil {
 		t.Fatalf("--target none: %+v, want nothing", got)
 	}
 	reading.Targets = []string{h2}
-	if got := st.AdmitExp(reading, RecipeFacts{}, false); got != nil {
+	if got := st.AdmitExp(reading, RecipeFacts{}, RecipeFacts{}, false); got != nil {
 		t.Fatalf("targets the live rival: %+v, want nothing", got)
 	}
 
@@ -83,8 +120,8 @@ func TestAdmitExpWarnings(t *testing.T) {
 	q := b.DQ(g, "q")
 	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
 	r := b.Contradicts(h2)
-	p := event.NodeAdd{Recipe: "x@1", Parent: h1, Targets: []string{h2}}
-	got := stateB(b).AdmitExp(p, RecipeFacts{Instrument: true, HasCases: true, GoWarnings: []string{"a.go: go file"}}, false)
+	p := event.NodeAdd{Recipe: "x@1", Rubric: event.RubricReading, Parent: h1, Targets: []string{h2}}
+	got := stateB(b).AdmitExp(p, RecipeFacts{Instrument: true, HasCases: true, GoWarnings: []string{"a.go: go file"}}, RecipeFacts{}, false)
 	want := []Finding{
 		{FindWarn, "D1: target " + event.DisplayID(event.KindHypothesis, h2) + " is contradicted by " + event.DisplayID(event.KindResult, r) +
 			"; if that was wrong, hyp retract <R-id> reopens it; otherwise supersede " + event.DisplayID(event.KindHypothesis, h2) + " and test the new Hypothesis"},
@@ -117,7 +154,7 @@ func TestAdmitResultPinRules(t *testing.T) {
 		{"changed since pinned", e, RecipeFacts{Hash: "bbb"}, nil, "recipe x@1 changed since " + ed + " pinned it (recorded aaa, now bbb)"},
 		{"evidence hashed differently", e, RecipeFacts{Hash: "aaa"}, map[string]string{"x@1": "ccc"}, "recipe x@1 changed while recording: its evidence hashed ccc, " + ed + " pinned aaa"},
 	} {
-		got := st.AdmitResult(event.ResultRecord{Parent: c.exp}, c.f, c.refHash)
+		got := st.AdmitResult(event.ResultRecord{Parent: c.exp}, ResultFacts{Recipe: c.f}, c.refHash)
 		if c.text == "" {
 			if got != nil {
 				t.Errorf("%s: %+v, want nothing", c.name, got)
@@ -129,4 +166,3 @@ func TestAdmitResultPinRules(t *testing.T) {
 		}
 	}
 }
-

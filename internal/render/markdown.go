@@ -45,26 +45,39 @@ func Markdown(p replay.Projection) string {
 		}
 		b.WriteString("\n")
 		var subs []string
+		// exp prints Experiment c and its Results at indent; a measuring
+		// one sits under the question and gives no verdict (ADR 0018).
+		exp := func(c, indent string) {
+			cn := p.Nodes[c]
+			fmt.Fprintf(&b, "%s- %s %s — %s (recipe %s, %s)\n", indent, r.id(c), cn.Title, p.Exps[c].Status, cn.Recipe, p.Exps[c].Shape)
+			for _, res := range cn.Children {
+				rr := resOf(p, res)
+				flag := ""
+				if rr.Questionable {
+					flag = " — questionable"
+				}
+				if len(rr.Uncontained) > 0 {
+					flag += " — uncontained"
+				}
+				verdicts := r.verdicts(p.Nodes[res].Verdicts)
+				if verdicts != "" {
+					verdicts += ":"
+				}
+				fmt.Fprintf(&b, "%s  - %s %s %s %s%s\n", indent, r.id(res), rr.Status, verdicts, p.Nodes[res].Observation, flag)
+			}
+		}
 		for _, h := range n.Children {
 			hn := p.Nodes[h]
+			if hn.Kind == event.KindExperiment {
+				exp(h, "")
+				continue
+			}
 			fmt.Fprintf(&b, "- %s %s — %s\n", r.id(h), hn.Title, statusText(r, p, h, false))
 			for _, c := range hn.Children {
 				cn := p.Nodes[c]
 				switch cn.Kind {
 				case event.KindExperiment:
-					fmt.Fprintf(&b, "  - %s %s — %s (recipe %s)\n", r.id(c), cn.Title, p.Exps[c].Status, cn.Recipe)
-					for _, res := range cn.Children {
-						rr := resOf(p, res)
-						flag := ""
-						if rr.Questionable {
-							flag = " — questionable"
-						}
-						if len(rr.Uncontained) > 0 {
-							flag += " — uncontained"
-						}
-						fmt.Fprintf(&b, "    - %s %s %s: %s%s\n", r.id(res), rr.Status, r.verdicts(p.Nodes[res].Verdicts),
-							p.Nodes[res].Observation, flag)
-					}
+					exp(c, "  ")
 				case event.KindDesignQuestion:
 					fmt.Fprintf(&b, "  - sub-question %s\n", r.id(c))
 					subs = append(subs, c)

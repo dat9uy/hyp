@@ -87,10 +87,12 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 	bundles := map[string]bool{}
 	hintedDirs := map[string]bool{} // leftover folders already given a hint
 	for _, root := range stores {
-		for _, d := range recipe.Dirs(root) {
-			mds, _ := filepath.Glob(filepath.Join(d, "*@*", "recipe.md"))
-			for _, md := range mds {
-				bundles[filepath.Dir(md)] = true
+		for _, lib := range []string{recipe.Recipes, recipe.Rubrics} {
+			for _, d := range recipe.DirsOf(root, lib) {
+				mds, _ := filepath.Glob(filepath.Join(d, "*@*", "recipe.md"))
+				for _, md := range mds {
+					bundles[filepath.Dir(md)] = true
+				}
 			}
 		}
 		rel, _ := filepath.Rel(top, root)
@@ -113,7 +115,11 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 				now = "missing"
 			}
 			file := pin.Pointer
-			if file == "" {
+			switch {
+			case file != "":
+			case pin.Rubric:
+				file = "rubrics/" + pin.Ref.String() + "/"
+			default:
 				file = "recipes/" + pin.Ref.String() + "/"
 			}
 			report = append(report, fmt.Sprintf("drift: %s %s %s: recorded %s, now %s",
@@ -134,9 +140,9 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 				}
 			}
 		}
-		// A Result's pins include its Experiment's recipe, so an Experiment a
-		// Result reached, even a retracted one, is not checked again. Every
-		// other Experiment pins its recipe itself, planned or closed.
+		// A Result's pins include its Experiment's recipe and rubric, so an
+		// Experiment a Result reached, even a retracted one, is not checked
+		// again. Every other Experiment pins them itself, planned or closed.
 		reached := map[string]bool{}
 		for _, id := range resultIDs(p) {
 			reached[p.Nodes[id].Parent] = true
@@ -146,16 +152,23 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 		}
 		var exps []string
 		for id := range p.Exps {
-			if p.Nodes[id].Recipe != event.RecipeNone && !reached[id] {
+			if !reached[id] {
 				exps = append(exps, id)
 			}
 		}
 		sort.Strings(exps)
 		for _, id := range exps {
 			n := p.Nodes[id]
-			// validate admits only name@version or none, so the parse holds.
-			ref, _ := event.ParseRef(n.Recipe)
-			check(id, replay.Pin{Ref: ref, Hash: n.RecipeHash})
+			// validate admits only name@version or none, and a rubric_hash
+			// only beside a name@version rubric, so the parses hold.
+			if n.Recipe != event.RecipeNone {
+				ref, _ := event.ParseRef(n.Recipe)
+				check(id, replay.Pin{Ref: ref, Hash: n.RecipeHash})
+			}
+			if n.RubricHash != "" {
+				ref, _ := event.ParseRef(n.Rubric)
+				check(id, replay.Pin{Ref: ref, Hash: n.RubricHash, Rubric: true})
+			}
 		}
 	}
 	var dirs []string
@@ -177,7 +190,12 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 			warns = append(warns, "warn: "+rel+"/"+w)
 		}
 		if r, err := recipe.Open(dir); err == nil {
-			for _, w := range sandbox.WeakCases(r) {
+			weak := sandbox.WeakCases(r)
+			if filepath.Base(filepath.Dir(dir)) == recipe.Rubrics {
+				// A rubric's cases are its supports and contradicts cases.
+				weak = sandbox.RubricProblems(r)
+			}
+			for _, w := range weak {
 				if w == "instrument with no known answers" {
 					warns = append(warns, "warn: "+rel+": "+w)
 				} else {

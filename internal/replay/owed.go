@@ -122,6 +122,12 @@ func (p Projection) Owed() []Owed {
 					}
 				}
 			}
+			// A measuring Experiment sits under the question itself.
+			for _, e := range n.Children {
+				if p.Nodes[e].Kind == event.KindExperiment && p.Exps[e].Status == ExpPlanned {
+					add(Owed{Who: OwedRunner, Kind: OwedPlanned, Key: e})
+				}
+			}
 		}
 		for _, l := range p.LimitsOf(dq) {
 			switch {
@@ -252,30 +258,28 @@ func RunnerOwes(items []Owed) bool {
 	return slices.ContainsFunc(items, func(o Owed) bool { return o.Who == OwedRunner })
 }
 
-// hasLiveExp reports whether a planned or run Experiment has h as its parent
-// or a target.
+// hasLiveExp reports whether a planned or run Experiment targets h.
 func (p Projection) hasLiveExp(h string) bool {
 	for id, e := range p.Exps {
 		n := p.Nodes[id]
 		if closedExp(e) || n == nil {
 			continue
 		}
-		if n.Parent == h || slices.Contains(n.Targets, h) {
+		if slices.Contains(e.Targets, h) {
 			return true
 		}
 	}
 	return false
 }
 
-// hasPlannedExp reports whether a planned Experiment has h as its parent or
-// a target.
+// hasPlannedExp reports whether a planned Experiment targets h.
 func (p Projection) hasPlannedExp(h string) bool {
 	for id, e := range p.Exps {
 		n := p.Nodes[id]
 		if closedExp(e) || n == nil || e.Status != ExpPlanned {
 			continue
 		}
-		if n.Parent == h || slices.Contains(n.Targets, h) {
+		if slices.Contains(e.Targets, h) {
 			return true
 		}
 	}

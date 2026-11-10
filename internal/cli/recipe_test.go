@@ -39,15 +39,15 @@ func TestRecipeHashMatchesAddExp(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "known-answers", "ok", "expect.json"), `{"step": "standalone", "command": "check", "exit": 0, "stdout": "ok\n"}`)
 	writeFile(t, filepath.Join(dir, "known-answers", "ok", "input", "a"), "")
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
-	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@1", "--why", "w")
+	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@1", "--rubric", "reading", "--why", "w")
 	rec := recordedHash(t, tree)
 
-	r := hyp(t, "recipe", "hash", dir)
+	r := hyp(t, "bundle", "hash", dir)
 	want(t, r, 0, rec)
 	if r.stdout != rec+"\n" {
 		t.Fatalf("stdout %q, want the hash alone", r.stdout)
 	}
-	r = hyp(t, "recipe", "hash", "--json", dir)
+	r = hyp(t, "bundle", "hash", "--json", dir)
 	var got recipeHash
 	if err := json.Unmarshal([]byte(r.stdout), &got); err != nil || r.code != 0 {
 		t.Fatalf("--json: exit %d, %v: %q", r.code, err, r.stdout)
@@ -60,13 +60,13 @@ func TestRecipeHashMatchesAddExp(t *testing.T) {
 	if err := os.CopyFS(legacy, os.DirFS(dir)); err != nil {
 		t.Fatal(err)
 	}
-	want(t, hyp(t, "recipe", "hash", legacy), 0, rec)
+	want(t, hyp(t, "bundle", "hash", legacy), 0, rec)
 	t.Chdir(dir)
-	want(t, hyp(t, "recipe", "hash", "."), 0, rec)
+	want(t, hyp(t, "bundle", "hash", "."), 0, rec)
 
-	want(t, hyp(t, "recipe", "hash"), 2, "usage: hyp recipe hash DIR [--json]")
-	want(t, hyp(t, "recipe", "list"), 2, "usage: hyp recipe hash DIR [--json]")
-	want(t, hyp(t, "recipe", "hash", t.TempDir()), 2, "recipe.md")
+	want(t, hyp(t, "bundle", "hash"), 2, "usage: hyp bundle hash DIR [--json]")
+	want(t, hyp(t, "bundle", "list"), 2, "usage: hyp bundle hash DIR [--json]")
+	want(t, hyp(t, "bundle", "hash", t.TempDir()), 2, "recipe.md")
 }
 
 // A folder without @version hashes without a version check, even one whose
@@ -78,9 +78,9 @@ func TestRecipeHashFolderWithoutVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want(t, hyp(t, "recipe", "hash", dir), 0, hash)
+	want(t, hyp(t, "bundle", "hash", dir), 0, hash)
 	writeFile(t, filepath.Join(dir, "recipe.md"), "---\nname: y\n---\n")
-	want(t, hyp(t, "recipe", "hash", dir), 1, "recipe name mismatch")
+	want(t, hyp(t, "bundle", "hash", dir), 1, "recipe name mismatch")
 }
 
 func TestEvidenceInLibraryRecipe(t *testing.T) {
@@ -174,9 +174,9 @@ func TestEvidencePinsLibraryBundle(t *testing.T) {
 		}
 		return hyp(t, args...)
 	}
-	evDir := filepath.Join(tree, ".tree", "evidence", "E-1")
+	evDir := filepath.Join(tree, ".tree", "evidence", e)
 	writeFile(t, filepath.Join(evDir, "log.txt"), "l\n")
-	r := rec("recipes/cases@1/a.txt", "recipes/boot@1/known.txt", ".tree/evidence/E-1/log.txt", "https://example.com/x")
+	r := rec("recipes/cases@1/a.txt", "recipes/boot@1/known.txt", ".tree/evidence/"+e+"/log.txt", "https://example.com/x")
 	want(t, r, 0, "result.record")
 	res := strings.Fields(r.stdout)[0]
 
@@ -327,12 +327,12 @@ func TestRecipeCheckFindsDriftInEveryTree(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	want(t, r, 0, "recipe check: 2 trees, 4 pins, 0 drift")
 
 	writeFile(t, filepath.Join(boot, "known.txt"), "edited\n")
 	now := bundleHash(t, boot)
-	r = hyp(t, "recipe", "check")
+	r = hyp(t, "bundle", "check")
 	if r.code != 1 {
 		t.Fatalf("exit %d, stdout %q, stderr %q", r.code, r.stdout, r.stderr)
 	}
@@ -352,13 +352,13 @@ func TestRecipeCheckFindsDriftInEveryTree(t *testing.T) {
 	}
 
 	t.Chdir(repo)
-	want(t, hyp(t, "recipe", "check"), 1, "4 drift")
+	want(t, hyp(t, "bundle", "check"), 1, "4 drift")
 
 	t.Chdir(t.TempDir())
-	if r = hyp(t, "recipe", "check"); r.code != 3 {
+	if r = hyp(t, "bundle", "check"); r.code != 3 {
 		t.Fatalf("outside a repository: exit %d, stderr %q", r.code, r.stderr)
 	}
-	want(t, hyp(t, "recipe", "check", "x"), 2, "usage: hyp recipe check")
+	want(t, hyp(t, "bundle", "check", "x"), 2, "usage: hyp bundle check")
 }
 
 // A leftover recipes/boot/ that hashes as a pin to boot@1 gets one rename
@@ -376,7 +376,7 @@ func TestRecipeCheckHintsRename(t *testing.T) {
 	}
 	hint := "hint: recipes/boot/ holds boot@1 (same hash) in a folder whose name has no version; rename it: git mv recipes/boot recipes/boot@1\n"
 
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	want(t, r, 1, "recipe check found 2 failures; rename each folder a hint names")
 	lines := strings.Split(r.stdout, "\n")
 	if !strings.HasPrefix(lines[0], "drift: tree E-") || !strings.HasSuffix(lines[0], "recorded "+rec+", now missing") ||
@@ -388,8 +388,8 @@ func TestRecipeCheckHintsRename(t *testing.T) {
 	}
 
 	writeFile(t, filepath.Join(lib, "boot", "notes.txt"), "edited\n")
-	r = hyp(t, "recipe", "check")
-	want(t, r, 1, "recipe check found 2 failures; a changed bundle needs a new version (hyp recipe new)")
+	r = hyp(t, "bundle", "check")
+	want(t, r, 1, "recipe check found 2 failures; a changed bundle needs a new version (hyp bundle new)")
 	if strings.Contains(r.stdout, "hint: ") {
 		t.Fatalf("stdout %q hints a folder that hashes differently", r.stdout)
 	}
@@ -410,7 +410,7 @@ func TestRecipeNewCopiesNextVersion(t *testing.T) {
 	writeFile(t, filepath.Join(boot, "known-answers", "ok", "input", "a"), "")
 	h1 := bundleHash(t, boot)
 
-	r := hyp(t, "recipe", "new", "boot@2", "--from", "boot@1")
+	r := hyp(t, "bundle", "new", "boot@2", "--from", "boot@1")
 	want(t, r, 0, "from: boot@1 "+h1)
 	if first := strings.SplitN(r.stdout, "\n", 2)[0]; !strings.HasSuffix(first, filepath.Join("recipes", "boot@2")) {
 		t.Fatalf("first line %q", first)
@@ -458,9 +458,9 @@ func TestRecipeNewCopiesNextVersion(t *testing.T) {
 		t.Fatalf("Open(boot@2) = %v, %v", rc, err)
 	}
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
-	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@2", "--why", "w")
+	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "boot@2", "--rubric", "reading", "--why", "w")
 
-	want(t, hyp(t, "recipe", "new", "boot@3", "--from", "boot@2"), 0, "from: boot@2 ")
+	want(t, hyp(t, "bundle", "new", "boot@3", "--from", "boot@2"), 0, "from: boot@2 ")
 	md, err = os.ReadFile(filepath.Join(repo, "recipes", "boot@3", "recipe.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -476,18 +476,18 @@ func TestRecipeNewCopiesNextVersion(t *testing.T) {
 	}
 
 	t.Chdir(repo)
-	want(t, hyp(t, "recipe", "new", "boot@4", "--from", "boot@3"), 0, "from: boot@3 ")
+	want(t, hyp(t, "bundle", "new", "boot@4", "--from", "boot@3"), 0, "from: boot@3 ")
 	_ = tree
 }
 
 func TestRecipeNewRefusals(t *testing.T) {
 	repo, _, _ := libraryStore(t)
-	want(t, hyp(t, "recipe", "new", "boot@2", "--from", "boot@1"), 0, "from: boot@1 ")
+	want(t, hyp(t, "bundle", "new", "boot@2", "--from", "boot@1"), 0, "from: boot@1 ")
 
-	want(t, hyp(t, "recipe", "new", "boot@2", "--from", "boot@1"), 1, "exists")
-	want(t, hyp(t, "recipe", "new", "boot@3", "--from", "boot@1"), 1, "not the next version after boot@1")
+	want(t, hyp(t, "bundle", "new", "boot@2", "--from", "boot@1"), 1, "exists")
+	want(t, hyp(t, "bundle", "new", "boot@3", "--from", "boot@1"), 1, "not the next version after boot@1")
 	writeLib(t, repo, "boot@5", "---\nname: boot\nversion: 5\n---\n")
-	want(t, hyp(t, "recipe", "new", "boot@3", "--from", "boot@2"), 1, "boot@5 exists; the next version is boot@6")
+	want(t, hyp(t, "bundle", "new", "boot@3", "--from", "boot@2"), 1, "boot@5 exists; the next version is boot@6")
 
 	for _, args := range [][]string{
 		{"nope", "--from", "boot@1"},
@@ -495,12 +495,12 @@ func TestRecipeNewRefusals(t *testing.T) {
 		{"boot@0", "--from", "boot@-1"},
 		{"boot@10", "--from", "boot@9"},
 	} {
-		want(t, hyp(t, append([]string{"recipe", "new"}, args...)...), 2, "bad recipe ref")
+		want(t, hyp(t, append([]string{"bundle", "new"}, args...)...), 2, "bad recipe ref")
 	}
-	want(t, hyp(t, "recipe", "new", "other@2", "--from", "boot@1"), 2, "name different recipes")
-	want(t, hyp(t, "recipe", "new", "boot@2"), 2, "missing --from")
+	want(t, hyp(t, "bundle", "new", "other@2", "--from", "boot@1"), 2, "name different recipes")
+	want(t, hyp(t, "bundle", "new", "boot@2"), 2, "missing --from")
 	writeFile(t, filepath.Join(repo, "recipes", "legacy.md"), "---\nname: legacy\nversion: 1\nformat: 1\n---\n")
-	want(t, hyp(t, "recipe", "new", "legacy@2", "--from", "legacy@1"), 2, "bad recipe ref: recipe legacy@1 not found; searched ")
+	want(t, hyp(t, "bundle", "new", "legacy@2", "--from", "legacy@1"), 2, "bad recipe ref: bundle legacy@1 not found; searched ")
 
 	entries, err := os.ReadDir(filepath.Join(repo, "recipes"))
 	if err != nil {
@@ -523,7 +523,7 @@ func TestAddExpRefusesInstrumentWithoutKnownAnswers(t *testing.T) {
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
 	addExp := func(ref string) result {
 		t.Helper()
-		return hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--why", "w")
+		return hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", ref, "--rubric", "reading", "--why", "w")
 	}
 	tool := filepath.Join(repo, "recipes", "tool@1")
 	writeFile(t, filepath.Join(tool, "recipe.md"), "---\nname: tool\nversion: 1\nformat: 1\n---\n\n## Standalone\n\nRun ok: ./ok.sh\n")
@@ -570,7 +570,7 @@ func TestRecipeNewSeesHigherVersionInEveryLibrary(t *testing.T) {
 	repo, tree, _ := libraryStore(t)
 	writeLib(t, tree, "boot@1", "---\nname: boot\nversion: 1\nformat: 1\n---\n")
 	writeLib(t, repo, "boot@3", "---\nname: boot\nversion: 3\n---\n")
-	want(t, hyp(t, "recipe", "new", "boot@2", "--from", "boot@1"), 1, "boot@3 exists; the next version is boot@4")
+	want(t, hyp(t, "bundle", "new", "boot@2", "--from", "boot@1"), 1, "boot@3 exists; the next version is boot@4")
 	for _, d := range []string{filepath.Join(tree, "recipes", "boot@2"), filepath.Join(repo, "recipes", "boot@2")} {
 		if _, err := os.Lstat(d); !os.IsNotExist(err) {
 			t.Fatalf("%s was created: %v", d, err)
@@ -582,7 +582,13 @@ func TestRecipeNewSeesHigherVersionInEveryLibrary(t *testing.T) {
 // each file of scripts (a path below the bundle) executable.
 func bundleIn(t *testing.T, dir, name, body string, scripts map[string]string) {
 	t.Helper()
-	b := filepath.Join(dir, "recipes", name+"@1")
+	libIn(t, dir, "recipes", name, body, scripts)
+}
+
+// libIn writes bundle name@1 into library lib (recipes or rubrics) under dir.
+func libIn(t *testing.T, dir, lib, name, body string, scripts map[string]string) {
+	t.Helper()
+	b := filepath.Join(dir, lib, name+"@1")
 	if err := os.MkdirAll(b, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -614,11 +620,11 @@ func toolBundle(t *testing.T) {
 
 func TestRecipeRunPassesExitCode(t *testing.T) {
 	toolBundle(t)
-	r := hyp(t, "recipe", "run", "--record", "r1", "tool@1", "ok", "a", "--all")
+	r := hyp(t, "bundle", "run", "--record", "r1", "tool@1", "ok", "a", "--all")
 	if r.code != 0 || !strings.Contains(r.stdout, "got a --all") || !strings.Contains(r.stdout, "record -> r1") {
 		t.Fatalf("ok: %+v", r)
 	}
-	r = hyp(t, "recipe", "run", "--record", "r2", "tool@1", "fail")
+	r = hyp(t, "bundle", "run", "--record", "r2", "tool@1", "fail")
 	if r.code != 30 || !strings.Contains(r.stdout, "boom") || !strings.Contains(r.stderr, "tool@1 standalone: ./fail.sh exited 30") {
 		t.Fatalf("fail: %+v", r)
 	}
@@ -626,15 +632,15 @@ func TestRecipeRunPassesExitCode(t *testing.T) {
 
 func TestRecipeRunUsage(t *testing.T) {
 	toolBundle(t)
-	must(t, "recipe", "run", "--record", "r1", "tool@1", "ok")
+	must(t, "bundle", "run", "--record", "r1", "tool@1", "ok")
 	for _, args := range [][]string{
 		{"tool@1", "ok"},
 		{"--record", "r", "tool@1"},
 		{"--record", "r3", "tool@1", "nope"},
 		{"--record", "r1", "tool@1", "ok"},
 	} {
-		if r := hyp(t, append([]string{"recipe", "run"}, args...)...); r.code != 2 {
-			t.Errorf("hyp recipe run %v: %+v, want exit 2", args, r)
+		if r := hyp(t, append([]string{"bundle", "run"}, args...)...); r.code != 2 {
+			t.Errorf("hyp bundle run %v: %+v, want exit 2", args, r)
 		}
 	}
 }
@@ -655,20 +661,20 @@ func TestRecipeEvidence(t *testing.T) {
 		t.Fatal(err)
 	}
 	abs, _ := filepath.Abs("out")
-	if r := hyp(t, "recipe", "evidence", "--record", "e1", "chk@1", "out"); r.code != 30 || !strings.Contains(r.stdout, "kept "+abs) {
+	if r := hyp(t, "bundle", "evidence", "--record", "e1", "chk@1", "out"); r.code != 30 || !strings.Contains(r.stdout, "kept "+abs) {
 		t.Fatalf("evidence: %+v", r)
 	}
-	if r := hyp(t, "recipe", "evidence", "--record", "e2", "chk@1", "nowhere"); r.code != 2 {
+	if r := hyp(t, "bundle", "evidence", "--record", "e2", "chk@1", "nowhere"); r.code != 2 {
 		t.Errorf("missing OUT_DIR: %+v", r)
 	}
-	if r := hyp(t, "recipe", "evidence", "--record", "e3", "chk@1"); r.code != 2 {
+	if r := hyp(t, "bundle", "evidence", "--record", "e3", "chk@1"); r.code != 2 {
 		t.Errorf("no OUT_DIR: %+v", r)
 	}
 }
 
 func TestRecipeRecordInsideBundleRefused(t *testing.T) {
 	toolBundle(t)
-	if r := hyp(t, "recipe", "run", "--record", "recipes/tool@1/out", "tool@1", "ok"); r.code != 2 || !strings.Contains(r.stderr, "recipe library") {
+	if r := hyp(t, "bundle", "run", "--record", "recipes/tool@1/out", "tool@1", "ok"); r.code != 2 || !strings.Contains(r.stderr, "bundle library") {
 		t.Errorf("run: %+v, want exit 2 naming the library", r)
 	}
 	if _, err := os.Stat(filepath.Join("recipes", "tool@1", "out")); err == nil {
@@ -686,10 +692,10 @@ func TestRecipeRecordInsideBundleRefused(t *testing.T) {
 	if err := os.WriteFile(filepath.Join("out", "sandbox.json"), []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if r := hyp(t, "recipe", "evidence", "--record", "out/rec", "chk@1", "out"); r.code != 2 || !strings.Contains(r.stderr, "OUT_DIR") {
+	if r := hyp(t, "bundle", "evidence", "--record", "out/rec", "chk@1", "out"); r.code != 2 || !strings.Contains(r.stderr, "OUT_DIR") {
 		t.Errorf("evidence in OUT_DIR: %+v, want exit 2", r)
 	}
-	if r := hyp(t, "recipe", "evidence", "--record", "recipes/chk@1/rec", "chk@1", "out"); r.code != 2 || !strings.Contains(r.stderr, "recipe library") {
+	if r := hyp(t, "bundle", "evidence", "--record", "recipes/chk@1/rec", "chk@1", "out"); r.code != 2 || !strings.Contains(r.stderr, "bundle library") {
 		t.Errorf("evidence in bundle: %+v, want exit 2 naming the library", r)
 	}
 	for _, p := range []string{filepath.Join("out", "rec"), filepath.Join("recipes", "chk@1", "rec")} {
@@ -717,21 +723,21 @@ func TestRecipeKnownAnswers(t *testing.T) {
 	}
 	kase("a", `hi\n`)
 	kase("b", `hi\n`)
-	r := hyp(t, "recipe", "known-answers", "tool@1")
+	r := hyp(t, "bundle", "known-answers", "tool@1")
 	want(t, r, 0, "ok a\nok b\n")
 
 	kase("c", `bye\n`)
-	r = hyp(t, "recipe", "known-answers", "tool@1")
+	r = hyp(t, "bundle", "known-answers", "tool@1")
 	want(t, r, 1, "FAIL c: stdout differs")
 	want(t, r, 1, "refused: recipe tool@1: 1 of 3 known answers failed")
 
-	r = hyp(t, "recipe", "known-answers", "bare@1")
+	r = hyp(t, "bundle", "known-answers", "bare@1")
 	want(t, r, 1, "refused: recipe bare@1 is an instrument with no known answers")
 
-	r = hyp(t, "recipe", "known-answers", "plain@1")
-	want(t, r, 0, "recipe plain@1 has no Evidence or Standalone command; no known answers to run")
+	r = hyp(t, "bundle", "known-answers", "plain@1")
+	want(t, r, 0, "bundle plain@1 has no Evidence or Standalone command; no known answers to run")
 
-	r = hyp(t, "recipe", "known-answers")
+	r = hyp(t, "bundle", "known-answers")
 	if r.code != 2 {
 		t.Errorf("no REF: exit %d, want 2", r.code)
 	}
@@ -743,7 +749,7 @@ func TestRecipeNewWritesFormat(t *testing.T) {
 	bundleIn(t, dir, "x", "## Standalone\n\nRun ok: ./ok.sh\n", map[string]string{"ok.sh": "#!/bin/sh\n"})
 	// The source has no format: 1 line.
 	writeFile(t, filepath.Join(dir, "recipes", "x@1", "recipe.md"), "---\nname: x\nversion: 1\n---\n\n## Standalone\n\nRun ok: ./ok.sh\n")
-	r := hyp(t, "recipe", "new", "x@2", "--from", "x@1")
+	r := hyp(t, "bundle", "new", "x@2", "--from", "x@1")
 	want(t, r, 0, "from: x@1 ")
 	md, err := os.ReadFile(filepath.Join(dir, "recipes", "x@2", "recipe.md"))
 	if err != nil {
@@ -767,7 +773,7 @@ func TestRecipeNewWarnsWhenCopyDoesNotOpen(t *testing.T) {
 	dir := t.TempDir()
 	t.Chdir(dir)
 	bundleIn(t, dir, "x", "Run: ./ok.sh\n", map[string]string{"ok.sh": "#!/bin/sh\n"})
-	r := hyp(t, "recipe", "new", "x@2", "--from", "x@1")
+	r := hyp(t, "bundle", "new", "x@2", "--from", "x@1")
 	want(t, r, 0, "from: x@1 ")
 	if !strings.Contains(r.stderr, "warn: the copy does not open (") || !strings.Contains(r.stderr, "fix it before using it") {
 		t.Fatalf("stderr %q, want the does-not-open warning", r.stderr)
@@ -790,15 +796,15 @@ func TestRecipeCheckFrozenAndDraft(t *testing.T) {
 	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "ask")
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
 	must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "pinned@1", "--decided-by", "reading", "--why", "w")
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	want(t, r, 0, "draft: recipes/loose@1\nfrozen: recipes/pinned@1\nrecipe check: 1 trees, 1 pins, 0 drift\n")
 
 	// An edit makes the pinned bundle drift, and no longer frozen.
 	writeFile(t, filepath.Join(repo, "recipes", "pinned@1", "x.txt"), "x\n")
-	want(t, hyp(t, "recipe", "check"), 1, "draft: recipes/pinned@1\n")
+	want(t, hyp(t, "bundle", "check"), 1, "draft: recipes/pinned@1\n")
 }
 
-// hyp recipe check warns about each current instrument whose known answers
+// hyp bundle check warns about each current instrument whose known answers
 // are weak, before its summary line, and never fails for it. A case input
 // that holds a store is a fixture, not a tree.
 func TestRecipeCheckWarnsWeakCases(t *testing.T) {
@@ -821,13 +827,13 @@ func TestRecipeCheckWarnsWeakCases(t *testing.T) {
 	t.Setenv("HYP_ACTOR", "a")
 	t.Chdir(repo)
 	must(t, "init")
-	want(t, hyp(t, "recipe", "check"), 0, "draft: recipes/env@1\ndraft: recipes/full@1\ndraft: recipes/half@1\ndraft: recipes/none@1\ndraft: recipes/old@1\n"+
+	want(t, hyp(t, "bundle", "check"), 0, "draft: recipes/env@1\ndraft: recipes/full@1\ndraft: recipes/half@1\ndraft: recipes/none@1\ndraft: recipes/old@1\n"+
 		"warn: recipes/half@1 ./ev.sh: no must-fail case\nwarn: recipes/half@1 b: no must-pass case\nwarn: recipes/half@1 b: no must-fail case\n"+
 		"warn: recipes/none@1: instrument with no known answers\nrecipe check: 1 trees, 0 pins, 0 drift\n")
 }
 
 // A .go file in a bundle breaks go vet ./... in a repository whose root holds
-// go.mod, so hyp recipe check and hyp add exp warn about it, exit 0; with no
+// go.mod, so hyp bundle check and hyp add exp warn about it, exit 0; with no
 // go.mod at the root they say nothing.
 func TestGoFileInBundleWarns(t *testing.T) {
 	repo, _, q := libraryStore(t)
@@ -841,14 +847,14 @@ func TestGoFileInBundleWarns(t *testing.T) {
 	if r := addExp(); r.code != 0 || r.stderr != "" {
 		t.Fatalf("add exp with no go.mod: %+v", r)
 	}
-	if r := hyp(t, "recipe", "check"); r.code != 0 || strings.Contains(r.stdout, ".go file") {
+	if r := hyp(t, "bundle", "check"); r.code != 0 || strings.Contains(r.stdout, ".go file") {
 		t.Fatalf("recipe check with no go.mod: %+v", r)
 	}
 	writeFile(t, filepath.Join(repo, "go.mod"), "module x\n")
 	if r := addExp(); r.code != 0 || r.stderr != warn {
 		t.Fatalf("add exp with go.mod: %+v", r)
 	}
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	if line := "warn: recipes/env@1/" + strings.TrimPrefix(warn, "warn: recipe env@1: "); r.code != 0 || !strings.Contains(r.stdout, line) {
 		t.Fatalf("recipe check with go.mod: %+v, want %q", r, line)
 	}
@@ -866,10 +872,10 @@ func TestRecipeCheckRetractedResultChecksPinOnce(t *testing.T) {
 	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w")
 	must(t, "retract", res, "--why", "w")
 
-	want(t, hyp(t, "recipe", "check"), 0, "recipe check: 1 trees, 1 pins, 0 drift")
+	want(t, hyp(t, "bundle", "check"), 0, "recipe check: 1 trees, 1 pins, 0 drift")
 	writeFile(t, filepath.Join(boot, "known.txt"), "edited\n")
 	now := bundleHash(t, boot)
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	if r.code != 1 {
 		t.Fatalf("exit %d, stdout %q, stderr %q", r.code, r.stdout, r.stderr)
 	}
@@ -890,16 +896,16 @@ func TestRecipeCheckCountsClosedExperimentPins(t *testing.T) {
 	gone := must(t, "add", "exp", "--parent", h, "--title", "E3", "--recipe", "boot@1", "--decided-by", "reading", "--why", "w")
 	must(t, "supersede", repl, "--old", old, "--why", "w")
 	must(t, "withdraw", gone, "--why", "w")
-	want(t, hyp(t, "recipe", "check"), 0, "frozen: recipes/boot@1\nrecipe check: 1 trees, 2 pins, 0 drift")
+	want(t, hyp(t, "bundle", "check"), 0, "frozen: recipes/boot@1\nrecipe check: 1 trees, 2 pins, 0 drift")
 	writeFile(t, filepath.Join(boot, "extra.txt"), "x\n")
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	if r.code != 1 || !strings.Contains(r.stdout, "drift: tree "+old+" ") || !strings.Contains(r.stdout, "drift: tree "+gone+" ") {
 		t.Fatalf("exit %d, stdout %q: want drift on %s and %s", r.code, r.stdout, old, gone)
 	}
 }
 
-// hyp recipe check warns about each Evidence and Standalone command whose
-// External: line is missing or TODO, and never fails for it. hyp recipe new
+// hyp bundle check warns about each Evidence and Standalone command whose
+// External: line is missing or TODO, and never fails for it. hyp bundle new
 // writes External: TODO under each command that lacks the line, and a frozen
 // bundle without one still records.
 func TestRecipeCheckWarnsExternal(t *testing.T) {
@@ -914,7 +920,7 @@ func TestRecipeCheckWarnsExternal(t *testing.T) {
 	}
 	bundleIn(t, repo, "said", "## Evidence\n\nRun: ./ev.sh\nExternal: reads OUT_DIR only\n\n## Standalone\n\nRun b: ./b.sh\n  External: none\n", cases)
 	bundleIn(t, repo, "mute", "## Evidence\n\nRun: ./ev.sh\n\nExternal: too far down\n\n## Standalone\n\nRun b: ./b.sh\nExternal: TODO\n", cases)
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	want(t, r, 0, "warn: recipes/mute@1 ./ev.sh: no External: line\nwarn: recipes/mute@1 b: External: not stated (TODO)\n")
 	if strings.Contains(r.stdout, "said@1 ") {
 		t.Fatalf("a bundle that states each command's reach is warned about:\n%s", r.stdout)
@@ -922,10 +928,10 @@ func TestRecipeCheckWarnsExternal(t *testing.T) {
 
 	// A bundle a tree pins records without the line.
 	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
-	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "mute@1", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "mute@1", "--rubric", "reading", "--why", "w")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--why", "w"), 0, "result.record")
 
-	want(t, hyp(t, "recipe", "new", "mute@2", "--from", "mute@1"), 0, "from: mute@1 ")
+	want(t, hyp(t, "bundle", "new", "mute@2", "--from", "mute@1"), 0, "from: mute@1 ")
 	md, err := os.ReadFile(filepath.Join(repo, "recipes", "mute@2", "recipe.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -934,5 +940,5 @@ func TestRecipeCheckWarnsExternal(t *testing.T) {
 		strings.Count(string(md), "External: TODO") != 2 {
 		t.Fatalf("recipe.md of the copy = %q", md)
 	}
-	want(t, hyp(t, "recipe", "check"), 0, "warn: recipes/mute@2 ./ev.sh: External: not stated (TODO)\nwarn: recipes/mute@2 b: External: not stated (TODO)\n")
+	want(t, hyp(t, "bundle", "check"), 0, "warn: recipes/mute@2 ./ev.sh: External: not stated (TODO)\nwarn: recipes/mute@2 b: External: not stated (TODO)\n")
 }

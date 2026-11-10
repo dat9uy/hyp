@@ -55,27 +55,35 @@ never type one. Run `hyp help` for every command and flag.
 - Run the behaviour. An experiment that passes by its own construction is not
   a test: hashing a set of files and then checking that the hash changes when
   those files change proves nothing about outputs.
-- `hyp add exp --parent <H-id> --title "<what you will observe>" --recipe <name@version|none> --target <sibling H-id> --why "..."`.
+- `hyp add exp --parent <H-id> --title "<what you will observe>" --recipe <name@version|none> --rubric <name@version|reading> --target <sibling H-id> --why "..."`.
   List every sibling the experiment also tests with `--target` (repeatable);
   the parent hypothesis is tested implicitly, so do not list it. When the
   question has live rivals and the experiment targets none of them, hyp
   refuses and lists them: name the rival the result would count against, or
   pass `--target none` to proceed without one.
 - `hyp signals` prints the design marks for the whole tree (`one-rival`,
-  `D1`, `unjudged`), one line each; a `one-rival` line names the rivals the
+  `D1`), one line each; a `one-rival` line names the rivals the
   next experiment could target. Progress is what OWED in `hyp status` shows.
 - Ids look like `Q-GRM5AG` (the first word a write prints). Give a node an
   easier name with `--alias` when you add it, and use the alias anywhere.
 - Use a recipe from `recipes/` when one fits (`name@version` from its
-  frontmatter). A verdict a measure decides needs a recipe that holds it
-  (RECIPE-FORMAT.md, Verdict scripts). `--recipe none` with
-  `--decided-by reading` is for a verdict decided by reading. Run the
+  frontmatter). A recipe measures and never prints a verdict; a rubric
+  from `rubrics/` turns its measures into verdicts (`--rubric
+  <name@version>`, RECIPE-FORMAT.md, Rubrics), and `--rubric reading`
+  says the body decides them by reading. To reassess records an earlier
+  run kept, pin them with `--records .tree/evidence/<E-id>`. Run the
   experiment with the hyp-verification skill.
+- A measure that settles no Hypothesis, such as a cost the owner weighs
+  between candidates, is an Experiment under the question:
+  `hyp add exp --parent <Q-id> --title "..." --recipe <name@version> --why "..."`,
+  with no rubric and no target. Its Result records the measures with no
+  `--verdict`.
 
 ## Record
 
 - Record every result, including inconclusive ones, with one verdict per
-  targeted hypothesis:
+  target, the parent included; hyp refuses a Result that leaves a target
+  out:
   `hyp record --exp <E-id> --verdict <H-id>=supports --verdict <H2-id>=contradicts --observation "<what happened>" --evidence .tree/evidence/<E-id>/run.log --why "..."`.
 - A limit is a case the Goal covers that no check ran. When a Result
   leaves such a case, name it on the Result with `--limit "<the case>"`
@@ -134,7 +142,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
 - A gap you know at select time is a `--limit` on a Result, never only words
   in `--why`.
 - An open limit under the question holds the select, whichever Hypothesis
-  its Result judged, and `hyp select` names it. Run its case on the
+  its Result gave a verdict on, and `hyp select` names it. Run its case on the
   candidates. If no test within the Goal's lines can close it, or its case
   is void for every candidate, refer it:
   `hyp checkpoint --refers <R-id>#<n> --summary "<why no test can close it>"`.
@@ -164,7 +172,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
     answers the question; no confirm follows.
   - `R-…#r1 reading: …` is a reading of the Goal that a verdict rests on. It
     changes no status. While its answer can move a Hypothesis on its
-    question, a candidate its Result judged or a rival only its Result
+    question, a candidate its Result gave a verdict on or a rival only its Result
     contradicts, it holds back new rivals, the select and the owner's choice
     there, and hyp status prints a held line. Carry on with other work and ask
     the owner at the next stop. Record it with `hyp record --reading "<the

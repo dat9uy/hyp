@@ -1,6 +1,6 @@
 ---
 name: hyp-recipe-format
-description: The format of recipes (recipes/<name>@<version>/ bundles) used by hyp Experiments, and where hyp looks for them.
+description: The format of bundles used by hyp Experiments, recipes (recipes/<name>@<version>/) and rubrics (rubrics/<name>@<version>/), and where hyp looks for them.
 ---
 
 # Recipe format
@@ -10,10 +10,16 @@ A recipe is a bundle directory `recipes/<name>@<version>/` holding
 directory, so a bump adds one directory and never edits an old one. A
 single Markdown file `recipes/<name>.md` is not a recipe, and neither is a
 directory `recipes/<name>/` without a version: no lookup loads it or pins it. Only
-`hyp recipe check` names it, in a rename hint when it hashes as a pin
+`hyp bundle check` names it, in a rename hint when it hashes as a pin
 whose bundle is missing.
-Start a new recipe with `hyp recipe new NAME@1` (see To make a first
+Start a new recipe with `hyp bundle new NAME@1` (see To make a first
 version, under Changing a recipe).
+
+A recipe measures and never decides: its checks print measures, one named
+line about one subject such as `S1 fail` or `stored rows 4`. How measures
+become verdicts is a **rubric**, a bundle in this same format kept in
+`rubrics/<name>@<version>/` (see Rubrics). `hyp bundle` handles both kinds,
+and a name is used in one library only.
 
 This file says when hyp runs a recipe's commands, and whether a
 sandbox exists then.
@@ -24,7 +30,7 @@ sandbox exists then.
 ---
 name: <name>        # equals the file name without .md, or the bundle directory name before any @
 version: <integer>  # a new version for any byte change to a frozen version; a versioned bundle's directory name ends in @<version>
-from: <name>@<N> <sha256>  # written by hyp recipe new: the version this one was copied from and its hash; absent in a first version
+from: <name>@<N> <sha256>  # written by hyp bundle new: the version this one was copied from and its hash; absent in a first version
 subject: <what is under test, e.g. "Rails app with seed data">
 ---
 ```
@@ -83,7 +89,7 @@ judgment made after a gap appears.
   new version, whose known answers hyp runs before every run. There is no
   diff-based exemption: a one-line fix in a helper costs what a rewrite costs.
   A Draft, a version no tree pins yet, may be edited in place, after which
-  `hyp recipe known-answers` must pass again.
+  `hyp bundle known-answers` must pass again.
 - Outside a bundle, inputs (snapshots, a live run, a store, the operator
   hyp) are pinned by hash in kept files, and setup (building the
   operator hyp) is never cited. Changing them costs no version.
@@ -91,7 +97,7 @@ judgment made after a gap appears.
 
 To make a first version:
 
-1. Run `hyp recipe new <name>@1` in the tree. It writes `recipes/<name>@1/`
+1. Run `hyp bundle new <name>@1` in the tree. It writes `recipes/<name>@1/`
    beside the nearest `.tree/` from a template inside hyp:
    `recipe.md` with `name:`, `version: 1` and `format: 1` filled in and no
    `from:` line, guidance under Launch, Doctor, Drive, Evidence, Standalone
@@ -104,12 +110,12 @@ To make a first version:
    commands and their scripts, state each `External:` line, and give every
    command a must-pass and a must-fail case (see Known answers). Delete
    the guidance of a section you leave without commands.
-3. Run `hyp recipe known-answers <name>@1` until it passes. Unedited, it
+3. Run `hyp bundle known-answers <name>@1` until it passes. Unedited, it
    fails: the stub fails the must-pass case.
 4. Run `hyp add exp --recipe <name>@1`. It pins the bundle's hash, so the
    version is frozen from then on.
 
-`hyp recipe new <name>@1` refuses (exit 1) a name that has any version in
+`hyp bundle new <name>@1` refuses (exit 1) a name that has any version in
 a library the lookup searches, naming it: make the next version from it
 with `--from` instead. `<name>@<N>` above 1 without `--from` is a bad
 argument (exit 2), and so is a bad ref; outside a store it exits 3, as
@@ -119,7 +125,7 @@ naming the files, since a case input may be a store that holds the marker.
 
 To make a next version:
 
-1. Run `hyp recipe new <name>@<N+1> --from <name>@<N>`. It copies the
+1. Run `hyp bundle new <name>@<N+1> --from <name>@<N>`. It copies the
    bundle `recipes/<name>@<N>/` byte for byte, without dot-entries and
    `__pycache__`, to `recipes/<name>@<N+1>/` in the same library, sets
    `version:` and writes `from: <name>@<N> <sha256>` and `format: 1` into
@@ -130,7 +136,7 @@ To make a next version:
    a `--from` that does not resolve exit 2.
 2. Edit the copy. `diff -r recipes/<name>@<N> recipes/<name>@<N+1>`
    shows what changed since `from:`.
-3. Add or update its known answers; `hyp recipe known-answers REF` runs
+3. Add or update its known answers; `hyp bundle known-answers REF` runs
    them, and hyp runs them again before every run (see Known answers).
 
 The rule is held by a refusal and a check:
@@ -140,7 +146,7 @@ The rule is held by a refusal and a check:
   `known-answers/NAME/` directory (the gate reads each case's contract
   when it runs). Every use of a bundle whose `recipe.md` has no
   `format: 1` line is refused too (see Self-containment).
-- `hyp recipe check`, run from anywhere in the repository, finds every
+- `hyp bundle check`, run from anywhere in the repository, finds every
   `.tree` under the repository root (the root the lookup stops at),
   skipping nested repositories and worktrees. It compares every pin to
   a versioned bundle, the Experiment's recipe and each Result's
@@ -156,8 +162,9 @@ The rule is held by a refusal and a check:
   `warn: <dir> <command>: no must-pass case` and `no must-fail case`
   for each Evidence command (as a row shows it, such as `./check.sh`) or
   Standalone label that has no case expecting exit 0, or none expecting
-  a non-zero exit. For a verdict check (see Known answers) it also
-  prints `warn: <dir> <command>: verdict <label>: no supports case` or
+  a non-zero exit. For a rubric (see Rubrics) it instead prints what
+  `hyp add exp --rubric` would refuse; for a frozen recipe whose checks
+  print verdicts it also prints `warn: <dir> <command>: verdict <label>: no supports case` or
   `no contradicts case` for each label no case prints so,
   `warn: <dir> <command>: case <name>: malformed verdict line "<line>"`
   and `warn: <dir> <command>: case <name>: label <label> printed twice`.
@@ -176,7 +183,7 @@ The rule is held by a refusal and a check:
 - A `.go` file in a bundle breaks `go vet ./...` in a Go repository,
   because the go tool reads `recipes/<name>@<N>/` as a package outside
   the main module. When the repository root holds `go.mod`,
-  `hyp recipe check` prints
+  `hyp bundle check` prints
   `warn: <dir>/<file> is a .go file, and go.mod at the repository root makes go vet ./... read this bundle as a package outside the main module; give it a non-.go name, such as <file name>.txt`
   for each `.go` file in each versioned bundle, and `hyp add exp --recipe`
   prints the same line after `warn: recipe <ref>: ` for the bundle it
@@ -219,8 +226,8 @@ External: OUT_DIR of hyp sandbox remove (the subject); writes only $HYP_OUT
 ```
 
 Name the subject arguments and any outside reads or writes, or write
-`External: none`. `hyp recipe check` warns about a command with no such
-line, or with `External: TODO`, which `hyp recipe new` writes under each
+`External: none`. `hyp bundle check` warns about a command with no such
+line, or with `External: TODO`, which `hyp bundle new` writes under each
 command of a copy that lacks the line and under a first version's check; the exit code does not change, and
 a bundle without the line still loads and records.
 
@@ -244,7 +251,7 @@ File and directory names use only `A-Z a-z 0-9 . _ -`. Symlinks are refused.
 The executable bit is not hashed. A bundle holds scripts and small
 inputs, not data dumps, because hyp hashes it on every read.
 
-`hyp recipe hash DIR` prints the hash of the bundle in `DIR`, the same value
+`hyp bundle hash DIR` prints the hash of the bundle in `DIR`, the same value
 `hyp add exp --recipe` records for it, and refuses (exit 1) a directory that
 does not open as a recipe. A `DIR` whose name has no `@<N>` hashes too: its
 `recipe.md` name must match the directory and its version is not checked. `--json` prints `ref`, `name`, `version`, `path` and `sha256`. A recipe script that needs its own hash, for example to tell
@@ -257,8 +264,8 @@ In a bundle, a line under `## Launch`, `## Doctor`, `## Drive`,
 is a `Run NAME:` line under `## Standalone`.
 `hyp sandbox create --recipe NAME@VERSION` runs Launch, then Doctor;
 `hyp sandbox drive ID` runs Drive; `hyp sandbox remove` runs Cleanup; after
-remove, `hyp recipe evidence --record DIR REF OUT_DIR` runs Evidence; and
-`hyp recipe run --record DIR REF NAME ARGS` runs one Standalone command.
+remove, `hyp bundle evidence --record DIR REF OUT_DIR` runs Evidence; and
+`hyp bundle run --record DIR REF NAME ARGS` runs one Standalone command.
 `--recipe` is required on `hyp sandbox create`: it chooses which recipe,
 and the recipe's `Run:` lines decide what runs. `--recipe none` sets
 nothing up. `--recipe` repeats to stack recipes (see Stacking recipes
@@ -341,15 +348,15 @@ Rules:
   `hyp sandbox remove ID --discard`; `hyp sandbox remove ID OUT_DIR` on it
   exits 2, since there is nothing to keep. A drive, a remove or a create of a sandbox another hyp
   command is changing exits 3, naming that command, and changes nothing.
-- `hyp recipe evidence --record DIR REF OUT_DIR` runs REF's Evidence
+- `hyp bundle evidence --record DIR REF OUT_DIR` runs REF's Evidence
   commands after remove, with OUT_DIR's absolute path appended as the last
   argument, and stops at the first that fails. Run it again, into a new
   DIR, to re-run the check, also from a later version of the recipe.
   `hyp sandbox remove` never runs Evidence. OUT_DIR is always the OUT_DIR
   of `hyp sandbox remove`, holding its `sandbox.json`. For files no
   sandbox wrote, write the check as a Standalone command and give it their
-  path with `hyp recipe run`.
-- `hyp recipe run --record DIR REF NAME ARGS` runs the Standalone command
+  path with `hyp bundle run`.
+- `hyp bundle run --record DIR REF NAME ARGS` runs the Standalone command
   NAME with ARGS appended after its fixed words. Flags go before REF;
   everything after NAME is the script's. A word, or the VALUE of a
   `KEY=VALUE` word, written as a path (absolute, or relative with a `/`,
@@ -395,7 +402,7 @@ Rules:
 A `Run:` line under Launch, Doctor, Drive or Cleanup takes no arguments
 from the run, so a run passes its inputs (a snapshot, a live-run directory)
 in a file. A Standalone command takes its arguments from
-`hyp recipe run`.
+`hyp bundle run`.
 
 1. The caller writes the inputs to a file and runs
    `hyp sandbox create ... --inputs FILE`. hyp copies the file to
@@ -541,7 +548,7 @@ included, is kept in OUT_DIR as it was read.
 
 ## The command record
 
-`hyp recipe evidence` and `hyp recipe run` make the new directory that
+`hyp bundle evidence` and `hyp bundle run` make the new directory that
 `--record DIR` names, holding `command.json`, `command.log` (each
 command's stderr, then its stdout, after a `== REF step: command` line),
 and each check's product: for a Standalone command, its stdout
@@ -556,7 +563,7 @@ directory. hyp refuses a DIR that exists. It also refuses one that is or
 is inside any `recipes/` directory the recipe lookup searches, even one that
 does not exist yet, because a record there changes the hash of the bundle it
 lands in and every pin to it would read as drift, and, for
-`hyp recipe evidence`, one inside OUT_DIR, because the check reads OUT_DIR.
+`hyp bundle evidence`, one inside OUT_DIR, because the check reads OUT_DIR.
 Put it under `.tree/evidence/<E-id>/` and cite its `command.json` with
 `--evidence`. hyp writes `command.json` through a temporary file and a
 rename, before each command starts and after it ends.
@@ -611,21 +618,17 @@ and output it must give. A pass condition never admits the failure output
 of the check it tests. When a case gives the wrong answer, the instrument
 is wrong: make the next version (see Changing a recipe).
 
-A check whose cases print a verdict is a **verdict check**: any
-case's expected `stdout` holds a line starting with `verdict:`. Each such
-line is `verdict: LABEL=WORD`, a whole line, where LABEL is the check's own
-name for a rival (an alias, `[a-z][a-z0-9-]{0,31}`) and WORD is
-`supports`, `contradicts` or `inconclusive`; a case prints each label at
-most once. The cases are the verdict rule's specification, so every label
-needs a case printing `supports` and a case printing `contradicts`, beside
-the must-pass and must-fail cases; `inconclusive` needs none. hyp never
-reads a verdict line at run time and never binds a label to an H-id: the
-operator still types each verdict into `hyp record`.
+A recipe's cases never expect a verdict: `hyp add exp --recipe` refuses a
+recipe when any case's expected `stdout` holds a line starting with
+`verdict:`. A frozen recipe whose checks print verdicts stays valid for the
+Experiments that already pin it; its next version splits into a recipe
+and a rubric. A rubric's cases are its rule's specification (see
+Rubrics).
 
 ### Cases as data
 
 A bundle can hold its known answers as data, and
-`hyp recipe known-answers REF` runs them with no sandbox. Before
+`hyp bundle known-answers REF` runs them with no sandbox. Before
 every run of an instrument, hyp runs them and refuses the run on any
 failure (see The gate).
 
@@ -664,7 +667,7 @@ for that file.
 
 hyp runs each case in a new case directory, `$CASE`. It copies `input/` to
 `$CASE/input`, clones `repo` to `$CASE/repo` when it is given, and runs the
-command as a check, the way `hyp recipe run` and `evidence` run it:
+command as a check, the way `hyp bundle run` and `evidence` run it:
 from a temporary copy of the bundle, in the empty `$CASE/cwd`,
 with stdin `/dev/null` and only `PATH` (first, a directory holding a copy
 of the running hyp named `hyp`), `HOME=$CASE/home`, `TMPDIR=$CASE/tmp`,
@@ -697,7 +700,7 @@ two runs differ in exit code, stdout or out tree; `exit N, want M` or
 `out differs: PATH` (the first differing path, sorted) when the out tree
 does not equal `expect/`; `out not empty: PATH` when a case without
 `expect/` left a file; and otherwise `ok`. One bundle's cases get 10 minutes in all.
-`hyp recipe known-answers` prints `ok NAME` or `FAIL NAME: OUTCOME` per case,
+`hyp bundle known-answers` prints `ok NAME` or `FAIL NAME: OUTCOME` per case,
 and exits 0 when every case is ok, 1 when one failed, and 3 when one timed
 out. It exits 1 before running anything for a case that breaks the rules
 above, and for an instrument with no cases.
@@ -705,10 +708,10 @@ above, and for an instrument with no cases.
 ### The gate
 
 Before `hyp sandbox create` (each stacked recipe in stack order, before
-anything is made), `hyp recipe run` and `hyp recipe evidence`, hyp runs
+anything is made), `hyp bundle run` and `hyp bundle evidence`, hyp runs
 the instrument's known answers as above, with a copy of the operator's
 running hyp first on `PATH`, never the sandbox's `--hyp BIN`. hyp reads
-the running hyp once: `hyp recipe run` and `evidence` run their commands
+the running hyp once: `hyp bundle run` and `evidence` run their commands
 with the same copy, so `known_answers.hyp_sha256` names the hyp the
 commands ran. A failed case
 refuses the run (exit 1,
@@ -722,8 +725,8 @@ or Standalone command is not gated.
 
 The gate proves that a bundle reproduces its own expected outputs, not
 that those outputs are right. A weak or wrong case needs review, which is
-why `hyp recipe check` warns about a missing must-pass or must-fail case,
-and, for a verdict check, a label with no supports or contradicts case.
+why `hyp bundle check` warns about a missing must-pass or must-fail case,
+and, for a rubric, a label with no supports or contradicts case.
 Because a case and a run get the same environment, working directory and
 hyp, a passed gate carries over to the run, except for what a case cannot
 see: a read of a fixed absolute path, a read from the network,
@@ -738,12 +741,12 @@ Use the gate to fix a recipe before it costs an Experiment:
 - Give each external resource a check starts, such as a server, a socket
   or a port, a must-pass case that starts it. The gate then fails where
   the run would.
-- Run `hyp recipe known-answers <name>@<N>` after every change and before
+- Run `hyp bundle known-answers <name>@<N>` after every change and before
   `hyp add exp` pins the version. When a case fails, read its stderr in
   the message, fix the Draft or make the next version, and run the gate
   again. A failure the gate catches leaves nothing in the tree.
 - Try a check only on its cases' stand-ins, never on a candidate, until
-  the Experiment that judges the candidate records its verdict rule. A
+  the Experiment that tests the candidate pins its rubric. A
   check fixed after it saw a candidate's verdict measures the candidate
   against the check, not against the Goal.
 - When a candidate shows that a check is wrong, write the case that shows
@@ -751,21 +754,53 @@ Use the gate to fix a recipe before it costs an Experiment:
   must give, in a new version. Name the case in the Experiment body. A
   sentence about a trial run pins nothing; a case does.
 
-## Verdict scripts
+## Rubrics
 
-A script whose output a verdict counts goes in a bundle. It is an Evidence
-command when it reads the kept files, or a Standalone command when it needs
-no sandbox: for example an analysis-only `classify-pg@1` stacked beside the
-harness. hyp runs it with `hyp recipe evidence --record DIR` or
-`hyp recipe run --record DIR`. Never keep a copy under `.tree/evidence/`
-and run that copy. A measured Experiment pins that instrument:
-`hyp add exp` refuses `--recipe none`, or a recipe with no Evidence or
-Standalone command, unless `--decided-by reading` says no measure
-decides it.
+A rubric turns measures into verdicts. It is a bundle in this format kept
+in `rubrics/<name>@<version>/`, with no Launch, Doctor, Drive, Evidence or
+Cleanup command and exactly one Standalone command. That command reads the
+records it is given and prints one `verdict: LABEL=WORD` line per label, a
+whole line, where LABEL is the rubric's own name for a rival (an alias,
+`[a-z][a-z0-9-]{0,31}`) and WORD is `supports`, `contradicts` or
+`inconclusive`; a case prints each label at most once. Its known-answer
+cases are the rule's specification: every label needs a case printing
+`supports` and a case printing `contradicts`; `inconclusive` needs none.
+A rubric names no tree id. hyp never reads a verdict line at run time and
+never binds a label to an H-id: the operator types each target's verdict
+into `hyp record`.
 
-Cite it with two pointers: `recipes/<name>@<version>/<script>`, which pins
-it, and the record's `command.json`, whose `known_answers` show the gate
-passed.
+Start one with `hyp bundle new NAME@1 --rubric`, which writes the template
+into `rubrics/` beside the nearest `.tree/`; a next version is
+`hyp bundle new NAME@N+1 --from NAME@N`, as for a recipe. Run it with
+`hyp bundle run --record .tree/evidence/<E-id>/<name> REF NAME PATH`; its
+known answers gate the run as a recipe's do, and `hyp bundle evidence`
+refuses a rubric.
+
+An Experiment under a Hypothesis pins a rubric with `hyp add exp --rubric`:
+
+- `--rubric NAME@VERSION` pins a rubric bundle by its hash. `hyp add exp`
+  refuses one with a step section, other than one Standalone command, no
+  known-answer case, or a label without a supports case and a contradicts
+  case, and refuses it with `--recipe none` unless `--records` names the
+  measures it reads.
+- `--rubric reading` says the Experiment's body decides the verdicts by
+  reading, for a verdict no script can decide.
+
+An Experiment under a DesignQuestion measures only: it pins a recipe, has
+no rubric and no target, and its Results carry the measures in the
+observation and the cited records, with no verdict.
+
+An Experiment that reassesses records an earlier run kept pins them with
+`--records PATH` (a file or a directory under `.tree/evidence/`); hyp
+stores each file's path and sha256. `hyp record` refuses a Result that
+cites a file under `.tree/evidence/` outside its Experiment's own run,
+`.tree/evidence/<E-id>/`, and its pinned records, and one whose pinned
+record no longer hashes as pinned.
+
+Never keep a copy of a script under `.tree/evidence/` and run that copy.
+Cite a command with two pointers: `recipes/<name>@<version>/<script>` or
+`rubrics/<name>@<version>/<script>`, which pins it, and the record's
+`command.json`, whose `known_answers` show the gate passed.
 
 hyp marks a Result `uncontained` when it cannot vouch for the script. Each
 reason is reported once, in this order:
@@ -779,13 +814,16 @@ reason is reported once, in this order:
    `__pycache__`): no pin covers it.
 2. `no command record of <ref> at <h12> with passing known answers`: the
    Result pins a bundle with an Evidence or Standalone command (its
-   Experiment's recipe or an evidence pin), and cites no `command.json`
+   Experiment's recipe, its Experiment's rubric, or an evidence pin), and
+   cites no `command.json`
    that names that ref at that hash, records at least one command, every
    one of which exited 0, and holds `known_answers` with at least one case,
    every one `ok`. A record of a failed run is not a run. When a cited
    record of that ref and hash ran but is not clean, the reason goes on
    with `; in the cited record, ` and the first command that failed (its
-   words and outcome) or `the known answers did not pass`.
+   words and outcome) or `the known answers did not pass`. A
+   `command.json` among the Experiment's pinned records counts too, so a
+   reassessment is held by the runs it read.
 3. `command record of <ref> at <h12> matches no pin of this Result`: a cited
    `command.json` names a ref and hash that match none of its pins. One that
    hyp cannot read, or that names no ref or hash, gives
@@ -810,7 +848,7 @@ Limits:
 5. A script that only a Launch, Doctor, Drive or Cleanup command reaches,
    cited from another Experiment, is held by its hash alone. hyp runs it
    in a sandbox, but no reason ties that record to the Result.
-6. A `--decided-by reading` that hides a measure is not seen.
+6. A `--rubric reading` that hides a measure is not seen.
 
 ## Self-containment
 
@@ -833,10 +871,10 @@ The operator runs none of a bundle's scripts directly; hyp runs every
 command. A command is what a `Run:` line names, and every other file in the
 bundle, a helper script included, is hashed content. Hashing
 never parses, so a bundle whose `recipe.md` breaks a command rule still
-hashes and its pins still verify. `hyp recipe new` writes `format: 1`, the
+hashes and its pins still verify. `hyp bundle new` writes `format: 1`, the
 one recipe format, into every bundle it makes. Every use of a bundle without it is
-refused (exit 1), naming `hyp recipe new` as the way to copy it;
-`hyp recipe hash` still hashes it. `hyp recipe check` names each versioned
+refused (exit 1), naming `hyp bundle new` as the way to copy it;
+`hyp bundle hash` still hashes it. `hyp bundle check` names each versioned
 bundle `frozen` once a tree pins its hash, so its bytes never change, and
 `draft` before.
 

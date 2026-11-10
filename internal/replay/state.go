@@ -3,7 +3,6 @@
 package replay
 
 import (
-
 	"github.com/dat9uy/hyp/internal/event"
 )
 
@@ -102,17 +101,22 @@ type Rejection struct {
 // Node holds the static fields of a node.
 type Node struct {
 	ID, Kind, Parent, Title, Body, Alias, Recipe, RecipeHash, DecidedBy, Actor, AddedBy string
-	Targets                                                                             []string
-	Children                                                                            []string
-	Verdicts                                                                            map[string]string
-	VerdictOrder                                                                        []string // Verdicts' keys in recorded order
-	Observation                                                                         string
-	Evidence                                                                            []string
-	EvidenceHashes                                                                      map[string]string
-	Limits, Closes                                                                      []string
-	Readings                                                                            []event.ReadingItem
-	Aims, Applies                                                                       []string
-	Fingerprints                                                                        []string // a Result's: the file sha256s its cited records say the run was given
+	// Rubric is an Experiment's rubric (event.RubricReading, a NAME@VERSION
+	// pinned by RubricHash, or ""); an old decided_by reading reads as
+	// RubricReading. Records are its pinned records.
+	Rubric, RubricHash string
+	Records            []event.SubjectFile
+	Targets            []string
+	Children           []string
+	Verdicts           map[string]string
+	VerdictOrder       []string // Verdicts' keys in recorded order
+	Observation        string
+	Evidence           []string
+	EvidenceHashes     map[string]string
+	Limits, Closes     []string
+	Readings           []event.ReadingItem
+	Aims, Applies      []string
+	Fingerprints       []string // a Result's: the file sha256s its cited records say the run was given
 }
 
 // Pin is a recipe ref and the bundle hash an event recorded for it. Pointer
@@ -120,10 +124,12 @@ type Node struct {
 type Pin struct {
 	Ref           event.Ref
 	Hash, Pointer string
+	Rubric        bool // the Experiment's rubric pin, a bundle in rubrics/
 }
 
 // pins lists the pins the Result id depends on: its Experiment's recipe
-// unless that is none, then each evidence pointer with a recorded hash, in
+// unless that is none, its Experiment's rubric when it names a bundle, then
+// each evidence pointer with a recorded hash, in
 // the order cited. A Result is questionable when any pin's ref is missing
 // from the current recipe hashes or hashes differently.
 func pins(nodes map[string]*Node, id string) []Pin {
@@ -133,6 +139,11 @@ func pins(nodes map[string]*Node, id string) []Pin {
 		// validate admits only name@version or none, so the parse holds.
 		ref, _ := event.ParseRef(exp.Recipe)
 		pins = append(pins, Pin{Ref: ref, Hash: exp.RecipeHash})
+	}
+	if exp := nodes[r.Parent]; exp != nil && exp.RubricHash != "" {
+		// validate admits a rubric_hash only beside a name@version rubric.
+		ref, _ := event.ParseRef(exp.Rubric)
+		pins = append(pins, Pin{Ref: ref, Hash: exp.RubricHash, Rubric: true})
 	}
 	seen := map[string]bool{}
 	for _, e := range r.Evidence {
@@ -183,17 +194,6 @@ func (l Limit) Closed() bool { return !l.IsLine() && len(l.Closers) > 0 }
 // Open reports whether the limit is neither closed nor accepted. For a line
 // it means only that the owner has not accepted it.
 func (l Limit) Open() bool { return !l.Closed() && !l.Accepted() }
-
-// UnjudgedAfter lists exp's targets that were live rivals at its add and that
-// neither a non-retracted Result of exp nor extra judged, in target order.
-// extra holds the verdicts of a Result about to be recorded, or is nil.
-func (p Projection) UnjudgedAfter(exp string, extra map[string]string) []string {
-	var judged map[string]string
-	if e := p.Exps[exp]; e != nil {
-		judged = e.Judged
-	}
-	return unjudged(p.Nodes[exp].Targets, p.RivalsAtAdd[exp], judged, extra)
-}
 
 // CurrentSelect returns the DQ's current select; ok is false when the DQ's
 // last select or unselect is an unselect, or there is none.

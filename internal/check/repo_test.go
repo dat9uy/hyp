@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-// TestRepositoryRecipePinsMatch runs hyp recipe check over this
+// TestRepositoryRecipePinsMatch runs hyp bundle check over this
 // repository, so an in-place edit of a cited recipe bundle fails go test.
 func TestRepositoryRecipePinsMatch(t *testing.T) {
 	report, failures, _, err := Recipes(".")

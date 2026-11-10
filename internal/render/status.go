@@ -197,6 +197,14 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 		}
 		hidden := 0
 		for _, h := range p.Nodes[dq].Children {
+			if p.Nodes[h].Kind == event.KindExperiment {
+				// A measuring Experiment under the question prints while
+				// it is planned, as one under a Hypothesis does.
+				if prints && p.Exps[h].Status == replay.ExpPlanned {
+					add(kExp, "%s  %s planned (%s) %s", indent, r.id(h), replay.ShapeMeasure, Cut(p.Nodes[h].Title, 60))
+				}
+				continue
+			}
 			listed := prints && replay.LiveHypStatus(p.Hyps[h].Status)
 			subInPlay := listed && replay.RivalStatus(p.Hyps[h].Status)
 			var subs []string
@@ -463,8 +471,8 @@ func (r renderer) reach(l replay.Reading) string {
 	return fmt.Sprintf("%s %s; judged %s", r.id(l.Question), cands, strings.Join(judged, "; "))
 }
 
-// marked says Hypothesis h holds an open Experiment FRONTIER marks one-rival
-// or unjudged, so --live keeps it and that mark in view.
+// marked says Hypothesis h holds an open Experiment FRONTIER marks one-rival,
+// so --live keeps it and that mark in view.
 func (r renderer) marked(h string) bool {
 	for _, e := range r.p.Nodes[h].Children {
 		if r.p.Nodes[e].Kind == event.KindExperiment && len(r.marks(e)) > 0 && !closed(r.p.Exps[e]) {
@@ -479,16 +487,13 @@ func closed(x *replay.Exp) bool {
 }
 
 // marks names what Experiment e's round left untested: "one-rival" when its
-// parent had live rivals at its add and it targeted none, and "unjudged H"
-// for each target live at its add that no Result judged.
+// parent had live rivals at its add and it targeted none. A target left
+// without a verdict is refused at record (ADR 0018), so no mark names it.
 func (r renderer) marks(e string) []string {
 	var m []string
 	x := r.p.Exps[e]
 	if x.OneRival {
 		m = append(m, "one-rival")
-	}
-	for _, h := range x.Unjudged {
-		m = append(m, "unjudged "+r.id(h))
 	}
 	return m
 }

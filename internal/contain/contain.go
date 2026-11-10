@@ -69,6 +69,16 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 
 	pins := distinct(p.Results[id].Pins)
 	records := m.records(r.Evidence)
+	// A command record among the Experiment's pinned records counts as
+	// cited for reason 2: a reassessment is contained by the runs it read.
+	// Reason 3 asks only the records this Result cites itself.
+	var pinned []string
+	if exp := p.Nodes[r.Parent]; exp != nil {
+		for _, f := range exp.Records {
+			pinned = append(pinned, f.Path)
+		}
+	}
+	ran := append(slices.Clone(records), m.records(pinned)...)
 
 	// A pinned bundle with commands needs a record of them run at that hash,
 	// every command exiting 0 after its known answers passed; the
@@ -77,11 +87,11 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 		if r := m.bundle(pin.Ref); r == nil || !r.IsInstrument() {
 			continue
 		}
-		if !slices.ContainsFunc(records, func(c cited) bool { return c.rec.CleanRun(pin.Ref, pin.Hash) }) {
+		if !slices.ContainsFunc(ran, func(c cited) bool { return c.rec.CleanRun(pin.Ref, pin.Hash) }) {
 			reason := "no command record of " + pin.Ref.String() + " at " + h12(pin.Hash) + " with passing known answers"
 			// Name why a cited record of this pin is not clean, so a failed
 			// command is not read as failed known answers.
-			for _, c := range records {
+			for _, c := range ran {
 				if u := c.rec.Unclean(pin.Ref, pin.Hash); u != "" {
 					reason += "; in the cited record, " + u
 					break
@@ -156,7 +166,10 @@ func (m *marker) records(evidence []string) []cited {
 func (m *marker) bundle(ref event.Ref) *recipe.Recipe {
 	r, seen := m.bundles[ref]
 	if !seen {
-		r, _ = recipe.Load(m.root, ref.String())
+		var err error
+		if r, err = recipe.Load(m.root, ref.String()); err != nil {
+			r, _ = recipe.LoadRubric(m.root, ref.String())
+		}
 		m.bundles[ref] = r
 	}
 	return r

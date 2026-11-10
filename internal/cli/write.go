@@ -18,6 +18,7 @@ import (
 	"github.com/dat9uy/hyp/internal/recipe"
 	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/replay"
+	"github.com/dat9uy/hyp/internal/sandbox"
 	"github.com/dat9uy/hyp/internal/store"
 )
 
@@ -247,8 +248,8 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	}
 	body := w.fs.String("body", "", fmt.Sprintf("body (at most %d runes)", maxBody))
 	alias := w.fs.String("alias", "", "optional unique alias")
-	var parent, recipeRef, decidedBy *string
-	var targets, aims, subject multi
+	var parent, recipeRef, decidedBy, rubricRef *string
+	var targets, aims, subject, records multi
 	if kind != event.KindGoal {
 		parent = w.fs.String("parent", "", "parent node (required)")
 	}
@@ -258,7 +259,9 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	if kind == event.KindExperiment {
 		recipeRef = w.fs.String("recipe", "", "NAME@VERSION or none (required)")
 		w.fs.Var(&targets, "target", "sibling Hypothesis this Experiment also tests (repeatable), or none")
-		decidedBy = w.fs.String("decided-by", "", "reading: the verdicts are decided by reading; required when the recipe is none or not an instrument")
+		rubricRef = w.fs.String("rubric", "", "NAME@VERSION of a rubric bundle, or reading: how measures become verdicts (required under a Hypothesis, refused under a DesignQuestion)")
+		decidedBy = w.fs.String("decided-by", "", "reading: the older spelling of --rubric reading")
+		w.fs.Var(&records, "records", "file or directory under .tree/evidence/ that an earlier run kept and this Experiment reads; hyp pins each file's sha256 (repeatable)")
 		w.fs.Var(&aims, "aims", "R-id#n of a limit, or R-id#rn of an answered reading, this Experiment means to settle (repeatable)")
 	}
 	if _, err := w.begin(args[1:], 0); err != nil {
@@ -273,7 +276,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	p := event.NodeAdd{Kind: kind, Title: *title, Body: *body, Alias: *alias}
 	noTarget := len(targets) == 1 && targets[0] == "none"
 	var warns []string
-	var facts replay.RecipeFacts
+	var facts, rubricFacts replay.RecipeFacts
 	if kind == event.KindExperiment {
 		if !noTarget && slices.Contains(targets, "none") {
 			return usageErr("--target none cannot be combined with other targets")
@@ -284,8 +287,14 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		if *decidedBy != "" && *decidedBy != event.DecidedReading {
 			return usageErr("invalid --decided-by %q (want %s)", *decidedBy, event.DecidedReading)
 		}
+		if *decidedBy != "" && *rubricRef != "" {
+			return usageErr("--decided-by reading is the older spelling of --rubric reading; pass only --rubric")
+		}
 		p.Recipe = *recipeRef
-		p.DecidedBy = *decidedBy
+		p.Rubric = *rubricRef
+		if *decidedBy != "" {
+			p.Rubric = event.RubricReading
+		}
 		if *recipeRef != event.RecipeNone {
 			r, err := recipe.Load(w.root, *recipeRef)
 			if err != nil {
@@ -296,11 +305,29 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			if err != nil {
 				return herr.Env("recipe %s: %v", *recipeRef, err)
 			}
-			facts = replay.RecipeFacts{Instrument: r.IsInstrument(), HasCases: recipe.HasKnownAnswers(r.Dir),
+			facts = replay.RecipeFacts{Instrument: r.IsInstrument(), HasCases: recipe.HasKnownAnswers(r.Dir), Verdicts: sandbox.PrintsVerdicts(r),
 				Hash: r.Hash, GoWarnings: recipe.GoFileWarnings(r.Dir), Placeholder: placeholder}
 		}
+		if p.Rubric != "" && p.Rubric != event.RubricReading {
+			r, err := recipe.LoadRubric(w.root, p.Rubric)
+			if err != nil {
+				return err
+			}
+			p.RubricHash = r.Hash
+			placeholder, err := recipe.HasPlaceholder(r.Dir)
+			if err != nil {
+				return herr.Env("rubric %s: %v", p.Rubric, err)
+			}
+			rubricFacts = replay.RecipeFacts{Hash: r.Hash, Placeholder: placeholder, NotRubric: sandbox.RubricProblems(r)}
+		}
+		if len(records) > 0 {
+			var err error
+			if p.Records, err = recordFiles(w.root, records); err != nil {
+				return err
+			}
+		}
 		// The rules that read no tree refuse before the store is locked.
-		if _, err := admitted((*replay.State)(nil).AdmitExp(p, facts, noTarget)); err != nil {
+		if _, err := admitted((*replay.State)(nil).AdmitExp(p, facts, rubricFacts, noTarget)); err != nil {
 			return err
 		}
 	}
@@ -333,7 +360,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		if kind == event.KindExperiment {
-			if warns, err = admitted(w.st.AdmitExp(p, facts, noTarget)); err != nil {
+			if warns, err = admitted(w.st.AdmitExp(p, facts, rubricFacts, noTarget)); err != nil {
 				return draft{}, err
 			}
 		}
@@ -379,7 +406,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	exp := w.fs.String("exp", "", "Experiment the Result belongs to (required)")
 	observation := w.fs.String("observation", "", fmt.Sprintf("what was observed (required, at most %d runes)", event.MaxText))
 	var verdicts, evidence, limits, closes, readings, readingsOf, applies multi
-	w.fs.Var(&verdicts, "verdict", "REF=supports|contradicts|inconclusive (repeatable, at least one)")
+	w.fs.Var(&verdicts, "verdict", "REF=supports|contradicts|inconclusive, one per target of the Experiment and none under a measuring one (repeatable)")
 	w.fs.Var(&evidence, "evidence", fmt.Sprintf("URL, or path under .tree/evidence or recipes; recipes/NAME@VERSION/FILE is looked up like --recipe (repeatable, at most %d, each at most %d runes)", event.MaxEvidence, event.MaxEvidenceItem))
 	w.fs.Var(&limits, "limit", fmt.Sprintf("an open limit of the tested design (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	w.fs.Var(&closes, "closes", "R-id#n of a limit this Result closes (repeatable)")
@@ -389,8 +416,8 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
-	if *exp == "" || len(verdicts) == 0 {
-		return usageErr("record needs --exp and at least one --verdict")
+	if *exp == "" {
+		return usageErr("record needs --exp")
 	}
 	if err := required("--observation", observation); err != nil {
 		return err
@@ -450,7 +477,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			}
 			p.Readings = append(p.Readings, event.ReadingItem{Of: keys[0], Text: text})
 		}
-		admitWarns, err := admitted(w.st.AdmitResult(p, w.recipeFacts(expID), refHash))
+		admitWarns, err := admitted(w.st.AdmitResult(p, w.resultFacts(expID), refHash))
 		if err != nil {
 			return draft{}, err
 		}
@@ -502,18 +529,30 @@ func warnResult(root, id string, stderr io.Writer) {
 	}
 }
 
-// recipeFacts loads what AdmitResult needs about Experiment expID's
-// recipe; it is empty when expID is no Experiment or its recipe is none.
-func (w *writer) recipeFacts(expID string) replay.RecipeFacts {
+// resultFacts loads what AdmitResult needs about Experiment expID: its
+// recipe and rubric bundles, each left empty when it pins none, and its
+// pinned records that no longer hash as pinned.
+func (w *writer) resultFacts(expID string) replay.ResultFacts {
 	exp := w.st.Nodes[expID]
-	if exp == nil || exp.Kind != event.KindExperiment || exp.Recipe == event.RecipeNone {
-		return replay.RecipeFacts{}
+	if exp == nil || exp.Kind != event.KindExperiment {
+		return replay.ResultFacts{}
 	}
-	r, err := recipe.Load(w.root, exp.Recipe)
-	if err != nil {
-		return replay.RecipeFacts{Err: err}
+	pin := func(load func(root, ref string) (*recipe.Recipe, error), ref string) replay.RecipeFacts {
+		r, err := load(w.root, ref)
+		if err != nil {
+			return replay.RecipeFacts{Err: err}
+		}
+		return replay.RecipeFacts{Hash: r.Hash}
 	}
-	return replay.RecipeFacts{Hash: r.Hash}
+	var f replay.ResultFacts
+	if exp.Recipe != event.RecipeNone {
+		f.Recipe = pin(recipe.Load, exp.Recipe)
+	}
+	if exp.RubricHash != "" {
+		f.Rubric = pin(recipe.LoadRubric, exp.Rubric)
+	}
+	f.Changed = changedRecords(w.root, exp.Records)
+	return f
 }
 
 // checkEvidence accepts a URL, or an existing file relative to the store root

@@ -7,9 +7,9 @@ subject: hyp:placeholder what is under test, such as "the hyp binary on PATH" or
 
 # __NAME__
 
-hyp:placeholder This bundle came from hyp recipe new. Replace every
+hyp:placeholder This bundle came from hyp bundle new. Replace every
 hyp:placeholder line, the stub check.sh and the known-answers cases, then
-run hyp recipe known-answers __NAME__@1 until it passes. hyp add exp
+run hyp bundle known-answers __NAME__@1 until it passes. hyp add exp
 refuses the bundle while any file in it still holds hyp:placeholder.
 RECIPE-FORMAT.md in the hyp-verification skill describes each section.
 
@@ -42,7 +42,7 @@ gets their directory as its last argument.
 
 Each Evidence and Standalone command states what it reaches outside the
 bundle on the line directly under it: its subject arguments and any
-outside reads or writes, or "External: none". hyp recipe check warns
+outside reads or writes, or "External: none". hyp bundle check warns
 about "External: TODO" until it is replaced.
 
 ## Standalone

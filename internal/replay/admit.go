@@ -2,6 +2,7 @@ package replay
 
 import (
 	"fmt"
+	"path"
 	"slices"
 	"strings"
 
@@ -10,17 +11,29 @@ import (
 	"github.com/dat9uy/hyp/internal/recipe"
 )
 
-// RecipeFacts is what the CLI loads about an Experiment's recipe for
-// admission. Replay reads no files, so the caller fills it in.
+// RecipeFacts is what the CLI loads about a bundle an Experiment pins, its
+// recipe or its rubric, for admission. Replay reads no files, so the caller
+// fills it in.
 type RecipeFacts struct {
 	Err        error    // why the ref does not load; nil when it loads
 	Instrument bool     // it has an Evidence or Standalone command
 	HasCases   bool     // it has known answers
+	Verdicts   bool     // a known answer expects a verdict: line (sandbox.PrintsVerdicts)
 	Hash       string   // its current bundle hash
 	GoWarnings []string // recipe.GoFileWarnings of its directory
 	// Placeholder lists its files that still hold the template's
 	// placeholder marker (recipe.HasPlaceholder).
 	Placeholder []string
+	// NotRubric lists why a rubric bundle is not one (sandbox.RubricProblems).
+	NotRubric []string
+}
+
+// ResultFacts is what the CLI loads about a Result's Experiment for
+// admission: its recipe and rubric bundles, and the paths of its pinned
+// records that no longer hash as pinned, missing ones included.
+type ResultFacts struct {
+	Recipe, Rubric RecipeFacts
+	Changed        []string
 }
 
 // Finding kinds. A refusal is a broken rule (exit 1), a bad-args finding a
@@ -39,38 +52,60 @@ type Finding struct {
 
 // AdmitExp lists what admitting Experiment p would break or warn about, in
 // rule order: a recipe still holding the template placeholder, an
-// instrument with no known answers, a measured recipe with
-// --decided-by, a recipe that holds no measure, then, when st is not nil,
-// one-rival and the D1 and Go-file warnings. f is ignored when p.Recipe is
-// none. noTarget is --target none, which waives one-rival. With st nil only
-// the rules that read no tree run, so the caller can refuse before it loads
-// the store; p.Parent and p.Targets must be resolved ids otherwise.
-func (st *State) AdmitExp(p event.NodeAdd, f RecipeFacts, noTarget bool) []Finding {
+// instrument with no known answers, a recipe whose known answers print a
+// verdict, a rubric bundle that is not a rubric, a rubric bundle with no
+// measures to read; then, when st is not nil, the parent's rules: under a
+// DesignQuestion no rubric and no --target, under a Hypothesis a rubric,
+// one-rival, and the D1 and Go-file warnings (ADR 0018). f describes the
+// recipe and is ignored when it is none; rb describes the rubric and is
+// ignored unless p.Rubric names a bundle. noTarget is --target none, which
+// waives one-rival. With st nil only the rules that read no tree run, so the
+// caller can refuse before it loads the store; p.Parent and p.Targets must
+// be resolved ids otherwise.
+func (st *State) AdmitExp(p event.NodeAdd, f, rb RecipeFacts, noTarget bool) []Finding {
 	var out []Finding
-	measured := false
-	if p.Recipe != event.RecipeNone {
-		if len(f.Placeholder) > 0 {
-			out = append(out, Finding{FindRefuse, fmt.Sprintf("recipe %s still holds the template placeholder (%s) in %s; replace it before pinning the bundle",
-				p.Recipe, recipe.Placeholder, strings.Join(f.Placeholder, ", "))})
+	placeholder := func(kind, ref string, files []string) {
+		if len(files) > 0 {
+			out = append(out, Finding{FindRefuse, fmt.Sprintf("%s %s still holds the template placeholder (%s) in %s; replace it before pinning the bundle",
+				kind, ref, recipe.Placeholder, strings.Join(files, ", "))})
 		}
+	}
+	if p.Recipe != event.RecipeNone {
+		placeholder("recipe", p.Recipe, f.Placeholder)
 		if f.Instrument && !f.HasCases {
 			out = append(out, Finding{FindRefuse, fmt.Sprintf("recipe %s is an instrument with no known answers; add known-answers/NAME/ cases before an Experiment uses it", p.Recipe)})
 		}
-		measured = f.Instrument
+		if f.Verdicts {
+			out = append(out, Finding{FindRefuse, fmt.Sprintf("recipe %s: a recipe measures and never prints a verdict; put the rule in a rubric", p.Recipe)})
+		}
 	}
-	if measured && p.DecidedBy != "" {
-		out = append(out, Finding{FindBadArgs, fmt.Sprintf("--decided-by %s contradicts recipe %s, an instrument whose checks decide the verdicts; drop --decided-by", p.DecidedBy, p.Recipe)})
-	}
-	if !measured && p.DecidedBy == "" {
-		out = append(out, Finding{FindRefuse, NoMeasure(p.Recipe)})
+	bundle := p.Rubric != "" && p.Rubric != event.RubricReading
+	if bundle {
+		placeholder("rubric", p.Rubric, rb.Placeholder)
+		if len(rb.NotRubric) > 0 {
+			out = append(out, Finding{FindRefuse, fmt.Sprintf("rubric %s is not a rubric: %s", p.Rubric, strings.Join(rb.NotRubric, "; "))})
+		}
+		if p.Recipe == event.RecipeNone && len(p.Records) == 0 {
+			out = append(out, Finding{FindRefuse, fmt.Sprintf("rubric %s has no measures to read: pin a recipe or --records", p.Rubric)})
+		}
 	}
 	if st == nil {
 		return out
 	}
+	parent := st.Nodes[p.Parent]
+	if parent != nil && parent.Kind == event.KindDesignQuestion {
+		if p.Rubric != "" || len(p.Targets) > 0 || noTarget {
+			out = append(out, Finding{FindBadArgs, "an Experiment under a DesignQuestion measures: it has no targets and no rubric; drop --rubric and --target"})
+		}
+		return out
+	}
 	// The rival rules read a Hypothesis's siblings. Any other parent is
 	// refused when the event is validated.
-	if parent := st.Nodes[p.Parent]; parent == nil || parent.Kind != event.KindHypothesis {
+	if parent == nil || parent.Kind != event.KindHypothesis {
 		return out
+	}
+	if p.Rubric == "" {
+		out = append(out, Finding{FindRefuse, NoRubric})
 	}
 	if !noTarget {
 		if text := st.oneRivalRefusal(p.Parent, p.Targets); text != "" {
@@ -88,11 +123,9 @@ func (st *State) AdmitExp(p event.NodeAdd, f RecipeFacts, noTarget bool) []Findi
 	return out
 }
 
-// NoMeasure is the refusal of an Experiment whose recipe is none or not an
-// instrument and that does not say its verdicts are decided by reading.
-func NoMeasure(ref string) string {
-	return fmt.Sprintf("recipe %s holds no measure; a verdict a script decides needs an instrument recipe (RECIPE-FORMAT, Verdict scripts), and a verdict decided by reading says so with --decided-by reading", ref)
-}
+// NoRubric is the refusal of an Experiment under a Hypothesis that does not
+// say how its measures become verdicts (ADR 0018).
+const NoRubric = "an Experiment under a Hypothesis pins a rubric: --rubric NAME@VERSION for a rubric bundle, or --rubric reading when its body decides the verdicts by reading"
 
 // oneRival is the one-rival rule: rivals, the live rivals of an
 // Experiment's parent at its add, are not empty and targets names none.
@@ -153,45 +186,78 @@ func (st *State) notRivalWarnings(parent string, targets []string) []string {
 	return out
 }
 
-// AdmitResult lists what recording Result p would break: its Experiment is
-// superseded or withdrawn, or its recipe no longer loads, changed since the Experiment pinned it, or hashed
-// differently in p's evidence (refHash: evidence ref → the hash its
-// pointers recorded), so one Result never pins two hashes for one ref.
-// f is ignored when the Experiment's recipe is none.
-func (st *State) AdmitResult(p event.ResultRecord, f RecipeFacts, refHash map[string]string) []Finding {
+// AdmitResult lists what admitting Result p would break: a closed
+// Experiment; evidence under .tree/evidence/ outside its Experiment's own
+// run and pinned records; a pinned record that no longer hashes as pinned;
+// then the recipe pin and the rubric pin, each refused when its bundle no
+// longer loads or hashes differently (ADR 0018). f is what the CLI loaded;
+// refHash maps each bundle ref an evidence pointer names to the hash it
+// pinned.
+func (st *State) AdmitResult(p event.ResultRecord, f ResultFacts, refHash map[string]string) []Finding {
 	exp := st.Nodes[p.Parent]
 	if exp == nil || exp.Kind != event.KindExperiment {
 		return nil
 	}
-	switch display := event.DisplayID(exp.Kind, p.Parent); st.expStatus(p.Parent) {
+	display := event.DisplayID(exp.Kind, p.Parent)
+	refuse := func(format string, a ...any) []Finding {
+		return []Finding{{FindRefuse, fmt.Sprintf(format, a...)}}
+	}
+	switch st.expStatus(p.Parent) {
 	case ExpWithdrawn:
-		return []Finding{{FindRefuse, display + " is withdrawn; add a new Experiment for this Result"}}
+		return refuse("%s is withdrawn; add a new Experiment for this Result", display)
 	case ExpSuperseded:
 		var by []string
 		for _, e := range st.Superseders(p.Parent) {
 			by = append(by, event.DisplayID(event.KindExperiment, e))
 		}
-		return []Finding{{FindRefuse, fmt.Sprintf("%s is superseded by %s; record the Result there, or hyp unlink %s supersedes %s to reopen %s",
-			display, strings.Join(by, ", "), by[0], display, display)}}
+		return refuse("%s is superseded by %s; record the Result there, or hyp unlink %s supersedes %s to reopen %s",
+			display, strings.Join(by, ", "), by[0], display, display)
 	}
-	if exp.Recipe == event.RecipeNone {
-		return nil
+	for _, ptr := range p.Evidence {
+		if outsideRun(ptr, display, exp.Records) {
+			return refuse("bad evidence: %s is a record outside %s's run and its pinned records; pin it with --records on a new Experiment", ptr, display)
+		}
+	}
+	if len(f.Changed) > 0 {
+		return refuse("bad records: %s changed since %s pinned it; add a new Experiment that pins the records as they are", f.Changed[0], display)
 	}
 	remedy := "restore it, or add a new Experiment or a new recipe version"
-	display := event.DisplayID(exp.Kind, p.Parent)
-	refuse := func(format string, a ...any) []Finding {
-		return []Finding{{FindRefuse, fmt.Sprintf(format, a...)}}
+	if exp.Recipe != event.RecipeNone {
+		if f.Recipe.Err != nil {
+			return refuse("recipe %s of %s no longer loads (%v); %s", exp.Recipe, display, herr.Text(f.Recipe.Err), remedy)
+		}
+		if f.Recipe.Hash != exp.RecipeHash {
+			return refuse("recipe %s changed since %s pinned it (recorded %s, now %s); %s", exp.Recipe, display, exp.RecipeHash, f.Recipe.Hash, remedy)
+		}
+		if h, ok := refHash[exp.Recipe]; ok && h != exp.RecipeHash {
+			return refuse("recipe %s changed while recording: its evidence hashed %s, %s pinned %s; record again", exp.Recipe, h, display, exp.RecipeHash)
+		}
 	}
-	if f.Err != nil {
-		return refuse("recipe %s of %s no longer loads (%v); %s", exp.Recipe, display, herr.Text(f.Err), remedy)
-	}
-	if f.Hash != exp.RecipeHash {
-		return refuse("recipe %s changed since %s pinned it (recorded %s, now %s); %s", exp.Recipe, display, exp.RecipeHash, f.Hash, remedy)
-	}
-	if h, ok := refHash[exp.Recipe]; ok && h != exp.RecipeHash {
-		return refuse("recipe %s changed while recording: its evidence hashed %s, %s pinned %s; record again", exp.Recipe, h, display, exp.RecipeHash)
+	if exp.RubricHash != "" {
+		remedy := "restore it, or add a new Experiment or a new rubric version"
+		if f.Rubric.Err != nil {
+			return refuse("rubric %s of %s no longer loads (%v); %s", exp.Rubric, display, herr.Text(f.Rubric.Err), remedy)
+		}
+		if f.Rubric.Hash != exp.RubricHash {
+			return refuse("rubric %s changed since %s pinned it (recorded %s, now %s); %s", exp.Rubric, display, exp.RubricHash, f.Rubric.Hash, remedy)
+		}
 	}
 	return nil
+}
+
+// EvidenceDir is the directory, relative to the store root, that holds the
+// files of every run.
+const EvidenceDir = ".tree/evidence/"
+
+// outsideRun reports whether evidence pointer ptr names a file under
+// .tree/evidence/ that is neither in the run of the Experiment shown as
+// display, .tree/evidence/<display>/, nor one of its pinned records.
+func outsideRun(ptr, display string, records []event.SubjectFile) bool {
+	clean := path.Clean(ptr)
+	if !strings.HasPrefix(clean, EvidenceDir) || strings.HasPrefix(clean, EvidenceDir+display+"/") {
+		return false
+	}
+	return !slices.ContainsFunc(records, func(r event.SubjectFile) bool { return r.Path == clean })
 }
 
 // AdmitSelect lists what admitting a select of Hypothesis h on question q
