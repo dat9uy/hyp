@@ -17,7 +17,7 @@ goal=$(id add goal --title "Dashboard loads in under 1 s on seed data" --why "ow
 q=$(id add dq --parent "$goal" --title "Where should totals be computed?" --why "slow page")
 h1=$(id add hyp --parent "$q" --title "Precompute totals in a nightly job" --why "rival A")
 h2=$(id add hyp --parent "$q" --title "Compute totals per request with an index" --why "rival B")
-e=$(id add exp --parent "$h1" --title "Read both designs against the page's query" --recipe none --decided-by reading --target "$h2" --why "excludes one rival")
+e=$(id add exp --parent "$h1" --title "Read both designs against the page's query" --recipe none --rubric reading --target "$h2" --why "excludes one rival")
 
 mkdir -p ".tree/evidence/$e"
 echo "nightly: the page reads one totals row; per-request: the page sums every order row on each load" > ".tree/evidence/$e/notes.txt"

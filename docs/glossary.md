@@ -93,7 +93,7 @@ How an Experiment's measures become verdicts, fixed before the run. It is the ki
 _Avoid_: verdict rule, rule (the spec's numbered refusal rules), verdict check, verdict script, criterion (a Goal line is the case the Goal requires), conclusion method
 
 **Check**:
-An Evidence or Standalone command of a recipe. hyp runs it the same way in the gate and in a run (ADR 0003), its known-answer cases pin its exit code and its whole stdout, and `hyp recipe check` warns per command and per verdict label (ADR 0004). Each line it prints about one subject, such as `A1 hold`, is a Measure: hyp gives a measure no identity, no case of its own and no pin of its own. A check never prints a verdict.
+An Evidence or Standalone command of a recipe. hyp runs it the same way in the gate and in a run (ADR 0003), its known-answer cases pin its exit code and its whole stdout, and `hyp bundle check` warns per command and per verdict label (ADR 0004). Each line it prints about one subject, such as `A1 hold`, is a Measure: hyp gives a measure no identity, no case of its own and no pin of its own. A check never prints a verdict.
 _Avoid_: check for one measure ("adds two checks" when one command gained two measures); checker (see Instrument)
 
 **Verdict check**, **verdict rule**:
@@ -310,7 +310,7 @@ One known answer as the gate ran it: its name and its outcome, `ok` or why it fa
 _Avoid_: test case (alone), result (a Result is a tree node)
 
 **External line**:
-The `External:` line under an Evidence or Standalone command that names what the command reads or writes outside its bundle, or `none`. `hyp recipe check` warns when it is missing or still reads `TODO` (ADR 0008).
+The `External:` line under an Evidence or Standalone command that names what the command reads or writes outside its bundle, or `none`. `hyp bundle check` warns when it is missing or still reads `TODO` (ADR 0008).
 _Avoid_: dependencies line, inputs line
 
 **Kept input**:

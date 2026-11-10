@@ -42,7 +42,7 @@ In the repository you investigate:
 ```bash
 hyp init                         # creates .tree/events, .tree/evidence, .tree/.gitignore
 git add .tree/.gitignore .tree/events
-hyp recipe new NAME@1            # optional: a first versioned procedure, in recipes/ beside .tree/
+hyp bundle new NAME@1            # optional: a first versioned procedure, in recipes/ beside .tree/
 ```
 
 Commit `.tree/events/` and `.tree/evidence/` with the work they describe.

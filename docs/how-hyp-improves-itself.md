@@ -29,8 +29,8 @@ the run goes well:
   ([ADR 0017](adr/0017-the-ledger-is-the-stall-guard.md)). A run's cap is
   stated by the `/goal` prompt or the recipe, not by hyp.
 - **Design marks.** `hyp signals` lists the Experiments set up against no live
-  rival (one-rival), against a dead one (D1), or with a target no Result
-  judged (unjudged).
+  rival (one-rival) or against a dead one (D1). A Result that leaves a
+  target without a verdict is refused, not marked (ADR 0018).
 - **The select is the gate.** `hyp select` is admitted only when the ledger
   owes it, and the owner decides trade-offs
   ([ADR 0015](adr/0015-the-select-is-the-gate.md)). What the owner decides,
