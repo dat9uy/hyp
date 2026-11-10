@@ -918,7 +918,7 @@ func sameAskWarnings(p replay.Projection, closes, revises []string) []string {
 		for _, k := range keys {
 			for _, m := range p.SameAsk(k) {
 				l, _ := p.Reading(m)
-				if m == k || (l.By == "") != open || slices.Contains(keys, m) || seen[flag+m] {
+				if m == k || l.Open() != open || slices.Contains(keys, m) || seen[flag+m] {
 					continue
 				}
 				seen[flag+m] = true

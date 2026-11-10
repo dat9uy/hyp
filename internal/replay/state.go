@@ -40,6 +40,11 @@ type (
 // states that owe every kind of ledger item and may owe a select.
 func (s QuestionState) Open() bool { return s == DQOpen || s == DQReopened }
 
+// Obliges reports whether a sub-question in state s is still an obligation
+// on its parent Hypothesis (ADR 0014): not withdrawn and not answered, so a
+// deferred one counts.
+func (s QuestionState) Obliges() bool { return s != DQWithdrawn && s != DQAnswered }
+
 // Hyp is the derived record of one Hypothesis (spec §7.1, §7.3).
 type Hyp struct {
 	Status HypStatus

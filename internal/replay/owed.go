@@ -100,13 +100,13 @@ func (p Projection) Owed() []Owed {
 		if open {
 			var live []string
 			for _, h := range n.Children {
-				if hs := p.Hyps[h]; hs != nil && hs.Status != HypSuperseded && hs.Status != HypAbandoned {
+				if hs := p.Hyps[h]; hs != nil && LiveHypStatus(hs.Status) {
 					live = append(live, h)
 				}
 			}
 			// With no live rival, new rivals are owed, unless an open reading
 			// whose answer may revive one waits for the owner.
-			rivals := slices.ContainsFunc(live, func(h string) bool { return p.Hyps[h].Status != HypContradicted })
+			rivals := slices.ContainsFunc(live, func(h string) bool { return RivalStatus(p.Hyps[h].Status) })
 			if !rivals && !waiting {
 				add(Owed{Who: OwedRunner, Kind: OwedRivals, Key: dq})
 			}
@@ -155,7 +155,7 @@ func (p Projection) Owed() []Owed {
 			}
 		}
 		for _, l := range p.Readings {
-			if l.Question == dq && l.By != "" && l.Applied == "" {
+			if l.Question == dq && !l.Open() && l.Applied == "" {
 				add(aim(Owed{Who: OwedRunner, Kind: OwedReading, Key: l.Key}))
 			}
 		}

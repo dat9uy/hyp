@@ -249,7 +249,7 @@ var rules = map[string]rule{
 			_ = event.DecodePayload(ev, &p)
 			st.applyReadingMoves(ev, p)
 			for _, mv := range []struct {
-				move string
+				move HandMove
 				keys []string
 			}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
 				for _, k := range mv.keys {

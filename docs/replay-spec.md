@@ -373,7 +373,7 @@ Rivals at add **[added]**: when an Experiment under a Hypothesis is applied, rep
 
 The Projection holds every fact hyp derives; render, signals and the CLI read its fields, and nothing stores them a second time (ADR 0006). Scripts read the applied events and rejections through `hyp events --json` and each round's facts and design marks through `hyp signals --json`, never the files under `.tree/events`.
 
-Each node kind has its own status word: `HypStatus`, `QuestionState`, `ExpStatus`, `ResStatus` and `GoalState` are separate string types, so comparing two kinds does not compile (ADR 0013). A `Question` reaches its `Decision` by the shared id. `Projection.Display(id)` returns the word, reason and stale cause of any node, for code that prints a node without knowing its kind.
+Each node kind has its own status word: `HypStatus`, `QuestionState`, `ExpStatus`, `ResStatus` and `GoalState` are separate string types, so comparing two kinds does not compile (ADR 0013). A `Question` reaches its `Decision` by the shared id. `Projection.Display(id)` returns the word, reason and stale cause of any node, for code that prints a node without knowing its kind. A rule that joins several words of one kind has one name, and callers read the name instead of comparing words: `QuestionState.Open` (open or reopened, the states the ledger works), `QuestionState.Obliges` (a sub-question not withdrawn and not answered, deferred included), `LiveHypStatus` and `RivalStatus` (§7.1), `Exp.Closed` (§7.6), `Reading.Open` (no checkpoint closed it), `Projection.LiveResults` (the non-retracted Results in merge order), and `HandMove` for a limit key's latest move (§8.2).
 
 Equality test used by acceptance: every node's derived record and the Goal are deeply equal.
 

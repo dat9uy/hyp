@@ -366,7 +366,7 @@ func (st *State) verdictStatus(id, except string) HypStatus {
 // id that is not withdrawn is not answered. status reads a question's state.
 func (st *State) awaitsSubquestions(id string, status func(string) QuestionState) bool {
 	for _, c := range st.Nodes[id].Children {
-		if st.Nodes[c].Kind == event.KindDesignQuestion && st.isLiveDQ(c) && status(c) != DQAnswered {
+		if st.Nodes[c].Kind == event.KindDesignQuestion && status(c).Obliges() {
 			return true
 		}
 	}
@@ -377,7 +377,7 @@ func (st *State) awaitsSubquestions(id string, status func(string) QuestionState
 // not withdrawn and not answered, so a deferred one counts (spec §7.4).
 func (p Projection) HasOpenSubquestion(h string) bool {
 	for _, c := range p.Nodes[h].Children {
-		if q := p.Questions[c]; q != nil && q.State != DQWithdrawn && q.State != DQAnswered {
+		if q := p.Questions[c]; q != nil && q.State.Obliges() {
 			return true
 		}
 	}
