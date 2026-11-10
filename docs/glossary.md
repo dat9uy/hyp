@@ -89,7 +89,7 @@ A Result's label for one target of its Experiment: supports, contradicts or inco
 _Avoid_: judge, judged (retired: a Result gives a verdict on a target); verdict for the rubric that led to the label
 
 **Rubric**:
-How an Experiment's measures become verdicts, fixed before the run. It is a small bundle, versioned and pinned by its ref and hash like a recipe but kept apart from recipes, so two Experiments can pin the same one; its one command reads the measures in the Experiment's records and prints a `verdict: LABEL=WORD` line per label, with a supports case and a contradicts case for each label among its known answers; or, when the verdicts are decided by reading, prose in the Experiment's body, which only its author and a reader of the Result can hold to one reading. A rubric names no tree id: the runner gives each label's verdict to its target in `hyp record`. An Experiment with no targets has no rubric.
+How an Experiment's measures become verdicts, fixed before the run. It is the kind of Bundle kept in `rubrics/`, apart from recipes, so two Experiments can pin the same one; it has no step section and its one command reads the measures in the Experiment's records and prints a `verdict: LABEL=WORD` line per label, with a supports case and a contradicts case for each label among its known answers; or, when the verdicts are decided by reading, prose in the Experiment's body, which only its author and a reader of the Result can hold to one reading. A rubric names no tree id: the runner gives each label's verdict to its target in `hyp record`. An Experiment with no targets has no rubric.
 _Avoid_: verdict rule, rule (the spec's numbered refusal rules), verdict check, verdict script, criterion (a Goal line is the case the Goal requires), conclusion method
 
 **Check**:
@@ -247,12 +247,12 @@ _Avoid_: run when the count is meant (say "3 of 5 trials"); trial for a fixed ca
 ### Recipes
 
 **Recipe**:
-A versioned, hash-pinned bundle that says how to run one kind of subject and what to measure: its procedure (Launch, Doctor, Drive, Cleanup) and its checks. It names no tree id and never prints a verdict, so the same recipe version serves any Experiment and any tree.
+The kind of Bundle that says how to run one kind of subject and what to measure: its procedure (Launch, Doctor, Drive, Cleanup) and its checks. It names no tree id and never prints a verdict, so the same recipe version serves any Experiment and any tree.
 _Avoid_: harness script, driver, wrapper; recipe for the rubric (a rubric is a separate bundle the Experiment pins)
 
 **Bundle**:
-A recipe stored as a directory, so it can hold scripts beside its description. A bundle is identified by its ref and hash, not by the directory it sits in (ADR 0005).
-_Avoid_: recipe folder, package
+A versioned directory that holds a description and the scripts it runs, identified by its ref and hash, not by the directory it sits in (ADR 0005). There are two kinds: a **Recipe**, kept in `recipes/`, says how to run a subject and what to measure; a **Rubric**, kept in `rubrics/`, says how measures become verdicts. Both share one format, are gated by their known answers and are handled by `hyp bundle`. An Experiment pins at most one of each.
+_Avoid_: recipe folder, package; recipe for a bundle of either kind
 
 **Recipe ref**:
 A recipe's name and version written together, the form an Experiment cites. hyp opens every copy of a bundle by the ref it holds (ADR 0005). In code: `event.Ref`, parsed once by `event.ParseRef`; its JSON is the string `name@N`.

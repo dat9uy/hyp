@@ -19,7 +19,7 @@ This spec adds the minimum needed to make the owner-confirmed design executable;
   - `.tree/evidence/<experiment-display-id>/`: evidence files referenced by pointer.
   - `.tree/.gitignore` contains exactly `index.sqlite` plus `index.sqlite-*`.
 - Recipes: `recipes/<name>@<version>/`, in the directory that contains `.tree/` or in any parent up to the repository root (the first directory holding `.git`). See `skills/hyp-verification/RECIPE-FORMAT.md`. [sandbox-spec.md](sandbox-spec.md) §1 says when hyp runs a recipe's commands and whether a sandbox exists then.
-- Rubrics **[not built: #106]**: `rubrics/<name>@<version>/`, looked up the same way. A rubric is a bundle in the recipe format with no step section and one Standalone command (§7.6); the `hyp recipe` commands take a rubric's ref as they take a recipe's, and `hyp check` names a name used in both libraries.
+- Rubrics **[not built: #106]**: `rubrics/<name>@<version>/`, looked up the same way. A rubric is a bundle in the recipe format with no step section and one Standalone command (§7.6); recipes and rubrics are the two kinds of bundle, and `hyp bundle` replaces `hyp recipe` for both (ADR 0018); a name is used in one library only, and `hyp check` names one used in both.
 - Actor: the `--actor` flag, or the `HYP_ACTOR` environment variable. It must match `^[a-z0-9][a-z0-9-]{0,39}$`. If it is missing, every write command fails with exit 2. There is no default actor.
 
 ## 2. Ids
