@@ -6,25 +6,31 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 )
 
-// Who owes an item of the ledger.
+// OwedWho is who owes an item of the ledger.
+type OwedWho string
+
+// The values of OwedWho.
 const (
-	OwedRunner = "runner"
-	OwedOwner  = "owner"
+	OwedRunner OwedWho = "runner"
+	OwedOwner  OwedWho = "owner"
 )
 
-// What an owed item is.
+// OwedKind is what an owed item is (spec §8.1).
+type OwedKind string
+
+// The values of OwedKind.
 const (
-	OwedRivals    = "rivals"    // an open question has no live rival and no open reading that can revive one
-	OwedUntested  = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
-	OwedUndecided = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
-	OwedPlanned   = "planned"   // a planned Experiment has no Result
-	OwedLimit     = "limit"     // an open limit under a question that has a candidate, or a line of the Goal a candidate has not met
-	OwedReading   = "reading"   // a closed reading no Result applies
-	OwedReferred  = "referred"  // a limit referred to the owner, not yet accepted
-	OwedPremise   = "premise"   // a candidate assumes a Hypothesis its question did not select
-	OwedStale     = "stale"     // a reopened question's select is stale and nothing else owed renews it
-	OwedSelect    = "select"    // a lone candidate with nothing else owed on its question
-	OwedChoose    = "choose"    // the owner chooses between two or more candidates
+	OwedRivals    OwedKind = "rivals"    // an open question has no live rival and no open reading that can revive one
+	OwedUntested  OwedKind = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
+	OwedUndecided OwedKind = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
+	OwedPlanned   OwedKind = "planned"   // a planned Experiment has no Result
+	OwedLimit     OwedKind = "limit"     // an open limit under a question that has a candidate, or a line of the Goal a candidate has not met
+	OwedReading   OwedKind = "reading"   // a closed reading no Result applies
+	OwedReferred  OwedKind = "referred"  // a limit referred to the owner, not yet accepted
+	OwedPremise   OwedKind = "premise"   // a candidate assumes a Hypothesis its question did not select
+	OwedStale     OwedKind = "stale"     // a reopened question's select is stale and nothing else owed renews it
+	OwedSelect    OwedKind = "select"    // a lone candidate with nothing else owed on its question
+	OwedChoose    OwedKind = "choose"    // the owner chooses between two or more candidates
 )
 
 // How far an aimable item (a limit or a reading) has got.
@@ -38,11 +44,13 @@ const (
 // Settling an item is always an explicit event; owing one never changes a
 // status.
 type Owed struct {
-	Who, Kind, Question string
-	Key                 string   // a node id, or a limit or reading key
-	State               string   // for a limit or reading: AimNone, AimPlanned or AimUnsettled
-	AimedBy             []string // live Experiments that aim at the key
-	To                  string   // for a premise: the depends_on target Key assumes
+	Who      OwedWho
+	Kind     OwedKind
+	Question string
+	Key      string   // a node id, or a limit or reading key
+	State    string   // for a limit or reading: AimNone, AimPlanned or AimUnsettled
+	AimedBy  []string // live Experiments that aim at the key
+	To       string   // for a premise: the depends_on target Key assumes
 }
 
 // Owed derives the ledger in question creation order. An open or reopened

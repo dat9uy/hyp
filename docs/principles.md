@@ -17,7 +17,11 @@ it what was claimed, what ran, what failed and what is still owed.
 **Events are appended and never edited, and every status is computed from
 them.** `supported`, `contradicted`, `stale`, `answered`, the ledger, coverage
 and a limit's category are all derived; no command can set one, and no stored
-field copies a derived state. A changed mind is a new event, so the earlier one
+field copies a derived state. A command appends an event: `hypothesis.abandon`
+or `dq.withdraw` is a fact a status rule reads, not the status word, and a
+later event can move the status again. While it derives, replay keeps working
+facts such as whether a question was ever answered; it rebuilds them from the
+log every time and never writes them to it. A changed mind is a new event, so the earlier one
 stays in history. See [replay-spec.md](replay-spec.md) §7 and §8,
 [ADR 0006](adr/0006-scripts-read-the-tree-through-hyp-events.md) and
 [ADR 0013](adr/0013-the-tree-machine-owns-its-words-and-its-rules.md).
