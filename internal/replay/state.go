@@ -127,7 +127,8 @@ type Pin struct {
 }
 
 // pins lists the pins the Result id depends on: its Experiment's recipe
-// unless that is none, then each evidence pointer with a recorded hash, in
+// unless that is none, its Experiment's rubric when it names a bundle, then
+// each evidence pointer with a recorded hash, in
 // the order cited. A Result is questionable when any pin's ref is missing
 // from the current recipe hashes or hashes differently.
 func pins(nodes map[string]*Node, id string) []Pin {
@@ -137,6 +138,11 @@ func pins(nodes map[string]*Node, id string) []Pin {
 		// validate admits only name@version or none, so the parse holds.
 		ref, _ := event.ParseRef(exp.Recipe)
 		pins = append(pins, Pin{Ref: ref, Hash: exp.RecipeHash})
+	}
+	if exp := nodes[r.Parent]; exp != nil && exp.RubricHash != "" {
+		// validate admits a rubric_hash only beside a name@version rubric.
+		ref, _ := event.ParseRef(exp.Rubric)
+		pins = append(pins, Pin{Ref: ref, Hash: exp.RubricHash})
 	}
 	seen := map[string]bool{}
 	for _, e := range r.Evidence {

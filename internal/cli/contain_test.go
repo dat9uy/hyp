@@ -42,7 +42,7 @@ func containStore(t *testing.T) cstore {
 	s.qi = must(t, "add", "dq", "--parent", g, "--title", "Does ana@1 run?", "--why", "w")
 	s.hi = must(t, "add", "hyp", "--parent", s.qi, "--title", "ana@1 gives them", "--why", "w")
 	s.ei = must(t, "add", "exp", "--parent", s.hi, "--title", "cases", "--recipe", "ana@1", "--rubric", "reading", "--target", "none", "--why", "w")
-	must(t, "recipe", "run", "--record", ".tree/evidence/"+s.ei+"/R1", "ana@1", "cases")
+	must(t, "bundle", "run", "--record", ".tree/evidence/"+s.ei+"/R1", "ana@1", "cases")
 	s.i0 = must(t, "record", "--exp", s.ei, "--verdict", s.hi+"=supports", "--observation", "cases ok",
 		"--evidence", ".tree/evidence/"+s.ei+"/R1/command.json", "--why", "w")
 
@@ -58,7 +58,7 @@ func containStore(t *testing.T) cstore {
 	if err := os.WriteFile(filepath.Join(out, "sandbox.json"), []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	must(t, "recipe", "evidence", "--record", ".tree/evidence/"+s.em+"/R0", "ana@1", out)
+	must(t, "bundle", "evidence", "--record", ".tree/evidence/"+s.em+"/R0", "ana@1", out)
 	s.r0 = ".tree/evidence/" + s.em + "/R0/command.json"
 	return s
 }
@@ -219,7 +219,7 @@ func TestContainUnversionedRecipesScript(t *testing.T) {
 func TestContainRepeatedCitationGivesReasonOnce(t *testing.T) {
 	s := containStore(t)
 	c := s.file(t, "c.py", 0o644, "print('x')\n")
-	must(t, "recipe", "run", "--record", ".tree/evidence/"+s.em+"/R1", "ana@1", "cases")
+	must(t, "bundle", "run", "--record", ".tree/evidence/"+s.em+"/R1", "ana@1", "cases")
 	r1 := ".tree/evidence/" + s.em + "/R1/command.json"
 	r := s.record(t, s.em, []string{c, "./" + c, s.r0, r1})
 	wantReasons(t, reasonsOf(t, s.dir, r),
@@ -441,17 +441,17 @@ func TestContainSourceFileInBundle(t *testing.T) {
 }
 
 // A Result pinned to an instrument whose bundle is later deleted is reported
-// by hyp recipe check as a drift to a missing bundle, and fails it.
+// by hyp bundle check as a drift to a missing bundle, and fails it.
 func TestDeletedInstrumentBundleDrifts(t *testing.T) {
 	s := containStore(t)
 	if err := os.Mkdir(filepath.Join(s.dir, ".git"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	want(t, hyp(t, "recipe", "check"), 0, "0 drift")
+	want(t, hyp(t, "bundle", "check"), 0, "0 drift")
 	if err := os.RemoveAll(filepath.Join(s.dir, "recipes", "ana@1")); err != nil {
 		t.Fatal(err)
 	}
-	r := hyp(t, "recipe", "check")
+	r := hyp(t, "bundle", "check")
 	want(t, r, 1, "drift: . "+s.i0+" recipes/ana@1/: recorded "+s.hash+", now missing")
 	want(t, r, 1, "recipe check found 1 failures")
 }

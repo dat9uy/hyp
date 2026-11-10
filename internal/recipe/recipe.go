@@ -35,17 +35,17 @@ type Named struct {
 // command in recipe.md, which states what the command reaches outside the
 // bundle: its subject arguments and any outside reads or writes, or none
 // (ADR 0008). Line is false when there is no such line. hyp only warns
-// about it (hyp recipe check); a bundle without one still loads.
+// about it (hyp bundle check); a bundle without one still loads.
 type External struct {
 	Line bool
 	Text string
 }
 
 // Stated reports whether the line says something: it exists, and its text
-// is neither empty nor the TODO that hyp recipe new writes.
+// is neither empty nor the TODO that hyp bundle new writes.
 func (e External) Stated() bool { return e.Line && e.Text != "" && e.Text != ExternalTODO }
 
-// ExternalTODO is the text hyp recipe new writes on an External: line it adds.
+// ExternalTODO is the text hyp bundle new writes on an External: line it adds.
 const ExternalTODO = "TODO"
 
 // Step names a recipe section whose commands hyp runs. Its value is the
@@ -73,6 +73,7 @@ type Recipe struct {
 	Launch, Doctor, Drive, Evidence, Cleanup [][]string // argv; argv[0] is an absolute path inside Dir
 	EvidenceExternal                         []External // the External: line of each Evidence command
 	Standalone                               []Named    // in file order
+	Lib                                      string     // the library Load found it in, Recipes or Rubrics; "" when opened by path
 }
 
 // Format is the recipe format a bundle's recipe.md must name to be used
@@ -170,6 +171,30 @@ func Load(root, ref string) (*Recipe, error) { return LoadFrom(root, Recipes, re
 // LoadRubric is Load for a rubric, a bundle in rubrics/ (ADR 0018).
 func LoadRubric(root, ref string) (*Recipe, error) { return LoadFrom(root, Rubrics, ref) }
 
+// LoadAny finds ref in either library, recipes/ first. A name is used in
+// one library only (ADR 0018), so a ref found in both is refused.
+func LoadAny(root, ref string) (*Recipe, error) {
+	if _, err := parseRef(ref); err != nil {
+		return nil, err
+	}
+	r, err := Load(root, ref)
+	if err != nil && herr.KindOf(err) != herr.BadArguments {
+		return nil, err
+	}
+	rb, rerr := LoadRubric(root, ref)
+	switch {
+	case r != nil && rb != nil:
+		return nil, herr.Refused("bundle %s is in both %s and %s; a name is used in one library only", ref, r.Path, rb.Path)
+	case r != nil:
+		return r, nil
+	case rerr != nil && herr.KindOf(rerr) != herr.BadArguments:
+		return nil, rerr
+	case rb != nil:
+		return rb, nil
+	}
+	return nil, herr.BadArgs("bundle %s not found; searched %s and %s", ref, strings.Join(Dirs(root), ", "), strings.Join(DirsOf(root, Rubrics), ", "))
+}
+
 // LoadFrom is Load in library lib, Recipes or Rubrics.
 func LoadFrom(root, lib, ref string) (*Recipe, error) {
 	r, err := parseRef(ref)
@@ -195,6 +220,7 @@ func LoadFrom(root, lib, ref string) (*Recipe, error) {
 			return nil, herr.Refused("%s", differ(ref, found[0].Path, r.Path))
 		}
 	}
+	found[0].Lib = lib
 	return found[0], nil
 }
 
@@ -267,7 +293,7 @@ func hasFormat(vdir, name, version string) error {
 		return herr.Env("recipe %s: %v", name, err)
 	}
 	if frontmatter(data)["format"] != Format {
-		return herr.Refused("recipe %s@%s: recipe.md has no format: %s line; copy it with hyp recipe new %s@<next> --from %s@%s, then add its known answers",
+		return herr.Refused("recipe %s@%s: recipe.md has no format: %s line; copy it with hyp bundle new %s@<next> --from %s@%s, then add its known answers",
 			name, version, Format, name, name, version)
 	}
 	return nil
@@ -303,7 +329,7 @@ func OpenAs(dir, ref string) (*Recipe, error) {
 	return open(dir, r)
 }
 
-// OpenToHash opens dir for hyp recipe hash DIR: a library bundle name@N/ as
+// OpenToHash opens dir for hyp bundle hash DIR: a library bundle name@N/ as
 // Open does, and any other directory by the name and version its recipe.md
 // gives, so a copy hashes as the bundle it came from. The name must match the
 // directory and the version is not checked, as HashOnly does
@@ -353,7 +379,7 @@ func open(dir string, ref event.Ref) (*Recipe, error) {
 // directory and, for a versioned directory, its version) and hashes it,
 // without parsing a command. A bundle whose recipe.md breaks a command rule
 // still hashes, so its pins still verify. A directory without @version hashes
-// too, with no version check, so hyp recipe hash DIR accepts any directory.
+// too, with no version check, so hyp bundle hash DIR accepts any directory.
 func HashOnly(dir string) (name, version, hash string, err error) {
 	name = filepath.Base(dir)
 	dirRef, perr := event.ParseRef(name)
@@ -418,8 +444,8 @@ func Hashes(root string) map[string]string {
 	return h
 }
 
-// Scan maps every recipe ref (name@version) in the directories Dirs(root)
-// lists to the hex sha256 of its bundle manifest. Hashing a bundle
+// Scan maps every bundle ref (name@version) in the recipes and rubrics
+// directories DirsOf(root, lib) lists to the hex sha256 of its bundle manifest. Hashing a bundle
 // never parses it, so a bundle that no longer opens still hashes and its pins
 // verify; problems names it. A bundle that cannot be hashed and a ref whose
 // copies hash differently are left out, so Results recorded under them read
@@ -435,18 +461,29 @@ func Scan(root string) (hashes map[string]string, problems []string) {
 		}
 		seen[ref] = append(seen[ref], copyAt{hash, path})
 	}
-	for _, d := range Dirs(root) {
-		bundles, _ := filepath.Glob(filepath.Join(d, "*@*", "recipe.md"))
-		for _, b := range bundles {
-			dir := filepath.Dir(b)
-			name, version, hash, err := HashOnly(dir)
-			if err != nil {
-				problems = append(problems, fmt.Sprintf("recipe %s does not open: %v", dir, err))
-				continue
-			}
-			add(event.Ref{Name: name, Version: version}.String(), hash, dir)
-			if _, err := Open(dir); err != nil {
-				problems = append(problems, fmt.Sprintf("recipe %s does not open: %v; its pins still verify; copy it with hyp recipe new to use it", dir, err))
+	// libOf maps each bundle name to the first library it was found in,
+	// so a name in both is named once.
+	libOf := map[string]string{}
+	for _, lib := range []string{Recipes, Rubrics} {
+		for _, d := range DirsOf(root, lib) {
+			bundles, _ := filepath.Glob(filepath.Join(d, "*@*", "recipe.md"))
+			for _, b := range bundles {
+				dir := filepath.Dir(b)
+				name, version, hash, err := HashOnly(dir)
+				if err != nil {
+					problems = append(problems, fmt.Sprintf("recipe %s does not open: %v", dir, err))
+					continue
+				}
+				if l, ok := libOf[name]; !ok {
+					libOf[name] = lib
+				} else if l != lib && l != "" {
+					problems = append(problems, fmt.Sprintf("bundle name %s is used in both %s/ and %s/; a name lives in one library only", name, l, lib))
+					libOf[name] = ""
+				}
+				add(event.Ref{Name: name, Version: version}.String(), hash, dir)
+				if _, err := Open(dir); err != nil {
+					problems = append(problems, fmt.Sprintf("recipe %s does not open: %v; its pins still verify; copy it with hyp bundle new to use it", dir, err))
+				}
 			}
 		}
 	}

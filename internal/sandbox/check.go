@@ -17,7 +17,7 @@ import (
 )
 
 // A check is an Evidence or Standalone command. It runs the same way in
-// its known-answer cases and in hyp recipe run and evidence (ADR 0003): with
+// its known-answer cases and in hyp bundle run and evidence (ADR 0003): with
 // checkEnv, in an empty working directory, with stdin /dev/null, and its
 // product is its exit code, its stdout and the tree under $HYP_OUT. Sandbox
 // steps (Launch, Doctor, Drive, Cleanup) run with sandboxEnv instead.

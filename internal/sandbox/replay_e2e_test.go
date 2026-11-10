@@ -44,7 +44,7 @@ func TestReplayNeedsNoHostPath(t *testing.T) {
 		}
 	}
 
-	// hyp recipe run: an absolute file, a relative file, an in-repo directory
+	// hyp bundle run: an absolute file, a relative file, an in-repo directory
 	// and an out-of-repo directory.
 	outside := t.TempDir()
 	abs := filepath.Join(t.TempDir(), "cases.tsv")

@@ -411,8 +411,8 @@ func TestRunRefusals(t *testing.T) {
 		{"record exists", RunOptions{Dir: tool, Ref: "tool@1", Step: "standalone", Label: "echo", Record: exist}, "exists"},
 		{"unknown label", RunOptions{Dir: tool, Ref: "tool@1", Step: "standalone", Label: "nope"}, `has no Standalone command "nope"; it has: echo`},
 		{"no evidence", RunOptions{Dir: tool, Ref: "tool@1", Step: "evidence", Args: []string{keptDir(t)}}, "has no Evidence command"},
-		{"no sandbox.json", RunOptions{Dir: evidenceRoot(t), Ref: "chk@1", Step: "evidence", Args: []string{t.TempDir()}}, "holds no sandbox.json; give the OUT_DIR of hyp sandbox remove, or, for files no sandbox wrote, run the check as a Standalone command (hyp recipe run --record DIR REF NAME PATH)"},
-		{"single file", RunOptions{Dir: single, Ref: "one@1", Step: "standalone", Label: "x"}, "recipe one@1 not found"},
+		{"no sandbox.json", RunOptions{Dir: evidenceRoot(t), Ref: "chk@1", Step: "evidence", Args: []string{t.TempDir()}}, "holds no sandbox.json; give the OUT_DIR of hyp sandbox remove, or, for files no sandbox wrote, run the check as a Standalone command (hyp bundle run --record DIR REF NAME PATH)"},
+		{"single file", RunOptions{Dir: single, Ref: "one@1", Step: "standalone", Label: "x"}, "bundle one@1 not found"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

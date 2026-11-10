@@ -302,7 +302,7 @@ func Gate(r *recipe.Recipe, hyp *SandboxHyp, log io.Writer) (*cmdrecord.KnownAns
 	return ka, nil
 }
 
-// ExternalWarnings lists, for hyp recipe check, each Evidence command (its
+// ExternalWarnings lists, for hyp bundle check, each Evidence command (its
 // shown form) and Standalone label of r whose External: line is missing,
 // "<command>: no External: line", or does not state its reach, "<command>:
 // External: not stated (TODO)" (recipe.External, ADR 0008).

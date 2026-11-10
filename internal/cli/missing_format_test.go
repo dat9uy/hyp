@@ -51,9 +51,9 @@ func TestUseRefusesMissingFormat(t *testing.T) {
 	for name, args := range map[string][]string{
 		"add exp":               {"add", "exp", "--parent", h, "--title", "E", "--recipe", "old@1", "--rubric", "reading", "--why", "w"},
 		"sandbox create":        {"sandbox", "create", "s-old", "--host", repo, "--base", sha, "--hyp", stub, "--recipe", "old@1", "--recipes", repo},
-		"recipe run":            {"recipe", "run", "--record", filepath.Join(recs, "run"), "old@1", "x"},
-		"recipe evidence":       {"recipe", "evidence", "--record", filepath.Join(recs, "ev"), "old@1", out},
-		"recipe known-answers":  {"recipe", "known-answers", "old@1"},
+		"recipe run":            {"bundle", "run", "--record", filepath.Join(recs, "run"), "old@1", "x"},
+		"recipe evidence":       {"bundle", "evidence", "--record", filepath.Join(recs, "ev"), "old@1", out},
+		"recipe known-answers":  {"bundle", "known-answers", "old@1"},
 		"record foreign bundle": {"record", "--exp", e, "--verdict", h + "=supports", "--observation", "o", "--evidence", "recipes/old@1/x.sh", "--why", "w"},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -74,13 +74,13 @@ func TestUseRefusesMissingFormat(t *testing.T) {
 	}
 }
 
-// hyp recipe hash hashes a bundle with no format: 1 line, exit 0 and no
+// hyp bundle hash hashes a bundle with no format: 1 line, exit 0 and no
 // warning: hashing never parses, so its pins still verify.
 func TestRecipeHashIgnoresMissingFormat(t *testing.T) {
 	dir := t.TempDir()
 	writeLib(t, dir, "old@1", "---\nname: old\nversion: 1\n---\n\nRun it by hand.\n")
 	bundle := filepath.Join(dir, "recipes", "old@1")
-	r := hyp(t, "recipe", "hash", bundle)
+	r := hyp(t, "bundle", "hash", bundle)
 	if r.code != 0 || r.stdout != bundleHash(t, bundle)+"\n" {
 		t.Fatalf("recipe hash: %+v", r)
 	}

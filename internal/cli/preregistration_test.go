@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -13,10 +14,10 @@ func preStore(t *testing.T) (dir, q, h string) {
 	t.Helper()
 	dir, _, q = setup(t)
 	bundleIn(t, dir, "tool", "## Standalone\n\nRun rows: ./rows.sh\n", map[string]string{
-		"rows.sh":                        "#!/bin/sh\necho stored rows 4\n",
-		"known-answers/ok/expect.json":   `{"step": "standalone", "command": "rows", "exit": 0, "stdout": "stored rows 4\n"}`,
-		"known-answers/ok/input/a":       "",
-		"known-answers/fail/expect.json": `{"step": "standalone", "command": "rows", "exit": 1, "stdout": ""}`,
+		"rows.sh":                        "#!/bin/sh\n[ -f \"$1/rows\" ] || exit 1\ncat \"$1/rows\"\n",
+		"known-answers/ok/expect.json":   `{"step": "standalone", "command": "rows", "args": ["$CASE/input"], "exit": 0, "stdout": "stored rows 4\n"}`,
+		"known-answers/ok/input/rows":    "stored rows 4\n",
+		"known-answers/fail/expect.json": `{"step": "standalone", "command": "rows", "args": ["$CASE/input"], "exit": 1, "stdout": ""}`,
 		"known-answers/fail/input/a":     "",
 	})
 	bundleIn(t, dir, "vote", "## Standalone\n\nRun vote: ./vote.sh\n", map[string]string{
@@ -25,11 +26,11 @@ func preStore(t *testing.T) (dir, q, h string) {
 		"known-answers/ok/input/a":     "",
 	})
 	libIn(t, dir, "rubrics", "rule", "## Standalone\n\nRun rule: ./rule.sh\n", map[string]string{
-		"rule.sh":                     "#!/bin/sh\n",
-		"known-answers/s/expect.json": `{"step": "standalone", "command": "rule", "exit": 0, "stdout": "verdict: a=supports\n"}`,
-		"known-answers/s/input/a":     "",
-		"known-answers/c/expect.json": `{"step": "standalone", "command": "rule", "exit": 0, "stdout": "verdict: a=contradicts\n"}`,
-		"known-answers/c/input/a":     "",
+		"rule.sh":                     "#!/bin/sh\nif grep -q 'rows 4' \"$1/rows\"; then echo verdict: a=supports; else echo verdict: a=contradicts; fi\n",
+		"known-answers/s/expect.json": `{"step": "standalone", "command": "rule", "args": ["$CASE/input"], "exit": 0, "stdout": "verdict: a=supports\n"}`,
+		"known-answers/s/input/rows":  "stored rows 4\n",
+		"known-answers/c/expect.json": `{"step": "standalone", "command": "rule", "args": ["$CASE/input"], "exit": 0, "stdout": "verdict: a=contradicts\n"}`,
+		"known-answers/c/input/rows":  "stored rows 9\n",
 	})
 	libIn(t, dir, "rubrics", "half", "## Launch\n\nRun: ./up.sh\n\n## Standalone\n\nRun rule: ./rule.sh\n", map[string]string{
 		"up.sh":                       "#!/bin/sh\n",
@@ -117,4 +118,65 @@ func TestRecordRefusesAChangedRubric(t *testing.T) {
 	writeFile(t, filepath.Join(dir, "rubrics", "rule@1", "notes.txt"), "n\n")
 	want(t, hyp(t, "record", "--exp", e, "--verdict", "h=supports", "--observation", "o", "--why", "w"),
 		1, "refused: rubric rule@1 changed since "+e+" pinned it")
+}
+
+// A rubric bundle is an instrument like a recipe: a Result is contained
+// only by a clean command record of it, its own or one among the records
+// its Experiment pinned, and reads as questionable once the rubric changes.
+func TestRubricPinIsContainedAndVerified(t *testing.T) {
+	dir, _, h := preStore(t)
+	run := must(t, "add", "exp", "--parent", h, "--title", "run", "--recipe", "tool@1", "--rubric", "rule@1", "--target", "none", "--why", "w")
+	ev := ".tree/evidence/" + run
+	writeFile(t, filepath.Join(dir, ev, "in", "rows"), "stored rows 4\n")
+	must(t, "bundle", "run", "--record", ev+"/rows", "tool@1", "rows", ev+"/in")
+	want(t, hyp(t, "bundle", "evidence", "--record", ev+"/x", "rule@1", ev+"/in"), 2, "rule@1 is a rubric, which reads records and has no Evidence command")
+
+	half := must(t, "record", "--exp", run, "--verdict", "h=supports", "--observation", "o", "--evidence", ev+"/rows/command.json", "--why", "w")
+	wantReasons(t, reasonsOf(t, dir, half), "no command record of rule@1 at "+rubricHash(t, dir)[:12]+" with passing known answers")
+
+	must(t, "bundle", "run", "--record", ev+"/rule", "rule@1", "rule", ev+"/in")
+	both := must(t, "record", "--exp", run, "--verdict", "h=supports", "--observation", "o",
+		"--evidence", ev+"/rows/command.json", "--evidence", ev+"/rule/command.json", "--why", "w")
+	wantReasons(t, reasonsOf(t, dir, both))
+
+	// A reassessment that pins the run's records is contained by the rubric
+	// record among them.
+	again := must(t, "add", "exp", "--parent", h, "--title", "again", "--recipe", "none", "--rubric", "rule@1", "--target", "none", "--records", ev, "--why", "w")
+	re := must(t, "record", "--exp", again, "--verdict", "h=supports", "--observation", "o", "--why", "w")
+	wantReasons(t, reasonsOf(t, dir, re))
+
+	writeFile(t, filepath.Join(dir, "rubrics", "rule@1", "notes.txt"), "n\n")
+	want(t, hyp(t, "show", both), 0, "questionable")
+}
+
+func rubricHash(t *testing.T, dir string) string {
+	t.Helper()
+	return strings.TrimSpace(must(t, "bundle", "hash", filepath.Join(dir, "rubrics", "rule@1")))
+}
+
+// hyp bundle new --rubric writes the rubric template into rubrics/, which
+// hyp add exp refuses until its placeholders are replaced; a name lives in
+// one library only; hyp recipe still runs as hyp bundle.
+func TestBundleNewRubricAndAlias(t *testing.T) {
+	dir, _, h := preStore(t)
+	out := must(t, "bundle", "new", "score@1", "--rubric")
+	if !strings.HasSuffix(out, filepath.Join("rubrics", "score@1")) {
+		t.Fatalf("bundle new --rubric wrote %s", out)
+	}
+	want(t, hyp(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "tool@1", "--rubric", "score@1", "--target", "none", "--why", "w"),
+		1, "refused: rubric score@1 still holds the template placeholder")
+	want(t, hyp(t, "bundle", "new", "score@1"), 1, "rubric score exists at ")
+	want(t, hyp(t, "bundle", "new", "tool@1", "--rubric"), 1, "recipe tool exists at ")
+	want(t, hyp(t, "bundle", "new", "score@2", "--from", "score@1"), 0, filepath.Join("rubrics", "score@2"))
+	want(t, hyp(t, "bundle", "new", "score@3", "--from", "score@2", "--rubric"), 2, "--from copies NAME@M within its own library")
+
+	bundle := must(t, "bundle", "hash", filepath.Join(dir, "recipes", "tool@1"))
+	want(t, hyp(t, "recipe", "hash", filepath.Join(dir, "recipes", "tool@1")), 0, bundle)
+	if strings.Contains(hyp(t, "help").stdout, "recipe hash") {
+		t.Fatal("help lists the hidden recipe alias")
+	}
+
+	libIn(t, dir, "rubrics", "tool", "## Standalone\n\nRun rule: ./rule.sh\n", map[string]string{"rule.sh": "#!/bin/sh\n"})
+	want(t, hyp(t, "check"), 0, "bundle name tool is used in both recipes/ and rubrics/")
+	want(t, hyp(t, "bundle", "known-answers", "tool@1"), 1, "is in both")
 }

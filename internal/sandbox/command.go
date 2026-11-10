@@ -363,12 +363,15 @@ func Run(o RunOptions) (*cmdrecord.Record, error) {
 	if _, err := os.Lstat(dir); err == nil {
 		return nil, herr.BadArgs("%s exists; choose a new path", o.Record)
 	}
-	if o.Step == recipe.Evidence && (len(o.Args) != 1 || !isFile(filepath.Join(o.Args[0], "sandbox.json"))) {
-		return nil, herr.BadArgs("%s holds no sandbox.json; give the OUT_DIR of hyp sandbox remove, or, for files no sandbox wrote, run the check as a Standalone command (hyp recipe run --record DIR REF NAME PATH)", strings.Join(o.Args, " "))
-	}
-	rcp, err := recipe.Load(o.Dir, o.Ref)
+	rcp, err := recipe.LoadAny(o.Dir, o.Ref)
 	if err != nil {
 		return nil, err
+	}
+	if o.Step == recipe.Evidence && rcp.Lib == recipe.Rubrics {
+		return nil, herr.BadArgs("%s is a rubric, which reads records and has no Evidence command; run its Standalone command with hyp bundle run --record DIR %s NAME PATH", o.Ref, o.Ref)
+	}
+	if o.Step == recipe.Evidence && (len(o.Args) != 1 || !isFile(filepath.Join(o.Args[0], "sandbox.json"))) {
+		return nil, herr.BadArgs("%s holds no sandbox.json; give the OUT_DIR of hyp sandbox remove, or, for files no sandbox wrote, run the check as a Standalone command (hyp bundle run --record DIR REF NAME PATH)", strings.Join(o.Args, " "))
 	}
 	if err := recordOutside(o, dir); err != nil {
 		return nil, err

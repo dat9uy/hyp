@@ -9,7 +9,7 @@ import (
 // them, or on the group itself, must exit 0 with usage on stdout.
 var groupSubs = map[string][]string{
 	"add":     {"goal", "dq", "hyp", "exp"},
-	"recipe":  {"hash", "check", "new", "run", "evidence", "known-answers"},
+	"bundle":  {"hash", "check", "new", "run", "evidence", "known-answers"},
 	"sandbox": {"create", "drive", "remove"},
 }
 
@@ -41,8 +41,8 @@ func TestHelpRequestExitsZeroOnStdout(t *testing.T) {
 func TestWrongGroupCommandLineStillExitsTwo(t *testing.T) {
 	t.Chdir(t.TempDir())
 	for _, args := range [][]string{
-		{"add"}, {"recipe"}, {"sandbox"},
-		{"add", "frob"}, {"recipe", "frob"}, {"sandbox", "frob"},
+		{"add"}, {"bundle"}, {"recipe"}, {"sandbox"},
+		{"add", "frob"}, {"bundle", "frob"}, {"recipe", "frob"}, {"sandbox", "frob"},
 		{"init", "extra"}, {"init", "-h", "extra"}, {"check", "extra"},
 	} {
 		r := hyp(t, args...)

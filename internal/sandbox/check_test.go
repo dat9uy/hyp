@@ -25,7 +25,7 @@ func decoyHyp(t *testing.T) {
 	t.Setenv("PATH", decoy+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
 
-// A Standalone and an Evidence command run by hyp recipe run and evidence
+// A Standalone and an Evidence command run by hyp bundle run and evidence
 // find as hyp the copy the gate ran, whatever the caller's PATH holds
 // first; known_answers names its hash.
 func TestRunUsesTheGatedHyp(t *testing.T) {
