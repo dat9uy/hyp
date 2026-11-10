@@ -277,9 +277,6 @@ func (st *State) limits() map[string][]Limit {
 		for i, text := range n.Limits {
 			l := st.keyedLimit(event.LimitKey(id, i+1), id, text, closers)
 			l.Question, l.Hyps = q, sortedKeys(n.Verdicts)
-			if len(l.Closers) > 0 {
-				l.State, l.By = LimitClosed, l.Closers[0]
-			}
 			if s.Current != "" {
 				l.Gating = l.Gates(s.Selects[s.Current].Hyp)
 			}
@@ -303,16 +300,7 @@ func (st *State) lines() []Limit {
 
 // keyedLimit is limit key k of node res with its hand and closers.
 func (st *State) keyedLimit(k, res, text string, closers map[string][]string) Limit {
-	l := Limit{Key: k, Result: res, Text: text, State: LimitOpen, Closers: closers[k]}
-	switch h := st.LimitHand[k]; h.Move {
-	case HandRefer:
-		l.Referred = h.Event
-	case HandReturn:
-		l.Returned = h.Event
-	case HandAccept:
-		l.State, l.By = LimitAccepted, h.Actor
-	}
-	return l
+	return Limit{Key: k, Result: res, Text: text, Hand: st.LimitHand[k], Closers: closers[k]}
 }
 
 // closers maps each limit key to the non-retracted Results that close it,

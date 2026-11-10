@@ -155,21 +155,41 @@ type Limit struct {
 	Key, Result, Text string
 	Question          string   // the question of its Result; "" for a line
 	Hyps              []string // Hypotheses the Result has a verdict for, sorted; none for a line
-	State             string   // LimitOpen, LimitClosed or LimitAccepted; a line is never LimitClosed
-	By                string   // the first closing Result id, or the accepting owner's actor
+	Hand              Hand     // the latest refer, return or accept (§8.2); Move is "" when none
 	Closers           []string // every non-retracted Result that closes it, in creation order
 	Gating            bool     // Gates the Hypothesis of the question's current select
-	Referred          string   // the latest refer, while no return or accept follows it: the owner's turn; or ""
-	Returned          string   // the latest return, while no refer or accept follows it: the runner's turn again; or ""
 }
+
+// A limit has two facts, and no word joins them: its hand, which the move
+// table stores and reads, and its closers, derived from Results' closes.
+// Coverage of a line is a third, derived per candidate (Projection.Covers),
+// and no move reads it.
 
 // IsLine reports whether l is a line of the Goal.
 func (l Limit) IsLine() bool { return l.Question == "" }
 
+// Referred reports whether the latest hand is a refer: the owner's turn.
+func (l Limit) Referred() bool { return l.Hand.Move == HandRefer }
+
+// Returned reports whether the latest hand is a return: the runner's turn again.
+func (l Limit) Returned() bool { return l.Hand.Move == HandReturn }
+
+// Accepted reports whether the latest hand is an accept: this tree does not
+// run the case.
+func (l Limit) Accepted() bool { return l.Hand.Move == HandAccept }
+
+// Closed reports whether a non-retracted Result closes a Result's limit. A
+// line is never closed: whether its case ran is per candidate.
+func (l Limit) Closed() bool { return !l.IsLine() && len(l.Closers) > 0 }
+
+// Open reports whether the limit is neither closed nor accepted. For a line
+// it means only that the owner has not accepted it.
+func (l Limit) Open() bool { return !l.Closed() && !l.Accepted() }
+
 // Gates reports whether the limit gates the owner confirm of a scope-change
 // select of hyp: it is open and its Result judged hyp.
 func (l Limit) Gates(hyp string) bool {
-	return l.State == LimitOpen && slices.Contains(l.Hyps, hyp)
+	return l.Open() && slices.Contains(l.Hyps, hyp)
 }
 
 // UnjudgedAfter lists exp's targets that were live rivals at its add and that
@@ -390,7 +410,4 @@ const (
 	StaleReasonStale           = "stale"
 	StaleReasonChanged         = "changed_since_basis"
 	StaleReasonContradicts     = "contradicts"
-	LimitOpen                  = "open"
-	LimitClosed                = "closed"
-	LimitAccepted              = "accepted"
 )

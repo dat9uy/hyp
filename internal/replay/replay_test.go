@@ -656,10 +656,25 @@ func wantLimit(t *testing.T, p Projection, q string, i int, state, by string) {
 	if len(ls) <= i {
 		t.Fatalf("limits under %s = %+v, want at least %d", q, ls, i+1)
 	}
-	if ls[i].State != state || ls[i].By != by {
-		t.Fatalf("limit %s: got %s by %q, want %s by %q", ls[i].Key, ls[i].State, ls[i].By, state, by)
+	got, gotBy := limitOpen, ""
+	switch l := ls[i]; {
+	case l.Closed():
+		got, gotBy = limitClosed, l.Closers[0]
+	case l.Accepted():
+		got, gotBy = limitAccepted, l.Hand.Actor
+	}
+	if got != state || gotBy != by {
+		t.Fatalf("limit %s: got %s by %q, want %s by %q", ls[i].Key, got, gotBy, state, by)
 	}
 }
+
+// The words wantLimit compares: a Result's limit is closed by its first
+// closer, accepted by the owner, or open, neither.
+const (
+	limitOpen     = "open"
+	limitClosed   = "closed"
+	limitAccepted = "accepted"
+)
 
 func amend(b *testutil.B, h, body string) string {
 	return b.Emit(event.TypeHypothesisAmend, h, event.HypothesisAmend{Body: body})
@@ -707,15 +722,15 @@ func TestLimitStates(t *testing.T) {
 	if ls := p.LimitsOf(q); len(ls) != 1 || ls[0].Key != event.LimitKey(r1, 1) || ls[0].Text != "l1" {
 		t.Fatalf("limits = %+v, want one l1 on %s", ls, r1)
 	}
-	wantLimit(t, p, q, 0, LimitOpen, "")
+	wantLimit(t, p, q, 0, limitOpen, "")
 	r2 := limitResult(b, h, nil, []string{event.LimitKey(r1, 1)})
 	p = replayB(b)
 	wantNoRejections(t, p)
-	wantLimit(t, p, q, 0, LimitClosed, r2)
+	wantLimit(t, p, q, 0, limitClosed, r2)
 	b.Retract(r2)
 	p = replayB(b)
 	wantNoRejections(t, p)
-	wantLimit(t, p, q, 0, LimitOpen, "")
+	wantLimit(t, p, q, 0, limitOpen, "")
 }
 
 func TestLimitHyps(t *testing.T) {
@@ -746,18 +761,18 @@ func TestOldConfirmAcceptReplaysAsAnAccept(t *testing.T) {
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	wantLimit(t, p, q, 0, limitAccepted, "o")
 	amend(b.As("a"), h, "new")
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
 	p = replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	wantLimit(t, p, q, 0, limitAccepted, "o")
 	// A limit an old confirm accepted can be returned.
 	b.As("o").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "run it", Role: event.RoleOwner, Returns: []string{event.LimitKey(r1, 1)}})
 	p = replayB(b)
 	wantNoRejections(t, p)
-	wantLimit(t, p, q, 0, LimitOpen, "")
+	wantLimit(t, p, q, 0, limitOpen, "")
 }
 
 func TestLimitRefusals(t *testing.T) {
@@ -784,7 +799,7 @@ func TestLimitRefusals(t *testing.T) {
 	if len(p.Rejections) != 4 {
 		t.Fatalf("rejections = %+v, want the four above", p.Rejections)
 	}
-	wantLimit(t, p, q, 0, LimitOpen, "")
+	wantLimit(t, p, q, 0, limitOpen, "")
 }
 
 // A stale supported sibling is still a candidate, so selecting h1 is the

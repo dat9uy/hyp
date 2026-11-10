@@ -59,7 +59,7 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 		add(kKeep, "LINES")
 		for _, l := range p.Lines {
 			add(kKeep, "  %s", Cut(r.lineLine(l), 160))
-			if sel := p.NotTogether(l); len(sel) > 0 && l.State == replay.LimitOpen {
+			if sel := p.NotTogether(l); len(sel) > 0 && !l.Accepted() {
 				add(kKeep, "    (no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
 			}
 		}
@@ -327,7 +327,7 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 			continue
 		}
 		for _, l := range p.LimitsOf(ev.ID) {
-			if l.State == replay.LimitOpen {
+			if l.Open() {
 				open = append(open, fmt.Sprintf("  %s %s — %s", r.id(ev.ID), r.limitLabel(l.Result, l.Key), Cut(l.Text, 80)))
 			}
 		}

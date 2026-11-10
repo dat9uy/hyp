@@ -95,14 +95,15 @@ func (f *Facts) applyLimitMove(move, k string, ev event.Event) {
 	f.LimitHand[k] = h
 }
 
-// checkLimitMoves checks every refer, accept and return a checkpoint makes,
-// in that order, and that no key is named by two of them.
+// checkLimitMoves checks every refer, return and accept a checkpoint makes,
+// in the order replay applies them, and that no key is named by two of
+// them. Each move is checked against the hand before the checkpoint.
 func (f *Facts) checkLimitMoves(ev event.Event, p event.Checkpoint) error {
 	owner := p.Role == event.RoleOwner
 	for _, mv := range []struct {
 		move string
 		keys []string
-	}{{HandRefer, p.Refers}, {HandAccept, p.Accepts}, {HandReturn, p.Returns}} {
+	}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
 		if len(mv.keys) > 0 && limitMoves[mv.move].owner && !owner {
 			return fmt.Errorf("%s", limitMoves[mv.move].ownerErr)
 		}
@@ -113,7 +114,7 @@ func (f *Facts) checkLimitMoves(ev event.Event, p event.Checkpoint) error {
 	for _, mv := range []struct {
 		move string
 		keys []string
-	}{{HandRefer, p.Refers}, {HandAccept, p.Accepts}, {HandReturn, p.Returns}} {
+	}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
 		for _, k := range mv.keys {
 			for _, other := range []struct {
 				move string

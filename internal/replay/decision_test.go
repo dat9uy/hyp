@@ -135,11 +135,11 @@ func TestOwnerConfirmLapsesAndItsAcceptStays(t *testing.T) {
 	b, q, h, _ := scopeAnswered()
 	p := replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	wantLimit(t, p, q, 0, limitAccepted, "o")
 
 	r := b.Supports(h)
 	p = replayB(b)
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	wantLimit(t, p, q, 0, limitAccepted, "o")
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
 	if p.LimitsOf(q)[0].Gating {
 		t.Fatal("an accepted limit gates the confirm")
@@ -148,7 +148,7 @@ func TestOwnerConfirmLapsesAndItsAcceptStays(t *testing.T) {
 	b.Retract(r)
 	p = replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	wantLimit(t, p, q, 0, limitAccepted, "o")
 }
 
 func TestAmendLapsesTheOwnerConfirmAndAmendBackRestores(t *testing.T) {
@@ -171,7 +171,7 @@ func TestOwnerInsufficientLeavesTheAccept(t *testing.T) {
 	b, q, _, sel := scopeAnswered()
 	b.As("o").Confirm(q, sel, event.RoleOwner, event.ConfirmInsufficient)
 	p := replayB(b)
-	wantLimit(t, p, q, 0, LimitAccepted, "o")
+	wantLimit(t, p, q, 0, limitAccepted, "o")
 	wantStatus(t, p, q, DQReopened, ReasonAwaitingOwner)
 }
 

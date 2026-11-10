@@ -31,21 +31,16 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 	w("text: %s", l.Text)
 	w("result: %s under %s", r.id(l.Result), r.withAlias(p.Nodes[l.Result].Parent))
 	w("question: %s", r.id(l.Question))
-	state := l.State
-	switch l.State {
-	case replay.LimitOpen:
+	state := r.limitState(l)
+	if l.Open() {
 		switch {
-		case l.Referred != "":
+		case l.Referred():
 			state += ", referred: the owner accepts or returns it"
-		case l.Returned != "":
+		case l.Returned():
 			state += ", returned: the runner runs its case"
 		default:
 			state += ": the runner runs its case"
 		}
-	case replay.LimitClosed:
-		state += " by " + r.closers(l.Closers)
-	case replay.LimitAccepted:
-		state += " by " + l.By
 	}
 	w("state: %s", state)
 
@@ -61,7 +56,7 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 	} else {
 		w("candidates: %s", r.named(cands))
 	}
-	if l.State == replay.LimitClosed {
+	if l.Closed() {
 		var unjudged []string
 		for _, c := range cands {
 			if !slices.ContainsFunc(l.Closers, func(id string) bool { _, ok := p.Nodes[id].Verdicts[c]; return ok }) {
@@ -87,19 +82,25 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 	return b.String()
 }
 
-// showLine renders a line of the Goal: its text and whose turn it is, and
-// for each live top-level question the candidates, what each closer ran on,
-// and the candidates no closer covers, which the ledger owes the line for.
+// showLine renders a line of the Goal: its text, its hand when it has one,
+// and for each live top-level question the candidates and whether a closer
+// covers them all, then what each closer ran on. A line is never open or
+// closed; the ledger owes it on a question with an uncovered candidate.
 func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) {
 	p := r.p
 	w("Line %s", label)
 	w("text: %s", l.Text)
-	w("state: %s", r.lineState(l))
+	if h := r.handWord(l); h != "" {
+		w("hand: %s", h)
+	}
 	for _, q := range p.TopQuestions() {
 		cands := p.Questions[q].Candidates
 		w("question %s: candidates %s", r.withAlias(q), map[bool]string{true: "none", false: r.named(cands)}[len(cands) == 0])
-		if un := p.Uncovered(l, q); len(un) > 0 {
-			w("  not covered by a closer: %s", r.named(un))
+		switch un := p.Uncovered(l, q); {
+		case len(un) > 0:
+			w("  uncovered: %s", r.named(un))
+		case len(cands) > 0:
+			w("  covered")
 		}
 	}
 	for _, c := range l.Closers {
@@ -111,7 +112,7 @@ func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) 
 				}
 			}
 		}
-		w("closed by %s: %s", r.id(c), r.ranOn(c, hyps))
+		w("ran in %s: %s", r.id(c), r.ranOn(c, hyps))
 	}
 	if sel := p.NotTogether(l); len(sel) > 0 {
 		w("(no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
