@@ -57,7 +57,7 @@ func Run(root string) (report []string, errorsFound int) {
 	// Result wins, so the Experiment reads run (spec §7.6).
 	var closedRun []string
 	for id, x := range p.Exps {
-		if x.Status == replay.ExpRun && x.Closed != "" {
+		if x.Status == replay.ExpRun && x.Close != "" {
 			closedRun = append(closedRun, id)
 		}
 	}
@@ -65,7 +65,7 @@ func Run(root string) (report []string, errorsFound int) {
 	for _, id := range closedRun {
 		x := p.Exps[id]
 		warns = append(warns, fmt.Sprintf("warn: %s is %s but reads run: its Result %s applied after the close",
-			display(id), x.Closed, display(x.Live[0])))
+			display(id), x.Close, display(x.Live[0])))
 	}
 	// One line per pin that disagrees with the current recipe hashes.
 	hashes, problems := recipe.Scan(root)

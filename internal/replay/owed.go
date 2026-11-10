@@ -287,9 +287,8 @@ func (p Projection) hasPlannedExp(h string) bool {
 	return false
 }
 
-func closedExp(e *Exp) bool {
-	return e == nil || e.Closed != "" || e.Status == ExpSuperseded || e.Status == ExpWithdrawn
-}
+// closedExp reports whether e is missing or closed (Exp.Closed).
+func closedExp(e *Exp) bool { return e == nil || e.Closed() }
 
 // ReferredLimit is the key of the first open limit under question dq, or
 // line of the Goal when dq is a top-level question, whose latest hand is a

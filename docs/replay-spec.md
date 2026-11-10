@@ -285,7 +285,8 @@ type SelectRec struct {
 }
 type Exp struct {
     Status     ExpStatus         // planned, run, superseded or withdrawn (§7.6)
-    Closed     ExpStatus         // superseded or withdrawn when closed, even if a Result makes it run; "" otherwise
+    Close      ExpStatus         // superseded or withdrawn when it has a close, even if a Result makes it run; "" otherwise; only `hyp check`'s merged-log warning reads it
+    // Closed()  status superseded or withdrawn: a live Result beats a close (§7.6), so the ledger and the display read this, never Close
     Live       []string          // non-retracted Results, in creation order
     Judged     map[string]string // Hypothesis id → verdict over Live; a later Result wins
     OneRival   bool              // its parent had live rivals at its add and its targets name none of them

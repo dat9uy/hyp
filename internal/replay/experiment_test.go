@@ -37,18 +37,18 @@ func TestExpLifecycle(t *testing.T) {
 		{gone, ExpWithdrawn, ExpWithdrawn, nil},
 	} {
 		x := p.Exps[c.id]
-		if x.Status != c.status || x.Closed != c.closed || !reflect.DeepEqual(x.ReplacedBy, c.by) || statuses(p)[c.id].Status != string(c.status) {
+		if x.Status != c.status || x.Close != c.closed || !reflect.DeepEqual(x.ReplacedBy, c.by) || statuses(p)[c.id].Status != string(c.status) {
 			t.Errorf("%s: %+v (Status %q), want status %q closed %q by %v", c.id, x, statuses(p)[c.id].Status, c.status, c.closed, c.by)
 		}
 	}
 	b.Unedge(repl, event.EdgeSupersedes, old)
-	if x := replayB(b).Exps[old]; x.Status != ExpPlanned || x.Closed != "" || x.ReplacedBy != nil {
+	if x := replayB(b).Exps[old]; x.Status != ExpPlanned || x.Close != "" || x.ReplacedBy != nil {
 		t.Fatalf("after edge.remove: %+v, want planned again", x)
 	}
 }
 
 // In a merged log a Result recorded under a closed Experiment still applies:
-// the live Result wins, and Closed keeps the close for hyp check.
+// the live Result wins, and Close keeps the close for hyp check.
 func TestExpLiveResultBeatsClose(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
@@ -59,7 +59,7 @@ func TestExpLiveResultBeatsClose(t *testing.T) {
 	r := b.Result(e, map[string]string{h: sup})
 	p := replayB(b)
 	wantNoRejections(t, p)
-	if x := p.Exps[e]; x.Status != ExpRun || x.Closed != ExpWithdrawn || !reflect.DeepEqual(x.Live, []string{r}) {
+	if x := p.Exps[e]; x.Status != ExpRun || x.Close != ExpWithdrawn || !reflect.DeepEqual(x.Live, []string{r}) {
 		t.Fatalf("%+v, want run, closed withdrawn, live %s", x, r)
 	}
 	b.Retract(r)
@@ -140,4 +140,37 @@ func TestAdmitResultRefusesUnderClosedExperiment(t *testing.T) {
 	if got := st.AdmitResult(event.ResultRecord{Parent: repl}, ResultFacts{}, nil); got != nil {
 		t.Errorf("open Experiment: %+v, want nothing", got)
 	}
+}
+
+// In a merged log a Result lands under an Experiment a later one
+// superseded. It reads run and is not closed (spec §7.6), so the ledger
+// still counts it as aiming at the limit it aimed at: the limit is aimed
+// and not settled, not owed with no aim.
+func TestRunAfterSupersedeStillAims(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	r1 := limitResult(b, h1, []string{"one host only"}, nil)
+	k := event.LimitKey(r1, 1)
+	b.Supports(h2)
+	e := b.Emit(event.TypeNodeAdd, "", event.NodeAdd{Kind: event.KindExperiment, Parent: h1, Title: "many hosts",
+		Recipe: event.RecipeNone, Aims: []string{k}})
+	e2 := b.Exp(h1, event.RecipeNone)
+	b.Edge(e2, event.EdgeSupersedes, e)
+	b.Result(e, map[string]string{h1: sup}) // applied after the close
+	p := replayB(b)
+	wantNoRejections(t, p)
+	x := p.Exps[e]
+	if x.Status != ExpRun || x.Close != ExpSuperseded || x.Closed() {
+		t.Fatalf("%+v, want run with a superseded close, and not closed", x)
+	}
+	for _, o := range p.Owed() {
+		if o.Key == k {
+			if o.State != AimUnsettled || !reflect.DeepEqual(o.AimedBy, []string{e}) {
+				t.Fatalf("limit item = %+v, want aimed_not_settled by %s", o, e)
+			}
+			return
+		}
+	}
+	t.Fatalf("no ledger item for %s in %+v", k, p.Owed())
 }

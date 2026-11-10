@@ -177,7 +177,7 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 			if p.Nodes[e].Kind != event.KindExperiment {
 				continue
 			}
-			if m := r.marks(e); len(m) > 0 && !closed(p.Exps[e]) {
+			if m := r.marks(e); len(m) > 0 && !p.Exps[e].Closed() {
 				title := ""
 				if p.Exps[e].Status == replay.ExpPlanned {
 					title = " " + Cut(p.Nodes[e].Title, 60)
@@ -476,15 +476,11 @@ func (r renderer) reach(l replay.Reading) string {
 // so --live keeps it and that mark in view.
 func (r renderer) marked(h string) bool {
 	for _, e := range r.p.Nodes[h].Children {
-		if r.p.Nodes[e].Kind == event.KindExperiment && len(r.marks(e)) > 0 && !closed(r.p.Exps[e]) {
+		if r.p.Nodes[e].Kind == event.KindExperiment && len(r.marks(e)) > 0 && !r.p.Exps[e].Closed() {
 			return true
 		}
 	}
 	return false
-}
-
-func closed(x *replay.Exp) bool {
-	return x.Status == replay.ExpSuperseded || x.Status == replay.ExpWithdrawn
 }
 
 // marks names what Experiment e's round left untested: "one-rival" when its
