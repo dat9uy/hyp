@@ -1,0 +1,2 @@
+{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_01", "name": "Bash", "input": {"command": "cd wt && hyp add exp --parent H-88ZF3E --title e --recipe id-citation-arms@1 --decided-by reading --why w"}}]}}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_01", "content": "Exit code 2\nusage: --decided-by reading contradicts recipe id-citation-arms@1, an instrument whose checks decide the verdicts; drop --decided-by", "is_error": true}]}}
