@@ -7,7 +7,7 @@ import "github.com/dat9uy/hyp/internal/event"
 // instead of re-deriving it from the Experiment's Results.
 type Exp struct {
 	Status     ExpStatus         // ExpPlanned, ExpRun, ExpSuperseded or ExpWithdrawn
-	Closed     ExpStatus         // ExpSuperseded or ExpWithdrawn when it is closed, even if a Result makes it run; "" otherwise
+	Close      ExpStatus         // ExpSuperseded or ExpWithdrawn when it has a close, even if a Result makes it run; "" otherwise. Only hyp check's merged-log warning reads it: callers ask Closed
 	Live       []string          // non-retracted Results, in creation order
 	Judged     map[string]string // Hypothesis → verdict over Live; a later Result wins
 	OneRival   bool              // the one-rival rule (oneRival) on its add-time rivals
@@ -19,6 +19,12 @@ type Exp struct {
 	Targets []string
 	Shape   string
 }
+
+// Closed reports whether the Experiment is closed: superseded or withdrawn
+// by its status, so a live Result beats a close (spec §7.6). An Experiment
+// whose Result applied after its close in a merged log reads run, and is
+// not closed.
+func (e *Exp) Closed() bool { return e.Status == ExpSuperseded || e.Status == ExpWithdrawn }
 
 // expClosed is how Experiment id is closed: ExpSuperseded when a live
 // supersedes edge points at it, otherwise ExpWithdrawn when it is withdrawn,
@@ -54,8 +60,8 @@ func (st *State) exps() map[string]*Exp {
 		if n.Kind != event.KindExperiment {
 			continue
 		}
-		e := &Exp{Status: st.expStatus(id), Closed: st.expClosed(id), Judged: map[string]string{}}
-		if e.Closed == ExpSuperseded {
+		e := &Exp{Status: st.expStatus(id), Close: st.expClosed(id), Judged: map[string]string{}}
+		if e.Close == ExpSuperseded {
 			e.ReplacedBy = st.Superseders(id)
 		}
 		for _, r := range n.Children {
