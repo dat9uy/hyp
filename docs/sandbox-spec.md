@@ -95,6 +95,8 @@ A crash here means hyp was killed or the machine stopped. A Ctrl-C or SIGTERM is
 | a recipe's Launch or Doctor | `interrupted` | remove runs; drive is refused |
 | after the last Doctor, before the last `setup` is written | `interrupted`, with a manifest | remove runs; drive is refused, so the operator makes a new sandbox |
 | a Cleanup after a failed setup | `setup_failed` | remove runs and Cleanup runs again |
+
+**A create whose setup fails** runs every Cleanup, the last recipe first, and stops every group. Then it reads the leftovers. When no process still runs in the sandbox, it deletes the whole sandbox, record and `recipe.log` included, and exits 3 with the last 30 lines of `recipe.log` in its message, so nothing is left to remove. When a process still runs, or hyp could not check, it writes the record with the failed `setup`, keeps the sandbox, which reads `setup_failed`, and names `remove ID OUT_DIR`, which keeps `recipe.log`, and `remove ID --discard`.
 | a Drive | `ready`, with an unfinished row | while the row's group lives, drive exits 3 and remove stops it; once the group is gone, drive runs again |
 | a remove, before its save | `removing` | remove runs again to the same OUT_DIR, Cleanup included |
 | a remove's save to OUT_DIR | `removing`, with `OUT_DIR.partial-ID` and no OUT_DIR | remove runs again to the same OUT_DIR: it clears the staging directory and saves again |

@@ -193,3 +193,26 @@ func TestSelectNoLongerSupportedIsNotOwedAgain(t *testing.T) {
 	}
 	wantRefused(t, p.AdmitSelect(q2, h), "owes the runner first: planned ")
 }
+
+// A DesignQuestion's hold is the latest of defer, withdraw and resume, and
+// none is refused by state. Events under a held question still apply; its
+// turn is closed, and a resume derives its state from all of them (spec
+// §7.4).
+func TestEventsUnderAHeldQuestionApply(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	b.Withdraw(q)
+	h := b.Hyp(q, "h")
+	b.Supports(h)
+	b.Answer(q, h, "")
+	p := replayB(b)
+	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQWithdrawn, "")
+	wantTurn(t, p, q, TurnClosed)
+	b.Defer(q)
+	wantStatus(t, replayB(b), q, DQDeferred, "")
+	b.Resume(q)
+	p = replayB(b)
+	wantNoRejections(t, p)
+	wantStatus(t, p, q, DQAnswered, "")
+}

@@ -334,13 +334,13 @@ func (p Projection) SelectBlock(q string) string {
 func (p Projection) owedText(o Owed) string {
 	switch o.Kind {
 	case OwedLimit, OwedReading:
-		return o.Kind + " " + p.keyLabel(o.Key)
+		return string(o.Kind) + " " + p.keyLabel(o.Key)
 	case OwedPremise:
 		t := p.Nodes[o.To].Parent
 		rec, _ := p.CurrentSelect(t)
 		return fmt.Sprintf("premise %s assumes %s, but %s selected %s", p.label(o.Key), p.label(o.To), p.label(t), p.label(rec.Hyp))
 	}
-	return o.Kind + " " + p.label(o.Key)
+	return string(o.Kind) + " " + p.label(o.Key)
 }
 
 // label is a node's display id, with its alias in parentheses when it has one.

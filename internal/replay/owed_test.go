@@ -14,7 +14,7 @@ func owedKinds(p Projection, q string) []string {
 	var out []string
 	for _, o := range p.Owed() {
 		if o.Question == q {
-			out = append(out, o.Who+" "+o.Kind+" "+o.Key)
+			out = append(out, string(o.Who)+" "+string(o.Kind)+" "+o.Key)
 		}
 	}
 	return out
@@ -210,4 +210,3 @@ func TestLimitOwedWhileQuestionHasCandidate(t *testing.T) {
 	wantStatus(t, p, q, DQAnswered, "")
 	wantOwed(t, p, q, "runner limit "+event.LimitKey(r, 1))
 }
-

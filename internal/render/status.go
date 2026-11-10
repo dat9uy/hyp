@@ -635,7 +635,7 @@ func (r renderer) owedLine(o replay.Owed) string {
 				text = l.Answer
 			}
 		}
-		what := map[string]string{replay.OwedLimit: "limit", replay.OwedReading: "apply answer", replay.OwedReferred: "limit referred, accept or return"}[o.Kind]
+		what := map[replay.OwedKind]string{replay.OwedLimit: "limit", replay.OwedReading: "apply answer", replay.OwedReferred: "limit referred, accept or return"}[o.Kind]
 		state := ""
 		if o.Kind != replay.OwedReferred {
 			state = " [" + o.State
@@ -652,7 +652,7 @@ func (r renderer) owedLine(o replay.Owed) string {
 	case replay.OwedStale:
 		return q + " stale " + r.withAlias(o.Key) + ": reaffirm it, or re-run what its select rests on"
 	}
-	return q + " " + o.Kind
+	return q + " " + string(o.Kind)
 }
 
 func resultSeparates(p replay.Projection, candidates []string) bool {

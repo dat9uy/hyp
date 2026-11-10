@@ -19,7 +19,7 @@ This spec adds the minimum needed to make the owner-confirmed design executable;
   - `.tree/evidence/<experiment-display-id>/`: evidence files referenced by pointer.
   - `.tree/.gitignore` contains exactly `index.sqlite` plus `index.sqlite-*`.
 - Recipes: `recipes/<name>@<version>/`, in the directory that contains `.tree/` or in any parent up to the repository root (the first directory holding `.git`). See `skills/hyp-verification/RECIPE-FORMAT.md`. [sandbox-spec.md](sandbox-spec.md) §1 says when hyp runs a recipe's commands and whether a sandbox exists then.
-- Rubrics: `rubrics/<name>@<version>/`, looked up the same way. A rubric is a bundle in the recipe format with no step section and one Standalone command (§7.6); recipes and rubrics are the two kinds of bundle, and `hyp bundle` replaces `hyp bundle` for both (ADR 0018); a name is used in one library only, and `hyp check` names one used in both.
+- Rubrics: `rubrics/<name>@<version>/`, looked up the same way. A rubric is a bundle in the recipe format with no step section and one Standalone command (§7.6); recipes and rubrics are the two kinds of bundle, and `hyp bundle` replaces `hyp recipe` for both, which stays a hidden alias (ADR 0018); a name is used in one library only, and `hyp check` names one used in both.
 - Actor: the `--actor` flag, or the `HYP_ACTOR` environment variable. It must match `^[a-z0-9][a-z0-9-]{0,39}$`. If it is missing, every write command fails with exit 2. There is no default actor.
 
 ## 2. Ids
@@ -40,6 +40,7 @@ One JSON object per line:
 
 - `v` must equal `1`. `ts` must be RFC3339Nano in UTC (ends in `Z`).
 - `why` is required on every event: 1–300 characters, counted in runes (`utf8.RuneCountInString`), never bytes.
+- hyp appends each event as one line, in one write to the actor's file opened for append, and syncs the file before it reports the event written. A crash during the write can leave a last line cut short; it does not parse, so replay skips it and reports it (§6), and the store holds every event before it whole.
 
 ## 4. Event types (closed set)
 
@@ -161,14 +162,14 @@ For each event, in merge order:
 2. Apply the event to the stored state: nodes, live edges, results, retracted set, abandoned set, DQ selection state, confirms, amended Hypothesis bodies and the DQ hold state.
 3. Run `recompute(state)`, which recomputes every derived field below from scratch.
 4. If `ev` is a **basis event** (defined in §7.3), store its snapshot, then run `recompute(state)` again.
-5. For every DQ that is now `answered`, set `everAnswered[dq] = true`.
+5. For every DQ that is now `answered`, set `everAnswered[dq] = true`. It is replay's working memory of the history, rebuilt from the log on every replay and never written to it, which is what lets `reopened` differ from `open`.
 
 Stop after the event whose id equals `asOf`, when `asOf` is not empty.
 
 ### 7.1 Hypothesis status (first matching rule wins)
 
 1. `superseded`: a live `supersedes` edge points at it.
-2. `abandoned`: it has an applied `hypothesis.abandon`.
+2. `abandoned`: it has an applied `hypothesis.abandon`. An abandon of a superseded Hypothesis applies and is kept, and the Hypothesis reads `superseded`, since rule 1 comes first; it reads `abandoned` once the `supersedes` edge is removed.
 3. Collect the verdicts for this Hypothesis from all **non-retracted** Results. No verdicts gives `proposed`. Any `contradicts` gives `contradicted`. Otherwise any `supports` gives `supported`. Otherwise it is `inconclusive`.
 
 A Hypothesis's status reads verdicts only. A sub-question does not change it: the block it puts on its parent belongs to the question that selected the parent (§7.4).
@@ -192,14 +193,14 @@ What reads what: a Hypothesis reads only other Hypotheses, its status from verdi
   - `T.stale != none` gives cause `{Node: T, Reason: "stale", Next: T.staleCause}`;
   - an effective snapshot exists and is not `(supported, false)` gives cause `{Node: T, Reason: "changed_since_basis"}`.
 - If nothing matches, stale is `none`.
-- `reaffirm` creates a new snapshot. It cannot clear staleness while T is still unsupported, because the first test is always live; `hyp check` warns "reaffirm had no effect" in that case.
+- `reaffirm` creates a new snapshot. On a node that is not live it applies and changes nothing a status reads, since such a node has no stale; its snapshot counts if the node is live again. It cannot clear staleness while T is still unsupported, because the first test is always live; `hyp check` warns "reaffirm had no effect" in that case.
 - `depends_on` is never followed across `supersedes`. A superseded target is not `supported`, so its dependents go stale until the agent re-points the edge and reaffirms.
 - A sub-question on a target does not make its dependents stale, because it does not change the target's status. A claim that rests on an answer says so with `depends_on`.
 - Stale is returned as a cause chain, not a bool, so the status screen can print `H-5 stale ← H-3 contradicted ← R-9`. The chain ends at the Result that contradicted (the latest non-retracted contradicting Result), when there is one.
 
 ### 7.4 DesignQuestion state
 
-Hold state is the latest of `dq.defer` / `dq.withdraw` / `dq.resume`; resume clears it.
+Hold state is the latest of `dq.defer` / `dq.withdraw` / `dq.resume`; resume clears it. None of the three is refused by state: each applies to any DQ, the latest in merge order wins, so a withdraw is undone by a resume and replaced by a defer, and a resume of a DQ with no hold changes nothing. Events under a held DQ still apply: a select, an unselect, a new child Hypothesis, an Experiment and a Result are kept, the DQ reads `deferred` or `withdrawn` and its turn is closed (§8.1), and a resume derives its state from all of them.
 
 One record, the question's `Decision`, owns everything below except the hold state: select history (each select with the candidates when it applied), conflicts, the limits under the question (§8) and the reason order. Render, signals, check and the CLI read it.
 
@@ -212,7 +213,7 @@ Selection is the current selection id (`""` when there is none) plus a conflict 
 The state is decided by the first matching rule:
 1. `withdrawn`, then `deferred` (from the hold state).
 2. `answered` when all of these hold: the conflict set is empty; there is a current selection, naming a live child Hypothesis that is `supported` and not stale; the selected Hypothesis has no **open sub-question**, meaning one that is not withdrawn and not `answered`, so a deferred one still blocks; the DQ itself is not stale; and every candidate now was a candidate when the current select applied (a candidate that fell since does not count). An old select's `scope_change` changes nothing (ADR 0019).
-3. Otherwise the state is `reopened` if `everAnswered`, else `open`. The reason is the first that holds:
+3. Otherwise the state is `reopened` if `everAnswered`, else `open`. (A DQ that its own derivation reaches again reads `open` with no reason; §7.2's cycle refusal makes that unreachable, and it is only a guard against looping.) The reason is the first that holds:
    `conflicting_selections`, `selected_not_supported`, `selected_stale` (selected Hypothesis or the DQ is stale), `awaiting_subquestions` (the selected Hypothesis has an open sub-question), `new_candidate` (a candidate now was not one when the current select applied, such as a rival whose only `contradicts` was retracted), `no_candidates` (no live child Hypothesis), `untested` (every live child is `proposed`), `all_contradicted` (every live child is `contradicted`), `inconclusive` (no live child is `supported`), `supported_unselected`.
 
 A change that adds no candidate, such as a retract that leaves the selected Hypothesis supported, a new rival or an amend, leaves the question answered: the select is the gate, and the ledger owes what such a change brings (§8.1). The verifier-loop signal and its chain were removed with the verifier role (ADR 0015).
@@ -223,7 +224,7 @@ A change that adds no candidate, such as a retract that leaves the selected Hypo
 
 ### 7.5 Goal
 
-- `complete` when every live DQ whose parent is the Goal is `answered`. It reads no line: a line of the Goal is owed on each top-level question as a `limit` item (§8.1) and holds its select, and the owner's "met" is a complete Goal with no line under OWED. hyp stores no word for it. Sub-questions are covered through the `answered` rule of §7.4, so sub-questions under rejected rival hypotheses never block the Goal. (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
+- `complete` when the Goal has at least one live DQ as a child and every live DQ whose parent is the Goal is `answered`; a Goal with no live top-level DQ is `in_progress`, because nothing has been asked yet. It reads no line: a line of the Goal is owed on each top-level question as a `limit` item (§8.1) and the select waits on it, and the owner's "met" is a complete Goal with no line under OWED. hyp stores no word for it. Sub-questions are covered through the `answered` rule of §7.4, so sub-questions under rejected rival hypotheses never block the Goal. (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
 - Otherwise `in_progress`, with counts per DQ state over all DQs and a count of stale live nodes.
 
 ### 7.6 Experiments and Results
@@ -330,7 +331,7 @@ A confirm in an old log is in `Applied`, so `hyp status` RECENT and `hyp show` h
 Limits **[added]**: a Result's limits are filed under its question, the parent DQ of its Experiment's Hypothesis, whichever Hypotheses it judged. Limits of a retracted Result are left out. A limit has two facts, and no stored word joins them: its hand, which the move table stores and reads (§8.2), and its closers, derived from Results' `closes`. Its state, as `hyp show` prints it, is:
 - `closed` when a non-retracted Result lists its key in `closes`; `Closers` lists them in creation order. Retracting that Result reopens the limit unless another one closes it. `hyp show` prints each closer with its verdicts (`closed by R-… (H-… (alias) contradicts)`), so the line says what the case did to each Hypothesis it judged: a contradicted one failed the case. `hyp show <R-id>#<n>` prints one limit: its text, Result and question, its state and, while open, whose turn it is; each Hypothesis its Result judged with its status now; the question's candidates; for a closed limit, each candidate no closer judged (`not judged by a closer:`); the Experiments that aim at it; and a history of the Result that records it, the Results that close it with their verdicts, and the checkpoints and confirms that refer, return or accept it with their summaries. A key that names no limit of a live Result is exit 2.
 - otherwise `accepted` when its latest hand (§8.2) is an accept, by that accept's actor. A Result that closes it comes first. An old owner confirm's `accepts` is an accept at the confirm's place in the log, and a return lifts it like any accept.
-- otherwise `open`. An open limit whose key a checkpoint lists in `refers` is **referred**: the runner says no test within the Goal can close it, or that its case is void for every candidate, and only the owner can settle it: by accepting it, so this tree does not run the case, or by returning it (`returns`), because the Goal covers its case. The latest `refers` or `returns` in merge order names whose turn an open limit is: a returned limit is the runner's again, owed, with the select waiting on it like any open limit, until a Result closes it or a later checkpoint refers it again. A referred limit holds the select and the choice on its question too, because a return sends its case back to run and its Result can change the candidates: `hyp select` refuses with `referred limit R-…#n waits for the owner: an accept releases the select, a return sends its case to run`. New rivals do not wait on it. A return also reopens a limit an owner checkpoint accepted, so an owner who changes their mind writes one checkpoint: the latest of accept and return stands. A limit's category is never stored (ADR 0016): a close with the closer's verdicts, an accept, and the latest refer or return are what it is.
+- otherwise `open`. An open limit whose key a checkpoint lists in `refers` is **referred**: the runner says no test within the Goal can close it, or that its case is void for every candidate, and only the owner can settle it: by accepting it, so this tree does not run the case, or by returning it (`returns`), because the Goal covers its case. The latest `refers` or `returns` in merge order names whose turn an open limit is: a returned limit is the runner's again, owed, with the select waiting on it like any open limit, until a Result closes it or a later checkpoint refers it again. The select and the choice on its question wait on a referred limit too, because a return sends its case back to run and its Result can change the candidates: `hyp select` refuses with `referred limit R-…#n waits for the owner: an accept releases the select, a return sends its case to run`. New rivals do not wait on it. A return also reopens a limit an owner checkpoint accepted, so an owner who changes their mind writes one checkpoint: the latest of accept and return stands. A limit's category is never stored (ADR 0016): a close with the closer's verdicts, an accept, and the latest refer or return are what it is.
 
 Lines **[added]**: a line of the Goal (§4 lines) is a limit with the Goal for its Result. It has a hand and closers as a limit does, and is neither open nor closed: whether its case ran is per candidate, its coverage. `Open()` of a line means only that its hand is not an accept. **Coverage**: a Result covers a Hypothesis when it has a verdict on it, or when every file of the Hypothesis's subject is among the Result's `fingerprints` (`Projection.Covers`). Coverage says the bytes ran, not that the claim held. A line is **covered** on a question when a closer of the line covers each of its candidates, and **uncovered** there otherwise. An unaccepted, unreferred line is owed on each live top-level question where it is uncovered (`Projection.Uncovered`), so a new candidate is owed the line again. Coverage is not a state of the move table: it changes when a candidate is added or falls, with no move on the key, and no move reads it. `hyp show G-…#n` prints the line's text, its hand when it has one (`hand: accepted by o`), each top-level question's candidates with `covered` or `uncovered: H-…`, each closer with what it ran on (`ran in R-…: ran on H-… (alias): supports; ran on H-…`), the aiming Experiments and the history. A verdict is per Hypothesis, never per line: a Result that closes several lines and contradicts H says the cases ran and H failed, not which line, so nothing prints `fails <line>`. `hyp status` prints a LINES section under the GOAL line, one line each with its facts joined by `; `, each only when it has one: its hand, `covered on Q-…, Q-…` and `uncovered on Q-…: H-…` for each live top-level question with a candidate, and `ran in R-…`; a line with none prints `no candidate`. Neither `open` nor `closed` prints for a line. The section also prints and the mark `(no one closer covers H-… and H-… together)` when the Hypotheses selected on two or more top-level questions were never covered by one closer (`Projection.NotTogether`); a claim that depends on its host is covered only together with it. No item and no status reads the mark. `hyp show <Goal>` lists the lines, and `hyp show <H>` prints a tied subject.
 
@@ -381,7 +382,7 @@ Equality test used by acceptance: every node's derived record and the Goal are d
 
 A **keyed item** is created as one entry inside its parent's event and addressed as `<parent>#<n>` or `<parent>#r<n>`: a limit inside a Result, a reading inside a Result, a line inside the owner checkpoint that writes the Goal's lines (keyed on the Goal). Its text is fixed, it takes no edge, and it is gone when its Result is retracted. Only other events move its state. `internal/replay/keyed.go` holds the move tables: `Validate` asks them before a move applies, apply records the move in `Facts`, and `limits()`, `lines()` and `readings()` read only what they recorded. The states are derived; what is stored is each key's latest hand and each reading's answers.
 
-**Limits and lines.** Stored per key: `Hand` — the latest refer, return or accept, its event and actor, and the actor of the latest refer (`Referrer`). Derived beside it, as a second fact and not a state of the table: closed while a non-retracted Result lists the key in `closes` (a Result's limit only; the `notRun` column reads it); open when neither closed nor accepted. A line's coverage is read per candidate (§8, Lines), and no move reads it.
+**Limits and lines.** Stored per key: `Hand` — the latest refer, return or accept, its event and actor, and the actor of the latest refer (`Referrer`). Derived beside it, as a second fact and not a state of the table: its closers, from which §8 (Limits) derives `closed`, `accepted` and `open`; the `notRun` column reads `closed`, for a Result's limit only. A line's coverage is read per candidate (§8, Lines), and no move reads it.
 
 | Move | Field | Admitted when the latest hand is | By | Refused also when |
 |---|---|---|---|---|
@@ -392,7 +393,7 @@ A **keyed item** is created as one entry inside its parent's event and addressed
 | aim | Experiment `aims` | any (intent, settles nothing) | any | — |
 | accept (history) | owner confirm `accepts` | any; rule 17 still applies | the confirm | — |
 
-An accept answers a refer: a waive is always two steps, the runner's refer and the owner's accept, and after a return a new accept needs a new refer. Separation of duties compares the answer with the latest refer, never with the author of the key's Result or of the Goal, so an owner answers a refer of their own line. A refer of an accepted limit is refused because only the owner reopens one, and a refer of a closed one because its case ran: no test is left to refer. A line is never closed, so a line that ran on some candidates can still be referred. Within one checkpoint the moves apply in the order refers, returns, accepts.
+An accept answers a refer, except the history row: an old owner confirm's `accepts` applied with no refer, and replays as it was written. A new accept needs a refer, so a waive is always two steps, the runner's refer and the owner's accept, and after a return a new accept needs a new refer. Separation of duties compares the answer with the latest refer, never with the author of the key's Result or of the Goal, so an owner answers a refer of their own line. A refer of an accepted limit is refused because only the owner reopens one, and a refer of a closed one because its case ran: no test is left to refer. A line is never closed, so a line that ran on some candidates can still be referred. Within one checkpoint the moves apply in the order refers, returns, accepts.
 
 **Readings.** Stored per key: the answers, the close and then each revise, in merge order. Derived: `open` with no answer, else closed with the latest answer in force, and applied as §4 readings says.
 
@@ -404,7 +405,7 @@ An accept answers a refer: a waive is always two steps, the runner's refer and t
 
 A reading has no refer, so its separation compares with the Result's author.
 
-**Crash and merged log.** A move is one event, appended whole or not at all (§3), so a crash leaves the latest hand of the last complete event. In a merged log the moves apply in merge order (§6), and a move its table refuses at its place, such as an accept that sorts before its refer or a second lines checkpoint, is rejected and reported; the key keeps the hand it had.
+**Crash and merged log.** A move is one event, one line appended and synced (§3); a line a crash cut short is skipped (§6), so a crash leaves the latest hand of the last whole event. In a merged log the moves apply in merge order (§6), and a move its table refuses at its place, such as an accept that sorts before its refer or a second lines checkpoint, is rejected and reported; the key keeps the hand it had.
 
 ## 9. Sandbox lifecycle and steps
 
