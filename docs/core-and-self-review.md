@@ -78,6 +78,6 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 
 - `skills/hyp-verification/RECIPE-FORMAT.md`: the examples that name scratch-pg teach core rules with a recipe this repository no longer keeps, which is a choice of example rather than a split. The stacking example names a generic `harness@1`.
 - [sandbox-spec.md](sandbox-spec.md) §5.2 records choices made in design trees that are core-scope, so that is ordinary provenance.
-- [loop-philosophy.md](loop-philosophy.md), "Guard the loop while it runs, not before", describes the tripwire that stops a run; the session-replay recipe whose `tripwire.py` built it stays in the private development history.
+- [how-hyp-improves-itself.md](how-hyp-improves-itself.md), "Guard the loop while it runs, not before", describes the tripwire that stops a run; the session-replay recipe whose `tripwire.py` built it stays in the private development history.
 
-Skill text reaches replayed runs, so moving a passage out of the skills is its own change, gated as [loop-philosophy.md](loop-philosophy.md) describes. A change that only makes the text agree with an owner decision ships without a replay. This page is the owner decision such a change can cite.
+Skill text reaches replayed runs, so moving a passage out of the skills is its own change, gated as [how-hyp-improves-itself.md](how-hyp-improves-itself.md) describes. A change that only makes the text agree with an owner decision ships without a replay. This page is the owner decision such a change can cite.
