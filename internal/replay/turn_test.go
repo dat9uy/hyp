@@ -132,3 +132,64 @@ func TestStaleSelectWaitsOnAnOpenPremise(t *testing.T) {
 	wantOwed(t, p, q)
 	wantTurn(t, p, q, TurnWaits, WaitPremise)
 }
+
+// A select of one of two candidates reopens awaiting_subquestions when the
+// selected Hypothesis gets a sub-question. The turn waits on that
+// sub-question, so no choice is owed again, and answering it answers the
+// question.
+func TestReopenedChoiceWaitsOnTheSelectedSubquestion(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	b.Supports(h1)
+	b.Supports(h2)
+	b.As("a").Select(q, h1, "", false) // the owner's choice between two
+	wantStatus(t, replayB(b), q, DQAnswered, "")
+	sub := b.DQ(h1, "sub")
+	p := replayB(b)
+	wantStatus(t, p, q, DQReopened, ReasonAwaitingSubquestions)
+	wantOwed(t, p, q)
+	wantTurn(t, p, q, TurnWaits, WaitSubquestion)
+	if k := p.Turn(q).Waits[0].Key; k != h1 {
+		t.Fatalf("waits on a sub-question of %s, want %s", k, h1)
+	}
+	wantRefused(t, p.AdmitSelect(q, h2), hid(h1)+" has a sub-question not answered")
+	sh := b.Hyp(sub, "sh")
+	b.Supports(sh)
+	b.Answer(sub, sh, "")
+	p = replayB(b)
+	wantStatus(t, p, q, DQAnswered, "")
+	wantTurn(t, p, q, TurnClosed)
+}
+
+// A select whose Hypothesis is no longer supported leaves it no candidate,
+// so the select is never owed again: a contradicts makes the other
+// candidate's select owed, and a retracted support leaves runner work.
+func TestSelectNoLongerSupportedIsNotOwedAgain(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
+	b.Supports(h1)
+	b.Supports(h2)
+	b.As("a").Select(q, h1, "", false)
+	b.Contradicts(h1)
+	p := replayB(b)
+	wantStatus(t, p, q, DQReopened, ReasonSelectedNotSupport)
+	wantOwed(t, p, q, "runner select "+h2)
+	wantTurn(t, p, q, TurnOwed)
+	wantRefused(t, p.AdmitSelect(q, h1), "owes a select of "+hid(h2)+", the only candidate, not "+hid(h1))
+
+	b2 := testutil.New()
+	q2 := b2.DQ(b2.Goal("g"), "q")
+	h := b2.Hyp(q2, "h")
+	r := b2.Supports(h)
+	b2.Answer(q2, h, "")
+	b2.Retract(r) // its Experiment is planned again
+	p = replayB(b2)
+	wantStatus(t, p, q2, DQReopened, ReasonSelectedNotSupport)
+	wantTurn(t, p, q2, TurnWaits, WaitRunner)
+	if it := p.Turn(q2).Waits[0].Item; it.Kind != OwedPlanned {
+		t.Fatalf("waits on %+v, want the planned Experiment", it)
+	}
+	wantRefused(t, p.AdmitSelect(q2, h), "owes the runner first: planned ")
+}
