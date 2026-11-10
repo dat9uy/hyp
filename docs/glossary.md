@@ -31,7 +31,7 @@ Everything replay derives from a store's events: each node, a derived record per
 _Avoid_: state (alone), index, cache
 
 **Goal**:
-The root node of a tree, `G-`: what the investigation is for. A tree has one, and it is complete when every live DesignQuestion under it is answered ([spec §7.5](replay-spec.md#75-goal)). Its lines are the limits the owner records on it (see Line); the owner's "met" is a complete Goal with no line under OWED, read from `hyp status`, and hyp stores no word for it. Only the owner changes a Goal, and a new Goal is a new tree.
+The root node of a tree, `G-`: what the investigation is for. A tree has one, and it is complete when every live DesignQuestion under it is answered ([spec §7.5](replay-spec.md#75-goal)). Its lines are the limits the owner records on it (see Line); the owner's "met" is a complete Goal with no line under OWED, read from `hyp status`, and hyp stores no word for it. No one changes a Goal once it is written: the owner writes its lines once, and a new Goal is a new tree.
 _Avoid_: objective, epic, done, met (as a status word)
 
 **DesignQuestion**:
@@ -149,11 +149,7 @@ Retired by ADR 0015. It was the role that confirmed every select, independently 
 _Avoid_: reviewer, checker (as a role)
 
 **Owner**:
-The person hyp asks to act on real choices, and the confirm role they act in. On a trade-off they act once:
-
-1. **Choose.** The owner chooses between the candidates once `hyp status` lists `choose:` for the question. Whoever runs the tree records the choice as the select, with the owner's words in `--why`, and `hyp select` admits it only while the ledger owes the choice. The tree holds what was chosen, but not who chose it: the select's actor is whoever wrote it, and no status reads `--why`. The choice ends the trade-off (ADR 0015).
-
-They also answer readings, accept referred limits with an owner checkpoint, and confirm a scope-change select: an owner confirm is required only when the current select is a scope change ([spec §7.4](replay-spec.md#74-designquestion-state)). That confirm lapses when the Dossier changes, and with an owner checkpoint it is what accepts limits. hyp does not authenticate actors, so an owner act records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure. In code: `event.RoleOwner`; the requirement is `SelectRec.ScopeChange` in `replay`.
+The person hyp asks to act on real choices, and the role they act in. The owner writes the Goal's lines once, and then answers what the ledger lists under Awaiting owner: a reading, a referred limit, a choice between candidates (`choose:`), or a scope-change confirm. Whoever runs the tree records a choice as the select, with the owner's words in `--why`; the tree holds what was chosen, but not who chose it ([ADR 0015](adr/0015-the-select-is-the-gate.md)). hyp does not authenticate actors, so an owner act records that someone wrote it in the owner's role; that the owner stood behind it rests on the procedure. The owner's role and what they never do are stated in [principles.md](principles.md#7-who-does-what), and the moves in [spec §8.2](replay-spec.md#82-keyed-items-limits-lines-and-readings). In code: `event.RoleOwner`; a scope-change confirm is required by `SelectRec.ScopeChange` in `replay` ([spec §7.4](replay-spec.md#74-designquestion-state)).
 _Avoid_: user, stakeholder, approver, pick, decide (alone)
 
 **Limit**:

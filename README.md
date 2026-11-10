@@ -13,7 +13,7 @@ An agent that investigates a design question usually keeps its account in prose:
 - **Statuses are derived, never typed.** Every write is an event in an append-only log under `.tree/`, committed with the work. `supported`, `contradicted`, `stale` and `answered` are computed from those events; no command can set one.
 - **Every decision is owed first.** hyp admits a select only when its ledger owes it, so a question is answered only once the open work on it is done, and the owner decides trade-offs.
 
-The binary refuses events that would corrupt the tree or skip a step, the ledger in `hyp status` names what the tree still owes, and `hyp signals` lists Experiments set up against no live rival. [loop-philosophy.md](docs/loop-philosophy.md) explains why these guards run during an investigation instead of before it.
+The binary refuses events that would corrupt the tree or skip a step, the ledger in `hyp status` names what the tree still owes, and `hyp signals` lists Experiments set up against no live rival. [loop-philosophy.md](docs/loop-philosophy.md) explains why these guards run during an investigation instead of before it, and [principles.md](docs/principles.md) states the principles hyp holds to, among them what the owner decides.
 
 ## Where hyp comes from
 
@@ -106,7 +106,7 @@ What you install is **core**: the binary (`cmd/`, `internal/`), the two skills (
 
 ## Status
 
-hyp is experimental (version 0.1.0, event format v1). One author builds and tests it. Claude Code is the only harness it has been verified on; Codex and pi are untested. The evidence that it works is the trees under `investigations/`, each a recorded investigation with its verdicts and verifier checks. Records made before the public release stay in the private development history. hyp itself changes only when a real investigation shows a failure, and a change to the skills must pass a replay of the session where the failure happened.
+hyp is experimental (version 0.1.0, event format v1). One author builds and tests it. Claude Code is the only harness it has been verified on; Codex and pi are untested. The evidence that it works is the trees under `investigations/`, each a recorded investigation with its verdicts and owner choices. Records made before the public release stay in the private development history. hyp itself changes only when a real investigation shows a failure, and a change to the skills must pass a replay of the session where the failure happened.
 
 ## Contributing
 
