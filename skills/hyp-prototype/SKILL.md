@@ -141,14 +141,14 @@ that no longer matters is `hyp withdraw <Q-id>`.
   open. Decide that question first.
 - A gap you know at select time is a `--limit` on a Result, never only words
   in `--why`.
-- An open limit under the question holds the select, whichever Hypothesis
+- The select waits on an open limit under the question, whichever Hypothesis
   its Result gave a verdict on, and `hyp select` names it. Run its case on the
   candidates. If no test within the Goal's lines can close it, or its case
   is void for every candidate, refer it:
   `hyp checkpoint --refers <R-id>#<n> --summary "<why no test can close it>"`.
   The owner then accepts it, or returns it with `--returns <R-id>#<n>` when
   the Goal covers its case, and it is yours to run again. Until the owner
-  does one of these, the referred limit holds the select. A Result that runs
+  does one of these, the select waits on the referred limit. A Result that runs
   the case closes it, whatever its verdicts.
 - The select answers the question while it stands: the selected Hypothesis is
   supported and not stale, it has no open sub-question, and no candidate is
@@ -173,8 +173,8 @@ that no longer matters is `hyp withdraw <Q-id>`.
   - `R-…#r1 reading: …` is a reading of the Goal that a verdict rests on. It
     changes no status. While its answer can move a Hypothesis on its
     question, a candidate its Result gave a verdict on or a rival only its Result
-    contradicts, it holds back new rivals, the select and the owner's choice
-    there, and hyp status prints a held line. Carry on with other work and ask
+    contradicts, new rivals, the select and the owner's choice there wait
+    on it, and hyp status prints a waits line. Carry on with other work and ask
     the owner at the next stop. Record it with `hyp record --reading "<the
     line>: <how you read it>"`. Record the owner's answer under their own
     actor name (lowercase letters, digits and hyphens, for example
