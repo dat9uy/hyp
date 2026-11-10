@@ -1277,6 +1277,11 @@ func Remove(o RemoveOptions) (*Record, error) {
 	}
 	if o.OutDir != "" {
 		if _, err := os.Lstat(o.OutDir); err == nil {
+			// A remove killed after the save renamed OUT_DIR into place and
+			// before the delete left this sandbox's whole record there.
+			if saved, _ := readRecord(filepath.Join(o.OutDir, keptRecord), o.ID); saved != nil && saved.Removed != "" {
+				return nil, herr.BadArgs("%s already holds the record of sandbox %s, saved by a remove that stopped before the delete; run hyp sandbox remove %s --discard to finish", o.OutDir, o.ID, o.ID)
+			}
 			return nil, herr.BadArgs("%s exists; choose a new path", o.OutDir)
 		}
 		// The record would be deleted with the sandbox it describes.
@@ -1355,8 +1360,21 @@ func Remove(o RemoveOptions) (*Record, error) {
 	}
 
 	if !o.Discard {
-		if err := saveRecord(o, rec, rec.WTDir(), box, keep); err != nil {
-			os.RemoveAll(o.OutDir) // proved absent above, so it is ours
+		// The save is built beside OUT_DIR and renamed into place, so OUT_DIR
+		// holds a whole record or does not exist. A remove killed during the
+		// save leaves only the staging directory, named for this sandbox,
+		// which the next remove clears and builds again.
+		out := filepath.Clean(o.OutDir)
+		staging := out + ".partial-" + o.ID
+		err := os.RemoveAll(staging)
+		if err == nil {
+			err = saveRecord(o, staging, rec, rec.WTDir(), box, keep)
+		}
+		if err == nil {
+			err = os.Rename(staging, out)
+		}
+		if err != nil {
+			os.RemoveAll(staging)
 			return nil, herr.Env("%v; sandbox kept", err)
 		}
 	}
@@ -1511,25 +1529,27 @@ func keepPaths(box string, keep []string) ([]string, error) {
 	return out, nil
 }
 
-func saveRecord(o RemoveOptions, rec *Record, wt, box string, keep []string) error {
-	if err := os.MkdirAll(o.OutDir, 0o755); err != nil {
+// saveRecord writes the kept files and the record of a removed sandbox into
+// dir.
+func saveRecord(o RemoveOptions, dir string, rec *Record, wt, box string, keep []string) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 	tree := filepath.Join(wt, ".tree")
 	if fi, err := os.Stat(tree); err == nil && fi.IsDir() {
-		if err := copyTree(tree, filepath.Join(o.OutDir, keptTree)); err != nil {
+		if err := copyTree(tree, filepath.Join(dir, keptTree)); err != nil {
 			return err
 		}
 	}
 	for _, name := range []string{keptRecipeLog, keptKnownAnswers} {
 		if log := filepath.Join(box, name); isFile(log) {
-			if err := copyFile(log, filepath.Join(o.OutDir, name), 0o644); err != nil {
+			if err := copyFile(log, filepath.Join(dir, name), 0o644); err != nil {
 				return err
 			}
 		}
 	}
 	if rec.Inputs != nil {
-		dst := filepath.Join(o.OutDir, keptInputs, rec.Inputs.Name)
+		dst := filepath.Join(dir, keptInputs, rec.Inputs.Name)
 		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 			return err
 		}
@@ -1539,7 +1559,7 @@ func saveRecord(o RemoveOptions, rec *Record, wt, box string, keep []string) err
 	}
 	for _, p := range rec.Patches {
 		name := p.Arm + ".patch"
-		dst := filepath.Join(o.OutDir, keptPatches, name)
+		dst := filepath.Join(dir, keptPatches, name)
 		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 			return err
 		}
@@ -1555,15 +1575,15 @@ func saveRecord(o RemoveOptions, rec *Record, wt, box string, keep []string) err
 			}
 			continue
 		}
-		if err := copyFile(src, filepath.Join(o.OutDir, filepath.Base(src)), 0o644); err != nil {
+		if err := copyFile(src, filepath.Join(dir, filepath.Base(src)), 0o644); err != nil {
 			return err
 		}
 	}
-	if err := writeChanges(box, wt, o.OutDir, o.Warn); err != nil {
+	if err := writeChanges(box, wt, dir, o.Warn); err != nil {
 		return err
 	}
 	rec.Removed = now()
-	return writeJSON(filepath.Join(o.OutDir, keptRecord), rec)
+	return writeJSON(filepath.Join(dir, keptRecord), rec)
 }
 
 // copyTree copies a hyp tree without the index.sqlite* files older hyp
