@@ -96,8 +96,8 @@ func TestOwedReadingAppliedByAimedResult(t *testing.T) {
 
 	// An aimed Result that does not say it applies the answer leaves it owed.
 	plain := must(t, "add", "exp", "--parent", h1, "--title", "plain", "--recipe", "none", "--decided-by", "reading", "--target", h2, "--why", "w")
-	want(t, hyp(t, "record", "--exp", plain, "--verdict", h1+"=supports", "--observation", "o", "--applies", key, "--why", "w"), 1, "not among")
-	must(t, "record", "--exp", plain, "--verdict", h1+"=supports", "--observation", "o", "--why", "w")
+	want(t, hyp(t, "record", "--exp", plain, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--applies", key, "--why", "w"), 1, "not among")
+	must(t, "record", "--exp", plain, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--why", "w")
 	want(t, hyp(t, "status"), 0, "apply answer "+key+" [in_progress by "+e2+"]")
 
 	r2 := must(t, "record", "--exp", e2, "--verdict", h1+"=supports", "--verdict", h2+"=contradicts", "--observation", "o", "--applies", key, "--why", "w")

@@ -53,7 +53,7 @@ func signalLines(r Report) string {
 }
 
 // The golden file holds every signal generate.sh's comment names for the
-// synthetic store: one-rival and unjudged.
+// synthetic store: one-rival.
 func TestSynthMatchesGolden(t *testing.T) {
 	wantGolden(t, "full.golden", signalLines(Compute(synth(t, ""))))
 }

@@ -290,7 +290,7 @@ func TestAddExpDeadSiblingsDoNotRefuse(t *testing.T) {
 	must(t, "add", "hyp", "--parent", q, "--title", "A", "--alias", "ha", "--why", "w")
 	must(t, "add", "hyp", "--parent", q, "--title", "B", "--alias", "hb", "--why", "w")
 	e := must(t, "add", "exp", "--parent", "hb", "--title", "e", "--recipe", "none", "--decided-by", "reading", "--target", "ha", "--why", "w")
-	must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--observation", "o", "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--verdict", "ha=inconclusive", "--observation", "o", "--why", "w")
 	want(t, hyp(t, "add", "exp", "--parent", "ha", "--title", "e2", "--recipe", "none", "--decided-by", "reading", "--why", "w"), 0, "node.add")
 
 	must(t, "add", "hyp", "--parent", q, "--title", "C", "--alias", "hc", "--why", "w")
@@ -303,7 +303,7 @@ func TestAddExpWarnsWhenParentOrTargetIsNotARival(t *testing.T) {
 	ha := must(t, "add", "hyp", "--parent", q, "--title", "A", "--alias", "ha", "--why", "w")
 	hb := must(t, "add", "hyp", "--parent", q, "--title", "B", "--alias", "hb", "--why", "w")
 	e := must(t, "add", "exp", "--parent", "hb", "--title", "e", "--recipe", "none", "--decided-by", "reading", "--target", "ha", "--why", "w")
-	r1 := must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--observation", "o", "--why", "w")
+	r1 := must(t, "record", "--exp", e, "--verdict", "hb=contradicts", "--verdict", "ha=inconclusive", "--observation", "o", "--why", "w")
 	addExp := func(parent string, targets ...string) result {
 		args := []string{"add", "exp", "--parent", parent, "--title", "x", "--recipe", "none", "--decided-by", "reading", "--why", "w"}
 		for _, h := range targets {
@@ -561,7 +561,7 @@ func TestAddExpDeclaration(t *testing.T) {
 	want(t, addExp("--recipe", "tool@1", "--decided-by", "reading"), 2, "--decided-by reading contradicts recipe tool@1")
 	want(t, addExp("--recipe", "none", "--decided-by", "measure"), 2, `invalid --decided-by "measure"`)
 
-	want(t, hyp(t, "show", read), 0, "decided by: reading")
+	want(t, hyp(t, "show", read), 0, "rubric: reading")
 	if r := hyp(t, "show", measured); strings.Contains(r.stdout, "decided by") {
 		t.Fatalf("show of a measured Experiment prints a declaration:\n%s", r.stdout)
 	}

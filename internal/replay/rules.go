@@ -33,13 +33,19 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) {
 			var p event.NodeAdd
 			_ = event.DecodePayload(ev, &p)
-			if p.Kind == event.KindExperiment {
+			if p.Kind == event.KindExperiment && st.Nodes[p.Parent].Kind == event.KindHypothesis {
 				// The derived records still hold the state before this event.
+				// An Experiment under a DesignQuestion has no rivals: it
+				// gives no verdict.
 				st.RivalsAtAdd[ev.ID] = st.LiveRivals(st.Nodes[p.Parent].Parent, p.Parent)
+			}
+			rubric := p.Rubric
+			if p.DecidedBy == event.DecidedReading {
+				rubric = event.RubricReading // the older spelling (ADR 0018)
 			}
 			st.addNode(&Node{ID: ev.ID, Kind: p.Kind, Parent: p.Parent, Title: p.Title, Body: p.Body,
 				Alias: p.Alias, Recipe: p.Recipe, RecipeHash: p.RecipeHash, DecidedBy: p.DecidedBy, Actor: ev.Actor,
-				AddedBy: ev.ID, Targets: p.Targets, Aims: p.Aims})
+				AddedBy: ev.ID, Targets: p.Targets, Aims: p.Aims, Rubric: rubric, RubricHash: p.RubricHash, Records: p.Records})
 			if p.Alias != "" {
 				st.Aliases[p.Alias] = ev.ID
 			}

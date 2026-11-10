@@ -106,11 +106,15 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 
 	if n.Kind == event.KindExperiment {
 		w("recipe: %s", n.Recipe)
-		if n.DecidedBy != "" {
-			w("decided by: %s", n.DecidedBy)
+		if n.Rubric != "" {
+			w("rubric: %s", n.Rubric)
 		}
+		w("shape: %s", p.Exps[id].Shape)
 		if len(n.Targets) > 0 {
 			w("targets: %s", r.ids(n.Targets))
+		}
+		for _, f := range n.Records {
+			w("records: %s %s", f.Path, f.SHA256[:12])
 		}
 		for _, k := range n.Aims {
 			w("aims: %s", r.limitLabel(event.KeyResult(k), k))
@@ -494,13 +498,24 @@ func (r renderer) limitLine(l replay.Limit) string {
 }
 
 // experiments lists every Experiment under question q, grouped by parent
-// Hypothesis. The tests line names the parent and its targets; the judged
-// line gives each one's verdict from the Experiment's non-retracted Results,
-// "unjudged" for a tested Hypothesis no Result judged, then the round's marks
-// and each uncontained Result.
+// Hypothesis, then each measuring Experiment under q itself. The tests line
+// names its targets; the judged line gives each one's verdict from the
+// Experiment's non-retracted Results, then the round's marks and each
+// uncontained Result. A measuring Experiment has a measures line instead.
 func (r renderer) experiments(w func(string, ...any), q string) {
 	p := r.p
 	first := true
+	for _, e := range p.Nodes[q].Children {
+		if p.Nodes[e].Kind != event.KindExperiment {
+			continue
+		}
+		if first {
+			w("experiments:")
+			first = false
+		}
+		x := p.Exps[e]
+		w("  %s measures (%s)", r.id(e), x.Status)
+	}
 	for _, h := range p.Nodes[q].Children {
 		if p.Nodes[h].Kind != event.KindHypothesis {
 			continue
@@ -514,9 +529,9 @@ func (r renderer) experiments(w func(string, ...any), q string) {
 				w("experiments:")
 				first = false
 			}
-			tested := append([]string{h}, en.Targets...)
-			w("  %s tests %s", r.id(e), r.ids(tested))
 			x := p.Exps[e]
+			tested := x.Targets
+			w("  %s tests %s", r.id(e), r.ids(tested))
 			got := x.Judged
 			if len(x.Live) == 0 {
 				judged := "pending"
@@ -528,11 +543,9 @@ func (r renderer) experiments(w func(string, ...any), q string) {
 			}
 			var parts []string
 			for _, t := range tested {
-				v, ok := got[t]
-				if !ok {
-					v = "unjudged"
+				if v, ok := got[t]; ok {
+					parts = append(parts, r.id(t)+"="+v)
 				}
-				parts = append(parts, r.id(t)+"="+v)
 			}
 			line := "    judged: " + strings.Join(parts, ", ")
 			m := r.marks(e)

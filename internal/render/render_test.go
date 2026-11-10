@@ -203,7 +203,8 @@ func TestPredecessorEvidenceAlsoCounted(t *testing.T) {
 	nw := b.Hyp(q, "new")
 	e := b.Exp(old, event.RecipeNone, nw)
 	both := b.Result(e, map[string]string{old: event.VerdictContradicts, nw: event.VerdictSupports})
-	only := b.Result(e, map[string]string{old: event.VerdictSupports})
+	eOld := b.Exp(old, event.RecipeNone)
+	only := b.Result(eOld, map[string]string{old: event.VerdictSupports})
 	b.Edge(nw, event.EdgeSupersedes, old)
 	p := replay.Replay(b.Evs, nil, "")
 	if len(p.Rejections) != 0 {

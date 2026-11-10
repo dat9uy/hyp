@@ -903,43 +903,6 @@ func TestLiveRivalsSkipDeadHypotheses(t *testing.T) {
 	}
 }
 
-func TestUnjudgedReadsRivalsAtAdd(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1, h2, h3 := b.Hyp(q, "h1"), b.Hyp(q, "h2"), b.Hyp(q, "h3")
-	e := b.Exp(h1, event.RecipeNone, h2, h3)
-	p := replayB(b)
-	if got := p.Exps[e].Unjudged; got != nil {
-		t.Fatalf("planned Experiment: Unjudged = %v, want nil", got)
-	}
-	if p.Exps[e].OneRival {
-		t.Fatal("an Experiment that names live rivals is not one-rival")
-	}
-	b.Result(e, map[string]string{h1: sup, h2: con})
-	p = replayB(b)
-	if got, want := p.Exps[e].Unjudged, []string{h3}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("Unjudged = %v, want %v", got, want)
-	}
-	if got := p.UnjudgedAfter(e, map[string]string{h3: inc}); got != nil {
-		t.Fatalf("UnjudgedAfter with a verdict for h3 = %v, want nil", got)
-	}
-	b.Contradicts(h3)
-	if got, want := replayB(b).Exps[e].Unjudged, []string{h3}; !reflect.DeepEqual(got, want) {
-		t.Fatalf("after h3 is contradicted later: Unjudged = %v, want %v (liveness is read at add)", got, want)
-	}
-	e2 := b.Exp(h1, event.RecipeNone, h2)
-	b.Result(e2, map[string]string{h1: sup})
-	if got := replayB(b).Exps[e2].Unjudged; got != nil {
-		t.Fatalf("h2 was contradicted before e2's add: Unjudged = %v, want nil", got)
-	}
-	h4 := b.Hyp(q, "h4")
-	e3 := b.Exp(h1, event.RecipeNone)
-	if !replayB(b).Exps[e3].OneRival {
-		t.Fatalf("e3 names no target while %s is live: want one-rival", h4)
-	}
-}
-
 // why sets the why of b's last event and returns its id.
 func why(b *testutil.B, why string) string {
 	b.Evs[len(b.Evs)-1].Why = why
@@ -1042,7 +1005,7 @@ func TestExpRecordFollowsLiveResults(t *testing.T) {
 		t.Fatalf("planned: %+v", x)
 	}
 	r1 := b.Result(e, map[string]string{h1: sup, h2: con})
-	r2 := b.Result(e, map[string]string{h1: inc})
+	r2 := b.Result(e, map[string]string{h1: inc, h2: con})
 	p := replayB(b)
 	x := p.Exps[e]
 	if x.Status != ExpRun || statuses(p)[e].Status != string(x.Status) {
@@ -1056,7 +1019,7 @@ func TestExpRecordFollowsLiveResults(t *testing.T) {
 	}
 	b.Retract(r1)
 	b.Retract(r2)
-	if x := replayB(b).Exps[e]; x.Status != ExpPlanned || x.Live != nil || x.Unjudged != nil {
+	if x := replayB(b).Exps[e]; x.Status != ExpPlanned || x.Live != nil {
 		t.Fatalf("every Result retracted: %+v, want planned with nothing live", x)
 	}
 }

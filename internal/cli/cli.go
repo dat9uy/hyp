@@ -80,7 +80,7 @@ read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
   check                                       rejected events, bad lines, warnings
-  signals [--json]                            design marks for the whole tree: one-rival, D1, unjudged
+  signals [--json]                            design marks for the whole tree: one-rival, D1
   events --json                               applied events in merge order, and rejected ones, as JSON for scripts
 
 recipe:

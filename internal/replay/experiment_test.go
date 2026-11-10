@@ -74,7 +74,7 @@ func TestExpCloseRefusals(t *testing.T) {
 	q, q2 := b.DQ(g, "q"), b.DQ(g, "q2")
 	h1, h2, h3 := b.Hyp(q, "h1"), b.Hyp(q, "h2"), b.Hyp(q2, "h3")
 	ran := b.Exp(h1, event.RecipeNone, h2)
-	r := b.Result(ran, map[string]string{h1: sup})
+	r := b.Result(ran, map[string]string{h1: sup, h2: inc})
 	e1, e2 := b.Exp(h1, event.RecipeNone, h2), b.Exp(h2, event.RecipeNone, h1)
 	other := b.Exp(h3, event.RecipeNone)
 	gone := b.Exp(h1, event.RecipeNone, h2)

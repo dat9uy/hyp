@@ -127,30 +127,6 @@ func TestEmptyLogHasEmptyLists(t *testing.T) {
 	}
 }
 
-func TestUnjudgedSignal(t *testing.T) {
-	b := testutil.New()
-	g := b.Goal("g")
-	q := b.DQ(g, "q")
-	h1, h2 := b.Hyp(q, "h1"), b.Hyp(q, "h2")
-	ex := b.Exp(h1, event.RecipeNone, h2)
-	if rep := Compute(b.Evs); len(rep.Rounds[0].Unjudged) != 0 || len(rep.Signals) != 0 {
-		t.Fatalf("pending round: unjudged %v, signals %+v; want none", rep.Rounds[0].Unjudged, rep.Signals)
-	}
-	b.Result(ex, map[string]string{h1: event.VerdictSupports})
-	rep := Compute(b.Evs)
-	if got := strings.Join(rep.Rounds[0].Unjudged, ","); got != h(h2) {
-		t.Fatalf("round unjudged = %q, want %q", got, h(h2))
-	}
-	want := Signal{Key: "unjudged:" + e(ex), Round: 1, Detail: "unjudged " + e(ex) + " targets " + h(h2) + ", which no Result judged"}
-	found := false
-	for _, s := range rep.Signals {
-		found = found || s == want
-	}
-	if !found {
-		t.Fatalf("signals = %+v, want to contain %+v", rep.Signals, want)
-	}
-}
-
 // A closed round keeps its add-time one-rival and D1 marks.
 func TestClosedRoundKeepsItsMarks(t *testing.T) {
 	b := testutil.New()

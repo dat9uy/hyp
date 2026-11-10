@@ -15,7 +15,9 @@
 #
 # Rounds, in order, and what hyp signals reports for them:
 #   e-one     targets none: one-rival
-#   e-redis   targets h-none and judges only its parent h-redis: unjudged
+#   e-redis   targets h-none and gives it inconclusive; a Result that leaves a
+#             target without a verdict is refused (ADR 0018), so the unjudged
+#             mark it once showed is gone
 #   e-split   moves h-none and h-cdn to inconclusive
 #   e-lru-2..4  move nothing; progress is the ledger's, so no signal (ADR 0017)
 #   q-cache   two insufficient verifier verdicts, once verifier-loop. Two
@@ -65,7 +67,7 @@ run record --exp e-one --verdict h-lru=supports --observation "p99 fell from 900
 
 run add exp --parent h-redis --title "Load test Redis against no cache" --alias e-redis --recipe none --decided-by reading \
 	--target h-none --why "two rivals in one run"
-run record --exp e-redis --verdict h-redis=contradicts --observation "the network hop cost more than the cache saved" \
+run record --exp e-redis --verdict h-redis=contradicts --verdict h-none=inconclusive --observation "the network hop cost more than the cache saved" \
 	--why "h-none was not read"
 
 run add exp --parent h-none --title "Compare tuned queries with a CDN" --alias e-split --recipe none --decided-by reading \

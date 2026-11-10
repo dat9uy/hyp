@@ -102,6 +102,11 @@ type Rejection struct {
 // Node holds the static fields of a node.
 type Node struct {
 	ID, Kind, Parent, Title, Body, Alias, Recipe, RecipeHash, DecidedBy, Actor, AddedBy string
+	// Rubric is an Experiment's rubric (event.RubricReading, a NAME@VERSION
+	// pinned by RubricHash, or ""); an old decided_by reading reads as
+	// RubricReading. Records are its pinned records.
+	Rubric, RubricHash string
+	Records            []event.SubjectFile
 	Targets                                                                             []string
 	Children                                                                            []string
 	Verdicts                                                                            map[string]string
@@ -183,17 +188,6 @@ func (l Limit) Closed() bool { return !l.IsLine() && len(l.Closers) > 0 }
 // Open reports whether the limit is neither closed nor accepted. For a line
 // it means only that the owner has not accepted it.
 func (l Limit) Open() bool { return !l.Closed() && !l.Accepted() }
-
-// UnjudgedAfter lists exp's targets that were live rivals at its add and that
-// neither a non-retracted Result of exp nor extra judged, in target order.
-// extra holds the verdicts of a Result about to be recorded, or is nil.
-func (p Projection) UnjudgedAfter(exp string, extra map[string]string) []string {
-	var judged map[string]string
-	if e := p.Exps[exp]; e != nil {
-		judged = e.Judged
-	}
-	return unjudged(p.Nodes[exp].Targets, p.RivalsAtAdd[exp], judged, extra)
-}
 
 // CurrentSelect returns the DQ's current select; ok is false when the DQ's
 // last select or unselect is an unselect, or there is none.

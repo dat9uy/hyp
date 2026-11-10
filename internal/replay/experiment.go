@@ -1,10 +1,6 @@
 package replay
 
-import (
-	"slices"
-
-	"github.com/dat9uy/hyp/internal/event"
-)
+import "github.com/dat9uy/hyp/internal/event"
 
 // Exp is the derived record of one Experiment (ADR 0008). Replay builds it
 // once per projection, and every reader takes an Experiment's state from it
@@ -15,8 +11,13 @@ type Exp struct {
 	Live       []string          // non-retracted Results, in creation order
 	Judged     map[string]string // Hypothesis → verdict over Live; a later Result wins
 	OneRival   bool              // the one-rival rule (oneRival) on its add-time rivals
-	Unjudged   []string          // targets live at its add that no Live Result judged; nil while Live is empty
 	ReplacedBy []string          // Experiments with a live supersedes edge to it, in edge order
+	// The pre-registration (preregistration.go): Targets are the
+	// Hypotheses each Result gives a verdict on, none under a
+	// DesignQuestion, and Shape is derived from the parent kind, the
+	// targets and the rubric.
+	Targets []string
+	Shape   string
 }
 
 // expClosed is how Experiment id is closed: ExpSuperseded when a live
@@ -66,26 +67,9 @@ func (st *State) exps() map[string]*Exp {
 				e.Judged[h] = v
 			}
 		}
-		rivals := st.RivalsAtAdd[id]
-		e.OneRival = oneRival(rivals, n.Targets)
-		if len(e.Live) > 0 {
-			e.Unjudged = unjudged(n.Targets, rivals, e.Judged, nil)
-		}
+		e.OneRival = oneRival(st.RivalsAtAdd[id], n.Targets)
+		e.Targets, e.Shape = targetsOf(st.Nodes, n), shapeOf(st.Nodes, n)
 		out[id] = e
-	}
-	return out
-}
-
-// unjudged lists the targets that were live rivals at the add and that
-// neither judged nor extra holds, in target order.
-func unjudged(targets, rivals []string, judged, extra map[string]string) []string {
-	var out []string
-	for _, t := range targets {
-		_, a := judged[t]
-		_, b := extra[t]
-		if slices.Contains(rivals, t) && !a && !b {
-			out = append(out, t)
-		}
 	}
 	return out
 }
