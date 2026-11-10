@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; amended by ADR 0018: the verdict check is a rubric's command, and a recipe prints measures only
 ---
 
 # A verdict check's known answers specify its verdict rule
