@@ -35,7 +35,7 @@ The root node of a tree, `G-`: what the investigation is for. A tree has one, an
 _Avoid_: objective, epic, done, met (as a status word)
 
 **DesignQuestion**:
-A node, `Q-`, under the Goal or a Hypothesis, that asks one design question; its children are rival Hypotheses. Its state is open, reopened, answered, deferred or withdrawn ([spec §7.4](replay-spec.md#74-designquestion-state)). Withdrawn here is a hold that `dq.resume` lifts; it is not an Experiment's close.
+A node, `Q-`, under the Goal or a Hypothesis, that asks one design question; its children are rival Hypotheses, and any Experiment with no targets that informs the question. Its state is open, reopened, answered, deferred or withdrawn ([spec §7.4](replay-spec.md#74-designquestion-state)). Withdrawn here is a hold that `dq.resume` lifts; it is not an Experiment's close.
 _Avoid_: issue, decision; withdrawn for an Experiment (see Experiment status)
 
 **Sub-question**:
@@ -46,7 +46,7 @@ A node, `H-`, under a DesignQuestion, that states one possible answer as a claim
 _Avoid_: option, idea, solution; stand-in for the Hypothesis (a stand-in is a file of its subject written for a run)
 
 **Frontier**:
-The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred sub-question that a printed supported Hypothesis still owes also prints. A printed question with candidates has a `candidates (N)` line naming them, so after a re-judge it shows whether one or several are left; with none, the question's reason says so. Beneath it, an `assumes` line names each Hypothesis a candidate rests on through `depends_on`, with that Hypothesis's status, the question it answers when that is another one, and which candidates assume it, so a choice that rests on another question's answer says so. Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
+The section of `hyp status` that shows the open work: the tree pruned to it, from one walk over every question. A node prints only beneath its parent. A sub-question prints only from an open or reopened question and through a live rival; a deferred sub-question that a printed supported Hypothesis still owes also prints. A printed question with candidates has a `candidates (N)` line naming them, so after a reassess it shows whether one or several are left; with none, the question's reason says so. Beneath it, an `assumes` line names each Hypothesis a candidate rests on through `depends_on`, with that Hypothesis's status, the question it answers when that is another one, and which candidates assume it, so a choice that rests on another question's answer says so. Open questions that do not print are counted in one line, so the Goal's counts stay accounted for; `hyp render --markdown` lists every question.
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
@@ -57,19 +57,19 @@ How a run read owner words that a verdict rests on: a line of the Goal, recorded
 A reading asks what the owner's words mean, and a trade-off asks which candidate to choose. Closing a reading changes no status, because statuses come only from verdicts. An answer that rules out a candidate takes effect when a later Result records `contradicts` on it. A closed reading is owed by the runner until a Result applies it (`hyp record --applies`, from an Experiment that aims at it), and the owner is not asked to choose on its question until then. An owner who changes an answer revises it (`hyp checkpoint --role owner --revises R-…#rN`): the new words are the answer in force from then on, the earlier answer stays in history, and the reading is owed by the runner again until a later Result applies it. A revision changes no earlier event or verdict. A reading waiting under AWAITING OWNER is answered with `--closes`; one already answered is revised with `--revises`, and hyp refuses the other verb.
 _Avoid_: reopen, re-answer, amend (for changing an answer)
 
-**Re-judge**:
-The step after the owner answers readings: new Results judge the live Hypotheses again under those answers. Each answer is written into a check of a new recipe version, the verdict rule is recorded on a new Experiment before the run, and old Results stay as they are. Closing a reading changes no status; a re-judge does, through its verdicts. Until a Result applies each answer, `hyp status` lists it under Owed.
-_Avoid_: update the tree, recalculate (replay already derives every status; a re-judge adds Results), re-confirm (a confirm judges a select, not a Hypothesis)
+**Reassess**:
+The step after the owner answers a reading: an Experiment aims at the answered reading, and its Result applies the answer and gives new verdicts on its targets. The answer goes into a check of a new recipe version, or into the rule in the Experiment's body when its verdicts are decided by reading; either way the rule is fixed before the run. Earlier Results stay as they are. Closing a reading changes no status; a reassess does, through its verdicts. Until a Result applies the answer, `hyp status` lists it under Owed as `apply answer`.
+_Avoid_: re-judge (retired verb), reapply (an answer is applied once; replay also applies events), update the tree, recalculate (replay already derives every status; a reassess adds Results), re-confirm (the owner confirms a select, not a Hypothesis)
 
 **Open limits**:
 The section of `hyp status` that lists every open limit, whatever the state of its question and whether the Frontier prints it. It is a list, not open work: the open work in it is what Owed and Awaiting owner name.
 
 **Rival**:
-Another Hypothesis under the same DesignQuestion. Two live rivals are **separated** when a non-retracted Result gives them different verdicts, and `hyp show Q` lists the pairs that are not; exhaustiveness is a property of the cases run on the candidates (see Limit), never of the set of rivals, which the owner may reserve. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival, D1 and unjudged signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
+Another Hypothesis under the same DesignQuestion. Two live rivals are **separated** when a non-retracted Result gives them different verdicts, and `hyp show Q` lists the pairs that are not; exhaustiveness is a property of the cases run on the candidates (see Limit), never of the set of rivals, which the owner may reserve. A live rival is live and not contradicted ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)); the one-rival refusal and the one-rival and D1 signals read the live rivals of an Experiment's parent at its add ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
 _Avoid_: alternative, competitor
 
 **Experiment**:
-A node, `E-`, under a Hypothesis, that plans one bounded test. Its body pre-registers the verdict rule, and it pins the recipe it runs from (a recipe ref and its hash) or `none` ([spec §4](replay-spec.md#4-event-types-closed-set)). Its derived state is its Experiment status.
+A node, `E-`, that pre-registers one bounded run and what its Result may carry. It binds a Recipe and a Rubric to the tree: the recipe says how to run and what to measure, the rubric says how the measures become verdicts, and the Experiment says on what, about which Hypotheses and to settle which items. Before the run it fixes its targets, the items it aims to settle, the recipe it pins (a ref and its hash) or `none` when it rules from records already kept, the records it reads beyond its own run (a Result that cites any other record is refused), and its rubric: a pinned rubric bundle, prose in its body when its verdicts are decided by reading, or none when it has no targets ([spec §4](replay-spec.md#4-event-types-closed-set)). None of these changes after the add: a different recipe or rubric is a new Experiment. It sits under a Hypothesis when it has targets, and under the DesignQuestion it informs when it has none. Its derived state is its Experiment status.
 _Avoid_: test, trial (a trial is one scored repeat inside it), run (that is a status)
 
 **Experiment status**:
@@ -77,27 +77,27 @@ An Experiment is planned, run, superseded or withdrawn (spec §7.6). It is run w
 _Avoid_: abandoned for an Experiment (abandoning is a judgement about a Hypothesis's claim); withdrawn for a DesignQuestion's hold (see DesignQuestion)
 
 **Target**:
-A sibling Hypothesis an Experiment also tests besides its parent, given with `--target` ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §5](replay-spec.md#5-refusals) rule 5). A Result may judge only the parent and the targets.
-_Avoid_: subject (the thing under test is the Subject; a target is a Hypothesis)
+A Hypothesis an Experiment's Result may give a verdict on, fixed before the run when the Experiment is added: its parent Hypothesis and each sibling given with `--target` ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §5](replay-spec.md#5-refusals) rule 5). An Experiment that gives no verdict has no targets and sits under the DesignQuestion it informs. A Result gives a verdict on each of its Experiment's targets and on nothing else: `hyp record` refuses a Result that leaves a target without one, and `inconclusive` is the verdict for a run that could not decide.
+_Avoid_: subject (the thing under test is the Subject; a target is a Hypothesis); judges (retired: say targets)
 
 **Result**:
-A node, `R-`, under an Experiment, that records what a run observed: a verdict per Hypothesis it judges, an observation, evidence pointers and any limits ([spec §4](replay-spec.md#4-event-types-closed-set)). It is recorded or retracted, and a retracted Result no longer counts. In code: `replay.Res`, which holds its status, pins, questionable flag and uncontained reasons, in `Projection.Results`.
+A node, `R-`, under an Experiment, that records what a run observed: a verdict per target of its Experiment, an observation, evidence pointers and any limits ([spec §4](replay-spec.md#4-event-types-closed-set)). It is recorded or retracted, and a retracted Result no longer counts. In code: `replay.Res`, which holds its status, pins, questionable flag and uncontained reasons, in `Projection.Results`.
 _Avoid_: finding, outcome, run
 
 **Verdict**:
-A Result's label for one Hypothesis it judges: supports, contradicts or inconclusive. Whoever runs `hyp record` types it, a person or an agent, and hyp stores only an actor name. hyp derives status from these labels alone (spec §7.1) and never reads prose. A confirm's sufficient or insufficient is a confirm verdict, a separate thing.
-_Avoid_: verdict for the rule or the script that led to the label
+A Result's label for one target of its Experiment: supports, contradicts or inconclusive. Whoever runs `hyp record` types it, a person or an agent, and hyp stores only an actor name. hyp derives status from these labels alone (spec §7.1) and never reads prose. An owner confirm's sufficient or insufficient is the owner confirming a select, a separate thing.
+_Avoid_: judge, judged (retired: a Result gives a verdict on a target); verdict for the rubric that led to the label
 
-**Verdict rule**:
-The author's rule, written in a body before the run, that says which outcome gives which verdict. It is prose, or a verdict check when the rule can be computed. hyp derives status from recorded verdicts only and reads neither, so only its author and a reader of the Result can make sure prose has one reading; a verdict check's cases pin it down (ADR 0004). A script that applies the rule is an instrument.
-_Avoid_: conclusion method
+**Rubric**:
+How an Experiment's measures become verdicts, fixed before the run. It is a small bundle, versioned and pinned by its ref and hash like a recipe but kept apart from recipes, so two Experiments can pin the same one; its one command reads the measures in the Experiment's records and prints a `verdict: LABEL=WORD` line per label, with a supports case and a contradicts case for each label among its known answers; or, when the verdicts are decided by reading, prose in the Experiment's body, which only its author and a reader of the Result can hold to one reading. A rubric names no tree id: the runner gives each label's verdict to its target in `hyp record`. An Experiment with no targets has no rubric.
+_Avoid_: verdict rule, rule (the spec's numbered refusal rules), verdict check, verdict script, criterion (a Goal line is the case the Goal requires), conclusion method
 
 **Check**:
-An Evidence or Standalone command of a recipe. hyp runs it the same way in the gate and in a run (ADR 0003), its known-answer cases pin its exit code and its whole stdout, and `hyp recipe check` warns per command and per verdict label (ADR 0004). What a check tests inside, such as one line of its stdout like `A1 hold`, is the author's rule: hyp gives that line no identity, no case of its own and no pin of its own.
-_Avoid_: check for one such line ("adds two checks" when one command gained two lines); checker (see Instrument)
+An Evidence or Standalone command of a recipe. hyp runs it the same way in the gate and in a run (ADR 0003), its known-answer cases pin its exit code and its whole stdout, and `hyp recipe check` warns per command and per verdict label (ADR 0004). Each line it prints about one subject, such as `A1 hold`, is a Measure: hyp gives a measure no identity, no case of its own and no pin of its own. A check never prints a verdict.
+_Avoid_: check for one measure ("adds two checks" when one command gained two measures); checker (see Instrument)
 
-**Verdict check**:
-A check (an Evidence or Standalone command) whose known answers print `verdict: LABEL=WORD` lines. Its cases are the verdict rule's specification, and `hyp recipe check` warns when a label lacks a supports or a contradicts case (ADR 0004).
+**Verdict check**, **verdict rule**:
+Retired: a verdict comes from the Experiment's Rubric, and a recipe's check prints measures only.
 
 **Evidence pointer**:
 One `evidence` entry of a Result: a URL, a path under `.tree/evidence/`, or `recipes/NAME@N/FILE`, which hyp looks up like a recipe ref and pins by its bundle hash ([spec §4](replay-spec.md#4-event-types-closed-set), [spec §7.6](replay-spec.md#76-experiments-and-results)). `event.EvidenceRef` reads the ref of the last kind.
@@ -217,7 +217,7 @@ One Experiment as `hyp signals` lists it: its statuses at add, its design marks 
 _Avoid_: iteration, cycle, step
 
 **Signal**:
-A design mark that `hyp signals` lists from the events alone: one-rival, D1 or unjudged. Signals never change a status, and none judges progress: that is the ledger's (ADR 0017). In code: `signals.Signal`, computed by `signals.Compute`.
+A design mark that `hyp signals` lists from the events alone: one-rival or D1. Signals never change a status, and none tracks progress: that is the ledger's (ADR 0017). In code: `signals.Signal`, computed by `signals.Compute`.
 _Avoid_: alert, error
 
 **wasted**, **pending**, **no-movement**, **spin**:
@@ -237,18 +237,18 @@ Retired with the verifier role (ADR 0015). It was a select that collected two or
 _Avoid_: spin (retired; it was about a Hypothesis's status)
 
 **unjudged**:
-A target, live at its Experiment's add, that no non-retracted Result of the Experiment judged ([spec §8](replay-spec.md#8-projection-what-replay-returns), Rivals at add).
+Retired. It marked a target that no Result of its Experiment gave a verdict on. A target is a promise made before the run, so `hyp record` now refuses a Result that leaves one without a verdict (see Target).
 _Avoid_: untested (that is a DesignQuestion reason: every live child is proposed)
 
 **Trial**:
-One independent, scored repeat of an attempt whose outcome can vary, such as a fresh agent given one task or one session replay from a cut. A verdict rule counts trials ("T correct of 6"). A trial can take a whole Experiment run, as a session replay does, or share one with other trials. hyp does not record trials; the Experiment's body or method says how many and how each is scored.
+One independent, scored repeat of an attempt whose outcome can vary, such as a fresh agent given one task or one session replay from a cut. A rubric counts trials ("T correct of 6"). A trial can take a whole Experiment run, as a session replay does, or share one with other trials. hyp does not record trials; the Experiment's body or method says how many and how each is scored.
 _Avoid_: run when the count is meant (say "3 of 5 trials"); trial for a fixed case a script checks, a probe that fixes the trial command, or an instrument check
 
 ### Recipes
 
 **Recipe**:
-A versioned, hash-pinned description of how to run one kind of Experiment, together with the scripts it runs.
-_Avoid_: harness script, driver, wrapper
+A versioned, hash-pinned bundle that says how to run one kind of subject and what to measure: its procedure (Launch, Doctor, Drive, Cleanup) and its checks. It names no tree id and never prints a verdict, so the same recipe version serves any Experiment and any tree.
+_Avoid_: harness script, driver, wrapper; recipe for the rubric (a rubric is a separate bundle the Experiment pins)
 
 **Bundle**:
 A recipe stored as a directory, so it can hold scripts beside its description. A bundle is identified by its ref and hash, not by the directory it sits in (ADR 0005).
@@ -303,8 +303,8 @@ A recipe bundle with an Evidence or Standalone command; it must have known answe
 _Avoid_: checker
 
 **Measure**:
-The script or program whose output a Result's verdict counts. It lives in the Experiment's pinned instrument; an Experiment with no measure declares that its verdicts are decided by reading (`--decided-by reading`). An agent arm is a Trial, not a measure. Code has no other word for it: an Experiment is measured when its pinned recipe is an instrument (`recipe.Recipe.IsInstrument`), and otherwise declares `decided_by: reading`.
-_Avoid_: measurement script
+One named line a check prints about one subject: a pass or a fail, such as `S1 fail`, or a value, such as `stored rows 4`. A recipe says which measures its checks print. A measure is not a verdict: only the Experiment's rubric turns measures into verdicts, and an Experiment with no targets records measures and nothing else.
+_Avoid_: verdict (a measure judges no Hypothesis); measure for the script that turns measures into verdicts (that is the rubric); measurement script
 
 **Known answer**:
 A case under `known-answers/NAME/` that hyp runs before every run of its instrument (ADR 0002). It runs the check exactly as the run does and compares its exit code, stdout and the files it leaves under `$HYP_OUT` (ADR 0003).
@@ -327,7 +327,7 @@ What hyp derives, from a Result's files, about whether it can vouch for the scri
 _Avoid_: isolation, contained (for a sandbox)
 
 **Uncontained**:
-A Result whose verdict script hyp cannot vouch for: a script outside what a versioned bundle hashes (one that ends in `.py` or `.sh`, has an execute bit, starts with `#!`, or ends in `.go`, `.js`, `.ts`, `.rb`, `.pl` or `.rs`), a pinned bundle without a clean command record whose known answers passed, or a command record that matches no pin (spec §7.6).
+A Result whose rubric or check hyp cannot vouch for: a script outside what a versioned bundle hashes (one that ends in `.py` or `.sh`, has an execute bit, starts with `#!`, or ends in `.go`, `.js`, `.ts`, `.rb`, `.pl` or `.rs`), a pinned bundle without a clean command record whose known answers passed, or a command record that matches no pin (spec §7.6).
 _Avoid_: unpinned (alone)
 
 ### Sandboxes
