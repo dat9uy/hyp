@@ -1,10 +1,12 @@
-# Why the hyp loop is guarded at run time
+# How hyp improves itself
 
-The loop is: question, rivals, experiment, record, revise, select. Its main
-risk is spending tokens on rounds that teach nothing. This page explains why
-hyp handles that risk while the loop runs instead of proving beforehand that
-it can't happen, and where each guard lives. It is the change-control part of
-[principles.md](principles.md), which states hyp's other principles.
+hyp is changed the way it asks its users to decide things: from a real event,
+through a gate. This page explains where a fix goes, the binary or the skill
+text, why the loop is guarded while it runs instead of proven in advance, and
+when a change earns its way in. The loop is: question, rivals, experiment,
+record, revise, select, and its main risk is spending tokens on rounds that
+teach nothing. It is the change-control part of [principles.md](principles.md),
+which states hyp's other principles.
 
 ## Guard the loop while it runs, not before
 

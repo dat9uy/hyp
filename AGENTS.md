@@ -6,7 +6,7 @@ This file is for any agent or person who changes hyp. It says how the repository
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores an investigation as append-only events under `.tree/` and derives every status from them.
 - **Two skills**: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses) and `skills/hyp-verification` (run one Experiment from a recipe).
-- **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md) and [sandbox-spec.md](docs/sandbox-spec.md), the words in [glossary.md](docs/glossary.md), the principles and the owner's role in [principles.md](docs/principles.md), the loop's guards in [loop-philosophy.md](docs/loop-philosophy.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
+- **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md) and [sandbox-spec.md](docs/sandbox-spec.md), the words in [glossary.md](docs/glossary.md), the principles and the owner's role in [principles.md](docs/principles.md), the loop's guards in [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
 - **Test data** under `internal/*/testdata`, such as the synthetic store in `internal/testutil/testdata/synth`. The recipes and trees kept to test hyp are `recipes/id-citation-arms@1` and `@2` with `investigations/id-citation` (whose Arm patches are in its `arms/`), `recipes/recipe-base-arms@1` with `investigations/recipe-base`, and the recipes `recipes/authoring-stops@2`, `recipes/recipe-authoring-arms@4`, `recipes/skill-text-arms@3` and `@4`, and the retired `recipes/verifier-brief-arms@1` and `recipes/verifier-audit-arms@1`, whose trees are not published. Records made before the public release stay in the private development history.
 
 Install the binary and link the skills as [install.md](docs/install.md) describes.
@@ -46,7 +46,7 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
    - A skill-text change ships only when a session replay from the event's cut shows the failure in 3 or more of 5 trials without the change and in 1 or fewer of 5 with it. If no cut reproduces the failure, nothing ships for it.
    - A correction that only makes text agree with an owner decision already recorded ships without a replay, and its commit names the decision.
 
-   [loop-philosophy.md](docs/loop-philosophy.md) explains why the loop is guarded while it runs instead of proven in advance.
+   [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md) explains why the loop is guarded while it runs instead of proven in advance.
 6. **The PR cites the Result ids that decided it.**
 
 The skill-text gate's replay instrument is `recipes/skill-text-arms@4`: a fresh runner started at the event's store cut, with the skills at the sandbox's base commit or a SKILL.md variant given as the trial's `--patch`, scored from its transcript and changes. A row its brief and cut cannot reach is not reproduced, so nothing ships for it. `recipes/verifier-brief-arms@1`, the instrument for the verifier's brief, is retired: it measured a role removed by ADR 0015, and it stays frozen.

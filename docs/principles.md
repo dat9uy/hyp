@@ -108,13 +108,13 @@ glossary's Owner, Runner and Operator, and
 **A failure the tree can show goes into the binary as a refusal or a warning.**
 Skill text teaches only what hyp cannot check. When a fix would ask the runner
 to judge in prose what hyp could see, the gap is in hyp. See
-[loop-philosophy.md](loop-philosophy.md#mechanical-failures-belong-in-the-binary)
+[how-hyp-improves-itself.md](how-hyp-improves-itself.md#mechanical-failures-belong-in-the-binary)
 and [sandbox-spec.md](sandbox-spec.md) §1.3 for the exit codes.
 
 ## 9. hyp changes only on a real event
 
 **A change is proposed when a real investigation points at hyp, and it earns
-its way in through a gate.** [loop-philosophy.md](loop-philosophy.md) explains
+its way in through a gate.** [how-hyp-improves-itself.md](how-hyp-improves-itself.md) explains
 why the loop is guarded while it runs, and [AGENTS.md](../AGENTS.md) states the
 gate.
 
@@ -122,7 +122,7 @@ gate.
 
 - It does not authenticate actors.
 - It does not judge whether an Experiment was well designed
-  ([loop-philosophy.md](loop-philosophy.md#the-ledger-shows-a-stall-nothing-scores-a-round)).
+  ([how-hyp-improves-itself.md](how-hyp-improves-itself.md#the-ledger-shows-a-stall-nothing-scores-a-round)).
 - A select is not proof that the design is right. A later Result can
   contradict the selected Hypothesis or make it stale, and the question
   reopens ([replay-spec.md](replay-spec.md#74-designquestion-state) §7.4).
