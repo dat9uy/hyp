@@ -105,3 +105,15 @@ Considered options:
 - **Keep `hyp confirm --accept` and require a referred key.** Rejected: two paths for one meaning of accept.
 
 Kongming's reports `plans/reports/kongming-261109-2052-met-and-limit-lifecycle.md`, `kongming-261109-2135-goal-has-limits-review.md`, `kongming-261109-2205-hypothesis-claim-plus-subject.md` and `kongming-261109-2237-accept-answers-a-refer.md` hold the options weighed. The build follows the owner's choose on Q-QSDM8H, in one PR with the spec, the glossary entries Limit, Line, Coverage, Subject, Hypothesis and Goal, and a census over the trees on disk.
+
+## Amended 2026-11-10: a limit's hand and its closers are two facts, and a line is neither open nor closed
+
+Run 5 on the `multi-tenant` tree covered every candidate of both top-level questions, and OWED owed nothing, yet `hyp status` printed `G-…#1 open, ran in R-…, R-…`. The runner had to explain in chat that `open` did not mean unmet. The cause was one word for two facts: `Limit.State` joined the hand, which the move table stores and reads, and the closers, derived from Results' `closes`. Its value was picked in order: closed, else accepted, else open. A line is never closed, so its word was always `open`, which said only that no accept had been made.
+
+The owner decided (2026-11-10):
+
+- A limit holds the two facts apart: `Hand` and `Closers`, with `Referred`, `Returned`, `Accepted`, `Closed` and `Open` derived from them. `Open` means neither closed nor accepted, and is said of a Result's limit only.
+- Coverage is not a state of the move table. It changes when a candidate is added or falls, with no move on the key, and no move reads it. It stays derived, read by the ledger and the display.
+- A line prints its hand when it has one, `covered on Q-…` or `uncovered on Q-…: H-…` per top-level question with a candidate, and `ran in R-…`. It never prints `open` or `closed`. `hyp show G-…#n` prints `ran in R-…:` for each closer.
+
+No event, move, refusal or exit code changes, and old trees replay the same derived records. Only the text of a tree with lines changes. Kongming's report `plans/reports/kongming-261110-0934-line-lifecycle-and-coverage.md` holds the options weighed: a display-only fix was rejected because it leaves the joined word in the code and the spec, and coverage as a state was rejected because no move produces it.

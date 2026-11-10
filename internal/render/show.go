@@ -411,28 +411,68 @@ func (r renderer) closers(ids []string) string {
 }
 
 // lineLine is one line of the Goal as hyp show and hyp status print it:
-// G-…#n, whose turn it is or who accepted it, the Results that ran its case,
-// and its text.
+// G-…#n, its facts, and its text.
 func (r renderer) lineLine(l replay.Limit) string {
 	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), r.lineState(l), l.Text)
 }
 
-// lineState is whose turn a line is, or who accepted it, and the Results
-// that ran its case.
+// lineState prints a line's facts, each only when it has one, joined by
+// "; ": its hand, its coverage on each live top-level question with a
+// candidate, and the Results that ran its case. A line is never open or
+// closed, so neither word prints.
 func (r renderer) lineState(l replay.Limit) string {
-	state := l.State
-	switch {
-	case l.State == replay.LimitAccepted:
-		state += " by " + l.By
-	case l.Referred != "":
-		state += ", referred: the owner accepts or returns it"
-	case l.Returned != "":
-		state += ", returned"
+	var parts []string
+	if h := r.handWord(l); h != "" {
+		parts = append(parts, h)
 	}
+	var covered []string
+	var uncovered []string
+	for _, q := range r.p.TopQuestions() {
+		if len(r.p.Questions[q].Candidates) == 0 {
+			continue
+		}
+		if un := r.p.Uncovered(l, q); len(un) > 0 {
+			uncovered = append(uncovered, "uncovered on "+r.id(q)+": "+r.named(un))
+		} else {
+			covered = append(covered, r.id(q))
+		}
+	}
+	if len(covered) > 0 {
+		parts = append(parts, "covered on "+strings.Join(covered, ", "))
+	}
+	parts = append(parts, uncovered...)
 	if len(l.Closers) > 0 {
-		state += ", ran in " + r.ids(l.Closers)
+		parts = append(parts, "ran in "+r.ids(l.Closers))
 	}
-	return state
+	if len(parts) == 0 {
+		return "no candidate"
+	}
+	return strings.Join(parts, "; ")
+}
+
+// handWord is a line's latest hand in words, or "" when none.
+func (r renderer) handWord(l replay.Limit) string {
+	switch {
+	case l.Accepted():
+		return "accepted by " + l.Hand.Actor
+	case l.Referred():
+		return "referred: the owner accepts or returns it"
+	case l.Returned():
+		return "returned"
+	}
+	return ""
+}
+
+// limitState is a Result's limit's state word: closed by its closers,
+// accepted by the owner, or open, neither.
+func (r renderer) limitState(l replay.Limit) string {
+	switch {
+	case l.Closed():
+		return "closed by " + r.closers(l.Closers)
+	case l.Accepted():
+		return "accepted by " + l.Hand.Actor
+	}
+	return "open"
 }
 
 // ranOn names, for one closer of a line, each Hypothesis it ran on: its
@@ -455,16 +495,9 @@ func (r renderer) ranOn(res string, hyps []string) string {
 // limitLine is one limit as hyp show and render --markdown print it:
 // R-…#n, its state, and its text. hyp is the question's selected Hypothesis.
 func (r renderer) limitLine(l replay.Limit, hyp string) string {
-	state := l.State
-	switch l.State {
-	case replay.LimitOpen:
-		if hyp != "" && !l.Gating {
-			state += ", does not gate (judges " + r.ids(l.Hyps) + ")"
-		}
-	case replay.LimitClosed:
-		state += " by " + r.closers(l.Closers)
-	case replay.LimitAccepted:
-		state += " by " + l.By
+	state := r.limitState(l)
+	if l.Open() && hyp != "" && !l.Gating {
+		state += ", does not gate (judges " + r.ids(l.Hyps) + ")"
 	}
 	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), state, l.Text)
 }

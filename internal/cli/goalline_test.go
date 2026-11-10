@@ -50,7 +50,7 @@ func TestGoalLineIsOwedUntilACloserCoversTheCandidate(t *testing.T) {
 		"bad lines: the Goal's lines are written once")
 	h := supported(t, q, "H")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" limit "+keys[0]+" [owed] — one tenant per row\n")
-	want(t, hyp(t, "status"), 0, "LINES\n  "+keys[0]+" open — one tenant per row\n")
+	want(t, hyp(t, "status"), 0, "LINES\n  "+keys[0]+" uncovered on "+q+": "+h+" — one tenant per row\n")
 	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: "+q+" owes the runner first: limit "+keys[0])
 
 	e := must(t, "add", "exp", "--parent", h, "--title", "runs both lines", "--recipe", "none", "--decided-by", "reading", "--aims", keys[0], "--target", "none", "--why", "w")
@@ -58,15 +58,17 @@ func TestGoalLineIsOwedUntilACloserCoversTheCandidate(t *testing.T) {
 	want(t, r, 0, "  closes "+keys[0]+": one tenant per row\n")
 	res := strings.Fields(r.stdout)[0]
 	notIn(t, "limit "+keys[0])
-	want(t, hyp(t, "show", keys[0]), 0, "closed by "+res+": ran on "+h+": supports\n")
-	want(t, hyp(t, "show", g), 0, "line "+keys[1]+" open, ran in "+res+" — a deploy that misses a step fails loudly")
+	want(t, hyp(t, "show", keys[0]), 0, "  covered\nran in "+res+": ran on "+h+": supports\n")
+	want(t, hyp(t, "show", g), 0, "line "+keys[1]+" covered on "+q+"; ran in "+res+" — a deploy that misses a step fails loudly")
+	notIn(t, keys[0]+" open")
 	must(t, "select", q, h, "--why", "w")
 	want(t, hyp(t, "show", g), 0, "status: complete")
 
 	// A new candidate that no closer covers owes the line again.
 	h2 := supported(t, q, "H2")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" limit "+keys[0]+" [aimed_not_settled by ")
-	want(t, hyp(t, "show", keys[0]), 0, "  not covered by a closer: "+h2+"\n")
+	want(t, hyp(t, "show", keys[0]), 0, "  uncovered: "+h2+"\n")
+	want(t, hyp(t, "status"), 0, "  "+keys[0]+" uncovered on "+q+": "+h2+"; ran in "+res+" — ")
 	want(t, hyp(t, "check"), 0, "check: 0 errors")
 }
 
@@ -86,7 +88,8 @@ func TestOwnerAnswersARefusedLine(t *testing.T) {
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--accept", keys[0], "--why", "w"), 1,
 		"separation of duties: a referred the limit it accepts")
 	must(t, "checkpoint", "--summary", "not this Goal", "--role", "owner", "--accept", keys[0], "--actor", "o", "--why", "w")
-	want(t, hyp(t, "show", keys[0]), 0, "state: accepted by o\n")
+	want(t, hyp(t, "show", keys[0]), 0, "hand: accepted by o\n")
+	want(t, hyp(t, "status"), 0, "  "+keys[0]+" accepted by o; uncovered on "+q+": "+h+" — ")
 	must(t, "select", q, h, "--why", "w")
 	must(t, "checkpoint", "--summary", "run it after all", "--role", "owner", "--returns", keys[0], "--actor", "o", "--why", "w")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" limit "+keys[0]+" [owed]")
@@ -141,7 +144,8 @@ func TestSubjectCoversALineByFingerprint(t *testing.T) {
 	e := must(t, "add", "exp", "--parent", h, "--title", "runs the line", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
 	rec := writeCommandRecord(t, dir, "E-RUN", map[string]string{"h-row.py": "row = 1\n"})
 	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", rec, "--closes", keys[0], "--why", "w")
-	want(t, hyp(t, "show", keys[0]), 0, "closed by "+res+": ran on "+h+": supports; ran on "+h2+"\n")
+	want(t, hyp(t, "show", keys[0]), 0, "ran in "+res+": ran on "+h+": supports; ran on "+h2+"\n")
+	want(t, hyp(t, "status"), 0, "  "+keys[0]+" covered on "+q+", "+q2+"; ran in "+res+" — one tenant per row\n")
 	notIn(t, "limit "+keys[0])
 
 	// The bytes ran as H2, so a different subject is a new Hypothesis.

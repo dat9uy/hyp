@@ -125,8 +125,8 @@ func (p Projection) Owed() []Owed {
 		}
 		for _, l := range p.LimitsOf(dq) {
 			switch {
-			case l.State != LimitOpen:
-			case l.Referred != "":
+			case !l.Open():
+			case l.Referred():
 				add(Owed{Who: OwedOwner, Kind: OwedReferred, Key: l.Key})
 			case len(q.Candidates) > 0:
 				// A limit names a case no check ran; it may apply to every
@@ -139,8 +139,8 @@ func (p Projection) Owed() []Owed {
 		if n.Parent == p.Goal.GoalID {
 			for _, l := range p.Lines {
 				switch {
-				case l.State != LimitOpen:
-				case l.Referred != "":
+				case !l.Open():
+				case l.Referred():
 					add(Owed{Who: OwedOwner, Kind: OwedReferred, Key: l.Key})
 				case len(p.Uncovered(l, dq)) > 0:
 					add(aim(Owed{Who: OwedRunner, Kind: OwedLimit, Key: l.Key}))
@@ -296,7 +296,7 @@ func (p Projection) ReferredLimit(dq string) string {
 		ls = append(slices.Clone(ls), p.Lines...)
 	}
 	for _, l := range ls {
-		if l.State == LimitOpen && l.Referred != "" {
+		if l.Open() && l.Referred() {
 			return l.Key
 		}
 	}

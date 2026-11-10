@@ -40,7 +40,7 @@ func (p Projection) UnclosedAims(exp string, closes []string, newLimits int) []s
 		if key, ok := event.ParseKey(k); !ok || key.Kind != event.KeyLimit || slices.Contains(closes, k) {
 			continue
 		}
-		if l, ok := p.Limit(k); ok && l.State == LimitOpen {
+		if l, ok := p.Limit(k); ok && l.Open() {
 			out = append(out, k)
 		}
 	}
