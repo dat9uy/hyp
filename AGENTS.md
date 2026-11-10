@@ -49,7 +49,7 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
    [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md) explains why the loop is guarded while it runs instead of proven in advance.
 6. **The PR cites the Result ids that decided it.**
 
-The skill-text gate's replay instrument is `recipes/skill-text-arms@4`: a fresh runner started at the event's store cut, with the skills at the sandbox's base commit or a SKILL.md variant given as the trial's `--patch`, scored from its transcript and changes. A row its brief and cut cannot reach is not reproduced, so nothing ships for it. Its checks print verdicts, which a recipe no longer does (ADR 0018), so a new Experiment pins its next version, split into a recipe and a rubric. `recipes/verifier-brief-arms@1`, the instrument for the verifier's brief, is retired: it measured a role removed by ADR 0015, and it stays frozen.
+The skill-text gate's replay instrument is `recipes/skill-text-arms@4`: a fresh runner started at the event's store cut, with the skills at the sandbox's base commit or a SKILL.md variant given as the trial's `--patch`, scored from its transcript and changes. A row its brief and cut cannot reach is not reproduced, so nothing ships for it. Its checks print verdicts, which a recipe no longer does (ADR 0018), so a new Experiment pins its next version, split into a recipe and a rubric (#110). `recipes/verifier-brief-arms@1`, the instrument for the verifier's brief, is retired: it measured a role removed by ADR 0015, and it stays frozen.
 
 ## Experiment controls
 
