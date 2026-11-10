@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; extended by ADR 0018: an Experiment may sit under a DesignQuestion
 ---
 
 # An Experiment has a lifecycle of its own

@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; amended by ADR 0018: unjudged is a refusal, not a mark
 ---
 
 # The ledger is the stall guard
