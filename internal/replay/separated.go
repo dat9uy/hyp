@@ -27,11 +27,8 @@ func (p Projection) Unseparated(dq string) [][2]string {
 // separates reports whether a non-retracted Result gives a and b different
 // verdicts.
 func (p Projection) separates(a, b string) bool {
-	for _, ev := range p.Applied {
-		if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == ResRetracted {
-			continue
-		}
-		v := p.Nodes[ev.ID].Verdicts
+	for _, res := range p.LiveResults() {
+		v := p.Nodes[res].Verdicts
 		va, oka := v[a]
 		vb, okb := v[b]
 		if oka && okb && va != vb {
@@ -39,4 +36,16 @@ func (p Projection) separates(a, b string) bool {
 		}
 	}
 	return false
+}
+
+// LiveResults lists the non-retracted Results in merge order: the Results
+// whose verdicts count.
+func (p Projection) LiveResults() []string {
+	var out []string
+	for _, ev := range p.Applied {
+		if ev.Type == event.TypeResultRecord && p.Results[ev.ID].Status != ResRetracted {
+			out = append(out, ev.ID)
+		}
+	}
+	return out
 }

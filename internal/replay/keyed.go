@@ -21,14 +21,19 @@ import (
 // that made it, and Referrer the actor of the latest refer, which an accept
 // or a return must differ from.
 type Hand struct {
-	Move, Event, Actor, Referrer string
+	Move                   HandMove
+	Event, Actor, Referrer string
 }
+
+// HandMove is a limit key's latest move: HandRefer, HandReturn or
+// HandAccept, or "" when none.
+type HandMove string
 
 // HandRefer, HandReturn and HandAccept are the values of Hand.Move.
 const (
-	HandRefer  = "refer"  // the runner hands the limit to the owner
-	HandReturn = "return" // the owner hands it back: the Goal covers its case
-	HandAccept = "accept" // the owner accepts it: this tree does not run its case
+	HandRefer  HandMove = "refer"  // the runner hands the limit to the owner
+	HandReturn HandMove = "return" // the owner hands it back: the Goal covers its case
+	HandAccept HandMove = "accept" // the owner accepts it: this tree does not run its case
 )
 
 // limitMove is one row of the limit move table: the payload field that
@@ -38,7 +43,7 @@ const (
 // refused once a Result closed a limit of a Result: its case ran.
 type limitMove struct {
 	field    string
-	from     []string // the latest hand's Move; "" stands for no hand yet
+	from     []HandMove // the latest hand's Move; "" stands for no hand yet
 	owner    bool
 	answers  bool // the actor differs from the latest referrer
 	notRun   bool // refused once a Result closed the limit
@@ -47,14 +52,14 @@ type limitMove struct {
 	ranErr   string // what follows "closed by R-…" in the notRun refusal
 }
 
-var limitMoves = map[string]limitMove{
-	HandRefer: {field: "refers", from: []string{"", HandRefer, HandReturn}, notRun: true,
+var limitMoves = map[HandMove]limitMove{
+	HandRefer: {field: "refers", from: []HandMove{"", HandRefer, HandReturn}, notRun: true,
 		refusal: "%s is accepted; only the owner reopens it, with returns",
 		ranErr:  "; its case ran, so there is nothing to refer"},
-	HandAccept: {field: "accepts", from: []string{HandRefer}, owner: true, answers: true, notRun: true,
+	HandAccept: {field: "accepts", from: []HandMove{HandRefer}, owner: true, answers: true, notRun: true,
 		refusal:  "%s is not referred; only a referred limit is accepted, so the runner refers it first",
 		ownerErr: "bad checkpoint: only an owner accepts a limit", ranErr: "; its case ran, so there is nothing to accept"},
-	HandReturn: {field: "returns", from: []string{HandRefer, HandAccept}, owner: true, answers: true, notRun: true,
+	HandReturn: {field: "returns", from: []HandMove{HandRefer, HandAccept}, owner: true, answers: true, notRun: true,
 		refusal:  "%s is not referred or accepted; only a referred or accepted limit is returned",
 		ownerErr: "bad checkpoint: only an owner returns a limit"},
 }
@@ -63,7 +68,7 @@ var limitMoves = map[string]limitMove{
 
 // checkLimitMove reports why move may not apply to limit key k now, made by
 // actor on a checkpoint whose role is owner or not.
-func (f *Facts) checkLimitMove(move, k, actor string, owner bool) error {
+func (f *Facts) checkLimitMove(move HandMove, k, actor string, owner bool) error {
 	m := limitMoves[move]
 	if m.owner && !owner {
 		return fmt.Errorf("%s", m.ownerErr)
@@ -81,13 +86,13 @@ func (f *Facts) checkLimitMove(move, k, actor string, owner bool) error {
 		return fmt.Errorf("bad %s: "+m.refusal, m.field, f.keyDisplay(k))
 	}
 	if m.answers && h.Referrer != "" && h.Referrer == actor {
-		return fmt.Errorf("separation of duties: %s referred the limit it %s", actor, map[string]string{HandAccept: "accepts", HandReturn: "returns"}[move])
+		return fmt.Errorf("separation of duties: %s referred the limit it %s", actor, map[HandMove]string{HandAccept: "accepts", HandReturn: "returns"}[move])
 	}
 	return nil
 }
 
 // applyLimitMove records move on limit key k, made by ev.
-func (f *Facts) applyLimitMove(move, k string, ev event.Event) {
+func (f *Facts) applyLimitMove(move HandMove, k string, ev event.Event) {
 	h := f.LimitHand[k]
 	h.Move, h.Event, h.Actor = move, ev.ID, ev.Actor
 	if move == HandRefer {
@@ -102,7 +107,7 @@ func (f *Facts) applyLimitMove(move, k string, ev event.Event) {
 func (f *Facts) checkLimitMoves(ev event.Event, p event.Checkpoint) error {
 	owner := p.Role == event.RoleOwner
 	for _, mv := range []struct {
-		move string
+		move HandMove
 		keys []string
 	}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
 		if len(mv.keys) > 0 && limitMoves[mv.move].owner && !owner {
@@ -113,12 +118,12 @@ func (f *Facts) checkLimitMoves(ev event.Event, p event.Checkpoint) error {
 		}
 	}
 	for _, mv := range []struct {
-		move string
+		move HandMove
 		keys []string
 	}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
 		for _, k := range mv.keys {
 			for _, other := range []struct {
-				move string
+				move HandMove
 				keys []string
 			}{{HandRefer, p.Refers}, {HandAccept, p.Accepts}} {
 				if mv.move != other.move && mv.move == HandReturn && slices.Contains(other.keys, k) {

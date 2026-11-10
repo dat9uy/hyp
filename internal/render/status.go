@@ -75,7 +75,7 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 	edges := p.LiveEdges()
 	onFrontier := func(dq string) bool {
 		s := p.Questions[dq].State
-		return s == replay.DQOpen || s == replay.DQReopened
+		return s.Open()
 	}
 	// blocker reports a sub-question that a printed supported Hypothesis still
 	// owes and that would otherwise not print, so nothing would name the work.
@@ -297,12 +297,12 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 	// with the question it holds, so the owner answers them once.
 	printed := map[string]bool{}
 	for _, l := range p.Readings {
-		if l.By != "" || printed[l.Key] {
+		if !l.Open() || printed[l.Key] {
 			continue
 		}
 		var open []string
 		for _, k := range p.SameAsk(l.Key) {
-			if m, _ := p.Reading(k); m.By == "" {
+			if m, _ := p.Reading(k); m.Open() {
 				open = append(open, k)
 			}
 		}
@@ -442,9 +442,9 @@ func (r renderer) ruledOut(dq string) string {
 			continue
 		}
 		var by []string
-		for _, ev := range r.p.Applied {
-			if ev.Type == event.TypeResultRecord && r.p.Results[ev.ID].Status != replay.ResRetracted && r.p.Nodes[ev.ID].Verdicts[h] == event.VerdictContradicts {
-				by = append(by, r.id(ev.ID))
+		for _, res := range r.p.LiveResults() {
+			if r.p.Nodes[res].Verdicts[h] == event.VerdictContradicts {
+				by = append(by, r.id(res))
 			}
 		}
 		name := r.p.Nodes[h].Alias
@@ -656,11 +656,8 @@ func (r renderer) owedLine(o replay.Owed) string {
 }
 
 func resultSeparates(p replay.Projection, candidates []string) bool {
-	for _, ev := range p.Applied {
-		if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == replay.ResRetracted {
-			continue
-		}
-		verdicts := p.Nodes[ev.ID].Verdicts
+	for _, res := range p.LiveResults() {
+		verdicts := p.Nodes[res].Verdicts
 		supports, other := false, false
 		for _, h := range candidates {
 			switch v, ok := verdicts[h]; {

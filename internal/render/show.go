@@ -178,11 +178,8 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		// A Hypothesis may be judged as another Experiment's target, so its
 		// children do not list every Result that judged it.
 		judged := false
-		for _, ev := range p.Applied {
-			if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == replay.ResRetracted {
-				continue
-			}
-			rn := p.Nodes[ev.ID]
+		for _, res := range p.LiveResults() {
+			rn := p.Nodes[res]
 			verdict, ok := rn.Verdicts[id]
 			if !ok {
 				continue
@@ -191,9 +188,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				w("judged by:")
 				judged = true
 			}
-			w("  %s (%s) %s — %s", r.id(ev.ID), r.id(rn.Parent), verdict, rn.Observation)
+			w("  %s (%s) %s — %s", r.id(res), r.id(rn.Parent), verdict, rn.Observation)
 			for _, l := range p.Readings {
-				if l.Result == ev.ID {
+				if l.Result == res {
 					for _, line := range readingLines(r, l) {
 						w("    %s", line)
 					}
@@ -213,14 +210,11 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 			}
 		}
 		var lines []string
-		for _, ev := range p.Applied {
-			if ev.Type != event.TypeResultRecord || p.Results[ev.ID].Status == replay.ResRetracted {
-				continue
-			}
-			rn := p.Nodes[ev.ID]
+		for _, res := range p.LiveResults() {
+			rn := p.Nodes[res]
 			for _, pr := range preds {
 				if _, ok := rn.Verdicts[pr]; ok {
-					line := fmt.Sprintf("  %s (%s) %s", r.id(ev.ID), r.id(rn.Parent), r.verdicts(rn.Verdicts))
+					line := fmt.Sprintf("  %s (%s) %s", r.id(res), r.id(rn.Parent), r.verdicts(rn.Verdicts))
 					if _, own := rn.Verdicts[id]; own {
 						line += " (also counted for this hypothesis)"
 					}
@@ -284,7 +278,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 // answer in force, then one indented line per earlier answer it replaced.
 func readingLines(r renderer, l replay.Reading) []string {
 	state := "open"
-	if l.By != "" {
+	if !l.Open() {
 		revised := ""
 		if n := len(l.Answers); n > 1 {
 			revised = ", revised by owner checkpoint " + l.Answers[n-1].By
