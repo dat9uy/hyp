@@ -106,6 +106,11 @@ var rules = map[string]rule{
 			if f.Abandoned[ev.Node] {
 				return errors.New("already abandoned: " + ev.Node)
 			}
+			// Superseding already took it out of the live set; an abandon
+			// would change nothing a status reads.
+			if f.superseded(ev.Node) {
+				return fmt.Errorf("bad abandon: %s is superseded", ev.Node)
+			}
 			return nil
 		},
 		apply: func(st *State, ev event.Event) { st.Abandoned[ev.Node] = true },
@@ -176,7 +181,17 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) { st.Withdrawn[ev.Node] = true },
 	},
 	event.TypeDQDefer: {
-		validate: validateHold,
+		validate: func(f *Facts, ev event.Event) error {
+			if err := validateHold(f, ev); err != nil {
+				return err
+			}
+			// A withdrawn question no longer matters, so parking it says
+			// nothing; a resume brings it back first.
+			if f.Hold[ev.Node] == DQWithdrawn {
+				return fmt.Errorf("bad defer: %s is withdrawn; resume it first", ev.Node)
+			}
+			return nil
+		},
 		apply:    func(st *State, ev event.Event) { st.Hold[ev.Node] = DQDeferred },
 	},
 	event.TypeDQWithdraw: {
@@ -221,6 +236,11 @@ var rules = map[string]rule{
 			}
 			if n.Kind != event.KindHypothesis && n.Kind != event.KindDesignQuestion {
 				return fmt.Errorf("wrong kind: reaffirm on %s", n.Kind)
+			}
+			// Stale is computed only for live nodes, so a reaffirm of one
+			// that is not live would change nothing.
+			if f.superseded(ev.Node) || f.Abandoned[ev.Node] || f.Hold[ev.Node] == DQWithdrawn {
+				return fmt.Errorf("bad reaffirm: %s is not live", ev.Node)
 			}
 			return nil
 		},

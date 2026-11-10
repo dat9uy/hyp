@@ -209,10 +209,47 @@ func TestEventsUnderAHeldQuestionApply(t *testing.T) {
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQWithdrawn, "")
 	wantTurn(t, p, q, TurnClosed)
-	b.Defer(q)
-	wantStatus(t, replayB(b), q, DQDeferred, "")
 	b.Resume(q)
 	p = replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
+}
+
+// A move that would change nothing a status reads is refused: an abandon of
+// a superseded Hypothesis, a reaffirm of a node that is not live, and a
+// defer of a withdrawn question. Each applies again once the node is live.
+func TestMovesOnANodeNotLiveAreRefused(t *testing.T) {
+	b := testutil.New()
+	q := b.DQ(b.Goal("g"), "q")
+	old := b.Hyp(q, "old")
+	repl := b.Hyp(q, "repl")
+	gone := b.Hyp(q, "gone")
+	b.Edge(repl, event.EdgeSupersedes, old)
+	abandonOld := b.Abandon(old)
+	reaffirmOld := b.Reaffirm(old)
+	b.Abandon(gone)
+	reaffirmGone := b.Reaffirm(gone)
+	b.Withdraw(q)
+	deferQ := b.Defer(q)
+	reaffirmQ := b.Reaffirm(q)
+	p := replayB(b)
+	wantRejected(t, p, abandonOld, "bad abandon: "+old+" is superseded")
+	wantRejected(t, p, reaffirmOld, "bad reaffirm: "+old+" is not live")
+	wantRejected(t, p, reaffirmGone, "bad reaffirm: "+gone+" is not live")
+	wantRejected(t, p, deferQ, "bad defer: "+q+" is withdrawn; resume it first")
+	wantRejected(t, p, reaffirmQ, "bad reaffirm: "+q+" is not live")
+	if n := len(p.Rejections); n != 5 {
+		t.Fatalf("rejections = %+v, want 5", p.Rejections)
+	}
+
+	b.Resume(q)
+	b.Defer(q)
+	b.Unedge(repl, event.EdgeSupersedes, old)
+	b.Reaffirm(old)
+	b.Abandon(old)
+	p = replayB(b)
+	if n := len(p.Rejections); n != 5 {
+		t.Fatalf("rejections after the nodes are live again = %+v, want the same 5", p.Rejections)
+	}
+	wantStatus(t, p, q, DQDeferred, "")
 }

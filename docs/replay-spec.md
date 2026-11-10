@@ -104,7 +104,7 @@ An event is refused when any of these holds:
 4. Wrong parent kind. Goal: parent `""`, and only one Goal per log. DesignQuestion: parent is the Goal or a Hypothesis. Hypothesis: parent is a DesignQuestion. Experiment: parent is a Hypothesis, or a DesignQuestion. Result: parent is an Experiment.
 5. An Experiment `targets` entry is not a Hypothesis with the same parent DesignQuestion as the Experiment's parent, or equals the Experiment's parent. An Experiment under a DesignQuestion with `targets`, `rubric`, `rubric_hash` or `decided_by` (`bad experiment: an Experiment under a DesignQuestion has no targets and no rubric; it measures`), or with recipe `none` (`bad experiment: an Experiment under a DesignQuestion measures, so it pins a recipe`).
 6. A `result.record` verdict key is not one of its Experiment's targets: its parent Hypothesis or one of its `targets`. A `result.record` that leaves a target without a verdict (`bad verdicts: E-… targets H-…; give it a verdict, inconclusive when the run could not decide`), and one with any verdict under an Experiment with no targets (`bad verdicts: E-… has no targets; it measures`). This replaces the `unjudged` mark (ADR 0018).
-7. `result.retract` on a Result that is already retracted. `hypothesis.abandon` on a Hypothesis that is already abandoned.
+7. `result.retract` on a Result that is already retracted. `hypothesis.abandon` on a Hypothesis that is already abandoned, or superseded (`bad abandon: <id> is superseded`): superseding already took it out of the live set.
 8. `dq.select` of a Hypothesis that is not a direct child of that DQ, or is superseded or abandoned.
 9. An owner `confirm` whose `select` is not a `dq.select` on this DQ. A `verifier` confirm is history and is not refused (§4). No command writes a confirm; the rule keeps old logs replaying as they did (ADR 0019).
 10. `supersedes` where `from` = `to`, the two Hypotheses have different parent DQs, or the edge would create a supersedes cycle. **[added]** It may also join two Experiments, whose parent Hypotheses must have one parent DQ (`cross-DQ supersedes`); it is refused between an Experiment and any other kind (`wrong kind`), and onto an Experiment that has a non-retracted Result (`bad supersedes: <id> has the non-retracted Result <id>`).
@@ -126,6 +126,7 @@ An event is refused when any of these holds:
 26. A `hypothesis.subject` on a node that is not a Hypothesis (`wrong kind`), on one superseded or abandoned (`bad subject: <id> is superseded or abandoned`), with no files (`bad subject: no files`), more than 50 (`over limit`), a path outside 1–300 runes or named twice, a sha256 that is not lowercase hex (`bad subject: "<x>" is not a sha256`), the same files as the current subject (`bad subject: unchanged`), or a different subject once a non-retracted Result's `fingerprints` hold every file of the current one (`bad subject: H-…'s subject ran in R-…; a different subject is a new Hypothesis: add it and supersede H-…`).
 27. A `result.record` `fingerprints` entry that is not a lowercase hex sha256 (`bad fingerprints: …`), a list not sorted and unique (`bad fingerprints: not sorted and unique`), or more than 2000 entries (`over limit`).
 28. `rubric`, `rubric_hash` or `records` on a node that is not an Experiment (`unknown field`); a `rubric` that is neither `reading` nor `name@version` (`invalid rubric`); a bundle `rubric` with no `rubric_hash`, or a `rubric_hash` that is not lowercase hex or comes without a bundle (`bad rubric: …`); both `rubric` and `decided_by`; or a `records` entry with a path outside 1–300 runes or named twice, or a sha256 that is not lowercase hex (`bad records: …`), or more than 500 (`over limit`).
+29. `reaffirm` of a node that is not live (`bad reaffirm: <id> is not live`): a superseded or abandoned Hypothesis, or a withdrawn DQ. `dq.defer` of a withdrawn DQ (`bad defer: <id> is withdrawn; resume it first`). Each would change nothing a status reads; the move applies again once the node is live.
 
 CLI error text is `refused: <reason>` on stderr, with exit code 1. A help request (`-h` or `--help` on any command, and `help` at the top level and on a group command) prints usage on stdout and exits 0 at every level, while a missing or unknown subcommand exits 2.
 
@@ -169,7 +170,7 @@ Stop after the event whose id equals `asOf`, when `asOf` is not empty.
 ### 7.1 Hypothesis status (first matching rule wins)
 
 1. `superseded`: a live `supersedes` edge points at it.
-2. `abandoned`: it has an applied `hypothesis.abandon`. An abandon of a superseded Hypothesis applies and is kept, and the Hypothesis reads `superseded`, since rule 1 comes first; it reads `abandoned` once the `supersedes` edge is removed.
+2. `abandoned`: it has an applied `hypothesis.abandon`. An abandon of a superseded Hypothesis is refused (§5 rule 7); once the `supersedes` edge is removed, it can be abandoned.
 3. Collect the verdicts for this Hypothesis from all **non-retracted** Results. No verdicts gives `proposed`. Any `contradicts` gives `contradicted`. Otherwise any `supports` gives `supported`. Otherwise it is `inconclusive`.
 
 A Hypothesis's status reads verdicts only. A sub-question does not change it: the block it puts on its parent belongs to the question that selected the parent (§7.4).
@@ -193,14 +194,14 @@ What reads what: a Hypothesis reads only other Hypotheses, its status from verdi
   - `T.stale != none` gives cause `{Node: T, Reason: "stale", Next: T.staleCause}`;
   - an effective snapshot exists and is not `(supported, false)` gives cause `{Node: T, Reason: "changed_since_basis"}`.
 - If nothing matches, stale is `none`.
-- `reaffirm` creates a new snapshot. On a node that is not live it applies and changes nothing a status reads, since such a node has no stale; its snapshot counts if the node is live again. It cannot clear staleness while T is still unsupported, because the first test is always live; `hyp check` warns "reaffirm had no effect" in that case.
+- `reaffirm` creates a new snapshot. On a node that is not live it is refused (§5 rule 29), since such a node has no stale. It cannot clear staleness while T is still unsupported, because the first test is always live; `hyp check` warns "reaffirm had no effect" in that case.
 - `depends_on` is never followed across `supersedes`. A superseded target is not `supported`, so its dependents go stale until the agent re-points the edge and reaffirms.
 - A sub-question on a target does not make its dependents stale, because it does not change the target's status. A claim that rests on an answer says so with `depends_on`.
 - Stale is returned as a cause chain, not a bool, so the status screen can print `H-5 stale ← H-3 contradicted ← R-9`. The chain ends at the Result that contradicted (the latest non-retracted contradicting Result), when there is one.
 
 ### 7.4 DesignQuestion state
 
-Hold state is the latest of `dq.defer` / `dq.withdraw` / `dq.resume`; resume clears it. None of the three is refused by state: each applies to any DQ, the latest in merge order wins, so a withdraw is undone by a resume and replaced by a defer, and a resume of a DQ with no hold changes nothing. Events under a held DQ still apply: a select, an unselect, a new child Hypothesis, an Experiment and a Result are kept, the DQ reads `deferred` or `withdrawn` and its turn is closed (§8.1), and a resume derives its state from all of them.
+Hold state is the latest of `dq.defer` / `dq.withdraw` / `dq.resume`; resume clears it. The latest in merge order wins: a withdraw is undone by a resume, and a resume of a DQ with no hold changes nothing. A defer of a withdrawn DQ is refused (§5 rule 29): the question no longer matters, so parking it says nothing; a resume brings it back first. A withdraw of a deferred DQ applies and replaces the defer. Events under a held DQ still apply: a select, an unselect, a new child Hypothesis, an Experiment and a Result are kept, the DQ reads `deferred` or `withdrawn` and its turn is closed (§8.1), and a resume derives its state from all of them.
 
 One record, the question's `Decision`, owns everything below except the hold state: select history (each select with the candidates when it applied), conflicts, the limits under the question (§8) and the reason order. Render, signals, check and the CLI read it.
 
