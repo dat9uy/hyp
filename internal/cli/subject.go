@@ -158,15 +158,13 @@ func fileSHA256(path string) (string, error) {
 // base and no patch, given its inputs and directory entries (format 6). A
 // sandbox record is one run per Arm, each at its base with that Arm's one
 // patch and given the inputs file; with no Arm it is one run at its base
-// given the inputs file. A record that cannot be read, or names nothing,
-// gives no subject; hyp check reports a record it cannot read. A subject
+// given the inputs file. An Arm whose patch is not named by a sha256 gives
+// no subject, since its code is unknown. A record that cannot be read, or
+// names nothing, gives no subject; hyp check reports a record it cannot read. A subject
 // equal to an earlier one is kept once (ADR 0020).
 func runSubjects(root string, evidence []string) []event.RunSubject {
 	var out []event.RunSubject
 	add := func(base, patch string, files []string) {
-		if !event.IsSHA256(patch) {
-			patch = ""
-		}
 		files = slices.DeleteFunc(files, func(h string) bool { return !event.IsSHA256(h) })
 		slices.Sort(files)
 		files = slices.Compact(files)
@@ -214,7 +212,9 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
 				add(base, "", inputs)
 			}
 			for _, p := range r.Patches {
-				add(base, p.SHA256, inputs)
+				if event.IsSHA256(p.SHA256) {
+					add(base, p.SHA256, inputs)
+				}
 			}
 		}
 	}

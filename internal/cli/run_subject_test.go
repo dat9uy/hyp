@@ -320,6 +320,30 @@ func TestSubjectPatchIsNotAnInput(t *testing.T) {
 	want(t, hyp(t, "subject", given, "--patch", "arm.patch", "--why", "w"), 2, "--patch needs --base")
 }
 
+// An Arm whose patch is not named by a sha256 ran unknown code: it gives
+// no subject, so it never counts as a run at bare B.
+func TestArmWithBadPatchHashGivesNoSubject(t *testing.T) {
+	dir, g, q, keys := setupLines(t, "a run at B plus a patch never covers bare B")
+	b := gitCommits(t, dir, 1)[0]
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	bare := candidate(t, q2, "bare B", "--base", b)
+	h, e := runner(t, q)
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "an Arm with a bad hash", "--evidence", writeSandboxRecord(t, dir, e, "run-bad", b, strings.Repeat("A", 64)), "--closes", keys[0], "--why", "w")
+	if got := lastResult(t, dir)["subjects"]; got != nil {
+		t.Fatalf("subjects = %s, want none for an Arm with no sha256", got)
+	}
+	want(t, hyp(t, "status"), 0, "uncovered on "+q2+": "+bare+";")
+}
+
+// One path is never both a subject's patch and one of its input files.
+func TestSubjectPatchPathIsNotAlsoAnInput(t *testing.T) {
+	dir, _, q, _ := setupLines(t, "x")
+	b := gitCommits(t, dir, 1)[0]
+	writeHashed(t, dir, "arm.patch", "--- a\n+++ b\n")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	want(t, hyp(t, "subject", h, "arm.patch", "--base", b, "--patch", "arm.patch", "--why", "w"), 1, "bad subject: arm.patch listed twice")
+}
+
 // Rule 26 after a run given inputs: once a run at B given an inputs file
 // holds a bare-B subject, the bytes ran as that Hypothesis, and a new tie
 // is refused.

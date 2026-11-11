@@ -438,6 +438,9 @@ func (f *Facts) validateSubject(ev event.Event) error {
 		return fmt.Errorf("over limit: files has %d items (max %d)", len(p.Files), event.MaxSubjectFiles)
 	}
 	seen := map[string]bool{}
+	if p.Patch != nil {
+		seen[p.Patch.Path] = true
+	}
 	for _, file := range p.Files {
 		if err := textLimit("path", file.Path, 1, event.MaxEvidenceItem); err != nil {
 			return err
