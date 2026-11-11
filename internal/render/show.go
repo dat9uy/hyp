@@ -29,10 +29,13 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		w("body: %s", n.Body)
 	}
 	if n.Kind == event.KindGoal {
-		for _, l := range p.Lines {
+		for _, l := range p.LinesOf(id) {
 			w("line %s", r.lineLine(l))
 		}
 		for _, l := range p.Readings {
+			if p.GoalOf(l.Question) != id {
+				continue
+			}
 			for _, line := range readingLines(r, l) {
 				w("%s", line)
 			}
@@ -420,7 +423,7 @@ func (r renderer) lineState(l replay.Limit) string {
 	}
 	var covered []string
 	var uncovered []string
-	for _, q := range r.p.TopQuestions() {
+	for _, q := range r.p.TopQuestions(l.Result) {
 		if len(r.p.Questions[q].Candidates) == 0 {
 			continue
 		}

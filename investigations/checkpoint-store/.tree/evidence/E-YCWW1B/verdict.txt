@@ -1,0 +1,5 @@
+Experiment E-YCWW1B, rule by reading (in its body).
+(a) a-red-on-1c396d4.log: with only d775c46's internal/cli/two_goal_store_test.go copied into a detached worktree of 1c396d4, TestTwoGoalStoreAdmitsASecondGoalWrite fails with "refused: wrong parent kind: only one Goal per log", and TestTwoGoalStoreReplaysEachGoalAsItsOwn fails with "rejected ...: wrong parent kind: only one Goal per log". Holds.
+(b) b-vet-test-d775c46.log: go vet ./... exit 0 and go test ./... -count=1 exit 0 at d775c46. Holds.
+(c) c-census.log: hyp status and hyp check byte-identical, same exit, for id-citation and recipe-base, installed 33896ec vs d775c46 binary. Holds.
+verdict: H-2SBS5N supports

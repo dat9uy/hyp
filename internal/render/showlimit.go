@@ -93,7 +93,7 @@ func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) 
 	if h := r.handWord(l); h != "" {
 		w("hand: %s", h)
 	}
-	for _, q := range p.TopQuestions() {
+	for _, q := range p.TopQuestions(l.Result) {
 		cands := p.Questions[q].Candidates
 		w("question %s: candidates %s", r.withAlias(q), map[bool]string{true: "none", false: r.named(cands)}[len(cands) == 0])
 		switch un := p.Uncovered(l, q); {
@@ -105,7 +105,7 @@ func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) 
 	}
 	for _, c := range l.Closers {
 		var hyps []string
-		for _, q := range p.TopQuestions() {
+		for _, q := range p.TopQuestions(l.Result) {
 			for _, h := range p.Nodes[q].Children {
 				if p.Covers(c, h) {
 					hyps = append(hyps, h)
@@ -147,7 +147,7 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 					what = f.verb + ": " + Cut(c.Summary, event.MaxText)
 				}
 			}
-			if l.IsLine() && len(c.Lines) > 0 {
+			if l.IsLine() && len(c.Lines) > 0 && ev.Node == l.Result {
 				what = "writes it"
 			}
 		case event.TypeConfirm:

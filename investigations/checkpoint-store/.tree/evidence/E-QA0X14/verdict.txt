@@ -1,0 +1,5 @@
+Experiment E-QA0X14, rule by reading (in its body).
+(a) a-red-on-1c396d4.log: TestTwoGoalStoreAdmitsASecondGoalWrite fails with "refused: wrong parent kind: only one Goal per log". TestTwoGoalStoreReplaysEachGoalAsItsOwn fails with "flag provided but not defined: -goal": its one-Goal store helper passes --goal, which 1c396d4 lacks. That message does not name the one-Goal rule, so (a) does not hold.
+(b) b-vet-test-e8dd17c.log: go vet and go test ./... -count=1 exit 0 at e8dd17c. Holds.
+(c) c-census.log: status and check byte-identical for id-citation and recipe-base, installed 33896ec vs e8dd17c binary. Holds.
+verdict: H-CF1YR3 contradicts

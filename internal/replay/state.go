@@ -11,7 +11,7 @@ type Projection struct {
 	Nodes          map[string]*Node     // static fields from node.add / result.record
 	Hyps           map[string]*Hyp      // Hypothesis → its derived record
 	Questions      map[string]*Question // DesignQuestion → its derived record
-	Goal           GoalStatus
+	Goals          []GoalStatus         // one per Goal, in creation order
 	Rejections     []Rejection
 	Applied        []event.Event // events that applied, in merge order
 	LastCheckpoint *event.Event
@@ -21,7 +21,7 @@ type Projection struct {
 	Edges          []Edge                         // every edge in apply order; Live is false once removed
 	Decisions      map[string]*Decision           // DQ → its Decision record (decision.go)
 	Readings       []Reading                      // readings of non-retracted Results, in creation order
-	Lines          []Limit                        // the Goal's lines, in order (spec §8.2)
+	Lines          []Limit                        // every Goal's lines, by Goal in creation order, then in order (spec §8.2)
 	Subjects       map[string][]event.SubjectFile // Hypothesis → its subject, the latest tie
 }
 
@@ -83,7 +83,7 @@ func (p Projection) Display(id string) (s Shown, ok bool) {
 		return Shown{Word: string(r.Status)}, true
 	}
 	if n := p.Nodes[id]; n != nil && n.Kind == event.KindGoal {
-		return Shown{Word: string(p.Goal.Status)}, true
+		return Shown{Word: string(p.GoalStatusOf(id).Status)}, true
 	}
 	return Shown{}, false
 }
@@ -94,7 +94,8 @@ type StaleCause struct {
 	Next         *StaleCause
 }
 
-// GoalStatus summarises the Goal. Counts keys are DQ states plus "stale".
+// GoalStatus summarises one Goal. Counts keys are DQ states plus "stale",
+// counted over the nodes whose parents lead to the Goal.
 type GoalStatus struct {
 	Status GoalState
 	Counts map[string]int
@@ -303,18 +304,20 @@ type Facts struct {
 	Edges     []Edge
 	Hold      map[string]QuestionState // DQ → "", DQDeferred or DQWithdrawn
 	Decisions map[string]*Decision     // DQ → its Decision record (decision.go)
-	GoalID    string
-	Aliases   map[string]string // alias → node id
+	// Goals are the store's Goals in creation order. A store holds many;
+	// a tree is a view of one Goal and every node whose parents lead to it.
+	Goals   []string
+	Aliases map[string]string // alias → node id
 	// Answers holds, for each reading key an owner checkpoint closed, the
 	// close and then each revise, in merge order (keyed.go).
 	Answers map[string][]Answer
 	// LimitHand holds, for each limit key a checkpoint referred, returned or
 	// accepted, the latest of the three in merge order (keyed.go).
 	LimitHand map[string]Hand
-	// Lines are the Goal's lines, and LinesBy the owner checkpoint that
-	// wrote them, or "" before one did.
-	Lines   []string
-	LinesBy string
+	// Lines are each Goal's lines, and LinesBy the owner checkpoint that
+	// wrote them; a Goal is absent from both before one did.
+	Lines   map[string][]string
+	LinesBy map[string]string
 	// Subjects holds each Hypothesis's subject, the latest tie.
 	Subjects map[string][]event.SubjectFile
 
@@ -339,7 +342,7 @@ type State struct {
 	// before a Step keeps the state from before it.
 	Hyps        map[string]*Hyp
 	Questions   map[string]*Question
-	goal        GoalState
+	goals       map[string]GoalState // Goal → its derived state
 	Applied     []event.Event
 	RivalsAtAdd map[string][]string // Experiment → live rivals of its parent just before its add
 }
@@ -359,6 +362,8 @@ func NewState() *State {
 			Answers:      map[string][]Answer{},
 			LimitHand:    map[string]Hand{},
 			Subjects:     map[string][]event.SubjectFile{},
+			Lines:        map[string][]string{},
+			LinesBy:      map[string]string{},
 			ResultsByHyp: map[string][]string{},
 			EdgesFrom:    map[string][]int{},
 			SupersededN:  map[string]int{},
@@ -367,6 +372,7 @@ func NewState() *State {
 		EverAnswered: map[string]bool{},
 		Hyps:         map[string]*Hyp{},
 		Questions:    map[string]*Question{},
+		goals:        map[string]GoalState{},
 		RivalsAtAdd:  map[string][]string{},
 	}
 }
@@ -414,3 +420,41 @@ const (
 	StaleReasonChanged         = "changed_since_basis"
 	StaleReasonContradicts     = "contradicts"
 )
+
+// goalOf returns the Goal that node id's parents lead to, or "" when none
+// does.
+func goalOf(nodes map[string]*Node, id string) string {
+	for n := nodes[id]; n != nil; n = nodes[n.Parent] {
+		if n.Kind == event.KindGoal {
+			return n.ID
+		}
+	}
+	return ""
+}
+
+// GoalOf returns the Goal that node id's parents lead to, or "" when none
+// does. A tree is the view of one Goal: the Goal and every node with it as
+// GoalOf.
+func (p Projection) GoalOf(id string) string { return goalOf(p.Nodes, id) }
+
+// GoalStatusOf returns Goal g's summary, or a zero GoalStatus when g is not
+// a Goal.
+func (p Projection) GoalStatusOf(g string) GoalStatus {
+	for _, gs := range p.Goals {
+		if gs.GoalID == g {
+			return gs
+		}
+	}
+	return GoalStatus{}
+}
+
+// LinesOf lists Goal g's lines, in order.
+func (p Projection) LinesOf(g string) []Limit {
+	var out []Limit
+	for _, l := range p.Lines {
+		if l.Result == g {
+			out = append(out, l)
+		}
+	}
+	return out
+}

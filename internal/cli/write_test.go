@@ -168,8 +168,8 @@ func TestHappyPath(t *testing.T) {
 			t.Fatalf("%s (%s) is %+v, want answered", q, n.Title, p.Questions[id])
 		}
 	}
-	if p.Goal.Status != replay.GoalComplete {
-		t.Fatalf("goal = %s", p.Goal.Status)
+	if p.Goals[0].Status != replay.GoalComplete {
+		t.Fatalf("goal = %s", p.Goals[0].Status)
 	}
 }
 

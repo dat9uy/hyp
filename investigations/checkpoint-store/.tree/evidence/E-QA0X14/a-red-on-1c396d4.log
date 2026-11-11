@@ -1,0 +1,15 @@
+worktree: 1c396d4ea1e20f1b5fdfb84721fdd7c0f67d0f5d (detached)
+git status --short:
+?? internal/cli/two_goal_store_test.go
+test file sha256: 803f675a5e49a426e4f66e6abbcbdc2ca4cc8a58d470f8fef541551e23dda308  internal/cli/two_goal_store_test.go
+$ go test ./internal/cli/ -run 'TestTwoGoalStore' -count=1 -v
+=== RUN   TestTwoGoalStoreAdmitsASecondGoalWrite
+    two_goal_store_test.go:55: one store holds many Goals, but a second Goal was refused: exit 1, stderr "refused: wrong parent kind: only one Goal per log\n"
+--- FAIL: TestTwoGoalStoreAdmitsASecondGoalWrite (0.03s)
+=== RUN   TestTwoGoalStoreReplaysEachGoalAsItsOwn
+    two_goal_store_test.go:126: lines of G-N378ZN: exit 2, stderr "flag provided but not defined: -goal\n"
+--- FAIL: TestTwoGoalStoreReplaysEachGoalAsItsOwn (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.419s
+FAIL
+exit: 1

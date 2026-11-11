@@ -74,7 +74,7 @@ func (st *State) Projection() Projection {
 		Nodes:       st.Nodes,
 		Hyps:        st.Hyps,
 		Questions:   st.Questions,
-		Goal:        st.goalStatus(),
+		Goals:       st.goalStatuses(),
 		Applied:     st.Applied,
 		RivalsAtAdd: st.RivalsAtAdd,
 		Exps:        st.exps(),
@@ -302,7 +302,7 @@ func (st *State) recompute(recipeHashes map[string]string) {
 		n := st.Nodes[id]
 		switch n.Kind {
 		case event.KindGoal:
-			st.goal = st.goalState(d)
+			st.goals[id] = st.goalState(d, id)
 		case event.KindDesignQuestion:
 			questions[id] = d.dqState(id)
 		case event.KindHypothesis:
@@ -502,8 +502,8 @@ func (d *derivation) dqState(id string) *Question {
 
 // goalState follows spec §7.5, with one addition: a Goal needs at least one
 // answered live top-level DQ to be complete, so a new Goal is in_progress.
-func (st *State) goalState(d *derivation) GoalState {
-	g := st.Nodes[st.GoalID]
+func (st *State) goalState(d *derivation, id string) GoalState {
+	g := st.Nodes[id]
 	if g == nil {
 		return ""
 	}
@@ -523,15 +523,23 @@ func (st *State) goalState(d *derivation) GoalState {
 	return GoalComplete
 }
 
-func (st *State) goalStatus() GoalStatus {
-	gs := GoalStatus{GoalID: st.GoalID, Counts: map[string]int{
+// goalStatuses summarises each Goal, in creation order.
+func (st *State) goalStatuses() []GoalStatus {
+	out := make([]GoalStatus, 0, len(st.Goals))
+	for _, g := range st.Goals {
+		out = append(out, st.goalStatus(g))
+	}
+	return out
+}
+
+func (st *State) goalStatus(goal string) GoalStatus {
+	gs := GoalStatus{GoalID: goal, Status: st.goals[goal], Counts: map[string]int{
 		string(DQOpen): 0, string(DQReopened): 0, string(DQAnswered): 0, string(DQDeferred): 0, string(DQWithdrawn): 0, StaleReasonStale: 0,
 	}}
-	if st.GoalID == "" {
-		return gs
-	}
-	gs.Status = st.goal
 	for _, id := range st.Order {
+		if goalOf(st.Nodes, id) != goal {
+			continue
+		}
 		var stale *StaleCause
 		switch st.Nodes[id].Kind {
 		case event.KindDesignQuestion:

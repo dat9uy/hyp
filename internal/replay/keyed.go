@@ -191,17 +191,17 @@ func (f *Facts) applyReadingMoves(ev event.Event, p event.Checkpoint) {
 // ReadingClosed reports whether an owner checkpoint answered reading k.
 func (f *Facts) ReadingClosed(k string) bool { return len(f.Answers[k]) > 0 }
 
-// checkLines reports why a checkpoint may not write its lines: only an
-// owner writes them, once per Goal, one case each.
-func (f *Facts) checkLines(p event.Checkpoint) error {
+// checkLines reports why a checkpoint on Goal g may not write its lines:
+// only an owner writes them, once per Goal, one case each.
+func (f *Facts) checkLines(g string, p event.Checkpoint) error {
 	if len(p.Lines) == 0 {
 		return nil
 	}
 	if p.Role != event.RoleOwner {
 		return fmt.Errorf("bad checkpoint: only an owner writes the Goal's lines")
 	}
-	if f.LinesBy != "" {
-		return fmt.Errorf("bad lines: the Goal's lines are written once, by %s; a new line is a new Goal, so a new tree", f.LinesBy)
+	if by := f.LinesBy[g]; by != "" {
+		return fmt.Errorf("bad lines: the Goal's lines are written once, by %s; a new line is a new Goal", by)
 	}
 	if len(p.Lines) > event.MaxLimits {
 		return fmt.Errorf("over limit: lines has %d items (max %d)", len(p.Lines), event.MaxLimits)

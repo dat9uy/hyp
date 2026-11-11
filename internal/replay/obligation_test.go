@@ -147,15 +147,15 @@ func TestSubquestionIsAnObligation(t *testing.T) {
 		}},
 		{"the Goal is not complete while the obligation is open", func(t *testing.T, o obligation) {
 			o.b.Answer(o.q, o.h1, "")
-			if got := replayB(o.b).Goal.Status; got != GoalComplete {
+			if got := replayB(o.b).Goals[0].Status; got != GoalComplete {
 				t.Fatalf("Goal is %s before the sub-question", got)
 			}
 			sub := o.b.DQ(o.h1, "sub")
-			if got := replayB(o.b).Goal.Status; got != GoalInProgress {
+			if got := replayB(o.b).Goals[0].Status; got != GoalInProgress {
 				t.Fatalf("Goal is %s with an open obligation", got)
 			}
 			o.b.Withdraw(sub)
-			if got := replayB(o.b).Goal.Status; got != GoalComplete {
+			if got := replayB(o.b).Goals[0].Status; got != GoalComplete {
 				t.Fatalf("Goal is %s after the release", got)
 			}
 		}},
