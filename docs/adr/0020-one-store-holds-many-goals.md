@@ -24,10 +24,10 @@ In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **buildin
 - **One store holds many Goals.** The store is still one `.tree/` with one events file per actor. A tree is a view, not a container: a Goal and every node whose parents lead to it. Rule 4's "only one Goal per log" goes.
 - **A subject has one shape: a base commit, plus what is given over it.** What is given over it is at most one patch, and input files. This holds for every sense of the word:
   - an Experiment's subject is what its sandbox assembles;
-  - a run's subject is the base and files its records name;
+  - a run's subject is the base, the one patch and the input files its records name;
   - a Hypothesis's subject may name a base, and names files by sha256.
 
-  A Result keeps **one subject per cited run**, `{base, files}`, instead of one merged `fingerprints` list. A Hypothesis is covered when one entry holds its whole subject, so a run at B plus a patch never covers bare B. An old Result reads as one entry with no base. The word `fingerprints` stays for the hashed files inside a subject (Q-D906CD).
+  A Result keeps **one subject per cited run**, `{base, patch, files}`, instead of one merged `fingerprints` list. A Hypothesis is covered when one entry holds its whole subject, so a run at B plus a patch never covers bare B. An old Result reads as one entry with no base. The word `fingerprints` stays for the hashed files inside a subject (Q-D906CD).
 - **A Goal records no start commit.** A build Goal's start is the base of its red-on-base Result's subject (Q-HC4V9T).
 - **A Goal's lines come with the Goal.** The owner adds the Goal with `lines: [{text, cites}]` in its `node.add`, at most 10 lines of 1 to 600 runes. No later event adds a line.
 - **A cite is a plain key, 0 to 10 per line.** Each must be settled when the line is written:
