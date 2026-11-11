@@ -1,0 +1,45 @@
+== rule F4 on 3ec4979, worktree 3ec49795553f00c270fdd60ca1f84ab60cc69307
+== diff lines:       12
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 439a2a3..10844e7 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -543,7 +543,6 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		want = append(want, file.SHA256)
+ 	}
+ 	slices.Sort(want)
+-	want = slices.Compact(want)
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+ 		if sub.Base != "" {
+ 			return run.Base == sub.Base && slices.Equal(run.Files, want)
+== go test -count=1 -run 'TestBaseSubjectWithOneFileTwiceIsHeld|TestHoldsSubject' ./internal/cli ./internal/replay
+--- FAIL: TestBaseSubjectWithOneFileTwiceIsHeld (0.10s)
+    run_subject_test.go:245: status still prints "uncovered on Q-JEM8GF":
+        GOAL G-MEHY63 G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-MEHY63#1 covered on Q-SZM1DH; uncovered on Q-JEM8GF: H-4KS19E; ran in R-KMNPTB — the patch runs the case
+        FRONTIER
+          Q-SZM1DH open/supported_unselected Q
+            candidates (1): H-WEK1P5
+            H-WEK1P5 supported runner
+          Q-JEM8GF open/supported_unselected Q2
+            candidates (1): H-4KS19E
+            H-4KS19E supported two paths
+        STALE
+        OWED
+          runner: Q-SZM1DH select H-WEK1P5, the only candidate
+          runner: Q-JEM8GF limit G-MEHY63#1 [owed] — the patch runs the case
+        AWAITING OWNER
+        RECENT
+          2026-11-11 13:28 a result.record R-KMNPTB — w
+          2026-11-11 13:28 a hypothesis.subject H-4KS19E — w
+          2026-11-11 13:28 a result.record R-6M0GF0 — w
+        CHECKPOINT none
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.465s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:77: B plus two paths of one patch's bytes, run at B plus P: HoldsSubject = false, want true
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.351s
+FAIL
+== exit 1

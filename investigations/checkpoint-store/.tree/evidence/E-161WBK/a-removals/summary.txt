@@ -1,0 +1,6 @@
+E-161WBK (a): one removal per rule of G-D1CH1R#3, each from 7257753 in a fresh detached worktree.
+R3a one subject per cited run: runSubjects merges every run into one subject (internal/cli/subject.go); diff 19 lines; TestResultKeepsOneSubjectPerCitedRun fails on its assertion (subjects = one merged entry, want one per cited run).
+R3b a subject may name a base: HoldsSubject drops the base comparison (internal/replay/validate.go); diff 13 lines; TestBaseSubjectIsCoveredOnlyAtItsBase fails (line covered on Q2, want uncovered) and TestHoldsSubject fails ("bare B, run at C: true, want false").
+R3c an old Result reads as one subject with no base: replay keeps p.Subjects and drops the fingerprints read (internal/replay/rules.go); diff 13 lines; TestOldResultReadsAsOneSubjectWithNoBase fails (uncovered: H, want ran on H).
+R3d B plus a patch never covers bare B: HoldsSubject drops the exact-files comparison (internal/replay/validate.go); diff 13 lines; TestPatchedRunNeverCoversBareBase fails (bare B covered) and TestHoldsSubject fails ("bare B, run at B plus a patch: true, want false").
+No removal failed to build. A first attempt (a-removals-attempt1-empty-diff/) made no edit, from a quoting bug in the script: every diff empty, kept as history and not counted.

@@ -1,0 +1,10 @@
+Fresh-subagent review of 9429fc1..feat/one-subject-per-run (7257753) against ADR 0020 and G-D1CH1R's lines, 2026-11-11. The reviewer was given the code, the ADR and the lines, not the runner's conclusions. Its findings, as it wrote them in short:
+F1 (High) A sandbox with two --patch Arms at B gives one run subject {B,[pa,pb]}; a Hypothesis tied to --base B a.patch is never covered though Arm a ran at B. ADR: at most one patch per subject. internal/cli/subject.go runSubjects; internal/replay/validate.go HoldsSubject.
+F2 (Medium, line 9) Line 3's new tests fail to compile on 9429fc1 (undefined event.RunSubject), so neither half fails on the parent with a message naming its rule.
+F3 (Medium) Rule 26's base path has no test: re-tie of bare B after a run at B plus a patch must be admitted; after a run at exactly B refused with "subject ran in".
+F4 (Low) A Hypothesis tied with --base B and two paths of the same bytes is never held: run files are unique by sha256, subject files unique by path, so the length compare fails.
+F5 (Low) hyp subject --base with git missing from PATH exits 2; a missing tool is exit 3.
+F6 (Low) Replay admits a Result with subjects and no evidence, or more subjects than evidence pointers.
+Q (question) A based subject must match its files exactly, so a sandbox with --inputs never covers a bare-B Hypothesis unless it ties the inputs file; a command record (no base) never covers a based Hypothesis. Intended?
+Not counted by the reviewer: hyp add hyp --subject has no --base.
+Line 1 checked by the reviewer: byte-identical status and check vs 33896ec on id-citation and recipe-base.

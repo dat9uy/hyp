@@ -1,0 +1,28 @@
+== rule R3b on 3ec4979, worktree 3ec49795553f00c270fdd60ca1f84ab60cc69307
+== diff lines:       13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 439a2a3..07ea5d2 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -546,7 +546,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 	want = slices.Compact(want)
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+ 		if sub.Base != "" {
+-			return run.Base == sub.Base && slices.Equal(run.Files, want)
++			return slices.Equal(run.Files, want)
+ 		}
+ 		for _, h := range want {
+ 			if _, ok := slices.BinarySearch(run.Files, h); !ok {
+== go test -count=1 -run 'TestBaseSubjectIsCoveredOnlyAtItsBase|TestHoldsSubject' ./internal/cli ./internal/replay
+--- FAIL: TestBaseSubjectIsCoveredOnlyAtItsBase (0.13s)
+    run_subject_test.go:156: exit 0 (want 0), stdout "GOAL G-127DK7 G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-127DK7#1 covered on Q-HN5QZ1, Q-1J8JQS; ran in R-YNCXF5 — the commit runs the case\nFRONTIER\n  Q-HN5QZ1 open/supported_unselected Q\n    candidates (1): H-VHX2AS\n    H-VHX2AS supported runner\n  Q-1J8JQS open/supported_unselected Q2\n    candidates (1): H-AKT484\n    H-P10XXQ proposed bad\n    H-AKT484 supported commit C\n      E-1X6BM7 run [one-rival]\nSTALE\nOWED\n  runner: Q-HN5QZ1 select H-VHX2AS, the only candidate\n  runner: Q-1J8JQS test H-P10XXQ\nAWAITING OWNER\nRECENT\n  2026-11-11 13:28 a result.record R-YNCXF5 — w\n  2026-11-11 13:28 a hypothesis.subject H-AKT484 — w\n  2026-11-11 13:28 a result.record R-JZENAS — w\nCHECKPOINT none\n", stderr "" (want "uncovered on Q-1J8JQS: H-AKT484")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.507s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:77: bare B, merged across two runs: HoldsSubject = true, want false
+    run_subject_test.go:77: bare B, run at C: HoldsSubject = true, want false
+    run_subject_test.go:77: B plus P, run at C plus P: HoldsSubject = true, want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.363s
+FAIL
+== exit 1

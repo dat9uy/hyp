@@ -1,0 +1,23 @@
+== rule R3c on 7257753, worktree 72577531c1225a70f27af851c050c912aa88f4e2
+== diff lines:       13
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 6415290..6c1469e 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -81,7 +81,7 @@ var rules = map[string]rule{
+ 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
+ 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
+ 				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
+-				Subjects: runSubjects(p)})
++				Subjects: p.Subjects})
+ 			for h := range p.Verdicts {
+ 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
+ 			}
+== go test -count=1 -run 'TestOldResultReadsAsOneSubjectWithNoBase|TestSubjectCoversALineByFingerprint' ./internal/cli ./internal/replay
+--- FAIL: TestOldResultReadsAsOneSubjectWithNoBase (0.03s)
+    run_subject_test.go:177: exit 0 (want 0), stdout "Line G-DWSKVP#1\ntext: the file runs the case\nquestion Q-G6W2SD: candidates H-PX65FN\n  covered\nquestion Q-T69C9Y: candidates H-82MKZE\n  uncovered: H-82MKZE\nran in R-B4MQ7J: ran on H-PX65FN: supports\nhistory:\n  2026-11-11 13:18 o node.add — writes it\n  2026-11-11 13:18 a result.record — closes it: H-PX65FN=supports\n", stderr "" (want "ran in R-B4MQ7J: ran on H-PX65FN: supports; ran on H-82MKZE\n")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.483s
+ok  	github.com/dat9uy/hyp/internal/replay	0.357s [no tests to run]
+FAIL
+== exit 1
