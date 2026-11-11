@@ -5,7 +5,7 @@ This file is for any agent or person who changes hyp. It says how the repository
 ## What this repository holds
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores an investigation as append-only events under `.tree/` and derives every status from them.
-- **Two skills**: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses) and `skills/hyp-verification` (run one Experiment from a recipe).
+- **Five skills**: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses), `skills/hyp-verification` (run one Experiment from a recipe), and the owner flow: `skills/hyp-owner-grill` (grill the owner into a Goal), `skills/hyp-goal-run` (run a Goal as an unattended `/goal`) and `skills/hyp-owner-answer` (answer what a stopped run left for the owner).
 - **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md) and [sandbox-spec.md](docs/sandbox-spec.md), the words in [glossary.md](docs/glossary.md), the principles and the owner's role in [principles.md](docs/principles.md), the loop's guards in [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
 - **Test data** under `internal/*/testdata`, such as the synthetic store in `internal/testutil/testdata/synth`. The recipes and trees kept to test hyp are `recipes/id-citation-arms@1` and `@2` with `investigations/id-citation` (whose Arm patches are in its `arms/`), `recipes/recipe-base-arms@1` with `investigations/recipe-base`, and the recipes `recipes/authoring-stops@2`, `recipes/recipe-authoring-arms@4`, `recipes/skill-text-arms@3`, `@4` and `@5` with the rubric `rubrics/skill-text-gate@1`, and the retired `recipes/verifier-brief-arms@1` and `recipes/verifier-audit-arms@1`, whose trees are not published. Records made before the public release stay in the private development history.
 
@@ -44,6 +44,7 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
 5. **The change passes its gate.**
    - A failure that can be detected from the tree goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.
    - A skill-text change ships only when a session replay from the event's cut shows the failure in 3 or more of 5 trials without the change and in 1 or fewer of 5 with it. If no cut reproduces the failure, nothing ships for it.
+   - A new skill ships on the owner's decision, recorded in its issue, with no replay: there is no earlier text to replay against. From then on, every change to its text passes the replay gate above.
    - A correction that only makes text agree with an owner decision already recorded ships without a replay, and its commit names the decision.
 
    [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md) explains why the loop is guarded while it runs instead of proven in advance.
