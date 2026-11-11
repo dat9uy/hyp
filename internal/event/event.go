@@ -180,17 +180,45 @@ type ResultRecord struct {
 	// Applies lists the closed readings whose owner answers this Result's
 	// verdicts apply. Each must be one its Experiment aims at.
 	Applies []string `json:"applies,omitempty"`
-	// Fingerprints is the sorted set of file sha256s the Result's cited
-	// command and sandbox records say the run was given. hyp record copies
-	// it from those records, as it copies EvidenceHashes; no runner types it.
+	// Subjects keeps one subject per cited run: the base commit and the
+	// sha256 of each file its cited command or sandbox record says the run
+	// was given over it (ADR 0020). hyp record copies it from those records,
+	// as it copies EvidenceHashes; no runner types it.
+	Subjects []RunSubject `json:"subjects,omitempty"`
+	// Fingerprints is an old Result's one merged set of file sha256s. No
+	// command writes it; replay reads it as one subject with no base.
 	Fingerprints []string `json:"fingerprints,omitempty"`
 }
 
-// HypothesisSubject is the payload of hypothesis.subject: the files that
-// embody the Hypothesis's claim, each named by its sha256. Path is a
-// pointer for readers, relative to the store root; the sha256 is the identity.
+// RunSubject is the subject of one cited run: the base commit it ran at, ""
+// when its record names none, and the sorted, unique sha256s of the files
+// given over that base (a patch and input files).
+type RunSubject struct {
+	Base  string   `json:"base,omitempty"`
+	Files []string `json:"files,omitempty"`
+}
+
+// IsCommit reports whether s is a full git object id: 40 or 64 lowercase
+// hex digits.
+func IsCommit(s string) bool {
+	if len(s) != 40 && len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// HypothesisSubject is the payload of hypothesis.subject: what embodies the
+// Hypothesis's claim, a base commit, files named by their sha256, or both
+// (ADR 0020). Path is a pointer for readers, relative to the store root; the
+// sha256 is the identity.
 type HypothesisSubject struct {
-	Files []SubjectFile `json:"files"`
+	Base  string        `json:"base,omitempty"`
+	Files []SubjectFile `json:"files,omitempty"`
 }
 
 // SubjectFile is one file of a Hypothesis's subject.

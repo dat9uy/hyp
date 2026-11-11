@@ -7,8 +7,8 @@ import (
 )
 
 // Covers reports whether Result r ran on Hypothesis h: it has a verdict on h,
-// or every file of h's subject is among its fingerprints. Coverage says the
-// bytes ran, not that the claim held; only a verdict says that.
+// or one of its run subjects holds h's whole subject (HoldsSubject). Coverage
+// says the bytes ran, not that the claim held; only a verdict says that.
 func (p Projection) Covers(r, h string) bool {
 	n := p.Nodes[r]
 	if n == nil {
@@ -17,7 +17,7 @@ func (p Projection) Covers(r, h string) bool {
 	if _, ok := n.Verdicts[h]; ok {
 		return true
 	}
-	return HoldsSubject(n.Fingerprints, p.Subjects[h])
+	return HoldsSubject(n.Subjects, p.Subjects[h])
 }
 
 // Uncovered lists the candidates of question q that no closer of limit l

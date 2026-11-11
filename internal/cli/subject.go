@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -15,29 +16,50 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 )
 
-// cmdSubject writes hypothesis.subject: the files that embody a
-// Hypothesis's claim, each named by its sha256. The latest tie stands until
-// a Result's fingerprints hold it; then replay refuses a different one.
+// cmdSubject writes hypothesis.subject: what embodies a Hypothesis's claim,
+// a base commit, files each named by its sha256, or both. The latest tie
+// stands until a Result's run subject holds it; then replay refuses a
+// different one.
 func cmdSubject(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("subject", stdout, stderr)
+	base := w.fs.String("base", "", "the commit the subject is built on, resolved in the store root's git repository to its full id")
 	pos, err := parse(w.fs, args)
 	if err != nil {
 		return err
 	}
-	if len(pos) < 2 {
-		return usageErr("usage: hyp subject HYP PATH... --why W")
+	if len(pos) < 1 || (len(pos) < 2 && *base == "") {
+		return usageErr("usage: hyp subject HYP [PATH...] [--base COMMIT] --why W")
 	}
 	if _, err := w.begin(args, len(pos)); err != nil {
 		return err
 	}
-	files, err := subjectFiles(w.root, pos[1:])
-	if err != nil {
-		return err
+	var files []event.SubjectFile
+	if len(pos) > 1 {
+		if files, err = subjectFiles(w.root, pos[1:]); err != nil {
+			return err
+		}
+	}
+	commit := ""
+	if *base != "" {
+		if commit, err = resolveCommit(w.root, *base); err != nil {
+			return err
+		}
 	}
 	return w.run(func() (draft, error) {
 		id, err := w.ref(pos[0])
-		return draft{event.TypeHypothesisSubject, id, event.HypothesisSubject{Files: files}}, err
+		return draft{event.TypeHypothesisSubject, id, event.HypothesisSubject{Base: commit, Files: files}}, err
 	})
+}
+
+// resolveCommit names rev as a full commit id of the git repository that
+// holds the store root.
+func resolveCommit(root, rev string) (string, error) {
+	out, err := exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", rev+"^{commit}").Output()
+	id := strings.TrimSpace(string(out))
+	if err != nil || !event.IsCommit(id) {
+		return "", usageErr("--base %s is not a commit in the repository at %s", rev, root)
+	}
+	return id, nil
 }
 
 // subjectFiles hashes each path, read against the working directory: a file
@@ -109,41 +131,64 @@ func fileSHA256(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// fingerprints copies, from each cited command.json and sandbox.json under
-// the store root, the sha256 of every file the record says the run was given:
-// a command record's inputs and directory entries (format 6), and a sandbox
-// record's patches and inputs file. It returns them sorted and unique. A
-// record that cannot be read gives none; hyp check reports it.
-func fingerprints(root string, evidence []string) []string {
-	var out []string
+// runSubjects keeps one subject per cited run, in evidence order: from each
+// cited command.json and sandbox.json under the store root, the base commit
+// the record names and the sha256 of every file it says the run was given
+// over it. A command record names no base and gives its inputs and directory
+// entries (format 6); a sandbox record gives its base, its patches and its
+// inputs file. A record that cannot be read, or names nothing, gives no
+// subject; hyp check reports a record it cannot read. A subject equal to an
+// earlier one is kept once (ADR 0020).
+func runSubjects(root string, evidence []string) []event.RunSubject {
+	var out []event.RunSubject
 	for _, e := range evidence {
 		path := filepath.Join(root, filepath.FromSlash(filepath.ToSlash(filepath.Clean(e))))
+		var run event.RunSubject
 		switch filepath.Base(e) {
 		case "command.json":
-			if r, err := cmdrecord.Read(path); err == nil {
-				out = append(out, r.Fingerprints()...)
+			r, err := cmdrecord.Read(path)
+			if err != nil {
+				continue
 			}
+			run.Files = r.Fingerprints()
 		case "sandbox.json":
 			data, err := os.ReadFile(path)
 			if err != nil {
 				continue
 			}
 			var r struct {
+				Base    string                    `json:"base"`
 				Inputs  *struct{ SHA256 string }  `json:"inputs"`
 				Patches []struct{ SHA256 string } `json:"patches"`
 			}
 			if json.Unmarshal(data, &r) != nil {
 				continue
 			}
+			if event.IsCommit(r.Base) {
+				run.Base = r.Base
+			}
 			if r.Inputs != nil {
-				out = append(out, r.Inputs.SHA256)
+				run.Files = append(run.Files, r.Inputs.SHA256)
 			}
 			for _, p := range r.Patches {
-				out = append(out, p.SHA256)
+				run.Files = append(run.Files, p.SHA256)
 			}
+		default:
+			continue
 		}
+		run.Files = slices.DeleteFunc(run.Files, func(h string) bool { return !event.IsSHA256(h) })
+		slices.Sort(run.Files)
+		run.Files = slices.Compact(run.Files)
+		if len(run.Files) == 0 {
+			run.Files = nil
+		}
+		if run.Base == "" && run.Files == nil {
+			continue
+		}
+		if slices.ContainsFunc(out, func(o event.RunSubject) bool { return o.Base == run.Base && slices.Equal(o.Files, run.Files) }) {
+			continue
+		}
+		out = append(out, run)
 	}
-	out = slices.DeleteFunc(out, func(h string) bool { return !event.IsSHA256(h) })
-	slices.Sort(out)
-	return slices.Compact(out)
+	return out
 }
