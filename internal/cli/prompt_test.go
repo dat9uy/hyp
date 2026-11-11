@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -77,25 +78,62 @@ func TestPromptPrintsTheGoalsRunPrompt(t *testing.T) {
 	must(t, "init")
 	g2 := goalWithBody(t, "o", promptBlock)
 	want(t, hyp(t, "prompt", g2, "--actor", "r"), 0, "/goal Run the hyp tree in . with the hyp-goal-run skill")
-	// A store that no repository holds has no path relative to a repository
-	// root: an environment problem, exit 3, nothing on stdout.
-	t.Chdir(t.TempDir())
+}
+
+// A store that no repository holds has no path relative to a repository
+// root: an environment problem, exit 3, nothing on stdout.
+func TestPromptOutsideARepository(t *testing.T) {
+	dir := t.TempDir()
+	if real, err := filepath.EvalSymlinks(dir); err == nil {
+		for d := real; ; d = filepath.Dir(d) {
+			if _, err := os.Stat(filepath.Join(d, ".git")); err == nil {
+				t.Skipf("%s holds a repository above the temporary directory", d)
+			}
+			if filepath.Dir(d) == d {
+				break
+			}
+		}
+	}
+	t.Chdir(dir)
+	t.Setenv("HYP_ACTOR", "a")
 	must(t, "init")
-	g3 := goalWithBody(t, "o", promptBlock)
-	if r := hyp(t, "prompt", g3, "--actor", "r"); r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
+	g := goalWithBody(t, "o", promptBlock)
+	if r := hyp(t, "prompt", g, "--actor", "r"); r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
 		t.Fatalf("a store outside any repository: exit %d (want 3), stdout %q, stderr %q", r.code, r.stdout, r.stderr)
 	}
 }
 
-// wantNamesOnly fails unless the prompt names Goal g and no other Goal id.
-func wantNamesOnly(t *testing.T, out, g string, others ...string) {
-	t.Helper()
-	if !strings.Contains(out, "Its Goal is "+g+":") {
-		t.Fatalf("the prompt does not name %s:\n%s", g, out)
+// The same store reached through a symbolic link and through its real path
+// prints the same bytes.
+func TestPromptThroughASymlinkedDirectory(t *testing.T) {
+	repo := promptStore(t)
+	g := goalWithBody(t, "o", promptBlock)
+	real := hyp(t, "prompt", g, "--actor", "r")
+	link := filepath.Join(t.TempDir(), "store")
+	if err := os.Symlink(filepath.Join(repo, "tree"), link); err != nil {
+		t.Fatal(err)
 	}
-	for _, o := range others {
-		if strings.Contains(out, o) {
-			t.Fatalf("the prompt for %s names %s:\n%s", g, o, out)
+	t.Chdir(link)
+	t.Setenv("PWD", link)
+	viaLink := hyp(t, "prompt", g, "--actor", "r")
+	if real.code != 0 || viaLink.code != real.code || viaLink.stdout != real.stdout {
+		t.Fatalf("through the real path: exit %d\n%s\nthrough a symlink: exit %d, stderr %q\n%s", real.code, real.stdout, viaLink.code, viaLink.stderr, viaLink.stdout)
+	}
+}
+
+var goalIDRe = regexp.MustCompile(`G-[0-9A-Z]{6}`)
+
+// wantNamesOnly fails unless every Goal id in the prompt is g, in each of
+// its five places: the Goal, hyp show, hyp status twice and --goal.
+func wantNamesOnly(t *testing.T, out, g string) {
+	t.Helper()
+	ids := goalIDRe.FindAllString(out, -1)
+	if len(ids) != 5 {
+		t.Fatalf("the prompt names a Goal %d times, want 5:\n%s", len(ids), out)
+	}
+	for _, id := range ids {
+		if id != g {
+			t.Fatalf("the prompt for %s names %s:\n%s", g, id, out)
 		}
 	}
 }
@@ -139,6 +177,8 @@ func TestPromptRefusesAnInvalidConstraintsBlock(t *testing.T) {
 		{"May change: the code.\nRead only: plans/.\nand the docs.\nNever: merge.", `the constraints block holds a line that starts with no heading: "and the docs."`},
 		{"Builds it.\nMay change: the code.\nRead only: plans/.\nNever: merge.\n\nThe end.", `starts with no heading: "The end."`},
 		{"May change: the code.\n   \nRead only: plans/.\nNever: merge.", `starts with no heading: "   "`},
+		{"May change: the code.\n\t\nRead only: plans/.\nNever: merge.", `starts with no heading: "\t"`},
+		{"Builds.\r\nMay change: a.\r\n\r\nRead only: b.\r\nNever: c.\r\n", `starts with no heading: "\r"`},
 	} {
 		r := hyp(t, "add", "goal", "--title", "G", "--body", c.body, "--actor", "o", "--why", "w")
 		if r.code != 0 {
@@ -183,7 +223,7 @@ func TestPromptInATwoGoalStoreEqualsItsOwnStore(t *testing.T) {
 	if two.code != 0 {
 		t.Fatalf("exit %d, %q", two.code, two.stderr)
 	}
-	wantNamesOnly(t, two.stdout, g1, g2)
+	wantNamesOnly(t, two.stdout, g1)
 
 	// G1's events in a store of their own: actor a wrote them all, and the
 	// owner's answer keeps only G1's key.

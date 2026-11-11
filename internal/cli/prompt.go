@@ -23,8 +23,9 @@ const promptUse = "usage: hyp prompt G-id --actor A [--branch B] [--pr N] [--exp
 // the first line that starts with a heading to the end of the body. It
 // returns the block's lines with trailing empty lines removed, and the
 // problems that make it invalid: no block, a missing heading, or a non-empty
-// line that starts with no heading. A line is empty only when it holds no
-// byte, so a line of spaces is a bad line. found reports whether any line
+// line that starts with no heading. Lines split on \n, and a line is empty
+// only when it holds no byte, so a line of spaces, a tab or a lone \r (the
+// blank line of a CRLF body) is a bad line. found reports whether any line
 // starts with a heading.
 func constraintsBlock(body string) (block []string, problems []string, found bool) {
 	lines := strings.Split(body, "\n")
@@ -126,7 +127,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 		return usageErr("--pr must be a PR number")
 	}
 	if strings.ContainsFunc(*branch, unicode.IsSpace) || strings.ContainsFunc(*branch, unicode.IsControl) {
-		return usageErr("--branch %q holds a space or a control character; a branch name has none", *branch)
+		return usageErr("--branch %q holds a space or a control character, which would break the prompt's lines", *branch)
 	}
 	r, err := openReader()
 	if err != nil {
@@ -145,11 +146,17 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	if len(problems) > 0 {
 		return herr.Refused("hyp prompt %s: %s", g, strings.Join(problems, "; "))
 	}
-	repo, ok := repoRoot(r.root)
-	if !ok {
-		return herr.Env("hyp prompt %s: no repository holds the store %s, so its path relative to the repository root is not known", g, r.root)
+	// The working directory may reach the store through a symbolic link;
+	// the store's place in its repository is read from its real path.
+	storeDir, err := filepath.EvalSymlinks(r.root)
+	if err != nil {
+		return herr.Env("%v", err)
 	}
-	rel, err := filepath.Rel(repo, r.root)
+	repo, ok := repoRoot(storeDir)
+	if !ok {
+		return herr.Env("hyp prompt %s: no repository holds the store %s, so its path relative to the repository root is not known", g, storeDir)
+	}
+	rel, err := filepath.Rel(repo, storeDir)
 	if err != nil {
 		return herr.Env("%v", err)
 	}

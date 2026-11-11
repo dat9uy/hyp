@@ -28,7 +28,7 @@ A build Goal's candidate is a commit. Its practice:
 
 - Each commit you test is one Hypothesis under the Goal's question, with the branch and the commit in its title. Tie its subject before the run with `hyp subject <H> --base <commit>`. A fix is a new commit and a new Hypothesis that supersedes the old one (`hyp supersede <new> --old <old>`).
 - Write the tree with the installed hyp. Compile the candidate to a separate path, and never replace an installed binary.
-- An Experiment that runs the repository's own gate on a commit uses `--recipe none --rubric reading`, with its rule in the body; use a pinned recipe when the Goal names one.
+- Pin the gate as a recipe when the repository keeps one, so a script decides the verdict. When none does, the Experiment on a commit uses `--recipe none --rubric reading`: its body states the gate as the rule, and the Result cites the gate's logs.
 - Before you run anything, write each Experiment's verdict rule in its body: the Goal's lines it aims at, red on the base and green on the candidate for each new test, a removal check for each refusal (remove the refusal and show which test fails), and `go vet ./...` and `go test ./... -count=1`, or the repository's own gate. For skill text, run the original and the candidate skills on the same eval cases.
 - Keep the logs under `.tree/evidence/<E-id>/` and cite them in the Result.
 - Before the stop, ask a fresh subagent for one review of each candidate commit's diff against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion. Ask it to label each finding with the line it is a case of, or none.
