@@ -1,4 +1,0 @@
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t0", "name": "Bash", "input": {"command": "cd .tree/evidence; for e in E-*; do grep -n config $e/run.log; head -5 $e/method.md; done"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t0", "content": "synthetic"}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "hyp confirm Q --role verifier --verdict insufficient --actor v --why x"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "synthetic"}]}}

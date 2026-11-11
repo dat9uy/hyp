@@ -1,1 +1,0 @@
-Do not use any tool. Answer only from what you read before your confirm. For each Result listed under `dossier:` that has a `contradicts` verdict, print one line: `<R-id> holds` if its evidence shows the hypothesis contradicted as written, `<R-id> wrong` if it does not, or `<R-id> not-opened` if you did not open its evidence.

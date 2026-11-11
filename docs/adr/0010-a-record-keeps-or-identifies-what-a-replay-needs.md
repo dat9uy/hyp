@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+Superseded in part by [ADR 0021](0021-a-skill-change-is-a-build-goal.md): the skill-text recipes it names as a follow-up are removed.
+
 Extends [ADR 0005](0005-a-bundle-is-its-ref-and-hash.md) (a path says where a thing was, a hash says what it is) and [ADR 0008](0008-an-experiment-has-a-lifecycle-of-its-own.md) (inputs are bound by the bundle and by hash).
 
 # A record keeps or identifies what a replay needs
@@ -30,4 +32,4 @@ The rule is stated inline in the hyp-verification skill's `RECIPE-FORMAT.md` (Pe
 - `sandbox.json` is format 3 and `command.json` format 4. A format-2 sandbox still drives and removes, its old fields copied out as read. A format-3 command record's `arg_sha256` is still read. A known-answer case holding an older-format `input/sandbox.json` or `input/command.json` is refused as before, and none under `recipes/` holds one.
 - `patches` is a reserved `--keep` name. A check's relative path arguments now work; a bare word is never a path.
 - A frozen script that uses its argument's location, such as reading sibling files, gets a copy and may break. Every kept recipe's known answers already pass copies, and all five pass.
-- Out of scope: rewriting recorded evidence such as E-YKJ70D, recipe output such as transcripts and logs, and building inside a known-answer case. The self-review recipes that will build Arms from patches (`id-citation-arms@2`, `skill-text-arms@4` with its variants as patches) are a follow-up issue.
+- Out of scope: rewriting recorded evidence such as E-YKJ70D, recipe output such as transcripts and logs, and building inside a known-answer case. The self-review recipes that will build Arms from patches (`id-citation-arms@2`, `skill-text-arms@4` with its variants as patches) are a follow-up issue. *Superseded in part by ADR 0021: the skill-text recipes are removed.*

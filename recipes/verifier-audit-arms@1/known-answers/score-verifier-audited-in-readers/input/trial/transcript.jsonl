@@ -1,8 +1,0 @@
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t0", "name": "Bash", "input": {"command": "hyp audit R-3HZQC8 --hypothesis H --verdict wrong --quote q --pointer p --why x"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t0", "content": "synthetic"}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "hyp audit R-1ZNDBZ --hypothesis H --verdict wrong --quote q --pointer p --why x"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "synthetic"}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "hyp audit R-XXXXXX --hypothesis H --verdict holds --why x"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t2", "content": "synthetic", "is_error": true}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "hyp confirm Q --role verifier --verdict insufficient --actor v --why x"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t3", "content": "synthetic"}]}}

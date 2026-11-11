@@ -32,7 +32,7 @@ Visibility is a separate axis from scope. Every item in this repository is publi
 
 The self-review recipes kept before the public release (session-replay, scratch-pg, readout-read, containment-arms, declaration-shape and signals-replay-proto), their inputs, and the trees that pinned them are not published. Records made before the public release stay in the private development history.
 
-When a question needs an instrument, it is a recipe with known answers that measures, and a rubric in `rubrics/` that turns its measures into verdicts, both pinned by the Experiments that use them (ADR 0018). The skill-text gate in [AGENTS.md](../AGENTS.md) uses `recipes/skill-text-arms@5` with the rubric `rubrics/skill-text-gate@1`; `recipes/verifier-brief-arms@1`, its instrument for the verifier's brief, is retired with the verifier role (ADR 0015). A new self-review recipe gets a row here, with its visibility.
+When a question needs an instrument, it is a recipe with known answers that measures, and a rubric in `rubrics/` that turns its measures into verdicts, both pinned by the Experiments that use them (ADR 0018). A new self-review recipe gets a row here, with its visibility.
 
 | Item | Why it is self-review | Visibility |
 |---|---|---|
@@ -41,13 +41,7 @@ When a question needs an instrument, it is a recipe with known answers that meas
 | `investigations/id-citation/arms/` | an input only self-review recipes use: the id-citation Arms as patches over a main commit (`today`, `text-warn`, `cite`; `text-refuse` is the base), which `id-citation-arms@2` takes as `--patch` | public |
 | `recipes/authoring-stops@2` | a recipe this repository keeps to test hyp: it probes whether each stop an author meets while turning a method into an instrument is still live; the tree that pinned it is not published | public |
 | `recipes/recipe-authoring-arms@4` | a recipe this repository keeps to test hyp: a sonnet runner turns the id-citation method into an instrument on two hyp arms; it runs live runners, it does not replay a session; the tree that pinned it is not published | public |
-| `recipes/skill-text-arms@3` | a recipe this repository keeps to test hyp: the skill-text gate's instrument until version 4, a fresh sonnet runner at a store cut of `investigations/id-citation` with base skills or a SKILL.md variant; it reads its Arm binaries from absolute paths, so it cannot run from this repository alone; the tree that pinned it is not published | public |
-| `recipes/skill-text-arms@4` | a recipe this repository keeps to test hyp: the skill-text gate's instrument until version 5, version 3's runner, brief, score and verdict, with a SKILL.md variant given as the trial's `--patch` and the four id-citation Arm binaries built in Launch from the patches in its `fixture/arms/`; its `verdict` command prints verdicts, so no new Experiment pins it (ADR 0018) | public |
-| `recipes/skill-text-arms@5` | a recipe this repository keeps to test hyp: the skill-text gate's instrument, version 4 without `verdict`, so it only measures | public |
-| `rubrics/skill-text-gate@1` | a rubric this repository keeps to test hyp: the skill-text gate's rule over the scores of `recipes/skill-text-arms@5`, version 4's `verdict` script and cases unchanged | public |
-| `recipes/verifier-brief-arms@1` | a recipe this repository keeps to test hyp, retired: it measured a role removed by ADR 0015, and it stays frozen. It was the skill-text gate's instrument for the verifier's brief, a fresh sonnet verifier at a select's store cut with `VERIFIER.md` at the base commit or a variant given as the trial's `--patch`, scored from its transcript and a follow-up turn; the store is given at create, and its tree `investigations/verifier-brief` is not published because the evidence is application code | public |
-| `recipes/verifier-audit-arms@1` | a recipe this repository keeps to test hyp, retired: it measured a role removed by ADR 0015, and it stays frozen. It tested a recorded audit as the verifier's step, a fresh sonnet verifier on a synthetic store kept in the bundle, with its hyp and `VERIFIER.md` at the base commit or a variant given as the trial's `--patch`, scored from its transcripts, changes and a follow-up turn; its tree `investigations/verifier-audit` is not published because trial transcripts hold host paths and session data | public |
-| `recipes/recipe-base-arms@1` | a recipe this repository keeps to test hyp: a sonnet runner builds the held-out skill-text gate instrument on three hyp arms (template only, a coarse base, fine bases), for `investigations/recipe-base`; copied by hand from a version of `recipe-authoring-arms` (its `recipe.md` names it by hash), because `--from` copies the same name only: the one bootstrap exception to starting from a base, had a base shipped (ADR 0009) | public |
+| `recipes/recipe-base-arms@1` | a recipe this repository keeps to test hyp: a sonnet runner builds a held-out instrument from the skill-text gate method in its bundle on three hyp arms (template only, a coarse base, fine bases), for `investigations/recipe-base`; copied by hand from a version of `recipe-authoring-arms` (its `recipe.md` names it by hash), because `--from` copies the same name only: the one bootstrap exception to starting from a base, had a base shipped (ADR 0009) | public |
 
 ## Core
 
@@ -65,12 +59,8 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 |---|---|
 | arm (id-citation-arms) | an Arm: a hyp binary built in Launch from main or main plus one rival's patch, named by sha256, the subject the cases run (version 1 read binaries built by hand from absolute paths) |
 | arm (recipe-authoring-arms) | an Arm: a hyp binary, main or main plus one rival's prototype patch, pinned as the sandbox's `--hyp` |
-| arm (skill-text-arms) | an Arm: a set of skill files the runner loads: `base` (the skills at the sandbox's `--base`), or a SKILL.md variant given as the trial's `--patch` (version 3 carried variants in the bundle); the runner's hyp is the same in every arm |
-| arm (verifier-brief-arms) | retired: it measured a role removed by ADR 0015. An Arm: the verifier's brief a trial gets: `base` (`VERIFIER.md` at the sandbox's `--base`), or a variant given as the trial's `--patch`; the verifier's hyp is the same in every arm |
-| arm (verifier-audit-arms) | retired: it measured a role removed by ADR 0015. An Arm: a hyp binary and verifier's brief built together: `base` (the sandbox's `--base`), or a variant given as the trial's `--patch`, which adds `hyp audit` |
-| seed (verifier-audit-arms) | retired: it measured a role removed by ADR 0015. A `contradicts` in the recipe's synthetic store that is known wrong, and that no text in the store marks |
 | arm (recipe-base-arms) | an Arm: a hyp binary built from main, or from main plus the embed prototype and one rival's base candidates, pinned as the sandbox's `--hyp`; `null` embeds no base; the candidates were not shipped (ADR 0009) |
-| stop (authoring-stops, recipe-authoring-arms, skill-text-arms) | a point where an author turning a method into an instrument is held up; counted as a failing hyp command or a fingerprint in the bundle or transcript |
+| stop (authoring-stops, recipe-authoring-arms) | a point where an author turning a method into an instrument is held up; counted as a failing hyp command or a fingerprint in the bundle or transcript |
 
 ## Where the scopes touch
 
@@ -82,4 +72,4 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 - [sandbox-spec.md](sandbox-spec.md) §5.2 records choices made in design trees that are core-scope, so that is ordinary provenance.
 - [how-hyp-improves-itself.md](how-hyp-improves-itself.md), "Guard the loop while it runs, not before", describes the tripwire that stops a run; the session-replay recipe whose `tripwire.py` built it stays in the private development history.
 
-Skill text reaches replayed runs, so moving a passage out of the skills is its own change, gated as [how-hyp-improves-itself.md](how-hyp-improves-itself.md) describes. A change that only makes the text agree with an owner decision ships without a replay. This page is the owner decision such a change can cite.
+Skill text reaches replayed runs, so moving a passage out of the skills is its own change, a build Goal like any change to `skills/`. This page is the owner decision such a change can cite.

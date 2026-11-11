@@ -1,4 +1,0 @@
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_01", "name": "Read", "input": {"file_path": "/x/wt/.claude/skills/hyp-prototype/SKILL.md"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_01", "content": "ok"}]}}
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_02", "name": "Bash", "input": {"command": "body=$(cat <<'EOF'\nlong method\nEOF\n)\nhyp add exp --parent H-88ZF3E --title e --recipe id-citation-arms@1 --body \"$body\" --why w"}}]}}
-{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_02", "content": "Exit code 1\nrefused: over limit: body has 4191 runes (max 600)", "is_error": true}]}}

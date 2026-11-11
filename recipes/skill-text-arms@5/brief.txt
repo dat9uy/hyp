@@ -1,6 +1,0 @@
-You are working in a clone of the hyp repository. hyp is installed (run `hyp help`), and the hyp-prototype and hyp-verification skills are available to you.
-
-The hyp tree in this repository (`.tree/`) holds a design question with four rival Hypotheses. The pre-registered method of its next Experiment, e-arms, is at the end of this message and exists nowhere else in this repository. Pre-register e-arms in the tree as the method describes, run it with the recipe id-citation-arms@1 under recipes/, keep its products as evidence, and record its Result. Do not select a hypothesis.
-
-The fixture and the cases file are under fixture/. The four arm binaries are built already, under arms/, with their sha256 in arms/arms.sha256. Work on your own without asking questions. When the Result is recorded, reply with its id on the last line.
-
