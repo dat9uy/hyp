@@ -1,0 +1,3 @@
+E-ZX9APE (a): one removal per rule, each from 8cb5f60 in a fresh detached worktree, by remove.py.
+R7, R7-restore, R3a, R3b, R3c, R3d, P1, F1, F3-L26 (F3 and L26 share the subject-ran lock), F4, F5, F6: each removal fails its tests on their assertion, each diff non-empty; no removal failed to build.
+P2 (let a based subject's file be the run's patch) diff 13 lines: go test exit 0. No test fails: the patch compare already refuses the review's F2 case, and no test holds the one case the P2 clause alone decides (a subject B, patch P, input P against a run at B plus P with no inputs).

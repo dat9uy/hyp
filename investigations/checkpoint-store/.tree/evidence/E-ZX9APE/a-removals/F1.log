@@ -1,0 +1,29 @@
+== rule F1 on 8cb5f60066f2bf4f455a25f7a9b1be52871d6527, worktree 8cb5f60066f2bf4f455a25f7a9b1be52871d6527
+== diff lines: 20
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index 3f14d03..a91ab9f 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -210,12 +210,11 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
+ 			if r.Inputs != nil {
+ 				inputs = []string{r.Inputs.SHA256}
+ 			}
+-			if len(r.Patches) == 0 {
+-				add(base, "", inputs)
+-			}
++			files := inputs
+ 			for _, p := range r.Patches {
+-				add(base, p.SHA256, inputs)
++				files = append(files, p.SHA256)
+ 			}
++			add(base, "", files)
+ 		}
+ 	}
+ 	return out
+== go test -run '^(TestSandboxKeepsOneSubjectPerArm)$' exit 1
+--- FAIL: TestSandboxKeepsOneSubjectPerArm (0.14s)
+    run_subject_test.go:264: subjects = [{Base:cefc6b5026ef7285daf6df7f59fc7a27f92b31e9 Patch: Files:[6b56f99cc6f8d6eb54c4dd7a22ee89e2b29ffc6a233f7f8f575c925f69f2caeb 8be3885688f32f5c20c2b0c66e94856209845d2e8402bcb9242cadc2c90da146]}], want one per Arm at cefc6b5026ef7285daf6df7f59fc7a27f92b31e9
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.490s
+ok  	github.com/dat9uy/hyp/internal/replay	0.345s [no tests to run]
+FAIL

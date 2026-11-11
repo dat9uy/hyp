@@ -1,0 +1,48 @@
+== rule F4 on 8cb5f60066f2bf4f455a25f7a9b1be52871d6527, worktree 8cb5f60066f2bf4f455a25f7a9b1be52871d6527
+== diff lines: 19
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2d9778d..ca91f9d 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -557,6 +557,14 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		if sub.Base != "" && (run.Base != sub.Base || run.Patch != sub.PatchSHA256()) {
+ 			return false
+ 		}
++		if sub.Base != "" {
++			var w []string
++			for _, f := range sub.Files {
++				w = append(w, f.SHA256)
++			}
++			slices.Sort(w)
++			return slices.Equal(run.Files, w)
++		}
+ 		for _, file := range sub.Files {
+ 			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok && (sub.Base != "" || file.SHA256 != run.Patch) {
+ 				return false
+== go test -run '^(TestBaseSubjectWithOneFileTwiceIsHeld)$' exit 1
+--- FAIL: TestBaseSubjectWithOneFileTwiceIsHeld (0.10s)
+    run_subject_test.go:297: status still prints "uncovered on Q-WRCD1A":
+        GOAL G-DJ1HWD G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-DJ1HWD#1 covered on Q-J18DAS; uncovered on Q-WRCD1A: H-FEWMS4; ran in R-WRV5CY — the inputs run the case
+        FRONTIER
+          Q-J18DAS open/supported_unselected Q
+            candidates (1): H-147BC9
+            H-147BC9 supported runner
+          Q-WRCD1A open/supported_unselected Q2
+            candidates (1): H-FEWMS4
+            H-FEWMS4 supported two paths
+        STALE
+        OWED
+          runner: Q-J18DAS select H-147BC9, the only candidate
+          runner: Q-WRCD1A limit G-DJ1HWD#1 [owed] — the inputs run the case
+        AWAITING OWNER
+        RECENT
+          2026-11-11 14:01 a result.record R-WRV5CY — w
+          2026-11-11 14:01 a hypothesis.subject H-FEWMS4 — w
+          2026-11-11 14:01 a result.record R-27RNYJ — w
+        CHECKPOINT none
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.465s
+ok  	github.com/dat9uy/hyp/internal/replay	0.359s [no tests to run]
+FAIL

@@ -1,0 +1,22 @@
+== rule F6 on cbd734a47e1b3ebe7323cf91ee4ead8c4490850c, worktree cbd734a47e1b3ebe7323cf91ee4ead8c4490850c
+== diff lines: 13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2d9778d..4ce06a9 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -476,7 +476,7 @@ func checkRunSubjects(p event.ResultRecord) error {
+ 	if err := sortedSHA256s("fingerprints", p.Fingerprints); err != nil {
+ 		return err
+ 	}
+-	if len(p.Subjects) > 0 && len(p.Evidence) == 0 {
++	if false && len(p.Subjects) > 0 && len(p.Evidence) == 0 {
+ 		return errors.New("bad subjects: a Result with no evidence has no run to keep a subject of")
+ 	}
+ 	if len(p.Subjects) > event.MaxRunSubjects {
+== go test -run '^(TestRunSubjectReplayRejections)$' exit 1
+ok  	github.com/dat9uy/hyp/internal/cli	0.360s [no tests to run]
+--- FAIL: TestRunSubjectReplayRejections (0.00s)
+    run_subject_test.go:41: 01JB0000000000000000000009 not rejected, want "bad subjects: a Result with no evidence has no run to keep a subject of"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.360s
+FAIL

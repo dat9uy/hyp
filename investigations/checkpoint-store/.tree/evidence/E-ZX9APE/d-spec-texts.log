@@ -1,0 +1,42 @@
+== spec texts at 8cb5f60066f2bf4f455a25f7a9b1be52871d6527
+named   bad subject: %s is superseded or abandoned
+named   bad subject: no base and no files
+named   bad subject: base %q is not a full commit id
+named   bad subject: a patch with no base
+named   bad subject: patch %q is not a sha256
+named   over limit: files has %d items (max %d)
+MISSING bad subject: %s listed twice
+named   bad subject: %q is not a sha256
+named   bad subject: unchanged
+named   bad subject: %s's subject ran in %s; a different subject is a new Hypothesis: add it and supersede %s
+named   bad subjects: a Result keeps subjects or fingerprints, not both
+named   over limit: fingerprints has %d items (max %d)
+named   bad subjects: a Result with no evidence has no run to keep a subject of
+named   over limit: subjects has %d items (max %d)
+named   bad subjects: a subject with no base, no patch and no files
+named   bad subjects: base %q is not a full commit id
+named   bad subjects: patch %q is not a sha256
+named   bad subjects: the same subject twice
+named   over limit: subjects hold %d files (max %d)
+19 texts, 1 missing
+== exit 1
+== known answer: spec texts at 0cda2f8c823f83879e2f9050a14561cf025b5f88
+named   bad subject: %s is superseded or abandoned
+named   bad subject: no base and no files
+named   bad subject: base %q is not a full commit id
+named   over limit: files has %d items (max %d)
+MISSING bad subject: %s listed twice
+named   bad subject: %q is not a sha256
+named   bad subject: unchanged
+named   bad subject: %s's subject ran in %s; a different subject is a new Hypothesis: add it and supersede %s
+named   bad subjects: a Result keeps subjects or fingerprints, not both
+named   over limit: fingerprints has %d items (max %d)
+named   bad subjects: a Result with no evidence has no run to keep a subject of
+named   over limit: subjects has %d items (max %d)
+MISSING bad subjects: a subject with no base, no patch and no files
+named   bad subjects: base %q is not a full commit id
+MISSING bad subjects: patch %q is not a sha256
+named   bad subjects: the same subject twice
+named   over limit: subjects hold %d files (max %d)
+17 texts, 3 missing
+== exit 1

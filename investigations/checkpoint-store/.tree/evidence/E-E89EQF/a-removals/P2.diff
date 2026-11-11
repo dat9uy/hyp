@@ -1,0 +1,13 @@
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2d9778d..d472c30 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -558,7 +558,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 			return false
+ 		}
+ 		for _, file := range sub.Files {
+-			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok && (sub.Base != "" || file.SHA256 != run.Patch) {
++			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok && file.SHA256 != run.Patch {
+ 				return false
+ 			}
+ 		}
