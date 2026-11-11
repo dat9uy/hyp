@@ -1,0 +1,10 @@
+=== RUN   TestCrossGoalCloseRefusedWrite
+    cross_goal_moves_test.go:139: exit 0 (want 1), stdout "R-1Q3PRN result.record\n  closes G-GWQJ23#1: survives a region outage\n", stderr "" (want "bad closes: ")
+--- FAIL: TestCrossGoalCloseRefusedWrite (0.04s)
+=== RUN   TestCrossGoalCloseRejectedReplay
+    cross_goal_moves_test.go:151: replay does not reject 01M756QN9M1Y8H7KEY0EJCVF9R with "bad closes: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalCloseRejectedReplay (0.05s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.471s
+FAIL

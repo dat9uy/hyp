@@ -1,0 +1,63 @@
+# (b) worktree fe621cbf40d843f81a94d7aee4f95cb6af3120c5; each removal makes its rule's check unreachable, then is undone
+
+=== R6a-refer: removal of the refers check (b-removals/R6a-refer.diff, 2 lines added)
+=== RUN   TestCrossGoalReferRefusedWrite
+    cross_goal_moves_test.go:96: exit 0 (want 1), stdout "G-KP8MKF checkpoint\n", stderr "" (want "bad refers: G-V5D1WK#1 leads to G-V5D1WK")
+--- FAIL: TestCrossGoalReferRefusedWrite (0.04s)
+=== RUN   TestCrossGoalReferRejectedReplay
+    cross_goal_moves_test.go:106: replay does not reject 01M756PS1NWJ3ZGHG7ZF3C8018 with "bad refers: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalReferRejectedReplay (0.03s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.457s
+FAIL
+
+=== R6b-aim: removal of the aims check (b-removals/R6b-aim.diff, 2 lines added)
+=== RUN   TestCrossGoalAimRefusedWrite
+    cross_goal_moves_test.go:118: exit 0 (want 1), stdout "E-70Y3ED node.add\n", stderr "" (want "bad aims: ")
+--- FAIL: TestCrossGoalAimRefusedWrite (0.05s)
+=== RUN   TestCrossGoalAimRejectedReplay
+    cross_goal_moves_test.go:130: replay does not reject 01M756PT58BS9MNKRS67K7FTDV with "bad aims: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalAimRejectedReplay (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.470s
+FAIL
+
+=== R6c-close: removal of the closes check (b-removals/R6c-close.diff, 0 lines added)
+=== RUN   TestCrossGoalCloseRefusedWrite
+--- PASS: TestCrossGoalCloseRefusedWrite (0.05s)
+=== RUN   TestCrossGoalCloseRejectedReplay
+--- PASS: TestCrossGoalCloseRejectedReplay (0.05s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.476s
+
+=== R6d-apply: removal of the applies check (b-removals/R6d-apply.diff, 2 lines added)
+=== RUN   TestCrossGoalApplyRefusedWrite
+    cross_goal_moves_test.go:164: exit 0 (want 1), stdout "E-SB78E8 node.add\n", stderr "" (want "bad applies: ")
+--- FAIL: TestCrossGoalApplyRefusedWrite (0.05s)
+=== RUN   TestCrossGoalApplyRejectedReplay
+    cross_goal_moves_test.go:176: replay does not reject 01M756PWEGB03TBCVGEAY2XBW1 with "bad applies: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalApplyRejectedReplay (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.479s
+FAIL
+
+=== R7-refer-owed-limit: removal of the refers check (b-removals/R7-refer-owed-limit.diff, 2 lines added)
+=== RUN   TestMoveTablesAndOwedAgreeAcrossGoals
+    cross_goal_test.go:176: 01JB0000000000000000000001#1: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+    cross_goal_test.go:176: 01JB0000000000000000000005#1: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+    cross_goal_test.go:176: 01JB0000000000000000000005#5: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+--- FAIL: TestMoveTablesAndOwedAgreeAcrossGoals (0.00s)
+=== RUN   TestCrossGoalReferOfAnOwedLimitRefusedWrite
+    cross_goal_test.go:200: refer of 01JB0000000000000000000005#1 from 01JB0000000000000000000006's checkpoint: err <nil>, want a refusal naming the rule
+--- FAIL: TestCrossGoalReferOfAnOwedLimitRefusedWrite (0.00s)
+=== RUN   TestCrossGoalReferOfAnOwedLimitRejectedReplay
+    cross_goal_test.go:214: 01JB0000000000000000000007 not rejected, want "a move never crosses Goals"
+--- FAIL: TestCrossGoalReferOfAnOwedLimitRejectedReplay (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.383s
+FAIL
+
+# restored: 0 changed files

@@ -1,0 +1,10 @@
+=== RUN   TestCrossGoalReferRefusedWrite
+    cross_goal_moves_test.go:96: exit 0 (want 1), stdout "G-KP8MKF checkpoint\n", stderr "" (want "bad refers: G-V5D1WK#1 leads to G-V5D1WK")
+--- FAIL: TestCrossGoalReferRefusedWrite (0.04s)
+=== RUN   TestCrossGoalReferRejectedReplay
+    cross_goal_moves_test.go:106: replay does not reject 01M756PS1NWJ3ZGHG7ZF3C8018 with "bad refers: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalReferRejectedReplay (0.03s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.457s
+FAIL

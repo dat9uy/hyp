@@ -1,0 +1,7 @@
+(b) One check removal per rule in a detached worktree of fe621cb (logs: b-removals.log, b-removals-r6c-rerun.log; diffs and outputs in b-removals/).
+R6a refer: removal of the refers check fails TestCrossGoalReferRefusedWrite and TestCrossGoalReferRejectedReplay.
+R6b aim: removal of the aims check fails TestCrossGoalAimRefusedWrite and TestCrossGoalAimRejectedReplay.
+R6c close: the first run's sed pattern stopped at the nested paren of goalOf(f.Nodes, exp.ID) and removed nothing (R6c-close.diff is empty, 0 lines added), so its two tests passed against an intact check; that run did not test the rule. The rerun (R6c-close-rerun.diff, 2 lines) removes the closes check and fails TestCrossGoalCloseRefusedWrite and TestCrossGoalCloseRejectedReplay.
+R6d apply: removal of the applies check fails TestCrossGoalApplyRefusedWrite and TestCrossGoalApplyRejectedReplay.
+R7 refer of a limit owed to another Goal: its check is the refer check, the only runner move on a hand; its removal fails TestCrossGoalReferOfAnOwedLimitRefusedWrite, TestCrossGoalReferOfAnOwedLimitRejectedReplay and TestMoveTablesAndOwedAgreeAcrossGoals.
+Each rule's removal fails its 2 tests: (b) holds.

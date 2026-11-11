@@ -1,0 +1,10 @@
+=== RUN   TestCrossGoalAimRefusedWrite
+    cross_goal_moves_test.go:118: exit 0 (want 1), stdout "E-70Y3ED node.add\n", stderr "" (want "bad aims: ")
+--- FAIL: TestCrossGoalAimRefusedWrite (0.05s)
+=== RUN   TestCrossGoalAimRejectedReplay
+    cross_goal_moves_test.go:130: replay does not reject 01M756PT58BS9MNKRS67K7FTDV with "bad aims: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalAimRejectedReplay (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.470s
+FAIL

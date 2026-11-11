@@ -1,0 +1,14 @@
+=== RUN   TestMoveTablesAndOwedAgreeAcrossGoals
+    cross_goal_test.go:176: 01JB0000000000000000000001#1: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+    cross_goal_test.go:176: 01JB0000000000000000000005#1: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+    cross_goal_test.go:176: 01JB0000000000000000000005#5: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+--- FAIL: TestMoveTablesAndOwedAgreeAcrossGoals (0.00s)
+=== RUN   TestCrossGoalReferOfAnOwedLimitRefusedWrite
+    cross_goal_test.go:200: refer of 01JB0000000000000000000005#1 from 01JB0000000000000000000006's checkpoint: err <nil>, want a refusal naming the rule
+--- FAIL: TestCrossGoalReferOfAnOwedLimitRefusedWrite (0.00s)
+=== RUN   TestCrossGoalReferOfAnOwedLimitRejectedReplay
+    cross_goal_test.go:214: 01JB0000000000000000000007 not rejected, want "a move never crosses Goals"
+--- FAIL: TestCrossGoalReferOfAnOwedLimitRejectedReplay (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.383s
+FAIL

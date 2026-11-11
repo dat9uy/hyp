@@ -1,0 +1,90 @@
+# (e) worktree fe621cbf40d843f81a94d7aee4f95cb6af3120c5: tests of steps 1 and 2
+--- PASS: TestGoalLinesComeWithTheAddWrite (0.01s)
+--- PASS: TestGoalLinesComeWithTheAddReplay (0.01s)
+--- PASS: TestGoalLineCiteSettledWrite (0.03s)
+--- PASS: TestGoalLineCiteSettledReplay (0.01s)
+--- PASS: TestGoalLineCiteChangeIsOnlyACheckWarning (0.02s)
+--- PASS: TestOwnerAndRunnerFieldsNeverMixWrite (0.02s)
+--- PASS: TestOwnerAndRunnerFieldsNeverMixReplay (0.03s)
+--- PASS: TestEmptyAnswerRefusedWrite (0.01s)
+--- PASS: TestEmptyAnswerRejectedReplay (0.01s)
+--- PASS: TestEmptyCheckpointRefusedWrite (0.01s)
+--- PASS: TestEmptyCheckpointRejectedReplay (0.02s)
+--- PASS: TestOneAnswerSettlesKeysOfTwoGoals (0.04s)
+--- PASS: TestReferWithoutReasonRefusedWrite (0.02s)
+--- PASS: TestReferWithoutReasonRejectedReplay (0.02s)
+--- PASS: TestTwoGoalStoreAdmitsASecondGoalWrite (0.05s)
+--- PASS: TestTwoGoalStoreReplaysEachGoalAsItsOwn (0.04s)
+--- PASS: TestTwoGoalStoreReferredLineHoldsOnlyItsGoal (0.03s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.556s
+
+# diff of the step-1 and step-2 test files, 53246b6..fe621cb
+diff --git a/internal/cli/goal_lines_answer_test.go b/internal/cli/goal_lines_answer_test.go
+index 6aeb9cb..c392c4e 100644
+--- a/internal/cli/goal_lines_answer_test.go
++++ b/internal/cli/goal_lines_answer_test.go
+@@ -220,11 +220,11 @@ func TestGoalLineCiteChangeIsOnlyACheckWarning(t *testing.T) {
+ 	must(t, "select", q, h, "--why", "w")
+ 	g2 := strings.Fields(hyp(t, "add", "goal", "--title", "G2", "--line", "builds on H", "--cite", "1="+h, "--why", "w").stdout)[0]
+ 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+-	before := goalBlock(t, hyp(t, "status").stdout, g2)
++	before := goalBlock(t, hyp(t, "status", g2).stdout, g2)
+ 	must(t, "unselect", q, "--why", "w")
+ 	want(t, hyp(t, "check"), 0, "warn: "+g2+"#1 cites "+h+", which was realised when the line was written and is unsettled now")
+ 	want(t, hyp(t, "show", g2+"#1"), 0, "cites "+h+": realised, now unsettled\n")
+-	if after := goalBlock(t, hyp(t, "status").stdout, g2); after != before {
++	if after := goalBlock(t, hyp(t, "status", g2).stdout, g2); after != before {
+ 		t.Fatalf("a cite's change moved %s's status:\n%s\nbefore:\n%s", g2, after, before)
+ 	}
+ }
+@@ -331,7 +331,7 @@ func TestOneAnswerSettlesKeysOfTwoGoals(t *testing.T) {
+ 	if out := hyp(t, "show", g1).stdout; strings.Contains(out, k2[0]) {
+ 		t.Fatalf("%s's history holds %s's key:\n%s", g1, g2, out)
+ 	}
+-	want(t, hyp(t, "status"), 0, "o answer answers "+k+"; accepts "+k2[0])
++	want(t, hyp(t, "status", g1), 0, "o answer answers "+k+"; accepts "+k2[0])
+ 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
+ }
+ 
+diff --git a/internal/cli/two_goal_store_test.go b/internal/cli/two_goal_store_test.go
+index 4c15b21..e8a5e95 100644
+--- a/internal/cli/two_goal_store_test.go
++++ b/internal/cli/two_goal_store_test.go
+@@ -45,7 +45,7 @@ func TestTwoGoalStoreAdmitsASecondGoalWrite(t *testing.T) {
+ 	h1 := supported(t, q1, "H1")
+ 	h2 := supported(t, q2, "H2")
+ 
+-	out := hyp(t, "status").stdout
++	out := hyp(t, "status", g1).stdout + hyp(t, "status", g2).stdout
+ 	for _, s := range []string{
+ 		"runner: " + q1 + " limit " + k1[0] + " [owed]",
+ 		"runner: " + q2 + " limit " + k2[0] + " [owed]",
+@@ -68,8 +68,10 @@ func TestTwoGoalStoreAdmitsASecondGoalWrite(t *testing.T) {
+ 	// A Result that runs g1's line on H1 covers g1's line on q1 only.
+ 	e := must(t, "add", "exp", "--parent", h1, "--title", "runs the line", "--recipe", "none", "--decided-by", "reading", "--aims", k1[0], "--target", "none", "--why", "w")
+ 	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "ran", "--closes", k1[0], "--why", "w")
+-	notIn(t, "limit "+k1[0])
+-	want(t, hyp(t, "status"), 0, "runner: "+q2+" limit "+k2[0]+" [owed]")
++	if out := hyp(t, "status", g1).stdout; strings.Contains(out, "limit "+k1[0]) {
++		t.Fatalf("status still prints %q:\n%s", "limit "+k1[0], out)
++	}
++	want(t, hyp(t, "status", g2), 0, "runner: "+q2+" limit "+k2[0]+" [owed]")
+ 	show := hyp(t, "show", g2).stdout
+ 	if strings.Contains(show, k1[0]) || !strings.Contains(show, "line "+k2[0]+" uncovered on "+q2) {
+ 		t.Fatalf("show %s does not hold only its own line:\n%s", g2, show)
+@@ -121,12 +123,11 @@ func TestTwoGoalStoreReplaysEachGoalAsItsOwn(t *testing.T) {
+ 	if r := hyp(t, "check"); r.code != 0 || !strings.Contains(r.stdout+r.stderr, "check: 0 errors") {
+ 		t.Fatalf("one store holds many Goals, but replay rejected the merged log: exit %d\n%s%s", r.code, r.stdout, r.stderr)
+ 	}
+-	merged := hyp(t, "status").stdout
+-	if strings.Contains(merged, "REJECTED") {
++	if merged := hyp(t, "status").stdout; strings.Contains(merged, "REJECTED") {
+ 		t.Fatalf("replay rejected events of the merged log:\n%s", merged)
+ 	}
+ 	for _, c := range []struct{ g, own string }{{gA, statusA}, {gB, statusB}} {
+-		if got, want := goalBlock(t, merged, c.g), goalBlock(t, c.own, c.g); got != want {
++		if got, want := goalBlock(t, hyp(t, "status", c.g).stdout, c.g), goalBlock(t, c.own, c.g); got != want {
+ 			t.Fatalf("%s in the two-Goal store:\n%s\nin a store of its own:\n%s", c.g, got, want)
+ 		}
+ 	}
