@@ -1,0 +1,24 @@
+== rule G1 on b80d95d052ddfae9d660deea4cdfaa4977aba06f, worktree b80d95d052ddfae9d660deea4cdfaa4977aba06f
+== diff lines: 15
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index b472b50..9e72633 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -212,9 +212,7 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
+ 				add(base, "", inputs)
+ 			}
+ 			for _, p := range r.Patches {
+-				if event.IsSHA256(p.SHA256) {
+-					add(base, p.SHA256, inputs)
+-				}
++				add(base, p.SHA256, inputs)
+ 			}
+ 		}
+ 	}
+== go test -run '^(TestArmWithBadPatchHashGivesNoSubject)$' exit 1
+--- FAIL: TestArmWithBadPatchHashGivesNoSubject (0.12s)
+    run_subject_test.go:331: hyp [record --exp E-D2RH21 --verdict H-5JQ7HQ=supports --observation an Arm with a bad hash --evidence .tree/evidence/E-D2RH21/run-bad/sandbox.json --closes G-6T1HSP#1 --why w]: exit 1, stderr "refused: bad subjects: patch \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\" is not a sha256\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.458s
+ok  	github.com/dat9uy/hyp/internal/replay	0.329s [no tests to run]
+FAIL

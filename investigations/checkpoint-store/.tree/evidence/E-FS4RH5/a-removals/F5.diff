@@ -1,0 +1,16 @@
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index b472b50..cf934b3 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -72,9 +72,8 @@ func cmdSubject(args []string, stdout, stderr io.Writer) error {
+ // holds the store root.
+ func resolveCommit(root, rev string) (string, error) {
+ 	out, err := exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", rev+"^{commit}").Output()
+-	if errors.Is(err, exec.ErrNotFound) {
+-		return "", herr.Env("--base %s: git is not on PATH", rev)
+-	}
++	_ = errors.Is
++	_ = herr.Env
+ 	id := strings.TrimSpace(string(out))
+ 	if err != nil || !event.IsCommit(id) {
+ 		return "", usageErr("--base %s is not a commit in the repository at %s", rev, root)

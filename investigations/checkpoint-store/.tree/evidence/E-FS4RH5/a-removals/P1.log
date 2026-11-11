@@ -1,0 +1,25 @@
+== rule P1 on b80d95d052ddfae9d660deea4cdfaa4977aba06f, worktree b80d95d052ddfae9d660deea4cdfaa4977aba06f
+== diff lines: 13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index d3cfee2..e2e90c7 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -557,7 +557,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		return false
+ 	}
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+-		if sub.Base != "" && (run.Base != sub.Base || run.Patch != sub.PatchSHA256()) {
++		if sub.Base != "" && (run.Base != sub.Base || (run.Patch != "" && run.Patch != sub.PatchSHA256())) {
+ 			return false
+ 		}
+ 		for _, file := range sub.Files {
+== go test -run '^(TestSubjectPatchIsNotAnInput|TestHoldsSubject)$' exit 1
+--- FAIL: TestSubjectPatchIsNotAnInput (0.12s)
+    run_subject_test.go:315: exit 0 (want 0), stdout "GOAL G-91MBGW G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-91MBGW#1 covered on Q-6PZ77D, Q-XXGS6T; ran in R-06DSP5 — a patch is not an input\nFRONTIER\n  Q-6PZ77D open/supported_unselected Q\n    candidates (1): H-AAVEJH\n    H-AAVEJH supported runner\n  Q-XXGS6T open/supported_unselected Q2\n    candidates (2): H-MX46S7, H-T5FMX2 (trade-off)\n    H-MX46S7 supported B and the patch\n    H-T5FMX2 supported B given the data\n      E-STP01Q run [one-rival]\nSTALE\nOWED\n  runner: Q-6PZ77D select H-AAVEJH, the only candidate\nAWAITING OWNER\n  Q-XXGS6T choose: H-MX46S7, H-T5FMX2 (no Result separates them)\nRECENT\n  2026-11-11 14:15 a result.record R-06DSP5 — w\n  2026-11-11 14:15 a hypothesis.subject H-T5FMX2 — w\n  2026-11-11 14:15 a result.record R-41DTE0 — w\n  2026-11-11 14:15 a hypothesis.subject H-MX46S7 — w\n  2026-11-11 14:15 a result.record R-YP5W7D — w\nCHECKPOINT none\n", stderr "" (want "uncovered on Q-XXGS6T: H-MX46S7;")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.462s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:98: B plus patch P, run at bare B given P's bytes as input: HoldsSubject = true, want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.334s
+FAIL

@@ -1,0 +1,25 @@
+== rule F5 on b80d95d052ddfae9d660deea4cdfaa4977aba06f, worktree b80d95d052ddfae9d660deea4cdfaa4977aba06f
+== diff lines: 16
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index b472b50..cf934b3 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -72,9 +72,8 @@ func cmdSubject(args []string, stdout, stderr io.Writer) error {
+ // holds the store root.
+ func resolveCommit(root, rev string) (string, error) {
+ 	out, err := exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", rev+"^{commit}").Output()
+-	if errors.Is(err, exec.ErrNotFound) {
+-		return "", herr.Env("--base %s: git is not on PATH", rev)
+-	}
++	_ = errors.Is
++	_ = herr.Env
+ 	id := strings.TrimSpace(string(out))
+ 	if err != nil || !event.IsCommit(id) {
+ 		return "", usageErr("--base %s is not a commit in the repository at %s", rev, root)
+== go test -run '^(TestSubjectBaseExitCodes)$' exit 1
+--- FAIL: TestSubjectBaseExitCodes (0.09s)
+    run_subject_test.go:368: exit 2 (want 3), stdout "", stderr "--base HEAD is not a commit in the repository at /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSubjectBaseExitCodes3505289649/001\n" (want "--base HEAD: git is not on PATH")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.445s
+ok  	github.com/dat9uy/hyp/internal/replay	0.344s [no tests to run]
+FAIL

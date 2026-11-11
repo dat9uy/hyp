@@ -1,0 +1,24 @@
+== rule F3-L26 on b80d95d052ddfae9d660deea4cdfaa4977aba06f, worktree b80d95d052ddfae9d660deea4cdfaa4977aba06f
+== diff lines: 13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index d3cfee2..7ebc498 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -457,7 +457,7 @@ func (f *Facts) validateSubject(ev event.Event) error {
+ 	if cur.Same(p) {
+ 		return errors.New("bad subject: unchanged")
+ 	}
+-	if r := f.subjectRan(ev.Node); r != "" {
++	if r := f.subjectRan(ev.Node); false && r != "" {
+ 		return fmt.Errorf("bad subject: %s's subject ran in %s; a different subject is a new Hypothesis: add it and supersede %s", event.DisplayID(event.KindHypothesis, ev.Node), event.DisplayID(event.KindResult, r), event.DisplayID(event.KindHypothesis, ev.Node))
+ 	}
+ 	return nil
+== go test -run '^(TestBaseSubjectLocksOnlyWhenItRan|TestBareBaseLocksAfterRunWithInputs)$' exit 1
+--- FAIL: TestBaseSubjectLocksOnlyWhenItRan (0.19s)
+    run_subject_test.go:283: exit 0 (want 1), stdout "H-QDFEJQ hypothesis.subject\n", stderr "" (want "bad subject: H-QDFEJQ's subject ran in R-M439BQ")
+--- FAIL: TestBareBaseLocksAfterRunWithInputs (0.12s)
+    run_subject_test.go:357: exit 0 (want 1), stdout "H-KK0PJA hypothesis.subject\n", stderr "" (want "bad subject: H-KK0PJA's subject ran in R-BDD0WJ")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.663s
+ok  	github.com/dat9uy/hyp/internal/replay	0.352s [no tests to run]
+FAIL
