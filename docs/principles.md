@@ -59,9 +59,9 @@ a tree is the view of one Goal ([ADR 0020](adr/0020-one-store-holds-many-goals.m
 
 ## 6. Coverage says the bytes ran, not that the claim held
 
-**A Result covers a Hypothesis it judged, or one whose subject's files ran in
-the records it cites.** hyp copies the files' sha256 from those records; the
-runner never types them. A matching hash proves which bytes ran, not which
+**A Result covers a Hypothesis it judged, or one whose whole subject, its base,
+patch and files, one run it cites holds.** hyp copies each run's subject from
+those records; the runner never types it. A matching hash proves which bytes ran, not which
 claim they stand for, and only a verdict says whether a claim held. See the
 glossary's Coverage and Subject.
 
