@@ -7,11 +7,15 @@ import (
 	"testing"
 )
 
-// goalLines writes Goal g's lines as owner o, naming the Goal, and returns
-// their keys.
-func goalLines(t *testing.T, g, o string, texts ...string) []string {
+// goalLines writes Goal g's lines as owner o and returns their keys. It
+// names the Goal with --goal only when named is set: a store with one Goal
+// needs no --goal.
+func goalLines(t *testing.T, g, o string, named bool, texts ...string) []string {
 	t.Helper()
-	args := []string{"checkpoint", "--goal", g, "--summary", "the lines", "--role", "owner", "--actor", o, "--why", "w"}
+	args := []string{"checkpoint", "--summary", "the lines", "--role", "owner", "--actor", o, "--why", "w"}
+	if named {
+		args = append(args, "--goal", g)
+	}
 	for _, l := range texts {
 		args = append(args, "--line", l)
 	}
@@ -58,8 +62,8 @@ func TestTwoGoalStoreAdmitsASecondGoalWrite(t *testing.T) {
 	q2 := must(t, "add", "dq", "--parent", g2, "--title", "Q2", "--why", "ask")
 
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--why", "w"), 2, "missing --goal: the store holds 2 Goals")
-	k1 := goalLines(t, g1, "o", "one tenant per row")
-	k2 := goalLines(t, g2, "o", "survives a region outage")
+	k1 := goalLines(t, g1, "o", true, "one tenant per row")
+	k2 := goalLines(t, g2, "o", true, "survives a region outage")
 	if k1[0] == k2[0] {
 		t.Fatalf("both Goals' first lines have key %s", k1[0])
 	}
@@ -107,7 +111,7 @@ func buildGoalStore(t *testing.T, dir, a, o, title, line string) (g, key string)
 	must(t, "init")
 	g = must(t, "add", "goal", "--title", title, "--why", "start")
 	q := must(t, "add", "dq", "--parent", g, "--title", "Q of "+title, "--why", "ask")
-	key = goalLines(t, g, o, line)[0]
+	key = goalLines(t, g, o, false, line)[0]
 	supported(t, q, "H of "+title)
 	return g, key
 }
