@@ -450,7 +450,8 @@ func (f *Facts) validateSubject(ev event.Event) error {
 }
 
 // checkRunSubjects is the replay rule of a Result's subjects: one per cited
-// run, so at most one per evidence pointer, each with a base or a file, a
+// run, copied from cited records, so none without evidence, each with a
+// base or a file, a
 // base that is a full commit id, files sorted and unique sha256s, no two
 // alike, and at most MaxFingerprints files in all. A Result holds subjects
 // or an old fingerprints list, never both.
@@ -464,8 +465,11 @@ func checkRunSubjects(p event.ResultRecord) error {
 	if err := sortedSHA256s("fingerprints", p.Fingerprints); err != nil {
 		return err
 	}
-	if len(p.Subjects) > event.MaxEvidence {
-		return fmt.Errorf("over limit: subjects has %d items (max %d)", len(p.Subjects), event.MaxEvidence)
+	if len(p.Subjects) > 0 && len(p.Evidence) == 0 {
+		return errors.New("bad subjects: a Result with no evidence has no run to keep a subject of")
+	}
+	if len(p.Subjects) > event.MaxRunSubjects {
+		return fmt.Errorf("over limit: subjects has %d items (max %d)", len(p.Subjects), event.MaxRunSubjects)
 	}
 	total := 0
 	for i, s := range p.Subjects {
@@ -534,12 +538,18 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
 	if sub.Base == "" && len(sub.Files) == 0 {
 		return false
 	}
+	var want []string
+	for _, file := range sub.Files {
+		want = append(want, file.SHA256)
+	}
+	slices.Sort(want)
+	want = slices.Compact(want)
 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
-		if sub.Base != "" && (run.Base != sub.Base || len(run.Files) != len(sub.Files)) {
-			return false
+		if sub.Base != "" {
+			return run.Base == sub.Base && slices.Equal(run.Files, want)
 		}
-		for _, file := range sub.Files {
-			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok {
+		for _, h := range want {
+			if _, ok := slices.BinarySearch(run.Files, h); !ok {
 				return false
 			}
 		}

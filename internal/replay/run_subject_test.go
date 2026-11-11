@@ -20,17 +20,22 @@ func TestRunSubjectReplayRejections(t *testing.T) {
 	file := strings.Repeat("f", 64)
 	res := func(p event.ResultRecord) string {
 		p.Parent, p.Verdicts, p.Observation = e, map[string]string{h: sup}, "o"
+		if p.Evidence == nil {
+			p.Evidence = []string{".tree/evidence/E/sandbox.json"}
+		}
 		return b.Emit(event.TypeResultRecord, "", p)
 	}
 	both := res(event.ResultRecord{Subjects: []event.RunSubject{{Base: base}}, Fingerprints: []string{file}})
 	empty := res(event.ResultRecord{Subjects: []event.RunSubject{{}}})
 	short := res(event.ResultRecord{Subjects: []event.RunSubject{{Base: "bbbbbbb"}}})
 	twice := res(event.ResultRecord{Subjects: []event.RunSubject{{Base: base, Files: []string{file}}, {Base: base, Files: []string{file}}}})
+	noEvidence := res(event.ResultRecord{Subjects: []event.RunSubject{{Base: base}}, Evidence: []string{}})
 	ok := res(event.ResultRecord{Subjects: []event.RunSubject{{Base: base, Files: []string{file}}, {Base: base}}})
 	noBase := b.Emit(event.TypeHypothesisSubject, h, event.HypothesisSubject{})
 	badBase := b.Emit(event.TypeHypothesisSubject, h, event.HypothesisSubject{Base: "main"})
 	p := replayB(b)
 	wantRejected(t, p, both, "a Result keeps subjects or fingerprints, not both")
+	wantRejected(t, p, noEvidence, "bad subjects: a Result with no evidence has no run to keep a subject of")
 	wantRejected(t, p, empty, "a subject with no base and no files")
 	wantRejected(t, p, short, `base "bbbbbbb" is not a full commit id`)
 	wantRejected(t, p, twice, "the same subject twice")
@@ -64,6 +69,7 @@ func TestHoldsSubject(t *testing.T) {
 		{"B plus P, run at C plus P", []event.RunSubject{{Base: C, Files: []string{P}}}, event.HypothesisSubject{Base: B, Files: file(P)}, false},
 		{"files only, old Result", []event.RunSubject{{Files: []string{P, I}}}, event.HypothesisSubject{Files: file(P)}, true},
 		{"files only, run at C", []event.RunSubject{{Base: C, Files: []string{P}}}, event.HypothesisSubject{Files: file(P)}, true},
+		{"B plus two paths of one patch's bytes, run at B plus P", []event.RunSubject{{Base: B, Files: []string{P}}}, event.HypothesisSubject{Base: B, Files: append(file(P), event.SubjectFile{Path: "y", SHA256: P})}, true},
 		{"no subject", []event.RunSubject{{Base: B}}, event.HypothesisSubject{}, false},
 	}
 	for _, c := range cases {

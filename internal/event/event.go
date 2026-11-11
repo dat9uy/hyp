@@ -123,6 +123,7 @@ const (
 	MaxReadingItem  = 600
 	MaxSubjectFiles = 50
 	MaxFingerprints = 2000
+	MaxRunSubjects  = 100 // a Result's subjects: one per cited run, and a sandbox record holds one run per Arm
 	MaxLine         = 600 // a line on a Goal's node.add (ADR 0020); a line an old checkpoint wrote holds at most MaxLimitItem
 	MaxCites        = 10
 )

@@ -192,3 +192,67 @@ func TestPatchedRunNeverCoversBareBase(t *testing.T) {
 	want(t, hyp(t, "status"), 0, "uncovered on "+q2+": "+bare+";")
 	want(t, hyp(t, "show", keys[0]), 0, "ran in "+res+": ran on "+h+": supports; ran on "+patched+"\n")
 }
+
+// A sandbox record holds one run per Arm, so it keeps one subject per Arm,
+// each at its base and given that Arm's one patch: a Hypothesis tied to B
+// and Arm a's patch is covered, and bare B is not.
+func TestSandboxKeepsOneSubjectPerArm(t *testing.T) {
+	dir, g, q, keys := setupLines(t, "each Arm runs the case")
+	b := gitCommits(t, dir, 1)[0]
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	pa := writeHashed(t, dir, "a.patch", "--- a\n+++ a\n")
+	pb := writeHashed(t, dir, "b.patch", "--- b\n+++ b\n")
+	armA := candidate(t, q2, "B and Arm a", "a.patch", "--base", b)
+	bare := candidate(t, q2, "bare B", "--base", b)
+	h, e := runner(t, q)
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "two Arms", "--evidence", writeSandboxRecord(t, dir, e, "run-ab", b, pa, pb), "--closes", keys[0], "--why", "w")
+	var subjects []event.RunSubject
+	_ = json.Unmarshal(lastResult(t, dir)["subjects"], &subjects)
+	if len(subjects) != 2 || subjects[0].Base != b || !slices.Equal(subjects[0].Files, []string{pa}) || !slices.Equal(subjects[1].Files, []string{pb}) {
+		t.Fatalf("subjects = %+v, want one per Arm at %s", subjects, b)
+	}
+	want(t, hyp(t, "status"), 0, "uncovered on "+q2+": "+bare+";")
+	notIn(t, armA+";")
+}
+
+// Rule 26 on a base: a bare-B subject that only a run at B plus a patch met
+// never ran, so it may be tied again; once a run at exactly B holds it, a
+// different subject is a new Hypothesis.
+func TestBaseSubjectLocksOnlyWhenItRan(t *testing.T) {
+	dir, _, q, _ := setupLines(t, "the commit runs the case")
+	ids := gitCommits(t, dir, 3)
+	p := writeHashed(t, dir, "arm.patch", "--- a\n+++ b\n")
+	h := candidate(t, q, "commit", "--base", ids[0])
+	e := must(t, "add", "exp", "--parent", h, "--title", "patched", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "B plus a patch", "--evidence", writeSandboxRecord(t, dir, e, "run-bp", ids[0], p), "--why", "w")
+	must(t, "subject", h, "--base", ids[1], "--why", "w")
+	e2 := must(t, "add", "exp", "--parent", h, "--title", "bare", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+	res := must(t, "record", "--exp", e2, "--verdict", h+"=supports", "--observation", "exactly B", "--evidence", writeSandboxRecord(t, dir, e2, "run-b", ids[1]), "--why", "w")
+	want(t, hyp(t, "subject", h, "--base", ids[2], "--why", "w"), 1, "bad subject: "+h+"'s subject ran in "+res)
+}
+
+// A Hypothesis tied with a base and two paths of the same bytes is held by
+// a run given those bytes once.
+func TestBaseSubjectWithOneFileTwiceIsHeld(t *testing.T) {
+	dir, g, q, keys := setupLines(t, "the patch runs the case")
+	b := gitCommits(t, dir, 1)[0]
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	p := writeHashed(t, dir, "one.patch", "--- a\n+++ b\n")
+	writeHashed(t, dir, "copy.patch", "--- a\n+++ b\n")
+	twice := candidate(t, q2, "two paths", "one.patch", "copy.patch", "--base", b)
+	h, e := runner(t, q)
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "B plus the patch", "--evidence", writeSandboxRecord(t, dir, e, "run-bp", b, p), "--closes", keys[0], "--why", "w")
+	notIn(t, "uncovered on "+q2)
+	_ = twice
+}
+
+// git missing from PATH is an environment problem, exit 3; a rev git cannot
+// resolve is a bad argument, exit 2.
+func TestSubjectBaseExitCodes(t *testing.T) {
+	dir, _, q, _ := setupLines(t, "x")
+	gitCommits(t, dir, 1)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	want(t, hyp(t, "subject", h, "--base", "no-such", "--why", "w"), 2, "--base no-such is not a commit")
+	t.Setenv("PATH", t.TempDir())
+	want(t, hyp(t, "subject", h, "--base", "HEAD", "--why", "w"), 3, "--base HEAD: git is not on PATH")
+}

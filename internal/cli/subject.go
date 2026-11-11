@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/cmdrecord"
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/herr"
 )
 
 // cmdSubject writes hypothesis.subject: what embodies a Hypothesis's claim,
@@ -55,6 +57,9 @@ func cmdSubject(args []string, stdout, stderr io.Writer) error {
 // holds the store root.
 func resolveCommit(root, rev string) (string, error) {
 	out, err := exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", rev+"^{commit}").Output()
+	if errors.Is(err, exec.ErrNotFound) {
+		return "", herr.Env("--base %s: git is not on PATH", rev)
+	}
 	id := strings.TrimSpace(string(out))
 	if err != nil || !event.IsCommit(id) {
 		return "", usageErr("--base %s is not a commit in the repository at %s", rev, root)
@@ -134,23 +139,37 @@ func fileSHA256(path string) (string, error) {
 // runSubjects keeps one subject per cited run, in evidence order: from each
 // cited command.json and sandbox.json under the store root, the base commit
 // the record names and the sha256 of every file it says the run was given
-// over it. A command record names no base and gives its inputs and directory
-// entries (format 6); a sandbox record gives its base, its patches and its
-// inputs file. A record that cannot be read, or names nothing, gives no
-// subject; hyp check reports a record it cannot read. A subject equal to an
-// earlier one is kept once (ADR 0020).
+// over it. A command record is one run with no base, given its inputs and
+// directory entries (format 6). A sandbox record is one run per Arm, each at
+// its base and given that Arm's one patch and the inputs file; with no Arm
+// it is one run given the inputs file. A record that cannot be read, or
+// names nothing, gives no subject; hyp check reports a record it cannot
+// read. A subject equal to an earlier one is kept once (ADR 0020).
 func runSubjects(root string, evidence []string) []event.RunSubject {
 	var out []event.RunSubject
+	add := func(base string, files []string) {
+		files = slices.DeleteFunc(files, func(h string) bool { return !event.IsSHA256(h) })
+		slices.Sort(files)
+		files = slices.Compact(files)
+		if len(files) == 0 {
+			files = nil
+		}
+		run := event.RunSubject{Base: base, Files: files}
+		if run.Base == "" && run.Files == nil {
+			return
+		}
+		if slices.ContainsFunc(out, func(o event.RunSubject) bool { return o.Base == run.Base && slices.Equal(o.Files, run.Files) }) {
+			return
+		}
+		out = append(out, run)
+	}
 	for _, e := range evidence {
 		path := filepath.Join(root, filepath.FromSlash(filepath.ToSlash(filepath.Clean(e))))
-		var run event.RunSubject
 		switch filepath.Base(e) {
 		case "command.json":
-			r, err := cmdrecord.Read(path)
-			if err != nil {
-				continue
+			if r, err := cmdrecord.Read(path); err == nil {
+				add("", r.Fingerprints())
 			}
-			run.Files = r.Fingerprints()
 		case "sandbox.json":
 			data, err := os.ReadFile(path)
 			if err != nil {
@@ -164,31 +183,21 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
 			if json.Unmarshal(data, &r) != nil {
 				continue
 			}
+			base := ""
 			if event.IsCommit(r.Base) {
-				run.Base = r.Base
+				base = r.Base
 			}
+			var inputs []string
 			if r.Inputs != nil {
-				run.Files = append(run.Files, r.Inputs.SHA256)
+				inputs = []string{r.Inputs.SHA256}
+			}
+			if len(r.Patches) == 0 {
+				add(base, inputs)
 			}
 			for _, p := range r.Patches {
-				run.Files = append(run.Files, p.SHA256)
+				add(base, append([]string{p.SHA256}, inputs...))
 			}
-		default:
-			continue
 		}
-		run.Files = slices.DeleteFunc(run.Files, func(h string) bool { return !event.IsSHA256(h) })
-		slices.Sort(run.Files)
-		run.Files = slices.Compact(run.Files)
-		if len(run.Files) == 0 {
-			run.Files = nil
-		}
-		if run.Base == "" && run.Files == nil {
-			continue
-		}
-		if slices.ContainsFunc(out, func(o event.RunSubject) bool { return o.Base == run.Base && slices.Equal(o.Files, run.Files) }) {
-			continue
-		}
-		out = append(out, run)
 	}
 	return out
 }
