@@ -13,16 +13,16 @@ type Projection struct {
 	Questions      map[string]*Question // DesignQuestion → its derived record
 	Goals          []GoalStatus         // one per Goal, in creation order
 	Rejections     []Rejection
-	Applied        []event.Event                  // events that applied, in merge order
-	LastCheckpoint map[string]*event.Event        // Goal → its latest runner checkpoint; an old owner checkpoint is not one
-	RivalsAtAdd    map[string][]string            // Experiment → live rivals of its parent just before its add
-	Exps           map[string]*Exp                // Experiment → its derived record (experiment.go)
-	Results        map[string]*Res                // Result → its derived record (result.go)
-	Edges          []Edge                         // every edge in apply order; Live is false once removed
-	Decisions      map[string]*Decision           // DQ → its Decision record (decision.go)
-	Readings       []Reading                      // readings of non-retracted Results, in creation order
-	Lines          []Limit                        // every Goal's lines, by Goal in creation order, then in order (spec §8.2)
-	Subjects       map[string][]event.SubjectFile // Hypothesis → its subject, the latest tie
+	Applied        []event.Event                      // events that applied, in merge order
+	LastCheckpoint map[string]*event.Event            // Goal → its latest runner checkpoint; an old owner checkpoint is not one
+	RivalsAtAdd    map[string][]string                // Experiment → live rivals of its parent just before its add
+	Exps           map[string]*Exp                    // Experiment → its derived record (experiment.go)
+	Results        map[string]*Res                    // Result → its derived record (result.go)
+	Edges          []Edge                             // every edge in apply order; Live is false once removed
+	Decisions      map[string]*Decision               // DQ → its Decision record (decision.go)
+	Readings       []Reading                          // readings of non-retracted Results, in creation order
+	Lines          []Limit                            // every Goal's lines, by Goal in creation order, then in order (spec §8.2)
+	Subjects       map[string]event.HypothesisSubject // Hypothesis → its subject, the latest tie
 }
 
 // HypStatus, QuestionState, ExpStatus, ResStatus and GoalState are the status
@@ -126,7 +126,7 @@ type Node struct {
 	Limits, Closes     []string
 	Readings           []event.ReadingItem
 	Aims, Applies      []string
-	Fingerprints       []string // a Result's: the file sha256s its cited records say the run was given
+	Subjects           []event.RunSubject // a Result's: one subject per cited run; an old Result's fingerprints read as one with no base
 }
 
 // Pin is a recipe ref and the bundle hash an event recorded for it. Pointer
@@ -330,7 +330,7 @@ type Facts struct {
 	Lines   map[string][]string
 	LinesBy map[string]string
 	// Subjects holds each Hypothesis's subject, the latest tie.
-	Subjects map[string][]event.SubjectFile
+	Subjects map[string]event.HypothesisSubject
 
 	// Lookup indexes over the stored state, maintained by apply so that a
 	// full recompute per event stays fast.
@@ -376,7 +376,7 @@ func NewState() *State {
 			Aliases:      map[string]string{},
 			Answers:      map[string][]Answer{},
 			LimitHand:    map[string]Hand{},
-			Subjects:     map[string][]event.SubjectFile{},
+			Subjects:     map[string]event.HypothesisSubject{},
 			Lines:        map[string][]string{},
 			LinesBy:      map[string]string{},
 			ResultsByHyp: map[string][]string{},

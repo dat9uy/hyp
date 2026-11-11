@@ -1,0 +1,20 @@
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index 30b0338..0a8fa4d 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -191,12 +191,11 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
+ 			if r.Inputs != nil {
+ 				inputs = []string{r.Inputs.SHA256}
+ 			}
+-			if len(r.Patches) == 0 {
+-				add(base, inputs)
+-			}
++			files := inputs
+ 			for _, p := range r.Patches {
+-				add(base, append([]string{p.SHA256}, inputs...))
++				files = append(files, p.SHA256)
+ 			}
++			add(base, files)
+ 		}
+ 	}
+ 	return out

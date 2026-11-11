@@ -1,0 +1,6 @@
+== rule R3d on 7257753, worktree 72577531c1225a70f27af851c050c912aa88f4e2
+== diff lines:        0
+== go test -count=1 -run 'TestPatchedRunNeverCoversBareBase|TestHoldsSubject' ./internal/cli ./internal/replay
+ok  	github.com/dat9uy/hyp/internal/cli	0.502s
+ok  	github.com/dat9uy/hyp/internal/replay	0.352s
+== exit 0

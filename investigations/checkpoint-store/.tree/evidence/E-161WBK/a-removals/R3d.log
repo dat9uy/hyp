@@ -1,0 +1,27 @@
+== rule R3d on 7257753, worktree 72577531c1225a70f27af851c050c912aa88f4e2
+== diff lines:       13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 9aac199..01fa655 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -535,7 +535,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		return false
+ 	}
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+-		if sub.Base != "" && (run.Base != sub.Base || len(run.Files) != len(sub.Files)) {
++		if sub.Base != "" && (run.Base != sub.Base) {
+ 			return false
+ 		}
+ 		for _, file := range sub.Files {
+== go test -count=1 -run 'TestPatchedRunNeverCoversBareBase|TestHoldsSubject' ./internal/cli ./internal/replay
+--- FAIL: TestPatchedRunNeverCoversBareBase (0.16s)
+    run_subject_test.go:192: exit 0 (want 0), stdout "GOAL G-4R5X5N G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-4R5X5N#1 covered on Q-1X0HG8, Q-GBGYGK; ran in R-G3FHBF — a run at B plus a patch never covers bare B\nFRONTIER\n  Q-1X0HG8 open/supported_unselected Q\n    candidates (1): H-YF634F\n    H-YF634F supported runner\n  Q-GBGYGK open/supported_unselected Q2\n    candidates (2): H-6H87NX, H-JWSGZN (trade-off)\n    H-6H87NX supported bare B\n    H-JWSGZN supported B and the patch\n      E-EFTB8Z run [one-rival]\nSTALE\nOWED\n  runner: Q-1X0HG8 select H-YF634F, the only candidate\nAWAITING OWNER\n  Q-GBGYGK choose: H-6H87NX, H-JWSGZN (no Result separates them)\nRECENT\n  2026-11-11 13:18 a result.record R-G3FHBF — w\n  2026-11-11 13:18 a hypothesis.subject H-JWSGZN — w\n  2026-11-11 13:18 a result.record R-67FQNX — w\n  2026-11-11 13:18 a hypothesis.subject H-6H87NX — w\n  2026-11-11 13:18 a result.record R-AYB7VN — w\nCHECKPOINT none\n", stderr "" (want "uncovered on Q-GBGYGK: H-6H87NX;")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.511s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:71: bare B, run at B plus a patch: HoldsSubject = true, want false
+    run_subject_test.go:71: bare B, merged across two runs: HoldsSubject = true, want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.346s
+FAIL
+== exit 1

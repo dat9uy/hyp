@@ -480,7 +480,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 		}
 		hashes[e] = h
 	}
-	prints := fingerprints(w.root, evidence)
+	runs := runSubjects(w.root, evidence)
 	if recordHashed != nil {
 		recordHashed()
 	}
@@ -492,7 +492,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		p := event.ResultRecord{Parent: expID, Verdicts: map[string]string{}, Observation: *observation, Evidence: evidence,
-			EvidenceHashes: hashes, Limits: limits, Fingerprints: prints}
+			EvidenceHashes: hashes, Limits: limits, Subjects: runs}
 		for _, t := range readings {
 			p.Readings = append(p.Readings, event.ReadingItem{Text: t})
 		}

@@ -62,12 +62,18 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	if q := p.Questions[id]; q != nil && len(q.Candidates) > 0 {
 		w("candidates: %s", r.named(q.Candidates))
 	}
-	if sub := p.Subjects[id]; len(sub) > 0 {
-		var files []string
-		for _, f := range sub {
-			files = append(files, f.Path+" "+f.SHA256[:12])
+	if sub := p.Subjects[id]; sub.Base != "" || len(sub.Files) > 0 {
+		var parts []string
+		if sub.Base != "" {
+			parts = append(parts, "base "+sub.Base[:12])
 		}
-		w("subject: %s", strings.Join(files, ", "))
+		if sub.Patch != nil {
+			parts = append(parts, "patch "+sub.Patch.Path+" "+sub.Patch.SHA256[:12])
+		}
+		for _, f := range sub.Files {
+			parts = append(parts, f.Path+" "+f.SHA256[:12])
+		}
+		w("subject: %s", strings.Join(parts, ", "))
 	}
 	if n.Kind == event.KindDesignQuestion {
 		rec, ok := p.CurrentSelect(id)

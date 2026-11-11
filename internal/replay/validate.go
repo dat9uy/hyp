@@ -346,16 +346,8 @@ func (f *Facts) validateResult(ev event.Event) error {
 	if len(p.Limits) > event.MaxLimits {
 		return fmt.Errorf("over limit: limits has %d items (max %d)", len(p.Limits), event.MaxLimits)
 	}
-	if len(p.Fingerprints) > event.MaxFingerprints {
-		return fmt.Errorf("over limit: fingerprints has %d items (max %d)", len(p.Fingerprints), event.MaxFingerprints)
-	}
-	for i, h := range p.Fingerprints {
-		if !event.IsSHA256(h) {
-			return fmt.Errorf("bad fingerprints: %q is not a sha256", h)
-		}
-		if i > 0 && h <= p.Fingerprints[i-1] {
-			return errors.New("bad fingerprints: not sorted and unique")
-		}
+	if err := checkRunSubjects(p); err != nil {
+		return err
 	}
 	for _, l := range p.Limits {
 		if err := textLimit("limit", l, 1, event.MaxLimitItem); err != nil {
@@ -411,7 +403,7 @@ func (f *Facts) validateResult(ev event.Event) error {
 }
 
 // validateSubject is the replay rule of hypothesis.subject. The latest tie
-// stands until a non-retracted Result's fingerprints hold it; after that
+// stands until a non-retracted Result's run subject holds it; after that
 // the bytes ran as this Hypothesis, and a different subject is a different
 // Hypothesis, added and superseding this one.
 func (f *Facts) validateSubject(ev event.Event) error {
@@ -425,13 +417,30 @@ func (f *Facts) validateSubject(ev event.Event) error {
 	if f.superseded(ev.Node) || f.Abandoned[ev.Node] {
 		return fmt.Errorf("bad subject: %s is superseded or abandoned", ev.Node)
 	}
-	if len(p.Files) == 0 {
-		return errors.New("bad subject: no files")
+	if p.Base == "" && len(p.Files) == 0 {
+		return errors.New("bad subject: no base and no files")
+	}
+	if p.Base != "" && !event.IsCommit(p.Base) {
+		return fmt.Errorf("bad subject: base %q is not a full commit id", p.Base)
+	}
+	if p.Patch != nil {
+		if p.Base == "" {
+			return errors.New("bad subject: a patch with no base")
+		}
+		if err := textLimit("patch path", p.Patch.Path, 1, event.MaxEvidenceItem); err != nil {
+			return err
+		}
+		if !event.IsSHA256(p.Patch.SHA256) {
+			return fmt.Errorf("bad subject: patch %q is not a sha256", p.Patch.SHA256)
+		}
 	}
 	if len(p.Files) > event.MaxSubjectFiles {
 		return fmt.Errorf("over limit: files has %d items (max %d)", len(p.Files), event.MaxSubjectFiles)
 	}
 	seen := map[string]bool{}
+	if p.Patch != nil {
+		seen[p.Patch.Path] = true
+	}
 	for _, file := range p.Files {
 		if err := textLimit("path", file.Path, 1, event.MaxEvidenceItem); err != nil {
 			return err
@@ -445,7 +454,7 @@ func (f *Facts) validateSubject(ev event.Event) error {
 		}
 	}
 	cur := f.Subjects[ev.Node]
-	if slices.Equal(cur, p.Files) {
+	if cur.Same(p) {
 		return errors.New("bad subject: unchanged")
 	}
 	if r := f.subjectRan(ev.Node); r != "" {
@@ -454,33 +463,110 @@ func (f *Facts) validateSubject(ev event.Event) error {
 	return nil
 }
 
-// subjectRan is the first non-retracted Result whose fingerprints hold every
-// file of Hypothesis h's subject, or "".
+// checkRunSubjects is the replay rule of a Result's subjects: one per cited
+// run, copied from cited records, so none without evidence, each with a
+// base, a patch or a file, a base that is a full commit id, a patch that is
+// a sha256, files sorted and unique sha256s, no two alike, and at most
+// MaxFingerprints files in all. A Result holds subjects
+// or an old fingerprints list, never both.
+func checkRunSubjects(p event.ResultRecord) error {
+	if len(p.Subjects) > 0 && len(p.Fingerprints) > 0 {
+		return errors.New("bad subjects: a Result keeps subjects or fingerprints, not both")
+	}
+	if len(p.Fingerprints) > event.MaxFingerprints {
+		return fmt.Errorf("over limit: fingerprints has %d items (max %d)", len(p.Fingerprints), event.MaxFingerprints)
+	}
+	if err := sortedSHA256s("fingerprints", p.Fingerprints); err != nil {
+		return err
+	}
+	if len(p.Subjects) > 0 && len(p.Evidence) == 0 {
+		return errors.New("bad subjects: a Result with no evidence has no run to keep a subject of")
+	}
+	if len(p.Subjects) > event.MaxRunSubjects {
+		return fmt.Errorf("over limit: subjects has %d items (max %d)", len(p.Subjects), event.MaxRunSubjects)
+	}
+	total := 0
+	for i, s := range p.Subjects {
+		if s.Base == "" && s.Patch == "" && len(s.Files) == 0 {
+			return errors.New("bad subjects: a subject with no base, no patch and no files")
+		}
+		if s.Base != "" && !event.IsCommit(s.Base) {
+			return fmt.Errorf("bad subjects: base %q is not a full commit id", s.Base)
+		}
+		if s.Patch != "" && !event.IsSHA256(s.Patch) {
+			return fmt.Errorf("bad subjects: patch %q is not a sha256", s.Patch)
+		}
+		if err := sortedSHA256s("subjects", s.Files); err != nil {
+			return err
+		}
+		if slices.ContainsFunc(p.Subjects[:i], s.Same) {
+			return errors.New("bad subjects: the same subject twice")
+		}
+		total += len(s.Files)
+	}
+	if total > event.MaxFingerprints {
+		return fmt.Errorf("over limit: subjects hold %d files (max %d)", total, event.MaxFingerprints)
+	}
+	return nil
+}
+
+func sortedSHA256s(field string, hs []string) error {
+	for i, h := range hs {
+		if !event.IsSHA256(h) {
+			return fmt.Errorf("bad %s: %q is not a sha256", field, h)
+		}
+		if i > 0 && h <= hs[i-1] {
+			return fmt.Errorf("bad %s: not sorted and unique", field)
+		}
+	}
+	return nil
+}
+
+// runSubjects is what a Result keeps about its runs: its subjects, or an old
+// Result's fingerprints read as one subject with no base.
+func runSubjects(p event.ResultRecord) []event.RunSubject {
+	if len(p.Fingerprints) > 0 {
+		return []event.RunSubject{{Files: p.Fingerprints}}
+	}
+	return p.Subjects
+}
+
+// subjectRan is the first non-retracted Result whose run subjects hold
+// Hypothesis h's subject, or "".
 func (f *Facts) subjectRan(h string) string {
 	sub := f.Subjects[h]
-	if len(sub) == 0 {
-		return ""
-	}
 	for _, id := range f.Order {
 		n := f.Nodes[id]
-		if n.Kind == event.KindResult && !f.Retracted[id] && HoldsSubject(n.Fingerprints, sub) {
+		if n.Kind == event.KindResult && !f.Retracted[id] && HoldsSubject(n.Subjects, sub) {
 			return id
 		}
 	}
 	return ""
 }
 
-// HoldsSubject reports whether the sorted fingerprints hold every file of sub.
-func HoldsSubject(fingerprints []string, sub []event.SubjectFile) bool {
-	if len(sub) == 0 {
+// HoldsSubject reports whether one run subject holds the whole of sub
+// (ADR 0020). A subject that names a base is held only by a run at that
+// base with the same patch, none when it names none, that was given each of
+// its files as input: a patch changes the code, so a run at B plus a patch
+// never holds bare B, and a run at bare B never holds B plus a patch, while
+// an input file is data given to the code, so a run at B given inputs holds
+// bare B. A subject with no base, as every subject before ADR 0020, is held
+// by a run given each of its files, as patch or input, at any base.
+func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+	if sub.Base == "" && len(sub.Files) == 0 {
 		return false
 	}
-	for _, file := range sub {
-		if _, ok := slices.BinarySearch(fingerprints, file.SHA256); !ok {
+	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+		if sub.Base != "" && (run.Base != sub.Base || run.Patch != sub.PatchSHA256()) {
 			return false
 		}
-	}
-	return true
+		for _, file := range sub.Files {
+			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok && (sub.Base != "" || file.SHA256 != run.Patch) {
+				return false
+			}
+		}
+		return true
+	})
 }
 
 func (f *Facts) validateAmend(ev event.Event) error {

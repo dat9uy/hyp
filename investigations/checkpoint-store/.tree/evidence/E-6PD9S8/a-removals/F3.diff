@@ -1,0 +1,13 @@
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2a3fa6d..1a98a22 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -443,7 +443,7 @@ func (f *Facts) validateSubject(ev event.Event) error {
+ 	if cur.Base == p.Base && slices.Equal(cur.Files, p.Files) {
+ 		return errors.New("bad subject: unchanged")
+ 	}
+-	if r := f.subjectRan(ev.Node); r != "" {
++	if r := f.subjectRan(ev.Node); false && r != "" {
+ 		return fmt.Errorf("bad subject: %s's subject ran in %s; a different subject is a new Hypothesis: add it and supersede %s", event.DisplayID(event.KindHypothesis, ev.Node), event.DisplayID(event.KindResult, r), event.DisplayID(event.KindHypothesis, ev.Node))
+ 	}
+ 	return nil

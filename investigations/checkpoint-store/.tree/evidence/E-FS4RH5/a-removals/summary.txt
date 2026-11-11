@@ -1,0 +1,4 @@
+E-FS4RH5 (a): one removal per rule, each from b80d95d in a fresh detached worktree, by remove.py (E-E89EQF's edits placed on b80d95d, plus G1 drop the sha256 test of an Arm's patch, G2 drop the patch path from the paths a subject may not name twice).
+R7, R7-restore, R3a, R3b, R3c, R3d, P1, P2, F1, F3-L26, F4, F5, F6, G1, G2: each removal fails its tests on their assertion (go test exit 1, a --- FAIL line, no build error), each diff non-empty.
+G1 diff 15 lines: TestArmWithBadPatchHashGivesNoSubject fails (hyp record refused the run's bad patch).
+G2 diff 14 lines: TestSubjectPatchPathIsNotAlsoAnInput fails (exit 0, want 1 "listed twice").

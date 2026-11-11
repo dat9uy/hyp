@@ -4,40 +4,82 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/cmdrecord"
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/herr"
 )
 
-// cmdSubject writes hypothesis.subject: the files that embody a
-// Hypothesis's claim, each named by its sha256. The latest tie stands until
-// a Result's fingerprints hold it; then replay refuses a different one.
+// cmdSubject writes hypothesis.subject: what embodies a Hypothesis's claim,
+// a base commit, at most one patch over it, and files each named by its
+// sha256. The latest tie stands until a Result's run subject holds it; then
+// replay refuses a different one.
 func cmdSubject(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("subject", stdout, stderr)
+	base := w.fs.String("base", "", "the commit the subject is built on, resolved in the store root's git repository to its full id")
+	patch := w.fs.String("patch", "", "the one patch file applied over --base; the PATHs are then the input files given to the code")
 	pos, err := parse(w.fs, args)
 	if err != nil {
 		return err
 	}
-	if len(pos) < 2 {
-		return usageErr("usage: hyp subject HYP PATH... --why W")
+	if *patch != "" && *base == "" {
+		return usageErr("--patch needs --base: a patch is applied over a base commit")
+	}
+	if len(pos) < 1 || (len(pos) < 2 && *base == "") {
+		return usageErr("usage: hyp subject HYP [PATH...] [--base COMMIT [--patch FILE]] --why W")
 	}
 	if _, err := w.begin(args, len(pos)); err != nil {
 		return err
 	}
-	files, err := subjectFiles(w.root, pos[1:])
-	if err != nil {
-		return err
+	var files []event.SubjectFile
+	if len(pos) > 1 {
+		if files, err = subjectFiles(w.root, pos[1:]); err != nil {
+			return err
+		}
+	}
+	var patchFile *event.SubjectFile
+	if *patch != "" {
+		if info, err := os.Stat(*patch); err != nil || !info.Mode().IsRegular() {
+			return usageErr("--patch %s is not a regular file", *patch)
+		}
+		pf, err := subjectFiles(w.root, []string{*patch})
+		if err != nil {
+			return err
+		}
+		patchFile = &pf[0]
+	}
+	commit := ""
+	if *base != "" {
+		if commit, err = resolveCommit(w.root, *base); err != nil {
+			return err
+		}
 	}
 	return w.run(func() (draft, error) {
 		id, err := w.ref(pos[0])
-		return draft{event.TypeHypothesisSubject, id, event.HypothesisSubject{Files: files}}, err
+		return draft{event.TypeHypothesisSubject, id, event.HypothesisSubject{Base: commit, Patch: patchFile, Files: files}}, err
 	})
+}
+
+// resolveCommit names rev as a full commit id of the git repository that
+// holds the store root.
+func resolveCommit(root, rev string) (string, error) {
+	out, err := exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", rev+"^{commit}").Output()
+	if errors.Is(err, exec.ErrNotFound) {
+		return "", herr.Env("--base %s: git is not on PATH", rev)
+	}
+	id := strings.TrimSpace(string(out))
+	if err != nil || !event.IsCommit(id) {
+		return "", usageErr("--base %s is not a commit in the repository at %s", rev, root)
+	}
+	return id, nil
 }
 
 // subjectFiles hashes each path, read against the working directory: a file
@@ -109,19 +151,41 @@ func fileSHA256(path string) (string, error) {
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// fingerprints copies, from each cited command.json and sandbox.json under
-// the store root, the sha256 of every file the record says the run was given:
-// a command record's inputs and directory entries (format 6), and a sandbox
-// record's patches and inputs file. It returns them sorted and unique. A
-// record that cannot be read gives none; hyp check reports it.
-func fingerprints(root string, evidence []string) []string {
-	var out []string
+// runSubjects keeps one subject per cited run, in evidence order: from each
+// cited command.json and sandbox.json under the store root, the base commit
+// the record names, the one patch applied over it, and the sha256 of every
+// input file it says the run was given. A command record is one run with no
+// base and no patch, given its inputs and directory entries (format 6). A
+// sandbox record is one run per Arm, each at its base with that Arm's one
+// patch and given the inputs file; with no Arm it is one run at its base
+// given the inputs file. An Arm whose patch is not named by a sha256 gives
+// no subject, since its code is unknown. A record that cannot be read, or
+// names nothing, gives no subject; hyp check reports a record it cannot read. A subject
+// equal to an earlier one is kept once (ADR 0020).
+func runSubjects(root string, evidence []string) []event.RunSubject {
+	var out []event.RunSubject
+	add := func(base, patch string, files []string) {
+		files = slices.DeleteFunc(files, func(h string) bool { return !event.IsSHA256(h) })
+		slices.Sort(files)
+		files = slices.Compact(files)
+		if len(files) == 0 {
+			files = nil
+		}
+		run := event.RunSubject{Base: base, Patch: patch, Files: files}
+		if run.Base == "" && run.Patch == "" && run.Files == nil {
+			return
+		}
+		if slices.ContainsFunc(out, run.Same) {
+			return
+		}
+		out = append(out, run)
+	}
 	for _, e := range evidence {
 		path := filepath.Join(root, filepath.FromSlash(filepath.ToSlash(filepath.Clean(e))))
 		switch filepath.Base(e) {
 		case "command.json":
 			if r, err := cmdrecord.Read(path); err == nil {
-				out = append(out, r.Fingerprints()...)
+				add("", "", r.Fingerprints())
 			}
 		case "sandbox.json":
 			data, err := os.ReadFile(path)
@@ -129,21 +193,30 @@ func fingerprints(root string, evidence []string) []string {
 				continue
 			}
 			var r struct {
+				Base    string                    `json:"base"`
 				Inputs  *struct{ SHA256 string }  `json:"inputs"`
 				Patches []struct{ SHA256 string } `json:"patches"`
 			}
 			if json.Unmarshal(data, &r) != nil {
 				continue
 			}
+			base := ""
+			if event.IsCommit(r.Base) {
+				base = r.Base
+			}
+			var inputs []string
 			if r.Inputs != nil {
-				out = append(out, r.Inputs.SHA256)
+				inputs = []string{r.Inputs.SHA256}
+			}
+			if len(r.Patches) == 0 {
+				add(base, "", inputs)
 			}
 			for _, p := range r.Patches {
-				out = append(out, p.SHA256)
+				if event.IsSHA256(p.SHA256) {
+					add(base, p.SHA256, inputs)
+				}
 			}
 		}
 	}
-	out = slices.DeleteFunc(out, func(h string) bool { return !event.IsSHA256(h) })
-	slices.Sort(out)
-	return slices.Compact(out)
+	return out
 }

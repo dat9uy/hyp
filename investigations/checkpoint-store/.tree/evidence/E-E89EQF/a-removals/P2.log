@@ -1,0 +1,22 @@
+== rule P2 on cbd734a47e1b3ebe7323cf91ee4ead8c4490850c, worktree cbd734a47e1b3ebe7323cf91ee4ead8c4490850c
+== diff lines: 13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2d9778d..d472c30 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -558,7 +558,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 			return false
+ 		}
+ 		for _, file := range sub.Files {
+-			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok && (sub.Base != "" || file.SHA256 != run.Patch) {
++			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok && file.SHA256 != run.Patch {
+ 				return false
+ 			}
+ 		}
+== go test -run '^(TestSubjectPatchIsNotAnInput|TestHoldsSubject)$' exit 1
+ok  	github.com/dat9uy/hyp/internal/cli	0.540s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:98: B plus patch P and input P, run at B plus P given no inputs: HoldsSubject = true, want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.320s
+FAIL

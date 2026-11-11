@@ -1,0 +1,19 @@
+== binaries
+043f76d80fd4c58aecaae3930a88cfa1d3c0e6466208a576a7e1b4652d627024  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/764b9541-951b-4a36-a11e-5c65ab0a2e80/scratchpad/hyp-b80d95d
+10540106a6e2a0fa119e6161fa3bbdaa76d1e21aa3398820a9cb96ccf856fb94  /Users/datguy/.local/bin/hyp
+2297b148a311260b786c05226fe71a8c52b7dfee462d63d7a106c4978d50440c  /Users/datguy/.local/share/hyp/hyp-33896ec
+candidate b80d95d sha256 differs from installed and 33896ec: yes
+id-citation hyp status: b80d95d vs installed: identical (exit 0/0, 1034 bytes)
+id-citation hyp status: b80d95d vs 33896ec: identical (exit 0/0)
+id-citation hyp check: b80d95d vs installed: identical (exit 0/0, 28 bytes)
+id-citation hyp check: b80d95d vs 33896ec: identical (exit 0/0)
+recipe-base hyp status: b80d95d vs installed: identical (exit 0/0, 1001 bytes)
+recipe-base hyp status: b80d95d vs 33896ec: identical (exit 0/0)
+recipe-base hyp check: b80d95d vs installed: identical (exit 0/0, 28 bytes)
+recipe-base hyp check: b80d95d vs 33896ec: identical (exit 0/0)
+checkpoint-store-design hyp status: b80d95d vs installed: identical (exit 0/0, 1459 bytes)
+checkpoint-store-design hyp status: b80d95d vs 33896ec: identical (exit 0/0)
+checkpoint-store-design hyp check: b80d95d vs installed: identical (exit 0/0, 28 bytes)
+checkpoint-store-design hyp check: b80d95d vs 33896ec: identical (exit 0/0)
+checkpoint-store hyp status: b80d95d vs installed: identical (exit 0/0, 4483 bytes)
+checkpoint-store hyp check: b80d95d vs installed: identical (exit 0/0, 487 bytes)

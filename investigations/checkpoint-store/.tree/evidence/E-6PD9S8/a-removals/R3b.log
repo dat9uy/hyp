@@ -1,0 +1,27 @@
+== rule R3b on 0cda2f8c823f83879e2f9050a14561cf025b5f88, worktree 0cda2f8c823f83879e2f9050a14561cf025b5f88
+== diff lines: 13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2a3fa6d..c39872e 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -547,7 +547,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		want = append(want, file.SHA256)
+ 	}
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+-		if sub.Base != "" && (run.Base != sub.Base || (run.Patch != "" && !slices.Contains(want, run.Patch))) {
++		if sub.Base != "" && ((run.Patch != "" && !slices.Contains(want, run.Patch))) {
+ 			return false
+ 		}
+ 		for _, h := range want {
+== go test -run '^(TestBaseSubjectIsCoveredOnlyAtItsBase|TestHoldsSubject)$' exit 1
+--- FAIL: TestBaseSubjectIsCoveredOnlyAtItsBase (0.15s)
+    run_subject_test.go:167: exit 0 (want 0), stdout "GOAL G-3BNDJM G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-3BNDJM#1 covered on Q-EHDKY2, Q-4B4T33; ran in R-RQ4AG1 — the commit runs the case\nFRONTIER\n  Q-EHDKY2 open/supported_unselected Q\n    candidates (1): H-B7DVWZ\n    H-B7DVWZ supported runner\n  Q-4B4T33 open/supported_unselected Q2\n    candidates (1): H-296FA6\n    H-BB69Y5 proposed bad\n    H-296FA6 supported commit C\n      E-7DMQ41 run [one-rival]\nSTALE\nOWED\n  runner: Q-EHDKY2 select H-B7DVWZ, the only candidate\n  runner: Q-4B4T33 test H-BB69Y5\nAWAITING OWNER\nRECENT\n  2026-11-11 13:48 a result.record R-RQ4AG1 — w\n  2026-11-11 13:48 a hypothesis.subject H-296FA6 — w\n  2026-11-11 13:48 a result.record R-H5NET8 — w\nCHECKPOINT none\n", stderr "" (want "uncovered on Q-4B4T33: H-296FA6")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.511s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:86: bare B, merged across two runs: HoldsSubject = true, want false
+    run_subject_test.go:86: bare B, run at C: HoldsSubject = true, want false
+    run_subject_test.go:86: B plus P, run at C plus P: HoldsSubject = true, want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.350s
+FAIL

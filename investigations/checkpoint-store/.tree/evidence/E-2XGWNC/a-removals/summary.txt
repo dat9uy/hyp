@@ -1,0 +1,11 @@
+E-2XGWNC (a): one removal per rule, each from 3ec4979 in a fresh detached worktree (edits in remove.py terms: R3a merge runs; R3b drop the base compare; R3c drop the old fingerprints read; R3d drop the exact-files compare; F1 merge Arms into one subject; F3 drop the subject-ran lock; F4 drop the sha256 dedupe; F5 drop the git-missing exit 3; F6 drop the no-evidence rejection).
+R3a diff 19 lines: TestResultKeepsOneSubjectPerCitedRun fails (one merged subject).
+R3b diff 13: TestBaseSubjectIsCoveredOnlyAtItsBase and TestHoldsSubject fail (run at C holds bare B).
+R3c diff 13: TestOldResultReadsAsOneSubjectWithNoBase fails (uncovered).
+R3d diff 13: TestPatchedRunNeverCoversBareBase and TestHoldsSubject fail (B plus a patch holds bare B).
+F1 diff 20: TestSandboxKeepsOneSubjectPerArm fails (one subject with both patches).
+F3 diff 13: TestBaseSubjectLocksOnlyWhenItRan fails (exit 0, want 1 "subject ran in").
+F4 diff 12: TestBaseSubjectWithOneFileTwiceIsHeld and TestHoldsSubject fail (still uncovered).
+F5 diff 16: TestSubjectBaseExitCodes fails (exit 2, want 3).
+F6 diff 13: TestRunSubjectReplayRejections fails (not rejected).
+No removal failed to build.

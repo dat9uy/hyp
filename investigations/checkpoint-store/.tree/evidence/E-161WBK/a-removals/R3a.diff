@@ -1,0 +1,19 @@
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index e6f594c..8870104 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -188,7 +188,13 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
+ 		if slices.ContainsFunc(out, func(o event.RunSubject) bool { return o.Base == run.Base && slices.Equal(o.Files, run.Files) }) {
+ 			continue
+ 		}
+-		out = append(out, run)
++		if len(out) == 0 {
++			out = append(out, run)
++		} else {
++			out[0].Files = append(out[0].Files, run.Files...)
++			slices.Sort(out[0].Files)
++			out[0].Files = slices.Compact(out[0].Files)
++		}
+ 	}
+ 	return out
+ }

@@ -1,0 +1,30 @@
+== rule R3d on b80d95d052ddfae9d660deea4cdfaa4977aba06f, worktree b80d95d052ddfae9d660deea4cdfaa4977aba06f
+== diff lines: 13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index d3cfee2..5172771 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -557,7 +557,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		return false
+ 	}
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+-		if sub.Base != "" && (run.Base != sub.Base || run.Patch != sub.PatchSHA256()) {
++		if sub.Base != "" && (run.Base != sub.Base || (sub.Patch != nil && run.Patch != sub.PatchSHA256())) {
+ 			return false
+ 		}
+ 		for _, file := range sub.Files {
+== go test -run '^(TestPatchedRunNeverCoversBareBase|TestPatchedRunWithInputsNeverCoversBareBase|TestHoldsSubject)$' exit 1
+--- FAIL: TestPatchedRunNeverCoversBareBase (0.13s)
+    run_subject_test.go:203: exit 0 (want 0), stdout "GOAL G-QNW5G2 G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-QNW5G2#1 covered on Q-VA09PP, Q-SE7WTB; ran in R-1HZJY9 — a run at B plus a patch never covers bare B\nFRONTIER\n  Q-VA09PP open/supported_unselected Q\n    candidates (1): H-YH41WT\n    H-YH41WT supported runner\n  Q-SE7WTB open/supported_unselected Q2\n    candidates (2): H-DX7HCF, H-W3XWPX (trade-off)\n    H-DX7HCF supported bare B\n    H-W3XWPX supported B and the patch\n      E-4YSHS4 run [one-rival]\nSTALE\nOWED\n  runner: Q-VA09PP select H-YH41WT, the only candidate\nAWAITING OWNER\n  Q-SE7WTB choose: H-DX7HCF, H-W3XWPX (no Result separates them)\nRECENT\n  2026-11-11 14:15 a result.record R-1HZJY9 — w\n  2026-11-11 14:15 a hypothesis.subject H-W3XWPX — w\n  2026-11-11 14:15 a result.record R-Z7FZY2 — w\n  2026-11-11 14:15 a hypothesis.subject H-DX7HCF — w\n  2026-11-11 14:15 a result.record R-848DA2 — w\nCHECKPOINT none\n", stderr "" (want "uncovered on Q-SE7WTB: H-DX7HCF;")
+--- FAIL: TestPatchedRunWithInputsNeverCoversBareBase (0.11s)
+    run_subject_test.go:244: exit 0 (want 0), stdout "GOAL G-NGFE86 G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-NGFE86#1 covered on Q-7ZYDMJ, Q-1NXQZM; ran in R-0PHSBE — a run at B plus a patch never covers bare B\nFRONTIER\n  Q-7ZYDMJ open/supported_unselected Q\n    candidates (1): H-V7QDM6\n    H-V7QDM6 supported runner\n  Q-1NXQZM open/supported_unselected Q2\n    candidates (2): H-APB9A5, H-K1HZG6 (trade-off)\n    H-APB9A5 supported bare B\n    H-K1HZG6 supported B and the patch\n      E-18WE2J run [one-rival]\nSTALE\nOWED\n  runner: Q-7ZYDMJ select H-V7QDM6, the only candidate\nAWAITING OWNER\n  Q-1NXQZM choose: H-APB9A5, H-K1HZG6 (no Result separates them)\nRECENT\n  2026-11-11 14:15 a result.record R-0PHSBE — w\n  2026-11-11 14:15 a hypothesis.subject H-K1HZG6 — w\n  2026-11-11 14:15 a result.record R-3X188Y — w\n  2026-11-11 14:15 a hypothesis.subject H-APB9A5 — w\n  2026-11-11 14:15 a result.record R-S0MT2P — w\nCHECKPOINT none\n", stderr "" (want "uncovered on Q-1NXQZM: H-APB9A5;")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.584s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:98: bare B, run at B plus a patch: HoldsSubject = true, want false
+    run_subject_test.go:98: bare B, run at B plus a patch and an input: HoldsSubject = true, want false
+    run_subject_test.go:98: bare B, merged across two runs: HoldsSubject = true, want false
+    run_subject_test.go:98: B plus input I, run at B plus P given I: HoldsSubject = true, want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.333s
+FAIL

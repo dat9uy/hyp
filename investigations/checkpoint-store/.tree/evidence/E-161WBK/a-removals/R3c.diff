@@ -1,0 +1,13 @@
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 6415290..6c1469e 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -81,7 +81,7 @@ var rules = map[string]rule{
+ 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
+ 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
+ 				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
+-				Subjects: runSubjects(p)})
++				Subjects: p.Subjects})
+ 			for h := range p.Verdicts {
+ 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
+ 			}

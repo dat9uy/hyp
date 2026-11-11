@@ -1,0 +1,16 @@
+GOAL G-73R704 Record the shared-store design: what hyp stores and derives… — complete (answered 4, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+FRONTIER
+STALE
+OWED
+  runner owes nothing: stop and report to the owner
+AWAITING OWNER
+RECENT
+  2026-11-11 09:11 claude-g1-1 dq.select Q-R21S8R — Owed select, the only candidate; the owner's decision in session e6a35a24 (2026…
+  2026-11-11 09:11 claude-g1-1 dq.select Q-H8PJ20 — Owed select, the only candidate; the owner's decision in session e6a35a24 (2026…
+  2026-11-11 09:11 claude-g1-1 dq.select Q-HC4V9T — Owed select, the only candidate; the owner's decision in session e6a35a24 (2026…
+  2026-11-11 09:11 claude-g1-1 dq.select Q-D906CD — Owed select, the only candidate; the owner's decision in session e6a35a24 (2026…
+  2026-11-11 09:10 claude-g1-1 result.record R-AWPQ4X — Session decision, recorded as the Experiment's Result.
+  2026-11-11 09:10 claude-g1-1 result.record R-8CJCV6 — Session decision, recorded as the Experiment's Result.
+  2026-11-11 09:10 claude-g1-1 result.record R-V8032Z — Session decision, recorded as the Experiment's Result.
+  2026-11-11 09:10 claude-g1-1 result.record R-HW9B05 — Session decision, recorded as the Experiment's Result.
+CHECKPOINT 2026-11-11 09:11 claude-g1-1: G1a complete: four design questions selected with session e6a35a24 as evidence. Next: G1b (investigations/checkpoint-store) builds them; ADR 0020 cites these Results.

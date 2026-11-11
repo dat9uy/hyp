@@ -1,0 +1,23 @@
+== rule G2 on b80d95d052ddfae9d660deea4cdfaa4977aba06f, worktree b80d95d052ddfae9d660deea4cdfaa4977aba06f
+== diff lines: 14
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index d3cfee2..2d9778d 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -438,9 +438,6 @@ func (f *Facts) validateSubject(ev event.Event) error {
+ 		return fmt.Errorf("over limit: files has %d items (max %d)", len(p.Files), event.MaxSubjectFiles)
+ 	}
+ 	seen := map[string]bool{}
+-	if p.Patch != nil {
+-		seen[p.Patch.Path] = true
+-	}
+ 	for _, file := range p.Files {
+ 		if err := textLimit("path", file.Path, 1, event.MaxEvidenceItem); err != nil {
+ 			return err
+== go test -run '^(TestSubjectPatchPathIsNotAlsoAnInput)$' exit 1
+--- FAIL: TestSubjectPatchPathIsNotAlsoAnInput (0.09s)
+    run_subject_test.go:344: exit 0 (want 1), stdout "H-DQKJC6 hypothesis.subject\n", stderr "" (want "bad subject: arm.patch listed twice")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.448s
+ok  	github.com/dat9uy/hyp/internal/replay	0.343s [no tests to run]
+FAIL

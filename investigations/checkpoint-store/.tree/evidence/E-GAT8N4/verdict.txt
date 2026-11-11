@@ -1,0 +1,6 @@
+E-GAT8N4 rule by reading, on commit 4047c01 (branch feat/one-subject-per-run).
+(a) holds: a-notation.log; ADR 0020 lines 27 and 30 write a run subject as the base, the one patch and the input files, {base, patch, files}, as the glossary (line 392) and replay-spec (result.record subjects) do; no {base, files} is left in docs/, skills/ or README.md.
+(b) holds: b-vet-test-4047c01.log; go vet PASS, go test ./... -count=1 PASS, in a clean detached worktree at 4047c01.
+(c) holds: c-census.log; status and check give identical bytes and exit codes, 4047c01 (sha256 e4416573...) vs installed (10540106...) on 4 trees and vs 33896ec (2297b148...) on 3; the candidate's sha256 differs from installed.
+Code: git diff b80d95d 4047c01 -- cmd internal is empty; removal checks for that code are R-P1M8A8 (E-FS4RH5).
+verdict: H-P4YGE2=supports

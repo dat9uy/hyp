@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -123,6 +124,7 @@ const (
 	MaxReadingItem  = 600
 	MaxSubjectFiles = 50
 	MaxFingerprints = 2000
+	MaxRunSubjects  = 100 // a Result's subjects: one per cited run, and a sandbox record holds one run per Arm
 	MaxLine         = 600 // a line on a Goal's node.add (ADR 0020); a line an old checkpoint wrote holds at most MaxLimitItem
 	MaxCites        = 10
 )
@@ -180,17 +182,70 @@ type ResultRecord struct {
 	// Applies lists the closed readings whose owner answers this Result's
 	// verdicts apply. Each must be one its Experiment aims at.
 	Applies []string `json:"applies,omitempty"`
-	// Fingerprints is the sorted set of file sha256s the Result's cited
-	// command and sandbox records say the run was given. hyp record copies
-	// it from those records, as it copies EvidenceHashes; no runner types it.
+	// Subjects keeps one subject per cited run: the base commit, the sha256
+	// of the one patch, and the sha256 of each input file its cited command
+	// or sandbox record says the run was given over it (ADR 0020). hyp record copies it from those records,
+	// as it copies EvidenceHashes; no runner types it.
+	Subjects []RunSubject `json:"subjects,omitempty"`
+	// Fingerprints is an old Result's one merged set of file sha256s. No
+	// command writes it; replay reads it as one subject with no base.
 	Fingerprints []string `json:"fingerprints,omitempty"`
 }
 
-// HypothesisSubject is the payload of hypothesis.subject: the files that
-// embody the Hypothesis's claim, each named by its sha256. Path is a
-// pointer for readers, relative to the store root; the sha256 is the identity.
+// RunSubject is the subject of one cited run: the base commit it ran at, ""
+// when its record names none, the sha256 of the one patch applied over that
+// base, "" when none was, and the sorted, unique sha256s of the input files
+// given to the code. A patch changes the code; an input file is data given
+// to it, so only the patch tells which code ran (ADR 0020).
+type RunSubject struct {
+	Base  string   `json:"base,omitempty"`
+	Patch string   `json:"patch,omitempty"`
+	Files []string `json:"files,omitempty"`
+}
+
+// Same reports whether two run subjects are one subject.
+func (s RunSubject) Same(o RunSubject) bool {
+	return s.Base == o.Base && s.Patch == o.Patch && slices.Equal(s.Files, o.Files)
+}
+
+// IsCommit reports whether s is a full git object id: 40 or 64 lowercase
+// hex digits.
+func IsCommit(s string) bool {
+	if len(s) != 40 && len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// HypothesisSubject is the payload of hypothesis.subject: what embodies the
+// Hypothesis's claim, in the one shape of a subject (ADR 0020): a base
+// commit, at most one patch over it, and files named by their sha256. Over
+// a base, the files are the input files given to the code; with no base, as
+// every subject before ADR 0020, they are files the run was given, patch or
+// input. Path is a pointer for readers, relative to the store root; the
+// sha256 is the identity.
 type HypothesisSubject struct {
-	Files []SubjectFile `json:"files"`
+	Base  string        `json:"base,omitempty"`
+	Patch *SubjectFile  `json:"patch,omitempty"`
+	Files []SubjectFile `json:"files,omitempty"`
+}
+
+// PatchSHA256 is the sha256 of the subject's patch, "" when it has none.
+func (s HypothesisSubject) PatchSHA256() string {
+	if s.Patch == nil {
+		return ""
+	}
+	return s.Patch.SHA256
+}
+
+// Same reports whether two Hypothesis subjects are one subject.
+func (s HypothesisSubject) Same(o HypothesisSubject) bool {
+	return s.Base == o.Base && (s.Patch == nil) == (o.Patch == nil) && (s.Patch == nil || *s.Patch == *o.Patch) && slices.Equal(s.Files, o.Files)
 }
 
 // SubjectFile is one file of a Hypothesis's subject.

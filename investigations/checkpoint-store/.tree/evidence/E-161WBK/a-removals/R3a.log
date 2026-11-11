@@ -1,0 +1,29 @@
+== rule R3a on 7257753, worktree 72577531c1225a70f27af851c050c912aa88f4e2
+== diff lines:       19
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index e6f594c..8870104 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -188,7 +188,13 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
+ 		if slices.ContainsFunc(out, func(o event.RunSubject) bool { return o.Base == run.Base && slices.Equal(o.Files, run.Files) }) {
+ 			continue
+ 		}
+-		out = append(out, run)
++		if len(out) == 0 {
++			out = append(out, run)
++		} else {
++			out[0].Files = append(out[0].Files, run.Files...)
++			slices.Sort(out[0].Files)
++			out[0].Files = slices.Compact(out[0].Files)
++		}
+ 	}
+ 	return out
+ }
+== go test -count=1 -run 'TestResultKeepsOneSubjectPerCitedRun' ./internal/cli ./internal/replay
+--- FAIL: TestResultKeepsOneSubjectPerCitedRun (0.12s)
+    run_subject_test.go:137: subjects = [{Base:482d5f0651b1b2235196a5ced2f7a21cf2834a25 Files:[6e53bf2ad8f234c60294a05a013874a211fe3c03653f48df43ac4ec085ab9a24]}], want one per cited run [{Base:482d5f0651b1b2235196a5ced2f7a21cf2834a25 Files:[6e53bf2ad8f234c60294a05a013874a211fe3c03653f48df43ac4ec085ab9a24]} {Base:d6b53ae8cd25c09150c4fc50b8409c235d250b78 Files:[]}]
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.475s
+ok  	github.com/dat9uy/hyp/internal/replay	0.139s [no tests to run]
+FAIL
+== exit 1

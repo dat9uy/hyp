@@ -1,0 +1,6 @@
+E-ZX9APE rule by reading, on commit 8cb5f60 (branch feat/one-subject-per-run).
+(a) fails: a-removals/summary.txt and a-removals/P2.log; the P2 removal passes every test (go test exit 0). Every other rule's removal fails its tests on their assertion.
+(b) holds: b-vet-test-8cb5f60.log; go vet exit 0, go test ./... -count=1 exit 0, clean detached worktree at 8cb5f60.
+(c) holds: c-census.log; status and check identical bytes and exit codes, 8cb5f60 (sha256 e5c62b17...) vs installed (10540106...) on 4 trees and vs 33896ec (2297b148...) on 3; the candidate's sha256 differs from both.
+(d) fails: d-spec-texts.log; replay-spec rule 26 does not name the text 'bad subject: <path> listed twice' (it was missing at 0cda2f8 too, with two more).
+verdict: H-JA5S86=contradicts

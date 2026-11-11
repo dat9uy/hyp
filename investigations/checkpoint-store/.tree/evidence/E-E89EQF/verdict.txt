@@ -1,0 +1,6 @@
+E-E89EQF rule by reading, on commit cbd734a (branch feat/one-subject-per-run).
+(a) holds: a-removals/summary.txt and a-removals/*.log; each of R7, R3a-R3d, P1, P2, F1, F3-F6, L26 has one removal that fails its tests on their assertion, each diff non-empty, and R7-restore fails TestRunWithInputsCoversBareBase.
+(b) holds: b-vet-test-cbd734a.log; go vet exit 0, go test ./... -count=1 exit 0, clean detached worktree at cbd734a.
+(c) holds: c-census.log; status and check identical bytes and exit codes, cbd734a (sha256 90a02895...) vs installed (10540106...) on 4 trees and vs 33896ec (2297b148...) on 3; the candidate's sha256 differs from both.
+(d) holds: d-spec-texts.log; 19 texts, 0 missing.
+verdict: H-AX7M2K=supports

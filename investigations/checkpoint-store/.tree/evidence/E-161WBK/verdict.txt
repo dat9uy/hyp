@@ -1,0 +1,5 @@
+E-161WBK rule by reading, on commit 7257753 (branch feat/one-subject-per-run).
+(a) holds: a-removals/summary.txt, a-removals/R3a.log to R3d.log; each rule's one removal fails its tests on their assertion, each diff non-empty.
+(b) holds: b-vet-test-7257753.log; go vet exit 0, go test ./... -count=1 exit 0, in a clean detached worktree at 7257753.
+(c) holds: c-census.log; status and check identical bytes and exit codes, 7257753 (sha256 98c33bab...) vs installed (10540106...) on 4 trees and vs 33896ec (2297b148...) on 3; the candidate's sha256 differs from both.
+verdict: H-Y4HKSV=supports

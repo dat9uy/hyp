@@ -1,0 +1,13 @@
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 9aac199..b57031f 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -535,7 +535,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		return false
+ 	}
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+-		if sub.Base != "" && (run.Base != sub.Base || len(run.Files) != len(sub.Files)) {
++		if sub.Base != "" && (len(run.Files) != len(sub.Files)) {
+ 			return false
+ 		}
+ 		for _, file := range sub.Files {

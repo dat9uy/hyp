@@ -1,0 +1,13 @@
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index b472b50..23f6a8d 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -213,7 +213,7 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
+ 			}
+ 			for _, p := range r.Patches {
+ 				if event.IsSHA256(p.SHA256) {
+-					add(base, p.SHA256, inputs)
++					add(base, "", append([]string{p.SHA256}, inputs...))
+ 				}
+ 			}
+ 		}

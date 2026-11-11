@@ -1,0 +1,21 @@
+== worktree HEAD 72577531c1225a70f27af851c050c912aa88f4e2, status:        0 changed
+== go vet ./...
+== exit 0
+== go test ./... -count=1
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	1.538s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	24.941s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.336s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.327s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.631s
+ok  	github.com/dat9uy/hyp/internal/render	0.358s
+ok  	github.com/dat9uy/hyp/internal/replay	0.334s
+ok  	github.com/dat9uy/hyp/internal/sandbox	83.958s
+ok  	github.com/dat9uy/hyp/internal/signals	0.320s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.324s
+ok  	github.com/dat9uy/hyp/internal/store	0.511s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+== exit 0

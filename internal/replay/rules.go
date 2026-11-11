@@ -81,7 +81,7 @@ var rules = map[string]rule{
 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
 				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
-				Fingerprints: p.Fingerprints})
+				Subjects: runSubjects(p)})
 			for h := range p.Verdicts {
 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
 			}
@@ -144,7 +144,7 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) {
 			var p event.HypothesisSubject
 			_ = event.DecodePayload(ev, &p)
-			st.Subjects[ev.Node] = p.Files
+			st.Subjects[ev.Node] = p
 		},
 	},
 	event.TypeDQSelect: {

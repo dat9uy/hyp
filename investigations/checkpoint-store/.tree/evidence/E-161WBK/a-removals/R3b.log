@@ -1,0 +1,28 @@
+== rule R3b on 7257753, worktree 72577531c1225a70f27af851c050c912aa88f4e2
+== diff lines:       13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 9aac199..b57031f 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -535,7 +535,7 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		return false
+ 	}
+ 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
+-		if sub.Base != "" && (run.Base != sub.Base || len(run.Files) != len(sub.Files)) {
++		if sub.Base != "" && (len(run.Files) != len(sub.Files)) {
+ 			return false
+ 		}
+ 		for _, file := range sub.Files {
+== go test -count=1 -run 'TestBaseSubjectIsCoveredOnlyAtItsBase|TestHoldsSubject' ./internal/cli ./internal/replay
+--- FAIL: TestBaseSubjectIsCoveredOnlyAtItsBase (0.17s)
+    run_subject_test.go:156: exit 0 (want 0), stdout "GOAL G-R88M5V G — in_progress (answered 0, open 2, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-R88M5V#1 covered on Q-13CMTF, Q-APD119; ran in R-6A27PH — the commit runs the case\nFRONTIER\n  Q-13CMTF open/supported_unselected Q\n    candidates (1): H-WW7C2E\n    H-WW7C2E supported runner\n  Q-APD119 open/supported_unselected Q2\n    candidates (1): H-593V1R\n    H-DNGQ1N proposed bad\n    H-593V1R supported commit C\n      E-B96R8C run [one-rival]\nSTALE\nOWED\n  runner: Q-13CMTF select H-WW7C2E, the only candidate\n  runner: Q-APD119 test H-DNGQ1N\nAWAITING OWNER\nRECENT\n  2026-11-11 13:18 a result.record R-6A27PH — w\n  2026-11-11 13:18 a hypothesis.subject H-593V1R — w\n  2026-11-11 13:18 a result.record R-36ZK9V — w\nCHECKPOINT none\n", stderr "" (want "uncovered on Q-APD119: H-593V1R")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.537s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:71: bare B, merged across two runs: HoldsSubject = true, want false
+    run_subject_test.go:71: bare B, run at C: HoldsSubject = true, want false
+    run_subject_test.go:71: B plus P, run at C plus P: HoldsSubject = true, want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.364s
+FAIL
+== exit 1

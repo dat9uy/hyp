@@ -68,7 +68,7 @@ write:
   retract REF | abandon REF | reaffirm REF
   supersede NEW --old OLD
   amend HYP --body B                     revise a Hypothesis body
-  subject HYP PATH...                    tie a Hypothesis to the files that embody its claim, by sha256
+  subject HYP [PATH...] [--base C]       tie a Hypothesis to the base and files that embody its claim
   link FROM depends_on|external_ref TO   unlink FROM TYPE TO
   select DQ [HYP]                        admitted only when hyp status owes it (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ

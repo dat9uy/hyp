@@ -1,0 +1,23 @@
+== rule F3 on 3ec4979, worktree 3ec49795553f00c270fdd60ca1f84ab60cc69307
+== diff lines:       13
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 439a2a3..ebbace7 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -443,7 +443,7 @@ func (f *Facts) validateSubject(ev event.Event) error {
+ 	if cur.Base == p.Base && slices.Equal(cur.Files, p.Files) {
+ 		return errors.New("bad subject: unchanged")
+ 	}
+-	if r := f.subjectRan(ev.Node); r != "" {
++	if r := f.subjectRan(ev.Node); false && r != "" {
+ 		return fmt.Errorf("bad subject: %s's subject ran in %s; a different subject is a new Hypothesis: add it and supersede %s", event.DisplayID(event.KindHypothesis, ev.Node), event.DisplayID(event.KindResult, r), event.DisplayID(event.KindHypothesis, ev.Node))
+ 	}
+ 	return nil
+== go test -count=1 -run 'TestBaseSubjectLocksOnlyWhenItRan' ./internal/cli ./internal/replay
+--- FAIL: TestBaseSubjectLocksOnlyWhenItRan (0.18s)
+    run_subject_test.go:231: exit 0 (want 1), stdout "H-YD1M2D hypothesis.subject\n", stderr "" (want "bad subject: H-YD1M2D's subject ran in R-PC76VC")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.544s
+ok  	github.com/dat9uy/hyp/internal/replay	0.353s [no tests to run]
+FAIL
+== exit 1

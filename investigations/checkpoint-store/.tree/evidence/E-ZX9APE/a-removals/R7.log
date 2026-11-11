@@ -1,0 +1,26 @@
+== rule R7 on 8cb5f60066f2bf4f455a25f7a9b1be52871d6527, worktree 8cb5f60066f2bf4f455a25f7a9b1be52871d6527
+== diff lines: 13
+diff --git a/internal/cli/subject.go b/internal/cli/subject.go
+index 3f14d03..83cd471 100644
+--- a/internal/cli/subject.go
++++ b/internal/cli/subject.go
+@@ -214,7 +214,7 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
+ 				add(base, "", inputs)
+ 			}
+ 			for _, p := range r.Patches {
+-				add(base, p.SHA256, inputs)
++				add(base, "", append([]string{p.SHA256}, inputs...))
+ 			}
+ 		}
+ 	}
+== go test -run '^(TestPatchedRunWithInputsNeverCoversBareBase|TestResultKeepsOneSubjectPerCitedRun|TestSandboxKeepsOneSubjectPerArm)$' exit 1
+--- FAIL: TestResultKeepsOneSubjectPerCitedRun (0.12s)
+    run_subject_test.go:148: subjects = [{Base:fab0b88a4a7abcd21b40ab71fadd1d0a6fa4762d Patch: Files:[6e53bf2ad8f234c60294a05a013874a211fe3c03653f48df43ac4ec085ab9a24]} {Base:58389d631db1930b79d91452a48ca1b877164014 Patch: Files:[]}], want one per cited run [{Base:fab0b88a4a7abcd21b40ab71fadd1d0a6fa4762d Patch:6e53bf2ad8f234c60294a05a013874a211fe3c03653f48df43ac4ec085ab9a24 Files:[]} {Base:58389d631db1930b79d91452a48ca1b877164014 Patch: Files:[]}]
+--- FAIL: TestPatchedRunWithInputsNeverCoversBareBase (0.10s)
+    run_subject_test.go:242: subjects = [{Base:fab0b88a4a7abcd21b40ab71fadd1d0a6fa4762d Patch: Files:[6e53bf2ad8f234c60294a05a013874a211fe3c03653f48df43ac4ec085ab9a24 ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356]}], want one run at fab0b88a4a7abcd21b40ab71fadd1d0a6fa4762d plus the patch, given the inputs file
+--- FAIL: TestSandboxKeepsOneSubjectPerArm (0.10s)
+    run_subject_test.go:264: subjects = [{Base:fab0b88a4a7abcd21b40ab71fadd1d0a6fa4762d Patch: Files:[6b56f99cc6f8d6eb54c4dd7a22ee89e2b29ffc6a233f7f8f575c925f69f2caeb]} {Base:fab0b88a4a7abcd21b40ab71fadd1d0a6fa4762d Patch: Files:[8be3885688f32f5c20c2b0c66e94856209845d2e8402bcb9242cadc2c90da146]}], want one per Arm at fab0b88a4a7abcd21b40ab71fadd1d0a6fa4762d
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.816s
+ok  	github.com/dat9uy/hyp/internal/replay	0.488s [no tests to run]
+FAIL

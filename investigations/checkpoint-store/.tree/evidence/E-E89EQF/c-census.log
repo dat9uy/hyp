@@ -1,0 +1,19 @@
+== binaries
+90a028959d6a575e397cded4798ab0b2fb6887b6b939bd89146a01c77f4fdbde  /Users/datguy/codingProjects/tree-based-agent-memory/investigations/checkpoint-store/.tree/evidence/E-E89EQF/hyp-cbd734a
+10540106a6e2a0fa119e6161fa3bbdaa76d1e21aa3398820a9cb96ccf856fb94  /Users/datguy/.local/bin/hyp
+2297b148a311260b786c05226fe71a8c52b7dfee462d63d7a106c4978d50440c  /Users/datguy/.local/share/hyp/hyp-33896ec
+candidate cbd734a sha256 differs from installed and 33896ec: yes
+id-citation hyp status: cbd734a vs installed: identical (exit 0/0, 1034 bytes)
+id-citation hyp status: cbd734a vs 33896ec: identical (exit 0/0)
+id-citation hyp check: cbd734a vs installed: identical (exit 0/0, 28 bytes)
+id-citation hyp check: cbd734a vs 33896ec: identical (exit 0/0)
+recipe-base hyp status: cbd734a vs installed: identical (exit 0/0, 1001 bytes)
+recipe-base hyp status: cbd734a vs 33896ec: identical (exit 0/0)
+recipe-base hyp check: cbd734a vs installed: identical (exit 0/0, 28 bytes)
+recipe-base hyp check: cbd734a vs 33896ec: identical (exit 0/0)
+checkpoint-store-design hyp status: cbd734a vs installed: identical (exit 0/0, 1459 bytes)
+checkpoint-store-design hyp status: cbd734a vs 33896ec: identical (exit 0/0)
+checkpoint-store-design hyp check: cbd734a vs installed: identical (exit 0/0, 28 bytes)
+checkpoint-store-design hyp check: cbd734a vs 33896ec: identical (exit 0/0)
+checkpoint-store hyp status: cbd734a vs installed: identical (exit 0/0, 4038 bytes)
+checkpoint-store hyp check: cbd734a vs installed: identical (exit 0/0, 399 bytes)

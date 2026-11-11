@@ -1,0 +1,31 @@
+== rule R7-restore on 8cb5f60066f2bf4f455a25f7a9b1be52871d6527, worktree 8cb5f60066f2bf4f455a25f7a9b1be52871d6527
+== diff lines: 18
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2d9778d..44f4231 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -557,6 +557,13 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		if sub.Base != "" && (run.Base != sub.Base || run.Patch != sub.PatchSHA256()) {
+ 			return false
+ 		}
++		if sub.Base != "" {
++			for _, f := range run.Files {
++				if !slices.ContainsFunc(sub.Files, func(x event.SubjectFile) bool { return x.SHA256 == f }) {
++					return false
++				}
++			}
++		}
+ 		for _, file := range sub.Files {
+ 			if _, ok := slices.BinarySearch(run.Files, file.SHA256); !ok && (sub.Base != "" || file.SHA256 != run.Patch) {
+ 				return false
+== go test -run '^(TestRunWithInputsCoversBareBase|TestHoldsSubject)$' exit 1
+--- FAIL: TestRunWithInputsCoversBareBase (0.11s)
+    run_subject_test.go:223: exit 0 (want 0), stdout "Line G-5X01FW#1\ntext: a run at B given inputs covers bare B\nquestion Q-AA6CER: candidates H-7X7NP1\n  covered\nquestion Q-JEZDB6: candidates H-Y14R5S\n  uncovered: H-Y14R5S\nran in R-FRA6MH: ran on H-7X7NP1: supports\nhistory:\n  2026-11-11 14:00 o node.add — writes it\n  2026-11-11 14:00 a result.record — closes it: H-7X7NP1=supports\n", stderr "" (want "ran in R-FRA6MH: ran on H-7X7NP1: supports; ran on H-Y14R5S\n")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.621s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:96: bare B, run at B given an input: HoldsSubject = false, want true
+    run_subject_test.go:96: B plus patch P, run at B plus P given an input: HoldsSubject = false, want true
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.464s
+FAIL

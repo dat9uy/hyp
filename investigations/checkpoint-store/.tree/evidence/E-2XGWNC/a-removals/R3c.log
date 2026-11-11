@@ -1,0 +1,23 @@
+== rule R3c on 3ec4979, worktree 3ec49795553f00c270fdd60ca1f84ab60cc69307
+== diff lines:       13
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 6415290..6c1469e 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -81,7 +81,7 @@ var rules = map[string]rule{
+ 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
+ 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
+ 				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
+-				Subjects: runSubjects(p)})
++				Subjects: p.Subjects})
+ 			for h := range p.Verdicts {
+ 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)
+ 			}
+== go test -count=1 -run 'TestOldResultReadsAsOneSubjectWithNoBase' ./internal/cli ./internal/replay
+--- FAIL: TestOldResultReadsAsOneSubjectWithNoBase (0.06s)
+    run_subject_test.go:177: exit 0 (want 0), stdout "Line G-EZR06T#1\ntext: the file runs the case\nquestion Q-X29MDE: candidates H-Q99P2B\n  covered\nquestion Q-FHTQCD: candidates H-D9HD8R\n  uncovered: H-D9HD8R\nran in R-E0CRVE: ran on H-Q99P2B: supports\nhistory:\n  2026-11-11 13:28 o node.add — writes it\n  2026-11-11 13:28 a result.record — closes it: H-Q99P2B=supports\n", stderr "" (want "ran in R-E0CRVE: ran on H-Q99P2B: supports; ran on H-D9HD8R\n")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.569s
+ok  	github.com/dat9uy/hyp/internal/replay	0.449s [no tests to run]
+FAIL
+== exit 1

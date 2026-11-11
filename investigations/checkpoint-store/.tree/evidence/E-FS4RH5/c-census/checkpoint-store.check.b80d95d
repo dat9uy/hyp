@@ -1,0 +1,6 @@
+warn: uncontained R-7XVMDC (script outside recipes/: .tree/evidence/E-6PD9S8/remove.py)
+warn: uncontained R-7XVMDC (script outside recipes/: .tree/evidence/E-6PD9S8/vet-test-census.sh)
+warn: uncontained R-Q9WTZB (script outside recipes/: .tree/evidence/E-ZX9APE/remove.py)
+warn: uncontained R-Q9WTZB (script outside recipes/: .tree/evidence/E-ZX9APE/check-spec-texts.py)
+warn: uncontained R-KBW141 (script outside recipes/: .tree/evidence/E-E89EQF/remove.py)
+check: 0 errors, 5 warnings

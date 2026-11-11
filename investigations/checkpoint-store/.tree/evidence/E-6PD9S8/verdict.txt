@@ -1,0 +1,5 @@
+E-6PD9S8 rule by reading, on commit 0cda2f8 (branch feat/one-subject-per-run).
+(a) holds: a-removals/summary.txt and a-removals/*.log; each of R7, R3a-R3d, F1, F3-F6 has one removal that fails its tests on their assertion, each diff non-empty, and R7-restore fails TestRunWithInputsCoversBareBase.
+(b) holds: b-vet-test-0cda2f8.log; go vet exit 0, go test ./... -count=1 exit 0, clean detached worktree at 0cda2f8.
+(c) holds: c-census.log; status and check identical bytes and exit codes, 0cda2f8 (sha256 2f3db176...) vs installed (10540106...) on 4 trees and vs 33896ec (2297b148...) on 3; the candidate's sha256 differs from both.
+verdict: H-W35076=supports
