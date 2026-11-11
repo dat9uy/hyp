@@ -50,13 +50,13 @@ func Replay(events []event.Event, recipeHashes map[string]string, asOf string) P
 func Build(events []event.Event, recipeHashes map[string]string, asOf string) (*State, Projection) {
 	st := NewState()
 	var rejections []Rejection
-	var lastCheckpoint *event.Event
+	lastCheckpoint := map[string]*event.Event{}
 	for _, ev := range events {
 		if err := st.Step(ev, recipeHashes); err != nil {
 			rejections = append(rejections, Rejection{EventID: ev.ID, Reason: err.Error()})
-		} else if ev.Type == event.TypeCheckpoint {
+		} else if ev.Type == event.TypeCheckpoint && !ownerCheckpoint(ev) {
 			cp := ev
-			lastCheckpoint = &cp
+			lastCheckpoint[ev.Node] = &cp
 		}
 		if asOf != "" && ev.ID == asOf {
 			break
@@ -65,6 +65,13 @@ func Build(events []event.Event, recipeHashes map[string]string, asOf string) (*
 	p := st.Projection()
 	p.Rejections, p.LastCheckpoint = rejections, lastCheckpoint
 	return st, p
+}
+
+// ownerCheckpoint reports whether ev is an old owner checkpoint: read-only
+// history, and not a runner's checkpoint (ADR 0020).
+func ownerCheckpoint(ev event.Event) bool {
+	var p event.Checkpoint
+	return event.DecodePayload(ev, &p) == nil && p.Role == event.RoleOwner
 }
 
 // Projection derives the projection of the state as stepped so far. It has

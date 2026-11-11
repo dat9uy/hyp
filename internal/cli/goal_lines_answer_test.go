@@ -220,11 +220,11 @@ func TestGoalLineCiteChangeIsOnlyACheckWarning(t *testing.T) {
 	must(t, "select", q, h, "--why", "w")
 	g2 := strings.Fields(hyp(t, "add", "goal", "--title", "G2", "--line", "builds on H", "--cite", "1="+h, "--why", "w").stdout)[0]
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
-	before := goalBlock(t, hyp(t, "status").stdout, g2)
+	before := goalBlock(t, hyp(t, "status", g2).stdout, g2)
 	must(t, "unselect", q, "--why", "w")
 	want(t, hyp(t, "check"), 0, "warn: "+g2+"#1 cites "+h+", which was realised when the line was written and is unsettled now")
 	want(t, hyp(t, "show", g2+"#1"), 0, "cites "+h+": realised, now unsettled\n")
-	if after := goalBlock(t, hyp(t, "status").stdout, g2); after != before {
+	if after := goalBlock(t, hyp(t, "status", g2).stdout, g2); after != before {
 		t.Fatalf("a cite's change moved %s's status:\n%s\nbefore:\n%s", g2, after, before)
 	}
 }
@@ -331,7 +331,7 @@ func TestOneAnswerSettlesKeysOfTwoGoals(t *testing.T) {
 	if out := hyp(t, "show", g1).stdout; strings.Contains(out, k2[0]) {
 		t.Fatalf("%s's history holds %s's key:\n%s", g1, g2, out)
 	}
-	want(t, hyp(t, "status"), 0, "o answer answers "+k+"; accepts "+k2[0])
+	want(t, hyp(t, "status", g1), 0, "o answer answers "+k+"; accepts "+k2[0])
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }
 

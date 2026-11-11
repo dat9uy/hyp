@@ -162,7 +162,7 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 		if p.Recipe == event.RecipeNone {
 			return errors.New("bad experiment: an Experiment under a DesignQuestion measures, so it pins a recipe")
 		}
-		return f.checkAims(p.Aims)
+		return f.checkAims(p.Aims, goalOf(f.Nodes, p.Parent))
 	}
 	seen := map[string]bool{}
 	for _, t := range p.Targets {
@@ -181,7 +181,7 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 		}
 		seen[t] = true
 	}
-	return f.checkAims(p.Aims)
+	return f.checkAims(p.Aims, goalOf(f.Nodes, p.Parent))
 }
 
 // checkRubric reports why an Experiment's rubric fields are malformed: the
@@ -232,9 +232,10 @@ func checkRecords(files []event.SubjectFile) error {
 	return nil
 }
 
-// checkAims reports why an Experiment may not aim at keys: each must name a
-// limit, or a reading the owner has closed, of a non-retracted Result, once.
-func (f *Facts) checkAims(keys []string) error {
+// checkAims reports why an Experiment of Goal g may not aim at keys: each
+// must name a limit, or a reading the owner has closed, of a non-retracted
+// Result, once, and lead to g: a move never crosses Goals (ADR 0020).
+func (f *Facts) checkAims(keys []string, g string) error {
 	if len(keys) > event.MaxLimits {
 		return fmt.Errorf("over limit: aims has %d items (max %d)", len(keys), event.MaxLimits)
 	}
@@ -251,11 +252,34 @@ func (f *Facts) checkAims(keys []string) error {
 			if !f.ReadingClosed(k) {
 				return fmt.Errorf("bad aim: reading %s is open; only an answered reading can be applied", k)
 			}
+			// An Experiment applies only a reading it aims at, so the apply
+			// rule is checked here, where the reading enters the Experiment.
+			if err := f.sameGoal("applies", k, g); err != nil {
+				return err
+			}
 			continue
 		}
 		if err := f.checkKey(k, event.KeyLimit, ""); err != nil {
 			return fmt.Errorf("bad aim: %w", err)
 		}
+		if err := f.sameGoal("aims", k, g); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// keyGoal returns the Goal that limit, line or reading key k leads to: a
+// line's own Goal, or the Goal of a limit's or reading's Result.
+func (f *Facts) keyGoal(k string) string { return goalOf(f.Nodes, event.KeyResult(k)) }
+
+// sameGoal reports why the move in field may not name key k from an event
+// of Goal g: a move never crosses Goals. A later Goal takes a case over by
+// citing it, never by moving it (ADR 0020).
+func (f *Facts) sameGoal(field, k, g string) error {
+	if kg := f.keyGoal(k); kg != g {
+		return fmt.Errorf("bad %s: %s leads to %s, not %s; a move never crosses Goals, and a later Goal takes a case over by citing it",
+			field, f.keyDisplay(k), event.DisplayID(event.KindGoal, kg), event.DisplayID(event.KindGoal, g))
 	}
 	return nil
 }
@@ -366,6 +390,9 @@ func (f *Facts) validateResult(ev event.Event) error {
 			scope = ""
 		}
 		if err := f.checkKey(k, event.KeyLimit, scope); err != nil {
+			return err
+		}
+		if err := f.sameGoal("closes", k, goalOf(f.Nodes, exp.ID)); err != nil {
 			return err
 		}
 	}
@@ -542,7 +569,17 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 			return err
 		}
 	}
-	return f.checkLimitMoves(ev.Actor, p.Role == event.RoleOwner, event.Keys(p.Refers), p.Returns, p.Accepts)
+	if err := f.checkLimitMoves(ev.Actor, p.Role == event.RoleOwner, event.Keys(p.Refers), p.Returns, p.Accepts); err != nil {
+		return err
+	}
+	// A refer leads to its checkpoint's Goal. An answer's accepts and returns
+	// may settle keys of several Goals: they are the owner's, on no Goal.
+	for _, k := range event.Keys(p.Refers) {
+		if err := f.sameGoal("refers", k, ev.Node); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // limitCloser is the first non-retracted Result that closes limit k, or "".
