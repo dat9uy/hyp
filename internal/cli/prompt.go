@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
@@ -22,8 +23,9 @@ const promptUse = "usage: hyp prompt G-id --actor A [--branch B] [--pr N] [--exp
 // the first line that starts with a heading to the end of the body. It
 // returns the block's lines with trailing empty lines removed, and the
 // problems that make it invalid: no block, a missing heading, or a non-empty
-// line that starts with no heading. found reports whether any line starts
-// with a heading.
+// line that starts with no heading. A line is empty only when it holds no
+// byte, so a line of spaces is a bad line. found reports whether any line
+// starts with a heading.
 func constraintsBlock(body string) (block []string, problems []string, found bool) {
 	lines := strings.Split(body, "\n")
 	start := -1
@@ -37,12 +39,12 @@ func constraintsBlock(body string) (block []string, problems []string, found boo
 		return nil, []string{`the Goal body has no constraints block: no line starts with "May change:", "Read only:" or "Never:"`}, false
 	}
 	block = lines[start:]
-	for len(block) > 0 && strings.TrimSpace(block[len(block)-1]) == "" {
+	for len(block) > 0 && block[len(block)-1] == "" {
 		block = block[:len(block)-1]
 	}
 	seen := map[string]bool{}
 	for _, l := range block {
-		if strings.TrimSpace(l) == "" {
+		if l == "" {
 			continue
 		}
 		h := headingOf(l)
@@ -79,16 +81,16 @@ func blockWarning(body string) string {
 	return "warn: hyp prompt will refuse this Goal: " + strings.Join(problems, "; ")
 }
 
-// repoRoot is the nearest directory at or above dir that holds .git, or dir
-// itself when none does.
-func repoRoot(dir string) string {
+// repoRoot is the nearest directory at or above dir that holds .git; ok is
+// false when none does.
+func repoRoot(dir string) (root string, ok bool) {
 	for d := dir; ; {
 		if _, err := os.Stat(filepath.Join(d, ".git")); err == nil {
-			return d
+			return d, true
 		}
 		up := filepath.Dir(d)
 		if up == d {
-			return dir
+			return "", false
 		}
 		d = up
 	}
@@ -123,6 +125,9 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	if *pr < 0 {
 		return usageErr("--pr must be a PR number")
 	}
+	if strings.ContainsFunc(*branch, unicode.IsSpace) || strings.ContainsFunc(*branch, unicode.IsControl) {
+		return usageErr("--branch %q holds a space or a control character; a branch name has none", *branch)
+	}
 	r, err := openReader()
 	if err != nil {
 		return err
@@ -140,7 +145,11 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	if len(problems) > 0 {
 		return herr.Refused("hyp prompt %s: %s", g, strings.Join(problems, "; "))
 	}
-	rel, err := filepath.Rel(repoRoot(r.root), r.root)
+	repo, ok := repoRoot(r.root)
+	if !ok {
+		return herr.Env("hyp prompt %s: no repository holds the store %s, so its path relative to the repository root is not known", g, r.root)
+	}
+	rel, err := filepath.Rel(repo, r.root)
 	if err != nil {
 		return herr.Env("%v", err)
 	}

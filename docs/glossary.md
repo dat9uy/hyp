@@ -35,7 +35,7 @@ The root node of a tree, `G-`: what the investigation is for. A store holds many
 _Avoid_: objective, epic, done, met (as a status word)
 
 **Constraints block**:
-The end of a Goal's body that states what a run may change, may only read and never does: the lines from the first one that starts with `May change:`, `Read only:` or `Never:` to the end of the body, each starting with one of the three headings ([spec §7.5](replay-spec.md#75-goal)). `hyp prompt` prints the `/goal` prompt from it, with the store, the actor, the Goal and the stop clauses, and refuses a Goal without a valid block. The prompt holds no owner answer; OWED lists what a run applies.
+The end of a Goal's body that states what a run may change, may only read and never does: the lines from the first one that starts with `May change:`, `Read only:` or `Never:` to the end of the body, each non-empty line starting with one of the three headings ([spec §7.5](replay-spec.md#75-goal)). `hyp prompt` prints the `/goal` prompt from it, with the store, the actor, the Goal and the stop clauses, and refuses a Goal without a valid block. The prompt holds no owner answer; OWED lists what a run applies.
 _Avoid_: scope section, run rules
 
 **Discovery Goal**:

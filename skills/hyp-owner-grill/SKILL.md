@@ -113,7 +113,7 @@ hyp prints the `/goal` prompt for hyp-goal-run from the log. Choose a new runner
 hyp prompt <G-id> --actor <runner-actor> [--branch <branch>] [--pr <N>] [--experiments <N>]
 ```
 
-It prints the store's path, the actor, the Goal id, the skill, the stop clauses (the runner owes nothing, or N Results under the actor, 5 by default) and the Goal body's constraints block, line for line; `--branch` and `--pr` add a clause each after the block. Give the owner its output as it is, and do not add to it. The prompt carries no owner answer: OWED lists each answer and each returned limit the runner applies. The practice of a run, a build Goal's review round included, is in hyp-goal-run. If `hyp prompt` refuses, the Goal body has no valid constraints block; a Goal is never edited, so tell the owner, who adds a new Goal with a valid block.
+It prints the store's path, the actor, the Goal id, the skill, the stop clauses (the runner owes nothing, or N Results under the actor, 5 by default) and the Goal body's constraints block, line for line; `--branch` and `--pr` add a clause each after the block. Give the owner its output as it is, and do not add to it. The prompt carries no owner answer: OWED lists each answer and each returned limit the runner applies. The practice of a run, a build Goal's review round included, is in hyp-goal-run. Run `hyp prompt` on the log the run starts from: the prompt names the Goal by its id, so the Goal's add must be in that log, merged or on the branch the prompt names. If `hyp prompt` refuses, the Goal body has no valid constraints block; a Goal is never edited, so tell the owner, who adds a new Goal with a valid block.
 
 ## Never
 
