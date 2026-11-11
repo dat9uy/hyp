@@ -371,6 +371,9 @@ func checkCheckpointShape(p event.Checkpoint) error {
 		return errors.New("bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
 	}
 	for _, it := range p.Refers {
+		if it.Text == "" && strings.TrimSpace(p.Summary) == "" {
+			return fmt.Errorf("bad refers: %s has no reason; a refer says why no test within the Goal's lines can settle it, in its text or the summary", it.Key)
+		}
 		if it.Text != "" {
 			if err := textLimit("text of "+it.Key, it.Text, 1, event.MaxText); err != nil {
 				return err

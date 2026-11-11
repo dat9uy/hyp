@@ -334,3 +334,31 @@ func TestOneAnswerSettlesKeysOfTwoGoals(t *testing.T) {
 	want(t, hyp(t, "status"), 0, "o answer answers "+k+"; accepts "+k2[0])
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }
+
+// limitOf records a Result under question q with one limit and returns the
+// limit's full key.
+func limitOf(t *testing.T, q string) string {
+	t.Helper()
+	h := must(t, "add", "hyp", "--parent", q, "--title", "HL", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+	return fullKey(t, must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "case C", "--why", "w")+"#1")
+}
+
+// A refer says why: a checkpoint whose refer has no text and no summary is
+// refused, and one with either is admitted.
+func TestReferWithoutReasonRefusedWrite(t *testing.T) {
+	_, _, q := setup(t)
+	k := limitOf(t, q)
+	want(t, hyp(t, "checkpoint", "--refers", k, "--why", "w"), 1, "bad refers: "+k+" has no reason")
+	want(t, hyp(t, "checkpoint", "--refers", k+"=void for every candidate", "--why", "w"), 0, "")
+}
+
+// The replay half: a log holding a refer with no text and no summary
+// rejects it, and the limit stays the runner's.
+func TestReferWithoutReasonRejectedReplay(t *testing.T) {
+	_, g, q := setup(t)
+	k := limitOf(t, q)
+	c := rawEvent(t, "a", event.TypeCheckpoint, fullID(t, g), map[string]any{"refers": []string{k}}, "w")
+	wantRejected(t, c, "bad refers: "+k+" has no reason")
+	notIn(t, "limit referred")
+}
