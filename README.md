@@ -99,23 +99,27 @@ git add .claude/skills
 
 To update, re-run the `go install` line and copy the skills again, so the binary and the skills stay the same version.
 
-**3. Start a session** in your project and paste this prompt, with the goal filled in:
+**3. Start a session** in your project and paste this prompt, with the goal and its lines filled in:
 
 ```text
 Use the hyp-prototype skill. Set HYP_ACTOR=claude-<topic>-1 for this session.
 If `hyp status` says there is no .tree store, run `hyp init` at the repository root.
-Record this goal: <the outcome I want, and who needs it>.
+Record this goal with its lines under my actor name <your-name>, showing me
+the command first: <the outcome I want, and who needs it>.
+Lines: <each case every candidate must meet>.
 Add the first design question under it, with at least two rival hypotheses,
 one of them "no change needed". Do not add or run experiments yet.
 Show me `hyp status` and stop.
 ```
 
-**4. Write the Goal's lines yourself.** They are the cases every candidate must meet, written once, so take your time over them. hyp refuses them from any role but the owner's:
+**4. The lines are yours.** They are the cases every candidate must meet. They come with the Goal and are never added to later, so take your time over them. The session shows you the `hyp add goal` command with your lines and runs it under your actor name once you approve:
 
 ```bash
-hyp checkpoint --role owner --actor <your-name> --summary "the Goal's lines" \
-  --line "<a case every candidate must meet>" --line "<another>" --why "<why these>"
+hyp add goal --title "<the outcome>" --actor <your-name> --why "<who needs it>" \
+  --line "<a case every candidate must meet>" --line "<another>"
 ```
+
+Your answers later are `hyp answer` events under the same name, for example `hyp answer --answer "R-…#r1=<your words>"`.
 
 From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. When `hyp status` lists something under AWAITING OWNER, it is yours to answer. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
 

@@ -16,7 +16,11 @@ never type one. Run `hyp help` for every command and flag.
    recent events and the last checkpoint. Use `hyp show <id>` for detail and
    `hyp diff --since <id|RFC3339>` for what changed.
 2. If it says `no .tree store found`, run `hyp init` at the repository root,
-   then `hyp add goal --title "<observable outcome>" --why "<who asked, why>"`.
+   then add the Goal with its lines, the cases every candidate must meet.
+   The lines come with the Goal and no later event adds one, so ask the owner
+   for them first. Show the owner the command; once they approve it, run it
+   under their actor name:
+   `hyp add goal --title "<observable outcome>" --line "<a case>" --actor <owner-name> --why "<who asked, why>"`.
 3. Set `HYP_ACTOR` to a name unique to this session, for example
    `export HYP_ACTOR=claude-<topic>-1`. Every write needs it and a `--why`.
 
@@ -144,10 +148,10 @@ that no longer matters is `hyp withdraw <Q-id>`.
 - The select waits on an open limit under the question, whichever Hypothesis
   its Result gave a verdict on, and `hyp select` names it. Run its case on the
   candidates. If no test within the Goal's lines can close it, or its case
-  is void for every candidate, refer it:
-  `hyp checkpoint --refers <R-id>#<n> --summary "<why no test can close it>"`.
-  The owner then accepts it, or returns it with `--returns <R-id>#<n>` when
-  the Goal covers its case, and it is yours to run again. Until the owner
+  is void for every candidate, refer it with your reason:
+  `hyp checkpoint --refers "<R-id>#<n>=<why no test can close it>" --why "..."`.
+  The owner then accepts it, or returns it when the Goal covers its case, and
+  it is yours to run again. Until the owner
   does one of these, the select waits on the referred limit. A Result that runs
   the case closes it, whatever its verdicts.
 - The select answers the question while it stands: the selected Hypothesis is
@@ -155,10 +159,11 @@ that no longer matters is `hyp withdraw <Q-id>`.
   new since the select. A new candidate reopens the question
   (`new_candidate`); OWED then lists `select` or `choose` again.
 - A select never changes the Goal's scope. When the answer will not meet a
-  Goal line, refer the line with `hyp checkpoint --refers G-<id>#<n>`, and
-  the owner accepts it with `hyp checkpoint --role owner --accept G-<id>#<n> --actor <owner-name>`.
-  When the answer needs more than the Goal holds, that is a new Goal, so a
-  new tree that cites this one.
+  Goal line, refer the line with `hyp checkpoint --refers "G-<id>#<n>=<why>"`,
+  and the owner accepts it (`hyp answer --accept "G-<id>#<n>=<their words>"`).
+  When the answer needs more than the Goal holds, that is a new Goal. It may
+  sit in the same store and cite this Goal's settled keys with
+  `hyp add goal ... --line "<case>" --cite <n>=<key>`.
 - To change a selection, select the other candidate when OWED lists it. When
   the evidence changes the claim, add a new Hypothesis that `supersedes` the
   old one and select that.
@@ -179,9 +184,13 @@ that no longer matters is `hyp withdraw <Q-id>`.
     line>: <how you read it>"`. Record the owner's answer under their own
     actor name (lowercase letters, digits and hyphens, for example
     `owner-dat`):
-    `hyp checkpoint --role owner --closes <R-id>#r1 --summary "<their words>" --why "<why>" --actor <owner-name>`.
-    If they give new words for a reading they already answered, use
-    `--revises <R-id>#r1` instead.
+    `hyp answer --answer "<R-id>#r1=<their words>" --actor <owner-name>`.
+    An answer has no `--why`: the owner's words are the reason. If they give
+    new words for a reading they already answered, run the same command with
+    the new words.
+  - The owner's accept or return of a referred limit is also an answer:
+    `hyp answer --accept "<key>=<their words>"` or
+    `hyp answer --returns "<key>=<their words>"`, under their actor name.
 - The Goal completes when it has at least one top-level question and every
   one is answered. Complete is not met: `hyp status` lists the Goal's lines
   under LINES, and a line still owed under OWED means the Goal is not met.
