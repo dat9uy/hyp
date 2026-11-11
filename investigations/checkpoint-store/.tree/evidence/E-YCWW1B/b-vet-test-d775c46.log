@@ -1,0 +1,22 @@
+worktree: d775c463f66f2622f9b23f901cd5c41d24851fec (detached)
+git status --short:
+$ go vet ./...
+exit: 0
+$ go test ./... -count=1
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	1.543s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	23.653s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.335s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.334s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.612s
+ok  	github.com/dat9uy/hyp/internal/render	0.353s
+ok  	github.com/dat9uy/hyp/internal/replay	0.337s
+ok  	github.com/dat9uy/hyp/internal/sandbox	77.273s
+ok  	github.com/dat9uy/hyp/internal/signals	0.334s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.334s
+ok  	github.com/dat9uy/hyp/internal/store	0.457s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+exit: 0

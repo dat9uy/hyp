@@ -1,0 +1,23 @@
+worktree: 1c396d4ea1e20f1b5fdfb84721fdd7c0f67d0f5d (detached)
+git status --short:
+?? internal/cli/two_goal_store_test.go
+test file: git show d775c46:internal/cli/two_goal_store_test.go, sha256 26be3581e83919108ad69c959513bef36528db7fe523e0924528031417b6d3bf
+$ go test ./internal/cli/ -run 'TestTwoGoalStore' -count=1 -v
+=== RUN   TestTwoGoalStoreAdmitsASecondGoalWrite
+    two_goal_store_test.go:59: one store holds many Goals, but a second Goal was refused: exit 1, stderr "refused: wrong parent kind: only one Goal per log\n"
+--- FAIL: TestTwoGoalStoreAdmitsASecondGoalWrite (0.04s)
+=== RUN   TestTwoGoalStoreReplaysEachGoalAsItsOwn
+    two_goal_store_test.go:147: one store holds many Goals, but replay rejected the merged log: exit 1
+        error: rejected 01M750B09G06S9YSSC98BAVGX7: wrong parent kind: only one Goal per log
+        error: rejected 01M750B09MD3YAVQFA32QPAS8T: unknown node 01M750B09G06S9YSSC98BAVGX7
+        error: rejected 01M750B09QVAQPBXS2A383CCP3: unknown node 01M750B09G06S9YSSC98BAVGX7
+        error: rejected 01M750B09WP4A04NSEJWEDS581: unknown node 01M750B09MD3YAVQFA32QPAS8T
+        error: rejected 01M750B09ZW9E634J4NWQ7897X: unknown node 01M750B09WP4A04NSEJWEDS581
+        error: rejected 01M750B0A2V7KTMNWCJC1MEZJB: unknown node 01M750B09ZW9E634J4NWQ7897X
+        check: 6 errors, 0 warnings
+        refused: check found 6 errors
+--- FAIL: TestTwoGoalStoreReplaysEachGoalAsItsOwn (0.07s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.477s
+FAIL
+exit: 1

@@ -1,0 +1,6 @@
+installed: /Users/datguy/.local/bin/hyp hyp 0.1.0 (events v1) 33896ec719c8 sha256 2297b148a311260b786c05226fe71a8c52b7dfee462d63d7a106c4978d50440c
+candidate: hyp-e8dd17c hyp 0.1.0 (events v1) e8dd17c3e30a sha256 13212195b27d300e4349109244f46c0bca784cbfc32bf3225bf8616b3d65c769
+id-citation hyp status: exit installed 0 candidate 0; sha256 7440ed8b7f20a3bb 7440ed8b7f20a3bb; identical
+id-citation hyp check: exit installed 0 candidate 0; sha256 0bb0fb8570119e20 0bb0fb8570119e20; identical
+recipe-base hyp status: exit installed 0 candidate 0; sha256 72fce9310b754104 72fce9310b754104; identical
+recipe-base hyp check: exit installed 0 candidate 0; sha256 0bb0fb8570119e20 0bb0fb8570119e20; identical
