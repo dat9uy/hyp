@@ -1,0 +1,31 @@
+== rule R7-restore on 0cda2f8c823f83879e2f9050a14561cf025b5f88, worktree 0cda2f8c823f83879e2f9050a14561cf025b5f88
+== diff lines: 18
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2a3fa6d..762de64 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -550,6 +550,13 @@ func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
+ 		if sub.Base != "" && (run.Base != sub.Base || (run.Patch != "" && !slices.Contains(want, run.Patch))) {
+ 			return false
+ 		}
++		if sub.Base != "" {
++			for _, f := range run.Files {
++				if !slices.Contains(want, f) {
++					return false
++				}
++			}
++		}
+ 		for _, h := range want {
+ 			if _, ok := slices.BinarySearch(run.Files, h); !ok && h != run.Patch {
+ 				return false
+== go test -run '^(TestRunWithInputsCoversBareBase|TestHoldsSubject)$' exit 1
+--- FAIL: TestRunWithInputsCoversBareBase (0.10s)
+    run_subject_test.go:223: exit 0 (want 0), stdout "Line G-8J6M9C#1\ntext: a run at B given inputs covers bare B\nquestion Q-AQWD9P: candidates H-M9QGD7\n  covered\nquestion Q-PC387W: candidates H-8RQ56C\n  uncovered: H-8RQ56C\nran in R-KRDVZ3: ran on H-M9QGD7: supports\nhistory:\n  2026-11-11 13:48 o node.add — writes it\n  2026-11-11 13:48 a result.record — closes it: H-M9QGD7=supports\n", stderr "" (want "ran in R-KRDVZ3: ran on H-M9QGD7: supports; ran on H-8RQ56C\n")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.462s
+--- FAIL: TestHoldsSubject (0.00s)
+    run_subject_test.go:86: bare B, run at B given an input: HoldsSubject = false, want true
+    run_subject_test.go:86: B plus P, run at B plus P given an input: HoldsSubject = false, want true
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.349s
+FAIL

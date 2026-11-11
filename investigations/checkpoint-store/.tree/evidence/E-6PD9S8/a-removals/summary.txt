@@ -1,0 +1,13 @@
+E-6PD9S8 (a): one removal per rule, each from 0cda2f8 in a fresh detached worktree, by remove.py (R7 drop the patch's own field, so the patch is kept among the inputs; R7-restore put back 3ec4979's exact-files compare for a based subject; R3a merge runs; R3b drop the base compare; R3c drop the old fingerprints read; R3d drop the patch compare; F1 merge Arms into one subject; F3 drop the subject-ran lock; F4 compare a based subject's files as lists, since 0cda2f8 has no check of its own for it; F5 drop the git-missing exit 3; F6 drop the no-evidence rejection).
+R7 diff 13 lines: TestPatchedRunWithInputsNeverCoversBareBase, TestPatchedRunNeverCoversBareBase, TestResultKeepsOneSubjectPerCitedRun, TestSandboxKeepsOneSubjectPerArm fail (patch kept among the files; bare B covered).
+R7-restore diff 18: TestRunWithInputsCoversBareBase and TestHoldsSubject fail (a run at B given inputs no longer holds bare B).
+R3a diff 19: TestResultKeepsOneSubjectPerCitedRun fails (one merged subject).
+R3b diff 13: TestBaseSubjectIsCoveredOnlyAtItsBase and TestHoldsSubject fail (run at C holds bare B).
+R3c diff 13: TestOldResultReadsAsOneSubjectWithNoBase fails (uncovered).
+R3d diff 13: TestPatchedRunNeverCoversBareBase, TestPatchedRunWithInputsNeverCoversBareBase and TestHoldsSubject fail (B plus a patch holds bare B).
+F1 diff 20: TestSandboxKeepsOneSubjectPerArm fails (one subject with both patches).
+F3 diff 13: TestBaseSubjectLocksOnlyWhenItRan fails (exit 0, want 1 "subject ran in").
+F4 diff 18: TestBaseSubjectWithOneFileTwiceIsHeld fails (still uncovered).
+F5 diff 16: TestSubjectBaseExitCodes fails (exit 2, want 3).
+F6 diff 13: TestRunSubjectReplayRejections fails (not rejected).
+No removal failed to build.
