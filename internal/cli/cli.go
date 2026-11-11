@@ -83,6 +83,7 @@ read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   check                                       rejected events, bad lines, warnings
   signals [--json]                            design marks for the whole tree: one-rival, D1
   events --json                               applied events in merge order, and rejected ones, as JSON for scripts
+  prompt G-id --actor A [--branch B] [--pr N] [--experiments N]   the /goal prompt for a Goal, from its body's constraints block
 
 bundle (a recipe in recipes/ or a rubric in rubrics/; a name lives in one library):
   bundle hash DIR [--json]               the bundle hash add exp --recipe or --rubric records for DIR
@@ -128,6 +129,7 @@ var commands = map[string]command{
 	"check":      cmdCheck,
 	"signals":    cmdSignals,
 	"events":     cmdEvents,
+	"prompt":     cmdPrompt,
 	"sandbox":    cmdSandbox,
 	"bundle":     cmdBundle,
 }

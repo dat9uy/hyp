@@ -1,6 +1,6 @@
 ---
 name: hyp-prototype
-description: Investigate an uncertain design with rival hypotheses and bounded experiments, keeping the whole investigation in a hyp tree (.tree/) instead of prose. Use for design questions, prototypes, and resuming an investigation another session started.
+description: Investigate an uncertain design, or build one, with rival hypotheses and bounded experiments, keeping the whole investigation in a hyp tree (.tree/) instead of prose. Use for design questions, prototypes, a build Goal's candidate commits, and resuming an investigation another session started; an unattended /goal run, whose prompt hyp prompt prints, also uses hyp-goal-run.
 ---
 
 # hyp-prototype

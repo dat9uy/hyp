@@ -93,7 +93,7 @@ The grill ends in these writes, in this order. Show each owner write as the exac
 | a link to another Goal or an issue | `hyp link <id> external_ref …` | runner |
 | the end | `hyp checkpoint --goal <G-id> --summary "…" --why "end of grill"` | runner |
 
-The Goal body ends with the run's constraints, one heading per line, so a run and a prompt generator can find them:
+The Goal body ends with the run's constraints block, so a run and `hyp prompt` can find it:
 
 ```text
 May change: <the repository, how it is changed (for example commits on one local branch, a PR never merged), and the texts the change makes wrong>
@@ -101,17 +101,19 @@ Read only: <repositories, directories or data the run may read but never change>
 Never: <acts the run never takes, such as replacing an installed binary or publishing source data>
 ```
 
+The block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It holds each of the three headings at least once, and every non-empty line in it starts with one of them, so write one constraint per line and put no other text after the block. A heading may repeat, such as one `Never:` line per act. `hyp add goal` warns when a body has a heading but no valid block, and `hyp prompt` refuses that Goal.
+
 A body that names another tree's ids writes each as `<tree>:<id>`. Then run `hyp status <G-id>` and `hyp check`: it must print `check: 0 errors`. Commit `.tree/events/` and `.tree/evidence/`.
 
 ## Hand off
 
-Write the `/goal` prompt for hyp-goal-run, under 4000 characters: the tree, the runner's actor, the Goal id, the stop clauses, and the Goal body's `May change:`, `Read only:` and `Never:` lines copied as they are. Put general practice in the skill, not the prompt. For a build Goal it also says:
-- the branch, and that the run opens a PR and never merges;
-- the write scope covers every text the change makes wrong, the design record included;
-- one review round per candidate commit, by a fresh subagent given the lines, the code and the keys already settled with the owner's words;
-- sort each finding: a case of a line is a limit; a question about a line's meaning is a reading; a defect in text the run may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint and never holding the select.
+hyp prints the `/goal` prompt for hyp-goal-run from the log. Choose a new runner actor, then run:
 
-A prompt that states tree state (an accept, a select) is written from the merged log, or names the PR it waits for.
+```text
+hyp prompt <G-id> --actor <runner-actor> [--branch <branch>] [--pr <N>] [--experiments <N>]
+```
+
+It prints the store's path, the actor, the Goal id, the skill, the stop clauses (the runner owes nothing, or N Results under the actor, 5 by default) and the Goal body's constraints block, line for line; `--branch` and `--pr` add a clause each after the block. Give the owner its output as it is, and do not add to it. The prompt carries no owner answer: OWED lists each answer and each returned limit the runner applies. The practice of a run, a build Goal's review round included, is in hyp-goal-run. If `hyp prompt` refuses, the Goal body has no valid constraints block; a Goal is never edited, so tell the owner, who adds a new Goal with a valid block.
 
 ## Never
 

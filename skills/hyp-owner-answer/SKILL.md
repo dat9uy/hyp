@@ -139,3 +139,5 @@ hyp checkpoint --summary "Stopped: <what waits>. Waiting for the owner: <the key
 The owner reads `hyp status`, which prints the last checkpoint, so the fork must not live only in chat. A checkpoint holds only a summary and refers; the owner's acts are `hyp answer`.
 
 State what changed in the tree, what is still open, and the next question for the owner. Print `hyp status`.
+
+When the owner's answers leave work for the runner, the next run starts from a fresh `/goal` prompt. Print it with `hyp prompt <goal> --actor <new runner actor> [--branch <branch>] [--pr <N>]` and give the owner its output as it is. Do not add the owner's answers to it: OWED lists each answer and each returned limit that the next run applies.

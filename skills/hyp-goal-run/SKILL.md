@@ -1,9 +1,9 @@
 ---
 name: hyp-goal-run
-description: "Run a hyp tree under an owner's Goal and met rule as an unattended discovery /goal: act only on what OWED says the runner owes, test before asking, write readings the owner can answer, reassess the targets under the owner's answers, and stop with a report the owner can read from hyp status. Use when a /goal prompt names this skill."
+description: "Run a hyp tree under an owner's Goal and met rule as an unattended /goal, for a discovery Goal or a build Goal: act only on what OWED says the runner owes, test before asking, write readings the owner can answer, reassess the targets under the owner's answers, and stop with a report the owner can read from hyp status. Use when a /goal prompt names this skill, such as the one hyp prompt prints."
 ---
 
-The `/goal` prompt names the tree, your actor, the Goal and the stop. This skill says how to work until that stop. Use it with the hyp-prototype skill, which says how to add Questions, Hypotheses, Experiments and Results, and the hyp-verification skill, which says how to run an Experiment.
+The `/goal` prompt names the tree, your actor, the Goal, the stop and the Goal body's constraints; `hyp prompt <goal-id> --actor <actor>` prints it from the log. This skill says how to work until that stop. Use it with the hyp-prototype skill, which says how to add Questions, Hypotheses, Experiments and Results, and the hyp-verification skill, which says how to run an Experiment.
 
 ## Start
 
@@ -21,6 +21,18 @@ Act on what OWED in `hyp status` says the runner owes, and on nothing else. Plan
 - The recipe's checks may exist before the verdict rule, because `hyp add exp` pins them. Write and run no candidate until the rule is recorded on the Experiment.
 - Try a new or changed check only on its cases' stand-ins, never on a candidate, until the rule is recorded. If a candidate shows a check is wrong anyway, do not just fix the check: write the case that shows it, in the Goal's terms with the outcome it must give, in a new version, and name that case in the Experiment body. A sentence that discloses a trial run pins nothing.
 - `hyp record` and `hyp check` warn when a Result's text disagrees with its cited files: a verdict that a cited `verdict:` line contradicts, or a commit or hash in the observation or a limit that no cited file holds. Fix each one with a new Result that cites the file; a Result cannot change after it is recorded.
+
+## Build Goals
+
+A build Goal's candidate is a commit. Its practice:
+
+- Each commit you test is one Hypothesis under the Goal's question, with the branch and the commit in its title. Tie its subject before the run with `hyp subject <H> --base <commit>`. A fix is a new commit and a new Hypothesis that supersedes the old one (`hyp supersede <new> --old <old>`).
+- Write the tree with the installed hyp. Compile the candidate to a separate path, and never replace an installed binary.
+- Before you run anything, write each Experiment's verdict rule in its body: the Goal's lines it aims at, red on the base and green on the candidate for each new test, a removal check for each refusal (remove the refusal and show which test fails), and `go vet ./...` and `go test ./... -count=1`, or the repository's own gate. For skill text, run the original and the candidate skills on the same eval cases.
+- Keep the logs under `.tree/evidence/<E-id>/` and cite them in the Result.
+- Before the stop, ask a fresh subagent for one review of each candidate commit's diff against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion. Ask it to label each finding with the line it is a case of, or none.
+- Sort each finding: a case of a line is a `--limit` you close or, only if void, refer; a question about a line's meaning is a reading; a defect in text you may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint, and it never holds the select.
+- The run may push its branch and open or update one PR. It never merges.
 
 ## Before a trade-off
 
@@ -70,12 +82,14 @@ Stop on the clauses the `/goal` prompt names. Stopping is not success.
 1. Before your last message, record a runner checkpoint, so the fork does not live only in chat; the owner reads `hyp status`, which prints the last checkpoint, each reading in full and what each copy's answer can touch. Do not restate a reading's meanings in the checkpoint:
 
    ```text
-   hyp checkpoint --summary "Stopped: <stop clause>. Waiting for the owner: <the keys under AWAITING OWNER>. Out-of-Goal findings: <one short phrase each, or none>" --why "<why>"
+   hyp checkpoint --goal <goal-id> --summary "Stopped: <stop clause>. Waiting for the owner: <the keys under AWAITING OWNER>. Out-of-Goal findings: <one short phrase each, or none>" --why "<why>"
    ```
 
    An out-of-Goal finding is a case of none of the Goal's lines: it gets no limit, no refer and no reading, and it never holds the select. Name each one in the checkpoint so it lives in the log, not only in chat. A defect in text you changed and may edit is not one: fix it with a commit before the stop.
 
 2. Your last message repeats the checkpoint, and lists each line under LINES by its key, with the Results that ran it, and names each question where OWED still owes a line. A run that ends with lines owed is a normal result.
+
+3. Then list every owner item with the exact command the owner runs: each item under AWAITING OWNER, each out-of-Goal finding (a new Goal or an issue), merging the PR, reinstalling hyp, and each personal skill that names a command the change altered.
 
 ## Never
 
