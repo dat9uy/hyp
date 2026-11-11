@@ -85,6 +85,8 @@ func TestHoldsSubject(t *testing.T) {
 		{"B plus input I, run at B whose patch is I", []event.RunSubject{{Base: B, Patch: I}}, event.HypothesisSubject{Base: B, Files: file(I)}, false},
 		{"B plus input I, run at B plus P given I", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B, Files: file(I)}, false},
 		{"B plus patch P and input I, run at B plus P given I", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B, Patch: patch(P), Files: file(I)}, true},
+		{"B plus patch P and input P, run at B plus P given no inputs", []event.RunSubject{{Base: B, Patch: P}}, event.HypothesisSubject{Base: B, Patch: patch(P), Files: file(P)}, false},
+		{"B plus patch P and input P, run at B plus P given P", []event.RunSubject{{Base: B, Patch: P, Files: []string{P}}}, event.HypothesisSubject{Base: B, Patch: patch(P), Files: file(P)}, true},
 		{"B plus patch P and input I, run at B plus P", []event.RunSubject{{Base: B, Patch: P}}, event.HypothesisSubject{Base: B, Patch: patch(P), Files: file(I)}, false},
 		{"files only, old Result", []event.RunSubject{{Files: []string{P, I}}}, event.HypothesisSubject{Files: file(P)}, true},
 		{"files only, run at C plus P", []event.RunSubject{{Base: C, Patch: P}}, event.HypothesisSubject{Files: file(P)}, true},
