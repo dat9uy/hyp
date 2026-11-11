@@ -89,11 +89,11 @@ go install github.com/dat9uy/hyp/cmd/hyp@latest
 hyp version
 ```
 
-**2. Copy the two skills into your project** and commit them, so every session in the project loads them. From your project's root, with a clone (or download) of hyp at `<hyp>`:
+**2. Copy the skills into your project** and commit them, so every session in the project loads them. From your project's root, with a clone (or download) of hyp at `<hyp>`:
 
 ```bash
 mkdir -p .claude/skills
-cp -R <hyp>/skills/hyp-prototype <hyp>/skills/hyp-verification .claude/skills/
+cp -R <hyp>/skills/hyp-* .claude/skills/
 git add .claude/skills
 ```
 
@@ -127,7 +127,7 @@ To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-h
 
 ## What is in this repository
 
-What you install is **core**: the binary (`cmd/`, `internal/`), the two skills (`skills/`) and the docs (`docs/`). The **self-review** recipes this repository keeps to test hyp, and the trees in which parts of hyp's own design were decided, are kept under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
+What you install is **core**: the binary (`cmd/`, `internal/`), the skills (`skills/`) and the docs (`docs/`). The **self-review** recipes this repository keeps to test hyp, and the trees in which parts of hyp's own design were decided, are kept under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
 
 ## Status
 

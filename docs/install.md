@@ -1,6 +1,6 @@
 # Installing hyp and its skills
 
-`hyp` is a single static binary; the two skills are plain Markdown directories
+`hyp` is a single static binary; its skills are plain Markdown directories
 that any harness able to load a `SKILL.md` can use. Claude Code is the only
 harness hyp has been verified on.
 
@@ -27,7 +27,7 @@ From your project's root, with a clone (or download) of hyp at `<hyp>`:
 
 ```bash
 mkdir -p .claude/skills
-cp -R <hyp>/skills/hyp-prototype <hyp>/skills/hyp-verification .claude/skills/
+cp -R <hyp>/skills/hyp-* .claude/skills/
 git add .claude/skills
 ```
 
@@ -72,8 +72,7 @@ Run from this repository's root. Claude Code:
 
 ```bash
 mkdir -p ~/.claude/skills
-ln -s "$PWD/skills/hyp-prototype" ~/.claude/skills/hyp-prototype
-ln -s "$PWD/skills/hyp-verification" ~/.claude/skills/hyp-verification
+for s in skills/hyp-*; do ln -s "$PWD/$s" ~/.claude/skills/"$(basename "$s")"; done
 ```
 
 Symlinks make your sessions load the working text under `skills/`, so an edit is
@@ -88,14 +87,12 @@ Codex:
 
 ```bash
 mkdir -p ~/.codex/skills
-ln -s "$PWD/skills/hyp-prototype" ~/.codex/skills/hyp-prototype
-ln -s "$PWD/skills/hyp-verification" ~/.codex/skills/hyp-verification
+for s in skills/hyp-*; do ln -s "$PWD/$s" ~/.codex/skills/"$(basename "$s")"; done
 ```
 
 pi:
 
 ```bash
 mkdir -p ~/.pi/agent/skills
-ln -s "$PWD/skills/hyp-prototype" ~/.pi/agent/skills/hyp-prototype
-ln -s "$PWD/skills/hyp-verification" ~/.pi/agent/skills/hyp-verification
+for s in skills/hyp-*; do ln -s "$PWD/$s" ~/.pi/agent/skills/"$(basename "$s")"; done
 ```
