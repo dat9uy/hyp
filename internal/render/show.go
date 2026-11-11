@@ -67,6 +67,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		if sub.Base != "" {
 			parts = append(parts, "base "+sub.Base[:12])
 		}
+		if sub.Patch != nil {
+			parts = append(parts, "patch "+sub.Patch.Path+" "+sub.Patch.SHA256[:12])
+		}
 		for _, f := range sub.Files {
 			parts = append(parts, f.Path+" "+f.SHA256[:12])
 		}

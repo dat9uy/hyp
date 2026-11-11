@@ -33,6 +33,8 @@ func TestRunSubjectReplayRejections(t *testing.T) {
 	ok := res(event.ResultRecord{Subjects: []event.RunSubject{{Base: base, Files: []string{file}}, {Base: base}, {Base: base, Patch: file, Files: []string{file}}}})
 	badPatch := res(event.ResultRecord{Subjects: []event.RunSubject{{Base: base, Patch: "p"}}})
 	noBase := b.Emit(event.TypeHypothesisSubject, h, event.HypothesisSubject{})
+	patchNoBase := b.Emit(event.TypeHypothesisSubject, h, event.HypothesisSubject{Patch: &event.SubjectFile{Path: "p", SHA256: file}, Files: []event.SubjectFile{{Path: "x", SHA256: file}}})
+	patchNotSHA := b.Emit(event.TypeHypothesisSubject, h, event.HypothesisSubject{Base: base, Patch: &event.SubjectFile{Path: "p", SHA256: "p"}})
 	badBase := b.Emit(event.TypeHypothesisSubject, h, event.HypothesisSubject{Base: "main"})
 	p := replayB(b)
 	wantRejected(t, p, both, "a Result keeps subjects or fingerprints, not both")
@@ -42,6 +44,8 @@ func TestRunSubjectReplayRejections(t *testing.T) {
 	wantRejected(t, p, badPatch, `bad subjects: patch "p" is not a sha256`)
 	wantRejected(t, p, twice, "the same subject twice")
 	wantRejected(t, p, noBase, "bad subject: no base and no files")
+	wantRejected(t, p, patchNoBase, "bad subject: a patch with no base")
+	wantRejected(t, p, patchNotSHA, `bad subject: patch "p" is not a sha256`)
 	wantRejected(t, p, badBase, `bad subject: base "main" is not a full commit id`)
 	for _, r := range p.Rejections {
 		if r.EventID == ok {
@@ -51,13 +55,15 @@ func TestRunSubjectReplayRejections(t *testing.T) {
 }
 
 // HoldsSubject: a subject that names a base is held only by a run at that
-// base whose patch, if any, is one of its files, and given each of its
-// files; input files are data, so a run at B given inputs holds bare B. One
-// with no base is held by a run given each of its files, at any base.
+// base with the same patch, none when it names none, given each of its
+// files as input; input files are data, so a run at B given inputs holds
+// bare B. One with no base is held by a run given each of its files, as
+// patch or input, at any base.
 func TestHoldsSubject(t *testing.T) {
 	B, C := strings.Repeat("b", 40), strings.Repeat("c", 40)
-	P, I := strings.Repeat("1", 64), strings.Repeat("2", 64)
+	P, I, Q := strings.Repeat("1", 64), strings.Repeat("2", 64), strings.Repeat("3", 64)
 	file := func(h string) []event.SubjectFile { return []event.SubjectFile{{Path: "x", SHA256: h}} }
+	patch := func(h string) *event.SubjectFile { return &event.SubjectFile{Path: "p", SHA256: h} }
 	cases := []struct {
 		name string
 		runs []event.RunSubject
@@ -68,17 +74,21 @@ func TestHoldsSubject(t *testing.T) {
 		{"bare B, run at B plus a patch", []event.RunSubject{{Base: B, Patch: P}}, event.HypothesisSubject{Base: B}, false},
 		{"bare B, run at B plus a patch and an input", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B}, false},
 		{"bare B, merged across two runs", []event.RunSubject{{Base: B, Patch: P}, {Base: C}}, event.HypothesisSubject{Base: B}, false},
-		{"bare B, run at B given an input", []event.RunSubject{{Base: B, Files: []string{I}}}, event.HypothesisSubject{Base: B}, true},
-		{"B plus P, run at B plus P given an input", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B, Files: file(P)}, true},
-		{"B plus P, run at B plus another patch", []event.RunSubject{{Base: B, Patch: I}}, event.HypothesisSubject{Base: B, Files: file(P)}, false},
-		{"B plus input I, run at B given I", []event.RunSubject{{Base: B, Files: []string{I}}}, event.HypothesisSubject{Base: B, Files: file(I)}, true},
-		{"B plus input I, run at B plus P given I", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B, Files: file(I)}, false},
 		{"bare B, run at C", []event.RunSubject{{Base: C}}, event.HypothesisSubject{Base: B}, false},
-		{"B plus P, run at B plus P", []event.RunSubject{{Base: B, Patch: P}}, event.HypothesisSubject{Base: B, Files: file(P)}, true},
-		{"B plus P, run at C plus P", []event.RunSubject{{Base: C, Patch: P}}, event.HypothesisSubject{Base: B, Files: file(P)}, false},
+		{"bare B, run at B given an input", []event.RunSubject{{Base: B, Files: []string{I}}}, event.HypothesisSubject{Base: B}, true},
+		{"B plus patch P, run at B plus P", []event.RunSubject{{Base: B, Patch: P}}, event.HypothesisSubject{Base: B, Patch: patch(P)}, true},
+		{"B plus patch P, run at B plus P given an input", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B, Patch: patch(P)}, true},
+		{"B plus patch P, run at C plus P", []event.RunSubject{{Base: C, Patch: P}}, event.HypothesisSubject{Base: B, Patch: patch(P)}, false},
+		{"B plus patch P, run at B plus another patch", []event.RunSubject{{Base: B, Patch: Q}}, event.HypothesisSubject{Base: B, Patch: patch(P)}, false},
+		{"B plus patch P, run at bare B given P's bytes as input", []event.RunSubject{{Base: B, Files: []string{P}}}, event.HypothesisSubject{Base: B, Patch: patch(P)}, false},
+		{"B plus input I, run at B given I", []event.RunSubject{{Base: B, Files: []string{I}}}, event.HypothesisSubject{Base: B, Files: file(I)}, true},
+		{"B plus input I, run at B whose patch is I", []event.RunSubject{{Base: B, Patch: I}}, event.HypothesisSubject{Base: B, Files: file(I)}, false},
+		{"B plus input I, run at B plus P given I", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B, Files: file(I)}, false},
+		{"B plus patch P and input I, run at B plus P given I", []event.RunSubject{{Base: B, Patch: P, Files: []string{I}}}, event.HypothesisSubject{Base: B, Patch: patch(P), Files: file(I)}, true},
+		{"B plus patch P and input I, run at B plus P", []event.RunSubject{{Base: B, Patch: P}}, event.HypothesisSubject{Base: B, Patch: patch(P), Files: file(I)}, false},
 		{"files only, old Result", []event.RunSubject{{Files: []string{P, I}}}, event.HypothesisSubject{Files: file(P)}, true},
 		{"files only, run at C plus P", []event.RunSubject{{Base: C, Patch: P}}, event.HypothesisSubject{Files: file(P)}, true},
-		{"B plus two paths of one patch's bytes, run at B plus P", []event.RunSubject{{Base: B, Patch: P}}, event.HypothesisSubject{Base: B, Files: append(file(P), event.SubjectFile{Path: "y", SHA256: P})}, true},
+		{"B plus two paths of one input's bytes, run at B given I", []event.RunSubject{{Base: B, Files: []string{I}}}, event.HypothesisSubject{Base: B, Files: append(file(I), event.SubjectFile{Path: "y", SHA256: I})}, true},
 		{"no subject", []event.RunSubject{{Base: B}}, event.HypothesisSubject{}, false},
 	}
 	for _, c := range cases {

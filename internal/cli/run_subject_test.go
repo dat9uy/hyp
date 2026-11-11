@@ -197,7 +197,7 @@ func TestPatchedRunNeverCoversBareBase(t *testing.T) {
 	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
 	p := writeHashed(t, dir, "arm.patch", "--- a\n+++ b\n")
 	bare := candidate(t, q2, "bare B", "--base", b)
-	patched := candidate(t, q2, "B and the patch", "arm.patch", "--base", b)
+	patched := candidate(t, q2, "B and the patch", "--patch", "arm.patch", "--base", b)
 	h, e := runner(t, q)
 	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran at B with the patch", "--evidence", writeSandboxRecord(t, dir, e, "run-bp", b, p), "--closes", keys[0], "--why", "w")
 	want(t, hyp(t, "status"), 0, "uncovered on "+q2+": "+bare+";")
@@ -233,7 +233,7 @@ func TestPatchedRunWithInputsNeverCoversBareBase(t *testing.T) {
 	in := writeHashed(t, dir, "inputs.json", "{}\n")
 	p := writeHashed(t, dir, "arm.patch", "--- a\n+++ b\n")
 	bare := candidate(t, q2, "bare B", "--base", b)
-	patched := candidate(t, q2, "B and the patch", "arm.patch", "--base", b)
+	patched := candidate(t, q2, "B and the patch", "--patch", "arm.patch", "--base", b)
 	h, e := runner(t, q)
 	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran at B plus a patch with inputs", "--evidence", writeSandboxRecordWithInputs(t, dir, e, "run-bpi", b, in, p), "--closes", keys[0], "--why", "w")
 	var subjects []event.RunSubject
@@ -254,7 +254,7 @@ func TestSandboxKeepsOneSubjectPerArm(t *testing.T) {
 	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
 	pa := writeHashed(t, dir, "a.patch", "--- a\n+++ a\n")
 	pb := writeHashed(t, dir, "b.patch", "--- b\n+++ b\n")
-	armA := candidate(t, q2, "B and Arm a", "a.patch", "--base", b)
+	armA := candidate(t, q2, "B and Arm a", "--patch", "a.patch", "--base", b)
 	bare := candidate(t, q2, "bare B", "--base", b)
 	h, e := runner(t, q)
 	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "two Arms", "--evidence", writeSandboxRecord(t, dir, e, "run-ab", b, pa, pb), "--closes", keys[0], "--why", "w")
@@ -283,19 +283,54 @@ func TestBaseSubjectLocksOnlyWhenItRan(t *testing.T) {
 	want(t, hyp(t, "subject", h, "--base", ids[2], "--why", "w"), 1, "bad subject: "+h+"'s subject ran in "+res)
 }
 
-// A Hypothesis tied with a base and two paths of the same bytes is held by
-// a run given those bytes once.
+// A Hypothesis tied with a base and two paths of the same input bytes is
+// held by a run given those bytes once.
 func TestBaseSubjectWithOneFileTwiceIsHeld(t *testing.T) {
-	dir, g, q, keys := setupLines(t, "the patch runs the case")
+	dir, g, q, keys := setupLines(t, "the inputs run the case")
 	b := gitCommits(t, dir, 1)[0]
 	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
-	p := writeHashed(t, dir, "one.patch", "--- a\n+++ b\n")
-	writeHashed(t, dir, "copy.patch", "--- a\n+++ b\n")
-	twice := candidate(t, q2, "two paths", "one.patch", "copy.patch", "--base", b)
+	in := writeHashed(t, dir, "one.json", "{}\n")
+	writeHashed(t, dir, "copy.json", "{}\n")
+	candidate(t, q2, "two paths", "one.json", "copy.json", "--base", b)
 	h, e := runner(t, q)
-	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "B plus the patch", "--evidence", writeSandboxRecord(t, dir, e, "run-bp", b, p), "--closes", keys[0], "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "B given the inputs", "--evidence", writeSandboxRecordWithInputs(t, dir, e, "run-bi", b, in), "--closes", keys[0], "--why", "w")
 	notIn(t, "uncovered on "+q2)
-	_ = twice
+}
+
+// A subject keeps its patch apart from its input files: a run at bare B
+// given the patch's bytes as its inputs file never covers a Hypothesis tied
+// to B plus that patch, and a run at B whose patch has an input file's
+// bytes never covers a Hypothesis tied to B given that input.
+func TestSubjectPatchIsNotAnInput(t *testing.T) {
+	dir, g, q, keys := setupLines(t, "a patch is not an input")
+	b := gitCommits(t, dir, 1)[0]
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	p := writeHashed(t, dir, "arm.patch", "--- a\n+++ b\n")
+	writeHashed(t, dir, "data.json", "--- a\n+++ b\n")
+	patched := candidate(t, q2, "B and the patch", "--patch", "arm.patch", "--base", b)
+	given := candidate(t, q2, "B given the data", "data.json", "--base", b)
+	want(t, hyp(t, "show", patched), 0, "subject: base "+b[:12]+", patch arm.patch "+p[:12]+"\n")
+	h, e := runner(t, q)
+	asInput := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "bare B given the bytes as inputs", "--evidence", writeSandboxRecordWithInputs(t, dir, e, "run-bi", b, p), "--closes", keys[0], "--why", "w")
+	want(t, hyp(t, "status"), 0, "uncovered on "+q2+": "+patched+";")
+	h2, e2 := runner(t, q)
+	asPatch := must(t, "record", "--exp", e2, "--verdict", h2+"=supports", "--observation", "B plus the bytes as a patch", "--evidence", writeSandboxRecord(t, dir, e2, "run-bp", b, p), "--closes", keys[0], "--why", "w")
+	want(t, hyp(t, "show", keys[0]), 0, "ran in "+asInput+": ran on "+h+": supports; ran on "+given+"\n")
+	want(t, hyp(t, "show", keys[0]), 0, "ran in "+asPatch+": ran on "+h2+": supports; ran on "+patched+"\n")
+	want(t, hyp(t, "subject", given, "--patch", "arm.patch", "--why", "w"), 2, "--patch needs --base")
+}
+
+// Rule 26 after a run given inputs: once a run at B given an inputs file
+// holds a bare-B subject, the bytes ran as that Hypothesis, and a new tie
+// is refused.
+func TestBareBaseLocksAfterRunWithInputs(t *testing.T) {
+	dir, _, q, _ := setupLines(t, "the commit runs the case")
+	ids := gitCommits(t, dir, 2)
+	in := writeHashed(t, dir, "inputs.json", "{}\n")
+	h := candidate(t, q, "commit", "--base", ids[0])
+	e := must(t, "add", "exp", "--parent", h, "--title", "with inputs", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "B given inputs", "--evidence", writeSandboxRecordWithInputs(t, dir, e, "run-bi", ids[0], in), "--why", "w")
+	want(t, hyp(t, "subject", h, "--base", ids[1], "--why", "w"), 1, "bad subject: "+h+"'s subject ran in "+res)
 }
 
 // git missing from PATH is an environment problem, exit 3; a rev git cannot

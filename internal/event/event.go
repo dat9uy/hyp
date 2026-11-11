@@ -223,12 +223,29 @@ func IsCommit(s string) bool {
 }
 
 // HypothesisSubject is the payload of hypothesis.subject: what embodies the
-// Hypothesis's claim, a base commit, files named by their sha256, or both
-// (ADR 0020). Path is a pointer for readers, relative to the store root; the
+// Hypothesis's claim, in the one shape of a subject (ADR 0020): a base
+// commit, at most one patch over it, and files named by their sha256. Over
+// a base, the files are the input files given to the code; with no base, as
+// every subject before ADR 0020, they are files the run was given, patch or
+// input. Path is a pointer for readers, relative to the store root; the
 // sha256 is the identity.
 type HypothesisSubject struct {
 	Base  string        `json:"base,omitempty"`
+	Patch *SubjectFile  `json:"patch,omitempty"`
 	Files []SubjectFile `json:"files,omitempty"`
+}
+
+// PatchSHA256 is the sha256 of the subject's patch, "" when it has none.
+func (s HypothesisSubject) PatchSHA256() string {
+	if s.Patch == nil {
+		return ""
+	}
+	return s.Patch.SHA256
+}
+
+// Same reports whether two Hypothesis subjects are one subject.
+func (s HypothesisSubject) Same(o HypothesisSubject) bool {
+	return s.Base == o.Base && (s.Patch == nil) == (o.Patch == nil) && (s.Patch == nil || *s.Patch == *o.Patch) && slices.Equal(s.Files, o.Files)
 }
 
 // SubjectFile is one file of a Hypothesis's subject.

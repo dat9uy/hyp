@@ -19,18 +19,22 @@ import (
 )
 
 // cmdSubject writes hypothesis.subject: what embodies a Hypothesis's claim,
-// a base commit, files each named by its sha256, or both. The latest tie
-// stands until a Result's run subject holds it; then replay refuses a
-// different one.
+// a base commit, at most one patch over it, and files each named by its
+// sha256. The latest tie stands until a Result's run subject holds it; then
+// replay refuses a different one.
 func cmdSubject(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("subject", stdout, stderr)
 	base := w.fs.String("base", "", "the commit the subject is built on, resolved in the store root's git repository to its full id")
+	patch := w.fs.String("patch", "", "the one patch file applied over --base; the PATHs are then the input files given to the code")
 	pos, err := parse(w.fs, args)
 	if err != nil {
 		return err
 	}
+	if *patch != "" && *base == "" {
+		return usageErr("--patch needs --base: a patch is applied over a base commit")
+	}
 	if len(pos) < 1 || (len(pos) < 2 && *base == "") {
-		return usageErr("usage: hyp subject HYP [PATH...] [--base COMMIT] --why W")
+		return usageErr("usage: hyp subject HYP [PATH...] [--base COMMIT [--patch FILE]] --why W")
 	}
 	if _, err := w.begin(args, len(pos)); err != nil {
 		return err
@@ -41,6 +45,17 @@ func cmdSubject(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 	}
+	var patchFile *event.SubjectFile
+	if *patch != "" {
+		if info, err := os.Stat(*patch); err != nil || !info.Mode().IsRegular() {
+			return usageErr("--patch %s is not a regular file", *patch)
+		}
+		pf, err := subjectFiles(w.root, []string{*patch})
+		if err != nil {
+			return err
+		}
+		patchFile = &pf[0]
+	}
 	commit := ""
 	if *base != "" {
 		if commit, err = resolveCommit(w.root, *base); err != nil {
@@ -49,7 +64,7 @@ func cmdSubject(args []string, stdout, stderr io.Writer) error {
 	}
 	return w.run(func() (draft, error) {
 		id, err := w.ref(pos[0])
-		return draft{event.TypeHypothesisSubject, id, event.HypothesisSubject{Base: commit, Files: files}}, err
+		return draft{event.TypeHypothesisSubject, id, event.HypothesisSubject{Base: commit, Patch: patchFile, Files: files}}, err
 	})
 }
 
