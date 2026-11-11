@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+Superseded in part by [ADR 0021](0021-a-skill-change-is-a-build-goal.md): the frozen verifier recipes are removed.
+
 # The select is the gate
 
 Since ADR 0011 a question read `answered` only once a verifier typed `sufficient` on its select, and the owner confirmed too on a trade-off. Since 2026-11-08 the ledger (spec §8.1) derives who owes what, and every owner word has one field and one transition (ADR 0013). So the verifier competed with a computed rule, not with nothing, and the question became what a verifier confirm still said that the ledger did not. At the first select of the multi-tenant tree (2026-11-08) the answer was: almost nothing, and what it did say was not computed. Owner decision on 2026-11-08: the owner accepted this design with "choose only", so the owner's choice, recorded as the select, ends a trade-off, and the owner confirm survives only for `--scope-change`.
@@ -58,7 +60,7 @@ Three things the verifier did are not computed, and this decision names them:
 
 - Both public trees stay `complete`: each has one trade-off select whose candidate set did not change afterwards (`investigations/id-citation` Q-DVZZHY, `investigations/recipe-base` Q-WXZRA3). Their RECENT lines keep the old confirm events. Before the change merges, the census spike runs again over the private trees for final-state flips; the 2026-11-05 counsel found no real `new_candidate` case, so flips are expected only where a verifier never confirmed. Old trees may change, as the owner has accepted.
 - The synthetic store under `internal/testutil/testdata/synth` keeps its verifier confirms and `dq.request_verify` events as history. Its `generate.sh` no longer runs to the end on a current hyp.
-- `recipes/verifier-brief-arms@1` and `recipes/verifier-audit-arms@1` stay frozen. They measured a role this decision removes.
+- `recipes/verifier-brief-arms@1` and `recipes/verifier-audit-arms@1` stay frozen. They measured a role this decision removes. *Superseded by ADR 0021: both are removed.*
 - `skills/hyp-prototype/VERIFIER.md` and the Select and Confirm sections of `skills/hyp-prototype/SKILL.md` change as a correction to this decision, in a separate change.
 - Record-time warnings for a verdict line that disagrees with the typed verdict, and for an id or hex token no cited file holds, are a separate change.
 

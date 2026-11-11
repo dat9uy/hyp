@@ -1,4 +1,0 @@
-{"id": "01M6NHYYYYYYYYYYYYYYYYYY01", "type": "result.audit", "node": "01M6NHXXXXXXXXXXXXXXXX3HZQC8", "payload": {"hypothesis": "h", "verdict": "holds"}}
-{"id": "01M6NHYYYYYYYYYYYYYYYYYY02", "type": "result.audit", "node": "01M6NHXXXXXXXXXXXXXXXX1ZNDBZ", "payload": {"hypothesis": "h", "verdict": "wrong"}}
-{"id": "01M6NHYYYYYYYYYYYYYYYYYY03", "type": "result.audit", "node": "01M6NHXXXXXXXXXXXXXXXX5NG3QD", "payload": {"hypothesis": "h", "verdict": "holds"}}
-{"id": "01M6NHZZZZZZZZZZZZZZZZZZZZ", "type": "confirm", "node": "q", "payload": {"select": "s", "role": "verifier", "verdict": "insufficient"}}

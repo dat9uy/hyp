@@ -1,1 +1,0 @@
-{"step": "standalone", "command": "score", "args": ["$CASE/input/trial"], "exit": 0, "stdout": "arm\tbase\ntrial\t1\nvoid\t0\nconfirmed\t1\nconfirm_verdict\tsufficient\nopened_run_log\t1\nopened_script\t1\nopened\t1\nanswer_target\twrong\nanswer_control\tholds\nfollowup_tools\t1\nfailed\t1\n"}

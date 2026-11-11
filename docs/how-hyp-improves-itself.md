@@ -54,15 +54,12 @@ would exclude a rival, and honest recording.
 ## Change hyp only when a real event points at it
 
 Don't change hyp or a skill on speculation. A change is proposed when a real
-investigation trips a refusal, a warning, a design mark or an item the ledger cannot settle, or the owner flags a round. The change ships only
-when a session replay from that event's cut shows the failure in 3 or more of 5 trials
-without the change and in 1 or fewer of 5 with it. If no current cut
-reproduces a failure, nothing ships for it.
+investigation trips a refusal, a warning, a design mark or an item the ledger cannot settle, or the owner flags a round.
 
-One exception: a correction that makes skill text agree with an owner
-decision already recorded (in the tree, an issue or a decision record) is
-not a behaviour change and ships without a session replay. Its commit names the
-decision. Text that adds a new behaviour is still gated.
+A change to a skill is a build Goal like any change to code: its lines, its
+own test or an instrument the Goal builds, red on base, and the select. How a
+skill is tested is that Goal's choice; no instrument is kept for skill text as
+such.
 
 ## The ledger shows a stall; nothing scores a round
 

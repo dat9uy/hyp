@@ -2,6 +2,8 @@
 status: accepted
 ---
 
+Superseded in part by [ADR 0021](0021-a-skill-change-is-a-build-goal.md): the skill-text gate and its replay instrument are gone.
+
 Supersedes in part [ADR 0002](0002-known-answers-gate-every-recipe-run.md) (an older recipe format) and [ADR 0005](0005-a-bundle-is-its-ref-and-hash.md) (`SingleFile` in the library lookup).
 
 # Records start at the decided_by cut
@@ -24,6 +26,6 @@ One change made every Experiment say how its verdicts are decided: it pins an in
 ## Consequences
 
 - hyp's code, spec and docs read only the shapes hyp writes now. Exit codes are unchanged except that a single-file ref now exits 2, the code a missing recipe has always had.
-- No replay instrument was left in the repository. The skill-text gate in AGENTS.md waited for one built from a tree written after the cut; `recipes/skill-text-arms@3` is that instrument now.
+- No replay instrument was left in the repository. The skill-text gate in AGENTS.md waited for one built from a tree written after the cut; `recipes/skill-text-arms@3` is that instrument now. *Superseded by ADR 0021: a skill change is a build Goal, and the skill-text recipes are removed.*
 - The `frozen` and `draft` labels, `HashOnly` and the rename hint for a leftover `recipes/<name>/` folder stay: each describes a bundle a new tree can make.
 - A sandbox record or store that an older hyp binary left on disk is still read as before; it is runtime state, not a record in this repository.

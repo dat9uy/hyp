@@ -77,9 +77,7 @@ for s in skills/hyp-*; do ln -s "$PWD/$s" ~/.claude/skills/"$(basename "$s")"; d
 
 Symlinks make your sessions load the working text under `skills/`, so an edit is
 live at once, and hyp's repository carries no second copy of the skills under
-`.claude/`. Do not commit a `.claude/skills` directory here. The skill-text replay
-recipe (`recipes/skill-text-arms@4`) does not depend on either: it deletes the
-clone's `.claude` and installs the skills from `skills/` into its runner itself.
+`.claude/`. Do not commit a `.claude/skills` directory here.
 
 ### Other harnesses (unverified)
 

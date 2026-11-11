@@ -1,1 +1,0 @@
-{"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "toolu_f", "name": "Read", "input": {"file_path": "x"}}]}}
