@@ -46,11 +46,22 @@ func gitCommits(t *testing.T, dir string, n int) []string {
 // its pointer.
 func writeSandboxRecord(t *testing.T, dir, exp, run, base string, patches ...string) string {
 	t.Helper()
+	return writeSandboxRecordWithInputs(t, dir, exp, run, base, "", patches...)
+}
+
+// writeSandboxRecordWithInputs is writeSandboxRecord with an inputs file of
+// this sha256, when it is not "".
+func writeSandboxRecordWithInputs(t *testing.T, dir, exp, run, base, inputs string, patches ...string) string {
+	t.Helper()
 	var ps []map[string]string
 	for i, p := range patches {
 		ps = append(ps, map[string]string{"arm": "arm" + string(rune('a'+i)), "sha256": p})
 	}
-	data, _ := json.Marshal(map[string]any{"format": 1, "id": run, "base": base, "patches": ps})
+	rec := map[string]any{"format": 1, "id": run, "base": base, "patches": ps}
+	if inputs != "" {
+		rec["inputs"] = map[string]string{"name": "inputs.json", "sha256": inputs}
+	}
+	data, _ := json.Marshal(rec)
 	rel := filepath.Join(".tree", "evidence", exp, run, "sandbox.json")
 	if err := os.MkdirAll(filepath.Join(dir, filepath.Dir(rel)), 0o755); err != nil {
 		t.Fatal(err)
@@ -132,8 +143,8 @@ func TestResultKeepsOneSubjectPerCitedRun(t *testing.T) {
 	}
 	var subjects []event.RunSubject
 	_ = json.Unmarshal(got["subjects"], &subjects)
-	wantSubjects := []event.RunSubject{{Base: b, Files: []string{p}}, {Base: c}}
-	if !slices.EqualFunc(subjects, wantSubjects, func(x, y event.RunSubject) bool { return x.Base == y.Base && slices.Equal(x.Files, y.Files) }) {
+	wantSubjects := []event.RunSubject{{Base: b, Patch: p}, {Base: c}}
+	if !slices.EqualFunc(subjects, wantSubjects, event.RunSubject.Same) {
 		t.Fatalf("subjects = %+v, want one per cited run %+v", subjects, wantSubjects)
 	}
 	want(t, hyp(t, "check"), 0, "check: 0 errors")
@@ -193,6 +204,47 @@ func TestPatchedRunNeverCoversBareBase(t *testing.T) {
 	want(t, hyp(t, "show", keys[0]), 0, "ran in "+res+": ran on "+h+": supports; ran on "+patched+"\n")
 }
 
+// An input file is data given to the code, not a patch: a run at B given
+// an inputs file keeps the inputs file apart from any patch, and covers a
+// Hypothesis whose subject is bare B.
+func TestRunWithInputsCoversBareBase(t *testing.T) {
+	dir, g, q, keys := setupLines(t, "a run at B given inputs covers bare B")
+	b := gitCommits(t, dir, 1)[0]
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	in := writeHashed(t, dir, "inputs.json", "{}\n")
+	bare := candidate(t, q2, "bare B", "--base", b)
+	h, e := runner(t, q)
+	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran at B with inputs", "--evidence", writeSandboxRecordWithInputs(t, dir, e, "run-bi", b, in), "--closes", keys[0], "--why", "w")
+	var subjects []event.RunSubject
+	_ = json.Unmarshal(lastResult(t, dir)["subjects"], &subjects)
+	if !slices.EqualFunc(subjects, []event.RunSubject{{Base: b, Files: []string{in}}}, event.RunSubject.Same) {
+		t.Fatalf("subjects = %+v, want one run at %s given the inputs file and no patch", subjects, b)
+	}
+	want(t, hyp(t, "show", keys[0]), 0, "ran in "+res+": ran on "+h+": supports; ran on "+bare+"\n")
+	notIn(t, "uncovered on "+q2)
+}
+
+// The inputs file never hides a patch: a run at B plus a patch, given the
+// same inputs file, never covers a Hypothesis whose subject is bare B.
+func TestPatchedRunWithInputsNeverCoversBareBase(t *testing.T) {
+	dir, g, q, keys := setupLines(t, "a run at B plus a patch never covers bare B")
+	b := gitCommits(t, dir, 1)[0]
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	in := writeHashed(t, dir, "inputs.json", "{}\n")
+	p := writeHashed(t, dir, "arm.patch", "--- a\n+++ b\n")
+	bare := candidate(t, q2, "bare B", "--base", b)
+	patched := candidate(t, q2, "B and the patch", "arm.patch", "--base", b)
+	h, e := runner(t, q)
+	res := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran at B plus a patch with inputs", "--evidence", writeSandboxRecordWithInputs(t, dir, e, "run-bpi", b, in, p), "--closes", keys[0], "--why", "w")
+	var subjects []event.RunSubject
+	_ = json.Unmarshal(lastResult(t, dir)["subjects"], &subjects)
+	if !slices.EqualFunc(subjects, []event.RunSubject{{Base: b, Patch: p, Files: []string{in}}}, event.RunSubject.Same) {
+		t.Fatalf("subjects = %+v, want one run at %s plus the patch, given the inputs file", subjects, b)
+	}
+	want(t, hyp(t, "status"), 0, "uncovered on "+q2+": "+bare+";")
+	want(t, hyp(t, "show", keys[0]), 0, "ran in "+res+": ran on "+h+": supports; ran on "+patched+"\n")
+}
+
 // A sandbox record holds one run per Arm, so it keeps one subject per Arm,
 // each at its base and given that Arm's one patch: a Hypothesis tied to B
 // and Arm a's patch is covered, and bare B is not.
@@ -208,7 +260,7 @@ func TestSandboxKeepsOneSubjectPerArm(t *testing.T) {
 	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "two Arms", "--evidence", writeSandboxRecord(t, dir, e, "run-ab", b, pa, pb), "--closes", keys[0], "--why", "w")
 	var subjects []event.RunSubject
 	_ = json.Unmarshal(lastResult(t, dir)["subjects"], &subjects)
-	if len(subjects) != 2 || subjects[0].Base != b || !slices.Equal(subjects[0].Files, []string{pa}) || !slices.Equal(subjects[1].Files, []string{pb}) {
+	if len(subjects) != 2 || subjects[0].Base != b || subjects[0].Patch != pa || subjects[1].Patch != pb {
 		t.Fatalf("subjects = %+v, want one per Arm at %s", subjects, b)
 	}
 	want(t, hyp(t, "status"), 0, "uncovered on "+q2+": "+bare+";")

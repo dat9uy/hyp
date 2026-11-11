@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -181,9 +182,9 @@ type ResultRecord struct {
 	// Applies lists the closed readings whose owner answers this Result's
 	// verdicts apply. Each must be one its Experiment aims at.
 	Applies []string `json:"applies,omitempty"`
-	// Subjects keeps one subject per cited run: the base commit and the
-	// sha256 of each file its cited command or sandbox record says the run
-	// was given over it (ADR 0020). hyp record copies it from those records,
+	// Subjects keeps one subject per cited run: the base commit, the sha256
+	// of the one patch, and the sha256 of each input file its cited command
+	// or sandbox record says the run was given over it (ADR 0020). hyp record copies it from those records,
 	// as it copies EvidenceHashes; no runner types it.
 	Subjects []RunSubject `json:"subjects,omitempty"`
 	// Fingerprints is an old Result's one merged set of file sha256s. No
@@ -192,11 +193,19 @@ type ResultRecord struct {
 }
 
 // RunSubject is the subject of one cited run: the base commit it ran at, ""
-// when its record names none, and the sorted, unique sha256s of the files
-// given over that base (a patch and input files).
+// when its record names none, the sha256 of the one patch applied over that
+// base, "" when none was, and the sorted, unique sha256s of the input files
+// given to the code. A patch changes the code; an input file is data given
+// to it, so only the patch tells which code ran (ADR 0020).
 type RunSubject struct {
 	Base  string   `json:"base,omitempty"`
+	Patch string   `json:"patch,omitempty"`
 	Files []string `json:"files,omitempty"`
+}
+
+// Same reports whether two run subjects are one subject.
+func (s RunSubject) Same(o RunSubject) bool {
+	return s.Base == o.Base && s.Patch == o.Patch && slices.Equal(s.Files, o.Files)
 }
 
 // IsCommit reports whether s is a full git object id: 40 or 64 lowercase

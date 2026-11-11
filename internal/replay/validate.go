@@ -451,9 +451,9 @@ func (f *Facts) validateSubject(ev event.Event) error {
 
 // checkRunSubjects is the replay rule of a Result's subjects: one per cited
 // run, copied from cited records, so none without evidence, each with a
-// base or a file, a
-// base that is a full commit id, files sorted and unique sha256s, no two
-// alike, and at most MaxFingerprints files in all. A Result holds subjects
+// base, a patch or a file, a base that is a full commit id, a patch that is
+// a sha256, files sorted and unique sha256s, no two alike, and at most
+// MaxFingerprints files in all. A Result holds subjects
 // or an old fingerprints list, never both.
 func checkRunSubjects(p event.ResultRecord) error {
 	if len(p.Subjects) > 0 && len(p.Fingerprints) > 0 {
@@ -473,19 +473,20 @@ func checkRunSubjects(p event.ResultRecord) error {
 	}
 	total := 0
 	for i, s := range p.Subjects {
-		if s.Base == "" && len(s.Files) == 0 {
-			return errors.New("bad subjects: a subject with no base and no files")
+		if s.Base == "" && s.Patch == "" && len(s.Files) == 0 {
+			return errors.New("bad subjects: a subject with no base, no patch and no files")
 		}
 		if s.Base != "" && !event.IsCommit(s.Base) {
 			return fmt.Errorf("bad subjects: base %q is not a full commit id", s.Base)
 		}
+		if s.Patch != "" && !event.IsSHA256(s.Patch) {
+			return fmt.Errorf("bad subjects: patch %q is not a sha256", s.Patch)
+		}
 		if err := sortedSHA256s("subjects", s.Files); err != nil {
 			return err
 		}
-		for _, o := range p.Subjects[:i] {
-			if o.Base == s.Base && slices.Equal(o.Files, s.Files) {
-				return errors.New("bad subjects: the same subject twice")
-			}
+		if slices.ContainsFunc(p.Subjects[:i], s.Same) {
+			return errors.New("bad subjects: the same subject twice")
 		}
 		total += len(s.Files)
 	}
@@ -530,26 +531,27 @@ func (f *Facts) subjectRan(h string) string {
 }
 
 // HoldsSubject reports whether one run subject holds the whole of sub
-// (ADR 0020). A subject that names a base is held only by a run at that
-// base given exactly its files over it, so a run at B plus a patch never
-// holds bare B. A subject with no base, as every subject before ADR 0020,
-// is held by a run given each of its files, whatever its base.
+// (ADR 0020). Each file of sub must be the run's patch or one of its input
+// files. A subject that names a base is held only by a run at that base
+// whose patch, if it had one, is a file of sub: a patch changes the code,
+// so a run at B plus a patch never holds bare B, while an input file is
+// data given to the code, so a run at B given inputs holds bare B. A
+// subject with no base, as every subject before ADR 0020, is held by a run
+// given each of its files, at any base.
 func HoldsSubject(runs []event.RunSubject, sub event.HypothesisSubject) bool {
 	if sub.Base == "" && len(sub.Files) == 0 {
 		return false
 	}
-	var want []string
+	want := make([]string, 0, len(sub.Files))
 	for _, file := range sub.Files {
 		want = append(want, file.SHA256)
 	}
-	slices.Sort(want)
-	want = slices.Compact(want)
 	return slices.ContainsFunc(runs, func(run event.RunSubject) bool {
-		if sub.Base != "" {
-			return run.Base == sub.Base && slices.Equal(run.Files, want)
+		if sub.Base != "" && (run.Base != sub.Base || (run.Patch != "" && !slices.Contains(want, run.Patch))) {
+			return false
 		}
 		for _, h := range want {
-			if _, ok := slices.BinarySearch(run.Files, h); !ok {
+			if _, ok := slices.BinarySearch(run.Files, h); !ok && h != run.Patch {
 				return false
 			}
 		}

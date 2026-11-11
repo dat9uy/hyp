@@ -138,27 +138,31 @@ func fileSHA256(path string) (string, error) {
 
 // runSubjects keeps one subject per cited run, in evidence order: from each
 // cited command.json and sandbox.json under the store root, the base commit
-// the record names and the sha256 of every file it says the run was given
-// over it. A command record is one run with no base, given its inputs and
-// directory entries (format 6). A sandbox record is one run per Arm, each at
-// its base and given that Arm's one patch and the inputs file; with no Arm
-// it is one run given the inputs file. A record that cannot be read, or
-// names nothing, gives no subject; hyp check reports a record it cannot
-// read. A subject equal to an earlier one is kept once (ADR 0020).
+// the record names, the one patch applied over it, and the sha256 of every
+// input file it says the run was given. A command record is one run with no
+// base and no patch, given its inputs and directory entries (format 6). A
+// sandbox record is one run per Arm, each at its base with that Arm's one
+// patch and given the inputs file; with no Arm it is one run at its base
+// given the inputs file. A record that cannot be read, or names nothing,
+// gives no subject; hyp check reports a record it cannot read. A subject
+// equal to an earlier one is kept once (ADR 0020).
 func runSubjects(root string, evidence []string) []event.RunSubject {
 	var out []event.RunSubject
-	add := func(base string, files []string) {
+	add := func(base, patch string, files []string) {
+		if !event.IsSHA256(patch) {
+			patch = ""
+		}
 		files = slices.DeleteFunc(files, func(h string) bool { return !event.IsSHA256(h) })
 		slices.Sort(files)
 		files = slices.Compact(files)
 		if len(files) == 0 {
 			files = nil
 		}
-		run := event.RunSubject{Base: base, Files: files}
-		if run.Base == "" && run.Files == nil {
+		run := event.RunSubject{Base: base, Patch: patch, Files: files}
+		if run.Base == "" && run.Patch == "" && run.Files == nil {
 			return
 		}
-		if slices.ContainsFunc(out, func(o event.RunSubject) bool { return o.Base == run.Base && slices.Equal(o.Files, run.Files) }) {
+		if slices.ContainsFunc(out, run.Same) {
 			return
 		}
 		out = append(out, run)
@@ -168,7 +172,7 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
 		switch filepath.Base(e) {
 		case "command.json":
 			if r, err := cmdrecord.Read(path); err == nil {
-				add("", r.Fingerprints())
+				add("", "", r.Fingerprints())
 			}
 		case "sandbox.json":
 			data, err := os.ReadFile(path)
@@ -192,10 +196,10 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
 				inputs = []string{r.Inputs.SHA256}
 			}
 			if len(r.Patches) == 0 {
-				add(base, inputs)
+				add(base, "", inputs)
 			}
 			for _, p := range r.Patches {
-				add(base, append([]string{p.SHA256}, inputs...))
+				add(base, p.SHA256, inputs)
 			}
 		}
 	}
