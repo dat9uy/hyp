@@ -1,0 +1,12 @@
+{
+ "l6-run6-clauses/B": "original",
+ "l6-run6-clauses/A": "candidate",
+ "grill-handoff/A": "original",
+ "grill-handoff/B": "candidate",
+ "grill-body/A": "original",
+ "grill-body/B": "candidate",
+ "answer-end/A": "original",
+ "answer-end/B": "candidate",
+ "goal-run-plan/B": "original",
+ "goal-run-plan/A": "candidate"
+}

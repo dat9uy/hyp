@@ -1,0 +1,20 @@
+candidate binary (5c5902d):
+812a26deef163989deaeb676c8cbf39a5901f22937b0ec61df7f620fba8ef654  bin-cand3/hyp
+hyp 0.1.0 (events v1) 5c5902d50fe6
+original binary (2881e7d):
+ee2b0888734d6837a81923bc38984eaf65ed36a307059b2a85d730a3c8b4adf4  bin-orig/hyp
+installed hyp (not replaced):
+5659ab145d3c6e832ee4d997dff28595061c826530cd37dbc35afed32e5dd069  /Users/datguy/.local/bin/hyp
+blind mapping:
+{
+ "l6-run6-clauses/B": "original",
+ "l6-run6-clauses/A": "candidate",
+ "grill-handoff/A": "original",
+ "grill-handoff/B": "candidate",
+ "grill-body/A": "original",
+ "grill-body/B": "candidate",
+ "answer-end/A": "original",
+ "answer-end/B": "candidate",
+ "goal-run-plan/B": "original",
+ "goal-run-plan/A": "candidate"
+}

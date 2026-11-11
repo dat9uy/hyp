@@ -1,0 +1,27 @@
+/goal Run hyp Goal G-D1CH1R with the skill hyp-goal-run (read its SKILL.md first; it governs every step of this run).
+
+Tree: the store at the repository root of this run, investigations/checkpoint-store/.tree. Goal: G-D1CH1R, "hyp implements the shared store: one store holds many Goals". Runner actor: HYP_ACTOR=claude-g1b-6. Never write under the owner's actor (owner-dat).
+
+Start: run `hyp status G-D1CH1R` and `hyp check` (must print 0 errors) and `hyp show G-D1CH1R` before any step. Act only on what OWED says the runner owes. Test before asking.
+
+Branch: feat/one-subject-per-run, PR 132. Commit on that branch only, conventional messages, no AI trailers. Push it to update PR 132; open a PR only if none exists. The run never merges.
+
+Owner answer, 2026-11-11 14:31: R-9SMRB2#5 and R-9SMRB2#7 are accepted, so do not re-run them. R-9SMRB2#4 is returned to the runner: amend ADR 0020's subject notation to {base, patch, files} to match the code, spec and glossary, and name this answer in the commit.
+
+Build Goal rules:
+- The write scope covers every text the change makes wrong, the design record included.
+- One review round per candidate commit, by a fresh subagent given the lines, the code and the keys already settled with the owner's words.
+- Sort each finding: a case of a line is a limit; a question about a line's meaning is a reading; a defect in text the run may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint and never holding the select.
+
+Stop when any of these holds, with a checkpoint that names the open items and the owner's pending items:
+- OWED owes the runner nothing, and the select on Q-PC04ED waits on the owner.
+- A step needs the owner: refer with a reason, record a reading, then stop.
+- The next step cannot be taken honestly.
+
+Goal body constraints, copied as the Goal states them:
+May change: this repository, in commits on the branch the prompt names that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong. The run may push that branch to update its PR, and never merges it.
+Read only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.
+Never: commit to main.
+Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.
+Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.
+Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.

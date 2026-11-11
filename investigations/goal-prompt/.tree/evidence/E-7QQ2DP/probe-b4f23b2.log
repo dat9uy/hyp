@@ -1,0 +1,16 @@
+hyp: 27eeb5d4e00c87c57279cdb5d87c4647945c3e57353fd98cae78404dc173b885  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/bin-cand2/hyp
+hyp 0.1.0 (events v1) b4f23b2e88f4
+== G1: the same store reached through a symlink, then physically
+pwd: /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.pBSmd4n2gl/outside/store
+hyp prompt G-G2PTNZ: no repository holds the store /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.pBSmd4n2gl/outside/store, so its path relative to the repository root is not known
+exit 3
+pwd: /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.pBSmd4n2gl/repo/inv/t
+/goal Run the hyp tree in inv/t with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-G2PTNZ: read it with hyp show G-G2PTNZ, read hyp status G-G2PTNZ, and name --goal G-G2PTNZ on every hyp checkpoint.
+exit 0
+== G2: a CRLF body with a blank line inside the block
+add stderr: warn: hyp prompt will refuse this Goal: the constraints block holds a line that starts with no heading: "\r"
+refused: hyp prompt G-8TX4MA: the constraints block holds a line that starts with no heading: "\r"
+exit 1
+== G3: a branch name with a no-break space
+--branch "feat\u00a0x" holds a space or a control character; a branch name has none
+exit 2

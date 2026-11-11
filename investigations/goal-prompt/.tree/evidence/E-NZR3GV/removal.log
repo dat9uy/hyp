@@ -1,0 +1,40 @@
+== removal 0:
+-	if len(problems) > 0 {
+-		return herr.Refused("hyp prompt %s: %s", g, strings.Join(problems, "; "))
+-	}
++	_ = problems
+    prompt_test.go:194: hyp prompt on body "Builds the design.": exit 0 (want 1), stdout "/goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-P4B1Q0: read it with
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.674s
+exit 1
+== removal 1:
+-		if w := blockWarning(p.Body); w != "" {
+-			fmt.Fprintln(stderr, w)
+-		}
++		_ = blockWarning
+    prompt_test.go:189: hyp add goal on body "May change: the code.\nNever: merge.": warned false, want true; stderr ""
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.472s
+exit 1
+== removal 2:
+-	if strings.ContainsFunc(*branch, unicode.IsSpace) || strings.ContainsFunc(*branch, unicode.IsControl) {
++	if false && unicode.IsSpace(0) {
+    prompt_test.go:71: exit 0 (want 2), stdout "/goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=claude-run-1. Its Goal is G-8RBPB3: read it with hyp show G-8RBPB3, read hyp st
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.496s
+exit 1
+== removal 3:
+-	if !ok {
++	if false && !ok {
+    prompt_test.go:102: a store outside any repository: exit 3 (want 3), stdout "", stderr "Rel: can't make /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPromptOutsideARepository2181872
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.507s
+exit 1
+== removal 4:
+-	storeDir, err := filepath.EvalSymlinks(r.root)
++	storeDir, err := r.root, error(nil)
+    prompt_test.go:120: through the real path: exit 0
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.471s
+exit 1
+restored

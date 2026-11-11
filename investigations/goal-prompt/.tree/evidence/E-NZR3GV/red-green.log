@@ -1,0 +1,25 @@
+base 2881e7d = 2881e7df4e7696bcdd0a34a79ec55aaf0da8b665; previous candidate b4f23b2 = b4f23b2e88f4444319b8261dba7710752665b91c; each with 5c5902d's prompt_test.go (and testdata on base)
+wt-base3 TestPromptPrintsTheGoalsRunPrompt exit 1     prompt_test.go:50: exit 2, stderr "usage: hyp <command> [flags]\n\nEvery write command needs --why and an actor (--actor or $HYP_ACTOR).\nStatuses are derived from events; no command can set one.\
+wt-prev3 TestPromptPrintsTheGoalsRunPrompt exit 0 
+wt-cand3 TestPromptPrintsTheGoalsRunPrompt exit 0 
+wt-base3 TestPromptOutsideARepository exit 1     prompt_test.go:102: a store outside any repository: exit 2 (want 3), stdout "", stderr "usage: hyp <command> [flags]\n\nEvery write command needs --why and an actor (--actor or $HYP_ACTOR).\nStatu
+wt-prev3 TestPromptOutsideARepository exit 0 
+wt-cand3 TestPromptOutsideARepository exit 0 
+wt-base3 TestPromptThroughASymlinkedDirectory exit 1     prompt_test.go:120: through the real path: exit 2
+wt-prev3 TestPromptThroughASymlinkedDirectory exit 1     prompt_test.go:120: through the real path: exit 0
+wt-cand3 TestPromptThroughASymlinkedDirectory exit 0 
+wt-base3 TestPromptIgnoresOwnerAnswers exit 1     prompt_test.go:154: an answer event changed the prompt:
+wt-prev3 TestPromptIgnoresOwnerAnswers exit 0 
+wt-cand3 TestPromptIgnoresOwnerAnswers exit 0 
+wt-base3 TestPromptRefusesAnInvalidConstraintsBlock exit 1     prompt_test.go:194: hyp prompt on body "Builds the design.": exit 2 (want 1), stdout "" (want empty), stderr "usage: hyp <command> [flags]\n\nEvery write command needs --why and an actor (--actor 
+wt-prev3 TestPromptRefusesAnInvalidConstraintsBlock exit 0 
+wt-cand3 TestPromptRefusesAnInvalidConstraintsBlock exit 0 
+wt-base3 TestPromptInATwoGoalStoreEqualsItsOwnStore exit 1     prompt_test.go:224: exit 2, "usage: hyp <command> [flags]\n\nEvery write command needs --why and an actor (--actor or $HYP_ACTOR).\nStatuses are derived from events; no command can set one.\n\nset
+wt-prev3 TestPromptInATwoGoalStoreEqualsItsOwnStore exit 0 
+wt-cand3 TestPromptInATwoGoalStoreEqualsItsOwnStore exit 0 
+wt-base3 TestPromptBadArguments exit 1     prompt_test.go:287: exit 2 (want 2), stdout "", stderr "usage: hyp <command> [flags]\n\nEvery write command needs --why and an actor (--actor or $HYP_ACTOR).\nStatuses are derived from events; no 
+wt-prev3 TestPromptBadArguments exit 0 
+wt-cand3 TestPromptBadArguments exit 0 
+wt-base3 TestPromptForTheCheckpointStoreFixture exit 1     prompt_test.go:315: exit 2, stderr "usage: hyp <command> [flags]\n\nEvery write command needs --why and an actor (--actor or $HYP_ACTOR).\nStatuses are derived from events; no command can set one.
+wt-prev3 TestPromptForTheCheckpointStoreFixture exit 0 
+wt-cand3 TestPromptForTheCheckpointStoreFixture exit 0 
