@@ -72,9 +72,9 @@ glossary's Coverage and Subject.
 The owner is the person hyp asks on real choices. Their role holds to these
 rules:
 
-1. **The Goal is written once.** Its lines are written on one owner
-   checkpoint and never edited. A new line or a new purpose is a new Goal,
-   which may sit in the same store. A narrower scope is a line the runner refers and the owner
+1. **The Goal is written once.** Its lines come with its add and are never
+   edited; a line may cite settled keys of other Goals. A new line or a new
+   purpose is a new Goal, which may sit in the same store. A narrower scope is a line the runner refers and the owner
    accepts; there is no other change of scope inside a tree.
 2. **The owner is asked only on real choices, and only when the runner owes
    nothing on the question.** The ledger routes each one to AWAITING OWNER: a
@@ -84,8 +84,9 @@ rules:
    does not run a case, and a return sends it back to run. A choice selects one
    of the candidates that meet every line, for the owner's own reasons. Each
    move turns one item toward the Goal, or the owner starts a new Goal.
-4. **An owner move is one typed event on one item, and hyp reads the move,
-   never the prose.** The owner's words are kept and shown back, and no status
+4. **An owner move is one typed event, an answer, and hyp reads the move,
+   never the prose.** An answer may move items of several Goals, and it never
+   holds a runner field. The owner's words are kept and shown back, and no status
    reads them.
 5. **An owner move changes no status.** Statuses move by verdicts: an answer
    takes effect when a Result applies it, a return when a Result runs the case,

@@ -1,0 +1,29 @@
+# (b) L4a: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..06d502a 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -65,7 +65,7 @@ var rules = map[string]rule{
+ 							cites[i] = append(cites[i], Cite{Key: c, Meaning: m})
+ 						}
+ 					}
+-					st.LinesBy[ev.ID], st.LineCites[ev.ID] = ev.ID, cites
++					st.LineCites[ev.ID] = cites
+ 				}
+ 			}
+ 			if p.Kind == event.KindDesignQuestion {
+=== TestGoalLinesComeWithTheAddWrite
+--- FAIL: TestGoalLinesComeWithTheAddWrite (0.02s)
+    goal_lines_answer_test.go:168: write of checkpoint: err <nil>, want a refusal holding "bad lines: a Goal's lines come with its node.add"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.386s
+FAIL
+exit: 1
+=== TestGoalLinesComeWithTheAddReplay
+--- FAIL: TestGoalLinesComeWithTheAddReplay (0.01s)
+    goal_lines_answer_test.go:179: replay does not reject 01M752K872AYBFP0XHRT32CQ6V with "bad lines: a Goal's lines come with its node.add":
+        check: 0 errors, 0 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.174s
+FAIL
+exit: 1

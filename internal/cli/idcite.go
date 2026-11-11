@@ -9,7 +9,7 @@ import (
 )
 
 // textFlags are the flags whose text a write command checks for cites.
-var textFlags = []string{"why", "body", "observation", "summary", "limit"}
+var textFlags = []string{"why", "body", "observation", "summary", "limit", "line", "refers", "answer", "accept", "returns"}
 
 // placeholders are the marks that make "X-" plus what follows a stand-in
 // for an id that was never filled in.

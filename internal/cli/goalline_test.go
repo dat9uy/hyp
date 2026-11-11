@@ -10,25 +10,6 @@ import (
 	"testing"
 )
 
-// lines writes the Goal's lines as the owner o and returns their keys.
-func lines(t *testing.T, g string, texts ...string) []string {
-	t.Helper()
-	args := []string{"checkpoint", "--summary", "the lines", "--role", "owner", "--actor", "o", "--why", "w"}
-	for _, l := range texts {
-		args = append(args, "--line", l)
-	}
-	r := hyp(t, args...)
-	if r.code != 0 {
-		t.Fatalf("lines: exit %d, stderr %q", r.code, r.stderr)
-	}
-	var keys []string
-	for i := range texts {
-		keys = append(keys, g+"#"+string(rune('1'+i)))
-		want(t, r, 0, "  line "+keys[i]+": "+texts[i]+"\n")
-	}
-	return keys
-}
-
 // supported adds a Hypothesis under q with a supporting Result.
 func supported(t *testing.T, q, title string) string {
 	t.Helper()
@@ -43,11 +24,9 @@ func supported(t *testing.T, q, title string) string {
 // select there, and a Result that runs its case on the candidate closes it
 // for that candidate.
 func TestGoalLineIsOwedUntilACloserCoversTheCandidate(t *testing.T) {
-	_, g, q := setup(t)
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--line", "one tenant per row", "--why", "w"), 2, "--line needs --role owner")
-	keys := lines(t, g, "one tenant per row", "a deploy that misses a step fails loudly")
-	want(t, hyp(t, "checkpoint", "--summary", "more", "--role", "owner", "--line", "x", "--actor", "o", "--why", "w"), 1,
-		"bad lines: the Goal's lines are written once")
+	_, g, q, keys := setupLines(t, "one tenant per row", "a deploy that misses a step fails loudly")
+	want(t, hyp(t, "checkpoint", "--summary", "more", "--line", "x", "--actor", "o", "--why", "w"), 2,
+		"--line was retired: a Goal's lines come with its node.add")
 	h := supported(t, q, "H")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" limit "+keys[0]+" [owed] — one tenant per row\n")
 	want(t, hyp(t, "status"), 0, "LINES\n  "+keys[0]+" uncovered on "+q+": "+h+" — one tenant per row\n")
@@ -77,21 +56,20 @@ func TestGoalLineIsOwedUntilACloserCoversTheCandidate(t *testing.T) {
 // other than the referrer; the author of the Goal or of a Result does not
 // matter.
 func TestOwnerAnswersARefusedLine(t *testing.T) {
-	_, g, q := setup(t)
-	keys := lines(t, g, "survives a region outage")
+	_, _, q, keys := setupLines(t, "survives a region outage")
 	h := supported(t, q, "H")
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--accept", keys[0], "--actor", "o", "--why", "w"), 1,
+	want(t, hyp(t, "answer", "--accept", keys[0]+"=s", "--actor", "o"), 1,
 		"bad accepts: "+keys[0]+" is not referred; only a referred limit is accepted, so the runner refers it first")
 	must(t, "checkpoint", "--summary", "no region in the test bed", "--refers", keys[0], "--why", "w")
 	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or return "+keys[0]+" — survives a region outage\n")
 	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: referred limit "+keys[0]+" waits for the owner")
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--accept", keys[0], "--why", "w"), 1,
+	want(t, hyp(t, "answer", "--accept", keys[0]+"=s"), 1,
 		"separation of duties: a referred the limit it accepts")
-	must(t, "checkpoint", "--summary", "not this Goal", "--role", "owner", "--accept", keys[0], "--actor", "o", "--why", "w")
+	must(t, "answer", "--accept", keys[0]+"=not this Goal", "--actor", "o")
 	want(t, hyp(t, "show", keys[0]), 0, "hand: accepted by o\n")
 	want(t, hyp(t, "status"), 0, "  "+keys[0]+" accepted by o; uncovered on "+q+": "+h+" — ")
 	must(t, "select", q, h, "--why", "w")
-	must(t, "checkpoint", "--summary", "run it after all", "--role", "owner", "--returns", keys[0], "--actor", "o", "--why", "w")
+	must(t, "answer", "--returns", keys[0]+"=run it after all", "--actor", "o")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" limit "+keys[0]+" [owed]")
 	want(t, hyp(t, "check"), 0, "check: 0 errors")
 }
@@ -127,8 +105,7 @@ func writeCommandRecord(t *testing.T, dir, exp string, files map[string]string) 
 // them. Once a Result's fingerprints hold the subject, a different subject
 // is refused: it is a new Hypothesis.
 func TestSubjectCoversALineByFingerprint(t *testing.T) {
-	dir, g, q := setup(t)
-	keys := lines(t, g, "one tenant per row")
+	dir, g, q, keys := setupLines(t, "one tenant per row")
 	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
 	if err := os.WriteFile(filepath.Join(dir, "h-row.py"), []byte("row = 1\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -166,6 +143,6 @@ func TestAcceptComparesWithTheReferrer(t *testing.T) {
 	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "case C", "--why", "w", "--actor", "o")
 	key := r + "#1"
 	must(t, "checkpoint", "--summary", "no test", "--refers", key, "--why", "w", "--actor", "b")
-	must(t, "checkpoint", "--summary", "skip", "--role", "owner", "--accept", key, "--actor", "o", "--why", "w")
+	must(t, "answer", "--accept", key+"=skip", "--actor", "o")
 	want(t, hyp(t, "show", key), 0, "state: accepted by o\n")
 }

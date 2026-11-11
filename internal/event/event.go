@@ -46,6 +46,7 @@ const (
 	TypeConfirm            = "confirm"
 	TypeReaffirm           = "reaffirm"
 	TypeCheckpoint         = "checkpoint"
+	TypeAnswer             = "answer"
 	TypeEdgeAdd            = "edge.add"
 	TypeEdgeRemove         = "edge.remove"
 )
@@ -100,7 +101,7 @@ const MaxRecords = 500
 var (
 	EventTypes = set(TypeNodeAdd, TypeResultRecord, TypeResultRetract, TypeHypothesisAbandon, TypeHypothesisAmend, TypeHypothesisSubject,
 		TypeDQSelect, TypeDQUnselect, TypeDQDefer, TypeDQWithdraw, TypeDQResume, TypeDQRequestVerify,
-		TypeExperimentWithdraw, TypeConfirm, TypeReaffirm, TypeCheckpoint, TypeEdgeAdd, TypeEdgeRemove)
+		TypeExperimentWithdraw, TypeConfirm, TypeReaffirm, TypeCheckpoint, TypeAnswer, TypeEdgeAdd, TypeEdgeRemove)
 	Kinds           = set(KindGoal, KindDesignQuestion, KindHypothesis, KindExperiment, KindResult)
 	EdgeTypes       = set(EdgeDependsOn, EdgeSupersedes, EdgeExternalRef)
 	Verdicts        = set(VerdictSupports, VerdictContradicts, VerdictInconclusive)
@@ -122,6 +123,8 @@ const (
 	MaxReadingItem  = 600
 	MaxSubjectFiles = 50
 	MaxFingerprints = 2000
+	MaxLine         = 600 // a line on a Goal's node.add (ADR 0020); a line an old checkpoint wrote holds at most MaxLimitItem
+	MaxCites        = 10
 )
 
 // NodeAdd is the payload of node.add.
@@ -145,6 +148,19 @@ type NodeAdd struct {
 	// Aims lists the limit and reading keys an Experiment means to settle.
 	// It is intent: only a Result's closes or applies settles one.
 	Aims []string `json:"aims,omitempty"`
+	// Lines are a Goal's lines, the cases every candidate must meet, keyed
+	// <goal-id>#<n>. They come with the Goal's add and no later event adds
+	// one (ADR 0020).
+	Lines []GoalLine `json:"lines,omitempty"`
+}
+
+// GoalLine is one line of a Goal. Cites are plain keys, each settled when
+// the line is written: a line, an accepted or closed limit, an answered
+// reading, or a selected or contradicted Hypothesis. What a cite means is
+// derived from the key's state at the line's place in the log, never stored.
+type GoalLine struct {
+	Text  string   `json:"text"`
+	Cites []string `json:"cites,omitempty"`
 }
 
 // ResultRecord is the payload of result.record.
@@ -269,11 +285,15 @@ type Confirm struct {
 	Accepts []string `json:"accepts,omitempty"`
 }
 
-// Checkpoint is the payload of checkpoint.
+// Checkpoint is the payload of checkpoint: the runner's report on its Goal.
+// It holds a summary, refers, or both (ADR 0020). Role, Closes, Revises,
+// Accepts, Returns and Lines are read-only history: replay applies them as
+// an old owner checkpoint wrote them, and no command writes them (owner
+// decision of 2026-11-11); the owner's acts are an Answer.
 type Checkpoint struct {
-	Summary string `json:"summary"`
-	// Role is RoleOwner on a checkpoint that closes or revises readings or
-	// accepts limits, and empty otherwise.
+	Summary string `json:"summary,omitempty"`
+	// Role is RoleOwner on an old checkpoint that closes or revises readings,
+	// accepts limits or writes lines, and empty otherwise.
 	Role string `json:"role,omitempty"`
 	// Closes lists the open reading keys the owner's summary answers.
 	Closes []string `json:"closes,omitempty"`
@@ -282,17 +302,70 @@ type Checkpoint struct {
 	Revises []string `json:"revises,omitempty"`
 	// Accepts lists the limit keys the owner accepts untested.
 	Accepts []string `json:"accepts,omitempty"`
-	// Refers lists the limit keys the writer hands to the owner, because no
-	// test within the Goal's lines can settle them; Summary says why.
-	Refers []string `json:"refers,omitempty"`
+	// Refers lists the limit keys the runner hands to the owner, because no
+	// test within the Goal's lines can settle them, each with why. An old
+	// checkpoint stored each as a bare key, and its Summary says why.
+	Refers []KeyText `json:"refers,omitempty"`
 	// Returns lists the referred or accepted limit keys the owner hands
 	// back to the runner, because the Goal covers their case; Summary says
 	// why. It is the mirror of Refers.
 	Returns []string `json:"returns,omitempty"`
-	// Lines lists the Goal's lines, the cases every candidate must meet,
-	// keyed <goal-id>#<n>. Only an owner checkpoint carries them, and only
-	// the first one that does: a line is written once and never edited.
+	// Lines lists an old Goal's lines, keyed <goal-id>#<n>. Only the first
+	// owner checkpoint on a Goal that carries any wrote them; a Goal's lines
+	// now come with its add (NodeAdd.Lines).
 	Lines []string `json:"lines,omitempty"`
+}
+
+// Answer is the payload of answer, the owner's act (ADR 0020). It has no
+// node, no summary, no why and no role: the owner's reason is each item's
+// text. Answers settles an open reading or replaces an earlier answer of an
+// answered one; Accepts accepts a referred limit, so this Goal does not run
+// its case; Returns hands a referred or accepted limit back to the runner.
+type Answer struct {
+	Answers []KeyText `json:"answers,omitempty"`
+	Accepts []KeyText `json:"accepts,omitempty"`
+	Returns []KeyText `json:"returns,omitempty"`
+}
+
+// KeyText is one keyed item of an answer or a refer: the key it moves and
+// the writer's words for it. A bare string decodes as a key with no text,
+// which is how an old checkpoint stored its refers.
+type KeyText struct {
+	Key  string `json:"key"`
+	Text string `json:"text,omitempty"`
+}
+
+type keyText KeyText
+
+func (k KeyText) MarshalJSON() ([]byte, error) {
+	if k.Text == "" {
+		return json.Marshal(k.Key)
+	}
+	return json.Marshal(keyText(k))
+}
+
+func (k *KeyText) UnmarshalJSON(b []byte) error {
+	if t := bytes.TrimSpace(b); len(t) > 0 && t[0] == '"' {
+		*k = KeyText{}
+		return json.Unmarshal(t, &k.Key)
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
+	d.DisallowUnknownFields()
+	var p keyText
+	if err := d.Decode(&p); err != nil {
+		return err
+	}
+	*k = KeyText(p)
+	return nil
+}
+
+// Keys lists the keys of items, in order.
+func Keys(items []KeyText) []string {
+	out := make([]string, len(items))
+	for i, it := range items {
+		out[i] = it.Key
+	}
+	return out
 }
 
 // Edge is the payload of edge.add and edge.remove.

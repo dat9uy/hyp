@@ -236,7 +236,7 @@ func TestMissingRequiredTextIsUsage(t *testing.T) {
 	want(t, hyp(t, "add", "hyp", "--parent", q, "--why", "w"), 2, "missing --title")
 	want(t, hyp(t, "add", "hyp", "--parent", q, "--title", "   ", "--why", "w"), 2, "missing --title")
 	want(t, hyp(t, "add", "hyp", "--parent", q, "--title", "T", "--why", "  "), 2, "missing --why")
-	want(t, hyp(t, "checkpoint", "--why", "w"), 2, "missing --summary")
+	want(t, hyp(t, "checkpoint", "--why", "w"), 1, "bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
 }
 
 func TestHelpExitsZeroAndUsagePrintsOnce(t *testing.T) {

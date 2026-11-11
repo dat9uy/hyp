@@ -16,11 +16,11 @@ func TestReferOfAClosedLimit(t *testing.T) {
 	r1 := limitResult(b, h, []string{"l1"}, nil)
 	k := event.LimitKey(r1, 1)
 	closer := limitResult(b, h, nil, []string{k})
-	late := b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []string{k}})
+	late := b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []event.KeyText{{Key: k}}})
 	p := replayB(b)
 	wantRejected(t, p, late, "its case ran, so there is nothing to refer")
 	b.Retract(closer) // its Experiment is planned again
-	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []string{k}})
+	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []event.KeyText{{Key: k}}})
 	p = replayB(b)
 	if len(p.Rejections) != 1 {
 		t.Fatalf("rejections = %+v, want only the refer before the retract", p.Rejections)
@@ -40,6 +40,6 @@ func TestReferOfALineThatRan(t *testing.T) {
 	h := b.As("a").Hyp(q, "h")
 	k := event.LimitKey(g, 1)
 	limitResult(b, h, nil, []string{k})
-	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []string{k}})
+	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test", Refers: []event.KeyText{{Key: k}}})
 	wantNoRejections(t, replayB(b))
 }

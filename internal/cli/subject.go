@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -147,14 +146,4 @@ func fingerprints(root string, evidence []string) []string {
 	out = slices.DeleteFunc(out, func(h string) bool { return !event.IsSHA256(h) })
 	slices.Sort(out)
 	return slices.Compact(out)
-}
-
-// printLines prints the key of each line an owner checkpoint writes, so a
-// later --closes, --aims or --refers can name it.
-func printLines(out io.Writer, ev event.Event) {
-	var p event.Checkpoint
-	_ = json.Unmarshal(ev.Payload, &p)
-	for i, l := range p.Lines {
-		fmt.Fprintf(out, "  line %s: %s\n", event.DisplayKey(event.KindGoal, event.LimitKey(ev.Node, i+1)), l)
-	}
 }

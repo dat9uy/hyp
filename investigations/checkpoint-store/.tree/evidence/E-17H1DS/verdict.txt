@@ -1,0 +1,7 @@
+E-17H1DS, rule by reading, for H-ZPKKXG (goal-lines-answer): feat/goal-lines-and-answer at 12506ec.
+(a) holds: each of the 10 write and replay tests of L4a, L4b, L5a, L5b and L5c fails on a detached 924ed32 worktree with only goal_lines_answer_test.go copied in (a-summary.txt, a-red-on-924ed32.log). Eight fail because 924ed32 cannot express the event (no --line, no answer type); the L5c pair fails on the rule's form: 924ed32 refuses an empty checkpoint too, as "missing --summary" (exit 2) and "missing field: summary".
+(b) holds: one removal per rule on a detached 12506ec worktree fails both of that rule's tests (b-removals/summary.txt, b-removals.log with each diff and output).
+(c) holds: go vet ./... and go test ./... -count=1 exit 0 at 12506ec (c-vet-test-12506ec.log); this run includes the positive tests TestGoalLineCiteChangeIsOnlyACheckWarning (line 4's warning case) and TestOneAnswerSettlesKeysOfTwoGoals (line 5's two-Goal answer).
+(d) holds: hyp status and hyp check print byte-identical output and exit codes under the installed hyp (33896ec) and the 12506ec binary for id-citation, recipe-base, checkpoint-store-design and checkpoint-store (d-census.log, d-census/).
+(e) holds: TestTwoGoalStoreAdmitsASecondGoalWrite, TestTwoGoalStoreReplaysEachGoalAsItsOwn and TestTwoGoalStoreReferredLineHoldsOnlyItsGoal pass at 12506ec; their file changed only in how a Goal gets its lines (e-two-goal-tests.log holds the diff).
+verdict: goal-lines-answer=supports

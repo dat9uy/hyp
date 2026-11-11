@@ -16,9 +16,9 @@ func TestShowLimitKey(t *testing.T) {
 	must(t, "checkpoint", "--summary", "outside the Goal", "--refers", key, "--why", "w")
 	want(t, hyp(t, "show", key), 0, "state: open, referred: the owner accepts or returns it\n")
 	want(t, hyp(t, "show", key), 0, "checkpoint — refers: outside the Goal\n")
-	must(t, "checkpoint", "--summary", "Line B covers it", "--role", "owner", "--returns", key, "--actor", "owner-dat", "--why", "w")
+	must(t, "answer", "--returns", key+"=Line B covers it", "--actor", "owner-dat")
 	want(t, hyp(t, "show", key), 0, "state: open, returned: the runner runs its case\n")
-	want(t, hyp(t, "show", key), 0, "owner-dat checkpoint — returns: Line B covers it\n")
+	want(t, hyp(t, "show", key), 0, "owner-dat answer — returns: Line B covers it\n")
 
 	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--aims", key, "--why", "w")
 	want(t, hyp(t, "show", key), 0, "aimed by: "+e2+" planned\n")

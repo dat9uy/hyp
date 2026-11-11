@@ -1,0 +1,29 @@
+# (b) L5c: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..7e1df79 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -367,7 +367,7 @@ func checkCheckpointShape(p event.Checkpoint) error {
+ 			return textLimit("summary", p.Summary, 1, event.MaxText)
+ 		}
+ 	}
+-	if strings.TrimSpace(p.Summary) == "" && len(p.Refers) == 0 {
++	if false && strings.TrimSpace(p.Summary) == "" && len(p.Refers) == 0 {
+ 		return errors.New("bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
+ 	}
+ 	for _, it := range p.Refers {
+=== TestEmptyCheckpointRefusedWrite
+--- FAIL: TestEmptyCheckpointRefusedWrite (0.02s)
+    goal_lines_answer_test.go:299: exit 0 (want 1), stdout "G-Q7EMB5 checkpoint\n", stderr "" (want "bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.385s
+FAIL
+exit: 1
+=== TestEmptyCheckpointRejectedReplay
+--- FAIL: TestEmptyCheckpointRejectedReplay (0.01s)
+    goal_lines_answer_test.go:306: replay does not reject 01M752KDSVAXD7ZVS6MVCQMD2H with "bad checkpoint: empty; a checkpoint holds a summary, refers, or both":
+        check: 0 errors, 0 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.163s
+FAIL
+exit: 1

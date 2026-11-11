@@ -177,6 +177,15 @@ type Limit struct {
 	Hyps              []string // Hypotheses the Result has a verdict for, sorted; none for a line
 	Hand              Hand     // the latest refer, return or accept (§8.2); Move is "" when none
 	Closers           []string // every non-retracted Result that closes it, in creation order
+	Cites             []Cite   // a line's cites, from its Goal's add; none for a limit
+}
+
+// Cite is one cite of a line: the cited key or Hypothesis id, what it meant
+// when the line was written (Meaning) and what it would mean now (Now). Both
+// are derived from the key's state; a change between them is a hyp check
+// warning and changes no status (ADR 0020).
+type Cite struct {
+	Key, Meaning, Now string
 }
 
 // A limit has two facts, and no word joins them: its hand, which the move
@@ -216,15 +225,15 @@ func (p Projection) CurrentSelect(dq string) (rec SelectRec, ok bool) {
 }
 
 // Reading is one reading of a Goal line recorded in a Result, with its derived
-// state. By is the owner checkpoint that closed it, or "" while it is open, and
-// Answer is that checkpoint's summary, the owner's words. Question is the
+// state. By is the owner answer, or old owner checkpoint, that closed it, or
+// "" while it is open, and Answer is the owner's words in force. Question is the
 // DesignQuestion the Result belongs to. Applied is the Result that applies
 // the answer: one whose applies names the key, or, when no Experiment aims
 // at the reading, the first Result under its question after the close.
 type Reading struct {
 	Key, Result, Text string
 	Of                string // the reading whose owner answer this one reads, or ""
-	By                string // the owner checkpoint that closed it, or "" while open
+	By                string // the owner answer or old owner checkpoint that closed it, or "" while open
 	Answer            string // the answer in force: the latest of Answers
 	Answers           []Answer
 	Question          string
@@ -236,13 +245,14 @@ type Reading struct {
 	Reach []string
 }
 
-// Open reports whether no owner checkpoint has closed the reading yet.
+// Open reports whether no owner answer has closed the reading yet.
 func (l Reading) Open() bool { return l.By == "" }
 
 // Answer is one owner answer to a reading: the close, then each revision, in
 // merge order. Applied is the Result that applied it, or "".
 type Answer struct {
 	By, Text, Applied string
+	ByAnswer          bool // By is an answer event; otherwise an old owner checkpoint
 }
 
 // LimitsOf lists the limits recorded under question dq, in creation order.
@@ -308,14 +318,15 @@ type Facts struct {
 	// a tree is a view of one Goal and every node whose parents lead to it.
 	Goals   []string
 	Aliases map[string]string // alias → node id
-	// Answers holds, for each reading key an owner checkpoint closed, the
+	// Answers holds, for each reading key an owner answered, the
 	// close and then each revise, in merge order (keyed.go).
 	Answers map[string][]Answer
 	// LimitHand holds, for each limit key a checkpoint referred, returned or
 	// accepted, the latest of the three in merge order (keyed.go).
 	LimitHand map[string]Hand
-	// Lines are each Goal's lines, and LinesBy the owner checkpoint that
-	// wrote them; a Goal is absent from both before one did.
+	// Lines are each Goal's lines, and LinesBy the event that wrote them:
+	// the Goal's own add (its id), or an old owner checkpoint. A Goal is
+	// absent from both before one did.
 	Lines   map[string][]string
 	LinesBy map[string]string
 	// Subjects holds each Hypothesis's subject, the latest tie.
@@ -345,6 +356,10 @@ type State struct {
 	goals       map[string]GoalState // Goal → its derived state
 	Applied     []event.Event
 	RivalsAtAdd map[string][]string // Experiment → live rivals of its parent just before its add
+	// LineCites holds each Goal's lines' cites with what each meant at the
+	// Goal's add: derived from Facts there and kept, as RivalsAtAdd is, so
+	// no replay rule reads it.
+	LineCites map[string][][]Cite
 }
 
 // NewState returns an empty state.
@@ -374,6 +389,7 @@ func NewState() *State {
 		Questions:    map[string]*Question{},
 		goals:        map[string]GoalState{},
 		RivalsAtAdd:  map[string][]string{},
+		LineCites:    map[string][][]Cite{},
 	}
 }
 

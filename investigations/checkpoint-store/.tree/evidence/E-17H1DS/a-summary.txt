@@ -1,0 +1,15 @@
+(a) Red on 924ed32: internal/cli/goal_lines_answer_test.go copied alone into a detached worktree of 924ed32 (full log: a-red-on-924ed32.log).
+rule  test                                        fails  why (from the log)
+L4a   TestGoalLinesComeWithTheAddWrite            yes    cannot express: hyp add goal has no --line ("flag provided but not defined: -line")
+L4a   TestGoalLinesComeWithTheAddReplay           yes    cannot express: its Goal with lines cannot be added (same message)
+L4b   TestGoalLineCiteSettledWrite                yes    cannot express: exit 2 "flag provided but not defined: -line", want exit 1 "bad cite"
+L4b   TestGoalLineCiteSettledReplay               yes    cannot express: the add is rejected as 'bad payload: json: unknown field "lines"', not as an unsettled cite
+L5a   TestOwnerAndRunnerFieldsNeverMixWrite       yes    cannot express: 'unknown event type: "answer"'
+L5a   TestOwnerAndRunnerFieldsNeverMixReplay      yes    cannot express: rejected as 'unknown event type: "answer"'
+L5b   TestEmptyAnswerRefusedWrite                 yes    cannot express: hyp has no answer command (usage, exit 2)
+L5b   TestEmptyAnswerRejectedReplay               yes    cannot express: rejected as 'unknown event type: "answer"'
+L5c   TestEmptyCheckpointRefusedWrite             yes    on the rule's form: 924ed32 refuses it too, but at exit 2 as "missing --summary", not at exit 1 naming the empty-checkpoint rule
+L5c   TestEmptyCheckpointRejectedReplay           yes    on the rule's form: 924ed32 rejects it too, as "missing field: summary", not naming the empty-checkpoint rule
+positive tests, not test pairs:
+L4c   TestGoalLineCiteChangeIsOnlyACheckWarning   yes    cannot express: no --cite; the test panics on an empty add output
+L5    TestOneAnswerSettlesKeysOfTwoGoals          yes    cannot express: hyp add goal has no --line

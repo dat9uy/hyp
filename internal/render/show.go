@@ -243,6 +243,10 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	}
 	w("history:")
 	for _, ev := range p.Applied {
+		if ev.Type == event.TypeAnswer {
+			r.answerHistory(w, ev, id)
+			continue
+		}
 		if touches(ev, id) {
 			w("  %s", r.eventLine(ev, event.MaxWhy))
 			if ev.Type == event.TypeCheckpoint {
@@ -259,7 +263,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 					w("    accepts: %s", r.limitLabel(event.KeyResult(k), k))
 				}
 				for _, k := range s.Refers {
-					w("    refers: %s", r.limitLabel(event.KeyResult(k), k))
+					w("    refers: %s%s", r.limitLabel(event.KeyResult(k.Key), k.Key), itemText(k))
 				}
 				for _, k := range s.Returns {
 					w("    returns: %s", r.limitLabel(event.KeyResult(k), k))
@@ -277,6 +281,50 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	return b.String()
 }
 
+// answerHistory prints answer ev in the history of node id when one of its
+// keys is id's own: a reading or limit of a Result id leads to, or a line of
+// Goal id. Each such key prints with the owner's words for it.
+func (r renderer) answerHistory(w func(string, ...any), ev event.Event, id string) {
+	var a event.Answer
+	_ = event.DecodePayload(ev, &a)
+	var items []string
+	for _, f := range []struct {
+		items []event.KeyText
+		verb  string
+	}{{a.Answers, "answers"}, {a.Accepts, "accepts"}, {a.Returns, "returns"}} {
+		for _, it := range f.items {
+			if n := event.KeyResult(it.Key); n == id || r.p.GoalOf(n) == id {
+				items = append(items, fmt.Sprintf("    %s: %s%s", f.verb, r.limitLabel(n, it.Key), itemText(it)))
+			}
+		}
+	}
+	if len(items) == 0 {
+		return
+	}
+	w("  %s %s %s", Minute(ev.TS), ev.Actor, ev.Type)
+	for _, l := range items {
+		w("%s", l)
+	}
+}
+
+// itemText is " — <text>" for a keyed item with text, and "" for an old
+// bare key.
+func itemText(k event.KeyText) string {
+	if k.Text == "" {
+		return ""
+	}
+	return " — " + Cut(k.Text, event.MaxText)
+}
+
+// answerBy names the event that gave answer a: an owner answer, or an old
+// owner checkpoint.
+func answerBy(a replay.Answer) string {
+	if a.ByAnswer {
+		return "owner answer " + a.By
+	}
+	return "owner checkpoint " + a.By
+}
+
 // readingLines is one reading as hyp show prints it: the reading with the
 // answer in force, then one indented line per earlier answer it replaced.
 func readingLines(r renderer, l replay.Reading) []string {
@@ -284,9 +332,9 @@ func readingLines(r renderer, l replay.Reading) []string {
 	if !l.Open() {
 		revised := ""
 		if n := len(l.Answers); n > 1 {
-			revised = ", revised by owner checkpoint " + l.Answers[n-1].By
+			revised = ", revised by " + answerBy(l.Answers[n-1])
 		}
-		state = fmt.Sprintf("closed by owner checkpoint %s%s, answer: %q", l.By, revised, l.Answer)
+		state = fmt.Sprintf("closed by %s%s, answer: %q", answerBy(l.Answers[0]), revised, l.Answer)
 	}
 	out := []string{fmt.Sprintf("reading %s%s %s — %s", r.limitLabel(l.Result, l.Key), r.of(l), state, l.Text)}
 	for _, a := range l.Answers[:max(len(l.Answers)-1, 0)] {
@@ -294,7 +342,7 @@ func readingLines(r renderer, l replay.Reading) []string {
 		if a.Applied != "" {
 			applied = ", applied by " + r.id(a.Applied)
 		}
-		out = append(out, fmt.Sprintf("  earlier answer: %q (owner checkpoint %s%s)", a.Text, a.By, applied))
+		out = append(out, fmt.Sprintf("  earlier answer: %q (%s%s)", a.Text, answerBy(a), applied))
 	}
 	return out
 }

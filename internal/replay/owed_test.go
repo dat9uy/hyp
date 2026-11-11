@@ -190,7 +190,7 @@ func TestLimitOwedWhileQuestionHasCandidate(t *testing.T) {
 	if fs := p.AdmitSelect(q, h1); len(fs) != 1 || fs[0].Kind != FindRefuse || !strings.Contains(fs[0].Text, "limit "+event.DisplayID(event.KindResult, dead)+"#1") {
 		t.Fatalf("findings = %+v, want a refusal naming the rival's limit", fs)
 	}
-	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test within the Goal", Refers: []string{k}})
+	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test within the Goal", Refers: []event.KeyText{{Key: k}}})
 	p = replayB(b)
 	// The select waits on a referred limit until the owner accepts or returns it.
 	wantOwed(t, p, q, "owner referred "+k)

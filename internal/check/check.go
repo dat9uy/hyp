@@ -100,6 +100,19 @@ func Run(root string) (report []string, errorsFound int) {
 	for _, c := range p.PremiseCycles() {
 		warns = append(warns, fmt.Sprintf("warn: premise cycle between %s and %s; remove a depends_on edge to break it", display(c[0]), display(c[1])))
 	}
+	// A line's cite keeps what it meant when the line was written; a later
+	// change in the cited key's state is only this warning (ADR 0020).
+	for _, l := range p.Lines {
+		for _, c := range l.Cites {
+			if c.Now != c.Meaning {
+				name := p.KeyLabel(c.Key)
+				if p.Nodes[c.Key] != nil {
+					name = display(c.Key)
+				}
+				warns = append(warns, fmt.Sprintf("warn: %s cites %s, which was %s when the line was written and is %s now", p.KeyLabel(l.Key), name, c.Meaning, c.Now))
+			}
+		}
+	}
 	// A recipe left out of the hashes makes its Results questionable; say why.
 	for _, pr := range problems {
 		warns = append(warns, "warn: "+pr)

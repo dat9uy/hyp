@@ -541,6 +541,9 @@ func (r renderer) chain(c *replay.StaleCause) string {
 }
 
 func (r renderer) eventLine(ev event.Event, width int) string {
+	if ev.Type == event.TypeAnswer {
+		return fmt.Sprintf("%s %s %s %s", Minute(ev.TS), ev.Actor, ev.Type, Cut(r.answerKeys(ev), width))
+	}
 	return fmt.Sprintf("%s %s %s %s — %s", Minute(ev.TS), ev.Actor, ev.Type, r.id(ev.Node), Cut(ev.Why, width))
 }
 
@@ -707,4 +710,25 @@ func premises(p replay.Projection, candidates []string) []premise {
 		}
 	}
 	return out
+}
+
+// answerKeys lists the keys an answer settles, by field: "answers R-…#r1;
+// accepts G-…#2".
+func (r renderer) answerKeys(ev event.Event) string {
+	var a event.Answer
+	_ = event.DecodePayload(ev, &a)
+	var parts []string
+	for _, f := range []struct {
+		items []event.KeyText
+		verb  string
+	}{{a.Answers, "answers"}, {a.Accepts, "accepts"}, {a.Returns, "returns"}} {
+		var keys []string
+		for _, it := range f.items {
+			keys = append(keys, r.limitLabel(event.KeyResult(it.Key), it.Key))
+		}
+		if len(keys) > 0 {
+			parts = append(parts, f.verb+" "+strings.Join(keys, ", "))
+		}
+	}
+	return strings.Join(parts, "; ")
 }

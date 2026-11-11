@@ -57,6 +57,9 @@ func validateEnvelope(f *Facts, ev event.Event) error {
 	if _, err := time.Parse(time.RFC3339Nano, ev.TS); err != nil {
 		return fmt.Errorf("ts not RFC3339Nano: %q", ev.TS)
 	}
+	if ev.Type == event.TypeAnswer {
+		return nil // an answer has no node and no why (ADR 0020); its rule says so
+	}
 	if ev.Node == "" {
 		return errors.New("missing field: node")
 	}
@@ -90,6 +93,14 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 		}
 		if _, used := f.Aliases[p.Alias]; used {
 			return fmt.Errorf("alias already used: %q", p.Alias)
+		}
+	}
+	if len(p.Lines) > 0 {
+		if p.Kind != event.KindGoal {
+			return errors.New("unknown field: lines are for a Goal only")
+		}
+		if err := f.checkGoalLines(p.Lines); err != nil {
+			return err
 		}
 	}
 	if p.Kind != event.KindExperiment && (p.Recipe != "" || p.RecipeHash != "" || len(p.Targets) > 0 || p.DecidedBy != "" || len(p.Aims) > 0 ||
@@ -531,7 +542,7 @@ func (f *Facts) checkClosesReadings(ev event.Event, p event.Checkpoint) error {
 			return err
 		}
 	}
-	return f.checkLimitMoves(ev, p)
+	return f.checkLimitMoves(ev.Actor, p.Role == event.RoleOwner, event.Keys(p.Refers), p.Returns, p.Accepts)
 }
 
 // limitCloser is the first non-retracted Result that closes limit k, or "".

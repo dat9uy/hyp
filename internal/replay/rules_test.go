@@ -38,7 +38,7 @@ var factsFields = []string{
 // derivedFields record derived status, so a replay rule must not reach them
 // (spec §5.1): Snaps, EverAnswered and RivalsAtAdd store it, and the others
 // are it or depend on the recipe hashes a Step was given.
-var derivedFields = []string{"Hyps", "Questions", "goals", "Snaps", "EverAnswered", "RivalsAtAdd", "recipeHashes", "Applied"}
+var derivedFields = []string{"Hyps", "Questions", "goals", "Snaps", "EverAnswered", "RivalsAtAdd", "LineCites", "recipeHashes", "Applied"}
 
 // A replay rule takes Facts, so what Facts holds is what a rule can read.
 func TestFactsHoldsStoredFactsOnly(t *testing.T) {

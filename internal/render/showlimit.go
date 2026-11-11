@@ -114,6 +114,13 @@ func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) 
 		}
 		w("ran in %s: %s", r.id(c), r.ranOn(c, hyps))
 	}
+	for _, c := range l.Cites {
+		now := ""
+		if c.Now != c.Meaning {
+			now = ", now " + c.Now
+		}
+		w("cites %s: %s%s", r.citeLabel(c.Key), c.Meaning, now)
+	}
 	if sel := p.NotTogether(l); len(sel) > 0 {
 		w("(no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
 	}
@@ -139,15 +146,42 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 		case event.TypeCheckpoint:
 			var c event.Checkpoint
 			_ = event.DecodePayload(ev, &c)
+			for _, it := range c.Refers {
+				if it.Key == l.Key {
+					what = "refers: " + Cut(c.Summary, event.MaxText)
+					if it.Text != "" {
+						what = "refers: " + Cut(it.Text, event.MaxText)
+					}
+				}
+			}
 			for _, f := range []struct {
 				keys []string
 				verb string
-			}{{c.Refers, "refers"}, {c.Returns, "returns"}, {c.Accepts, "accepts"}} {
+			}{{c.Returns, "returns"}, {c.Accepts, "accepts"}} {
 				if slices.Contains(f.keys, l.Key) {
 					what = f.verb + ": " + Cut(c.Summary, event.MaxText)
 				}
 			}
 			if l.IsLine() && len(c.Lines) > 0 && ev.Node == l.Result {
+				what = "writes it"
+			}
+		case event.TypeAnswer:
+			var a event.Answer
+			_ = event.DecodePayload(ev, &a)
+			for _, f := range []struct {
+				items []event.KeyText
+				verb  string
+			}{{a.Returns, "returns"}, {a.Accepts, "accepts"}} {
+				for _, it := range f.items {
+					if it.Key == l.Key {
+						what = f.verb + ": " + Cut(it.Text, event.MaxText)
+					}
+				}
+			}
+		case event.TypeNodeAdd:
+			var a event.NodeAdd
+			_ = event.DecodePayload(ev, &a)
+			if l.IsLine() && ev.ID == l.Result && len(a.Lines) > 0 {
 				what = "writes it"
 			}
 		case event.TypeConfirm:
@@ -167,4 +201,12 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 			w("  %s %s %s — %s", Minute(ev.TS), ev.Actor, ev.Type, what)
 		}
 	}
+}
+
+// citeLabel shows a line's cite: a Hypothesis with its alias, or a key.
+func (r renderer) citeLabel(c string) string {
+	if n := r.p.Nodes[c]; n != nil {
+		return r.withAlias(c)
+	}
+	return r.limitLabel(event.KeyResult(c), c)
 }
