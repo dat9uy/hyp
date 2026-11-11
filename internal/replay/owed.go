@@ -149,10 +149,11 @@ func (p Projection) Owed() []Owed {
 				add(aim(Owed{Who: OwedRunner, Kind: OwedLimit, Key: l.Key}))
 			}
 		}
-		// A line of the Goal is owed on each live top-level question with a
-		// candidate no closer covers; a referred one is the owner's there.
-		if n.Parent == p.Goal.GoalID {
-			for _, l := range p.Lines {
+		// A line of a Goal is owed on each live top-level question of that
+		// Goal with a candidate no closer covers; a referred one is the
+		// owner's there.
+		if p.Nodes[n.Parent] != nil && p.Nodes[n.Parent].Kind == event.KindGoal {
+			for _, l := range p.LinesOf(n.Parent) {
 				switch {
 				case !l.Open():
 				case l.Referred():
@@ -304,8 +305,8 @@ func closedExp(e *Exp) bool { return e == nil || e.Closed() }
 // owner accepts or returns it.
 func (p Projection) ReferredLimit(dq string) string {
 	ls := p.LimitsOf(dq)
-	if n := p.Nodes[dq]; n != nil && n.Parent == p.Goal.GoalID {
-		ls = append(slices.Clone(ls), p.Lines...)
+	if n := p.Nodes[dq]; n != nil && p.Nodes[n.Parent] != nil && p.Nodes[n.Parent].Kind == event.KindGoal {
+		ls = append(slices.Clone(ls), p.LinesOf(n.Parent)...)
 	}
 	for _, l := range ls {
 		if l.Open() && l.Referred() {

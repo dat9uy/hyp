@@ -9,17 +9,26 @@ import (
 )
 
 // Markdown renders the whole tree as a nested outline for owner review:
-// headings for the Goal and DesignQuestions, a question's selected design and
+// headings for each Goal and DesignQuestions, a question's selected design and
 // its limits, and bullets for Hypotheses, Experiments and Results. Nothing is
-// truncated.
+// truncated. A store with many Goals renders one outline per Goal, in
+// creation order.
 func Markdown(p replay.Projection) string {
-	if p.Goal.GoalID == "" {
+	if len(p.Goals) == 0 {
 		return "# (no Goal)\n"
 	}
+	var out []string
+	for _, gs := range p.Goals {
+		out = append(out, markdownGoal(p, gs))
+	}
+	return strings.Join(out, "\n")
+}
+
+func markdownGoal(p replay.Projection, gs replay.GoalStatus) string {
 	r := renderer{p: p}
 	var b strings.Builder
-	g := p.Nodes[p.Goal.GoalID]
-	fmt.Fprintf(&b, "# %s %s — %s\n", r.id(g.ID), g.Title, p.Goal.Status)
+	g := p.Nodes[gs.GoalID]
+	fmt.Fprintf(&b, "# %s %s — %s\n", r.id(g.ID), g.Title, gs.Status)
 	if g.Body != "" {
 		fmt.Fprintf(&b, "\n%s\n", g.Body)
 	}

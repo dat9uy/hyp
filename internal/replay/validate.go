@@ -101,9 +101,6 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 		if p.Parent != "" {
 			return errors.New("wrong parent kind: Goal must have no parent")
 		}
-		if f.GoalID != "" {
-			return errors.New("wrong parent kind: only one Goal per log")
-		}
 		return nil
 	}
 	parent, err := f.need(p.Parent, "")
@@ -488,8 +485,8 @@ func (f *Facts) checkKey(s string, want event.KeyKind, q string) error {
 	if want == event.KeyLimit && node != nil && node.Kind == event.KindGoal {
 		// A line of the Goal: its scope is the Goal, so it is under every
 		// question.
-		if k.N > len(f.Lines) {
-			return fmt.Errorf("bad limit ref: the Goal has %d lines", len(f.Lines))
+		if n := len(f.Lines[k.Result]); k.N > n {
+			return fmt.Errorf("bad limit ref: the Goal has %d lines", n)
 		}
 		return nil
 	}

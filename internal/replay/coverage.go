@@ -32,13 +32,13 @@ func (p Projection) Uncovered(l Limit, q string) []string {
 	return out
 }
 
-// TopQuestions lists the live DesignQuestions whose parent is the Goal, in
-// creation order: the questions a line of the Goal reaches.
-func (p Projection) TopQuestions() []string {
+// TopQuestions lists the live DesignQuestions whose parent is Goal g, in
+// creation order: the questions a line of g reaches.
+func (p Projection) TopQuestions(g string) []string {
 	var out []string
 	for _, ev := range p.Applied {
 		n := p.Nodes[ev.ID]
-		if ev.Type != event.TypeNodeAdd || n == nil || n.Kind != event.KindDesignQuestion || n.Parent != p.Goal.GoalID {
+		if ev.Type != event.TypeNodeAdd || n == nil || n.Kind != event.KindDesignQuestion || n.Parent != g {
 			continue
 		}
 		if q := p.Questions[ev.ID]; q != nil && q.State != DQWithdrawn {
@@ -49,13 +49,13 @@ func (p Projection) TopQuestions() []string {
 }
 
 // NotTogether lists the Hypotheses selected now on the live top-level
-// questions when two or more are selected and no one closer of line l
+// questions of line l's Goal when two or more are selected and no one closer of line l
 // covers them all; it is nil otherwise. It is a mark: a claim that depends
 // on its host is covered only together with that host, so the owner reads
 // it at choose. No item and no status reads it.
 func (p Projection) NotTogether(l Limit) []string {
 	var sel []string
-	for _, q := range p.TopQuestions() {
+	for _, q := range p.TopQuestions(l.Result) {
 		if rec, ok := p.CurrentSelect(q); ok {
 			sel = append(sel, rec.Hyp)
 		}

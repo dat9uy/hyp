@@ -50,7 +50,7 @@ var rules = map[string]rule{
 				st.Aliases[p.Alias] = ev.ID
 			}
 			if p.Kind == event.KindGoal {
-				st.GoalID = ev.ID
+				st.Goals = append(st.Goals, ev.ID)
 			}
 			if p.Kind == event.KindDesignQuestion {
 				st.Decisions[ev.ID] = newDecision()
@@ -192,7 +192,7 @@ var rules = map[string]rule{
 			}
 			return nil
 		},
-		apply:    func(st *State, ev event.Event) { st.Hold[ev.Node] = DQDeferred },
+		apply: func(st *State, ev event.Event) { st.Hold[ev.Node] = DQDeferred },
 	},
 	event.TypeDQWithdraw: {
 		validate: validateHold,
@@ -259,7 +259,7 @@ var rules = map[string]rule{
 			if err := textLimit("summary", p.Summary, 1, event.MaxText); err != nil {
 				return err
 			}
-			if err := f.checkLines(p); err != nil {
+			if err := f.checkLines(ev.Node, p); err != nil {
 				return err
 			}
 			return f.checkClosesReadings(ev, p)
@@ -277,7 +277,7 @@ var rules = map[string]rule{
 				}
 			}
 			if len(p.Lines) > 0 {
-				st.Lines, st.LinesBy = p.Lines, ev.ID
+				st.Lines[ev.Node], st.LinesBy[ev.Node] = p.Lines, ev.ID
 			}
 		},
 	},

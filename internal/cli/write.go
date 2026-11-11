@@ -188,7 +188,7 @@ func printClosed(out io.Writer, st *replay.State, ev event.Event) {
 		}
 		texts := n.Limits
 		if n.Kind == event.KindGoal {
-			texts = st.Lines
+			texts = st.Lines[n.ID]
 		}
 		if k.N > len(texts) {
 			continue
@@ -843,6 +843,7 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
 	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
 	role := w.fs.String("role", "", "owner, required with --closes, --revises, --accept, --returns and --line")
+	goal := w.fs.String("goal", "", "the Goal this checkpoint is on; required when the store holds more than one Goal")
 	var closes, revises, accepts, refers, returns, lines multi
 	w.fs.Var(&closes, "closes", "R-id#rn of an open reading this owner checkpoint answers; --summary holds the owner's words (repeatable)")
 	w.fs.Var(&revises, "revises", "R-id#rn of an answered reading whose answer --summary replaces from now on (repeatable)")
@@ -876,11 +877,11 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	}
 	var warns []string
 	err := w.run(func() (draft, error) {
-		if w.st.GoalID == "" {
-			return draft{}, refusedErr("no Goal yet")
+		g, err := w.checkpointGoal(*goal)
+		if err != nil {
+			return draft{}, err
 		}
 		p := event.Checkpoint{Summary: *summary, Role: *role, Lines: lines}
-		var err error
 		if p.Closes, err = w.keys("--closes", closes, event.KeyReading); err != nil {
 			return draft{}, err
 		}
@@ -897,7 +898,7 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		warns = sameAskWarnings(w.p, p.Closes, p.Revises)
-		return draft{event.TypeCheckpoint, w.st.GoalID, p}, nil
+		return draft{event.TypeCheckpoint, g, p}, nil
 	})
 	if err == nil {
 		for _, l := range warns {
@@ -905,6 +906,21 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 		}
 	}
 	return err
+}
+
+// checkpointGoal is the Goal a checkpoint is on: the one named, or the
+// store's only Goal. A store with many Goals needs it named.
+func (w *writer) checkpointGoal(named string) (string, error) {
+	if named != "" {
+		return w.ref(named)
+	}
+	switch len(w.st.Goals) {
+	case 0:
+		return "", refusedErr("no Goal yet")
+	case 1:
+		return w.st.Goals[0], nil
+	}
+	return "", usageErr("missing --goal: the store holds %d Goals", len(w.st.Goals))
 }
 
 // sameAskWarnings names each reading that asks the same question as one the

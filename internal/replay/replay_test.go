@@ -98,8 +98,8 @@ func TestScenario02SelectAnswers(t *testing.T) {
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQAnswered, "")
-	if p.Goal.Status != GoalComplete {
-		t.Fatalf("goal = %s, want complete", p.Goal.Status)
+	if p.Goals[0].Status != GoalComplete {
+		t.Fatalf("goal = %s, want complete", p.Goals[0].Status)
 	}
 }
 
@@ -140,10 +140,10 @@ func TestScenario04ContradictionPropagatesAndRetractRestores(t *testing.T) {
 	b := s.b
 	p := replayB(b)
 	wantNoRejections(t, p)
-	if p.Goal.Status != GoalComplete {
-		t.Fatalf("goal = %s, want complete", p.Goal.Status)
+	if p.Goals[0].Status != GoalComplete {
+		t.Fatalf("goal = %s, want complete", p.Goals[0].Status)
 	}
-	before, beforeGoal := statuses(p), p.Goal
+	before, beforeGoal := statuses(p), p.Goals[0]
 
 	r := b.Result(s.e3, map[string]string{s.h3: con})
 	p = replayB(b)
@@ -156,8 +156,8 @@ func TestScenario04ContradictionPropagatesAndRetractRestores(t *testing.T) {
 	wantStatus(t, p, s.q1, DQReopened, ReasonSelectedStale)
 	wantStatus(t, p, s.q2, DQReopened, ReasonSelectedStale)
 	wantStatus(t, p, s.q3, DQReopened, ReasonSelectedNotSupport)
-	if p.Goal.Status != GoalInProgress {
-		t.Fatalf("goal = %s, want in_progress", p.Goal.Status)
+	if p.Goals[0].Status != GoalInProgress {
+		t.Fatalf("goal = %s, want in_progress", p.Goals[0].Status)
 	}
 
 	b.Retract(r)
@@ -182,8 +182,8 @@ func TestScenario04ContradictionPropagatesAndRetractRestores(t *testing.T) {
 		}
 		t.Fatal("retract did not restore the earlier statuses exactly")
 	}
-	if !reflect.DeepEqual(beforeGoal, p.Goal) {
-		t.Fatalf("goal before %+v, after %+v", beforeGoal, p.Goal)
+	if !reflect.DeepEqual(beforeGoal, p.Goals[0]) {
+		t.Fatalf("goal before %+v, after %+v", beforeGoal, p.Goals[0])
 	}
 }
 
@@ -261,8 +261,8 @@ func TestScenario07AwaitingSubquestions(t *testing.T) {
 	wantNoRejections(t, p)
 	wantStatus(t, p, h1, HypSupported, "")
 	wantStatus(t, p, q, DQAnswered, "")
-	if p.Goal.Status != GoalComplete {
-		t.Fatalf("goal = %s, want complete", p.Goal.Status)
+	if p.Goals[0].Status != GoalComplete {
+		t.Fatalf("goal = %s, want complete", p.Goals[0].Status)
 	}
 }
 
@@ -300,8 +300,8 @@ func TestScenario09DeferResumeWithdraw(t *testing.T) {
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, q, DQWithdrawn, "")
-	if p.Goal.Status != GoalComplete {
-		t.Fatalf("goal = %s, want complete (withdrawn DQ ignored)", p.Goal.Status)
+	if p.Goals[0].Status != GoalComplete {
+		t.Fatalf("goal = %s, want complete (withdrawn DQ ignored)", p.Goals[0].Status)
 	}
 }
 
@@ -335,7 +335,7 @@ func TestScenario11RecipeChangeFlagsOnly(t *testing.T) {
 	if !changed.Results[r].Questionable || same.Results[r].Questionable {
 		t.Fatalf("questionable: changed=%v same=%v", changed.Results[r].Questionable, same.Results[r].Questionable)
 	}
-	if !reflect.DeepEqual(statuses(changed), statuses(same)) || !reflect.DeepEqual(changed.Goal, same.Goal) {
+	if !reflect.DeepEqual(statuses(changed), statuses(same)) || !reflect.DeepEqual(changed.Goals[0], same.Goals[0]) {
 		t.Fatal("a recipe change altered a status")
 	}
 }
@@ -387,7 +387,7 @@ func TestEvidencePinFlagsResult(t *testing.T) {
 		if p.Results[plain].Questionable {
 			t.Fatalf("%s: a Result without pins was flagged", name)
 		}
-		if !reflect.DeepEqual(statuses(p), statuses(same)) || !reflect.DeepEqual(p.Goal, same.Goal) {
+		if !reflect.DeepEqual(statuses(p), statuses(same)) || !reflect.DeepEqual(p.Goals[0], same.Goals[0]) {
 			t.Fatalf("%s: an evidence pin altered a status", name)
 		}
 	}
@@ -449,8 +449,8 @@ func TestScenario13ChildUnderAbandonedDoesNotBlock(t *testing.T) {
 	p := replayB(b)
 	wantNoRejections(t, p)
 	wantStatus(t, p, qc, DQOpen, ReasonNoCandidates)
-	if p.Goal.Status != GoalComplete {
-		t.Fatalf("goal = %s, want complete", p.Goal.Status)
+	if p.Goals[0].Status != GoalComplete {
+		t.Fatalf("goal = %s, want complete", p.Goals[0].Status)
 	}
 }
 
@@ -480,7 +480,7 @@ func TestScenario14BadEventsSkipped(t *testing.T) {
 	if len(want.Rejections) != 0 {
 		t.Fatalf("clean log rejected: %+v", want.Rejections)
 	}
-	if !reflect.DeepEqual(statuses(p), statuses(want)) || !reflect.DeepEqual(p.Goal, want.Goal) ||
+	if !reflect.DeepEqual(statuses(p), statuses(want)) || !reflect.DeepEqual(p.Goals[0], want.Goals[0]) ||
 		!reflect.DeepEqual(p.Applied, want.Applied) {
 		t.Fatal("bad events changed the statuses")
 	}
@@ -494,7 +494,7 @@ func TestScenario15AsOfEqualsTruncation(t *testing.T) {
 	for i := range evs {
 		a := Replay(evs, nil, evs[i].ID)
 		w := Replay(evs[:i+1], nil, "")
-		if !reflect.DeepEqual(statuses(a), statuses(w)) || !reflect.DeepEqual(a.Goal, w.Goal) {
+		if !reflect.DeepEqual(statuses(a), statuses(w)) || !reflect.DeepEqual(a.Goals[0], w.Goals[0]) {
 			t.Fatalf("asOf %d differs from truncation", i)
 		}
 	}
@@ -580,7 +580,7 @@ func TestRefusals(t *testing.T) {
 		{"2 duplicate id", with(node(event.KindHypothesis, q, "x"), func(e *event.Event) { e.ID = h1; e.Node = h1 }), "duplicate id"},
 		{"3 unknown node", node(event.KindHypothesis, "01JB9999999999999999999999", "x"), "unknown node"},
 		{"4 wrong parent kind", node(event.KindHypothesis, g, "x"), "wrong parent kind"},
-		{"4 second goal", node(event.KindGoal, "", "g2"), "only one Goal"},
+		{"4 Goal with a parent", node(event.KindGoal, q, "g2"), "Goal must have no parent"},
 		{"5 target in another DQ", mk(event.TypeNodeAdd, "", "a", event.NodeAdd{Kind: event.KindExperiment, Parent: h1,
 			Title: "x", Recipe: event.RecipeNone, Targets: []string{h3}}), "bad target"},
 		{"5 decided_by on a Hypothesis", mk(event.TypeNodeAdd, "", "a", event.NodeAdd{Kind: event.KindHypothesis, Parent: q,
@@ -625,15 +625,15 @@ func TestGoalWithNoAnsweredQuestionIsInProgress(t *testing.T) {
 	g := b.Goal("g")
 	p := replayB(b)
 	wantNoRejections(t, p)
-	if p.Goal.Status != GoalInProgress {
-		t.Fatalf("goal with no questions = %s, want in_progress", p.Goal.Status)
+	if p.Goals[0].Status != GoalInProgress {
+		t.Fatalf("goal with no questions = %s, want in_progress", p.Goals[0].Status)
 	}
 	q := b.DQ(g, "q")
 	b.Withdraw(q)
 	p = replayB(b)
 	wantNoRejections(t, p)
-	if p.Goal.Status != GoalInProgress {
-		t.Fatalf("goal with only a withdrawn question = %s, want in_progress", p.Goal.Status)
+	if p.Goals[0].Status != GoalInProgress {
+		t.Fatalf("goal with only a withdrawn question = %s, want in_progress", p.Goals[0].Status)
 	}
 }
 

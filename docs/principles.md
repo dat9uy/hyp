@@ -52,8 +52,8 @@ scores a round. See [replay-spec.md](replay-spec.md#81-ledger-what-the-tree-owes
 A Result records it, a later Result closes it by running the case, the runner
 refers what no test within the Goal can run, and the owner accepts or returns a
 referred one. A case can also change what the work is for: a new Hypothesis is
-a new branch, and a new purpose is a new Goal, so a new tree that cites this
-one. None of these edits what was recorded. See
+a new branch, and a new purpose is a new Goal. One store holds many Goals, and
+a tree is the view of one Goal ([ADR 0020](adr/0020-one-store-holds-many-goals.md)). None of these edits what was recorded. See
 [ADR 0016](adr/0016-a-limit-is-an-untested-case.md) and
 [replay-spec.md](replay-spec.md#82-keyed-items-limits-lines-and-readings) §8.2.
 
@@ -73,8 +73,8 @@ The owner is the person hyp asks on real choices. Their role holds to these
 rules:
 
 1. **The Goal is written once.** Its lines are written on one owner
-   checkpoint and never edited. A new line or a new purpose is a new Goal, so
-   a new tree. A narrower scope is a line the runner refers and the owner
+   checkpoint and never edited. A new line or a new purpose is a new Goal,
+   which may sit in the same store. A narrower scope is a line the runner refers and the owner
    accepts; there is no other change of scope inside a tree.
 2. **The owner is asked only on real choices, and only when the runner owes
    nothing on the question.** The ledger routes each one to AWAITING OWNER: a

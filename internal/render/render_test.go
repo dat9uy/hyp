@@ -710,7 +710,7 @@ func TestStatusCountLineAccountsForTheGoalCounts(t *testing.T) {
 	if !strings.Contains(out, "(3 open questions out of play;") {
 		t.Fatalf("want three counted:\n%s", out)
 	}
-	if got, want := p.Goal.Counts[string(replay.DQOpen)], 5; got != want {
+	if got, want := p.Goals[0].Counts[string(replay.DQOpen)], 5; got != want {
 		t.Fatalf("Goal counts %d open, want %d printed and counted", got, want)
 	}
 }

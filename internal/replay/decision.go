@@ -204,14 +204,17 @@ func (st *State) limits() map[string][]Limit {
 	return out
 }
 
-// lines derives the Goal's lines. A line is never closed: a close records
-// that its case ran on the Hypotheses the closer covers, and the ledger
-// owes it on each question with a candidate no closer covers (owed.go).
+// lines derives every Goal's lines, Goal by Goal. A line is never closed:
+// a close records that its case ran on the Hypotheses the closer covers,
+// and the ledger owes it on each question of its Goal with a candidate no
+// closer covers (owed.go).
 func (st *State) lines() []Limit {
 	closers := st.closers()
 	var out []Limit
-	for i, text := range st.Lines {
-		out = append(out, st.keyedLimit(event.LimitKey(st.GoalID, i+1), st.GoalID, text, closers))
+	for _, g := range st.Goals {
+		for i, text := range st.Lines[g] {
+			out = append(out, st.keyedLimit(event.LimitKey(g, i+1), g, text, closers))
+		}
 	}
 	return out
 }
