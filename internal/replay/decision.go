@@ -213,7 +213,17 @@ func (st *State) lines() []Limit {
 	var out []Limit
 	for _, g := range st.Goals {
 		for i, text := range st.Lines[g] {
-			out = append(out, st.keyedLimit(event.LimitKey(g, i+1), g, text, closers))
+			l := st.keyedLimit(event.LimitKey(g, i+1), g, text, closers)
+			if cites := st.LineCites[g]; i < len(cites) {
+				for _, c := range cites[i] {
+					c.Now, _ = st.citeMeaning(c.Key)
+					if c.Now == "" {
+						c.Now = CiteUnsettled
+					}
+					l.Cites = append(l.Cites, c)
+				}
+			}
+			out = append(out, l)
 		}
 	}
 	return out

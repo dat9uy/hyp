@@ -60,7 +60,7 @@ setup:
   version                                print the hyp version
 
 write:
-  add goal --title T [--body B] [--alias A]
+  add goal --title T [--body B] [--alias A] [--line L]... [--cite N=KEY]...
   add dq   --parent REF --title T [--body B] [--alias A]
   add hyp  --parent REF --title T [--body B] [--alias A] [--subject PATH]...
   add exp  --parent REF --title T --recipe NAME@V|none [--rubric NAME@V|reading] [--records PATH]... [--target REF|none]... [--alias A]
@@ -72,7 +72,8 @@ write:
   link FROM depends_on|external_ref TO   unlink FROM TYPE TO
   select DQ [HYP]                        admitted only when hyp status owes it (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ
-  checkpoint --summary S [--goal G] [--refers K]... [--role owner [--accept K]... [--returns K]... [--closes R#rN]... [--revises R#rN]... [--line L]...]
+  checkpoint [--summary S] [--goal G] [--refers K[=TEXT]]...   the runner's report: a summary, refers, or both
+  answer [--answer R#rN=TEXT]... [--accept K=TEXT]... [--returns K=TEXT]...   the owner's act; no --why
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals
@@ -119,6 +120,7 @@ var commands = map[string]command{
 	"unselect":   cmdUnselect,
 	"confirm":    cmdConfirm,
 	"checkpoint": cmdCheckpoint,
+	"answer":     cmdAnswer,
 	"status":     cmdStatus,
 	"show":       cmdShow,
 	"diff":       cmdDiff,

@@ -49,7 +49,7 @@ func refer(t *testing.T, k string) {
 // accept records the owner o's accept of referred limit k.
 func accept(t *testing.T, k string) {
 	t.Helper()
-	must(t, "checkpoint", "--summary", "accept", "--role", "owner", "--accept", k, "--actor", "o", "--why", "w")
+	must(t, "answer", "--accept", k+"=accept", "--actor", "o")
 }
 
 func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
@@ -69,7 +69,7 @@ func TestLimitVisibleUntilClosedOrAccepted(t *testing.T) {
 	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: referred limit "+r1+"#1 waits for the owner")
 	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or return "+r1+"#1 — raw SQL org gets no row\n")
 	want(t, hyp(t, "status"), 0, "waits on referred limit "+r1+"#1 for the owner")
-	must(t, "checkpoint", "--summary", "accept", "--role", "owner", "--accept", r1+"#1", "--actor", "o", "--why", "w")
+	must(t, "answer", "--accept", r1+"#1"+"=accept", "--actor", "o")
 	must(t, "select", q, h, "--why", "w")
 	want(t, hyp(t, "show", q), 0, "status: answered")
 	want(t, hyp(t, "show", q), 0, r1+"#1 accepted by o")
@@ -105,7 +105,7 @@ func TestReturnReopensAnAcceptedLimit(t *testing.T) {
 	want(t, hyp(t, "show", q), 0, r+"#1 accepted by o")
 	want(t, hyp(t, "show", q), 0, "status: answered")
 
-	must(t, "checkpoint", "--summary", "run it", "--role", "owner", "--returns", r+"#1", "--actor", "o", "--why", "w")
+	must(t, "answer", "--returns", r+"#1"+"=run it", "--actor", "o")
 	want(t, hyp(t, "show", q), 0, r+"#1 open — only tried one org")
 	want(t, hyp(t, "status"), 0, "OPEN LIMITS")
 }
@@ -121,21 +121,24 @@ func TestReadingAwaitsOwnerUntilOwnerCloses(t *testing.T) {
 	want(t, hyp(t, "show", r), 0, "reading "+key+" open — read the line as code-only")
 	want(t, hyp(t, "show", g), 0, "reading "+key+" open")
 
-	// The flag pair is a usage error, a bad reference and the recording actor are refusals.
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--closes", key, "--why", "w"), 2, "--closes needs --role owner")
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "verifier", "--why", "w"), 2, "--role must be owner")
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", r+"#r2", "--actor", "owner-dat", "--why", "w"), 1, "has 1 readings")
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", key, "--why", "w"), 1, "separation of duties")
+	// A checkpoint no longer answers, an answer has no why, and a bad
+	// reference and the recording actor are refusals.
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--closes", key, "--why", "w"), 2, "--closes was retired: the owner answers a reading with hyp answer")
+	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--why", "w"), 2, "--role was retired")
+	want(t, hyp(t, "answer", "--answer", key+"=s", "--why", "w", "--actor", "owner-dat"), 2, "an answer has no --why")
+	want(t, hyp(t, "answer", "--answer", key, "--actor", "owner-dat"), 2, "want KEY=TEXT")
+	want(t, hyp(t, "answer", "--answer", r+"#r2"+"=s", "--actor", "owner-dat"), 1, "has 1 readings")
+	want(t, hyp(t, "answer", "--answer", key+"=s"), 1, "separation of duties")
 
-	must(t, "checkpoint", "--summary", "code only", "--role", "owner", "--closes", key, "--actor", "owner-dat", "--why", "w")
+	must(t, "answer", "--answer", key+"=code only", "--actor", "owner-dat")
 	out := hyp(t, "status")
 	want(t, out, 0, "AWAITING OWNER")
 	if strings.Contains(out.stdout, key+" reading:") {
 		t.Fatalf("closed reading still under AWAITING OWNER:\n%s", out.stdout)
 	}
-	want(t, hyp(t, "show", r), 0, "reading "+key+" closed by owner checkpoint")
+	want(t, hyp(t, "show", r), 0, "reading "+key+" closed by owner answer ")
 	want(t, hyp(t, "show", r), 0, `answer: "code only" — `)
-	want(t, hyp(t, "show", g), 0, "    closes: "+key)
+	want(t, hyp(t, "show", g), 0, "    answers: "+key+" — code only")
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }
 
@@ -157,7 +160,7 @@ func TestRetractedResultDropsItsReading(t *testing.T) {
 	if out := hyp(t, "status"); strings.Contains(out.stdout, "reading:") {
 		t.Fatalf("retracted Result's reading still shows:\n%s", out.stdout)
 	}
-	want(t, hyp(t, "checkpoint", "--summary", "s", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w"), 1, "is retracted")
+	want(t, hyp(t, "answer", "--answer", r+"#r1"+"=s", "--actor", "owner-dat"), 1, "is retracted")
 }
 
 // An answered reading the runner has not applied is the runner's item, so the
@@ -170,7 +173,7 @@ func TestChooseWaitsForAnswersToApply(t *testing.T) {
 	r := must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--verdict", h2+"=supports", "--observation", "o", "--reading", "a reading", "--why", "w")
 	want(t, hyp(t, "status"), 0, "  candidates (2): "+h1+", "+h2+" (trade-off)\n")
 	notIn(t, " choose: ") // the open reading waits for the owner
-	must(t, "checkpoint", "--summary", "my words", "--role", "owner", "--closes", r+"#r1", "--actor", "owner-dat", "--why", "w")
+	must(t, "answer", "--answer", r+"#r1"+"=my words", "--actor", "owner-dat")
 	want(t, hyp(t, "status"), 0, "runner: "+q+" apply answer "+r+"#r1 [owed] — my words\n")
 	notIn(t, " choose: ")
 

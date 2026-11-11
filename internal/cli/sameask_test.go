@@ -40,17 +40,17 @@ func TestSameAskReadingsPrintAndCloseAsOne(t *testing.T) {
 	want(t, out, 0, "    waits on open reading "+k2+" for the owner; its answer can move H-")
 	want(t, out, 0, "    waits on open reading "+k3+" for the owner; its answer can move H-")
 
-	want(t, hyp(t, "checkpoint", "--summary", "yes", "--role", "owner", "--closes", k1, "--actor", "owner-dat", "--why", "w"), 0,
-		"warn: "+k2+" asks the same as "+k1+" and stays open; add --closes "+k2)
+	want(t, hyp(t, "answer", "--answer", k1+"=yes", "--actor", "owner-dat"), 0,
+		"warn: "+k2+" asks the same as "+k1+" and stays open; add --answer "+k2)
 	// One copy left open prints alone, as any reading does.
 	want(t, hyp(t, "status"), 0, "  "+k2+" reading: ")
 
-	both := hyp(t, "checkpoint", "--summary", "yes", "--role", "owner", "--closes", k2, "--closes", k3, "--actor", "owner-dat", "--why", "w")
+	both := hyp(t, "answer", "--answer", k2+"=yes", "--answer", k3+"=yes", "--actor", "owner-dat")
 	if both.code != 0 || strings.Contains(both.stderr, "asks the same") {
 		t.Fatalf("closing the last copy warned: exit %d, stderr %q", both.code, both.stderr)
 	}
-	want(t, hyp(t, "checkpoint", "--summary", "no", "--role", "owner", "--revises", k1, "--actor", "owner-dat", "--why", "w"), 0,
-		"warn: "+k2+" asks the same as "+k1+" and keeps its earlier answer; add --revises "+k2)
+	want(t, hyp(t, "answer", "--answer", k1+"=no", "--actor", "owner-dat"), 0,
+		"warn: "+k2+" asks the same as "+k1+" and keeps its earlier answer; add --answer "+k2)
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 }
 

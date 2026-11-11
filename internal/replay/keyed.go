@@ -101,15 +101,16 @@ func (f *Facts) applyLimitMove(move HandMove, k string, ev event.Event) {
 	f.LimitHand[k] = h
 }
 
-// checkLimitMoves checks every refer, return and accept a checkpoint makes,
-// in the order replay applies them, and that no key is named by two of
-// them. Each move is checked against the hand before the checkpoint.
-func (f *Facts) checkLimitMoves(ev event.Event, p event.Checkpoint) error {
-	owner := p.Role == event.RoleOwner
-	for _, mv := range []struct {
+// checkLimitMoves checks every refer, return and accept one event makes, in
+// the order replay applies them, and that no key is named by two of them.
+// Each move is checked against the hand before the event. owner is set on an
+// answer and on an old owner checkpoint.
+func (f *Facts) checkLimitMoves(actor string, owner bool, refers, returns, accepts []string) error {
+	moves := []struct {
 		move HandMove
 		keys []string
-	}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
+	}{{HandRefer, refers}, {HandReturn, returns}, {HandAccept, accepts}}
+	for _, mv := range moves {
 		if len(mv.keys) > 0 && limitMoves[mv.move].owner && !owner {
 			return fmt.Errorf("%s", limitMoves[mv.move].ownerErr)
 		}
@@ -117,25 +118,32 @@ func (f *Facts) checkLimitMoves(ev event.Event, p event.Checkpoint) error {
 			return fmt.Errorf("over limit: %s has %d items (max %d)", limitMoves[mv.move].field, len(mv.keys), event.MaxLimits)
 		}
 	}
-	for _, mv := range []struct {
-		move HandMove
-		keys []string
-	}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
+	for _, mv := range moves {
 		for _, k := range mv.keys {
-			for _, other := range []struct {
-				move HandMove
-				keys []string
-			}{{HandRefer, p.Refers}, {HandAccept, p.Accepts}} {
-				if mv.move != other.move && mv.move == HandReturn && slices.Contains(other.keys, k) {
+			for _, other := range moves {
+				if mv.move == HandReturn && other.move != HandReturn && slices.Contains(other.keys, k) {
 					return fmt.Errorf("bad returns: %s is also in %s", f.keyDisplay(k), limitMoves[other.move].field)
 				}
 			}
-			if err := f.checkLimitMove(mv.move, k, ev.Actor, owner); err != nil {
+			if err := f.checkLimitMove(mv.move, k, actor, owner); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+// applyLimitMoves records the refers, returns and accepts of ev, in that
+// order.
+func (f *Facts) applyLimitMoves(ev event.Event, refers, returns, accepts []string) {
+	for _, mv := range []struct {
+		move HandMove
+		keys []string
+	}{{HandRefer, refers}, {HandReturn, returns}, {HandAccept, accepts}} {
+		for _, k := range mv.keys {
+			f.applyLimitMove(mv.move, k, ev)
+		}
+	}
 }
 
 // readingMove is one row of the reading move table. A close answers an open
@@ -173,8 +181,9 @@ func (f *Facts) checkReadingMove(field, k, actor string) error {
 	return nil
 }
 
-// applyReadingMoves records the answers a checkpoint gives: a close gives
-// a reading its first answer, a revise the answer in force from then on.
+// applyReadingMoves records the answers an old owner checkpoint gives: a
+// close gives a reading its first answer, a revise the answer in force from
+// then on, each with the checkpoint's summary.
 func (f *Facts) applyReadingMoves(ev event.Event, p event.Checkpoint) {
 	for _, k := range p.Closes {
 		if len(f.Answers[k]) == 0 {
@@ -188,11 +197,48 @@ func (f *Facts) applyReadingMoves(ev event.Event, p event.Checkpoint) {
 	}
 }
 
-// ReadingClosed reports whether an owner checkpoint answered reading k.
+// checkAnswers reports why an answer may not give its answers. Whether an
+// item is a first answer or a revision is derived from the reading's state,
+// so one item is a close of an open reading and a revise of an answered one.
+func (f *Facts) checkAnswers(actor string, items []event.KeyText) error {
+	if len(items) > event.MaxLimits {
+		return fmt.Errorf("over limit: answers has %d items (max %d)", len(items), event.MaxLimits)
+	}
+	seen := map[string]bool{}
+	for _, it := range items {
+		if seen[it.Key] {
+			return fmt.Errorf("bad answers: %s is named twice", it.Key)
+		}
+		seen[it.Key] = true
+		if key, ok := event.ParseKey(it.Key); ok && key.Kind == event.KeyLimit {
+			return fmt.Errorf("bad answers: %s is a limit; an owner accepts or returns a limit", it.Key)
+		}
+		field := "closes"
+		if f.ReadingClosed(it.Key) {
+			field = "revises"
+		}
+		if err := f.checkReadingMove(field, it.Key, actor); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// applyAnswers records an answer's answers: the first answer of an open
+// reading, or the answer in force from now on of an answered one.
+func (f *Facts) applyAnswers(ev event.Event, items []event.KeyText) {
+	for _, it := range items {
+		f.Answers[it.Key] = append(f.Answers[it.Key], Answer{By: ev.ID, Text: it.Text, ByAnswer: true})
+	}
+}
+
+// ReadingClosed reports whether the owner answered reading k.
 func (f *Facts) ReadingClosed(k string) bool { return len(f.Answers[k]) > 0 }
 
-// checkLines reports why a checkpoint on Goal g may not write its lines:
-// only an owner writes them, once per Goal, one case each.
+// checkLines reports why an old checkpoint on Goal g may not write its
+// lines: only an owner writes them, once per Goal, one case each. No command
+// writes lines on a checkpoint any more; a Goal's lines come with its add
+// (ADR 0020), which counts as the one write.
 func (f *Facts) checkLines(g string, p event.Checkpoint) error {
 	if len(p.Lines) == 0 {
 		return nil
@@ -201,6 +247,9 @@ func (f *Facts) checkLines(g string, p event.Checkpoint) error {
 		return fmt.Errorf("bad checkpoint: only an owner writes the Goal's lines")
 	}
 	if by := f.LinesBy[g]; by != "" {
+		if by == g {
+			return fmt.Errorf("bad lines: a Goal's lines come with its node.add, and %s's did; a new line is a new Goal", event.DisplayID(event.KindGoal, g))
+		}
 		return fmt.Errorf("bad lines: the Goal's lines are written once, by %s; a new line is a new Goal", by)
 	}
 	if len(p.Lines) > event.MaxLimits {
@@ -212,6 +261,98 @@ func (f *Facts) checkLines(g string, p event.Checkpoint) error {
 		}
 	}
 	return nil
+}
+
+// checkGoalLines reports why a Goal's add may not carry its lines: at most
+// MaxLimits lines of 1 to MaxLine runes, each with at most MaxCites cites,
+// every cite a key settled now (citeMeaning).
+func (f *Facts) checkGoalLines(lines []event.GoalLine) error {
+	if len(lines) > event.MaxLimits {
+		return fmt.Errorf("over limit: lines has %d items (max %d)", len(lines), event.MaxLimits)
+	}
+	for i, l := range lines {
+		if err := textLimit("line", l.Text, 1, event.MaxLine); err != nil {
+			return err
+		}
+		if len(l.Cites) > event.MaxCites {
+			return fmt.Errorf("over limit: line %d has %d cites (max %d)", i+1, len(l.Cites), event.MaxCites)
+		}
+		for j, c := range l.Cites {
+			if slices.Contains(l.Cites[:j], c) {
+				return fmt.Errorf("bad cite: line %d names %s twice", i+1, c)
+			}
+			if m, why := f.citeMeaning(c); m == "" {
+				return fmt.Errorf("bad cite: line %d cites %s, which is not settled: %s; a cite is a line, an accepted or closed limit, an answered reading, or a selected or contradicted Hypothesis", i+1, f.citeDisplay(c), why)
+			}
+		}
+	}
+	return nil
+}
+
+// What a cite means, derived from the cited key's state at the line's place
+// in the log (ADR 0020). CiteUnsettled is a state a key may reach later; a
+// line is never written citing it.
+const (
+	CiteCarried   = "carried"
+	CiteForbidden = "forbidden"
+	CiteApplied   = "applied"
+	CiteRealised  = "realised"
+	CiteUnsettled = "unsettled"
+)
+
+// citeMeaning returns what citing c means now, or "" and why c is not
+// settled: a line or an accepted limit is carried, a closed limit or a
+// contradicted Hypothesis is forbidden, an answered reading is applied, and a
+// selected Hypothesis is realised.
+func (f *Facts) citeMeaning(c string) (meaning, why string) {
+	if n := f.Nodes[c]; n != nil {
+		if n.Kind != event.KindHypothesis {
+			return "", fmt.Sprintf("a %s is cited by a key or, for a Hypothesis, its id", n.Kind)
+		}
+		for _, r := range f.ResultsByHyp[c] {
+			if !f.Retracted[r] && f.Nodes[r].Verdicts[c] == event.VerdictContradicts {
+				return CiteForbidden, ""
+			}
+		}
+		if d := f.Decisions[n.Parent]; d != nil && d.Current != "" && d.Selects[d.Current].Hyp == c {
+			return CiteRealised, ""
+		}
+		return "", "it is neither selected nor contradicted"
+	}
+	k, ok := event.ParseKey(c)
+	if !ok {
+		return "", "it names no node and no key"
+	}
+	if k.Kind == event.KeyReading {
+		if err := f.checkKey(c, event.KeyReading, ""); err != nil {
+			return "", err.Error()
+		}
+		if !f.ReadingClosed(c) {
+			return "", "the reading is open"
+		}
+		return CiteApplied, ""
+	}
+	if err := f.checkKey(c, event.KeyLimit, ""); err != nil {
+		return "", err.Error()
+	}
+	if f.Nodes[k.Result].Kind == event.KindGoal {
+		return CiteCarried, ""
+	}
+	if f.limitCloser(c) != "" {
+		return CiteForbidden, ""
+	}
+	if f.LimitHand[c].Move == HandAccept {
+		return CiteCarried, ""
+	}
+	return "", "the limit is neither closed nor accepted"
+}
+
+// citeDisplay shows cite c as a display id or key.
+func (f *Facts) citeDisplay(c string) string {
+	if n := f.Nodes[c]; n != nil {
+		return event.DisplayID(n.Kind, c)
+	}
+	return f.keyDisplay(c)
 }
 
 // keyDisplay shows key k as R-W6V06D#1, R-W6V06D#r1 or G-WH6GK5#1.

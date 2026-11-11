@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/claim"
@@ -66,6 +67,7 @@ func parse(fs *flag.FlagSet, args []string) ([]string, error) {
 type writer struct {
 	fs     *flag.FlagSet
 	why    *string
+	noWhy  bool // the event has no why: an answer (ADR 0020)
 	actor  *string
 	stdout io.Writer
 	root   string
@@ -100,7 +102,11 @@ func (w *writer) begin(args []string, npos ...int) ([]string, error) {
 	if !store.ValidActor(*w.actor) {
 		return nil, usageErr("invalid actor %q (want ^[a-z0-9][a-z0-9-]{0,39}$)", *w.actor)
 	}
-	if *w.why = strings.TrimSpace(*w.why); *w.why == "" {
+	*w.why = strings.TrimSpace(*w.why)
+	if w.noWhy && *w.why != "" {
+		return nil, usageErr("an answer has no --why: the owner's reason is each item's text")
+	}
+	if !w.noWhy && *w.why == "" {
 		return nil, usageErr("missing --why")
 	}
 	return pos, w.findRoot()
@@ -154,6 +160,10 @@ func (w *writer) run(build func() (draft, error)) error {
 		return err
 	}
 	w.last = ev
+	if ev.Type == event.TypeAnswer {
+		fmt.Fprintf(w.stdout, "%s answer\n", ev.ID)
+		return nil
+	}
 	kind := event.KindResult
 	if ev.Type == event.TypeNodeAdd {
 		var p event.NodeAdd
@@ -167,9 +177,7 @@ func (w *writer) run(build func() (draft, error)) error {
 		printKeys(w.stdout, ev)
 		printClosed(w.stdout, w.st, ev)
 	}
-	if ev.Type == event.TypeCheckpoint {
-		printLines(w.stdout, ev)
-	}
+
 	return nil
 }
 
@@ -249,9 +257,12 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	body := w.fs.String("body", "", fmt.Sprintf("body (at most %d runes)", maxBody))
 	alias := w.fs.String("alias", "", "optional unique alias")
 	var parent, recipeRef, decidedBy, rubricRef *string
-	var targets, aims, subject, records multi
+	var targets, aims, subject, records, lineTexts, cites multi
 	if kind != event.KindGoal {
 		parent = w.fs.String("parent", "", "parent node (required)")
+	} else {
+		w.fs.Var(&lineTexts, "line", fmt.Sprintf("a line of the Goal: a case every candidate must meet, keyed G-id#n; a Goal's lines come with its add and no later event adds one (repeatable, at most %d, each 1–%d runes)", event.MaxLimits, event.MaxLine))
+		w.fs.Var(&cites, "cite", fmt.Sprintf("N=KEY: line N cites KEY, a line, an accepted or closed limit, an answered reading, or a selected or contradicted Hypothesis, settled now (repeatable, at most %d per line)", event.MaxCites))
 	}
 	if kind == event.KindHypothesis {
 		w.fs.Var(&subject, "subject", "a file or directory that embodies the claim; hyp ties the Hypothesis to each file's sha256 (repeatable)")
@@ -274,6 +285,13 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		return usageErr("missing --parent")
 	}
 	p := event.NodeAdd{Kind: kind, Title: *title, Body: *body, Alias: *alias}
+	citeOf, err := lineCites(cites, len(lineTexts))
+	if err != nil {
+		return err
+	}
+	for _, t := range lineTexts {
+		p.Lines = append(p.Lines, event.GoalLine{Text: t})
+	}
 	noTarget := len(targets) == 1 && targets[0] == "none"
 	var warns []string
 	var facts, rubricFacts replay.RecipeFacts
@@ -338,8 +356,15 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			return err
 		}
 	}
-	err := w.run(func() (draft, error) {
+	err = w.run(func() (draft, error) {
 		var err error
+		for _, c := range citeOf {
+			id, err := w.citeKey(c.key)
+			if err != nil {
+				return draft{}, err
+			}
+			p.Lines[c.line-1].Cites = append(p.Lines[c.line-1].Cites, id)
+		}
 		if parent != nil {
 			if p.Parent, err = w.ref(*parent); err != nil {
 				return draft{}, err
@@ -366,6 +391,11 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		}
 		return draft{event.TypeNodeAdd, "", p}, nil
 	})
+	if err == nil && kind == event.KindGoal {
+		for i, l := range p.Lines {
+			fmt.Fprintf(stdout, "  line %s: %s\n", event.DisplayKey(event.KindGoal, event.LimitKey(w.last.ID, i+1)), l.Text)
+		}
+	}
 	if err == nil && len(files) > 0 {
 		id := w.last.ID
 		err = w.run(func() (draft, error) {
@@ -827,7 +857,7 @@ func cmdUnselect(args []string, stdout, stderr io.Writer) error {
 // retiredScope is what replaces a scope-change select and its owner confirm
 // (ADR 0019): a Goal line the answer will not meet is referred and accepted,
 // and a Goal that needs more is a new Goal, so a new tree.
-const retiredScope = "a scope change is no longer a select: the runner refers the Goal line the answer will not meet (hyp checkpoint --refers G-…#n) and the owner accepts it (hyp checkpoint --role owner --accept G-…#n); a Goal that needs more is a new Goal, so a new tree that cites this one"
+const retiredScope = "a scope change is no longer a select: the runner refers the Goal line the answer will not meet (hyp checkpoint --refers G-…#n) and the owner accepts it (hyp answer --accept G-…#n=TEXT); a Goal that needs more is a new Goal, which cites this one's settled keys"
 
 // cmdConfirm is retired: the select is the gate (ADR 0015), and a scope
 // change is a line the owner accepts or a new tree (ADR 0019).
@@ -839,66 +869,91 @@ func cmdConfirm(args []string, stdout, stderr io.Writer) error {
 	return usageErr(use)
 }
 
+// retiredOwnerFlags are the checkpoint flags that wrote an owner's act or a
+// Goal's lines. No command writes those fields now (ADR 0020, owner decision
+// of 2026-11-11): the owner's acts are hyp answer, and a Goal's lines come
+// with hyp add goal --line.
+var retiredOwnerFlags = map[string]string{
+	"role":    "a checkpoint is the runner's; the owner's acts are their own event: hyp answer",
+	"closes":  "the owner answers a reading with hyp answer --answer R-…#rN=TEXT",
+	"revises": "the owner gives a new answer with hyp answer --answer R-…#rN=TEXT",
+	"accept":  "the owner accepts a referred limit with hyp answer --accept K=TEXT",
+	"returns": "the owner returns a limit with hyp answer --returns K=TEXT",
+	"line":    "a Goal's lines come with its node.add: hyp add goal --line TEXT; a new line is a new Goal",
+}
+
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
-	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (required, at most %d runes)", event.MaxText))
-	role := w.fs.String("role", "", "owner, required with --closes, --revises, --accept, --returns and --line")
+	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (at most %d runes); a checkpoint holds a summary, refers, or both", event.MaxText))
 	goal := w.fs.String("goal", "", "the Goal this checkpoint is on; required when the store holds more than one Goal")
-	var closes, revises, accepts, refers, returns, lines multi
-	w.fs.Var(&closes, "closes", "R-id#rn of an open reading this owner checkpoint answers; --summary holds the owner's words (repeatable)")
-	w.fs.Var(&revises, "revises", "R-id#rn of an answered reading whose answer --summary replaces from now on (repeatable)")
-	w.fs.Var(&accepts, "accept", "R-id#n or G-id#n of a referred limit the owner accepts untested (repeatable)")
-	w.fs.Var(&refers, "refers", "R-id#n or G-id#n of a limit no test within the Goal's lines can settle, handed to the owner; --summary says why (repeatable)")
-	w.fs.Var(&returns, "returns", "R-id#n or G-id#n of a referred or accepted limit whose case the Goal covers, handed back to the runner to run; --summary holds the owner's words (repeatable)")
-	w.fs.Var(&lines, "line", fmt.Sprintf("a line of the Goal: a case every candidate must meet, keyed G-id#n; written once, on one owner checkpoint (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
+	var refers multi
+	w.fs.Var(&refers, "refers", "K or K=TEXT: R-id#n or G-id#n of a limit no test within the Goal's lines can settle, handed to the owner; TEXT, or else --summary, says why (repeatable)")
+	retired := map[string]*multi{}
+	for name, use := range retiredOwnerFlags {
+		retired[name] = &multi{}
+		w.fs.Var(retired[name], name, "retired: "+use)
+	}
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
-	if err := required("--summary", summary); err != nil {
-		return err
+	for _, name := range []string{"role", "closes", "revises", "accept", "returns", "line"} {
+		if len(*retired[name]) > 0 {
+			return usageErr("--%s was retired: %s", name, retiredOwnerFlags[name])
+		}
 	}
-	if *role != "" && *role != event.RoleOwner {
-		return usageErr("--role must be owner")
-	}
-	if len(closes) > 0 && *role != event.RoleOwner {
-		return usageErr("--closes needs --role owner")
-	}
-	if len(revises) > 0 && *role != event.RoleOwner {
-		return usageErr("--revises needs --role owner")
-	}
-	if len(accepts) > 0 && *role != event.RoleOwner {
-		return usageErr("--accept needs --role owner")
-	}
-	if len(returns) > 0 && *role != event.RoleOwner {
-		return usageErr("--returns needs --role owner")
-	}
-	if len(lines) > 0 && *role != event.RoleOwner {
-		return usageErr("--line needs --role owner")
-	}
-	var warns []string
+	*summary = strings.TrimSpace(*summary)
 	err := w.run(func() (draft, error) {
 		g, err := w.checkpointGoal(*goal)
 		if err != nil {
 			return draft{}, err
 		}
-		p := event.Checkpoint{Summary: *summary, Role: *role, Lines: lines}
-		if p.Closes, err = w.keys("--closes", closes, event.KeyReading); err != nil {
+		p := event.Checkpoint{Summary: *summary}
+		if p.Refers, err = w.keyTexts("--refers", refers, false, event.KeyLimit); err != nil {
 			return draft{}, err
 		}
-		if p.Revises, err = w.keys("--revises", revises, event.KeyReading); err != nil {
-			return draft{}, err
-		}
-		if p.Accepts, err = w.keys("--accept", accepts, event.KeyLimit); err != nil {
-			return draft{}, err
-		}
-		if p.Refers, err = w.keys("--refers", refers, event.KeyLimit); err != nil {
-			return draft{}, err
-		}
-		if p.Returns, err = w.keys("--returns", returns, event.KeyLimit); err != nil {
-			return draft{}, err
-		}
-		warns = sameAskWarnings(w.p, p.Closes, p.Revises)
 		return draft{event.TypeCheckpoint, g, p}, nil
+	})
+	return err
+}
+
+// cmdAnswer writes the owner's act, an answer (ADR 0020): answers to
+// readings, accepts and returns of limits, each KEY=TEXT with the owner's
+// words. It has no node, no summary and no why. One answer may settle keys
+// of several Goals.
+func cmdAnswer(args []string, stdout, stderr io.Writer) error {
+	w := newWriter("answer", stdout, stderr)
+	w.noWhy = true
+	var answers, accepts, returns multi
+	w.fs.Var(&answers, "answer", "R-id#rN=TEXT: the owner's answer to a reading, a first answer while it is open and a new one once answered (repeatable)")
+	w.fs.Var(&accepts, "accept", "K=TEXT: R-id#n or G-id#n of a referred limit the owner accepts, so this Goal does not run its case (repeatable)")
+	w.fs.Var(&returns, "returns", "K=TEXT: R-id#n or G-id#n of a referred or accepted limit whose case the Goal covers, handed back to the runner (repeatable)")
+	if _, err := w.begin(args, 0); err != nil {
+		return err
+	}
+	var warns []string
+	err := w.run(func() (draft, error) {
+		var p event.Answer
+		var err error
+		if p.Answers, err = w.keyTexts("--answer", answers, true, event.KeyReading); err != nil {
+			return draft{}, err
+		}
+		if p.Accepts, err = w.keyTexts("--accept", accepts, true, event.KeyLimit); err != nil {
+			return draft{}, err
+		}
+		if p.Returns, err = w.keyTexts("--returns", returns, true, event.KeyLimit); err != nil {
+			return draft{}, err
+		}
+		var closes, revises []string
+		for _, it := range p.Answers {
+			if l, ok := w.p.Reading(it.Key); ok && !l.Open() {
+				revises = append(revises, it.Key)
+				warns = append(warns, citedElsewhere(w.p, it.Key)...)
+			} else {
+				closes = append(closes, it.Key)
+			}
+		}
+		warns = append(warns, sameAskWarnings(w.p, closes, revises)...)
+		return draft{event.TypeAnswer, "", p}, nil
 	})
 	if err == nil {
 		for _, l := range warns {
@@ -906,6 +961,78 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 		}
 	}
 	return err
+}
+
+// citedElsewhere warns when the reading key k an answer revises is cited by
+// a line of a Goal other than k's own: that line was written on the earlier
+// answer (ADR 0020). The revision is admitted, at exit 0.
+func citedElsewhere(p replay.Projection, k string) []string {
+	own := p.GoalOf(event.KeyResult(k))
+	var out []string
+	for _, l := range p.Lines {
+		if l.Result == own {
+			continue
+		}
+		for _, c := range l.Cites {
+			if c.Key == k {
+				out = append(out, fmt.Sprintf("warn: %s revises %s, which %s cites; that line was written on the earlier answer", p.KeyLabel(k), p.KeyLabel(k), p.KeyLabel(l.Key)))
+			}
+		}
+	}
+	return out
+}
+
+// keyTexts resolves KEY=TEXT arguments, or KEY alone when needText is
+// false, to keyed items of full ids; each key must be one of kinds.
+func (w *writer) keyTexts(flag string, args []string, needText bool, kinds ...event.KeyKind) ([]event.KeyText, error) {
+	var out []event.KeyText
+	for _, a := range args {
+		k, text, found := strings.Cut(a, "=")
+		if text = strings.TrimSpace(text); needText && (!found || text == "") {
+			return nil, usageErr("%s %q: want KEY=TEXT, the owner's words for that key", flag, a)
+		}
+		keys, err := w.keys(flag, []string{strings.TrimSpace(k)}, kinds...)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, event.KeyText{Key: keys[0], Text: text})
+	}
+	return out, nil
+}
+
+// lineCite is one --cite N=KEY of hyp add goal.
+type lineCite struct {
+	line int
+	key  string
+}
+
+// lineCites parses --cite N=KEY arguments for a Goal with n lines.
+func lineCites(args []string, n int) ([]lineCite, error) {
+	var out []lineCite
+	for _, a := range args {
+		num, key, found := strings.Cut(a, "=")
+		i, err := strconv.Atoi(strings.TrimSpace(num))
+		if !found || err != nil || i < 1 || strings.TrimSpace(key) == "" {
+			return nil, usageErr("--cite %q: want N=KEY, line N cites KEY", a)
+		}
+		if i > n {
+			return nil, usageErr("--cite %q: the Goal has %d lines", a, n)
+		}
+		out = append(out, lineCite{i, strings.TrimSpace(key)})
+	}
+	return out, nil
+}
+
+// citeKey resolves a cite: a limit or reading key, or a node reference.
+func (w *writer) citeKey(c string) (string, error) {
+	if strings.Contains(c, "#") {
+		keys, err := w.keys("--cite", []string{c}, event.KeyLimit, event.KeyReading)
+		if err != nil {
+			return "", err
+		}
+		return keys[0], nil
+	}
+	return w.ref(c)
 }
 
 // checkpointGoal is the Goal a checkpoint is on: the one named, or the
@@ -934,17 +1061,17 @@ func sameAskWarnings(p replay.Projection, closes, revises []string) []string {
 		for _, k := range keys {
 			for _, m := range p.SameAsk(k) {
 				l, _ := p.Reading(m)
-				if m == k || l.Open() != open || slices.Contains(keys, m) || seen[flag+m] {
+				if m == k || l.Open() != open || slices.Contains(keys, m) || seen[m] {
 					continue
 				}
-				seen[flag+m] = true
+				seen[m] = true
 				out = append(out, fmt.Sprintf("warn: %s asks the same as %s and %s; add %s %s",
 					p.KeyLabel(m), p.KeyLabel(k), left, flag, p.KeyLabel(m)))
 			}
 		}
 	}
-	check(closes, true, "--closes", "stays open")
-	check(revises, false, "--revises", "keeps its earlier answer")
+	check(closes, true, "--answer", "stays open")
+	check(revises, false, "--answer", "keeps its earlier answer")
 	return out
 }
 

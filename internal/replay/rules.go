@@ -1,8 +1,11 @@
 package replay
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
 )
@@ -51,6 +54,19 @@ var rules = map[string]rule{
 			}
 			if p.Kind == event.KindGoal {
 				st.Goals = append(st.Goals, ev.ID)
+				if len(p.Lines) > 0 {
+					// The Goal's add counts as the one write of its lines, and
+					// each cite keeps what it meant here (ADR 0020).
+					cites := make([][]Cite, len(p.Lines))
+					for i, l := range p.Lines {
+						st.Lines[ev.ID] = append(st.Lines[ev.ID], l.Text)
+						for _, c := range l.Cites {
+							m, _ := st.citeMeaning(c)
+							cites[i] = append(cites[i], Cite{Key: c, Meaning: m})
+						}
+					}
+					st.LinesBy[ev.ID], st.LineCites[ev.ID] = ev.ID, cites
+				}
 			}
 			if p.Kind == event.KindDesignQuestion {
 				st.Decisions[ev.ID] = newDecision()
@@ -256,7 +272,10 @@ var rules = map[string]rule{
 			if _, err := f.need(ev.Node, event.KindGoal); err != nil {
 				return err
 			}
-			if err := textLimit("summary", p.Summary, 1, event.MaxText); err != nil {
+			if err := checkCheckpointShape(p); err != nil {
+				return err
+			}
+			if err := textLimit("summary", p.Summary, 0, event.MaxText); err != nil {
 				return err
 			}
 			if err := f.checkLines(ev.Node, p); err != nil {
@@ -268,17 +287,19 @@ var rules = map[string]rule{
 			var p event.Checkpoint
 			_ = event.DecodePayload(ev, &p)
 			st.applyReadingMoves(ev, p)
-			for _, mv := range []struct {
-				move HandMove
-				keys []string
-			}{{HandRefer, p.Refers}, {HandReturn, p.Returns}, {HandAccept, p.Accepts}} {
-				for _, k := range mv.keys {
-					st.applyLimitMove(mv.move, k, ev)
-				}
-			}
+			st.applyLimitMoves(ev, event.Keys(p.Refers), p.Returns, p.Accepts)
 			if len(p.Lines) > 0 {
 				st.Lines[ev.Node], st.LinesBy[ev.Node] = p.Lines, ev.ID
 			}
+		},
+	},
+	event.TypeAnswer: {
+		validate: (*Facts).validateAnswer,
+		apply: func(st *State, ev event.Event) {
+			var p event.Answer
+			_ = event.DecodePayload(ev, &p)
+			st.applyAnswers(ev, p.Answers)
+			st.applyLimitMoves(ev, nil, event.Keys(p.Returns), event.Keys(p.Accepts))
 		},
 	},
 	event.TypeEdgeAdd: {
@@ -319,4 +340,84 @@ func validateHold(f *Facts, ev event.Event) error {
 	}
 	_, err := f.need(ev.Node, event.KindDesignQuestion)
 	return err
+}
+
+// ownerFields are the checkpoint fields only an old owner checkpoint holds:
+// read-only history that replay applies and no command writes. The owner's
+// acts are an answer now (ADR 0020).
+var ownerFields = []string{"role", "closes", "revises", "accepts", "returns", "lines"}
+
+// checkCheckpointShape refuses an empty checkpoint, and one that mixes the
+// runner's refers with an owner field: owner and runner fields never mix in
+// one event (ADR 0020).
+func checkCheckpointShape(p event.Checkpoint) error {
+	owner := map[string]bool{"role": p.Role != "", "closes": len(p.Closes) > 0, "revises": len(p.Revises) > 0,
+		"accepts": len(p.Accepts) > 0, "returns": len(p.Returns) > 0, "lines": len(p.Lines) > 0}
+	if len(p.Refers) > 0 {
+		for _, f := range ownerFields {
+			if owner[f] {
+				return fmt.Errorf("bad checkpoint: owner and runner fields never mix in one event: refers is the runner's and %s the owner's; the owner's acts are an answer", f)
+			}
+		}
+	}
+	for _, f := range ownerFields {
+		if owner[f] {
+			// An old owner checkpoint is checked as it was written: its
+			// summary held the owner's words.
+			return textLimit("summary", p.Summary, 1, event.MaxText)
+		}
+	}
+	if strings.TrimSpace(p.Summary) == "" && len(p.Refers) == 0 {
+		return errors.New("bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
+	}
+	for _, it := range p.Refers {
+		if it.Text != "" {
+			if err := textLimit("text of "+it.Key, it.Text, 1, event.MaxText); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// runnerFields are the fields a runner's checkpoint or event envelope holds
+// and an answer never does: owner and runner fields never mix in one event.
+var runnerFields = []string{"summary", "refers", "role", "closes", "revises", "lines", "node", "why"}
+
+// validateAnswer is the replay rule of answer, the owner's act (ADR 0020).
+// It has no node and no why, holds at least one key, and every item's text
+// is the owner's words for that key.
+func (f *Facts) validateAnswer(ev event.Event) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(bytes.TrimSpace(ev.Payload), &raw); err == nil {
+		for _, k := range runnerFields {
+			if _, ok := raw[k]; ok {
+				return fmt.Errorf("bad answer: owner and runner fields never mix in one event: %s is the runner's; an answer holds only answers, accepts and returns", k)
+			}
+		}
+	}
+	if ev.Node != "" {
+		return errors.New("bad answer: owner and runner fields never mix in one event: node is the runner's; an answer is on no node")
+	}
+	if ev.Why != "" {
+		return errors.New("bad answer: owner and runner fields never mix in one event: why is the runner's; the owner's reason is each item's text")
+	}
+	var p event.Answer
+	if err := decode(ev, &p); err != nil {
+		return err
+	}
+	if len(p.Answers)+len(p.Accepts)+len(p.Returns) == 0 {
+		return errors.New("bad answer: empty; an answer settles at least one key")
+	}
+	for _, items := range [][]event.KeyText{p.Answers, p.Accepts, p.Returns} {
+		for _, it := range items {
+			if err := textLimit("text of "+it.Key, it.Text, 1, event.MaxText); err != nil {
+				return err
+			}
+		}
+	}
+	if err := f.checkAnswers(ev.Actor, p.Answers); err != nil {
+		return err
+	}
+	return f.checkLimitMoves(ev.Actor, true, nil, event.Keys(p.Returns), event.Keys(p.Accepts))
 }
