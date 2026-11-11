@@ -14,7 +14,10 @@ never type one. Run `hyp help` for every command and flag.
 1. Run `hyp status` first, every session. It fits in 60 lines and shows the
    Goal, the open questions (FRONTIER), stale chains, what awaits the owner,
    recent events and the last checkpoint. Use `hyp show <id>` for detail and
-   `hyp diff --since <id|RFC3339>` for what changed.
+   `hyp diff --since <id|RFC3339>` for what changed. A store may hold many
+   Goals; then `hyp status` prints a GOALS table and one AWAITING OWNER list,
+   and `hyp status <G-id>` prints your Goal with its LINES, FRONTIER and OWED.
+   Use `hyp status <G-id>` wherever this skill says `hyp status`.
 2. If it says `no .tree store found`, run `hyp init` at the repository root,
    then add the Goal with its lines, the cases every candidate must meet.
    The lines come with the Goal and no later event adds one, so ask the owner
