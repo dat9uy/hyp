@@ -1,0 +1,19 @@
+# (c) census
+e44165738fee594b937a64a339dbe307e2e6322f6f31a36b71e72b66e3002358  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/727030d9-ce18-4c83-b49e-7eddf41cea5e/scratchpad/hyp-4047c01
+10540106a6e2a0fa119e6161fa3bbdaa76d1e21aa3398820a9cb96ccf856fb94  /Users/datguy/.local/bin/hyp
+2297b148a311260b786c05226fe71a8c52b7dfee462d63d7a106c4978d50440c  /Users/datguy/.local/share/hyp/hyp-33896ec
+candidate sha256 differs from installed: yes
+id-citation status candidate-vs-installed: same (086786613a92de44)
+id-citation status candidate-vs-33896ec: same
+id-citation check candidate-vs-installed: same (8602fb35adcea870)
+id-citation check candidate-vs-33896ec: same
+recipe-base status candidate-vs-installed: same (f600cc2d1917a439)
+recipe-base status candidate-vs-33896ec: same
+recipe-base check candidate-vs-installed: same (8602fb35adcea870)
+recipe-base check candidate-vs-33896ec: same
+checkpoint-store-design status candidate-vs-installed: same (4f58702666064503)
+checkpoint-store-design status candidate-vs-33896ec: same
+checkpoint-store-design check candidate-vs-installed: same (8602fb35adcea870)
+checkpoint-store-design check candidate-vs-33896ec: same
+checkpoint-store status candidate-vs-installed: same (0a8a080adf83a387)
+checkpoint-store check candidate-vs-installed: same (198204900bdab787)
