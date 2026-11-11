@@ -1,0 +1,30 @@
+# (b) L4b: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/keyed.go b/internal/replay/keyed.go
+index 789c072..8870181 100644
+--- a/internal/replay/keyed.go
++++ b/internal/replay/keyed.go
+@@ -281,7 +281,7 @@ func (f *Facts) checkGoalLines(lines []event.GoalLine) error {
+ 			if slices.Contains(l.Cites[:j], c) {
+ 				return fmt.Errorf("bad cite: line %d names %s twice", i+1, c)
+ 			}
+-			if m, why := f.citeMeaning(c); m == "" {
++			if m, why := f.citeMeaning(c); false && m == "" {
+ 				return fmt.Errorf("bad cite: line %d cites %s, which is not settled: %s; a cite is a line, an accepted or closed limit, an answered reading, or a selected or contradicted Hypothesis", i+1, f.citeDisplay(c), why)
+ 			}
+ 		}
+=== TestGoalLineCiteSettledWrite
+--- FAIL: TestGoalLineCiteSettledWrite (0.02s)
+    goal_lines_answer_test.go:190: exit 0 (want 1), stdout "G-KJXC3Z node.add\n  line G-KJXC3Z#1: builds on H\n", stderr "" (want "bad cite: line 1 cites H-AG2QFJ, which is not settled")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.391s
+FAIL
+exit: 1
+=== TestGoalLineCiteSettledReplay
+--- FAIL: TestGoalLineCiteSettledReplay (0.01s)
+    goal_lines_answer_test.go:210: replay does not reject the Goal add with an unsettled cite:
+        warn: G-HR3VH9#1 cites H-XE9JK1, which was  when the line was written and is unsettled now
+        check: 0 errors, 1 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.173s
+FAIL
+exit: 1

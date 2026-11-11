@@ -1,0 +1,29 @@
+# (b) L5b: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..d42d86f 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -406,7 +406,7 @@ func (f *Facts) validateAnswer(ev event.Event) error {
+ 	if err := decode(ev, &p); err != nil {
+ 		return err
+ 	}
+-	if len(p.Answers)+len(p.Accepts)+len(p.Returns) == 0 {
++	if false && len(p.Answers)+len(p.Accepts)+len(p.Returns) == 0 {
+ 		return errors.New("bad answer: empty; an answer settles at least one key")
+ 	}
+ 	for _, items := range [][]event.KeyText{p.Answers, p.Accepts, p.Returns} {
+=== TestEmptyAnswerRefusedWrite
+--- FAIL: TestEmptyAnswerRefusedWrite (0.01s)
+    goal_lines_answer_test.go:286: exit 0 (want 1), stdout "01M752KC37278EXBX42ST7C1FC answer\n", stderr "" (want "bad answer: empty; an answer settles at least one key")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.384s
+FAIL
+exit: 1
+=== TestEmptyAnswerRejectedReplay
+--- FAIL: TestEmptyAnswerRejectedReplay (0.01s)
+    goal_lines_answer_test.go:293: replay does not reject 01M752KCDNQXMA2D5MCCW505CF with "bad answer: empty; an answer settles at least one key":
+        check: 0 errors, 0 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.159s
+FAIL
+exit: 1

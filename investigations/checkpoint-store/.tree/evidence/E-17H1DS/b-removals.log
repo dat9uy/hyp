@@ -1,0 +1,167 @@
+# (b) L4a: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..06d502a 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -65,7 +65,7 @@ var rules = map[string]rule{
+ 							cites[i] = append(cites[i], Cite{Key: c, Meaning: m})
+ 						}
+ 					}
+-					st.LinesBy[ev.ID], st.LineCites[ev.ID] = ev.ID, cites
++					st.LineCites[ev.ID] = cites
+ 				}
+ 			}
+ 			if p.Kind == event.KindDesignQuestion {
+=== TestGoalLinesComeWithTheAddWrite
+--- FAIL: TestGoalLinesComeWithTheAddWrite (0.02s)
+    goal_lines_answer_test.go:168: write of checkpoint: err <nil>, want a refusal holding "bad lines: a Goal's lines come with its node.add"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.386s
+FAIL
+exit: 1
+=== TestGoalLinesComeWithTheAddReplay
+--- FAIL: TestGoalLinesComeWithTheAddReplay (0.01s)
+    goal_lines_answer_test.go:179: replay does not reject 01M752K872AYBFP0XHRT32CQ6V with "bad lines: a Goal's lines come with its node.add":
+        check: 0 errors, 0 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.174s
+FAIL
+exit: 1
+# (b) L4b: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/keyed.go b/internal/replay/keyed.go
+index 789c072..8870181 100644
+--- a/internal/replay/keyed.go
++++ b/internal/replay/keyed.go
+@@ -281,7 +281,7 @@ func (f *Facts) checkGoalLines(lines []event.GoalLine) error {
+ 			if slices.Contains(l.Cites[:j], c) {
+ 				return fmt.Errorf("bad cite: line %d names %s twice", i+1, c)
+ 			}
+-			if m, why := f.citeMeaning(c); m == "" {
++			if m, why := f.citeMeaning(c); false && m == "" {
+ 				return fmt.Errorf("bad cite: line %d cites %s, which is not settled: %s; a cite is a line, an accepted or closed limit, an answered reading, or a selected or contradicted Hypothesis", i+1, f.citeDisplay(c), why)
+ 			}
+ 		}
+=== TestGoalLineCiteSettledWrite
+--- FAIL: TestGoalLineCiteSettledWrite (0.02s)
+    goal_lines_answer_test.go:190: exit 0 (want 1), stdout "G-KJXC3Z node.add\n  line G-KJXC3Z#1: builds on H\n", stderr "" (want "bad cite: line 1 cites H-AG2QFJ, which is not settled")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.391s
+FAIL
+exit: 1
+=== TestGoalLineCiteSettledReplay
+--- FAIL: TestGoalLineCiteSettledReplay (0.01s)
+    goal_lines_answer_test.go:210: replay does not reject the Goal add with an unsettled cite:
+        warn: G-HR3VH9#1 cites H-XE9JK1, which was  when the line was written and is unsettled now
+        check: 0 errors, 1 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.173s
+FAIL
+exit: 1
+# (b) L5a: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..7e9cea9 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -353,7 +353,7 @@ var ownerFields = []string{"role", "closes", "revises", "accepts", "returns", "l
+ func checkCheckpointShape(p event.Checkpoint) error {
+ 	owner := map[string]bool{"role": p.Role != "", "closes": len(p.Closes) > 0, "revises": len(p.Revises) > 0,
+ 		"accepts": len(p.Accepts) > 0, "returns": len(p.Returns) > 0, "lines": len(p.Lines) > 0}
+-	if len(p.Refers) > 0 {
++	if false && len(p.Refers) > 0 {
+ 		for _, f := range ownerFields {
+ 			if owner[f] {
+ 				return fmt.Errorf("bad checkpoint: owner and runner fields never mix in one event: refers is the runner's and %s the owner's; the owner's acts are an answer", f)
+@@ -391,15 +391,15 @@ func (f *Facts) validateAnswer(ev event.Event) error {
+ 	var raw map[string]json.RawMessage
+ 	if err := json.Unmarshal(bytes.TrimSpace(ev.Payload), &raw); err == nil {
+ 		for _, k := range runnerFields {
+-			if _, ok := raw[k]; ok {
++			if _, ok := raw[k]; false && ok {
+ 				return fmt.Errorf("bad answer: owner and runner fields never mix in one event: %s is the runner's; an answer holds only answers, accepts and returns", k)
+ 			}
+ 		}
+ 	}
+-	if ev.Node != "" {
++	if false && ev.Node != "" {
+ 		return errors.New("bad answer: owner and runner fields never mix in one event: node is the runner's; an answer is on no node")
+ 	}
+-	if ev.Why != "" {
++	if false && ev.Why != "" {
+ 		return errors.New("bad answer: owner and runner fields never mix in one event: why is the runner's; the owner's reason is each item's text")
+ 	}
+ 	var p event.Answer
+=== TestOwnerAndRunnerFieldsNeverMixWrite
+--- FAIL: TestOwnerAndRunnerFieldsNeverMixWrite (0.03s)
+    goal_lines_answer_test.go:249: write of answer: err refused: bad payload: json: unknown field "refers", want a refusal holding "owner and runner fields never mix in one event"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.392s
+FAIL
+exit: 1
+=== TestOwnerAndRunnerFieldsNeverMixReplay
+--- FAIL: TestOwnerAndRunnerFieldsNeverMixReplay (0.02s)
+    goal_lines_answer_test.go:274: replay does not reject 01M752KB161QKCJ12KX1D9TW07 with "bad answer: owner and runner fields never mix in one event: refers is the runner's":
+        error: rejected 01M752KB161QKCJ12KX1D9TW07: bad payload: json: unknown field "refers"
+        check: 1 errors, 0 warnings
+        refused: check found 1 errors
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.176s
+FAIL
+exit: 1
+# (b) L5b: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..d42d86f 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -406,7 +406,7 @@ func (f *Facts) validateAnswer(ev event.Event) error {
+ 	if err := decode(ev, &p); err != nil {
+ 		return err
+ 	}
+-	if len(p.Answers)+len(p.Accepts)+len(p.Returns) == 0 {
++	if false && len(p.Answers)+len(p.Accepts)+len(p.Returns) == 0 {
+ 		return errors.New("bad answer: empty; an answer settles at least one key")
+ 	}
+ 	for _, items := range [][]event.KeyText{p.Answers, p.Accepts, p.Returns} {
+=== TestEmptyAnswerRefusedWrite
+--- FAIL: TestEmptyAnswerRefusedWrite (0.01s)
+    goal_lines_answer_test.go:286: exit 0 (want 1), stdout "01M752KC37278EXBX42ST7C1FC answer\n", stderr "" (want "bad answer: empty; an answer settles at least one key")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.384s
+FAIL
+exit: 1
+=== TestEmptyAnswerRejectedReplay
+--- FAIL: TestEmptyAnswerRejectedReplay (0.01s)
+    goal_lines_answer_test.go:293: replay does not reject 01M752KCDNQXMA2D5MCCW505CF with "bad answer: empty; an answer settles at least one key":
+        check: 0 errors, 0 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.159s
+FAIL
+exit: 1
+# (b) L5c: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..7e1df79 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -367,7 +367,7 @@ func checkCheckpointShape(p event.Checkpoint) error {
+ 			return textLimit("summary", p.Summary, 1, event.MaxText)
+ 		}
+ 	}
+-	if strings.TrimSpace(p.Summary) == "" && len(p.Refers) == 0 {
++	if false && strings.TrimSpace(p.Summary) == "" && len(p.Refers) == 0 {
+ 		return errors.New("bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
+ 	}
+ 	for _, it := range p.Refers {
+=== TestEmptyCheckpointRefusedWrite
+--- FAIL: TestEmptyCheckpointRefusedWrite (0.02s)
+    goal_lines_answer_test.go:299: exit 0 (want 1), stdout "G-Q7EMB5 checkpoint\n", stderr "" (want "bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.385s
+FAIL
+exit: 1
+=== TestEmptyCheckpointRejectedReplay
+--- FAIL: TestEmptyCheckpointRejectedReplay (0.01s)
+    goal_lines_answer_test.go:306: replay does not reject 01M752KDSVAXD7ZVS6MVCQMD2H with "bad checkpoint: empty; a checkpoint holds a summary, refers, or both":
+        check: 0 errors, 0 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.163s
+FAIL
+exit: 1

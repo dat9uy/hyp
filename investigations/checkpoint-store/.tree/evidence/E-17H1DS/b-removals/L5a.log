@@ -1,0 +1,50 @@
+# (b) L5a: one removal of its check, in a detached worktree of 12506ecb38acee308398bfc5a2b205fe3a304c61
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 10e1635..7e9cea9 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -353,7 +353,7 @@ var ownerFields = []string{"role", "closes", "revises", "accepts", "returns", "l
+ func checkCheckpointShape(p event.Checkpoint) error {
+ 	owner := map[string]bool{"role": p.Role != "", "closes": len(p.Closes) > 0, "revises": len(p.Revises) > 0,
+ 		"accepts": len(p.Accepts) > 0, "returns": len(p.Returns) > 0, "lines": len(p.Lines) > 0}
+-	if len(p.Refers) > 0 {
++	if false && len(p.Refers) > 0 {
+ 		for _, f := range ownerFields {
+ 			if owner[f] {
+ 				return fmt.Errorf("bad checkpoint: owner and runner fields never mix in one event: refers is the runner's and %s the owner's; the owner's acts are an answer", f)
+@@ -391,15 +391,15 @@ func (f *Facts) validateAnswer(ev event.Event) error {
+ 	var raw map[string]json.RawMessage
+ 	if err := json.Unmarshal(bytes.TrimSpace(ev.Payload), &raw); err == nil {
+ 		for _, k := range runnerFields {
+-			if _, ok := raw[k]; ok {
++			if _, ok := raw[k]; false && ok {
+ 				return fmt.Errorf("bad answer: owner and runner fields never mix in one event: %s is the runner's; an answer holds only answers, accepts and returns", k)
+ 			}
+ 		}
+ 	}
+-	if ev.Node != "" {
++	if false && ev.Node != "" {
+ 		return errors.New("bad answer: owner and runner fields never mix in one event: node is the runner's; an answer is on no node")
+ 	}
+-	if ev.Why != "" {
++	if false && ev.Why != "" {
+ 		return errors.New("bad answer: owner and runner fields never mix in one event: why is the runner's; the owner's reason is each item's text")
+ 	}
+ 	var p event.Answer
+=== TestOwnerAndRunnerFieldsNeverMixWrite
+--- FAIL: TestOwnerAndRunnerFieldsNeverMixWrite (0.03s)
+    goal_lines_answer_test.go:249: write of answer: err refused: bad payload: json: unknown field "refers", want a refusal holding "owner and runner fields never mix in one event"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.392s
+FAIL
+exit: 1
+=== TestOwnerAndRunnerFieldsNeverMixReplay
+--- FAIL: TestOwnerAndRunnerFieldsNeverMixReplay (0.02s)
+    goal_lines_answer_test.go:274: replay does not reject 01M752KB161QKCJ12KX1D9TW07 with "bad answer: owner and runner fields never mix in one event: refers is the runner's":
+        error: rejected 01M752KB161QKCJ12KX1D9TW07: bad payload: json: unknown field "refers"
+        check: 1 errors, 0 warnings
+        refused: check found 1 errors
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.176s
+FAIL
+exit: 1

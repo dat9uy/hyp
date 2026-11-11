@@ -1,0 +1,6 @@
+(b) one check removal per rule on 12506ec; each rule's write and replay test:
+L4a: TestGoalLinesComeWithTheAddWrite=fails; TestGoalLinesComeWithTheAddReplay=fails
+L4b: TestGoalLineCiteSettledWrite=fails; TestGoalLineCiteSettledReplay=fails
+L5a: TestOwnerAndRunnerFieldsNeverMixWrite=fails; TestOwnerAndRunnerFieldsNeverMixReplay=fails
+L5b: TestEmptyAnswerRefusedWrite=fails; TestEmptyAnswerRejectedReplay=fails
+L5c: TestEmptyCheckpointRefusedWrite=fails; TestEmptyCheckpointRejectedReplay=fails

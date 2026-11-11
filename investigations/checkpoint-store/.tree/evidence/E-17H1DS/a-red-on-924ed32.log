@@ -1,0 +1,111 @@
+# (a) red on 924ed32: 924ed32b93dd0a0632d363133c6479515d64c15f
+# copied alone: internal/cli/goal_lines_answer_test.go sha256 1ee81406bce842a4dbaca08136533c5d84e24e613154d14d96790f71b3c97336
+=== TestGoalLinesComeWithTheAddWrite
+--- FAIL: TestGoalLinesComeWithTheAddWrite (0.00s)
+    goal_lines_answer_test.go:164: goal with lines: exit 2, stderr "flag provided but not defined: -line\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.363s
+FAIL
+exit: 1
+=== TestGoalLinesComeWithTheAddReplay
+--- FAIL: TestGoalLinesComeWithTheAddReplay (0.00s)
+    goal_lines_answer_test.go:176: goal with lines: exit 2, stderr "flag provided but not defined: -line\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.152s
+FAIL
+exit: 1
+=== TestGoalLineCiteSettledWrite
+--- FAIL: TestGoalLineCiteSettledWrite (0.02s)
+    goal_lines_answer_test.go:190: exit 2 (want 1), stdout "", stderr "flag provided but not defined: -line\n" (want "bad cite: line 1 cites H-B9YBCP, which is not settled")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.180s
+FAIL
+exit: 1
+=== TestGoalLineCiteSettledReplay
+--- FAIL: TestGoalLineCiteSettledReplay (0.01s)
+    goal_lines_answer_test.go:210: replay does not reject the Goal add with an unsettled cite:
+        error: rejected 01M752HY3X02P89MA1J842QBT0: bad payload: json: unknown field "lines"
+        check: 1 errors, 0 warnings
+        refused: check found 1 errors
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.174s
+FAIL
+exit: 1
+=== TestOwnerAndRunnerFieldsNeverMixWrite
+--- FAIL: TestOwnerAndRunnerFieldsNeverMixWrite (0.01s)
+    goal_lines_answer_test.go:249: write of answer: err refused: unknown event type: "answer", want a refusal holding "owner and runner fields never mix in one event"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.164s
+FAIL
+exit: 1
+=== TestOwnerAndRunnerFieldsNeverMixReplay
+--- FAIL: TestOwnerAndRunnerFieldsNeverMixReplay (0.03s)
+    goal_lines_answer_test.go:274: replay does not reject 01M752HYRQ77XBDR3GJ6ZNNSTW with "bad answer: owner and runner fields never mix in one event: refers is the runner's":
+        error: rejected 01M752HYRQ77XBDR3GJ6ZNNSTW: unknown event type: "answer"
+        check: 1 errors, 0 warnings
+        refused: check found 1 errors
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.180s
+FAIL
+exit: 1
+=== TestEmptyAnswerRefusedWrite
+--- FAIL: TestEmptyAnswerRefusedWrite (0.01s)
+    goal_lines_answer_test.go:286: exit 2 (want 1), stdout "", stderr "usage: hyp <command> [flags]\n\nEvery write command needs --why and an actor (--actor or $HYP_ACTOR).\nStatuses are derived from events; no command can set one.\n\nsetup:\n  init                                   create .tree in the current directory\n  version                                print the hyp version\n\nwrite:\n  add goal --title T [--body B] [--alias A]\n  add dq   --parent REF --title T [--body B] [--alias A]\n  add hyp  --parent REF --title T [--body B] [--alias A] [--subject PATH]...\n  add exp  --parent REF --title T --recipe NAME@V|none [--rubric NAME@V|reading] [--records PATH]... [--target REF|none]... [--alias A]\n  record   --exp REF [--verdict REF=supports|contradicts|inconclusive]... --observation O [--evidence P]... [--limit L]... [--closes R#N]...\n  retract REF | abandon REF | reaffirm REF\n  supersede NEW --old OLD\n  amend HYP --body B                     revise a Hypothesis body\n  subject HYP PATH...                    tie a Hypothesis to the files that embody its claim, by sha256\n  link FROM depends_on|external_ref TO   unlink FROM TYPE TO\n  select DQ [HYP]                        admitted only when hyp status owes it (no HYP: print the suggestion only)\n  unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ\n  checkpoint --summary S [--goal G] [--refers K]... [--role owner [--accept K]... [--returns K]... [--closes R#rN]... [--revises R#rN]... [--line L]...]\n\nread (REF/TIME: an event id, a node ref, or an RFC3339 time):\n  status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals\n  show REF|R-id#n|G-id#n [--as-of REF|TIME]  one node, or one limit or line, in full, with its history\n  diff --since REF|TIME                       status changes and events since a point\n  render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated\n  check                                       rejected events, bad lines, warnings\n  signals [--json]                            design marks for the whole tree: one-rival, D1\n  events --json                               applied events in merge order, and rejected ones, as JSON for scripts\n\nbundle (a recipe in recipes/ or a rubric in rubrics/; a name lives in one library):\n  bundle hash DIR [--json]               the bundle hash add exp --recipe or --rubric records for DIR\n  bundle check                           every pin to a versioned bundle, in every tree under the repo root, still matches it\n  bundle new NAME@1 [--rubric]           write a first recipe, or with --rubric a first rubric, beside the nearest .tree/ from hyp's template; fill every hyp:placeholder\n  bundle new NAME@N --from NAME@M        copy bundle NAME@M to the next version NAME@N in its library, writing from:\n  bundle run --record DIR REF NAME [ARGS...]   run one Standalone command with no sandbox; exits with its exit code\n  bundle evidence --record DIR REF OUT_DIR     run recipe REF's Evidence commands on remove's OUT_DIR; exits with the failing one's code\n  bundle known-answers REF                     run every known-answers/NAME/ case of bundle REF, twice each; 1 on a wrong answer\n\nsandbox (a disposable clone under ~/.hyp-sandbox/ID for one Experiment):\n  sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--store SRC --cut EVENT] [--inputs FILE] [--hyp BIN]\n  sandbox drive ID                             run every recipe's Drive commands in the sandbox; exits with the failing one's code\n  sandbox remove ID OUT_DIR [--keep REL]... | sandbox remove ID --discard\n" (want "bad answer: empty; an answer settles at least one key")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.165s
+FAIL
+exit: 1
+=== TestEmptyAnswerRejectedReplay
+--- FAIL: TestEmptyAnswerRejectedReplay (0.01s)
+    goal_lines_answer_test.go:293: replay does not reject 01M752HZD5AKGRW4KYPPPTP8BC with "bad answer: empty; an answer settles at least one key":
+        error: rejected 01M752HZD5AKGRW4KYPPPTP8BC: unknown event type: "answer"
+        check: 1 errors, 0 warnings
+        refused: check found 1 errors
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.165s
+FAIL
+exit: 1
+=== TestEmptyCheckpointRefusedWrite
+--- FAIL: TestEmptyCheckpointRefusedWrite (0.01s)
+    goal_lines_answer_test.go:299: exit 2 (want 1), stdout "", stderr "missing --summary\n" (want "bad checkpoint: empty; a checkpoint holds a summary, refers, or both")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.159s
+FAIL
+exit: 1
+=== TestEmptyCheckpointRejectedReplay
+--- FAIL: TestEmptyCheckpointRejectedReplay (0.01s)
+    goal_lines_answer_test.go:306: replay does not reject 01M752J01PFNWW5JWQN2XF5F1Z with "bad checkpoint: empty; a checkpoint holds a summary, refers, or both":
+        error: rejected 01M752J01PFNWW5JWQN2XF5F1Z: missing field: summary
+        check: 1 errors, 0 warnings
+        refused: check found 1 errors
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.160s
+FAIL
+exit: 1
+=== TestGoalLineCiteChangeIsOnlyACheckWarning
+--- FAIL: TestGoalLineCiteChangeIsOnlyACheckWarning (0.02s)
+panic: runtime error: index out of range [0] with length 0 [recovered, repanicked]
+
+goroutine 5 [running]:
+testing.tRunner.func1.2({0x10098eb48, 0x5e607ec7e120})
+	/Users/datguy/.local/share/mise/installs/go/1.27.3/src/testing/testing.go:2125 +0x1a0
+testing.tRunner.func1()
+	/Users/datguy/.local/share/mise/installs/go/1.27.3/src/testing/testing.go:2128 +0x2c8
+panic({0x10098eb48?, 0x5e607ec7e120?})
+	/Users/datguy/.local/share/mise/installs/go/1.27.3/src/runtime/panic.go:859 +0x120
+github.com/dat9uy/hyp/internal/cli.TestGoalLineCiteChangeIsOnlyACheckWarning(0x5e607ebe2248)
+	/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/7354a078-364e-4951-8ce9-e33ec778230b/scratchpad/wt-base/internal/cli/goal_lines_answer_test.go:221 +0x654
+testing.tRunner(0x5e607ebe2248, 0x10099eeb8)
+	/Users/datguy/.local/share/mise/installs/go/1.27.3/src/testing/testing.go:2195 +0xc4
+created by testing.(*T).Run in goroutine 1
+	/Users/datguy/.local/share/mise/installs/go/1.27.3/src/testing/testing.go:2260 +0x3b8
+FAIL	github.com/dat9uy/hyp/internal/cli	0.166s
+FAIL
+exit: 1
+=== TestOneAnswerSettlesKeysOfTwoGoals
+--- FAIL: TestOneAnswerSettlesKeysOfTwoGoals (0.01s)
+    goal_lines_answer_test.go:318: one store holds many Goals, but Goal G2 was refused: exit 2, stderr "flag provided but not defined: -line\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.164s
+FAIL
+exit: 1

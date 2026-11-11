@@ -1,0 +1,99 @@
+# (e) step-1 two-Goal tests at 12506ecb38acee308398bfc5a2b205fe3a304c61, detached worktree
+# their file changed from 924ed32 only in how a Goal gets its lines (on its add, not an owner checkpoint, which the owner decision of 2026-11-11 retires); diff:
+diff --git a/internal/cli/two_goal_store_test.go b/internal/cli/two_goal_store_test.go
+index 4dadf3a..4c15b21 100644
+--- a/internal/cli/two_goal_store_test.go
++++ b/internal/cli/two_goal_store_test.go
+@@ -7,29 +7,6 @@ import (
+ 	"testing"
+ )
+ 
+-// goalLines writes Goal g's lines as owner o and returns their keys. It
+-// names the Goal with --goal only when named is set: a store with one Goal
+-// needs no --goal.
+-func goalLines(t *testing.T, g, o string, named bool, texts ...string) []string {
+-	t.Helper()
+-	args := []string{"checkpoint", "--summary", "the lines", "--role", "owner", "--actor", o, "--why", "w"}
+-	if named {
+-		args = append(args, "--goal", g)
+-	}
+-	for _, l := range texts {
+-		args = append(args, "--line", l)
+-	}
+-	r := hyp(t, args...)
+-	if r.code != 0 {
+-		t.Fatalf("lines of %s: exit %d, stderr %q", g, r.code, r.stderr)
+-	}
+-	keys := make([]string, len(texts))
+-	for i := range texts {
+-		keys[i] = g + "#" + string(rune('1'+i))
+-	}
+-	return keys
+-}
+-
+ // goalBlock is the part of status output that belongs to Goal g: from its
+ // GOAL line up to the next GOAL line or AWAITING OWNER.
+ func goalBlock(t *testing.T, out, g string) string {
+@@ -53,17 +30,15 @@ func goalBlock(t *testing.T, out, g string) string {
+ // one Goal is never owed on the other Goal's question, and a Result that
+ // covers one Goal's candidate leaves the other Goal's line owed.
+ func TestTwoGoalStoreAdmitsASecondGoalWrite(t *testing.T) {
+-	_, g1, q1 := setup(t)
+-	r := hyp(t, "add", "goal", "--title", "G2", "--why", "a second purpose")
+-	if r.code != 0 {
+-		t.Fatalf("one store holds many Goals, but a second Goal was refused: exit %d, stderr %q", r.code, r.stderr)
+-	}
+-	g2 := strings.Fields(r.stdout)[0]
++	t.Chdir(t.TempDir())
++	t.Setenv("HYP_ACTOR", "a")
++	must(t, "init")
++	g1, k1 := addGoal(t, "G", "o", "one tenant per row")
++	q1 := must(t, "add", "dq", "--parent", g1, "--title", "Q", "--why", "ask")
++	g2, k2 := addGoal(t, "G2", "o", "survives a region outage")
+ 	q2 := must(t, "add", "dq", "--parent", g2, "--title", "Q2", "--why", "ask")
+ 
+ 	want(t, hyp(t, "checkpoint", "--summary", "s", "--why", "w"), 2, "missing --goal: the store holds 2 Goals")
+-	k1 := goalLines(t, g1, "o", true, "one tenant per row")
+-	k2 := goalLines(t, g2, "o", true, "survives a region outage")
+ 	if k1[0] == k2[0] {
+ 		t.Fatalf("both Goals' first lines have key %s", k1[0])
+ 	}
+@@ -109,9 +84,9 @@ func buildGoalStore(t *testing.T, dir, a, o, title, line string) (g, key string)
+ 	t.Chdir(dir)
+ 	t.Setenv("HYP_ACTOR", a)
+ 	must(t, "init")
+-	g = must(t, "add", "goal", "--title", title, "--why", "start")
++	g, keys := addGoal(t, title, o, line)
+ 	q := must(t, "add", "dq", "--parent", g, "--title", "Q of "+title, "--why", "ask")
+-	key = goalLines(t, g, o, false, line)[0]
++	key = keys[0]
+ 	supported(t, q, "H of "+title)
+ 	return g, key
+ }
+@@ -165,10 +140,13 @@ func TestTwoGoalStoreReplaysEachGoalAsItsOwn(t *testing.T) {
+ // A line one Goal refers to the owner holds only that Goal's selects: a
+ // question of another Goal is not made to wait on it.
+ func TestTwoGoalStoreReferredLineHoldsOnlyItsGoal(t *testing.T) {
+-	_, g1, _ := setup(t)
+-	g2 := strings.Fields(hyp(t, "add", "goal", "--title", "G2", "--why", "a second purpose").stdout)[0]
++	t.Chdir(t.TempDir())
++	t.Setenv("HYP_ACTOR", "a")
++	must(t, "init")
++	g1, k1 := addGoal(t, "G", "o", "one tenant per row")
++	must(t, "add", "dq", "--parent", g1, "--title", "Q", "--why", "ask")
++	g2, _ := addGoal(t, "G2", "o")
+ 	q2 := must(t, "add", "dq", "--parent", g2, "--title", "Q2", "--why", "ask")
+-	k1 := goalLines(t, g1, "o", true, "one tenant per row")
+ 	must(t, "checkpoint", "--goal", g1, "--refers", k1[0], "--summary", "no test can run it", "--why", "w")
+ 	h2 := supported(t, q2, "H2")
+ 	want(t, hyp(t, "select", q2, h2, "--why", "w"), 0, "")
+$ go test ./internal/cli -count=1 -run ^TestTwoGoalStore -v
+=== RUN   TestTwoGoalStoreAdmitsASecondGoalWrite
+--- PASS: TestTwoGoalStoreAdmitsASecondGoalWrite (0.05s)
+=== RUN   TestTwoGoalStoreReplaysEachGoalAsItsOwn
+--- PASS: TestTwoGoalStoreReplaysEachGoalAsItsOwn (0.03s)
+=== RUN   TestTwoGoalStoreReferredLineHoldsOnlyItsGoal
+--- PASS: TestTwoGoalStoreReferredLineHoldsOnlyItsGoal (0.02s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.228s
+exit: 0
