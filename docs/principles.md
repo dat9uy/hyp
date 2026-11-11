@@ -10,7 +10,10 @@ the link wins. The words are the [glossary](glossary.md)'s.
 **An investigation stays legible to a later reader, and a decision is admitted
 only when the work it rests on is done.** The later reader may be the owner, a
 new session or another agent. They read the tree, not a chat, and they find in
-it what was claimed, what ran, what failed and what is still owed.
+it what was claimed, what ran, what failed and what is still owed. Deciding
+a design and building it are both Goals, a discovery Goal and a build Goal,
+kept and gated the same way; hyp stores no kind
+([ADR 0020](adr/0020-one-store-holds-many-goals.md)).
 
 ## 2. The log is the truth; everything else is derived
 
