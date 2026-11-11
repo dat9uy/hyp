@@ -161,3 +161,15 @@ func TestTwoGoalStoreReplaysEachGoalAsItsOwn(t *testing.T) {
 		}
 	}
 }
+
+// A line one Goal refers to the owner holds only that Goal's selects: a
+// question of another Goal is not made to wait on it.
+func TestTwoGoalStoreReferredLineHoldsOnlyItsGoal(t *testing.T) {
+	_, g1, _ := setup(t)
+	g2 := strings.Fields(hyp(t, "add", "goal", "--title", "G2", "--why", "a second purpose").stdout)[0]
+	q2 := must(t, "add", "dq", "--parent", g2, "--title", "Q2", "--why", "ask")
+	k1 := goalLines(t, g1, "o", true, "one tenant per row")
+	must(t, "checkpoint", "--goal", g1, "--refers", k1[0], "--summary", "no test can run it", "--why", "w")
+	h2 := supported(t, q2, "H2")
+	want(t, hyp(t, "select", q2, h2, "--why", "w"), 0, "")
+}
