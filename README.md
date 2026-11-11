@@ -1,18 +1,33 @@
 # hyp
 
-hyp keeps an agent's investigation as a hypothesis tree: append-only events, statuses derived from them, and skills that any agent harness able to load a `SKILL.md` can use.
+hyp keeps an agent's work toward a Goal as a hypothesis tree: append-only events, statuses derived from them, and skills that any agent harness able to load a `SKILL.md` can use. The work may be deciding a design or building it. Both are Goals, kept and gated the same way.
 
 ## The problem
 
 An agent that investigates a design question usually keeps its account in prose: notes, plans, reports. The account grows until nobody reads it. It loses which hypothesis started the work, which experiment ruled out which answer, and why the answer changed. A new session cannot tell what is decided and what is still open, so it starts again or trusts a summary it cannot check.
 
+Building has the same gap. An agent reports "done" in its own words. Which commit was tested, which check failed before the change and passed after it, and what the review found are spread across a chat that the next session never sees.
+
+## Two kinds of Goal
+
+A Goal is what the work is for, and the owner writes its lines: the cases every candidate must meet. What the candidate is decides the kind of Goal.
+
+| | Discovery Goal | Build Goal |
+|---|---|---|
+| **The candidate** | a claim: what to build, or why something behaves as it does | a commit |
+| **Rivals** | Hypotheses that answer a DesignQuestion, run against each other | each commit is a Hypothesis; a fix supersedes it |
+| **A line** | a case a check can run on every candidate | one property of the commit, decided by its tests or one pinned instrument |
+| **An Experiment** | separates the rivals, often from a pinned recipe and rubric | shows red on the base and green on the commit |
+
+hyp stores no kind. The same events, refusals and ledger serve both, and one store holds many Goals, so a build Goal can cite what a discovery Goal decided. A change to hyp's own skills is a build Goal too. [glossary.md](docs/glossary.md) defines both words.
+
 ## How hyp works
 
-- **Rival answers, side by side.** Each design question gets at least two rival Hypotheses as siblings. A refinement is a new sibling that supersedes the old one, so the lineage stays visible.
+- **Rival answers, side by side.** In a discovery Goal, each design question gets at least two rival Hypotheses as siblings. A refinement is a new sibling that supersedes the old one, so the lineage stays visible.
 - **Experiments with rules written first.** An Experiment states its verdict rule before it runs, and can run from a versioned, hash-pinned recipe, so the same procedure can be run again and checked.
 - **Statuses are derived, never typed.** Every write is an event in an append-only log under `.tree/`, committed with the work. `supported`, `contradicted`, `stale` and `answered` are computed from those events; no command can set one, and a changed mind is a new event, never an edit.
 - **The Goal's lines are the owner's.** The owner writes the cases every candidate must meet once, as the Goal's lines. A line is owed on each question until a Result that ran its case covers every candidate there, and `hyp status` shows each line as covered or uncovered.
-- **A limit is the next case to run.** A Result records what its run did not cover. A later Result closes it by running the case, and a case no test within the Goal can run goes to the owner. A requirement the Goal lacks is a new Goal, so a new tree that cites this one.
+- **A limit is the next case to run.** A Result records what its run did not cover. A later Result closes it by running the case, and a case no test within the Goal can run goes to the owner. A requirement the Goal lacks is a new Goal, which may sit in the same store and cite this one's keys.
 - **Every decision is owed first.** hyp admits a select only when its ledger owes it, so a question is answered only once the open work on it is done.
 
 ### Who does what
@@ -37,9 +52,13 @@ hyp's way of running an Experiment starts from pstack's [`create-verification-sk
 - **A verdict rule written first.** Each Experiment states, before it runs, which outcome gives which verdict ("Verdict rule" in [glossary.md](docs/glossary.md)).
 - **Rivals and a gate.** Each Experiment tests rival Hypotheses in a tree, and a select is admitted only when the ledger owes it ("Rival", "Select" and "Owed" in [glossary.md](docs/glossary.md)).
 
-## An example
+## Examples
 
-hyp's own design is decided this way. The tree `investigations/id-citation` settled which rule stops a write command from appending text that cites an id that is no node. Its one Result, R-BV4CWV, supported three rivals and contradicted the fourth, and the owner selected among the three as a trade-off. `hyp status` in that directory:
+hyp's own design is decided and built this way. Both trees below are in this repository; run `hyp status` in their directory to see the same output.
+
+### A discovery Goal
+
+The tree `investigations/id-citation` settled which rule stops a write command from appending text that cites an id that is no node. Its one Result, R-BV4CWV, supported three rivals and contradicted the fourth, and the owner selected among the three as a trade-off. `hyp status` in that directory:
 
 ```text
 GOAL G-4S36M5 A write command never appends text that cites a node id thi… — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
@@ -77,6 +96,23 @@ children:
 Four rivals were written down before anything ran, including a null rival that said no change was needed. One Experiment tested all four and contradicted only the null. Because the evidence could not choose among the other three, the select is marked as a trade-off the owner made, and the owner's choice ended it.
 
 The tree was recorded with an earlier hyp, and its log keeps what that hyp wrote: a verifier confirmed every select, and the owner's confirm accepted the Result's limits. Both are history. Today the select is the gate, with no verifier ([ADR 0015](docs/adr/0015-the-select-is-the-gate.md)), and the owner accepts a limit only after the runner refers it. A log is never rewritten, so the same events replay the same way.
+
+### A build Goal
+
+`investigations/checkpoint-store-design` recorded the design of the shared store as a discovery Goal, four DesignQuestions the owner settled in a session. `investigations/checkpoint-store` then built it as a build Goal, G-D1CH1R, whose candidate is a hyp commit. Its owner wrote nine lines, eight of them marked `[P]` or `[N]`. `hyp status` there (lines shortened):
+
+```text
+GOAL G-D1CH1R hyp implements the shared store: one store holds many Goals — complete (answered 1, ...)
+LINES
+  G-D1CH1R#1 covered on Q-PC04ED; ran in R-Q7ZZW8, ..., R-RRYBPH — [P] A sto…
+  G-D1CH1R#2 covered on Q-PC04ED; ran in R-Q7ZZW8, ..., R-RRYBPH — [N] In a …
+  ...
+  G-D1CH1R#9 accepted by owner-dat; uncovered on Q-PC04ED: H-P4YGE2 — Each negative-space line has a test pair: …
+OWED
+  runner owes nothing: stop and report to the owner
+```
+
+The one question, Q-PC04ED, asks which commit implements the design. Each commit the runs made is a Hypothesis tied to its base and change, and each fix supersedes the one before: eleven, from `e8dd17c`, whose test failed on the base for the wrong reason and was contradicted, to `4047c01`, which was selected. A self-review in the run recorded its findings as limits of a Result, and later commits closed them. The owner accepted line 9, a fact about history that no test of the commit can assert, and the select was admitted once nothing else was owed.
 
 ## Get started
 
@@ -123,15 +159,23 @@ Your answers later are `hyp answer` events under the same name, for example `hyp
 
 From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. When `hyp status` lists something under AWAITING OWNER, it is yours to answer. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
 
+### The owner flow: grill, run, answer
+
+For a Goal you want run unattended, discovery or build, three skills split the work. They run in Claude Code, whose `/goal` command keeps a session going until its condition holds.
+
+1. **`/hyp-owner-grill`** questions you about the purpose until it is a Goal a run can finish. It looks up the facts itself, sends questions a run could test to DesignQuestions with rivals, derives the lines from what must and must never happen, splits purposes that need different candidates into separate Goals, and records your writes only after you approve them. It ends with a `/goal` prompt.
+2. **`/goal <that prompt>`** runs the Goal with the `hyp-goal-run` skill. The run does only what OWED says it owes, tests before it asks, and stops with a report you can read from `hyp status`.
+3. **`/hyp-owner-answer`** walks you through what the stopped run left under AWAITING OWNER, explains each item and records only your answers. The next `/goal` run picks up from there.
+
 To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-hyp).
 
 ## What is in this repository
 
-What you install is **core**: the binary (`cmd/`, `internal/`), the skills (`skills/`) and the docs (`docs/`). The **self-review** recipes this repository keeps to test hyp, and the trees in which parts of hyp's own design were decided, are kept under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
+What you install is **core**: the binary (`cmd/`, `internal/`), the skills (`skills/`) and the docs (`docs/`). The **self-review** recipes this repository keeps to test hyp, and the trees in which parts of hyp's own design were decided and built, are kept under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
 
 ## Status
 
-hyp is experimental (version 0.1.0, event format v1). One author builds and tests it. Claude Code is the only harness it has been verified on; Codex and pi are untested. The evidence that it works is the trees under `investigations/`, each a recorded investigation with its verdicts and owner choices. Records made before the public release stay in the private development history. hyp itself changes only when a real investigation shows a failure, and a change to the skills must pass a replay of the session where the failure happened.
+hyp is experimental (version 0.1.0, event format v1). One author builds and tests it. Claude Code is the only harness it has been verified on; Codex and pi are untested. The evidence that it works is the trees under `investigations/`, each a recorded investigation with its verdicts and owner choices. Records made before the public release stay in the private development history. hyp itself changes only when a real investigation shows a failure. A change to the binary or the skills is then a build Goal like any other.
 
 ## Contributing
 
