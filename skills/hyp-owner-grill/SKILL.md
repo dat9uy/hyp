@@ -1,5 +1,5 @@
 ---
-name: hyp-owner-goal
+name: hyp-owner-grill
 description: "Grill the owner about a purpose until it is a hyp Goal a /goal run can finish: route each question (owner-only into a line, rivals a run could separate into a DesignQuestion, facts looked up), derive the lines from positive and negative space, split purposes into separate Goals, and record the owner's writes only on their approval. Use before a /goal run, when the owner wants to write a new Goal; running a Goal is hyp-goal-run, answering a stopped run is hyp-owner-answer."
 disable-model-invocation: true
 argument-hint: "[the purpose, an issue or a design to turn into a Goal]"
