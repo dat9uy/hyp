@@ -1,0 +1,60 @@
+Goal G-D1CH1R
+alias: goal
+title: hyp implements the shared store: one store holds many Goals
+body: Builds the design recorded in checkpoint-store-design:G-73R704 (selects on checkpoint-store-design-D906CD, checkpoint-store-design-HC4V9T, checkpoint-store-design-H8PJ20, checkpoint-store-design-R21S8R). Every decision is selected there with session e6a35a24 as evidence, and ADR 0020 cites those Results. The candidate is a hyp commit; go test on its base and on the candidate is the instrument. Two-Goal stores land first, so lines 2, 6 and 7 are red on that commit's parent.
+
+May change: this repository, in commits on the branch the prompt names that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong. The run may push that branch to update its PR, and never merges it.
+Read only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.
+Never: commit to main.
+Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.
+Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.
+Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.
+line G-D1CH1R#1 covered on Q-PC04ED; ran in R-Q7ZZW8, R-M2PZ8N, R-872FV1, R-YWCB7C, R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [P] A store holding one Goal prints byte-identical `hyp status` and `hyp check` output for id-citation and recipe-base on C and on 33896ec.
+line G-D1CH1R#2 covered on Q-PC04ED; ran in R-Q7ZZW8, R-M2PZ8N, R-872FV1, R-YWCB7C, R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [N] In a store with two Goals, one Goal's OWED, lines and coverage never include the other Goal's items, and each equals what its own events give in a store of their own.
+line G-D1CH1R#3 covered on Q-PC04ED; ran in R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [N] A Result keeps one subject per cited run, and a run at B plus a patch never covers a Hypothesis whose subject is bare B.
+line G-D1CH1R#4 covered on Q-PC04ED; ran in R-872FV1, R-YWCB7C, R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [N] A Goal's lines come with its node.add. A cite not settled when written is refused with exit 1, and a later change in the cited key's state is only a hyp check warning.
+line G-D1CH1R#5 covered on Q-PC04ED; ran in R-872FV1, R-YWCB7C, R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [N] One answer may settle keys of two Goals. Owner and runner fields never mix in one event, and an empty answer or checkpoint is refused.
+line G-D1CH1R#6 covered on Q-PC04ED; ran in R-YWCB7C, R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [N] A refer, aim, close or apply whose key leads to another Goal is refused with exit 1.
+line G-D1CH1R#7 covered on Q-PC04ED; ran in R-YWCB7C, R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [N] In a two-Goal store, the move tables and OWED never disagree on whose hand an item is in, except the two named asymmetries.
+line G-D1CH1R#8 covered on Q-PC04ED; ran in R-YWCB7C, R-A4FZG7, R-CX1G1C, R-7XVMDC, R-Q9WTZB, R-KBW141, R-P1M8A8 — [P] hyp status G-... prints one Goal, and hyp status in a store with many Goals prints a GOALS table and one Awaiting owner list.
+line G-D1CH1R#9 accepted by owner-dat; uncovered on Q-PC04ED: H-71PQR7 — Each negative-space line has a test pair: a refused write, and a rejected replay of a log holding the forbidden event. Each half fails on the commit before its own change with a message naming its rule, and passes on C.
+path: G-D1CH1R
+status: in_progress
+edge out: external_ref checkpoint-store-design:G-73R704
+children:
+  Q-PC04ED (q-commit) open/supported_unselected Which hyp commit implements the shared-store design?
+history:
+  2026-11-11 09:11 claude-g1-1 node.add G-D1CH1R — Owner, 2026-11-11: split G1; this tree is the build (G1b). The owner writes its lines.
+  2026-11-11 09:11 claude-g1-1 edge.add G-D1CH1R — The design this Goal builds (G1a).
+  2026-11-11 09:17 owner-dat checkpoint G-D1CH1R — The owner writes the build Goal's lines.
+    summary: G1b's lines, accepted in session e6a35a24 (2026-11-11).
+  2026-11-11 09:53 claude-g1b-1 checkpoint G-D1CH1R — The /goal stop clauses for step 1 hold; R-Q7ZZW8 contradicted e8dd17c on a test defect that d775c46 fixes.
+    summary: Stopped: a Result on the candidate closed G-D1CH1R#1 and #2 (R-M2PZ8N on d775c46, branch feat/two-goal-store), and every runner item under OWED is a line a later step builds (#3 to #9). Waiting for the owner: none under AWAITING OWNER; the branch awaits review.
+  2026-11-11 10:33 claude-g1b-2 checkpoint G-D1CH1R — The /goal stop clauses for step 2 hold; E-17H1DS ran its pre-registered rule and supports H-ZPKKXG.
+    summary: Stopped: a Result on the candidate closed G-D1CH1R#1, #2, #4 and #5 (R-872FV1 on 12506ec, branch feat/goal-lines-and-answer), and every runner item under OWED is a line a later step builds (#3, #6 to #9). Waiting for the owner: none under AWAITING OWNER; the branch awaits review.
+  2026-11-11 11:46 claude-g1b-3 checkpoint G-D1CH1R — The /goal stop clauses for step 3 hold; E-CM3SCT ran its pre-registered rule and supports H-4HMM6A.
+    summary: Stopped: a Result on the candidate closed G-D1CH1R#1, #2, #4, #5, #6, #7 and #8 (R-YWCB7C on fe621cb, branch feat/cross-goal-moves-and-status), and every runner item under OWED is a line a later step builds (#3, #9). Waiting for the owner: none under AWAITING OWNER; the branch awaits review.
+  2026-11-11 13:21 claude-g1b-4 checkpoint G-D1CH1R — Puts the owner's stated accept of #9 in the owner's hand so it can be recorded.
+    summary: 
+    refers: G-D1CH1R#9 — The owner's /goal prompt for step 4 says #9 is accepted, but the log holds no accept of it, and hyp admits an accept only of a referred limit. This run did not run #9's red-on-base pairs on 7257753 because the prompt aims it at #1 to #8 only.
+  2026-11-11 13:26 claude-g1b-4 checkpoint G-D1CH1R — Two review findings are outside this run's lines: one is #9's case, one is a meaning of ADR 0020 the owner decides.
+    summary: 
+    refers: R-0HABWN#2 — Its case is line G-D1CH1R#9's red-on-parent pair for line 3, and #9 is referred to the owner, who stated in the /goal prompt that #9 is accepted; this run's lines are #1 to #8.
+    refers: R-0HABWN#7 — Line #3 names only a patch; ADR 0020 says what is given over a base is a patch and input files, so a run at B with inputs is not bare B. Whether inputs should count is an owner choice of ADR meaning that no test within the Goal can decide.
+  2026-11-11 13:31 claude-g1b-4 checkpoint G-D1CH1R — The /goal stop clause 'cannot take the next step honestly' holds: OWED owes the runner nothing and the select waits on the owner.
+    summary: Stopped: the select on Q-PC04ED cannot be taken honestly; it waits on three referred limits only the owner settles. R-CX1G1C on 3ec4979 (branch feat/one-subject-per-run) closed G-D1CH1R#1 to #8 and review findings R-0HABWN#1, #3 to #6. Waiting for the owner: G-D1CH1R#9, R-0HABWN#2, R-0HABWN#7.
+  2026-11-11 13:37 owner-dat answer
+    accepts: G-D1CH1R#9 — Accepted: red on the commit before is a rule for how a run gathers evidence, not a case of this Goal's code; the Goal for the run procedure carries it as the rule-removal check.
+    accepts: R-0HABWN#2 — Accepted for the same reason as G-D1CH1R#9: failing on the commit before is a fact of history, not of this code.
+    returns: R-0HABWN#7 — Line 3 separates only a patch, which changes the code; an input file is data given to the code, so a run at B with inputs covers a Hypothesis whose subject is bare B. Run this case.
+  2026-11-11 13:59 claude-g1b-5 checkpoint G-D1CH1R — Three review findings no test within this Goal's lines can close.
+    summary: 
+    refers: R-9SMRB2#4 — ADR 0020 is the owner's decision record. This run may change only the spec, glossary and principles text it names, so amending the ADR's {base, files} notation to {base, patch, files} is the owner's edit.
+    refers: R-9SMRB2#5 — Void for every candidate: no log in this repository holds a Result with a subjects field from 7257753 or 3ec4979 (grep of every investigations/*/.tree/events); those commits are unmerged heads of PR #132, so no store has their format.
+    refers: R-9SMRB2#7 — Outside line 3: a sandbox record names its base and Arms and no control run, so no cited record holds a bare-B control; whether a control build counts as a cited run is a new line, a new Goal for the owner.
+  2026-11-11 14:18 claude-g1b-5 checkpoint G-D1CH1R — The /goal stop clause 'cannot take the next step honestly' holds: OWED owes the runner nothing and the select waits on the owner; 4 Experiments ran this goal.
+    summary: Stopped: the select on Q-PC04ED cannot be taken honestly; it waits on three referred limits only the owner settles. R-7XVMDC on 0cda2f8 ran the owner's reading of R-0HABWN#7 and closed it; two fresh reviews followed, and R-P1M8A8 on b80d95d (branch feat/one-subject-per-run) closed G-D1CH1R#1 to #8 and R-3EN4FB#1 to #4, after R-KBW141 on cbd734a closed R-9SMRB2#1, #2, #3, #6. Waiting for the owner: R-9SMRB2#4, R-9SMRB2#5, R-9SMRB2#7.
+  2026-11-11 14:31 owner-dat answer
+    accepts: R-9SMRB2#5 — Void: no store holds a Result from 7257753 or 3ec4979; those formats lived only on the unmerged branch.
+    accepts: R-9SMRB2#7 — Not this Goal's case: whether a sandbox's bare control counts as a run is a new line, for a new Goal under #114.
+    returns: R-9SMRB2#4 — Amend ADR 0020's subject notation to {base, patch, files} to match the code, spec and glossary, naming this answer in the commit.

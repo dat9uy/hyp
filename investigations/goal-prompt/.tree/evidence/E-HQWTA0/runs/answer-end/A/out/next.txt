@@ -1,0 +1,11 @@
+Use the hyp-goal-run skill (read its SKILL.md under the skills directory of this run) to run the tree at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/runs/answer-end/A/work/investigations/checkpoint-store as an unattended discovery /goal for Goal G-D1CH1R. Runner actor: claude-g1b-6. Use the hyp binary on PATH in .../A/bin, after export PATH=.../A/bin:$PATH.
+
+Branch: feat/one-subject-per-run. PR: 132. Commit on that branch and push it to update PR 132. Never merge it, and never commit to main.
+
+Work: the owner returned R-9SMRB2#4 with this answer: "Amend ADR 0020's subject notation to {base, patch, files} to match the code, spec and glossary, naming this answer in the commit." Apply it. Make the ADR 0020 edit, and check that the spec, glossary and principles text you may change says the same notation. Name the owner's answer in the commit message. Do not edit any other ADR. Then act on each limit line under OWED, and apply each answer by the Reassess steps of hyp-goal-run. Do not change the Goal, its lines or its met rule. Do not record any owner act.
+
+Stop when either holds:
+1. R-9SMRB2#4 is closed by a Result that applies the owner's answer, and OWED owes the runner nothing except a select the Question's candidates allow. Then record the select only if OWED lists it.
+2. The next step cannot be taken honestly. Then record the runner checkpoint that the skill's Stop section gives, with the keys under AWAITING OWNER.
+
+Print hyp status at the end of every turn, and repeat the checkpoint in your last message.

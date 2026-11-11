@@ -1,0 +1,5 @@
+Purpose: hyp prints a warning when a recipe pins a binary by the commit it was built from, not by its sha256. A commit names a source tree, not the bytes that run, so a recipe that pins one cannot be reproduced from its pin alone. The warning tells the author to pin the binary's sha256 instead.
+
+May change: the hyp repository, in commits on one local branch, with a PR opened for that branch and never merged; and the texts the change makes wrong.
+Read only: plans/ and every investigations/ tree.
+Never: replace the installed hyp; edit recipes/; write under the owner's actor.

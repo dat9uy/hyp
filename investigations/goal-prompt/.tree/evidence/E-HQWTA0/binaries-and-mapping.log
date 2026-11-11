@@ -1,0 +1,24 @@
+candidate binary (built from 10566d4 worktree):
+7b324ea7d83b2fb5c0812e63ec155fcd1883ea1cc60495a37fdd9133e4dcf5d2  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/bin-cand/hyp
+hyp 0.1.0 (events v1) 10566d42722a
+original binary (built from 2881e7d worktree; -dirty because prompt_test.go and testdata were copied in for the red run; test files do not enter the binary):
+ee2b0888734d6837a81923bc38984eaf65ed36a307059b2a85d730a3c8b4adf4  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/bin-orig/hyp
+hyp 0.1.0 (events v1) 2881e7df4e76-dirty
+installed hyp used to write the tree (not replaced):
+5659ab145d3c6e832ee4d997dff28595061c826530cd37dbc35afed32e5dd069  /Users/datguy/.local/bin/hyp
+
+blind mapping:
+{
+ "l6-run6-clauses/B": "original",
+ "l6-run6-clauses/A": "candidate",
+ "grill-handoff/A": "original",
+ "grill-handoff/B": "candidate",
+ "grill-body/B": "original",
+ "grill-body/A": "candidate",
+ "answer-end/A": "original",
+ "answer-end/B": "candidate",
+ "goal-run-plan/A": "original",
+ "goal-run-plan/B": "candidate"
+}
+evals file:
+6d65ff69dde701b9a929a4b4df4fbcf02a814520fd80fc9d59230642fdb3bc93  /Users/datguy/codingProjects/tree-based-agent-memory/investigations/goal-prompt/evals/goal-prompt-evals.json

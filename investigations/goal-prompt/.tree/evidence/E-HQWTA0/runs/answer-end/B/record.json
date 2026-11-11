@@ -1,0 +1,26 @@
+{
+  "run_id": "answer-end-B",
+  "variant": "B",
+  "model": "claude-haiku-5-5",
+  "runtime": "claude-code",
+  "status": "completed",
+  "tokens": null,
+  "duration_ms": null,
+  "tool_calls": null,
+  "corrections": null,
+  "case_id": "answer-end",
+  "split": "train",
+  "skill_sha256": "e1c358fd0f61aa2352617be35d0c9b9aa56b08065e91b1732f194ab9ce254045",
+  "checks": [
+    {
+      "id": "exact-prompt",
+      "passed": true,
+      "evidence": "text-contains: next.txt: pass"
+    },
+    {
+      "id": "no-answer",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+== removal 1: hyp prompt no longer refuses an invalid block
+ internal/cli/prompt.go | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+    prompt_test.go:127: hyp prompt on body "Builds the design.": exit 0 (want 1), stdout "/goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-KM9EMH: read it with hyp show G-KM9EMH, read hyp status G-KM9EMH, and name --goal G-KM9EMH on every hyp checkpoint.\nDone when the latest printed hyp status G-KM9EMH shows \"runner owes nothing: stop and report to the owner\" under OWED, or 5 Results have been recorded under r, or you cannot take the next step honestly and say why.\n" (want empty), stderr "" (want "the Goal body has no constraints block: no line starts with \"May change:\", \"Read only:\" or \"Never:\"")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.370s
+FAIL
+exit 1
+== removal 2: hyp add goal no longer warns
+ internal/cli/write.go | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+    prompt_test.go:122: hyp add goal on body "May change: the code.\nNever: merge.": warned false, want true; stderr ""
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.368s
+FAIL
+exit 1
+restored

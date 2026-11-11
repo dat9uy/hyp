@@ -1,0 +1,10 @@
+/goal Run the hyp tree in investigations/checkpoint-store with the hyp-goal-run skill, as HYP_ACTOR=claude-g1b-6. Its Goal is G-D1CH1R: read it with hyp show G-D1CH1R, read hyp status G-D1CH1R, and name --goal G-D1CH1R on every hyp checkpoint.
+Done when the latest printed hyp status G-D1CH1R shows "runner owes nothing: stop and report to the owner" under OWED, or 5 Results have been recorded under claude-g1b-6, or you cannot take the next step honestly and say why.
+May change: this repository, in commits on the branch the prompt names that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong. The run may push that branch to update its PR, and never merges it.
+Read only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.
+Never: commit to main.
+Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.
+Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.
+Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.
+Commit on the branch feat/one-subject-per-run.
+The run's PR is #132.

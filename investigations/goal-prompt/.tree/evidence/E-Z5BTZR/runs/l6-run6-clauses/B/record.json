@@ -1,0 +1,156 @@
+{
+  "run_id": "e3-l6-run6-clauses-B",
+  "variant": "B",
+  "model": "none-binary-output",
+  "runtime": "claude-code",
+  "status": "completed",
+  "tokens": null,
+  "duration_ms": null,
+  "tool_calls": null,
+  "corrections": null,
+  "case_id": "l6-run6-clauses",
+  "split": "holdout",
+  "skill_sha256": "225f99d3d376391f8f4a2a74cf9a6420ccf218f663e7b4e3b903e8745358acd7",
+  "checks": [
+    {
+      "id": "c01-tree",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c02-skill",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c03-goal",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c04-design",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c04-strict",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c05-hyp-per-commit",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c06-supersede",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c07-close",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c08-rule-first",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c09-gate",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c10-logs",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c11-review",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c12-label",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c13-sort",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c14-outside",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c15-select",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c16-count",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c17-honest",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c18-checkpoint",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c19-lines",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c20-owner-items",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c21-may-change",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c22-push",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c23-main",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c24-binaries",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c25-edits",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c26-owner",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "c27-exp-setup",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    }
+  ]
+}

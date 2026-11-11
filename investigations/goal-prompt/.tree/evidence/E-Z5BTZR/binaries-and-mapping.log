@@ -1,0 +1,18 @@
+candidate binary (built from the b4f23b2 worktree):
+27eeb5d4e00c87c57279cdb5d87c4647945c3e57353fd98cae78404dc173b885  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/bin-cand2/hyp
+hyp 0.1.0 (events v1) b4f23b2e88f4
+original binary (2881e7d, as in E-HQWTA0):
+ee2b0888734d6837a81923bc38984eaf65ed36a307059b2a85d730a3c8b4adf4  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/bin-orig/hyp
+hyp 0.1.0 (events v1) 2881e7df4e76-dirty
+installed hyp (not replaced):
+5659ab145d3c6e832ee4d997dff28595061c826530cd37dbc35afed32e5dd069  /Users/datguy/.local/bin/hyp
+blind mapping:
+{
+ "l6-run6-clauses/B": "original",
+ "l6-run6-clauses/A": "candidate",
+ "grill-handoff/A": "original",
+ "grill-handoff/B": "candidate",
+ "goal-run-plan/A": "original",
+ "goal-run-plan/B": "candidate"
+}
+2aeb0abebb9fa958ff53edcbdc99437a71f582ad2dab52948de5c73d1fddd42e  /Users/datguy/codingProjects/tree-based-agent-memory/investigations/goal-prompt/evals/goal-prompt-evals-2.json
