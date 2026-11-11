@@ -1,0 +1,26 @@
+# (b) R6c rerun, worktree fe621cbf40d843f81a94d7aee4f95cb6af3120c5
+=== R6c-close rerun: removal of the closes check (b-removals/R6c-close-rerun.diff, 2 lines added)
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 2d7576c..0a05b37 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -392,7 +392,7 @@ func (f *Facts) validateResult(ev event.Event) error {
+ 		if err := f.checkKey(k, event.KeyLimit, scope); err != nil {
+ 			return err
+ 		}
+-		if err := f.sameGoal("closes", k, goalOf(f.Nodes, exp.ID)); err != nil {
++		if err := f.sameGoal("closes", k, goalOf(f.Nodes, exp.ID)); err != nil && false {
+ 			return err
+ 		}
+ 	}
+=== RUN   TestCrossGoalCloseRefusedWrite
+    cross_goal_moves_test.go:139: exit 0 (want 1), stdout "R-1Q3PRN result.record\n  closes G-GWQJ23#1: survives a region outage\n", stderr "" (want "bad closes: ")
+--- FAIL: TestCrossGoalCloseRefusedWrite (0.04s)
+=== RUN   TestCrossGoalCloseRejectedReplay
+    cross_goal_moves_test.go:151: replay does not reject 01M756QN9M1Y8H7KEY0EJCVF9R with "bad closes: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalCloseRejectedReplay (0.05s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.471s
+FAIL
+# restored: 0 changed files

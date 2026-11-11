@@ -45,7 +45,7 @@ func TestTwoGoalStoreAdmitsASecondGoalWrite(t *testing.T) {
 	h1 := supported(t, q1, "H1")
 	h2 := supported(t, q2, "H2")
 
-	out := hyp(t, "status").stdout
+	out := hyp(t, "status", g1).stdout + hyp(t, "status", g2).stdout
 	for _, s := range []string{
 		"runner: " + q1 + " limit " + k1[0] + " [owed]",
 		"runner: " + q2 + " limit " + k2[0] + " [owed]",
@@ -68,8 +68,10 @@ func TestTwoGoalStoreAdmitsASecondGoalWrite(t *testing.T) {
 	// A Result that runs g1's line on H1 covers g1's line on q1 only.
 	e := must(t, "add", "exp", "--parent", h1, "--title", "runs the line", "--recipe", "none", "--decided-by", "reading", "--aims", k1[0], "--target", "none", "--why", "w")
 	must(t, "record", "--exp", e, "--verdict", h1+"=supports", "--observation", "ran", "--closes", k1[0], "--why", "w")
-	notIn(t, "limit "+k1[0])
-	want(t, hyp(t, "status"), 0, "runner: "+q2+" limit "+k2[0]+" [owed]")
+	if out := hyp(t, "status", g1).stdout; strings.Contains(out, "limit "+k1[0]) {
+		t.Fatalf("status still prints %q:\n%s", "limit "+k1[0], out)
+	}
+	want(t, hyp(t, "status", g2), 0, "runner: "+q2+" limit "+k2[0]+" [owed]")
 	show := hyp(t, "show", g2).stdout
 	if strings.Contains(show, k1[0]) || !strings.Contains(show, "line "+k2[0]+" uncovered on "+q2) {
 		t.Fatalf("show %s does not hold only its own line:\n%s", g2, show)
@@ -121,12 +123,11 @@ func TestTwoGoalStoreReplaysEachGoalAsItsOwn(t *testing.T) {
 	if r := hyp(t, "check"); r.code != 0 || !strings.Contains(r.stdout+r.stderr, "check: 0 errors") {
 		t.Fatalf("one store holds many Goals, but replay rejected the merged log: exit %d\n%s%s", r.code, r.stdout, r.stderr)
 	}
-	merged := hyp(t, "status").stdout
-	if strings.Contains(merged, "REJECTED") {
+	if merged := hyp(t, "status").stdout; strings.Contains(merged, "REJECTED") {
 		t.Fatalf("replay rejected events of the merged log:\n%s", merged)
 	}
 	for _, c := range []struct{ g, own string }{{gA, statusA}, {gB, statusB}} {
-		if got, want := goalBlock(t, merged, c.g), goalBlock(t, c.own, c.g); got != want {
+		if got, want := goalBlock(t, hyp(t, "status", c.g).stdout, c.g), goalBlock(t, c.own, c.g); got != want {
 			t.Fatalf("%s in the two-Goal store:\n%s\nin a store of its own:\n%s", c.g, got, want)
 		}
 	}

@@ -13,8 +13,8 @@ type Projection struct {
 	Questions      map[string]*Question // DesignQuestion → its derived record
 	Goals          []GoalStatus         // one per Goal, in creation order
 	Rejections     []Rejection
-	Applied        []event.Event // events that applied, in merge order
-	LastCheckpoint *event.Event
+	Applied        []event.Event                  // events that applied, in merge order
+	LastCheckpoint map[string]*event.Event        // Goal → its latest runner checkpoint; an old owner checkpoint is not one
 	RivalsAtAdd    map[string][]string            // Experiment → live rivals of its parent just before its add
 	Exps           map[string]*Exp                // Experiment → its derived record (experiment.go)
 	Results        map[string]*Res                // Result → its derived record (result.go)
@@ -452,6 +452,30 @@ func goalOf(nodes map[string]*Node, id string) string {
 // does. A tree is the view of one Goal: the Goal and every node with it as
 // GoalOf.
 func (p Projection) GoalOf(id string) string { return goalOf(p.Nodes, id) }
+
+// KeyGoal returns the Goal that limit, line or reading key k leads to: a
+// line's own Goal, or the Goal of a limit's or reading's Result.
+func (p Projection) KeyGoal(k string) string { return goalOf(p.Nodes, event.KeyResult(k)) }
+
+// EventOf reports whether event ev belongs to Goal g: its node leads to g,
+// or, for an answer, which is on no node, one of its keys does.
+func (p Projection) EventOf(ev event.Event, g string) bool {
+	if ev.Node != "" {
+		return goalOf(p.Nodes, ev.Node) == g
+	}
+	var a event.Answer
+	if ev.Type != event.TypeAnswer || event.DecodePayload(ev, &a) != nil {
+		return false
+	}
+	for _, items := range [][]event.KeyText{a.Answers, a.Accepts, a.Returns} {
+		for _, it := range items {
+			if p.KeyGoal(it.Key) == g {
+				return true
+			}
+		}
+	}
+	return false
+}
 
 // GoalStatusOf returns Goal g's summary, or a zero GoalStatus when g is not
 // a Goal.

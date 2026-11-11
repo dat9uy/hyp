@@ -1,0 +1,12 @@
+# (d) binaries, by sha256:
+342e8d6a50757c2f5b1098992937795c474d16c292a58fae869446921d3703a9  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/477dd26e-d58d-4585-979a-31ba95548e5d/scratchpad/hyp-fe621cb
+666ecf1c7e1c89ead092648f8fce35fa3ed6d3c7810b1468e046c4ba20dd3659  /Users/datguy/.local/bin/hyp
+2297b148a311260b786c05226fe71a8c52b7dfee462d63d7a106c4978d50440c  /Users/datguy/.local/share/hyp/hyp-33896ec
+id-citation status: candidate 7440ed8b7f20a3bb installed 7440ed8b7f20a3bb 33896ec 7440ed8b7f20a3bb -> identical
+id-citation check: candidate 0bb0fb8570119e20 installed 0bb0fb8570119e20 33896ec 0bb0fb8570119e20 -> identical
+recipe-base status: candidate 72fce9310b754104 installed 72fce9310b754104 33896ec 72fce9310b754104 -> identical
+recipe-base check: candidate 0bb0fb8570119e20 installed 0bb0fb8570119e20 33896ec 0bb0fb8570119e20 -> identical
+checkpoint-store-design status: candidate a8b02cbd6161111d installed a8b02cbd6161111d 33896ec a8b02cbd6161111d -> identical
+checkpoint-store-design check: candidate 0bb0fb8570119e20 installed 0bb0fb8570119e20 33896ec 0bb0fb8570119e20 -> identical
+checkpoint-store status: candidate d1eb6bc07bdef254 installed d1eb6bc07bdef254 33896ec d1eb6bc07bdef254 -> identical
+checkpoint-store check: candidate 0bb0fb8570119e20 installed 0bb0fb8570119e20 33896ec 0bb0fb8570119e20 -> identical

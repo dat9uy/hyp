@@ -1,0 +1,102 @@
+# (a) worktree 53246b613cd0cd0ed4bfb75ff22ecf4756774839, only the new test files copied in:
+?? internal/cli/cross_goal_moves_test.go
+?? internal/replay/cross_goal_test.go
+
+=== R6a refer: go test ./internal/cli -run 'TestCrossGoalRefer(RefusedWrite|RejectedReplay)$' -v
+=== RUN   TestCrossGoalReferRefusedWrite
+    cross_goal_moves_test.go:96: exit 0 (want 1), stdout "G-WR6ZRA checkpoint\n", stderr "" (want "bad refers: G-GV67JG#1 leads to G-GV67JG")
+--- FAIL: TestCrossGoalReferRefusedWrite (0.04s)
+=== RUN   TestCrossGoalReferRejectedReplay
+    cross_goal_moves_test.go:106: replay does not reject 01M756NWQJM7G3C1PV80X8FFFN with "bad refers: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalReferRejectedReplay (0.03s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.468s
+FAIL
+
+=== R6b aim: go test ./internal/cli -run 'TestCrossGoalAim(RefusedWrite|RejectedReplay)$' -v
+=== RUN   TestCrossGoalAimRefusedWrite
+    cross_goal_moves_test.go:118: exit 0 (want 1), stdout "E-EES6K4 node.add\n", stderr "" (want "bad aims: ")
+--- FAIL: TestCrossGoalAimRefusedWrite (0.05s)
+=== RUN   TestCrossGoalAimRejectedReplay
+    cross_goal_moves_test.go:130: replay does not reject 01M756NX5BK1GQ0G2SY0CM4RSG with "bad aims: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalAimRejectedReplay (0.05s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.265s
+FAIL
+
+=== R6c close: go test ./internal/cli -run 'TestCrossGoalClose(RefusedWrite|RejectedReplay)$' -v
+=== RUN   TestCrossGoalCloseRefusedWrite
+    cross_goal_moves_test.go:139: exit 0 (want 1), stdout "R-DVBKRN result.record\n  closes G-YYJ4ZS#1: survives a region outage\n", stderr "" (want "bad closes: ")
+--- FAIL: TestCrossGoalCloseRefusedWrite (0.04s)
+=== RUN   TestCrossGoalCloseRejectedReplay
+    cross_goal_moves_test.go:151: replay does not reject 01M756NXJRP9X3ZC3345E9R561 with "bad closes: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalCloseRejectedReplay (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.248s
+FAIL
+
+=== R6d apply: go test ./internal/cli -run 'TestCrossGoalApply(RefusedWrite|RejectedReplay)$' -v
+=== RUN   TestCrossGoalApplyRefusedWrite
+    cross_goal_moves_test.go:164: exit 0 (want 1), stdout "E-CYH4T6 node.add\n", stderr "" (want "bad applies: ")
+--- FAIL: TestCrossGoalApplyRefusedWrite (0.04s)
+=== RUN   TestCrossGoalApplyRejectedReplay
+    cross_goal_moves_test.go:176: replay does not reject 01M756NY03BAY800RTAPDESH5Y with "bad applies: ":
+        check: 0 errors, 0 warnings
+--- FAIL: TestCrossGoalApplyRejectedReplay (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.253s
+FAIL
+
+=== R7 owed-limit refer: go test ./internal/replay -run 'TestCrossGoalReferOfAnOwedLimit(RefusedWrite|RejectedReplay)$' -v
+=== RUN   TestCrossGoalReferOfAnOwedLimitRefusedWrite
+    cross_goal_test.go:200: refer of 01JB0000000000000000000005#1 from 01JB0000000000000000000006's checkpoint: err <nil>, want a refusal naming the rule
+--- FAIL: TestCrossGoalReferOfAnOwedLimitRefusedWrite (0.00s)
+=== RUN   TestCrossGoalReferOfAnOwedLimitRejectedReplay
+    cross_goal_test.go:214: 01JB0000000000000000000007 not rejected, want "a move never crosses Goals"
+--- FAIL: TestCrossGoalReferOfAnOwedLimitRejectedReplay (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.365s
+FAIL
+
+=== R7 agreement (extra): go test ./internal/replay -run 'TestMoveTablesAndOwedAgreeAcrossGoals$' -v
+=== RUN   TestMoveTablesAndOwedAgreeAcrossGoals
+    cross_goal_test.go:176: 01JB0000000000000000000001#1: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+    cross_goal_test.go:176: 01JB0000000000000000000005#1: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+    cross_goal_test.go:176: 01JB0000000000000000000005#5: OWED gives it to 01JB0000000000000000000001's runner, but the table admits a refer from 01JB0000000000000000000020's checkpoint
+--- FAIL: TestMoveTablesAndOwedAgreeAcrossGoals (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.152s
+FAIL
+
+=== line 8 status (extra): go test ./internal/cli -run 'TestStatusOfOneGoalInATwoGoalStore$|TestLastCheckpointIsPerGoalAndTheRunners$' -v
+=== RUN   TestStatusOfOneGoalInATwoGoalStore
+    cross_goal_moves_test.go:225: hyp status G-4AHJHG in the two-Goal store (exit 2):
+        
+        in a store of its own:
+        GOAL G-4AHJHG GA — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-4AHJHG#1 referred: the owner accepts or returns it; uncovered on Q-7B9CCP: H-XBY1ZA — one tenant per row
+        FRONTIER
+          Q-7B9CCP open/supported_unselected Q of GA
+            candidates (1): H-XBY1ZA
+            waits on referred limit G-4AHJHG#1 for the owner; an accept releases the select, a return sends its case to run
+            H-XBY1ZA supported H of GA
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+          Q-7B9CCP limit referred, accept or return G-4AHJHG#1 — one tenant per row
+        RECENT
+          2026-11-11 11:42 ra result.record R-PRDFP9 — w
+        CHECKPOINT 2026-11-11 11:42 ra: A refers its line
+        usage: hyp status [--as-of REF|TIME] [--max-lines N] [--live]
+--- FAIL: TestStatusOfOneGoalInATwoGoalStore (0.05s)
+=== RUN   TestLastCheckpointIsPerGoalAndTheRunners
+    cross_goal_moves_test.go:249: exit 2 (want 0), stdout "", stderr "usage: hyp status [--as-of REF|TIME] [--max-lines N] [--live]\n" (want "CHECKPOINT ")
+--- FAIL: TestLastCheckpointIsPerGoalAndTheRunners (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.256s
+FAIL

@@ -53,7 +53,7 @@ A Result records it, a later Result closes it by running the case, the runner
 refers what no test within the Goal can run, and the owner accepts or returns a
 referred one. A case can also change what the work is for: a new Hypothesis is
 a new branch, and a new purpose is a new Goal. One store holds many Goals, and
-a tree is the view of one Goal ([ADR 0020](adr/0020-one-store-holds-many-goals.md)). None of these edits what was recorded. See
+a tree is the view of one Goal ([ADR 0020](adr/0020-one-store-holds-many-goals.md)). A move never crosses Goals: a later Goal takes a case over by citing it. None of these edits what was recorded. See
 [ADR 0016](adr/0016-a-limit-is-an-untested-case.md) and
 [replay-spec.md](replay-spec.md#82-keyed-items-limits-lines-and-readings) §8.2.
 
@@ -73,7 +73,7 @@ The owner is the person hyp asks on real choices. Their role holds to these
 rules:
 
 1. **The Goal is written once.** Its lines come with its add and are never
-   edited; a line may cite settled keys of other Goals. A new line or a new
+   edited; a line may cite settled keys of other Goals, and no move crosses Goals. A new line or a new
    purpose is a new Goal, which may sit in the same store. A narrower scope is a line the runner refers and the owner
    accepts; there is no other change of scope inside a tree.
 2. **The owner is asked only on real choices, and only when the runner owes

@@ -1,0 +1,9 @@
+(a) Each rule's write and replay test, copied alone into a detached worktree of 53246b6 (log: a-red-on-53246b6.log).
+R6a refer: TestCrossGoalReferRefusedWrite FAIL, TestCrossGoalReferRejectedReplay FAIL. On the rule: 53246b6 expresses the event and admits it (exit 0; check: 0 errors).
+R6b aim: TestCrossGoalAimRefusedWrite FAIL, TestCrossGoalAimRejectedReplay FAIL. On the rule: the aim at another Goal's limit is admitted.
+R6c close: TestCrossGoalCloseRefusedWrite FAIL, TestCrossGoalCloseRejectedReplay FAIL. On the rule: the close of another Goal's line is admitted.
+R6d apply: TestCrossGoalApplyRefusedWrite FAIL, TestCrossGoalApplyRejectedReplay FAIL. On the rule: the aim at another Goal's answered reading is admitted.
+R7 refer of a limit owed to another Goal: TestCrossGoalReferOfAnOwedLimitRefusedWrite FAIL (err <nil>), TestCrossGoalReferOfAnOwedLimitRejectedReplay FAIL (not rejected). On the rule.
+Extra, not a pair: TestMoveTablesAndOwedAgreeAcrossGoals FAIL on 53246b6, only on its cross-Goal clause: the table admits a refer from Goal B's checkpoint of 3 keys OWED gives Goal A's runner. Its agreement and both named asymmetries hold there.
+Extra, line 8 [P]: TestStatusOfOneGoalInATwoGoalStore and TestLastCheckpointIsPerGoalAndTheRunners FAIL because 53246b6 cannot express hyp status with a Goal (exit 2, usage).
+Every pair test fails: (a) holds.

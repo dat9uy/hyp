@@ -50,7 +50,7 @@ The section of `hyp status` that shows the open work: the tree pruned to it, fro
 _Avoid_: hidden, for a question that does not print
 
 **Awaiting owner**:
-The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `choose: H…, H…` when they should choose between the candidates and the runner owes nothing on the question. A question the Frontier does not print asks nothing, and the choice is owed again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate.
+The section of `hyp status` that names the one step due from the owner on each question the Frontier prints: `choose: H…, H…` when they should choose between the candidates and the runner owes nothing on the question. A question the Frontier does not print asks nothing, and the choice is owed again once it prints. It also lists every open reading, which blocks nothing, and every referred limit on a candidate. `hyp status G-…` lists one Goal's items; in a store with many Goals, `hyp status` prints one Awaiting owner list, grouped by Goal.
 
 **Reading**:
 How a run read owner words that a verdict rests on: a line of the Goal, recorded with `hyp record --reading`, or the owner's answer to an earlier reading, recorded with `hyp record --reading-of R-…#rN=TEXT`, which stores that reading's key as the new reading's `of`. A reading of an answer narrows it and never reopens it: the earlier reading stays closed and its answer stays in force. A reading stays open until an owner Answer closes it with their words. Two readings with the same `of` and the same text ask the owner the same question: each makes its own Result's question wait, `hyp status` prints them as one line, and the owner closes them in one answer.
@@ -152,7 +152,7 @@ The owner's act, its own event type (ADR 0020): `answers` for readings, `accepts
 _Avoid_: owner checkpoint (history), approval, confirm (retired)
 
 **Checkpoint**:
-The runner's report on one Goal: a `summary` of where the work stands, `refers` that hand limits to the owner with why, or both, and a required `why`; an empty one is refused. `hyp status` prints the last one, and a run records one at each stop. It holds no owner act: an old owner checkpoint's `role`, `closes`, `revises`, `accepts`, `returns` and `lines` are read-only history that replay applies and no command writes (owner decision of 2026-11-11). In code: `event.Checkpoint`.
+The runner's report on one Goal: a `summary` of where the work stands, `refers` that hand limits to the owner with why, or both, and a required `why`; an empty one is refused. `hyp status` prints its Goal's last one, never an old owner checkpoint, and a run records one at each stop. It holds no owner act: an old owner checkpoint's `role`, `closes`, `revises`, `accepts`, `returns` and `lines` are read-only history that replay applies and no command writes (owner decision of 2026-11-11). In code: `event.Checkpoint`.
 _Avoid_: owner checkpoint (history; see Answer), report
 
 **Limit**:
@@ -172,7 +172,7 @@ The Hypotheses a Result ran on: those it judged, and those whose whole subject i
 _Avoid_: tested (that is a verdict), ran as (a per-Result claim hyp does not store)
 
 **Owed**:
-The ledger `hyp status` prints under OWED: each item of open work on a question and who owes it, the runner; the owner's items print under Awaiting owner ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)). A line of the Goal is owed on each live top-level question that has a candidate no closer covers, as a `limit` item keyed `G-…#n`. An answered question owes only its limit, reading, referred and premise items. It is derived, never stored, and owing an item changes no status; `hyp select` reads it to admit a select. When the runner owes nothing, OWED ends with `runner owes nothing: stop and report to the owner`, the stop a run reads. In code: `replay.Projection.Owed`.
+The ledger `hyp status` prints under OWED: each item of open work on a question and who owes it, the runner; the owner's items print under Awaiting owner ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)). OWED is per Goal: `hyp status G-…` prints one Goal's, and in a store with many Goals `hyp status` prints a GOALS table with what each Goal's runner owes. A line of the Goal is owed on each live top-level question that has a candidate no closer covers, as a `limit` item keyed `G-…#n`. A move never crosses Goals: only an item's own Goal refers, aims at, closes or applies it. An answered question owes only its limit, reading, referred and premise items. It is derived, never stored, and owing an item changes no status; `hyp select` reads it to admit a select. When the runner owes nothing, OWED ends with `runner owes nothing: stop and report to the owner`, the stop a run reads. In code: `replay.Projection.Owed`.
 _Avoid_: todo list, backlog, next steps (those are prose; the ledger is derived)
 
 **Turn**:

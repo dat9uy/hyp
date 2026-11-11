@@ -1,0 +1,6 @@
+=== RUN   TestCrossGoalCloseRefusedWrite
+--- PASS: TestCrossGoalCloseRefusedWrite (0.05s)
+=== RUN   TestCrossGoalCloseRejectedReplay
+--- PASS: TestCrossGoalCloseRejectedReplay (0.05s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.476s

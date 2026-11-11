@@ -1,0 +1,7 @@
+E-CM3SCT on fe621cb (branch feat/cross-goal-moves-and-status), rule by reading, recorded in the Experiment body before its checks ran.
+(a) holds: a-summary.txt. Every pair of R6a-d and R7 fails on 53246b6 on the rule; 53246b6 expresses each event and admits it.
+(b) holds: b-removals/summary.txt. Each rule's one removal fails its 2 tests; the first R6c run removed nothing and is logged, and its rerun removes the check.
+(c) holds: c-vet-test-fe621cb.log, go vet and go test exit 0.
+(d) holds: d-census.log, status and check byte-identical under fe621cb, installed hyp and 33896ec for id-citation, recipe-base, checkpoint-store-design and checkpoint-store.
+(e) holds: e-step-1-2-tests.log, the 17 tests of steps 1 and 2 pass; their files changed only where hyp status in a two-Goal store now names one Goal, diff logged.
+verdict: H-4HMM6A=supports
