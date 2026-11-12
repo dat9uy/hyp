@@ -1,0 +1,41 @@
+{
+ "measures": {
+  "arm": "entry",
+  "fixture": "a",
+  "trial": "1",
+  "end": "end",
+  "exchanges": 5,
+  "timed_out": 0,
+  "cost_usd": 1.760276,
+  "cost_usd_literal": 6.176843,
+  "models": "claude-sonnet-5-5",
+  "subagents": 1,
+  "goals": 1,
+  "stores": "internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/goal-prompt,investigations/id-citation,investigations/recipe-base",
+  "has_goal": 1,
+  "l1": 1,
+  "l4": 1,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": "investigations/goal-prompt",
+   "id": "01M783EYGP10YZBEVWYG6XTDHG",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "hyp prints the /goal prompt for any Goal from the log and reads a run's constraints from the Goal body",
+   "body": "Builds #113 (core): the /goal prompt that hyp prints from the log for any Goal, and the run's constraints it copies from the Goal body. Design: the Goal prompt-design in this store (a command that reads the log; no owner answer in the prompt, because the runner reads OWED). The candidate is a hyp commit; go test on its base and on the candidate is the instrument. Line 1b's baseline is the run-5 prompt of #113, kept as a fixture in a synthetic store under internal/cli/testdata.\nBlock rules, for docs/: the block runs from the first line that starts with a heading to the end of the body; headings match in exact case; all three appear; every non-empty line starts with one; a line of spaces, a tab or a lone CR is not empty; text before the block is not copied. hyp prompt and hyp add goal share one parser. Each run takes a new actor. --results counts applied Results under the actor on the named Goal, retracted included, default 5; the skill text says --experiments, so the skills change with it.\nSkill text (ADR 0021): hyp-goal-run says \"an unattended discovery /goal\" and hyp-prototype says \"Investigate an uncertain design\", though both serve any Goal; hyp-owner-grill hands off with hyp prompt once it exists. Test the descriptions by ak-skill-creator's routing comparison (references/testing-and-iteration.md): the description at the base commit against the candidate's, in the real catalog; natural positives (one a /goal prompt for a build Goal), indirect requests, near-miss negatives, a fixed holdout; never name the target skill in a routing prompt; report TP, FP, FN, TN. Sonnet test agents, 3 trials, a modest budget; results stay outside the repository.\nMay change: this repository, as commits on one local branch, and the texts the change makes wrong: skills/, docs/, AGENTS.md, README.md\nRead only: investigations/ and recipes/ of this repository\nNever: merge a PR\nNever: replace an installed hyp binary\nNever: edit a written Goal or a frozen recipe version",
+   "lines": [
+    "[P] For a Goal whose body ends in a valid constraints block and that has a live top-level Question, `hyp prompt G --actor A` prints, in order, the store path, A, G, the skill hyp-goal-run, the stop clauses, the block line for line, one fixed sentence (if two clauses disagree, follow the narrower one and name the conflict in the stop checkpoint), and one narrowing clause per flag.",
+    "[P] On the synthetic fixture Goal, the printed prompt differs from the baseline, the run-5 prompt of issue #113 (6 lines, LF, final newline, sha256 840d813d6f8e6b0c1502f3d629fc091b551dd90e5f823e5190ee35b055d7e3a3), in exactly: the actor, the owner answer, the branch, the PR, the commit, the run's plan, the dropped add-rival-Hypotheses clause, the Results count, the commands that name the Goal, and the fixed sentence.",
+    "[P] The stop clauses are: OWED owes the runner nothing, read with `hyp status G`; N Results recorded under the actor on G (applied events only, retracted Results counted, default 5, set by `--results`); and `you cannot take the next step honestly and say why`.",
+    "[N] A Goal whose body has no valid constraints block makes `hyp prompt` exit 1 with a message naming what is missing (a heading, or a non-empty line that starts with no heading), and prints no prompt. Such a Goal is still accepted by `hyp add goal` and by replay.",
+    "[N] `hyp prompt` exits 1 with a message naming the rule, and prints no prompt, for a Goal with no live top-level Question and for a prompt of more than 4000 characters.",
+    "[P] `hyp add goal` with a body that has a heading but no valid block appends the Goal, exits 0 and prints a warning; with a valid block, or with no heading, it prints none.",
+    "[N] A flag clause never widens the block: its words are only or never, never may. A `--branch` with a space, or a `--results` that is not a positive integer, exits 2; a store that no repository holds exits 3.",
+    "[N] In a store with two Goals, `hyp prompt G` counts Results and reads OWED for G only: a Result under the same actor on the other Goal is not counted, its OWED items are not read, and the prompt names `hyp status G` and `--goal G` for checkpoints."
+   ]
+  }
+ ],
+ "bad_hash_lines": []
+}

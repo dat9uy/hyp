@@ -1,0 +1,6 @@
+/goal Run the hyp tree in <tree> with the hyp-goal-run skill, as HYP_ACTOR=<actor>. Its Goal is <G-id>.
+Done when the latest printed `hyp status` shows `runner owes nothing: stop and report to the owner` under OWED, or every runner item under OWED is `add rival Hypotheses` on a Question for which no owner checkpoint since the latest stop checkpoint asks for a new Hypothesis, or 5 Experiments have been recorded since this goal began, or you cannot take the next step honestly and say why. At each stop, record the stop checkpoint the skill names, and list the lines under LINES with the Results that ran them.
+Never change <the investigated repository> or its issues; read it only, and work in throwaway copies.
+Never put application code or real source data in the public hyp repository.
+Treat <legacy code> as legacy. <...> may be test cases.
+Never open or merge a PR.

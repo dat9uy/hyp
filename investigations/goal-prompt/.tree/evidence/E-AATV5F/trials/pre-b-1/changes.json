@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": "investigations/goal-prompt/.tree/events/claude-grill-141.jsonl",
+      "change": "added",
+      "size": 5895,
+      "sha256": "52c79f853a51e6dec2155c4ed41ec3eab5e2b6923fc9e4f809d32cd731e0c5f6",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/owner-standin.jsonl",
+      "change": "added",
+      "size": 3819,
+      "sha256": "849e27811f9abd9671c307df1cfaf96ee083576a8b298d60a2f9068b1654412a",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}

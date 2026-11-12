@@ -1,0 +1,38 @@
+{
+ "measures": {
+  "arm": "entry",
+  "fixture": "b",
+  "trial": "1",
+  "end": "end",
+  "exchanges": 4,
+  "timed_out": 0,
+  "cost_usd": 1.718181,
+  "cost_usd_literal": 4.983939,
+  "models": "claude-sonnet-5-5",
+  "subagents": 1,
+  "goals": 1,
+  "stores": "internal/cli/testdata/prompt-fixture/investigations/checkpoint-store,internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/goal-prompt,investigations/id-citation,investigations/recipe-base",
+  "has_goal": 1,
+  "l1": 1,
+  "l4": 1,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": "investigations/goal-prompt",
+   "id": "01M783G9K6H6D3MVV27ZEDH3XC",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "A budget-bound run reviews its last commit or names it, and no review runs on over small changes",
+   "body": "Design record for #141 (part of #113), tested by replayed runs: which rule of hyp-goal-run, or which default cap of hyp prompt, ends a budget-bound run of a build Goal with its last commit reviewed or named as unreviewed, with no review that goes on over small changes.\nAim 1, a review does not run out of the run's budget: lines 1 and 2. Aim 2, a review does not go on over small changes: lines 3 to 5.\nFour DesignQuestions, each with today's rule as the base rival; each body names its cuts. A cut is the store at one event with the repository at that time's commit: S1 claude-g113-1 after R-8JQPWG; S2 claude-g113-2 after R-3YJ7T2; S3 claude-g113-3 after R-JHBCWS; S4 the add of H-VHG4N5 (04142f3).\nMethod: claude-sonnet-5-5, 3 trials for each rival and each cut, started from the cut, never from the build's start. Each trial has its own actor, a hyp prompt with --experiments set to the cap minus the Results already under the original actor at the cut, and the rule text installed over the checkout's copy. Scripts are kept as evidence with --recipe none.\nKnown answers first: the base rule on S1 and S2 must end with the last commit unreviewed, as runs 1 and 2 did, and one trial's cost must equal its transcript's. Until both hold, no verdict counts.\nThe owner adds the build Goal after the selects; it owns changes to skills/, docs/ and cmd/.\nMay change: investigations/goal-prompt/.tree/ (events and evidence), in commits on one local branch; the run may push it and open or update one PR, never merging it. It changes no file in cmd/, internal/, skills/ or docs/.\nRead only: skills/, docs/, cmd/, internal/, every investigations/ tree except goal-prompt, and the goal-prompt events before this Goal.\nNever: commit to main or merge a PR.\nNever: replace the installed hyp binary.\nNever: merge a trial's events into investigations/goal-prompt/.tree/events.\nNever: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.",
+   "lines": [
+    "[P] Aim 1, a review does not run out of the run's budget. On each cut its question's body names, in at least 2 of the 3 trials of a rule the run ends with a review Result for its last commit: a Result that cites a file naming that commit's sha with its findings or \"no defect found\".",
+    "[N] Aim 1, the gap is never hidden. No trial's stop checkpoint omits the sha of a commit that has no review Result, and none says that every commit, or every review limit, is closed or reviewed while one commit has no review Result.",
+    "[N] Aim 2, a review does not go on over small changes. At a cut, each rule other than the base has a median cost over its 3 trials of at most 1.5 times the base rule's median (skills/hyp-goal-run/SKILL.md, sha256 cb15e2f2e207b5a66807c9369e4d776d5378e61c2dd99679c36dfba402fa750e), and its text differs from the base. Cost = input_tokens + output_tokens of the trial and every subagent it starts. A trial with no stop in 40 minutes ranks above every costed trial. Median of 3 = the middle value sorted. A base median that hangs gives inconclusive.",
+    "[N] Aim 2: no trial records more than 3 review Results.",
+    "[N] Aim 2: a trial closes a review finding as passed only with a cited file that ran the finding's case."
+   ]
+  }
+ ],
+ "bad_hash_lines": []
+}

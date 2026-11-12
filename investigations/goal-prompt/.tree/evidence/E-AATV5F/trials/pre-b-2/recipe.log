@@ -1,0 +1,7 @@
+== hyp-owner-grill-eval@2 launch: ./launch.sh
+launch: wt at 9c8e498 on work; fixture b; arm pre from a95a21e04b2f284bc237bab3653956d727d2f32b
+== hyp-owner-grill-eval@2 doctor: ./doctor.sh
+doctor: ok (hyp 0.1.0 (events v1); skill 54a2c953ea6a5695d2904a2c7e6090c053392f314838dadf38579f85e3a97aed; 9c8e498 on work)
+== hyp-owner-grill-eval@2 drive: ./drive.py
+drive: arm pre fixture b trial 2 end standin_error exchanges 3 subagents 1
+== hyp-owner-grill-eval@2 cleanup: ./cleanup.sh

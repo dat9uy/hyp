@@ -1,0 +1,38 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": "investigations/goal-prompt/.tree/.gitignore",
+      "change": "added",
+      "size": 28,
+      "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/claude-grill-113.jsonl",
+      "change": "added",
+      "size": 5856,
+      "sha256": "9bed3a8f6186a9884e5b7c0848b8579b7ca33e297270fba1e2a73f64057f74d4",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/owner-standin.jsonl",
+      "change": "added",
+      "size": 5811,
+      "sha256": "aa6f8ca5bd3e62b7c8dc921968346c95f65f81ba122483adf1fc08ce6ad66be0",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/evidence/E-6HK65K/scenarios.md",
+      "change": "added",
+      "size": 1117,
+      "sha256": "dccbd39968641e1382240dc9a5ffd482f99283d0039bc7b41d3459414d12314c",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}

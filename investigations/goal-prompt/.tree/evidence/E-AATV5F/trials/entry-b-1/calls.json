@@ -1,0 +1,114 @@
+[
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 149.1,
+  "session_id": "2720781f-6363-488e-80a4-1757a625dc3d",
+  "total_cost_usd": 0.44747050000000005,
+  "num_turns": 10,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 9.2,
+  "session_id": "2213eb54-90d3-4dfe-85e0-cf9086e16203",
+  "total_cost_usd": 0.024363100000000002,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 319.8,
+  "session_id": "2720781f-6363-488e-80a4-1757a625dc3d",
+  "total_cost_usd": 1.2394474,
+  "num_turns": 7,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 5.1,
+  "session_id": "2213eb54-90d3-4dfe-85e0-cf9086e16203",
+  "total_cost_usd": 0.0412882,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 79.0,
+  "session_id": "2720781f-6363-488e-80a4-1757a625dc3d",
+  "total_cost_usd": 1.4534193000000002,
+  "num_turns": 5,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 4.8,
+  "session_id": "2213eb54-90d3-4dfe-85e0-cf9086e16203",
+  "total_cost_usd": 0.0597694,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 46.7,
+  "session_id": "2720781f-6363-488e-80a4-1757a625dc3d",
+  "total_cost_usd": 1.6507785000000001,
+  "num_turns": 7,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 5.8,
+  "session_id": "2213eb54-90d3-4dfe-85e0-cf9086e16203",
+  "total_cost_usd": 0.0674023,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ }
+]
