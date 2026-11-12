@@ -1,0 +1,13 @@
+Result R-KYKWH9
+path: G-ZBM2RE > Q-Z93VJ5 > H-YXSJEM > E-H98Z3B > R-KYKWH9
+status: recorded
+observation: The fresh review of 5c5902d's fix reports R-8JQPWG#1-#3 addressed and K1-K5. The probe with the 5c5902d binary (b83eb5a13cc1c56d) runs K1: a store whose real directory is outside any repository, linked into one, exits 3 through the link and through its real path, the same outcome; b4f23b2 (b6712e4e51925096) exits 0 and 3, so it breaks line 1. K2-K5 name no line: a test skip, two text gaps and a skill sentence.
+verdicts: H-YXSJEM=supports
+evidence: .tree/evidence/E-H98Z3B/review.md
+evidence: .tree/evidence/E-H98Z3B/probe-5c5902d.log
+evidence: .tree/evidence/E-H98Z3B/probe-k1.sh
+evidence: .tree/evidence/E-H98Z3B/fix-diff.patch
+limit #1: K1, G-ZBM2RE#1: a store whose real directory is outside any repository, reached through a link inside a repository, must give the same outcome as through its real path; no go test runs this case.
+uncontained: script outside recipes/: .tree/evidence/E-H98Z3B/probe-k1.sh
+history:
+  2026-11-12 02:51 claude-g113-2 result.record R-KYKWH9 — Records E-H98Z3B under its pre-registered rule; K1 is a case of line 1 no test ran.

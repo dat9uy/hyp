@@ -1,0 +1,28 @@
+candidate 3cfd08d584b49216881349355240c97cb0bed1c8
+go vet exit 0
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.865s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	27.072s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.532s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.526s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.759s
+ok  	github.com/dat9uy/hyp/internal/render	0.560s
+ok  	github.com/dat9uy/hyp/internal/replay	0.525s
+ok  	github.com/dat9uy/hyp/internal/sandbox	77.739s
+ok  	github.com/dat9uy/hyp/internal/signals	0.463s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.362s
+ok  	github.com/dat9uy/hyp/internal/store	0.522s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+go test exit 0
+--- PASS: TestPromptPrintsTheGoalsRunPrompt (0.02s)
+--- PASS: TestPromptOutsideARepository (0.01s)
+--- PASS: TestPromptThroughASymlinkedDirectory (0.01s)
+--- PASS: TestPromptIgnoresOwnerAnswers (0.02s)
+--- PASS: TestPromptRefusesAnInvalidConstraintsBlock (0.02s)
+--- PASS: TestPromptInATwoGoalStoreEqualsItsOwnStore (0.02s)
+--- PASS: TestPromptBadArguments (0.01s)
+--- PASS: TestPromptForTheCheckpointStoreFixture (0.01s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.253s
