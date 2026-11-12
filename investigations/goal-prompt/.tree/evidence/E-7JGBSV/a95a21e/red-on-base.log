@@ -1,0 +1,6 @@
+--- FAIL: TestAddGoalRefusesATruncatedHash (0.02s)
+    truncated_hash_test.go:20: exit 0 (want 1), stdout "G-ESTQA4 node.add\n  line G-ESTQA4#1: [N] fine\n  line G-ESTQA4#2: [P] graded by eval_skill.py (sha256 c47a38de…) with 0 errors\n", stderr "" (want "line 2 names a hash cut to ")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.388s
+FAIL
+exit 1

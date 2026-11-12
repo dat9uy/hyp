@@ -1,0 +1,5 @@
+candidate a95a21e04b2f284bc237bab3653956d727d2f32b
+base 132cb8e21ad5750266e11d413a172d1d9a891976
+d81f883a9ddbb87fa2b015781e42041811cb14750dd3a703cfaeca409c1d7247  /Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts/quick_validate.py
+ff36baefb5aa720b3e74a4c3f71df3cdb1c88d320e8296f25ce1b961660a0946  /Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts/lint_cruft.py
+go version go1.27.3 darwin/arm64

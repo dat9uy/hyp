@@ -1,0 +1,21 @@
+diff --git a/internal/cli/write.go b/internal/cli/write.go
+index a059cd5..0fe50d5 100644
+--- a/internal/cli/write.go
++++ b/internal/cli/write.go
+@@ -291,9 +291,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
+ 		return err
+ 	}
+ 	for i, t := range lineTexts {
+-		if err := truncatedHex(i+1, t); err != nil {
+-			return err
+-		}
++		_, _ = i, truncatedHex
+ 		p.Lines = append(p.Lines, event.GoalLine{Text: t})
+ 	}
+ 	noTarget := len(targets) == 1 && targets[0] == "none"
+--- FAIL: TestAddGoalRefusesATruncatedHash (0.03s)
+    truncated_hash_test.go:20: exit 0 (want 1), stdout "G-175BHX node.add\n  line G-175BHX#1: [N] fine\n  line G-175BHX#2: [P] graded by eval_skill.py (sha256 c47a38de…) with 0 errors\n", stderr "" (want "line 2 names a hash cut to ")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.368s
+FAIL
+exit 1
