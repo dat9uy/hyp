@@ -1,0 +1,40 @@
+{
+ "measures": {
+  "arm": "base",
+  "fixture": "a",
+  "trial": "3",
+  "end": "end",
+  "exchanges": 4,
+  "timed_out": 0,
+  "cost_usd": 1.041652,
+  "cost_usd_literal": 3.084806,
+  "models": "claude-sonnet-5-5",
+  "subagents": 1,
+  "goals": 1,
+  "stores": ".,internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/id-citation,investigations/recipe-base",
+  "has_goal": 1,
+  "l1": 0,
+  "l4": 1,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": ".",
+   "id": "01M782DPNRRP88AEWF55B1NVVG",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "hyp prints the /goal prompt for any Goal from the log, and checks the Goal body's constraints block",
+   "body": "Builds `hyp prompt` and the check of the Goal body's constraints block, as the installed hyp-owner-grill skill specifies them (issue #113; owner decision 2026-11-11: a run's constraints live in the Goal body, with no typed field). The candidate is a hyp commit; go test on its base and on the candidate is the instrument. Updating skills/hyp-owner-grill, whose hand-off text still says to hand-write the prompt, and the description fixes of hyp-goal-run and hyp-prototype are texts this change makes wrong, so they fall under May change and are not lines.\n\nMay change: the hyp code and tests of this repository, as commits on one local branch\nMay change: skills/hyp-owner-grill, skills/hyp-goal-run and skills/hyp-prototype, including the hand-off text and the descriptions this change makes wrong\nMay change: the docs and specs this change makes wrong, in the same commits\nRead only: the other investigation trees under investigations/ and every recipe under recipes/\nNever: merge a PR\nNever: replace the installed hyp binary\nNever: edit a recipe version that is already frozen",
+   "lines": [
+    "[P] 'hyp prompt <G> --actor A' on a Goal whose body ends in a valid constraints block exits 0 and prints, in this order, the store's path, the actor, the Goal's display id, the skill name hyp-goal-run, and the stop clauses: the runner owes nothing; N Results recorded under the actor, 5 by default; the run cannot take the next step honestly. Nothing else in the output varies by run except the flag values: it names no owner answer, no commit and no plan.",
+    "[P] The Goal body's block is printed byte for byte, line for line. After it come only a branch clause if --branch is given, then a PR clause if --pr is given. --experiments N sets N in the stop clause.",
+    "[N] hyp prompt refuses a Goal whose body has no valid block, and a prompt longer than 4000 runes: it exits 1, names the rule in its message and prints nothing to stdout. It never truncates.",
+    "[P] 'hyp add goal' with a body that has a line starting with 'May change:', 'Read only:' or 'Never:' but no valid block exits 0 and prints a warning that names the rule, by the same test hyp prompt uses. A body with a valid block, or with no such line, prints no warning.",
+    "[N] hyp prompt exits 2 for a missing or invalid actor ($HYP_ACTOR is the fallback; ^[a-z0-9][a-z0-9-]{0,39}$), a --branch that is empty, starts with - or holds a character outside letters, digits and . _ / -, a --pr or --experiments that is not an integer of at least 1, and a ref that is unknown, ambiguous or not a Goal. It exits 3 when no repository holds the store.",
+    "[P] The prompt is a function of the log and the flags: the same log and flags give the same bytes, an alias and an id of one Goal give the same bytes, hyp prompt writes no event and no file, and in a store with two Goals the output holds only the named Goal's block.",
+    "[P] A block runs from the first line that starts with a heading to the end of the body, and is valid when it holds each of the three headings at least once and every non-empty line starts with one. A heading may repeat and a blank line may be truly empty. A lowercase, indented or mid-line heading starts no block; a line of spaces, a tab or a lone carriage return, or any non-empty line that starts with no heading, makes the block invalid."
+   ]
+  }
+ ],
+ "bad_hash_lines": []
+}

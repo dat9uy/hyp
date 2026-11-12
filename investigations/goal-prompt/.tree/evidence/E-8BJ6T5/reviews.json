@@ -1,0 +1,41 @@
+{
+ "T01": {
+  "l1-init": "fail",
+  "l2": "pass",
+  "l3": "fail",
+  "l4-grader": "pass",
+  "l5": "fail"
+ },
+ "T02": {
+  "l1-init": "pass",
+  "l4-grader": "pass",
+  "l5": "pass",
+  "l6": "pass"
+ },
+ "T03": {
+  "l1-init": "fail",
+  "l2": "pass",
+  "l3": "fail",
+  "l4-grader": "fail",
+  "l5": "fail"
+ },
+ "T04": {
+  "l1-init": "pass",
+  "l4-grader": "pass",
+  "l5": "pass",
+  "l6": "pass"
+ },
+ "T05": {
+  "l1-init": "pass",
+  "l4-grader": "pass",
+  "l5": "pass",
+  "l6": "pass"
+ },
+ "T06": {
+  "l1-init": "pass",
+  "l2": "pass",
+  "l3": "fail",
+  "l4-grader": "pass",
+  "l5": "fail"
+ }
+}

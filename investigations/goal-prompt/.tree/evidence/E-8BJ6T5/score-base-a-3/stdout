@@ -1,0 +1,16 @@
+arm	base
+fixture	a
+trial	3
+end	end
+exchanges	4
+timed_out	0
+cost_usd	1.041652
+cost_usd_literal	3.084806
+models	claude-sonnet-5-5
+subagents	1
+goals	1
+stores	.,internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/id-citation,investigations/recipe-base
+has_goal	1
+l1	0
+l4	1
+eval_exit	1

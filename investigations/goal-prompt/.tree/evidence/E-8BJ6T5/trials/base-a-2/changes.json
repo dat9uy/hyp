@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": ".tree/.gitignore",
+      "change": "added",
+      "size": 28,
+      "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": ".tree/events/claude-p113-grill.jsonl",
+      "change": "added",
+      "size": 1136,
+      "sha256": "ec32dd5f0e606579e4b087536fae74b76272511bb6fcbe233895d6f73fdf4017",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": ".tree/events/owner-standin.jsonl",
+      "change": "added",
+      "size": 5394,
+      "sha256": "09fcdb94ff64f1876ead601048b7be05350945b64744ff8ed3d4ec8a5d0a3e4d",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}
