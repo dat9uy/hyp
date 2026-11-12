@@ -1,0 +1,4 @@
+hyp c5858435f689b848
+through link /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.nxXW1vIMYo/repo/tree: exit 3: hyp prompt G-GVPBPP: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.nxXW1vIMYo/ext, so its path relative to the repository root is not known
+through real path /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.nxXW1vIMYo/ext: exit 3: hyp prompt G-GVPBPP: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.nxXW1vIMYo/ext, so its path relative to the repository root is not known
+same outcome on both paths: yes

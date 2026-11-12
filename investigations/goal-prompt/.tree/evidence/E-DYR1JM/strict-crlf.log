@@ -1,0 +1,2 @@
+hyp c5858435f689b848 CRLF blank line: exit 1 (strict meaning wants 0); line of spaces: exit 1 (wants 1)
+strict-crlf: fail

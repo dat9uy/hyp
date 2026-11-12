@@ -1,0 +1,19 @@
+== red: 2284172's prompt_test.go on b4f23b2's code
+    prompt_test.go:120: through the real path: exit 3, stderr "hyp prompt G-47RG9B: no repository holds the store /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPromptOutsideARepository2684211455/001, so its path relative to the repository root is not known\n"
+        through a link inside a repository: exit 0, stderr ""
+        /goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-47RG9B: read it with hyp show G-47RG9B, read hyp status G-47RG9B, and name --goal G-47RG9B on every hyp checkpoint.
+        Done when the latest printed hyp status G-47RG9B shows "runner owes nothing: stop and report to the owner" under OWED, or 5 Results have been recorded under r, or you cannot take the next step honestly and say why.
+        May change: this repository, in commits on one branch.
+        Read only: plans/.
+        Never: merge a PR.
+        Never: write under an owner's actor.
+--- FAIL: TestPromptOutsideARepository (0.02s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.425s
+FAIL
+exit 1
+go test exit 1
+== green: on 2284172
+--- PASS: TestPromptOutsideARepository (0.01s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.152s
+go test exit 0
