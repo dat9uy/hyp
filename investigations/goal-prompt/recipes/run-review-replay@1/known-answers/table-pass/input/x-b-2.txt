@@ -1,0 +1,10 @@
+arm	x
+cut	b
+trial	2
+cost_usd	10.0000
+a1	0
+a1_strict	0
+b2	1
+b2_strict	1
+l4	1
+l4_strict	1

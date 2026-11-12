@@ -1,0 +1,6 @@
+arm=base
+cut=b
+cut_event=01M77CZYW3A5E2SM7XCKCKD4TS
+trial=2
+actor=claude-t
+goal=G-GYDWM4

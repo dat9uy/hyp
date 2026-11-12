@@ -1,0 +1,1 @@
+/goal Run the tree. Done when the latest printed hyp status G shows "runner owes nothing", or 1 Results have been recorded under claude-t, or you cannot.

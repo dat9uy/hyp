@@ -1,0 +1,9 @@
+{
+ "step": "standalone",
+ "command": "score",
+ "args": [
+  "$CASE/input"
+ ],
+ "exit": 0,
+ "stdout": "arm\tbase\ncut\tb\ntrial\t2\nactor\tclaude-t\nn\t5\ncost_usd\t3.0000\nduration_ms\t1000\nnum_turns\t9\ntimed_out\t0\nsubagents\t1\nbuilt\t-\nreviewed\t-\nselects\tH-KTSJAT\nunreviewed_unnamed\t-\na1\t1\na1_strict\t0\nb2\t0\nb2_strict\t0\nl4\t1\nl4_strict\t1\n"
+}

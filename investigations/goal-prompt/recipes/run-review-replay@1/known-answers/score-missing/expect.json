@@ -1,0 +1,9 @@
+{
+ "step": "standalone",
+ "command": "score",
+ "args": [
+  "$CASE/input"
+ ],
+ "exit": 2,
+ "stdout": ""
+}
