@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -289,7 +290,10 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	for _, t := range lineTexts {
+	for i, t := range lineTexts {
+		if err := truncatedHex(i+1, t); err != nil {
+			return err
+		}
 		p.Lines = append(p.Lines, event.GoalLine{Text: t})
 	}
 	noTarget := len(targets) == 1 && targets[0] == "none"
@@ -411,6 +415,20 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		}
 	}
 	return err
+}
+
+// truncatedHexRe finds a whole run of 8 to 63 hex digits followed by an
+// ellipsis, such as "c47a38de…": a shortened hash.
+var truncatedHexRe = regexp.MustCompile(`(?:^|[^0-9A-Fa-f])([0-9A-Fa-f]{8,63})(?:…|\.\.\.)`)
+
+// truncatedHex refuses line n of a new Goal when it names a shortened hash.
+// A line never changes, so a hash it names must be whole; a log that
+// already holds such a line still replays, because only the write refuses.
+func truncatedHex(n int, text string) error {
+	if m := truncatedHexRe.FindStringSubmatch(text); m != nil {
+		return refusedErr("line %d names a hash cut to %d hex digits (%s…); a line never changes, so name the file by its whole sha256 (64 hex digits)", n, len(m[1]), m[1])
+	}
+	return nil
 }
 
 // admitted maps admission findings to the CLI: the first refusal (exit 1)
