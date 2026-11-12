@@ -1,0 +1,5 @@
+arm	cut	trials	costs	median_cost	ratio	a1	a1_strict	b2	b2_strict	l4_fail	l4_strict_fail
+base	a	3	0.3948,0.4435,0.6307	0.4435	1.0000	0	0	-	-	0	0
+base	b	3	0.2820,0.4708,0.8881	0.4708	1.0000	-	-	0	0	0	0
+review-result	a	3	0.4578,0.6463,0.7133	0.6463	1.4573	2	2	-	-	0	0
+review-result	b	3	0.4128,0.4428,0.9512	0.4428	0.9405	-	-	3	3	0	0

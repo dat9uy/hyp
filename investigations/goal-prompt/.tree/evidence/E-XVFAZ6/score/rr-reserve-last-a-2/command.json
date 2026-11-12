@@ -1,0 +1,177 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:45:56Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-reserve-last-a-2"
+      ],
+      "exit": 0,
+      "pgid": 86252,
+      "started": "2026-11-12T08:45:56Z",
+      "ended": "2026-11-12T08:45:56Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-reserve-last-a-2",
+      "sha256": "bef539fb0a63ddd8b9e56eaa1955dfff3d92684c3b789a453bc39bef818eecec",
+      "files": 26,
+      "entries": [
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "f9efa0f414e92f8e316c5e3b98f1c919f280918db4388f8f3e8b8204d006005d"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "ffab822381f750e760f47176d34454ac33b759d137a7349053b8e3fd9c709965"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "db36483e5c6605e3026b9a69777b8b3716317069f529a5636c21df2970e8654f"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "687e43650bcce1640eec7580c493e16fd5d41fb0cc929f1f6ffe2c94a5929928"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-2RX1GS/commit.txt",
+          "sha256": "5c61d29829ce7b364c160961c1847e3c81ae314f5cdd970dff05b7aaed342a38"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-2RX1GS/diff.patch",
+          "sha256": "5d3b26665e392ef5f455c9d863a8d65605e8c662884043b17a6202b49b5565d2"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-2RX1GS/gate.log",
+          "sha256": "f7f7049d83aa9ab6f0fafb37c2ad989a30f8ccf142d833b260fccff61978e7ba"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-2RX1GS/red-on-b4f23b2.log",
+          "sha256": "dca7793da3c1cb46654c18ebdd9641f43f0d6f08781a399e893cc959269e8a14"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-2RX1GS/removal-evalsymlinks.log",
+          "sha256": "f963d3a97c4afd3509d369085241bdbc8536347806548c3e0ee89be9c17e3b6b"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-2RX1GS/review.md",
+          "sha256": "07039a392b73fb27864c6f1b022c238898140891f3591f0e9171c2d1634a09f1"
+        },
+        {
+          "path": "changes/skills/hyp-goal-run/SKILL.md",
+          "sha256": "23096ed2c73a08204d17c40f894156573ddb0a21a28e019750c6e65e0d51ac62"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "8d83dedb2db8908428f4be0510ac6cd5e276f28737cba279864261fdfb64950a"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "3994c15b14756dc396183b93abc8c852150c4e6902dbb82ce983c9f34526eddd"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "e8beab2b5877f56cdc6103e15782a3bef5b028d4ea6a6bfc7b1aa212832a89b8"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "fec0da5ca25bbff1aa76846b8fbc9cf773200129d3a522acf5ebf0dcfb78ba54"
+        },
+        {
+          "path": "inputs/rr-reserve-last-a-2.txt",
+          "sha256": "578a60529fa66a67e4c60692f0a4ce235ecd1519620481f50319f4fc67de23a3"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "3a2a05ad7fdff5e73f5a267423f51142377a96e860fe54358ee97f0e8216b267"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "ce4b233c4c20aeb5d3a6c21f39ffc0ff80b0e491321d827827a912d6181a4453"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "40da10113d7276c96ffc50424369f56f49b711b1a0590f0afa0a9abd6575b8e8"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "981667f53bb5736de1c529eaaf9b373aaeb74cd82777cfa8c4810f380b7d6ad2"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "578a60529fa66a67e4c60692f0a4ce235ecd1519620481f50319f4fc67de23a3"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "7bbd1a0828649b4290940d4201cadd9809e37aa03f7ded6f39df5fc405168a68"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "390c8f48776162405817673e8adcfbc499f1e964fba0826385a805bc82667a1a"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "2718ada554af493f726f1d74727066ea99b96de7a35bc3dd328dd43aed9fe154"
+        }
+      ]
+    }
+  ]
+}

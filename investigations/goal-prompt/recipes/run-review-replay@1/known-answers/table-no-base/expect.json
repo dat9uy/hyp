@@ -1,0 +1,11 @@
+{
+ "step": "standalone",
+ "command": "table",
+ "args": [
+  "$CASE/input/x-a-1.txt",
+  "$CASE/input/x-a-2.txt",
+  "$CASE/input/x-a-3.txt"
+ ],
+ "exit": 2,
+ "stdout": ""
+}

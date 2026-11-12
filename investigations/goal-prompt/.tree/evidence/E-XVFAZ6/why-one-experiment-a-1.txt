@@ -1,0 +1,15 @@
+commit fcb287fa3 parents ['b4f23b2e8'] files vs first parent:
+   ('docs/glossary.md', '92a68c2a7c694947017ee9e683fcdb452ec0ef7b', 'M')
+   ('internal/cli/prompt.go', '06c106ad0b8c77575aebe5dec29c6723d4112618', 'M')
+   ('internal/cli/prompt_test.go', '4fec8b92e183e8eb8dfaff1fe7ef8b4fb6fefa2b', 'M')
+   ('skills/hyp-goal-run/SKILL.md', 'fcb178cce15d9a6493624d69773e13d0ed3bbc4c', 'M')
+   ('skills/hyp-owner-answer/SKILL.md', 'bce7dce499f819b52db51762e13fe90ea31db618', 'M')
+   ('skills/hyp-owner-grill/SKILL.md', 'bcd194bd3fbc5166717e6c44c8c0e29df05d55f7', 'M')
+SUB agent-a41e482538e8864a0.jsonl
+   docs/glossary.md                                             header=True blob=True
+   internal/cli/prompt.go                                       header=True blob=True
+   internal/cli/prompt_test.go                                  header=True blob=True
+   skills/hyp-goal-run/SKILL.md                                 header=True blob=True
+   skills/hyp-owner-answer/SKILL.md                             header=True blob=True
+   skills/hyp-owner-grill/SKILL.md                              header=True blob=True
+   result WWQZBB .tree/evidence/E-1700SD/review.md window match False final len 2488 file len 1122

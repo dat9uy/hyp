@@ -1,0 +1,189 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:34:46Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-probe-closes-a-1"
+      ],
+      "exit": 0,
+      "pgid": 10521,
+      "started": "2026-11-12T08:34:46Z",
+      "ended": "2026-11-12T08:34:46Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-probe-closes-a-1",
+      "sha256": "5be1f4764b370a8e22268e9873e2ffbbba221ffd2b3811dbc0c59493618ca454",
+      "files": 29,
+      "entries": [
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "5ad4c0fee40fa7bde2300512a486e929aee2eb55c07b533a1f71a43d337839d0"
+        },
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "d5f4f80e8bd296bf597b2f51a4ab22c9f787f46df518c8d7beebcde0f6a9288a"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "bc000af164bc217469a110f2fb8f0e965bc0413a38be51ceb307a0b6c75b9d62"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "adfd1af9e404962604a02cb3e5a46d2699bc164b5121c6f050e7efbd35ee5637"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "3d54ab942633828d58036c5e28e5adef0180c67fd80495ed83ca1ce017538abf"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-PM0EQ4/gate-candidate.log",
+          "sha256": "876f53d8a5f2c65e0393d1c7b1995036dca4e9bcdc8f8076450a1b4bf45dfcf5"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-PM0EQ4/probe-c706ff5.log",
+          "sha256": "0c0921aab8bd9c8a65eecdd1fa07f9846d0b2d744b620b0381088889a4fed5a2"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-PM0EQ4/red-base.log",
+          "sha256": "3c28f18b659695b01a05887db58b593adddf95a744237a842143018894c8e3ac"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-PM0EQ4/removal.log",
+          "sha256": "4dbc92a129ae1f6b6a6a3daeb468783ea796f91df35c7f0d5e36f7327cb5cc5c"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-PM0EQ4/review.md",
+          "sha256": "dd81baefa64aedd72add09a18707657372db1a220cbf70bbfe0952d51e44cdb4"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-PM0EQ4/skill-scripts.log",
+          "sha256": "2717dd2fab9f164cca53d045872d406df881042a41148dd4d47a3deb504384ee"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-PM0EQ4/vet.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "changes/skills/hyp-goal-run/SKILL.md",
+          "sha256": "cb15e2f2e207b5a66807c9369e4d776d5378e61c2dd99679c36dfba402fa750e"
+        },
+        {
+          "path": "changes/skills/hyp-owner-answer/SKILL.md",
+          "sha256": "c5c3c32c1d6058198a54a349b491cac1929a103b997f2e18213d86c5175a1b92"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "a6aadbb2b7a40160c1108b42a0250a3fc7f1a0905d0c68d98d99e86acb86f200"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "1ef8fb876eee7b35e1d357303289aac9f4c006aced4ad478898508bef4051d56"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "769ca06b0a937c11e51d6562904b69266b334599e677ad8b60925607cad4c7d6"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "6565be0aeb5f7002a67be88d1c043eb0dd8f6601f6503c8847fe7fbd81eb1b88"
+        },
+        {
+          "path": "inputs/rr-probe-closes-a-1.txt",
+          "sha256": "5ba8cf29405057be7eaa50307a57cc394406859e402665b5b349f4d705e36f67"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "5acc04655705466be99144ab1bf2e97a3a197f59e165402853eab30ab5624c08"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "ce4b233c4c20aeb5d3a6c21f39ffc0ff80b0e491321d827827a912d6181a4453"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "f672655922c390656e6e1d92723f0c06da77233d995da7e7db64e981c8d6d09a"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "2aeba5f39bf2fa23f0004c053a57d8a4377c3856837aa363d95614be2943a845"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "5ba8cf29405057be7eaa50307a57cc394406859e402665b5b349f4d705e36f67"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "50a091636534004d77aee41b85fd54ea320d45e792a68661a0c9726d16257303"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "e75aac1312ae1347b06715f7292de683de5a2115c2fd60e98bc8d2e641de9c82"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "a4fc38c61c21de412d5fe98815498e828c737691963dbe9a50b85a50bc3df81d"
+        }
+      ]
+    }
+  ]
+}

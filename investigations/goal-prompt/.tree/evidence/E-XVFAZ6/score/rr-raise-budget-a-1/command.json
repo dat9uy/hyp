@@ -1,0 +1,233 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:33:27Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-raise-budget-a-1"
+      ],
+      "exit": 0,
+      "pgid": 4728,
+      "started": "2026-11-12T08:33:27Z",
+      "ended": "2026-11-12T08:33:27Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-raise-budget-a-1",
+      "sha256": "a6ef805a4adc796365d4307b6c10a9cc3fc4adc9d79c3ee964b8d198e0c2beef",
+      "files": 40,
+      "entries": [
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/encoding_utils.cpython-312.pyc",
+          "sha256": "0c884f88e701eee80e77db2a6a3313bab3980bc181b9678d53bbf1eae774b4ea"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/frontmatter_validation.cpython-312.pyc",
+          "sha256": "eea7c407558a77f11a510b0aed1eacbe39e04a71b810361dc50d8e50b6db3ef8"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/metadata_routing.cpython-312.pyc",
+          "sha256": "45f1c1ce01d611a59cd358b2f7547790602601555d8aa42d76da69710e41dabe"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/resource_validation.cpython-312.pyc",
+          "sha256": "88c8c89db6f2113e153f00a0297c884a5e2cb7c6cee2516e91cba5d459c63e21"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/standard_validation.cpython-312.pyc",
+          "sha256": "72d663e5435f93033e55096a7d7481eea6ca15047e2cfecc4a592cc36598bc0c"
+        },
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "249f2df59019b238bdb25458071e7bd8ac866682b1f65e83f3d05cf237cd1147"
+        },
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "5687211306824606f8189eef9e910e4782231b920cc94d0bb642e19027047e6e"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "053cc3f9ab8390152dd9a2b3b762e3682b17fb60cb346a59b344963a334c8b36"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "3104152a9592913879245e9c319467375cf8fa73a3dbacf1770461e6c5cbfc41"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "a8e06bafb84cf3c8482530ff5c3e4dceab5f3c8495235b581f9fed220e01691b"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-6FQD24/fix.diff",
+          "sha256": "35bba01ff249ddfc02d62fe09057ebfbe61b6e1a7239b1df657476588730adfc"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-6FQD24/review.md",
+          "sha256": "96b082adecff2be07acb45a3b144e510973477c9c8683895694a0064258dcedd"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-Y3YAEY/gate.log",
+          "sha256": "c43bfbb17747bdcf4f2b97589b4abd126625305460047d59106e7f7a6f06c48b"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-Y3YAEY/red-green.log",
+          "sha256": "4abe9e9fb667a63c36ffa3f55d18912b9db45442c497031d50585fbf404ae5d0"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-Y3YAEY/removal.log",
+          "sha256": "0ab7907fb71b66c88fe589ad1e61152f967f5a598ca2cb592cebf22cc82ee4c8"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-Y3YAEY/skill-scripts.log",
+          "sha256": "a1ec351ac7373c30862ea0d02fdb8899d250a1cc20ae036d2de385981b9839b7"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YS9EPZ/blind-mapping.txt",
+          "sha256": "d5c42a31b9aa15bdcefbae48694e2878d873a70feb5357cbbd4bb7e2036cb5c3"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YS9EPZ/exit-P.md",
+          "sha256": "bea9fa570f031a3ca816425a2dd75accdff856a5211814a5684c92ca78d48847"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YS9EPZ/exit-Q.md",
+          "sha256": "35d79185e7004d2fd98906b8671c8c5be1dddbdca0da72b3ea9799457ef6b63f"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YS9EPZ/grade.json",
+          "sha256": "b34442ccd229ead7e60c468eab0e571cae9ca1d16fc661154ba74cd0b088f27e"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YS9EPZ/plan-P.md",
+          "sha256": "bcc84ae53bbc1f63d91c573d60433b244f42870c4c98d8596b83ececf632a04b"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YS9EPZ/plan-Q.md",
+          "sha256": "76614a5a5b9885f7427f76c216a88113e5e05be0df7acdd3ec473c65b17c3263"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YS9EPZ/prompt.txt",
+          "sha256": "0cf320f5c842b0526a89785c1b471bdb1609b6b1a7541b320883738c68a8e446"
+        },
+        {
+          "path": "changes/skills/hyp-goal-run/SKILL.md",
+          "sha256": "b5aaf473b474fce2f5cfc70dbbdab2950d3c71404970d170307636d9e3a6f0b3"
+        },
+        {
+          "path": "changes/skills/hyp-owner-answer/SKILL.md",
+          "sha256": "b49f061fe649fe151383878086d75b39c970d5917c147806de875d1712bebf6a"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "607282b87de2ae55e545e339d9db44500b691c95501d3a07833d2dcbbb112642"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "cb70158a6ce36dc3c72e8646e4c4cadd5bbe51d54b9e18329ba720484ebd25f6"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "c7bdd38850d8c6edf65a5c1f9947fe8ee1b1368e2337df0af84322af6161136a"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "b712f706057e923fba7e2e98c38df73ecdd0ac0192a4a427a57485381f0df2e3"
+        },
+        {
+          "path": "inputs/rr-raise-budget-a-1.txt",
+          "sha256": "9153e2f9f051a3152aba2a5f0d69a4397e8a36695c9b27c4d9fdd11d9f1ebea3"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "626efa4ecbedea5d551db81ebd89e1b9e7ebc45fcf9d7e7e2f8812d3df041693"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "7afd4e540681e233249ad124354d31217a395e82b86bc28fc7eb0f0e9250a547"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "3cb9eda4ab71977dc66d6e5b83adf3132cef3daf486976bc027100df8b00c5b7"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "5ee78fb501185cffd99e25cffc0a1b40bfd6813db61df250c5dbc662dbeda73b"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "9153e2f9f051a3152aba2a5f0d69a4397e8a36695c9b27c4d9fdd11d9f1ebea3"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "5014e11aab2973282433438fa8a75dbf70f6f5aa40c14ce28cf0a6b6694a9e4b"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "96c4305a8dfa41edeb0136b23e94ef72609e1d9d28aff8c15b3b6d54759ac67b"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "843c8f92cb7d62d6725e561d060799c2db3320b34102701b5517571c839f4f19"
+        }
+      ]
+    }
+  ]
+}

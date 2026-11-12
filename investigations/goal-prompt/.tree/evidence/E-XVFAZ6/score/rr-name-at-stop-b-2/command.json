@@ -1,0 +1,133 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:45:48Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-name-at-stop-b-2"
+      ],
+      "exit": 0,
+      "pgid": 85384,
+      "started": "2026-11-12T08:45:48Z",
+      "ended": "2026-11-12T08:45:48Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-name-at-stop-b-2",
+      "sha256": "ae4480590768718ca0895887644ebc5cd4e1094ea3ebfdbd49c5ed022bd08e71",
+      "files": 15,
+      "entries": [
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-3.jsonl",
+          "sha256": "94a57a887b09226c5e02637ad5986bb6cb0b32d4ce385611ae8f939a70fc0bf2"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "e175795c85cacf8466a2ba1ab0a26a3935ff7e6e3852010276b8d93b20da5c45"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "b5ba794c7eb047ae833af071a0ff7c7402255c6ce93a043d7c40b8e0d1d91500"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "ad51bc1ea969cd33e973785e82dd6104e5969967277c45e1eb35d9c8fe234765"
+        },
+        {
+          "path": "inputs/rr-name-at-stop-b-2.txt",
+          "sha256": "90efd7348d36684a3c2a9819d58616d0af453f19073f4c06c6521715a70733ac"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "805bf1e4e8292290fdaf6d627b4f6b08666f75030c9ab165c8e291cba8bf0812"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "493d7d7c978605e8020e0cc7c065cf8e17a604ebd0f0af1d4b12937d79e9d4b3"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "13670996d87e3235d662697c2243d3cfd7e4c1ca95db6cb22a79ea3548c8b5f1"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "c926fd82a5d631d32936df45e2b95d67d54e06461662d1229c6ec3dae0eca9c7"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "90efd7348d36684a3c2a9819d58616d0af453f19073f4c06c6521715a70733ac"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "b8e585af3b3c039e43e351a8581df3741c538a9b919d88bc0060dac3f5f4fe90"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "4de4aa891138ceabfd77ba288aa2d9cf3e2dd9ac6b3d8fc246b62f5bbc2348f7"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "0f91d9533fd727ee6bba2a2b66f0c41ab5be78bcf3baa8414ae415f0c4a21d33"
+        }
+      ]
+    }
+  ]
+}

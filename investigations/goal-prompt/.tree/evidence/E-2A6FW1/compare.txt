@@ -1,0 +1,5 @@
+main-transcript.jsonl {'input_tokens': 4, 'output_tokens': 315, 'cache_creation_input_tokens': 10305, 'cache_read_input_tokens': 6383}
+subagent-transcript.jsonl {'input_tokens': 4, 'output_tokens': 171, 'cache_creation_input_tokens': 8139, 'cache_read_input_tokens': 6680}
+main+subagent {'input_tokens': 8, 'output_tokens': 486, 'cache_creation_input_tokens': 18444, 'cache_read_input_tokens': 13063}
+modelUsage {'input_tokens': 8, 'output_tokens': 486, 'cache_creation_input_tokens': 18444, 'cache_read_input_tokens': 13063} costUSD 0.0677498 total_cost_usd 0.0677498
+verdict: included

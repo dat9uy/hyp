@@ -1,0 +1,160 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T09:48:18Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "table",
+      "args": [
+        "./table.py",
+        "inputs/1/stdout",
+        "inputs/2/stdout",
+        "inputs/3/stdout",
+        "inputs/4/stdout",
+        "inputs/5/stdout",
+        "inputs/6/stdout",
+        "inputs/7/stdout",
+        "inputs/8/stdout",
+        "inputs/9/stdout",
+        "inputs/10/stdout",
+        "inputs/11/stdout",
+        "inputs/12/stdout"
+      ],
+      "exit": 0,
+      "pgid": 82273,
+      "started": "2026-11-12T09:48:18Z",
+      "ended": "2026-11-12T09:48:18Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "arg": 1,
+      "path": "inputs/1/stdout",
+      "sha256": "3892db1091b4caaf3425b7280ca8a7aa6ecea75ab78461f99b25d24f398eb3d4",
+      "size": 227,
+      "kept": true
+    },
+    {
+      "arg": 2,
+      "path": "inputs/2/stdout",
+      "sha256": "995e9df59bb3298a0a3f84ebda971c20f14c892fa27a9d6e5deadc770ca2497e",
+      "size": 227,
+      "kept": true
+    },
+    {
+      "arg": 3,
+      "path": "inputs/3/stdout",
+      "sha256": "92b7fdf5cb0ff8c6c6a2f4361b1d8003a4a773d0aa21937710b523403f0ca6c7",
+      "size": 227,
+      "kept": true
+    },
+    {
+      "arg": 4,
+      "path": "inputs/4/stdout",
+      "sha256": "336a1b65137c4157f1859833dd138b221d19e9c1a641161fdcb55f1b284e2909",
+      "size": 225,
+      "kept": true
+    },
+    {
+      "arg": 5,
+      "path": "inputs/5/stdout",
+      "sha256": "640749d6f43f970dc80fb8cb5c744837096073d0e2a5b4c6991099ac55e4f28c",
+      "size": 234,
+      "kept": true
+    },
+    {
+      "arg": 6,
+      "path": "inputs/6/stdout",
+      "sha256": "0ccfac0920f3df02da6a087715616e77ca9502bf1fb7b88395920eb02d66ff58",
+      "size": 226,
+      "kept": true
+    },
+    {
+      "arg": 7,
+      "path": "inputs/7/stdout",
+      "sha256": "832b7a8678fc88860cf03e84e4742a92827632ed1059d445e48563ff43d3fdc8",
+      "size": 241,
+      "kept": true
+    },
+    {
+      "arg": 8,
+      "path": "inputs/8/stdout",
+      "sha256": "b53d262158c5f2595173a87327625df06032b7a81ec10e425759f63944017f99",
+      "size": 241,
+      "kept": true
+    },
+    {
+      "arg": 9,
+      "path": "inputs/9/stdout",
+      "sha256": "664b6e8b8cbd3aa44f425487e21cfe71db2861ee9305967b345875de1e237abc",
+      "size": 236,
+      "kept": true
+    },
+    {
+      "arg": 10,
+      "path": "inputs/10/stdout",
+      "sha256": "c44a8789915fe83edaeb23d7fc699cac0dac4e2e9845c0d5adf556411231b9af",
+      "size": 243,
+      "kept": true
+    },
+    {
+      "arg": 11,
+      "path": "inputs/11/stdout",
+      "sha256": "8feba1dbc0e414ae8fccf4e97cc9460fc5b84748832b21f1b7d26378aeec8f60",
+      "size": 242,
+      "kept": true
+    },
+    {
+      "arg": 12,
+      "path": "inputs/12/stdout",
+      "sha256": "c43ecca4799e54ed4400fd46c715b4277e72e46e7956ad4e8a5129ab42b6e901",
+      "size": 268,
+      "kept": true
+    }
+  ]
+}

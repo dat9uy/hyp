@@ -1,0 +1,133 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:35:34Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-whole-candidate-b-1"
+      ],
+      "exit": 0,
+      "pgid": 14177,
+      "started": "2026-11-12T08:35:34Z",
+      "ended": "2026-11-12T08:35:34Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-whole-candidate-b-1",
+      "sha256": "0ab79057e159facebdbce751ca7196017f2eaec84d5fa8ea1ed761d9d02e04d1",
+      "files": 15,
+      "entries": [
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-3.jsonl",
+          "sha256": "72cc0049587d57cd2a466aca1bf4353c1a6506fd32ed54e01813b40b55cca6a7"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "8b488379645a82c875f3eb6c924c64b925e772eb68e638d2cd6c9bb4882b405d"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "297e762c3ce06dda587cb14ff6ce179648277fa0e22a8ee74a189c24e6695aac"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "cbd1abd63add74963b93f3965cb7a46748ab28200679ac75524c7dc3eb2ddab0"
+        },
+        {
+          "path": "inputs/rr-whole-candidate-b-1.txt",
+          "sha256": "44cf1c18e6f4ea2b697afcfa1f5cacc9dd36582746f3ad7e2fad6c6218452eca"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "87c7172961ec45495d0815de13faed8daad86ea033e1b40c1a323996486a169b"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "493d7d7c978605e8020e0cc7c065cf8e17a604ebd0f0af1d4b12937d79e9d4b3"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "6cee4287635cf16c6ac40b046fb848a435a5aaf6db0cb3992480a4a3b24fda42"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "c5b428ef5fa4e14b985ea43c544abf04c71689d971fcecfe6c9f3c61972faf75"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "44cf1c18e6f4ea2b697afcfa1f5cacc9dd36582746f3ad7e2fad6c6218452eca"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "f439dd50993ec73e23e65bd6b4619131058982e2cea6021f8d8926fca24f305e"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "5121d45e052c4900cbfc6ca24923cb74d17131a3aac0c5df94de2572a3c6903c"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "3c2c5486d6e5de85c9c2b8361c58898d7912be4d2c40a2989de68ecd5a06daa9"
+        }
+      ]
+    }
+  ]
+}

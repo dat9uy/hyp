@@ -1,0 +1,6 @@
+rr-review-result-a-1 exit 0 version 2.1.322 timed_out False denials 0 home_hyp_unchanged True cost 0.6463
+rr-review-result-a-2 exit 0 version 2.1.322 timed_out False denials 0 home_hyp_unchanged True cost 0.7133
+rr-review-result-a-3 exit 0 version 2.1.322 timed_out False denials 0 home_hyp_unchanged True cost 0.4578
+rr-review-result-b-1 exit 0 version 2.1.322 timed_out False denials 0 home_hyp_unchanged True cost 0.4428
+rr-review-result-b-2 exit 0 version 2.1.322 timed_out False denials 0 home_hyp_unchanged True cost 0.4128
+rr-review-result-b-3 exit 0 version 2.1.322 timed_out False denials 0 home_hyp_unchanged True cost 0.9512

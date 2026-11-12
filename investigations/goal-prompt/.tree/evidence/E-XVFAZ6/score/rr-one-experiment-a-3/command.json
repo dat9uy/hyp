@@ -1,0 +1,165 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:56:35Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-one-experiment-a-3"
+      ],
+      "exit": 0,
+      "pgid": 42477,
+      "started": "2026-11-12T08:56:35Z",
+      "ended": "2026-11-12T08:56:35Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-one-experiment-a-3",
+      "sha256": "bc46e06e9194f10f32378970463efddfef9c5091a2d7fa8a2bbead74d7a894eb",
+      "files": 23,
+      "entries": [
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "4552e701f759c5d74afc8e5b8fcbcab44745f98d24937e0fa468c3c0f37d8014"
+        },
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "fd718d65edc64af1c5c11589510d8b947daf310e0bef4dbb1e8cb1555672c59e"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "bbd76de708c393443e94766e3782b85d29b37566f5cd6a38a4e5dc8d94a613ac"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "fefbbbb10e0d98d0af139e0e3da0e0797ec83a1882d06a13422d2cc576545561"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "ea5a4752b7df350bccc4935b1a333c43817532113c9b1847d53dbcac4fae12f9"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-VCESCK/gate.log",
+          "sha256": "97b1aeb2fb7227fa173e716339428f2ec33630f46ab8cdc97028c7757a46469d"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-VCESCK/review.md",
+          "sha256": "98a01f1038e7893793eadec66c6fda7b28396904e2ff888931815a2e7d7cbd53"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-VCESCK/skill-scripts.log",
+          "sha256": "8635cd0e269a5b69aa830e12a8cc2e970830e4d9798054770a89b7857509faef"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "607282b87de2ae55e545e339d9db44500b691c95501d3a07833d2dcbbb112642"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "5113811bbbf09d4c14f956d51399f0484f55ab19f4745a0efa75de482187216a"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "280f10da1ba9c30f0426768bf24a0f7a4369d523396edccad006161e409f4bdf"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "94029bd2252321ca65fdf12929ae677f0a65481f3867be9f8d907d5619b6975b"
+        },
+        {
+          "path": "inputs/rr-one-experiment-a-3.txt",
+          "sha256": "04a2ab9e45313a10847ddf034292eb1a104fe67bea43b747176aebd0ad95cbe9"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "3a7ad6a0bebf4b360859ac8e074dcfe72e3f465dbea626751d06eff04be2127b"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "ce4b233c4c20aeb5d3a6c21f39ffc0ff80b0e491321d827827a912d6181a4453"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "29ef96d41d8305c1ce4bcc2092545c1f1be120f3f962fbfadf7fd1b52394a803"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "092693ae054e70f8561e7cd1e5f25dae9ab5bc12bc38e080c1e15376bfc8d85e"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "04a2ab9e45313a10847ddf034292eb1a104fe67bea43b747176aebd0ad95cbe9"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "e8f48f6ff637ceba70bd7683a2036ffad35f0bdf729bbffcbc534a9f92c6e1fa"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "d24db01190a4c0e366ce0076dc8143ebdd1ac536a68d682236cf14d38539b49f"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "3e8f51f159a749b420dd1b66ae90a6027a9efbd3f536f49e15dd7b09177207d3"
+        }
+      ]
+    }
+  ]
+}

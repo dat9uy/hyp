@@ -1,0 +1,133 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T09:07:14Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-raise-budget-b-2"
+      ],
+      "exit": 0,
+      "pgid": 90126,
+      "started": "2026-11-12T09:07:14Z",
+      "ended": "2026-11-12T09:07:14Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-raise-budget-b-2",
+      "sha256": "91c0111e43f2f9c7cc7284d088dbdecdc7d55025075ece88046e14f212e1ad17",
+      "files": 15,
+      "entries": [
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-3.jsonl",
+          "sha256": "649d4ca36d98696f2d66f429acea70eb79136f06442efb80ede5d60db8773ea5"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "8b324ad6cd02960fb0a28ea78e98542c5c9e39d95e269e696c768699d384140b"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "32a84f02233173416e88b6185fabda69a368bd6e9e93b7d7e27829ea9838eca2"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "7cf5b0975d7cba89bd001fd347169c0309ebec1970240338380e1a33ae4d8954"
+        },
+        {
+          "path": "inputs/rr-raise-budget-b-2.txt",
+          "sha256": "b52e2ce4a511837ece2496bb29d8d324fc45559ba29e00f56fd16a5824e93c1d"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "e9f603603b2a115eb6dddfb45be6a486dc4e37e2e752202acf5c662dc5b7a227"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "13d3003c9b36a4e2e684ba6a851e87ea6e63ef0878d01133ea32718af6c68316"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "424e7589cd4d448752a0d55afb81a00ed884c11a460135dde50f295e5743079a"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "0412e2acfca4f2ad37232f9b7f0540a0ec712cf5a9f798ac67fe314569d08cb7"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "b52e2ce4a511837ece2496bb29d8d324fc45559ba29e00f56fd16a5824e93c1d"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "8bfe450dde519ca2dbbfaf3f4a2e7bfdad08da7245fdbc475cb2189a5aabe4c3"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "b50ce5bbb21071cef9b2b6a334b4726575fd55c87227cf48bef3b78bdd3b47ca"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "e9aab09c3601ce7b7bfde6e54548dcb48d56658e3be36a03d84c9c3b37592ef4"
+        }
+      ]
+    }
+  ]
+}

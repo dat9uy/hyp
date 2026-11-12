@@ -1,0 +1,23 @@
+{
+ "step": "standalone",
+ "command": "table",
+ "args": [
+  "$CASE/input/base-a-1.txt",
+  "$CASE/input/base-a-2.txt",
+  "$CASE/input/base-a-3.txt",
+  "$CASE/input/base-b-1.txt",
+  "$CASE/input/base-b-2.txt",
+  "$CASE/input/base-b-3.txt",
+  "$CASE/input/x-a-1.txt",
+  "$CASE/input/x-a-2.txt",
+  "$CASE/input/x-a-3.txt",
+  "$CASE/input/x-b-1.txt",
+  "$CASE/input/x-b-2.txt",
+  "$CASE/input/x-b-3.txt",
+  "$CASE/input/y-a-1.txt",
+  "$CASE/input/y-a-2.txt",
+  "$CASE/input/y-a-3.txt"
+ ],
+ "exit": 0,
+ "stdout": "arm\tcut\ttrials\tcosts\tmedian_cost\tratio\ta1\ta1_strict\tb2\tb2_strict\tl4_fail\tl4_strict_fail\nbase\ta\t3\t2.0000,3.0000,4.0000\t3.0000\t1.0000\t2\t2\t-\t-\t1\t1\nbase\tb\t3\t5.0000,6.0000,none\t6.0000\t1.0000\t-\t-\t2\t1\t1\t1\nx\ta\t3\t4.0000,4.4000,5.0000\t4.4000\t1.4667\t2\t1\t-\t-\t1\t2\nx\tb\t3\t9.0000,10.0000,none\t10.0000\t1.6667\t-\t-\t2\t2\t1\t1\ny\ta\t3\t1.0000,none,none\tinf\tinf\t1\t1\t-\t-\t2\t2\n"
+}

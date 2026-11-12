@@ -1,0 +1,205 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:29:30Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-one-experiment-a-1"
+      ],
+      "exit": 0,
+      "pgid": 85409,
+      "started": "2026-11-12T08:29:30Z",
+      "ended": "2026-11-12T08:29:30Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-one-experiment-a-1",
+      "sha256": "85f718f6b5d36c471fd34a4e079baac806781d06c61f3183730e80a76b04cdd2",
+      "files": 33,
+      "entries": [
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/encoding_utils.cpython-312.pyc",
+          "sha256": "9e0e65878745cadfd9c7bd5eef52eea10036f565d75d1549c901052621cf85a4"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/frontmatter_validation.cpython-312.pyc",
+          "sha256": "25b21a715aedfea686ba731348ecf073784e1c51d1e7b382505912d2c0bfd8b5"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/metadata_routing.cpython-312.pyc",
+          "sha256": "a4bd8e08ee06e19de99d21c161f2a1feb237930518cb57c2b7f726c91b89aa57"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/resource_validation.cpython-312.pyc",
+          "sha256": "c259e7d9b6325c65e28e798f9e9eb641e6c6c125d75e7ac8fe565db416eefb5d"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/standard_validation.cpython-312.pyc",
+          "sha256": "7fbcf739d6a299f173c98ba036e19e56cb092cbcfb005a9ad6a847a0bc123a98"
+        },
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "f42492907d5bd23527684bf197dbd209b9b63256f81f92cf6240decb9b5fadff"
+        },
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "501a44735bdad93da6b294f23d26da97bb0dc1c52b4c745e94b94effef13a042"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "620b93d94f36af33f00ba00cce9688737c60b3c6e56093e32ceee51a634a81d1"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "efda931cda6f8808848bd45de2c83bacf68b8d6be6fbf69e75b86de3d885430c"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "fb3e0be6081cebbffc9ba28e60060fafbc36fced337d998819cf963aaa3665ad"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-1700SD/gate-candidate.log",
+          "sha256": "442aca1101b1430229ceb7aa80949fbd9641da41d15c8ede85d012ddceb7ef35"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-1700SD/gate-docfix.log",
+          "sha256": "f6f00e676a0920185fdb9d08ad3b2cc9c9660a807c159a592bf2eda6285bf3ab"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-1700SD/red-green.log",
+          "sha256": "f00766621608e1d93796ac16b1af297a63211f05cffc454f2c327467d25d13c6"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-1700SD/removal.log",
+          "sha256": "71664f6a7a4d01fe4ff8cddeccaa2863600f19fc8b32699392c15dd0ede8413a"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-1700SD/review.md",
+          "sha256": "96fb67769dab5b6a36d0ca8f8398c32d5b05b390dc23e99530f9255dda46e723"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-1700SD/skill-scripts.log",
+          "sha256": "78ddc642a13c82f62507c732cea9efc16dff082e5b11d06714dd092c19e29bc5"
+        },
+        {
+          "path": "changes/skills/hyp-goal-run/SKILL.md",
+          "sha256": "30cace42d65931b08eb210446cb3118709524aa9050f2d29879e262a130ba1c4"
+        },
+        {
+          "path": "changes/skills/hyp-owner-answer/SKILL.md",
+          "sha256": "8a38778089512ba14f676cb15b54fcdbc867cc397fa841319b96366dd21c7bc6"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "c1386227be50b9f4e364b6bc0629c671c68f408a0e912f50dbff8a859fb13a49"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "32f5db181ca78aef1238e65b32ec1cf8479b887a0e648b3a355d9c66ad8bcedb"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "67320defefa623a2a207d185db16e0c51b6263b562d3392cdf8179cc0e109c79"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "27c0e9c8944ad3486f66bd3fd8a24dff4e6c20c2252b675590f06a1a08c0f537"
+        },
+        {
+          "path": "inputs/rr-one-experiment-a-1.txt",
+          "sha256": "20eddd4ec0935c800b2e161f4eb5f21c1061cb98b2ad02f7f3ad307f95dd6e5c"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "8e9ed739bd6bbf5f2543c9585cdf69e1bcdf1f3a9832042160703c61af46bf6c"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "ce4b233c4c20aeb5d3a6c21f39ffc0ff80b0e491321d827827a912d6181a4453"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "5b05cc9d56e701347f548f874cd7f7beb28782a6ba6d7bb56569539b472c7591"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "0d3b101ffaa96fadf84a94f9c99bf13420968c4033fbd53054b3e8479c3c1a12"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "20eddd4ec0935c800b2e161f4eb5f21c1061cb98b2ad02f7f3ad307f95dd6e5c"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "427f0a14953b182b8056e4ecbab5903306819b9256b4c2c400c4042e39c18cd8"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "5ffda7e105317184089f0864419d5aba6db1e4ebb1886067b744760aa038bf64"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "643d8ebaf18f3daee714e2cca937d9069fe2d794e2abacffce302686a824b0e7"
+        }
+      ]
+    }
+  ]
+}

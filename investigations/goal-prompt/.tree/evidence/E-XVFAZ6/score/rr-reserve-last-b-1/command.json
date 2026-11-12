@@ -1,0 +1,137 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:33:09Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-reserve-last-b-1"
+      ],
+      "exit": 0,
+      "pgid": 3173,
+      "started": "2026-11-12T08:33:09Z",
+      "ended": "2026-11-12T08:33:09Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-reserve-last-b-1",
+      "sha256": "209c6bdf741957e6951b5fc9c29976502c7a573b9a952d9061dc5cb814a6c07b",
+      "files": 16,
+      "entries": [
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-3.jsonl",
+          "sha256": "4311a166e40dce064f72b1bab8da2df736c80fe89bad73651472783fb344cec9"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-1X23VB/review.md",
+          "sha256": "a949670458e2a37da64a2ea1bb3e151d2779604342be74db2671177e0f3cf056"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "b9a2cc5c5525c59ff51f461bb7e1c813ce0b5599e5643577627c3e8806f8748f"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "fb37382ea0fbb882f82ddb9315f4745233e4eafdd2193889854cf00daa9391c7"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "6bac2b2c380887352ec6c18a1bd85cb27209e380dbc3aa9c0d01c5dc3765589b"
+        },
+        {
+          "path": "inputs/rr-reserve-last-b-1.txt",
+          "sha256": "8e054c1ed5c0904be07a579b9f34f3b4408a8ecbd65b7bcbafc85e6229060bd3"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "e5ca8dec7ef3247bcc6704d040b18e17f41b3e6a45428da8697d66493c8e5f99"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "493d7d7c978605e8020e0cc7c065cf8e17a604ebd0f0af1d4b12937d79e9d4b3"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "6e045dcab7281b7a2687821f88e43f94757ade9e046411f44456224019f4cb2c"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "ba2a665bf77baa3e4715f6de063962dabca2fe628c46e486d444bc074f0db7d7"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "8e054c1ed5c0904be07a579b9f34f3b4408a8ecbd65b7bcbafc85e6229060bd3"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "d79b4a159f1d3c2ea989730a2083924ea577c03bac1be4bf8c8ecc25301b1af2"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "d6e648802e52a074b651e081fc6134a0db081a2c3b33de81cc57e2496ef63733"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "fae80a54a90987235af4b4a4f550d56d658cc75681554ffc1e0428f7c2090801"
+        }
+      ]
+    }
+  ]
+}

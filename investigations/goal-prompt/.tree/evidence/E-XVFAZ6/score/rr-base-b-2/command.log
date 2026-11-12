@@ -1,0 +1,21 @@
+== run-review-replay@1 standalone: ./score.py tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-base-b-2
+arm	base
+cut	b
+trial	2
+actor	claude-g113-3
+n	5
+cost_usd	0.8881
+duration_ms	478573
+num_turns	30
+timed_out	0
+subagents	2
+built	H-YGP2RE
+reviewed	-
+selects	H-YGP2RE
+unreviewed_unnamed	-
+a1	0
+a1_strict	0
+b2	0
+b2_strict	0
+l4	1
+l4_strict	1

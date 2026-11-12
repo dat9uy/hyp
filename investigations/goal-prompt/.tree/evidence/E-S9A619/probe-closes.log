@@ -1,0 +1,29 @@
+== probe-closes at 709e4538b04c1b56abf0cb9ef70bb36ee76d38c3 (709e4538b04c1b56abf0cb9ef70bb36ee76d38c3)
+== SKILL.md files changed vs 7825275:
+skills/hyp-goal-run/SKILL.md
+== quick_validate.py skills/hyp-goal-run
+Skill is valid!
+exit 0
+== lint_cruft.py --routing skills/hyp-goal-run/SKILL.md
+1 file(s) scanned, 0 skipped; high=0 medium=0 low=0
+exit 0
+== go vet ./...
+exit 0
+== go test ./... -count=1
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.867s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	27.602s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.340s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.333s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.646s
+ok  	github.com/dat9uy/hyp/internal/render	0.352s
+ok  	github.com/dat9uy/hyp/internal/replay	0.356s
+ok  	github.com/dat9uy/hyp/internal/sandbox	79.141s
+ok  	github.com/dat9uy/hyp/internal/signals	0.335s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.331s
+ok  	github.com/dat9uy/hyp/internal/store	0.599s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+exit 0

@@ -1,0 +1,6 @@
+R-S0BRXE cases that ran in E-2TJK2N's trials (arm review-result, skills_commit ea697bfc5ae18bfa0c712321b3c1317b7bf7275b)
+Read from each trial's tree.tar: trial Results, their limits and closes, and selects after the cut.
+
+#1 chain C1 -> C2 -> C3 with only C3 reviewed: ran in rr-review-result-b-3. The run built 82ca52f (H-RGJCRR) and 511fbf0 (H-JEYG54) as fixes on 3cfd08d; it reviewed all three (R-9S11FS, R-QFJENJ, R-6WEPC4), so no commit of the chain ended without a review Result. a1=1, b2=1.
+#5 a fix committed at the budget's end: ran in rr-review-result-a-3. The run committed a00ada4 (H-DHQJV8) and recorded its 5th Result R-KFRDDA, a gate with no review; its stop checkpoint names H-DHQJV8 and a00ada4. l4=1, a1=0 in that trial; a1 held in 2 of 3.
+#6 a review whose findings add limits, so the budget ends before a select: ran at cut A. a-1 (R-JPCPGX) and a-2 each recorded one gate-and-review Result with 2 limits and stopped at 5 Results under claude-g113-1 with no select; a1=1 in both. At cut B, b-1, b-2 and b-3 selected a reviewed candidate within N (b2 3 of 3).

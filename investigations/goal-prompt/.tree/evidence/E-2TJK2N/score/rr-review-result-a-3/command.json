@@ -1,0 +1,177 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T09:45:12Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-2TJK2N/trials/rr-review-result-a-3"
+      ],
+      "exit": 0,
+      "pgid": 77645,
+      "started": "2026-11-12T09:45:12Z",
+      "ended": "2026-11-12T09:45:12Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-2TJK2N/trials/rr-review-result-a-3",
+      "sha256": "0d5ae28151a2a56d42db20edb73179cf144ff0f24105c047fae8cd0138ddd1b1",
+      "files": 26,
+      "entries": [
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "4552e701f759c5d74afc8e5b8fcbcab44745f98d24937e0fa468c3c0f37d8014"
+        },
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "f9c57d5d4dbb68cfcd231b345dd259f36f26f56c42e43f48bc61f31e61779f16"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "7a57ad8c25df7e57469a03459c3b440fb8cab51b381070f4a215e06392a32ab5"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "1cbf1390a78826721c3ffc058b1ac503c0703fb0d2655b3ffb43e141b39a6d6c"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "997257e621a783ad355431edafe01c4663d32514d78459ac8ce72ef849005e91"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-JW13F9/commit.txt",
+          "sha256": "d73ec8560f90f75fdf570af0c08b6619b82efd063c288d0bf40676de9eda9960"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-JW13F9/gate.log",
+          "sha256": "c185cfe9230f7643f90652b3f7308f3e749054f8165982fcaaec989415263609"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-JW13F9/red-on-b4f23b2.log",
+          "sha256": "2e7fc918971748b67b1c16ed7929d2453472fa5412c1c2c70a301a7276e8323d"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-JW13F9/removal-cr.log",
+          "sha256": "a1bb42b3d61657cee6648f7556cfb63b3aa517f81549228e250f5d23716c7906"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-JW13F9/removal-goalflag.log",
+          "sha256": "c2559511dc500056df293cbde371a30d42e8c4bd7344ab508650e60d75a70bca"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-JW13F9/removal-symlink.log",
+          "sha256": "9b37b02a5f9c37f221ebc60226c325782ee7baf24e78ff40ef02acb2f4320f6b"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "607282b87de2ae55e545e339d9db44500b691c95501d3a07833d2dcbbb112642"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "722758a96a956e16e431b725c7535bc0fa002d744725f80f187bb360b192a129"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "6be2bf04acb7fc1abb37d13cac27b0949f0a77eb54ba03df649f46cd565401c0"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "5aa21c8ae9c6531b3d8c4de65f93c27dd3f8e47261e75d572cdae8bf72add328"
+        },
+        {
+          "path": "inputs/rr-review-result-a-3.txt",
+          "sha256": "6c8033cea2f51c23479f464e29cded0d04d867857ddbb153f1293bc4dde187e9"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "7e1a28562dfd386065c22e53664b2f697a4549fefa9244b8550cf1b2d6b5cf30"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "090a2a570d7bc1c3456751d41219779bc1435b5c45af3fa3089066683b4bcc58"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "ce4b233c4c20aeb5d3a6c21f39ffc0ff80b0e491321d827827a912d6181a4453"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "ca694c65339abc27a52195ca226dc5d5e2a80b6cbacd53953badedefbb2f2095"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "5d927fd4af21efe10e852bad32260d96e32f15414c196ee1320fb1dfd4bd5f0a"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "6c8033cea2f51c23479f464e29cded0d04d867857ddbb153f1293bc4dde187e9"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "349678fecca36c78958a7bcd18ccf0047c9904049dd97aacffb5e5db22e76947"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "9234a7d354ad93d9dd4bb5fe50f8c81deff792fb3d40b39baf66cfd027f5adaa"
+        }
+      ]
+    }
+  ]
+}

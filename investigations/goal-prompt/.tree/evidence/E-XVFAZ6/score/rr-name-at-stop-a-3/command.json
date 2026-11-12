@@ -1,0 +1,157 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:59:14Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-name-at-stop-a-3"
+      ],
+      "exit": 0,
+      "pgid": 56863,
+      "started": "2026-11-12T08:59:14Z",
+      "ended": "2026-11-12T08:59:15Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-name-at-stop-a-3",
+      "sha256": "d3d1f75a3de8319c54902a38398552a4779d6c02dbdf0e9b7a81ae70b2cd930f",
+      "files": 21,
+      "entries": [
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "07bd60ada207fb64e8121461a02b275907419d75392108926369904e4ef4e6ef"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "f1c184cab31a8d8c4e27efcf17cdafff3900d8584aa2cc9b1be4644b1e05acf3"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "6f4223b5ebe044b9a72a116773938f6beeea788739b42d50319cbf3401a495c0"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-DCEBCC/base-red.log",
+          "sha256": "2ccdae074f1762f62050c57d9ee15ecc24a19ff27af16f062e2006191366569e"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-DCEBCC/gate.log",
+          "sha256": "329e7c6ceb234c69575d36990a32e82dc54cd32e676af406a5563d6b231ac683"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-DCEBCC/removal-crlf.log",
+          "sha256": "75aa8166dbd8706f3e17d6635d1d4739d7fe4cf5395bc2541fdeb1adb96cba56"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-DCEBCC/removal-symlink.log",
+          "sha256": "9b37b02a5f9c37f221ebc60226c325782ee7baf24e78ff40ef02acb2f4320f6b"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "39841650712307fb292ae15d3c77b011c68436ceb51b09ba21f3db4e54948345"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "fee316e0dbdc7824e348d7cd319a803936a8a2ef8309803cdb7418dda91dd3bd"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "ac2dc78be22bdda7bc3ef8e5b052353d6c0feb44a67f0aff2576ef1ff38621e6"
+        },
+        {
+          "path": "inputs/rr-name-at-stop-a-3.txt",
+          "sha256": "c1ec170cb9da57b641d4974912548e6262ef2bdcc77e6e98a9aff78d2d6764b6"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "53431b44d225ba237b52ab08aeeaf9857de4d6f4d0380499bee4a16ce6c95dad"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "ce4b233c4c20aeb5d3a6c21f39ffc0ff80b0e491321d827827a912d6181a4453"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "9c04ff75a3206d2cbee0463c4d5dd07e2b41667c4e42656d06b30b0c357b35b6"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "aebdd4168837679d47a4d8e71af428cad27c9b5cc13cf476d2db5b14db09242d"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "c1ec170cb9da57b641d4974912548e6262ef2bdcc77e6e98a9aff78d2d6764b6"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "3c1f38cb87fd3d3618cbd3f9174c420d817b0d11c9b9e8d2bfa0fbead5b6609f"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "d4b7cdd36730ba47676ff65aacdf044a3cf8fc38aa54b466fb782b0027118ad9"
+        }
+      ]
+    }
+  ]
+}
