@@ -1,0 +1,1 @@
+{"run_id": "base-a-3", "checks": [{"id": "has-goal", "passed": true}, {"id": "l1-store", "passed": true}, {"id": "l1-init", "passed": null}, {"id": "l2", "passed": null}, {"id": "l3", "passed": null}, {"id": "l4-hash", "passed": true}, {"id": "l4-grader", "passed": null}, {"id": "l5", "passed": null}]}

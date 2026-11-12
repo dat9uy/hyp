@@ -1,0 +1,56 @@
+{
+  "run_id": "base-a-1",
+  "variant": "base",
+  "model": "claude-sonnet-5-5",
+  "runtime": "2.1.322 (Claude Code)",
+  "status": "completed",
+  "tokens": null,
+  "duration_ms": null,
+  "tool_calls": null,
+  "corrections": null,
+  "case_id": "fixture-a",
+  "split": "holdout",
+  "skill_sha256": "6e1c4b6df42201660765e09c50f7171eda12d96cb62e4aca64cc2842c93eb131",
+  "checks": [
+    {
+      "id": "has-goal",
+      "passed": true,
+      "evidence": "json-equals: has_goal.json: pass"
+    },
+    {
+      "id": "l1-store",
+      "passed": false,
+      "evidence": "json-equals: l1.json: fail"
+    },
+    {
+      "id": "l1-init",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "l2",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "l3",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "l4-hash",
+      "passed": false,
+      "evidence": "json-equals: l4.json: fail"
+    },
+    {
+      "id": "l4-grader",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "l5",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    }
+  ]
+}

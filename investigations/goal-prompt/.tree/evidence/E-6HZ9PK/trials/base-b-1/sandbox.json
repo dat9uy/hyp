@@ -1,0 +1,101 @@
+{
+  "base": "9c8e498b87683e50a94a410b6a3cfecdd7a0d441",
+  "commands": [
+    {
+      "ref": "hyp-owner-grill-eval@1",
+      "step": "launch",
+      "args": [
+        "./launch.sh"
+      ],
+      "exit": 0,
+      "pgid": 15555,
+      "started": "2026-11-12T14:06:36Z",
+      "ended": "2026-11-12T14:06:37Z"
+    },
+    {
+      "ref": "hyp-owner-grill-eval@1",
+      "step": "doctor",
+      "args": [
+        "./doctor.sh"
+      ],
+      "exit": 0,
+      "pgid": 15651,
+      "started": "2026-11-12T14:06:37Z",
+      "ended": "2026-11-12T14:06:37Z"
+    },
+    {
+      "ref": "hyp-owner-grill-eval@1",
+      "step": "drive",
+      "args": [
+        "./drive.py"
+      ],
+      "exit": 0,
+      "pgid": 15783,
+      "started": "2026-11-12T14:06:38Z",
+      "ended": "2026-11-12T14:16:25Z"
+    },
+    {
+      "ref": "hyp-owner-grill-eval@1",
+      "step": "cleanup",
+      "args": [
+        "./cleanup.sh"
+      ],
+      "exit": 0,
+      "pgid": 30193,
+      "started": "2026-11-12T14:16:25Z",
+      "ended": "2026-11-12T14:16:25Z"
+    }
+  ],
+  "created": "2026-11-12T14:06:36Z",
+  "format": 4,
+  "host": "tbam-g146",
+  "hyp_sha256": "a0e464024c2907cb275a8fc460a218b01ffaafb52897547a434bf1d5b9fc5687",
+  "hyp_version": "hyp 0.1.0 (events v1)",
+  "id": "g146-base-b-1",
+  "inputs": {
+    "name": "g146-base-b-1.txt",
+    "sha256": "8b501dcc8ad184f04d5b4a60edf2eb1a63fac66ac8283a4d0f3b4a3ec93b75f2"
+  },
+  "recipes": [
+    {
+      "ref": "hyp-owner-grill-eval@1",
+      "name": "hyp-owner-grill-eval",
+      "version": "1",
+      "sha256": "63adbc91c4d3f2d89cf474864cdccf286857d5637d5f3bd525be46317638a5df",
+      "setup": "passed",
+      "cleanup": "ok",
+      "known_answers": {
+        "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+        "cases": [
+          {
+            "name": "score-a-bad",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-b-pass",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-bad-eval",
+            "outcome": "ok"
+          },
+          {
+            "name": "score-missing",
+            "outcome": "ok"
+          },
+          {
+            "name": "table-no-base",
+            "outcome": "ok"
+          },
+          {
+            "name": "table-pass",
+            "outcome": "ok"
+          }
+        ]
+      }
+    }
+  ],
+  "removed": "2026-11-12T14:16:26Z",
+  "removing": "2026-11-12T14:16:25Z",
+  "store": "tbam-g146/investigations/goal-prompt"
+}

@@ -1,0 +1,9 @@
+arm=base
+fixture=b
+trial=1
+model=claude-sonnet-5-5
+skills_commit=0000000
+skill_sha=x
+skill_creator=/x
+limit_min=50
+max_exchanges=20

@@ -1,0 +1,18 @@
+Scenarios for Q-XYXE51 (how hyp prompt finds the constraints block). Argued in the #113 grill session, not run.
+
+S1 body:
+  Context prose.
+  Never: this line is prose, not part of a block.
+  More prose.
+  May change: x
+  Read only: y
+  Never: z
+Rule A (first heading line to end): refuses; the first failing line is "More prose." (line 3).
+Rule B (trailing run of heading lines): accepts and prints lines 4 to 6.
+
+S2 body: a valid block and nothing else. Rule A: accepts. Rule B: accepts.
+
+S3 body: a valid block, then "Closing prose." Rule A: refuses at the last line. Rule B: accepts the block.
+
+verdict: H-4QWKFQ supports
+verdict: H-H0T0RT contradicts
