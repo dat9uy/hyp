@@ -108,11 +108,16 @@ func TestPromptOutsideARepository(t *testing.T) {
 	if r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
 		t.Fatalf("a store outside any repository: exit %d (want 3), stdout %q, stderr %q", r.code, r.stdout, r.stderr)
 	}
-	// The constraints block is checked first: a Goal with no block is a
-	// refusal, exit 1, even where no repository holds the store.
+	// The constraints block is checked first: a Goal with no valid block is
+	// a refusal, exit 1, even where no repository holds the store, whether
+	// the block is missing or present but not valid.
 	noBlock := goalWithBody(t, "o", "Builds, with no block.")
 	if nb := hyp(t, "prompt", noBlock, "--actor", "r"); nb.code != 1 || nb.stdout != "" || !strings.Contains(nb.stderr, "no constraints block") {
 		t.Fatalf("no block outside any repository: exit %d (want 1), stdout %q, stderr %q", nb.code, nb.stdout, nb.stderr)
+	}
+	badBlock := goalWithBody(t, "o", "Builds.\nMay change: a.\nNever: c.")
+	if bb := hyp(t, "prompt", badBlock, "--actor", "r"); bb.code != 1 || bb.stdout != "" || !strings.Contains(bb.stderr, `no "Read only:" line`) {
+		t.Fatalf("an invalid block outside any repository: exit %d (want 1), stdout %q, stderr %q", bb.code, bb.stdout, bb.stderr)
 	}
 
 	// A link inside a repository does not move the store into it: through
