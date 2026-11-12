@@ -1,56 +1,182 @@
 # hyp
 
-hyp keeps an agent's work toward a Goal as a hypothesis tree: append-only events, statuses derived from them, and skills that any agent harness able to load a `SKILL.md` can use. The work may be deciding a design or building it. Both are Goals, kept and gated the same way.
+Hypothesis-tree memory for AI coding agents. You write your requirements one time, as the lines of a Goal, and each status comes from an append-only log committed with your repo. The agent decides a design and builds it in a tree of rival answers and tests, and hyp keeps the record and shows what is still open.
 
-## The problem
+## Why hyp exists
 
-An agent that investigates a design question usually keeps its account in prose: notes, plans, reports. The account grows until nobody reads it. It loses which hypothesis started the work, which experiment ruled out which answer, and why the answer changed. A new session cannot tell what is decided and what is still open, so it starts again or trusts a summary it cannot check.
+When an owner gives requirements to an AI coding agent, the work has two phases. First, the agent decides a design. Then, it builds the design. In both phases, the agent decides alone, and it reports in its own words:
 
-Building has the same gap. An agent reports "done" in its own words. Which commit was tested, which check failed before the change and passed after it, and what the review found are spread across a chat that the next session never sees.
+- **In the design phase,** the agent usually takes the first design that seems to work. It seldom compares that design with other options, or tests which option meets the requirements. Its reasons stay in notes, plans and chat.
+- **In the build phase,** the agent says "done". Its proof stays in the chat: which commit it tested, which check failed before the change and passed after it, and what the review found.
 
-## Two kinds of Goal
+The notes become too long to read, and the next session does not see the chat. A new session cannot find which decisions are made and which decisions are open. Thus it starts again, or it uses a summary that it cannot examine. The owner also cannot examine whether the result meets the requirements.
 
-A Goal is what the work is for, and the owner writes its lines: the cases every candidate must meet. What the candidate is decides the kind of Goal.
+Other authors already wrote skills for each part of this problem. hyp starts from their skills:
+
+- **[pstack](https://github.com/cursor/plugins/tree/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack)**, from Cursor. For the record of decisions, its `show-me-your-work` skill keeps an append-only decision log. For the proof that work is done, its `create-verification-skill` skill operates the real app with a fixed procedure and honesty rules.
+- **[Matt Pocock's skills](https://github.com/mattpocock/skills)**. For the requirements, their `grilling` skill interviews the user in rounds over a design tree, until the user and the agent have a shared understanding.
+
+These skills work well, and hyp keeps their rules. But each skill solves one part alone. hyp adds what the work needs when the parts must connect, across many sessions and without the owner: one tree for the two phases, with one set of rules:
+
+- **The requirements become the lines of a Goal.** The owner writes the lines one time. Each line is a case that each candidate must meet.
+- **In the design phase, a candidate is a claim.** Rival Hypotheses answer each design question, and Experiments separate the rivals.
+- **In the build phase, a candidate is a commit.** Each commit is a Hypothesis. An Experiment shows a test that fails on the base and passes on the commit.
+- **One ledger controls the two phases.** hyp calculates what is owed and who owes it, and it accepts a decision only when the decision is owed. A build Goal can cite the decisions of a discovery Goal (the Goal of a design phase) in the same store.
+
+Layers 1, 2 and 5 below each name the idea that hyp took, the gap that stays for this purpose, and the rule that hyp adds. Layers 3 and 4 close gaps that hyp found in its own use.
+
+### The tree at a glance
+
+A Goal holds the lines of the owner. Under the Goal, a DesignQuestion holds its rival Hypotheses. An Experiment tests the rivals, and its Result gives a verdict for each rival. The select answers the question:
+
+```mermaid
+flowchart TD
+  G["Goal G-…<br/>lines: #1 [P] … #2 [N] …"]
+  Q["DesignQuestion Q-…"]
+  HA["Hypothesis H-a"]
+  HB["Hypothesis H-b<br/>superseded"]
+  HC["Hypothesis H-c<br/>refines H-b"]
+  H0["Hypothesis H-null<br/>no change needed"]
+  E["Experiment E-…<br/>verdict rule written first<br/>recipe pinned by hash"]
+  R["Result R-…<br/>H-a supported, H-c supported,<br/>H-null contradicted<br/>limit #1: a case it did not run"]
+  S{{"select H-a<br/>only when the ledger owes it"}}
+
+  G --> Q
+  Q --> HA & HB & HC & H0
+  HC -. supersedes .-> HB
+  HA --> E
+  E -. targets .-> HC
+  E -. targets .-> H0
+  E --> R
+  Q ==> S
+  S -. answers with .-> HA
+```
+
+Each write is an event in a log. hyp reads the full log each time, calculates each status and each owed item, and refuses a write that the ledger does not permit:
+
+```mermaid
+flowchart LR
+  W["writes<br/>hyp add, record, select, answer"]
+  L[(".tree/events/*.jsonl<br/>append-only, committed in git")]
+  D["calculated on each read<br/>statuses, OWED, AWAITING OWNER,<br/>line coverage"]
+  P["hyp status<br/>read by the runner and the owner"]
+
+  W -- append --> L
+  L -- replay --> D
+  D --> P
+  P -- next write --> W
+  D -. refuses a write that skips a step .-> W
+```
+
+### 1. A record that keeps its lineage
+
+The hyp record comes from the pstack skill [`show-me-your-work`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/show-me-your-work/SKILL.md). That skill keeps a decision log: one TSV row for each decision, with its reason, its evidence and its result. The log is append-only. A new row supersedes a wrong row, and nobody edits or deletes a row.
+
+hyp keeps the append-only log and the supersede rule. But a row has no parent, so the log cannot show which hypothesis started the work, or which answer replaced which answer. hyp closes each gap with one rule:
+
+| In the decision log | The rule in hyp |
+|---|---|
+| Each row stands alone. | **Rivals are siblings.** Each design question has a minimum of two rival Hypotheses. A refinement is a new sibling that supersedes the old Hypothesis, so the lineage stays visible. |
+| A row states its result in words. | **hyp calculates each status.** hyp calculates `supported`, `contradicted`, `stale` and `answered` from the events. No command can set a status. |
+| The log is local, and you commit it only when a reviewer needs it. | **The log is the source of truth.** Each write adds an event to an append-only log under `.tree/`. You commit the log with the work. |
+| A new session reads the rows to find the current state. | **`hyp status` shows the current state.** A new session does not need a summary. |
+
+### 2. Experiments that you can repeat
+
+The quality of a tree depends on the Experiments that separate its rivals. The hyp Experiment procedure comes from the pstack skill [`create-verification-skill`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/create-verification-skill/SKILL.md).
+
+That skill makes a verify skill for one project. The verify skill tells an agent how to operate the real app as a user does, and how to prove that a feature works. It has five sections: Launch, Doctor, Drive, Evidence and Cleanup. It also has these honesty rules:
+
+- Evidence stays after cleanup.
+- A step that you prove only in a stand-in for the real target stays unverified.
+- You must not make a journey easier so that it passes.
+- A verify skill that nobody ran is a draft.
+
+hyp keeps the five sections as the steps of a recipe (refer to "Step" in [glossary.md](docs/glossary.md) and [sandbox-spec.md §1](docs/sandbox-spec.md#1-steps-and-commands)), and it keeps the honesty rules. But a verify skill answers one question: "Does this feature work?" A hyp Experiment answers a different question: "Which rival is correct?" Also, a later session must be able to examine that answer. For these two purposes, the verify skill has gaps. hyp closes each gap with one rule:
+
+| In a verify skill | The rule in hyp |
+|---|---|
+| A proof is about one feature. | **Rivals in one Experiment.** One Experiment tests the rival Hypotheses of a question. Its Result gives a verdict for each rival. |
+| The agent decides after the run whether the evidence is a proof. | **A verdict rule before the run.** Each Experiment states which outcome gives which verdict. It states this before it runs ("Verdict rule" in [glossary.md](docs/glossary.md)). |
+| The agent runs each command. The record of the run is the report of the agent. | **hyp runs the commands.** hyp runs each recipe command and records each command that it ran ([ADR 0001](docs/adr/0001-hyp-runs-every-recipe-command.md)). |
+| The skill changes when the app changes. An old proof does not show which version of the procedure made it. | **Versioned recipes.** A recipe is a bundle of files with a version. A tree pins a recipe by its hash. Nobody edits a pinned recipe; a change is a new version ([ADR 0005](docs/adr/0005-a-bundle-is-its-ref-and-hash.md), [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md)). |
+| The skill proves itself one time, when the agent makes it. | **Known answers first.** Before each run, the checks of a recipe must give their known answers. A check runs the same way in this gate and in the run ([ADR 0002](docs/adr/0002-known-answers-gate-every-recipe-run.md), [ADR 0003](docs/adr/0003-a-check-runs-the-same-way-in-the-gate-and-in-the-run.md)). |
+
+### 3. A ledger controls each decision
+
+A recorded verdict does not show when a question is complete. An earlier hyp used a verifier: a second reader who confirmed each select. The verifier accepted a wrong verdict, and the owner also accepted it. Now the ledger is the gate ([ADR 0015](docs/adr/0015-the-select-is-the-gate.md)):
+
+- **The owner writes the lines of the Goal.** The owner writes the lines one time. Each line is a case that each candidate must meet. The ledger owes a line on each question until a Result that ran its case covers each candidate there. `hyp status` shows each line as covered or uncovered.
+- **A limit is the next case to run.** A Result records the cases that its run did not cover. A later Result closes a limit when it runs the case. When no test in the Goal can run a case, the case goes to the owner. When the Goal does not have a requirement, that requirement becomes a new Goal.
+- **The ledger must owe each decision first.** hyp accepts a select only when its ledger owes the select. Thus a question has an answer only after the open work on it is complete. A run stops when the runner owes nothing.
+
+### 4. A build is also a Goal
+
+The build phase uses the same tree as the design phase. The events, the refusals and the ledger are the same. Only the type of candidate is different, and it sets the type of Goal:
 
 | | Discovery Goal | Build Goal |
 |---|---|---|
-| **The candidate** | a claim: what to build, or why something behaves as it does | a commit |
-| **Rivals** | Hypotheses that answer a DesignQuestion, run against each other | each commit is a Hypothesis; a fix supersedes it |
-| **A line** | a case a check can run on every candidate | one property of the commit, decided by its tests or one pinned instrument |
-| **An Experiment** | separates the rivals, often from a pinned recipe and rubric | shows red on the base and green on the commit |
+| **The candidate** | A claim: what to build, or why a thing operates as it does. | A commit. |
+| **Rivals** | Hypotheses that answer a DesignQuestion. They run against each other. | Each commit is a Hypothesis. A fix supersedes it. |
+| **A line** | A case that a check can run on each candidate. | One property of the commit. Its tests or one pinned instrument decide it. |
+| **An Experiment** | It separates the rivals, frequently with a pinned recipe and rubric. | It shows red on the base and green on the commit. |
 
-hyp stores no kind. The same events, refusals and ledger serve both, and one store holds many Goals, so a build Goal can cite what a discovery Goal decided. A change to hyp's own skills is a build Goal too. [glossary.md](docs/glossary.md) defines both words.
+hyp does not store a type. The two types use the same events, refusals and ledger. One store holds many Goals. Thus a build Goal can cite the decision of a discovery Goal ([ADR 0020](docs/adr/0020-one-store-holds-many-goals.md)). A change to the hyp skills is also a build Goal ([how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md)). [glossary.md](docs/glossary.md) defines the two words.
 
-## How hyp works
+### 5. An owner flow for unattended runs
 
-- **Rival answers, side by side.** In a discovery Goal, each design question gets at least two rival Hypotheses as siblings. A refinement is a new sibling that supersedes the old one, so the lineage stays visible.
-- **Experiments with rules written first.** An Experiment states its verdict rule before it runs, and can run from a versioned, hash-pinned recipe, so the same procedure can be run again and checked.
-- **Statuses are derived, never typed.** Every write is an event in an append-only log under `.tree/`, committed with the work. `supported`, `contradicted`, `stale` and `answered` are computed from those events; no command can set one, and a changed mind is a new event, never an edit.
-- **The Goal's lines are the owner's.** The owner writes the cases every candidate must meet once, as the Goal's lines. A line is owed on each question until a Result that ran its case covers every candidate there, and `hyp status` shows each line as covered or uncovered.
-- **A limit is the next case to run.** A Result records what its run did not cover. A later Result closes it by running the case, and a case no test within the Goal can run goes to the owner. A requirement the Goal lacks is a new Goal, which may sit in the same store and cite this one's keys.
-- **Every decision is owed first.** hyp admits a select only when its ledger owes it, so a question is answered only once the open work on it is done.
+An unattended run can stop only when the Goal is complete: its lines are clear, and nothing stays that only the owner can answer. The hyp owner flow makes that Goal before the run. Its grill comes from the [`grilling`](https://github.com/mattpocock/skills/blob/7739eaed7f8f3915437a8def198a6d0d7206dbc7/skills/productivity/grilling/SKILL.md) skill of Matt Pocock.
 
-### Who does what
+That skill interviews the user about a plan until the user and the agent have a shared understanding. It keeps the decisions as a design tree. The frontier is each decision whose prerequisites are settled. The agent works in rounds:
 
-The ledger asks, the owner answers, the runner runs, and hyp derives.
+- Each round asks the full frontier. Each question has a number and a recommended answer.
+- The agent finds facts itself, or a subagent finds them. It never asks the user for a fact.
+- The decisions are the user's. The agent puts each decision to the user and waits.
+- The session is done when the frontier is empty. The agent does nothing until the user confirms the shared understanding.
 
-| | Does | Never does |
+hyp keeps the rounds, the frontier, the recommended answers and the split between facts and decisions. But the grilling skill makes a shared understanding in one chat. The owner flow must make a Goal that a different session can run without the owner. For this purpose, the grilling skill has gaps. hyp closes each gap with one rule:
+
+| In the grilling skill | The rule in hyp |
+|---|---|
+| The result is a shared understanding in the chat. | **The grill writes the tree.** The grill records the Goal, its lines and its DesignQuestions in the store. It runs each owner write only after the owner approves the command. |
+| The user decides each choice, also a choice that a test can decide. | **A testable choice becomes rivals.** When a run can separate the options, the grill adds a DesignQuestion with a minimum of two rival Hypotheses. The grill does not ask the owner to choose. |
+| The agreement does not state what the result must allow or must never allow. | **The grill derives the lines.** Each line is one state that the Goal must allow (`[P]`) or must never allow (`[N]`). When a rejected option can cause a state, that state becomes an `[N]` line. |
+| The session is done when the user and the agent agree. | **Done when the tree is complete.** Each question has its place in the tree, and nothing stays that only the owner can answer. |
+| The same session acts on the result. | **A separate run, then the owner's answers.** `hyp prompt` prints the `/goal` prompt for a new session. A stopped run leaves its questions under AWAITING OWNER for the owner. |
+
+The flow has three skills. They run in Claude Code, whose `/goal` command keeps a session in operation until its condition is true.
+
+1. **`/hyp-owner-grill`** asks the owner about the purpose until it is a Goal that a run can complete. It ends with the `/goal` prompt that `hyp prompt <G-id> --actor <runner>` prints from the Goal: the tree, the actor, the stop clauses and the constraints block at the end of the Goal body.
+2. **`/goal <that prompt>`** runs the Goal with the `hyp-goal-run` skill. The run does only the items that OWED shows for it. It tests before it asks. It stops with a report that the owner can read in `hyp status`.
+3. **`/hyp-owner-answer`** shows the owner each item that the stopped run left under AWAITING OWNER. It explains each item and records only the answers of the owner. The next `/goal` run starts from there, with a new prompt from `hyp prompt`. The prompt does not hold the answers, because OWED shows the answers that the run must apply.
+
+## Who does what: what is owed
+
+hyp works from one concept: **owed**. From the log, hyp calculates each item of open work on each question, and the party that owes the item: the runner or the owner. Nobody writes an owed item, and an owed item does not change a status. A party acts on a question when it owes an item there. When nobody owes an item, the question is complete.
+
+| | Owes | Does not |
 |---|---|---|
-| **Owner** | Writes the Goal's lines once. Answers what `hyp status` lists under AWAITING OWNER: what a line means, whether a referred case runs, which of the candidates that meet every line to choose. | Runs a case, types a verdict or edits what was recorded |
-| **Runner** (the agent) | Settles what OWED lists for it, runs Experiments, records verdicts, and stops when it owes nothing. | Answers for the owner or writes a line |
-| **hyp** | Refuses a write that would corrupt the tree or skip a step, and derives every status and what is owed. | Judges whether an Experiment was well designed |
+| **Runner** (the agent) | The work that a test can do: rivals, Experiments, Results, limits, readings to apply, premises, stale answers, and the select of a lone candidate. When the runner owes nothing, the run stops with `runner owes nothing: stop and report to the owner`. | Answer for the owner or write a line. |
+| **Owner** | The decisions that no test can make: the select when two or more candidates meet each line, an accept or a return of a referred limit, and the answer to an open reading. The owner also writes the lines of the Goal one time, before the work starts. | Run a case, type a verdict or edit a record. |
+| **hyp** | Nothing. hyp calculates what each party owes again on each read. It accepts a select only when the party that writes it owes it. It refuses a write that can damage the tree or skip a step. | Decide whether an Experiment has a good design. |
 
-[principles.md](docs/principles.md) states the principles hyp holds to, among them the owner's role. [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md) explains why the guards run during an investigation instead of before it, and how a change to hyp earns its way in.
+Each item stays owed until an event settles it:
 
-## Where hyp comes from
+| Item | Owed by | Owed when | An event that settles it |
+|---|---|---|---|
+| `rivals` | runner | The question has no live rival that is not contradicted. | A new Hypothesis. |
+| `untested` | runner | A Hypothesis has no Experiment that tests it. | An Experiment. |
+| `undecided` | runner | A Hypothesis is inconclusive, and no planned Experiment tests it. | A planned Experiment, then its Result. |
+| `planned` | runner | An Experiment has no Result. | Its Result. |
+| `limit` | runner | A Result, or a line of the Goal, has a case that no run covered. | A Result that closes it, or a refer to the owner. |
+| `referred` | owner | The runner referred a limit, because no test in the Goal can run its case. | The owner accepts or returns it. |
+| `reading` | owner, then runner | A Result has an open reading. The owner owes its answer, and then the runner owes a Result that applies the answer. | The answer of the owner, then a Result that applies it. |
+| `premise` | runner | A candidate depends on a Hypothesis that another question did not select. | A new edge, a Hypothesis that supersedes the candidate, or the select of that Hypothesis. |
+| `stale` | runner | A selected answer became stale. | A reaffirm, or new evidence that removes the cause. |
+| `select` | runner | The question waits on nothing else, and it has one candidate. | `hyp select`. |
+| `choose` | owner | The question waits on nothing else, and it has two or more candidates. | The select of the owner, with the words of the owner. |
 
-hyp's way of running an Experiment starts from pstack's [`create-verification-skill`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/create-verification-skill/SKILL.md). That skill writes a project-local verify skill whose sections include Launch, Doctor, Drive, Evidence and Cleanup, with honesty rules: evidence survives cleanup, a step proven only in a stand-in for the real target stays unverified, a journey is never weakened to make it pass, and a skill that was never run is a draft. hyp keeps the five names as the sections of a recipe (see "Step" in [glossary.md](docs/glossary.md) and [sandbox-spec.md §1](docs/sandbox-spec.md#1-steps-and-commands)) and adds:
-
-- **Versioned recipes.** A recipe is a bundle of files with a version, pinned by its hash and never edited once a tree pins it ([ADR 0005](docs/adr/0005-a-bundle-is-its-ref-and-hash.md), [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md)).
-- **hyp runs the commands.** hyp, not the agent, runs every recipe command and records what it ran ([ADR 0001](docs/adr/0001-hyp-runs-every-recipe-command.md)).
-- **Known answers first.** Before a recipe runs, its checks must give their known answers, and they run the same way in that gate as in the run ([ADR 0002](docs/adr/0002-known-answers-gate-every-recipe-run.md), [ADR 0003](docs/adr/0003-a-check-runs-the-same-way-in-the-gate-and-in-the-run.md)).
-- **A verdict rule written first.** Each Experiment states, before it runs, which outcome gives which verdict ("Verdict rule" in [glossary.md](docs/glossary.md)).
-- **Rivals and a gate.** Each Experiment tests rival Hypotheses in a tree, and a select is admitted only when the ledger owes it ("Rival", "Select" and "Owed" in [glossary.md](docs/glossary.md)).
+`hyp status` shows the items that the runner owes under OWED, and the items that the owner owes under AWAITING OWNER. What is owed is calculated per Goal: in a store with many Goals, `hyp status` shows what the runner of each Goal owes. [replay-spec.md §8.1](docs/replay-spec.md#81-ledger-what-the-tree-owes) gives the full rules. [principles.md](docs/principles.md) gives the principles of hyp. They include the role of the owner.
 
 ## Examples
 
@@ -159,13 +285,7 @@ Your answers later are `hyp answer` events under the same name, for example `hyp
 
 From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. When `hyp status` lists something under AWAITING OWNER, it is yours to answer. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
 
-### The owner flow: grill, run, answer
-
-For a Goal you want run unattended, discovery or build, three skills split the work. They run in Claude Code, whose `/goal` command keeps a session going until its condition holds.
-
-1. **`/hyp-owner-grill`** questions you about the purpose until it is a Goal a run can finish. It looks up the facts itself, sends questions a run could test to DesignQuestions with rivals, derives the lines from what must and must never happen, splits purposes that need different candidates into separate Goals, and records your writes only after you approve them. It ends with the `/goal` prompt that `hyp prompt <G-id> --actor <runner>` prints from the Goal: the tree, the actor, the stop clauses and the constraints block at the end of the Goal's body.
-2. **`/goal <that prompt>`** runs the Goal with the `hyp-goal-run` skill. The run does only what OWED says it owes, tests before it asks, and stops with a report you can read from `hyp status`.
-3. **`/hyp-owner-answer`** walks you through what the stopped run left under AWAITING OWNER, explains each item and records only your answers. The next `/goal` run picks up from there, with a fresh prompt from `hyp prompt`; the prompt carries no answer, because OWED lists what the run applies.
+To run a Goal unattended, use the owner flow (refer to "An owner flow for unattended runs" above).
 
 To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-hyp).
 
