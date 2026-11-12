@@ -80,8 +80,8 @@ func TestPromptPrintsTheGoalsRunPrompt(t *testing.T) {
 	want(t, hyp(t, "prompt", g2, "--actor", "r"), 0, "/goal Run the hyp tree in . with the hyp-goal-run skill")
 }
 
-// A store that no repository holds has no path relative to a repository
-// root: an environment problem, exit 3, nothing on stdout.
+// A store whose real directory no repository holds has no path relative to a
+// repository root: an environment problem, exit 3, nothing on stdout.
 func TestPromptOutsideARepository(t *testing.T) {
 	dir := t.TempDir()
 	if real, err := filepath.EvalSymlinks(dir); err == nil {
@@ -98,8 +98,26 @@ func TestPromptOutsideARepository(t *testing.T) {
 	t.Setenv("HYP_ACTOR", "a")
 	must(t, "init")
 	g := goalWithBody(t, "o", promptBlock)
-	if r := hyp(t, "prompt", g, "--actor", "r"); r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
+	r := hyp(t, "prompt", g, "--actor", "r")
+	if r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
 		t.Fatalf("a store outside any repository: exit %d (want 3), stdout %q, stderr %q", r.code, r.stdout, r.stderr)
+	}
+
+	// A link inside a repository does not move the store into it: through
+	// the link, the same store gives the same outcome as through its real path.
+	repo := t.TempDir()
+	if err := os.Mkdir(filepath.Join(repo, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(repo, "tree")
+	if err := os.Symlink(dir, link); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(link)
+	t.Setenv("PWD", link)
+	viaLink := hyp(t, "prompt", g, "--actor", "r")
+	if viaLink.code != r.code || viaLink.stdout != r.stdout || viaLink.stderr != r.stderr {
+		t.Fatalf("through the real path: exit %d, stderr %q\nthrough a link inside a repository: exit %d, stderr %q\n%s", r.code, r.stderr, viaLink.code, viaLink.stderr, viaLink.stdout)
 	}
 }
 
