@@ -1,0 +1,4 @@
+hyp e1b6ce2114f4689e
+Q1: exit 1, stdout bytes 0, stderr: refused: hyp prompt G-26H62D: the constraints block holds a line that starts with no heading: "The end."
+Q1: pass
+e1b6ce2114f4689e76e31eb0fba06f5793fe4717db72caade109b49782154c2a  hyp-04142f3

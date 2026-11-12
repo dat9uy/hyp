@@ -1,0 +1,38 @@
+# mutation: refuse a block line that starts with no heading only after the repository lookup
+diff --git a/internal/cli/prompt.go b/internal/cli/prompt.go
+index dee0d73..8237ca8 100644
+--- a/internal/cli/prompt.go
++++ b/internal/cli/prompt.go
+@@ -143,7 +143,13 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
+ 	}
+ 	g := event.DisplayID(event.KindGoal, id)
+ 	block, problems, _ := constraintsBlock(n.Body)
+-	if len(problems) > 0 {
++	var late []string
++	for _, p := range problems {
++		if strings.Contains(p, "starts with no heading") {
++			late = append(late, p)
++		}
++	}
++	if len(problems) > len(late) {
+ 		return herr.Refused("hyp prompt %s: %s", g, strings.Join(problems, "; "))
+ 	}
+ 	// The working directory may reach the store through a symbolic link;
+@@ -156,6 +162,9 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
+ 	if !ok {
+ 		return herr.Env("hyp prompt %s: no repository holds the store %s, so its path relative to the repository root is not known", g, storeDir)
+ 	}
++	if len(late) > 0 {
++		return herr.Refused("hyp prompt %s: %s", g, strings.Join(late, "; "))
++	}
+ 	rel, err := filepath.Rel(repo, storeDir)
+ 	if err != nil {
+ 		return herr.Env("%v", err)
+$ go test ./internal/cli -run TestPrompt -count=1
+--- FAIL: TestPromptOutsideARepository (0.01s)
+    prompt_test.go:125: a bad block line outside any repository: exit 3 (want 1), stdout "", stderr "hyp prompt G-09J4SB: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPromptOutsideARepository216619526/001, so its path relative to the repository root is not known\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.539s
+FAIL
+exit 1
+restored: 0 changed paths

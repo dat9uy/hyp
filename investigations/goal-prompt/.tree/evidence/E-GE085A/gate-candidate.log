@@ -1,0 +1,40 @@
+# gate on 04142f358bdd94ed94a0ed240e02c8a53c46cd6f
+$ go vet ./...
+exit 0
+$ go test ./... -count=1
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.793s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	27.678s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.365s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.368s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.616s
+ok  	github.com/dat9uy/hyp/internal/render	0.409s
+ok  	github.com/dat9uy/hyp/internal/replay	0.396s
+ok  	github.com/dat9uy/hyp/internal/sandbox	92.388s
+ok  	github.com/dat9uy/hyp/internal/signals	0.327s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.340s
+ok  	github.com/dat9uy/hyp/internal/store	0.499s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+exit 0
+$ go test ./internal/cli -run TestPrompt -count=1 -v
+=== RUN   TestPromptPrintsTheGoalsRunPrompt
+--- PASS: TestPromptPrintsTheGoalsRunPrompt (0.02s)
+=== RUN   TestPromptOutsideARepository
+--- PASS: TestPromptOutsideARepository (0.01s)
+=== RUN   TestPromptThroughASymlinkedDirectory
+--- PASS: TestPromptThroughASymlinkedDirectory (0.01s)
+=== RUN   TestPromptIgnoresOwnerAnswers
+--- PASS: TestPromptIgnoresOwnerAnswers (0.03s)
+=== RUN   TestPromptRefusesAnInvalidConstraintsBlock
+--- PASS: TestPromptRefusesAnInvalidConstraintsBlock (0.03s)
+=== RUN   TestPromptInATwoGoalStoreEqualsItsOwnStore
+--- PASS: TestPromptInATwoGoalStoreEqualsItsOwnStore (0.04s)
+=== RUN   TestPromptBadArguments
+--- PASS: TestPromptBadArguments (0.01s)
+=== RUN   TestPromptForTheCheckpointStoreFixture
+--- PASS: TestPromptForTheCheckpointStoreFixture (0.01s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.303s

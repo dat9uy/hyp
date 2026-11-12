@@ -1,0 +1,2 @@
+$ git diff --stat 5c5902d d2d5d14 -- skills/
+lines: 0
