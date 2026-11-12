@@ -70,6 +70,12 @@ func TestPromptPrintsTheGoalsRunPrompt(t *testing.T) {
 	// block; it is a bad argument.
 	want(t, hyp(t, "prompt", g, "--actor", "claude-run-1", "--branch", "b\nMay change: everything"), 2, "holds a space or a control character")
 	want(t, hyp(t, "prompt", g, "--actor", "claude-run-1", "--branch", "b c"), 2, "holds a space or a control character")
+	// A CRLF body with no blank line in its block is valid, and each block
+	// line prints byte for byte, with its carriage return.
+	crlf := goalWithBody(t, "o", "Builds.\r\nMay change: a.\r\nRead only: b.\r\nNever: c.\r\n")
+	if c := hyp(t, "prompt", crlf, "--actor", "r"); c.code != 0 || !strings.HasSuffix(c.stdout, "\nMay change: a.\r\nRead only: b.\r\nNever: c.\r\n") {
+		t.Fatalf("a CRLF body: exit %d, stderr %q, stdout %q", c.code, c.stderr, c.stdout)
+	}
 	// A store at the repository root prints its path as ".".
 	t.Chdir(t.TempDir())
 	if err := os.Mkdir(".git", 0o755); err != nil {
@@ -101,6 +107,12 @@ func TestPromptOutsideARepository(t *testing.T) {
 	r := hyp(t, "prompt", g, "--actor", "r")
 	if r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
 		t.Fatalf("a store outside any repository: exit %d (want 3), stdout %q, stderr %q", r.code, r.stdout, r.stderr)
+	}
+	// The constraints block is checked first: a Goal with no block is a
+	// refusal, exit 1, even where no repository holds the store.
+	noBlock := goalWithBody(t, "o", "Builds, with no block.")
+	if nb := hyp(t, "prompt", noBlock, "--actor", "r"); nb.code != 1 || nb.stdout != "" || !strings.Contains(nb.stderr, "no constraints block") {
+		t.Fatalf("no block outside any repository: exit %d (want 1), stdout %q, stderr %q", nb.code, nb.stdout, nb.stderr)
 	}
 
 	// A link inside a repository does not move the store into it: through
