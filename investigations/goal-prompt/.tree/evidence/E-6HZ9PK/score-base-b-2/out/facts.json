@@ -1,0 +1,38 @@
+{
+ "measures": {
+  "arm": "base",
+  "fixture": "b",
+  "trial": "2",
+  "end": "end",
+  "exchanges": 5,
+  "timed_out": 0,
+  "cost_usd": 1.706556,
+  "cost_usd_literal": 5.801181,
+  "models": "claude-sonnet-5-5",
+  "subagents": 1,
+  "goals": 1,
+  "stores": "internal/cli/testdata/prompt-fixture/investigations/checkpoint-store,internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/goal-prompt,investigations/id-citation,investigations/recipe-base",
+  "has_goal": 1,
+  "l1": 1,
+  "l4": 1,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": "investigations/goal-prompt",
+   "id": "01M781X0VN0E0DPE3YYVBW3XJK",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "Select the run practice that ends a budget-bound build run on a reviewed final candidate, without endless review",
+   "body": "Discovery Goal for issue #141 (part of #113), from runs 1 to 3 of G-ZBM2RE. The candidate is a run practice: a scratch patch to skills/hyp-goal-run/SKILL.md, internal/cli/prompt.go or a scratch hyp binary, never a commit. The owner adds the build Goal that lands the winner after the select.\nS1: the store cut after R-8JQPWG, repository at b4f23b2 (SKILL.md sha256 a6152711c2c930b2\u2026, prompt.go sha256 674dc260b4863afd\u2026), actor claude-g113-1, one Result left of 5. S2: the cut after R-JHBCWS, repository at 3cfd08d (SKILL.md sha256 cb15e2f2e207b5a6\u2026, prompt.go sha256 21f9332383bc6b0e\u2026), actor claude-g113-3, 4 left.\nA trial replays only from a cut: a Sonnet run with the prompt the candidate own hyp prints for the Goal and that actor (no --experiments flag), reading hyp-goal-run from the patched sandbox clone. Every candidate patch states how a review is recorded and whether it counts. Stages: the base, the singles, then H-name-at-stop with each single that fails line 1 alone; one Experiment per stage. Record every ratio. If H-review-owed needs a stored field, state it and add none.\nMay change: the tree under investigations/goal-prompt and one new recipe version for the replay, in commits on the branch feat/review-budget; the run may push it and open or update one PR, and never merges it.\nRead only: skills/, internal/, docs/, plans/, every other investigations/ tree, ak-skill-creator under .claude/skills pinned by sha256, and ak-context-engineering references/evaluation.md (sha256 fdd4a34f ...) and scripts/benchmark_metrics.py (sha256 2a98cf72 ...).\nNever: commit a candidate patch to skills/ or internal/, commit to main or merge a PR.\nNever: replace ~/.local/bin/hyp or any installed hyp; compile every candidate to a separate path.\nNever: edit a frozen recipe or another investigations/ tree.\nNever: add an event kind or a stored field to the log.\nNever: write under an owner actor; if a step needs the owner, refer with a reason or record a reading, and stop.",
+   "lines": [
+    "[P] Aim A. At S1 and at S2, in each of 3 trials a Sonnet run under the candidate ends with a review Result for its final candidate commit, or with a stop checkpoint that names that commit as unreviewed. A trial that hangs, or whose checkpoint says all review limits are closed or the runner owes nothing while a candidate has no review, does not meet it. At S1 the base (the files pinned in the body) meets it in at most 1 of 3 trials, so the candidate differs from it; at S2 no baseline is compared.",
+    "[N] Aim B. From S2, in each of 3 trials a run under the candidate launches no more than 1 fresh review before it stops. The base (the S2 files pinned in the body) meets this in at most 1 of 3 trials, so the candidate differs from it.",
+    "[N] Aim B. At S1 and at S2 the median cost of the candidate over 3 trials never exceeds 1.5 times the base median at the same start. Cost is USD from the usage fields of the whole trial, subagents included, at one dated Sonnet rate table. A hang or an unknown cost is +infinity; the median of 3 is the second smallest; if either median is +infinity the line is not met.",
+    "[N] Aim A. A run under the candidate ends with no review finding that is a case of a Goal line left neither closed, referred, fixed by a later commit nor named in its stop checkpoint.",
+    "[P] Aim A. A Sonnet run given only the candidate hyp-goal-run text and its printed prompt answers, in each of 3 trials, how a review is recorded and whether it counts toward the stop clause count, as the candidate text states. The base text at b4f23b2 and at 3cfd08d states neither, so the candidate differs from it."
+   ]
+  }
+ ],
+ "bad_hash_lines": []
+}
