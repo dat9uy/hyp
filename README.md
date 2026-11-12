@@ -163,9 +163,9 @@ From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the n
 
 For a Goal you want run unattended, discovery or build, three skills split the work. They run in Claude Code, whose `/goal` command keeps a session going until its condition holds.
 
-1. **`/hyp-owner-grill`** questions you about the purpose until it is a Goal a run can finish. It looks up the facts itself, sends questions a run could test to DesignQuestions with rivals, derives the lines from what must and must never happen, splits purposes that need different candidates into separate Goals, and records your writes only after you approve them. It ends with a `/goal` prompt.
+1. **`/hyp-owner-grill`** questions you about the purpose until it is a Goal a run can finish. It looks up the facts itself, sends questions a run could test to DesignQuestions with rivals, derives the lines from what must and must never happen, splits purposes that need different candidates into separate Goals, and records your writes only after you approve them. It ends with the `/goal` prompt that `hyp prompt <G-id> --actor <runner>` prints from the Goal: the tree, the actor, the stop clauses and the constraints block at the end of the Goal's body.
 2. **`/goal <that prompt>`** runs the Goal with the `hyp-goal-run` skill. The run does only what OWED says it owes, tests before it asks, and stops with a report you can read from `hyp status`.
-3. **`/hyp-owner-answer`** walks you through what the stopped run left under AWAITING OWNER, explains each item and records only your answers. The next `/goal` run picks up from there.
+3. **`/hyp-owner-answer`** walks you through what the stopped run left under AWAITING OWNER, explains each item and records only your answers. The next `/goal` run picks up from there, with a fresh prompt from `hyp prompt`; the prompt carries no answer, because OWED lists what the run applies.
 
 To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-hyp).
 

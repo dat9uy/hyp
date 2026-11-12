@@ -1,0 +1,222 @@
+diff --git a/docs/glossary.md b/docs/glossary.md
+index 13d3b61..45b8c06 100644
+--- a/docs/glossary.md
++++ b/docs/glossary.md
+@@ -35,7 +35,7 @@ The root node of a tree, `G-`: what the investigation is for. A store holds many
+ _Avoid_: objective, epic, done, met (as a status word)
+ 
+ **Constraints block**:
+-The end of a Goal's body that states what a run may change, may only read and never does: the lines from the first one that starts with `May change:`, `Read only:` or `Never:` to the end of the body, each non-empty line starting with one of the three headings ([spec §7.5](replay-spec.md#75-goal)). `hyp prompt` prints the `/goal` prompt from it, with the store, the actor, the Goal and the stop clauses, and refuses a Goal without a valid block. The prompt holds no owner answer; OWED lists what a run applies.
++The end of a Goal's body that states what a run may change, may only read and never does: the lines from the first one that starts with `May change:`, `Read only:` or `Never:` to the end of the body, each non-empty line starting with one of the three headings; a line of spaces, a tab or a lone carriage return is not empty ([spec §7.5](replay-spec.md#75-goal)). `hyp prompt` prints the `/goal` prompt from it, with the store, the actor, the Goal and the stop clauses, and refuses a Goal without a valid block. The prompt holds no owner answer; OWED lists what a run applies.
+ _Avoid_: scope section, run rules
+ 
+ **Discovery Goal**:
+diff --git a/docs/replay-spec.md b/docs/replay-spec.md
+index 62953bf..147b711 100644
+--- a/docs/replay-spec.md
++++ b/docs/replay-spec.md
+@@ -232,7 +232,7 @@ A change that adds no candidate, such as a retract that leaves the selected Hypo
+ 
+ - `complete` when the Goal has at least one live DQ as a child and every live DQ whose parent is the Goal is `answered`; a Goal with no live top-level DQ is `in_progress`, because nothing has been asked yet. It reads no line: a line of the Goal is owed on each top-level question as a `limit` item (§8.1) and the select waits on it, and the owner's "met" is a complete Goal with no line under OWED. hyp stores no word for it. Sub-questions are covered through the `answered` rule of §7.4, so sub-questions under rejected rival hypotheses never block the Goal. (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
+ - Otherwise `in_progress`, with counts per DQ state over all DQs and a count of stale live nodes.
+-- **Constraints block.** A Goal body's constraints block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It is valid when it holds each of the three headings and every non-empty line in it starts with one of them. Replay stores no word for it and no status reads it. `hyp add goal` admits any body and warns when the body has a heading but no valid block. `hyp prompt G --actor A` prints the `/goal` prompt for G from G's node and the store's place in its repository: the store's path relative to the repository root, A, G, the skill hyp-goal-run, the stop clauses, and each block line as written, in body order; `--branch` and `--pr` add a clause each after the block. It refuses with exit 1 and nothing on stdout when the block is missing or not valid, naming each problem, and exits 2 with no `--actor` (it does not read `$HYP_ACTOR`), for an id that is not a Goal, or for a `--branch` that holds a space or a control character. It exits 3 when no repository holds the store. A line is empty only when it holds no byte, so a line of spaces inside the block is a bad line. It reads no answer, so the same Goal and flags print the same bytes before and after an answer and in a store with other Goals.
++- **Constraints block.** A Goal body's constraints block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It is valid when it holds each of the three headings and every non-empty line in it starts with one of them. Replay stores no word for it and no status reads it. `hyp add goal` admits any body and warns when the body has a heading but no valid block. `hyp prompt G --actor A` prints the `/goal` prompt for G from G's node and the store's place in its repository: the store's path relative to the repository root, A, G, the skill hyp-goal-run, the stop clauses, and each block line as written, in body order; `--branch` and `--pr` add a clause each after the block. It refuses with exit 1 and nothing on stdout when the block is missing or not valid, naming each problem, and exits 2 with no `--actor` (it does not read `$HYP_ACTOR`), for an id that is not a Goal, or for a `--branch` that holds a space or a control character. It exits 3 when no repository holds the store. Lines split on `\n`, and a line is empty only when it holds no byte, so a line of spaces, a tab, or the lone `\r` of a blank line in a CRLF body is a bad line inside the block. The store's path is read after resolving symbolic links, so a store reached through a linked directory prints the same bytes. It reads no answer, so the same Goal and flags print the same bytes before and after an answer and in a store with other Goals.
+ 
+ ### 7.6 Experiments and Results
+ 
+diff --git a/internal/cli/prompt.go b/internal/cli/prompt.go
+index 072c813..dee0d73 100644
+--- a/internal/cli/prompt.go
++++ b/internal/cli/prompt.go
+@@ -23,8 +23,9 @@ const promptUse = "usage: hyp prompt G-id --actor A [--branch B] [--pr N] [--exp
+ // the first line that starts with a heading to the end of the body. It
+ // returns the block's lines with trailing empty lines removed, and the
+ // problems that make it invalid: no block, a missing heading, or a non-empty
+-// line that starts with no heading. A line is empty only when it holds no
+-// byte, so a line of spaces is a bad line. found reports whether any line
++// line that starts with no heading. Lines split on \n, and a line is empty
++// only when it holds no byte, so a line of spaces, a tab or a lone \r (the
++// blank line of a CRLF body) is a bad line. found reports whether any line
+ // starts with a heading.
+ func constraintsBlock(body string) (block []string, problems []string, found bool) {
+ 	lines := strings.Split(body, "\n")
+@@ -126,7 +127,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
+ 		return usageErr("--pr must be a PR number")
+ 	}
+ 	if strings.ContainsFunc(*branch, unicode.IsSpace) || strings.ContainsFunc(*branch, unicode.IsControl) {
+-		return usageErr("--branch %q holds a space or a control character; a branch name has none", *branch)
++		return usageErr("--branch %q holds a space or a control character, which would break the prompt's lines", *branch)
+ 	}
+ 	r, err := openReader()
+ 	if err != nil {
+@@ -145,11 +146,17 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
+ 	if len(problems) > 0 {
+ 		return herr.Refused("hyp prompt %s: %s", g, strings.Join(problems, "; "))
+ 	}
+-	repo, ok := repoRoot(r.root)
++	// The working directory may reach the store through a symbolic link;
++	// the store's place in its repository is read from its real path.
++	storeDir, err := filepath.EvalSymlinks(r.root)
++	if err != nil {
++		return herr.Env("%v", err)
++	}
++	repo, ok := repoRoot(storeDir)
+ 	if !ok {
+-		return herr.Env("hyp prompt %s: no repository holds the store %s, so its path relative to the repository root is not known", g, r.root)
++		return herr.Env("hyp prompt %s: no repository holds the store %s, so its path relative to the repository root is not known", g, storeDir)
+ 	}
+-	rel, err := filepath.Rel(repo, r.root)
++	rel, err := filepath.Rel(repo, storeDir)
+ 	if err != nil {
+ 		return herr.Env("%v", err)
+ 	}
+diff --git a/internal/cli/prompt_test.go b/internal/cli/prompt_test.go
+index 6529371..6a858f9 100644
+--- a/internal/cli/prompt_test.go
++++ b/internal/cli/prompt_test.go
+@@ -5,6 +5,7 @@ import (
+ 	"encoding/json"
+ 	"os"
+ 	"path/filepath"
++	"regexp"
+ 	"strings"
+ 	"testing"
+ )
+@@ -77,25 +78,62 @@ func TestPromptPrintsTheGoalsRunPrompt(t *testing.T) {
+ 	must(t, "init")
+ 	g2 := goalWithBody(t, "o", promptBlock)
+ 	want(t, hyp(t, "prompt", g2, "--actor", "r"), 0, "/goal Run the hyp tree in . with the hyp-goal-run skill")
+-	// A store that no repository holds has no path relative to a repository
+-	// root: an environment problem, exit 3, nothing on stdout.
+-	t.Chdir(t.TempDir())
++}
++
++// A store that no repository holds has no path relative to a repository
++// root: an environment problem, exit 3, nothing on stdout.
++func TestPromptOutsideARepository(t *testing.T) {
++	dir := t.TempDir()
++	if real, err := filepath.EvalSymlinks(dir); err == nil {
++		for d := real; ; d = filepath.Dir(d) {
++			if _, err := os.Stat(filepath.Join(d, ".git")); err == nil {
++				t.Skipf("%s holds a repository above the temporary directory", d)
++			}
++			if filepath.Dir(d) == d {
++				break
++			}
++		}
++	}
++	t.Chdir(dir)
++	t.Setenv("HYP_ACTOR", "a")
+ 	must(t, "init")
+-	g3 := goalWithBody(t, "o", promptBlock)
+-	if r := hyp(t, "prompt", g3, "--actor", "r"); r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
++	g := goalWithBody(t, "o", promptBlock)
++	if r := hyp(t, "prompt", g, "--actor", "r"); r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
+ 		t.Fatalf("a store outside any repository: exit %d (want 3), stdout %q, stderr %q", r.code, r.stdout, r.stderr)
+ 	}
+ }
+ 
+-// wantNamesOnly fails unless the prompt names Goal g and no other Goal id.
+-func wantNamesOnly(t *testing.T, out, g string, others ...string) {
++// The same store reached through a symbolic link and through its real path
++// prints the same bytes.
++func TestPromptThroughASymlinkedDirectory(t *testing.T) {
++	repo := promptStore(t)
++	g := goalWithBody(t, "o", promptBlock)
++	real := hyp(t, "prompt", g, "--actor", "r")
++	link := filepath.Join(t.TempDir(), "store")
++	if err := os.Symlink(filepath.Join(repo, "tree"), link); err != nil {
++		t.Fatal(err)
++	}
++	t.Chdir(link)
++	t.Setenv("PWD", link)
++	viaLink := hyp(t, "prompt", g, "--actor", "r")
++	if real.code != 0 || viaLink.code != real.code || viaLink.stdout != real.stdout {
++		t.Fatalf("through the real path: exit %d\n%s\nthrough a symlink: exit %d, stderr %q\n%s", real.code, real.stdout, viaLink.code, viaLink.stderr, viaLink.stdout)
++	}
++}
++
++var goalIDRe = regexp.MustCompile(`G-[0-9A-Z]{6}`)
++
++// wantNamesOnly fails unless every Goal id in the prompt is g, in each of
++// its five places: the Goal, hyp show, hyp status twice and --goal.
++func wantNamesOnly(t *testing.T, out, g string) {
+ 	t.Helper()
+-	if !strings.Contains(out, "Its Goal is "+g+":") {
+-		t.Fatalf("the prompt does not name %s:\n%s", g, out)
++	ids := goalIDRe.FindAllString(out, -1)
++	if len(ids) != 5 {
++		t.Fatalf("the prompt names a Goal %d times, want 5:\n%s", len(ids), out)
+ 	}
+-	for _, o := range others {
+-		if strings.Contains(out, o) {
+-			t.Fatalf("the prompt for %s names %s:\n%s", g, o, out)
++	for _, id := range ids {
++		if id != g {
++			t.Fatalf("the prompt for %s names %s:\n%s", g, id, out)
+ 		}
+ 	}
+ }
+@@ -139,6 +177,8 @@ func TestPromptRefusesAnInvalidConstraintsBlock(t *testing.T) {
+ 		{"May change: the code.\nRead only: plans/.\nand the docs.\nNever: merge.", `the constraints block holds a line that starts with no heading: "and the docs."`},
+ 		{"Builds it.\nMay change: the code.\nRead only: plans/.\nNever: merge.\n\nThe end.", `starts with no heading: "The end."`},
+ 		{"May change: the code.\n   \nRead only: plans/.\nNever: merge.", `starts with no heading: "   "`},
++		{"May change: the code.\n\t\nRead only: plans/.\nNever: merge.", `starts with no heading: "\t"`},
++		{"Builds.\r\nMay change: a.\r\n\r\nRead only: b.\r\nNever: c.\r\n", `starts with no heading: "\r"`},
+ 	} {
+ 		r := hyp(t, "add", "goal", "--title", "G", "--body", c.body, "--actor", "o", "--why", "w")
+ 		if r.code != 0 {
+@@ -183,7 +223,7 @@ func TestPromptInATwoGoalStoreEqualsItsOwnStore(t *testing.T) {
+ 	if two.code != 0 {
+ 		t.Fatalf("exit %d, %q", two.code, two.stderr)
+ 	}
+-	wantNamesOnly(t, two.stdout, g1, g2)
++	wantNamesOnly(t, two.stdout, g1)
+ 
+ 	// G1's events in a store of their own: actor a wrote them all, and the
+ 	// owner's answer keeps only G1's key.
+diff --git a/skills/hyp-goal-run/SKILL.md b/skills/hyp-goal-run/SKILL.md
+index 91a38a4..fcb178c 100644
+--- a/skills/hyp-goal-run/SKILL.md
++++ b/skills/hyp-goal-run/SKILL.md
+@@ -28,7 +28,7 @@ A build Goal's candidate is a commit. Its practice:
+ 
+ - Each commit you test is one Hypothesis under the Goal's question, with the branch and the commit in its title. Tie its subject before the run with `hyp subject <H> --base <commit>`. A fix is a new commit and a new Hypothesis that supersedes the old one (`hyp supersede <new> --old <old>`).
+ - Write the tree with the installed hyp. Compile the candidate to a separate path, and never replace an installed binary.
+-- An Experiment that runs the repository's own gate on a commit uses `--recipe none --rubric reading`, with its rule in the body; use a pinned recipe when the Goal names one.
++- Pin the gate as a recipe when the repository keeps one, so a script decides the verdict. When none does, the Experiment on a commit uses `--recipe none --rubric reading`: its body states the gate as the rule, and the Result cites the gate's logs.
+ - Before you run anything, write each Experiment's verdict rule in its body: the Goal's lines it aims at, red on the base and green on the candidate for each new test, a removal check for each refusal (remove the refusal and show which test fails), and `go vet ./...` and `go test ./... -count=1`, or the repository's own gate. For skill text, run the original and the candidate skills on the same eval cases.
+ - Keep the logs under `.tree/evidence/<E-id>/` and cite them in the Result.
+ - Before the stop, ask a fresh subagent for one review of each candidate commit's diff against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion. Ask it to label each finding with the line it is a case of, or none.
+diff --git a/skills/hyp-owner-answer/SKILL.md b/skills/hyp-owner-answer/SKILL.md
+index a58346d..bb6b57e 100644
+--- a/skills/hyp-owner-answer/SKILL.md
++++ b/skills/hyp-owner-answer/SKILL.md
+@@ -140,4 +140,4 @@ The owner reads `hyp status`, which prints the last checkpoint, so the fork must
+ 
+ State what changed in the tree, what is still open, and the next question for the owner. Print `hyp status`.
+ 
+-When the owner's answers leave work for the runner, the next run starts from a fresh `/goal` prompt. Print it with `hyp prompt <goal> --actor <new runner actor> [--branch <branch>] [--pr <N>]` and give the owner its output as it is. Do not add the owner's answers to it: OWED lists each answer and each returned limit that the next run applies.
++When the owner's answers leave work for the runner, the next run starts from a fresh `/goal` prompt. Print it with `hyp prompt <goal> --actor <new runner actor> [--branch <branch>] [--pr <N>]` and give the owner its output as it is. Do not add the owner's answers to it: OWED lists each answer and each returned limit that the next run applies. Run it on the log the next run starts from, with the answers merged or on the branch the prompt names. If it exits 1, the Goal body has no valid constraints block: tell the owner, who adds a new Goal. Exit 2 is a bad argument; exit 3 means no repository holds the store.
+diff --git a/skills/hyp-owner-grill/SKILL.md b/skills/hyp-owner-grill/SKILL.md
+index 77aa88a..f97c763 100644
+--- a/skills/hyp-owner-grill/SKILL.md
++++ b/skills/hyp-owner-grill/SKILL.md
+@@ -101,7 +101,7 @@ Read only: <repositories, directories or data the run may read but never change>
+ Never: <acts the run never takes, such as replacing an installed binary or publishing source data>
+ ```
+ 
+-The block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It holds each of the three headings at least once, and every non-empty line in it starts with one of them, so write one constraint per line and put no other text after the block. A heading may repeat, such as one `Never:` line per act. `hyp add goal` warns when a body has a heading but no valid block, and `hyp prompt` refuses that Goal.
++The block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It holds each of the three headings at least once, and every non-empty line in it starts with one of them, so write one constraint per line and put no other text after the block. A line of spaces, a tab or a lone carriage return is not empty: leave a blank line truly empty, and write the body with `\n` line ends. A heading may repeat, such as one `Never:` line per act. `hyp add goal` warns when a body has a heading but no valid block, and `hyp prompt` refuses that Goal.
+ 
+ A body that names another tree's ids writes each as `<tree>:<id>`. Then run `hyp status <G-id>` and `hyp check`: it must print `check: 0 errors`. Commit `.tree/events/` and `.tree/evidence/`.
+ 
+@@ -113,7 +113,7 @@ hyp prints the `/goal` prompt for hyp-goal-run from the log. Choose a new runner
+ hyp prompt <G-id> --actor <runner-actor> [--branch <branch>] [--pr <N>] [--experiments <N>]
+ ```
+ 
+-It prints the store's path, the actor, the Goal id, the skill, the stop clauses (the runner owes nothing, or N Results under the actor, 5 by default) and the Goal body's constraints block, line for line; `--branch` and `--pr` add a clause each after the block. Give the owner its output as it is, and do not add to it. The prompt carries no owner answer: OWED lists each answer and each returned limit the runner applies. The practice of a run, a build Goal's review round included, is in hyp-goal-run. Run `hyp prompt` on the log the run starts from: the prompt names the Goal by its id, so the Goal's add must be in that log, merged or on the branch the prompt names. If `hyp prompt` refuses, the Goal body has no valid constraints block; a Goal is never edited, so tell the owner, who adds a new Goal with a valid block.
++It prints the store's path, the actor, the Goal id, the skill, the stop clauses (the runner owes nothing, or N Results under the actor, 5 by default) and the Goal body's constraints block, line for line; `--branch` and `--pr` add a clause each after the block. Give the owner its output as it is, and do not add to it. The prompt carries no owner answer: OWED lists each answer and each returned limit the runner applies. The practice of a run, a build Goal's review round included, is in hyp-goal-run. Run `hyp prompt` on the log the run starts from: the prompt names the Goal by its id, so the Goal's add must be in that log, merged or on the branch the prompt names. If `hyp prompt` refuses (exit 1), the Goal body has no valid constraints block; a Goal is never edited, so tell the owner, who adds a new Goal with a valid block. Exit 2 is a bad argument, such as a `--branch` with a space; exit 3 means no repository holds the store, so run it from the store inside its repository.
+ 
+ ## Never
+ 

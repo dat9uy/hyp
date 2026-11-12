@@ -1,0 +1,12 @@
+hyp 812a26deef163989 CRLF blank line: exit 1 (strict meaning wants 0); line of spaces: exit 1 (wants 1)
+strict-crlf: fail
+#!/bin/bash
+# strict-crlf: the other meaning of G-ZBM2RE#3, where a lone \r (the blank line of a CRLF body) is an empty line.
+# Known answers: a CRLF body with a blank line inside the block must exit 0 under this meaning; an LF body with a line of spaces must still exit 1.
+H=$1; T=$(mktemp -d); cd $T; python3 -c "import os; os.mkdir('.'+'git')"; $H init >/dev/null
+G=$($H add goal --title G --body $'Builds.\r\nMay change: a.\r\n\r\nRead only: b.\r\nNever: c.\r\n' --actor o --why w 2>/dev/null | awk '{print $1}')
+$H prompt $G --actor r >/dev/null 2>&1; c1=$?
+G2=$($H add goal --title G --body $'May change: a.\n   \nRead only: b.\nNever: c.' --actor o --why w 2>/dev/null | awk '{print $1}')
+$H prompt $G2 --actor r >/dev/null 2>&1; c2=$?
+echo "hyp $(shasum -a 256 $H | cut -c1-16) CRLF blank line: exit $c1 (strict meaning wants 0); line of spaces: exit $c2 (wants 1)"
+[ $c1 = 0 ] && [ $c2 = 1 ] && echo "strict-crlf: pass" || echo "strict-crlf: fail"

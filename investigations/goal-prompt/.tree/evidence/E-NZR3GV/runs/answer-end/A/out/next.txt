@@ -1,0 +1,16 @@
+/goal Run the hyp tree at investigations/checkpoint-store (Goal G-D1CH1R) under the hyp-goal-run skill. Your actor is claude-g1b-6. Work on branch feat/one-subject-per-run and push it to update PR 132. Never merge the PR and never commit to main.
+
+The owner's answer is recorded in the store. The owner accepted G-D1CH1R's referred limits R-9SMRB2#5 and R-9SMRB2#7, and returned R-9SMRB2#4 with the words: "Amend ADR 0020's subject notation to {base, patch, files} to match the code, spec and glossary, naming this answer in the commit." Apply that return as hyp-goal-run's Reassess step 4 says for a limit line: amend ADR 0020's subject notation as the owner wrote it, update the spec, glossary and principles text it makes wrong, and name the owner's answer in the commit message. Then aim an Experiment at R-9SMRB2#4 with a verdict rule that runs a test within the Goal's lines, record --closes on the Result that runs it, and close the limit. If no test within the Goal's lines can run that case, refer it with your reason and stop.
+
+Act only on what hyp status <goal> says you owe under OWED. Do not change the Goal or its lines. Do not record any owner answer. Do not replace the installed hyp binary, and compile the candidate to a separate path.
+
+May change: this repository, in commits on feat/one-subject-per-run that follow AGENTS.md (conventional messages, no AI trailers): ADR 0020, the spec, glossary, principles, the skills/ and README.md text the change makes wrong, and the code the change needs. Push that branch to update PR 132 only.
+Read only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.
+Never: commit to main.
+Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp.
+Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.
+Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.
+
+Stop when R-9SMRB2#4 is closed and OWED owes the runner nothing, or when the next step cannot be taken honestly without the owner. Stopping is not success. Before your last message, record a runner checkpoint with --goal G-D1CH1R:
+hyp checkpoint --goal G-D1CH1R --summary "Stopped: <stop clause>. Waiting for the owner: <the keys under AWAITING OWNER>. Out-of-Goal findings: <one phrase each, or none>" --why "<why>"
+Print hyp status G-D1CH1R at the end of the turn, and end your last message with the checkpoint and each line of G-D1CH1R under LINES with the Results that ran it.

@@ -1,0 +1,20 @@
+== candidate 5c5902d50fe6d5de3d338e9d466e4f68dc02428d
+go version go1.27.3 darwin/arm64
+go vet exit 0
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.736s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	26.524s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.358s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.355s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.612s
+ok  	github.com/dat9uy/hyp/internal/render	0.387s
+ok  	github.com/dat9uy/hyp/internal/replay	0.381s
+ok  	github.com/dat9uy/hyp/internal/sandbox	75.934s
+ok  	github.com/dat9uy/hyp/internal/signals	0.332s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.519s
+ok  	github.com/dat9uy/hyp/internal/store	0.511s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+go test exit 0

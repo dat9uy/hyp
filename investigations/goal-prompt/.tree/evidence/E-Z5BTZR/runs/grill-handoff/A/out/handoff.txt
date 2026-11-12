@@ -1,0 +1,17 @@
+/goal Run the hyp-goal-run skill on the hyp tree investigations/checkpoint-store in this repository, for Goal G-D1CH1R, as the runner with HYP_ACTOR=claude-g1b-6. Goal: hyp implements the shared store: one store holds many Goals. Branch: feat/one-subject-per-run. Open or update PR 132 on that branch. Never merge it, and never commit to main.
+
+Act on the runner items hyp status shows under OWED, and on the owner's answers in the tree. Owed now: the returned limit R-9SMRB2#4. Amend ADR 0020's subject notation to {base, patch, files} to match the code, spec and glossary, and name the owner's answer in the commit.
+
+Constraints, copied from the Goal body:
+May change: this repository, in commits on the branch the prompt names that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong. The run may push that branch to update its PR, and never merges it.
+Read only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.
+Never: commit to main.
+Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.
+Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.
+Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.
+
+Review: one review round per candidate commit, by a fresh subagent given the lines, the code and the keys already settled with the owner's words. Sort each finding: a case of a line is a limit; a question about a line's meaning is a reading; a defect in text the run may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint and never holding the select.
+
+Write scope covers every text the change makes wrong, the design record included. Commit .tree/events/ and .tree/evidence/ with the change.
+
+Stop when hyp check prints errors, when a step needs the owner (refer with a reason, record a reading, then stop), or when OWED owes the runner nothing and the select waits on the owner. The stop checkpoint names PR 132, the commit and the Results that closed each line, and the open items the owner must answer. Record it with hyp checkpoint --goal G-D1CH1R.

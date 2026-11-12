@@ -1,0 +1,16 @@
+== mutation 1: strip a trailing  from each printed block line
+-		b.WriteString(l)
++		b.WriteString(strings.TrimSuffix(l, "\r"))
+    prompt_test.go:77: a CRLF body: exit 0, stderr "", stdout "/goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-PHHR2W:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.378s
+FAIL
+restored
+== mutation 2: check the store's place before the block
+ internal/cli/prompt.go | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+    prompt_test.go:115: no block outside any repository: exit 3 (want 1), stdout "", stderr "hyp prompt G-9GRS4A: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.362s
+FAIL
+restored

@@ -1,0 +1,26 @@
+{
+  "run_id": "e5-grill-body-B",
+  "variant": "B",
+  "model": "claude-haiku-5-5",
+  "runtime": "claude-code",
+  "status": "completed",
+  "tokens": null,
+  "duration_ms": null,
+  "tool_calls": null,
+  "corrections": null,
+  "case_id": "grill-body",
+  "split": "train",
+  "skill_sha256": "ed829c717bfc10e126814859304ad7c4263ddc5a1f4532506a95341a5dd1974c",
+  "checks": [
+    {
+      "id": "valid-block",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "all-constraints",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    }
+  ]
+}

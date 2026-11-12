@@ -1,0 +1,21 @@
+hyp: 7b324ea7d83b2fb5c0812e63ec155fcd1883ea1cc60495a37fdd9133e4dcf5d2  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/bin-cand/hyp
+hyp 0.1.0 (events v1) 10566d42722a
+== F1: whitespace-only line inside the block
+add stderr: 
+prompt exit 0
+May change: x$
+   $
+Read only: y$
+Never: z$
+== F3: newline in --branch
+/goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-XB8AWZ: read it with hyp show G-XB8AWZ, read hyp status G-XB8AWZ, and name --goal G-XB8AWZ on every hyp checkpoint.
+Done when the latest printed hyp status G-XB8AWZ shows "runner owes nothing: stop and report to the owner" under OWED, or 5 Results have been recorded under r, or you cannot take the next step honestly and say why.
+May change: x
+Read only: y
+Never: z
+Commit on the branch b
+May change: everything.
+exit 0
+== F2: a store outside any repository
+/goal Run the hyp tree in . with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-KZXMX4: read it with hyp show G-KZXMX4, read hyp status G-KZXMX4, and name --goal G-KZXMX4 on every hyp checkpoint.
+exit 0

@@ -1,0 +1,6 @@
+goal-run-plan/A = original: 0/5 pass; fail: ['p1-hyp', 'p2-rule', 'p3-logs', 'p4-review', 'p5-owner']
+goal-run-plan/B = candidate: 5/5 pass; fail: []
+grill-handoff/A = original: 0/2 pass; fail: ['no-answer', 'exact-prompt']
+grill-handoff/B = candidate: 2/2 pass; fail: []
+l6-run6-clauses/A = candidate: 27/28 pass; fail: ['c04-strict']
+l6-run6-clauses/B = original: 19/28 pass; fail: ['c04-strict', 'c05-hyp-per-commit', 'c09-gate', 'c11-review', 'c12-label', 'c13-sort', 'c14-outside', 'c20-owner-items', 'c27-exp-setup']

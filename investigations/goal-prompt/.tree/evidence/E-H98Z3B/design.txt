@@ -1,0 +1,54 @@
+Goal G-GZR6C6
+alias: design
+title: Record how hyp makes the /goal prompt: who writes it, and whether it carries owner answers
+body: Design record for issue #113, settled by the owner in the grill session of 2026-11-11 (hyp-owner-grill). Two questions: who writes the /goal prompt for a Goal, hyp or a skill; and whether the prompt carries the owner's answers. Each is a DesignQuestion with its rivals, decided in that session with the session as evidence, so the tree says it was argued, not tested. This Goal has no lines and no run: no run checks its candidates. Its cases are the lines of the build Goal in this store that cites its selects.
+path: G-GZR6C6
+status: complete
+edge out: external_ref https://github.com/dat9uy/hyp/issues/113
+children:
+  Q-NCY8HY (q-who) answered Who writes the /goal prompt for a Goal: hyp from the log, o…
+  Q-MAKJ8R (q-answers) answered Does the /goal prompt carry the owner's answers?
+history:
+  2026-11-11 16:45 owner-dat node.add G-GZR6C6 — Owner, 2026-11-11: the design record for #113's prompt generator; its build is a second Goal in this store.
+  2026-11-11 16:47 claude-grill-113 edge.add G-GZR6C6 — The issue whose design questions this record settles.
+  2026-11-11 16:47 claude-grill-113 checkpoint G-GZR6C6 — end of grill
+    summary: Design record complete: Q-NCY8HY selects H-MCDPNB (hyp prints the prompt) and Q-MAKJ8R selects H-RSDX0H (no answers clause), with grill session 285fa63e as evidence. G-ZBM2RE builds them.
+  2026-11-11 16:48 claude-grill-113 edge.remove G-GZR6C6 — Wrong repository in the URL; the remote is dat9uy/hyp.
+  2026-11-11 16:48 claude-grill-113 edge.add G-GZR6C6 — Issue #113 at the repository's real remote.
+DesignQuestion Q-NCY8HY
+alias: q-who
+title: Who writes the /goal prompt for a Goal: hyp from the log, or a skill?
+body: Issue #113: runs 1 to 6 of checkpoint-store:G-D1CH1R had hand-written /goal prompts. Scenario that separates the rivals: generate the prompt twice from a fixture of checkpoint-store:G-D1CH1R's log cut at the owner answer of 2026-11-11 14:31, and once in a store with a second Goal, then compare the outputs byte for byte and with run 6's prompt clause for clause.
+path: G-GZR6C6 > Q-NCY8HY
+status: answered
+candidates: H-MCDPNB (h-cmd)
+selected: H-MCDPNB — Owed select, the only candidate; the owner's decision in grill session 285fa63e (2026-11-11).
+design: A read command derives the prompt from the log: store path, actor, Goal id, the hyp-goal-run skill, the stop clauses and the Goal body's constraints block. hyp-owner-grill's hand-off and hyp-owner-answer's end call it. Same log and flags, same bytes.
+experiments:
+  E-VJPMHG tests H-MCDPNB, H-E5K8VG
+    judged: H-MCDPNB=supports, H-E5K8VG=contradicts
+children:
+  H-MCDPNB (h-cmd) supported hyp prints it: hyp prompt <G-id> --actor A [--branch B] [--…
+  H-E5K8VG (h-skill) contradicted A skill writes it: hyp-owner-grill and hyp-owner-answer com…
+history:
+  2026-11-11 16:46 claude-grill-113 node.add Q-NCY8HY — Owner question 7 of the grill: a testable choice, recorded as a DesignQuestion.
+  2026-11-11 16:46 claude-grill-113 dq.select Q-NCY8HY — Owed select, the only candidate; the owner's decision in grill session 285fa63e (2026-11-11).
+DesignQuestion Q-MAKJ8R
+alias: q-answers
+title: Does the /goal prompt carry the owner's answers?
+body: Run 6's prompt opened with the owner's answer it started from. Scenarios that separate the rivals: (S1) hyp-owner-answer records an answer, then its own runner checkpoint, then the prompt is made; (S2) a run writes a refer-only checkpoint after an answer and dies before closing the returned limit; (S3) one answer event settles a key of each of two Goals; (S4) at the 14:31 cut of checkpoint-store:G-D1CH1R, OWED already lists the returned limit checkpoint-store:R-9SMRB2#4 for the runner.
+path: G-GZR6C6 > Q-MAKJ8R
+status: answered
+candidates: H-RSDX0H (h-none)
+selected: H-RSDX0H — Owed select, the only candidate; the owner's decision in grill session 285fa63e (2026-11-11).
+design: The prompt holds no owner answer text and is byte-identical before and after an answer event.
+experiments:
+  E-T7ZS23 tests H-RSDX0H, H-9Y4F4H, H-CHKW8Y
+    judged: H-RSDX0H=supports, H-9Y4F4H=contradicts, H-CHKW8Y=contradicts
+children:
+  H-RSDX0H (h-none) supported No answers clause: the runner reads OWED, which already lis…
+  H-9Y4F4H (h-state) contradicted Answers from state: each returned, unclosed limit and each …
+  H-CHKW8Y (h-checkpoint) contradicted Answers by position: the answer events after the Goal's lat…
+history:
+  2026-11-11 16:46 claude-grill-113 node.add Q-MAKJ8R — Grill round 2 question 2: a testable choice, recorded as a DesignQuestion.
+  2026-11-11 16:46 claude-grill-113 dq.select Q-MAKJ8R — Owed select, the only candidate; the owner's decision in grill session 285fa63e (2026-11-11).

@@ -1,0 +1,5 @@
+hyp c5858435f689b848
+M2: exit 0; block lines ending in \r: 3 (want 3)
+M2: pass
+M3: exit 1, stdout bytes 0, stderr: refused: hyp prompt G-W2YV66: the Goal body has no constraints block: no line starts with "May change:", "Read only:" or "Never:"
+M3: pass

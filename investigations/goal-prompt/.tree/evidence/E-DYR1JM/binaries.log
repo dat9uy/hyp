@@ -1,0 +1,5 @@
+candidate binary (2284172):
+c5858435f689b848d20a745a1233617b85468021c536ec4ba5cfca1db5e9a140  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/d3fe6332-723e-4db7-8b36-0d65ce05f2b0/scratchpad/hyp-2284172
+usage: hyp <command> [flags]
+installed hyp (not replaced):
+5659ab145d3c6e832ee4d997dff28595061c826530cd37dbc35afed32e5dd069  /Users/datguy/.local/bin/hyp

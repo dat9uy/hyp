@@ -1,0 +1,43 @@
+diff --git a/docs/replay-spec.md b/docs/replay-spec.md
+index 103b7e1..9cbbc71 100644
+--- a/docs/replay-spec.md
++++ b/docs/replay-spec.md
+@@ -232,7 +232,7 @@ A change that adds no candidate, such as a retract that leaves the selected Hypo
+ 
+ - `complete` when the Goal has at least one live DQ as a child and every live DQ whose parent is the Goal is `answered`; a Goal with no live top-level DQ is `in_progress`, because nothing has been asked yet. It reads no line: a line of the Goal is owed on each top-level question as a `limit` item (§8.1) and the select waits on it, and the owner's "met" is a complete Goal with no line under OWED. hyp stores no word for it. Sub-questions are covered through the `answered` rule of §7.4, so sub-questions under rejected rival hypotheses never block the Goal. (This clarifies the advice's "nothing stale" clause: stale on the selected path already prevents `answered`.)
+ - Otherwise `in_progress`, with counts per DQ state over all DQs and a count of stale live nodes.
+-- **Constraints block.** A Goal body's constraints block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It is valid when it holds each of the three headings and every non-empty line in it starts with one of them. Replay stores no word for it and no status reads it. `hyp add goal` admits any body and warns when the body has a heading but no valid block. `hyp prompt G --actor A` prints the `/goal` prompt for G from G's node and the store's place in its repository: the store's path relative to the repository root, A, G, the skill hyp-goal-run, the stop clauses, and each block line as written, in body order; `--branch` and `--pr` add a clause each after the block. It refuses with exit 1 and nothing on stdout when the block is missing or not valid, naming each problem, and exits 2 with no `--actor` (it does not read `$HYP_ACTOR`), for an id that is not a Goal, or for a `--branch` that holds a space or a control character. It exits 3 when the store's directory cannot be resolved or no repository holds its real directory, so a store whose real directory is outside every repository exits 3 even when a link inside a repository reaches it. Lines split on `\n`, and a line is empty only when it holds no byte, so a line of spaces, a tab, or the lone `\r` of a blank line in a CRLF body is a bad line inside the block. The store's path is read after resolving symbolic links, so a store reached through a linked directory prints the same bytes. Each block line prints as written, so a CRLF body with no blank line in its block keeps the `\r` at the end of each block line. It reads no answer, so the same Goal and flags print the same bytes before and after an answer and in a store with other Goals.
++- **Constraints block.** A Goal body's constraints block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It is valid when it holds each of the three headings and every non-empty line in it starts with one of them. Replay stores no word for it and no status reads it. `hyp add goal` admits any body and warns when the body has a heading but no valid block. `hyp prompt G --actor A` prints the `/goal` prompt for G from G's node and the store's place in its repository: the store's path relative to the repository root, A, G, the skill hyp-goal-run, the stop clauses, and each block line as written, in body order; `--branch` and `--pr` add a clause each after the block. It refuses with exit 1 and nothing on stdout when the block is missing or not valid, naming each problem, and exits 2 with no `--actor` (it does not read `$HYP_ACTOR`), for an id that is not a Goal, or for a `--branch` that holds a space or a control character. It exits 3 when the store's directory cannot be resolved or no repository holds its real directory, so a store whose real directory is outside every repository exits 3 even when a link inside a repository reaches it. It checks the block first, so a Goal with no valid block exits 1 wherever the store is. Lines split on `\n`, and a line is empty only when it holds no byte, so a line of spaces, a tab, or the lone `\r` of a blank line in a CRLF body is a bad line inside the block. The store's path is read after resolving symbolic links, so a store reached through a linked directory prints the same bytes. Each block line prints as written, so a CRLF body with no blank line in its block keeps the `\r` at the end of each block line. It reads no answer, so the same Goal and flags print the same bytes before and after an answer and in a store with other Goals.
+ 
+ ### 7.6 Experiments and Results
+ 
+diff --git a/internal/cli/prompt_test.go b/internal/cli/prompt_test.go
+index 3fec0a7..67543c6 100644
+--- a/internal/cli/prompt_test.go
++++ b/internal/cli/prompt_test.go
+@@ -70,6 +70,12 @@ func TestPromptPrintsTheGoalsRunPrompt(t *testing.T) {
+ 	// block; it is a bad argument.
+ 	want(t, hyp(t, "prompt", g, "--actor", "claude-run-1", "--branch", "b\nMay change: everything"), 2, "holds a space or a control character")
+ 	want(t, hyp(t, "prompt", g, "--actor", "claude-run-1", "--branch", "b c"), 2, "holds a space or a control character")
++	// A CRLF body with no blank line in its block is valid, and each block
++	// line prints byte for byte, with its carriage return.
++	crlf := goalWithBody(t, "o", "Builds.\r\nMay change: a.\r\nRead only: b.\r\nNever: c.\r\n")
++	if c := hyp(t, "prompt", crlf, "--actor", "r"); c.code != 0 || !strings.HasSuffix(c.stdout, "\nMay change: a.\r\nRead only: b.\r\nNever: c.\r\n") {
++		t.Fatalf("a CRLF body: exit %d, stderr %q, stdout %q", c.code, c.stderr, c.stdout)
++	}
+ 	// A store at the repository root prints its path as ".".
+ 	t.Chdir(t.TempDir())
+ 	if err := os.Mkdir(".git", 0o755); err != nil {
+@@ -102,6 +108,12 @@ func TestPromptOutsideARepository(t *testing.T) {
+ 	if r.code != 3 || r.stdout != "" || !strings.Contains(r.stderr, "no repository holds the store") {
+ 		t.Fatalf("a store outside any repository: exit %d (want 3), stdout %q, stderr %q", r.code, r.stdout, r.stderr)
+ 	}
++	// The constraints block is checked first: a Goal with no block is a
++	// refusal, exit 1, even where no repository holds the store.
++	noBlock := goalWithBody(t, "o", "Builds, with no block.")
++	if nb := hyp(t, "prompt", noBlock, "--actor", "r"); nb.code != 1 || nb.stdout != "" || !strings.Contains(nb.stderr, "no constraints block") {
++		t.Fatalf("no block outside any repository: exit %d (want 1), stdout %q, stderr %q", nb.code, nb.stdout, nb.stderr)
++	}
+ 
+ 	// A link inside a repository does not move the store into it: through
+ 	// the link, the same store gives the same outcome as through its real path.

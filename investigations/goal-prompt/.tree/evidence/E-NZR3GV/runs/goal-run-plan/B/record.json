@@ -1,0 +1,41 @@
+{
+  "run_id": "e5-goal-run-plan-B",
+  "variant": "B",
+  "model": "claude-haiku-5-5",
+  "runtime": "claude-code",
+  "status": "completed",
+  "tokens": null,
+  "duration_ms": null,
+  "tool_calls": null,
+  "corrections": null,
+  "case_id": "goal-run-plan",
+  "split": "train",
+  "skill_sha256": "225f99d3d376391f8f4a2a74cf9a6420ccf218f663e7b4e3b903e8745358acd7",
+  "checks": [
+    {
+      "id": "p1-hyp",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "p2-rule",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "p3-logs",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "p4-review",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    },
+    {
+      "id": "p5-owner",
+      "passed": null,
+      "evidence": "Not graded: needs independent rubric review"
+    }
+  ]
+}

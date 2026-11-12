@@ -1,0 +1,16 @@
+Purpose: hyp prints a warning when a recipe pins a binary by commit instead of by sha256. A recipe that names its binary by the commit it was built from cannot be checked against the binary that actually ran, so the same recipe version can measure different code on different machines. The warning tells the author to pin by sha256 (the Result ids a recipe's runs cite must appear in the files they cite, and a binary is named by its sha256; see AGENTS.md, Rules).
+
+Scope: core. The concept is how a recipe pins the binary it runs, which every user who installs hyp meets, so the warning belongs to hyp and not to a self-review recipe. No self-review recipe is changed by this Goal.
+
+Asked by the owner, 2026-11-12. The owner chose a warning, not a refusal: a recipe that pins by commit still runs, and the warning is printed with it.
+
+Known facts for the run to check against the code, not to take on trust: which recipe field carries the pin, where recipes are parsed and validated, which command prints the warning (hyp recipe checks, hyp doctor, or the run itself), and how the existing exit codes (sandbox-spec.md section 1.3) apply to a warning. A warning does not change an exit code.
+
+Each candidate commit is judged by its own tests: a recipe that pins by commit gets the warning; a recipe that pins by sha256 gets none; the warning names the recipe and the field it found.
+
+May change: this repository, in commits on one local branch that the run names (conventional messages, no AI trailers), with the code and tests for the warning, and the docs and skill text that the change makes wrong. The run opens a PR for that branch and never merges it.
+Read only: plans/ and every investigations/ tree other than this Goal's own tree. This Goal's tree is written only through the installed hyp.
+Never: replace the installed hyp binary (~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec); compile the candidate to a separate path.
+Never: edit recipes/, or any investigations/ tree other than this Goal's own.
+Never: commit to main, or merge a PR.
+Never: write under an owner's actor; if a step needs the owner, refer it with a reason and stop.

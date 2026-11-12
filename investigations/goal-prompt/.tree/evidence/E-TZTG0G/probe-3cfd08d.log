@@ -1,0 +1,4 @@
+hyp 785dd8d6a43871e7
+N1: exit 1, stdout bytes 0, stderr: refused: hyp prompt G-HT38PZ: the constraints block has no "Read only:" line
+N1: pass
+785dd8d6a43871e7169458504d51fdc55096fb31577eb95efbc6d50ff76b177a  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/e2fd7562-0eb8-46e2-aea5-6da5dfa67e3e/scratchpad/review/hyp-3cfd08d

@@ -1,0 +1,13 @@
+== removal: drop EvalSymlinks
+151:	storeDir, err := filepath.EvalSymlinks(r.root)
+-	storeDir, err := filepath.EvalSymlinks(r.root)
++	storeDir, err := r.root, error(nil)
+        Read only: plans/.
+        Never: merge a PR.
+        Never: write under an owner's actor.
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.459s
+FAIL
+go test exit 1
+Updated 1 path from the index
+restored

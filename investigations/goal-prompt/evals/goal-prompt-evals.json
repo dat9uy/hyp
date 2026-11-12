@@ -1,0 +1,208 @@
+{
+ "skill_name": "hyp-owner-flow",
+ "evals": [
+  {
+   "id": "l6-run6-clauses",
+   "split": "holdout",
+   "prompt": "No consumer run. The artifacts are the prompt that hyp prompt G-D1CH1R --actor claude-g1b-6 --branch feat/one-subject-per-run --pr 132 prints for the testdata fixture (prompt.txt), hyp show G-D1CH1R on the fixture (goal-show.txt), and the skills the prompt names with the skills hyp-goal-run names (skills/). Run 6's hand-written prompt (plans/reports/goal-prompt-261111-2129-g1b-run-6.md, sha256 94f61179c63cb43ef63169553541d82c5d75d3b7e78cfe7ac9ccf954ca6285e3) is the reference. Excepted clauses: the actor, the owner answer, the branch, the PR, the commit and the run plan (the Experiment's aims and verdict rule, that run's owner items).",
+   "expected_output": "Each non-excepted clause of run 6's prompt is stated by prompt.txt or by a SKILL.md under skills/.",
+   "files": [],
+   "assertions": [
+    {
+     "id": "c01-tree",
+     "text": "States that the run works in the hyp tree at investigations/checkpoint-store. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c02-skill",
+     "text": "States that the run uses the hyp-goal-run skill. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c03-goal",
+     "text": "States that the run's Goal is G-D1CH1R. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c04-design",
+     "text": "States the design the Goal builds (ADR 0020 / checkpoint-store-design:G-73R704), in the prompt or a skill it names, or in the Goal that the prompt tells the run to read with hyp show (goal-show.txt). Evidence: prompt.txt or a skills/*/SKILL.md file or goal-show.txt."
+    },
+    {
+     "id": "c04-strict",
+     "text": "STRICT CHECK, sets no verdict: states the design the Goal builds in the prompt text or a skill text itself, not only in goal-show.txt. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c05-hyp-per-commit",
+     "text": "States that each commit tested is one Hypothesis under the Goal's question, naming the branch and the commit in its title. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c06-supersede",
+     "text": "States that a fix (a new commit) is a new Hypothesis that supersedes the one it replaces. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c07-close",
+     "text": "States that a Result that ran a Goal line's or limit's case records --closes for it. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c08-rule-first",
+     "text": "States that the Experiment's verdict rule is written in its body before anything runs. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c09-gate",
+     "text": "States that the verdict rule includes go vet ./... and go test ./... -count=1 passing (or the repository's own gate). Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c10-logs",
+     "text": "States that logs are kept under .tree/evidence/<E-id>/ (and cited). Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c11-review",
+     "text": "States that before the stop a fresh subagent gives one review of the diff against the design, and is given the code, the Goal's lines and the keys already settled with the owner's words, not the runner's conclusion. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c12-label",
+     "text": "States that the reviewer labels each finding with the line it is a case of, or none. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c13-sort",
+     "text": "States how each finding is sorted: a case of a line is a limit closed or, only if void, referred; a question about a line's meaning is a reading. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c14-outside",
+     "text": "States that a finding outside every line is not a limit, refer or reading, goes to the owner at the stop (as a possible new Goal or issue), and never holds the select. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c15-select",
+     "text": "States that the run takes the select when the ledger owes it, and that the run stops when the runner owes nothing. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c16-count",
+     "text": "States a stop after 5 Experiments or Results recorded in this run. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c17-honest",
+     "text": "States a stop when the run cannot take the next step honestly, saying why. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c18-checkpoint",
+     "text": "States that at the stop the run records a stop checkpoint. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c19-lines",
+     "text": "States that at the stop the run lists the Goal's LINES with the Results that ran them. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c20-owner-items",
+     "text": "States that at the stop the run lists every owner item with the exact command: items under AWAITING OWNER, possible new Goals or issues, merging the PR, reinstalling hyp, and personal skills that name a changed command. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c21-may-change",
+     "text": "States that the run may change this repository in commits on its branch that follow AGENTS.md (conventional messages, no AI trailers), including ADR 0020 and the spec, glossary, principles, skills/ and README.md text the change makes wrong. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c22-push",
+     "text": "States that the run may push the branch to update the PR and never merges. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c23-main",
+     "text": "States never commit to main. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c24-binaries",
+     "text": "States never replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec, write the tree with the installed hyp, and compile the candidate to a separate path. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c25-edits",
+     "text": "States never edit recipes/, rubrics/, any other investigations/ tree, or another repository. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    },
+    {
+     "id": "c26-owner",
+     "text": "States never write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop. Evidence: prompt.txt or a skills/*/SKILL.md file."
+    }
+   ]
+  },
+  {
+   "id": "grill-handoff",
+   "split": "train",
+   "prompt": "You are at the end of a hyp-owner-grill session. Paths: the repository copy is $WORK (the store is $WORK/investigations/checkpoint-store, Goal G-D1CH1R). The skills you follow are under $SKILLS; read $SKILLS/<name>/SKILL.md for each skill named. Use the hyp binary on PATH in $BIN (run export PATH=$BIN:$PATH first). Write nothing to the store. Write your output only under $OUT. The grill's writes are done and the owner approved them. The owner wants the run on the branch feat/one-subject-per-run with PR 132, and the runner actor is claude-g1b-6. Do only the skill's 'Hand off' step: write the /goal prompt you give the owner to $OUT/handoff.txt, nothing else in that file.",
+   "expected_output": "handoff.txt is the prompt hyp prints for this Goal, actor, branch and PR.",
+   "files": [],
+   "assertions": [
+    {
+     "id": "exact-prompt",
+     "text": "handoff.txt holds the exact bytes hyp prompt prints for G-D1CH1R, claude-g1b-6, the branch and the PR.",
+     "kind": "text-contains",
+     "path": "handoff.txt",
+     "expected": "/goal Run the hyp tree in investigations/checkpoint-store with the hyp-goal-run skill, as HYP_ACTOR=claude-g1b-6. Its Goal is G-D1CH1R: read it with hyp show G-D1CH1R, read hyp status G-D1CH1R, and name --goal G-D1CH1R on every hyp checkpoint.\nDone when the latest printed hyp status G-D1CH1R shows \"runner owes nothing: stop and report to the owner\" under OWED, or 5 Results have been recorded under claude-g1b-6, or you cannot take the next step honestly and say why.\nMay change: this repository, in commits on the branch the prompt names that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong. The run may push that branch to update its PR, and never merges it.\nRead only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.\nNever: commit to main.\nNever: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.\nNever: edit recipes/, rubrics/, any other investigations/ tree, or another repository.\nNever: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.\nCommit on the branch feat/one-subject-per-run.\nThe run's PR is #132.\n"
+    },
+    {
+     "id": "no-answer",
+     "text": "handoff.txt states no owner answer (no accept, return or answer text such as R-9SMRB2#4's amend of ADR 0020)."
+    }
+   ]
+  },
+  {
+   "id": "grill-body",
+   "split": "train",
+   "prompt": "You are writing the body of a new Goal in a hyp-owner-grill session. Paths: the repository copy is $WORK (the store is $WORK/investigations/checkpoint-store, Goal G-D1CH1R). The skills you follow are under $SKILLS; read $SKILLS/<name>/SKILL.md for each skill named. Use the hyp binary on PATH in $BIN (run export PATH=$BIN:$PATH first). Write nothing to the store. Write your output only under $OUT. The owner's purpose: 'hyp prints a warning when a recipe pins a binary by commit, not sha256.' The owner's constraints, in their words: the run may change this repository in commits on one branch and open a PR it never merges, and also the docs the change makes wrong; it may read plans/ and every investigations/ tree but not change them; it must never replace the installed hyp, never edit recipes/, and never write under the owner's actor. Follow the skill's template and write only the Goal body text to $OUT/body.txt.",
+   "expected_output": "A body whose end is a valid constraints block.",
+   "files": [],
+   "assertions": [
+    {
+     "id": "valid-block",
+     "text": "body.txt ends with a constraints block: from the first line that starts with 'May change:', 'Read only:' or 'Never:' to the end, every non-empty line starts with one of the three headings, and each heading appears at least once."
+    },
+    {
+     "id": "all-constraints",
+     "text": "The block states every constraint the owner gave: commits on one branch, a PR never merged, the docs the change makes wrong, read-only plans/ and investigations/, never replace hyp, never edit recipes/, never write under the owner's actor."
+    }
+   ]
+  },
+  {
+   "id": "answer-end",
+   "split": "train",
+   "prompt": "You are at the end of a hyp-owner-answer turn. Paths: the repository copy is $WORK (the store is $WORK/investigations/checkpoint-store, Goal G-D1CH1R). The skills you follow are under $SKILLS; read $SKILLS/<name>/SKILL.md for each skill named. Use the hyp binary on PATH in $BIN (run export PATH=$BIN:$PATH first). Write nothing to the store. Write your output only under $OUT. The owner's answer is already recorded in the store: they accepted R-9SMRB2#5 and #7 and returned R-9SMRB2#4 ('amend ADR 0020's run-subject notation to {base, patch, files}'). The owner now wants the next /goal run on the branch feat/one-subject-per-run with PR 132, runner actor claude-g1b-6. Follow the skill's 'End each turn' section only for the next run's prompt: write the /goal prompt you give the owner to $OUT/next.txt, nothing else in that file. Do not record a checkpoint.",
+   "expected_output": "next.txt is the prompt hyp prints, with no owner answer in it.",
+   "files": [],
+   "assertions": [
+    {
+     "id": "exact-prompt",
+     "text": "next.txt holds the exact bytes hyp prompt prints for G-D1CH1R, claude-g1b-6, the branch and the PR.",
+     "kind": "text-contains",
+     "path": "next.txt",
+     "expected": "/goal Run the hyp tree in investigations/checkpoint-store with the hyp-goal-run skill, as HYP_ACTOR=claude-g1b-6. Its Goal is G-D1CH1R: read it with hyp show G-D1CH1R, read hyp status G-D1CH1R, and name --goal G-D1CH1R on every hyp checkpoint.\nDone when the latest printed hyp status G-D1CH1R shows \"runner owes nothing: stop and report to the owner\" under OWED, or 5 Results have been recorded under claude-g1b-6, or you cannot take the next step honestly and say why.\nMay change: this repository, in commits on the branch the prompt names that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong. The run may push that branch to update its PR, and never merges it.\nRead only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.\nNever: commit to main.\nNever: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.\nNever: edit recipes/, rubrics/, any other investigations/ tree, or another repository.\nNever: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.\nCommit on the branch feat/one-subject-per-run.\nThe run's PR is #132.\n"
+    },
+    {
+     "id": "no-answer",
+     "text": "next.txt states no owner answer: no accept, return or answer text, such as the amend of ADR 0020's notation."
+    }
+   ]
+  },
+  {
+   "id": "goal-run-plan",
+   "split": "train",
+   "prompt": "You start an unattended /goal run. Its prompt is the file $OUT/../prompt.txt; follow the hyp-goal-run skill under $SKILLS and the skills it names. Paths: the repository copy is $WORK (the store is $WORK/investigations/checkpoint-store, Goal G-D1CH1R). The skills you follow are under $SKILLS; read $SKILLS/<name>/SKILL.md for each skill named. Use the hyp binary on PATH in $BIN (run export PATH=$BIN:$PATH first). Write nothing to the store. Write your output only under $OUT. Do not run anything and do not change the store. Write $OUT/plan.md with five numbered answers, each from the prompt and the skills only: (1) how you name and tie each candidate commit, and what a fix is; (2) what each Experiment's verdict rule holds and when you write it; (3) where you keep logs; (4) what you do before the stop about a review, and how you sort its findings; (5) what your last message lists for the owner.",
+   "expected_output": "plan.md states run 6's build practice.",
+   "files": [],
+   "assertions": [
+    {
+     "id": "p1-hyp",
+     "text": "plan.md (1): one Hypothesis per tested commit, branch and commit in its title, subject tied with hyp subject --base; a fix is a new Hypothesis that supersedes the old one."
+    },
+    {
+     "id": "p2-rule",
+     "text": "plan.md (2): the verdict rule is written in the Experiment body before running, and holds the Goal lines aimed at, red on base and green on candidate for each new test, a removal check per refusal, and go vet ./... and go test ./... -count=1."
+    },
+    {
+     "id": "p3-logs",
+     "text": "plan.md (3): logs under .tree/evidence/<E-id>/, cited."
+    },
+    {
+     "id": "p4-review",
+     "text": "plan.md (4): one review by a fresh subagent given code, lines and settled keys with the owner's words, not the conclusion; findings sorted into limit (close or refer), reading, fix commit, or out-of-Goal finding named in the stop checkpoint that never holds the select."
+    },
+    {
+     "id": "p5-owner",
+     "text": "plan.md (5): the last message lists the checkpoint, LINES with their Results, and every owner item with the exact command: AWAITING OWNER items, out-of-Goal findings, merging the PR, reinstalling hyp, personal skills naming a changed command."
+    }
+   ]
+  }
+ ]
+}

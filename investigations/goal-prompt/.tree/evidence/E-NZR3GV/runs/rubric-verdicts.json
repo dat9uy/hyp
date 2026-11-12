@@ -1,0 +1,318 @@
+{
+ "l6-run6-clauses/A": {
+  "c01-tree": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Run the hyp tree in investigations/checkpoint-store with the hyp-goal-run skill\""
+  },
+  "c02-skill": {
+   "passed": true,
+   "evidence": "prompt.txt: \"with the hyp-goal-run skill\""
+  },
+  "c03-goal": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Its Goal is G-D1CH1R: read it with hyp show G-D1CH1R\""
+  },
+  "c04-design": {
+   "passed": true,
+   "evidence": "goal-show.txt (reached by the prompt's 'hyp show G-D1CH1R'): \"Builds the design recorded in checkpoint-store-design:G-73R704 ... ADR 0020 cites those Results\""
+  },
+  "c04-strict": {
+   "passed": false,
+   "evidence": "prompt.txt and the SKILL.md files never state the design the Goal builds (ADR 0020 / G-73R704 appears only in goal-show.txt; prompt.txt names ADR 0020 only as text it may change)."
+  },
+  "c15-select": {
+   "passed": true,
+   "evidence": "hyp-prototype/SKILL.md: \"Select only when OWED lists `select` for that Hypothesis\"; prompt.txt: \"Done when ... 'runner owes nothing: stop and report to the owner' under OWED\""
+  },
+  "c16-count": {
+   "passed": true,
+   "evidence": "prompt.txt: \"or 5 Results have been recorded under claude-g1b-6\""
+  },
+  "c17-honest": {
+   "passed": true,
+   "evidence": "prompt.txt: \"or you cannot take the next step honestly and say why\""
+  },
+  "c21-may-change": {
+   "passed": true,
+   "evidence": "prompt.txt: \"May change: this repository, in commits on the branch ... that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong\""
+  },
+  "c22-push": {
+   "passed": true,
+   "evidence": "prompt.txt: \"The run may push that branch to update its PR, and never merges it.\""
+  },
+  "c23-main": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: commit to main.\""
+  },
+  "c24-binaries": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.\""
+  },
+  "c25-edits": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.\""
+  },
+  "c26-owner": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.\""
+  },
+  "c05-hyp-per-commit": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Build Goals: \"Each commit you test is one Hypothesis under the Goal's question, with the branch and the commit in its title.\""
+  },
+  "c06-supersede": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"A fix is a new commit and a new Hypothesis that supersedes the old one\""
+  },
+  "c07-close": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Goal lines: \"record `--closes G-<id>#<n>` on each Result that ran the case\""
+  },
+  "c08-rule-first": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"Before you run anything, write each Experiment's verdict rule in its body\""
+  },
+  "c09-gate": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"`go vet ./...` and `go test ./... -count=1`, or the repository's own gate\""
+  },
+  "c10-logs": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"Keep the logs under `.tree/evidence/<E-id>/` and cite them in the Result.\""
+  },
+  "c11-review": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"ask a fresh subagent for one review of each candidate commit's diff against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion.\""
+  },
+  "c12-label": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"Ask it to label each finding with the line it is a case of, or none.\""
+  },
+  "c13-sort": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"a case of a line is a `--limit` you close or, only if void, refer; a question about a line's meaning is a reading\""
+  },
+  "c14-outside": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Stop: out-of-Goal finding \"gets no limit, no refer and no reading, and it never holds the select\"; item 3 lists \"each out-of-Goal finding (a new Goal or an issue)\" for the owner."
+  },
+  "c18-checkpoint": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Stop 1: \"Before your last message, record a runner checkpoint\""
+  },
+  "c19-lines": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Stop 2: \"lists each line under LINES by its key, with the Results that ran it\""
+  },
+  "c20-owner-items": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Stop 3: \"list every owner item with the exact command the owner runs: each item under AWAITING OWNER, each out-of-Goal finding (a new Goal or an issue), merging the PR, reinstalling hyp, and each personal skill that names a command the change altered.\""
+  },
+  "c27-exp-setup": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md: \"When none does, the Experiment on a commit uses `--recipe none --rubric reading`\""
+  }
+ },
+ "l6-run6-clauses/B": {
+  "c01-tree": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Run the hyp tree in investigations/checkpoint-store with the hyp-goal-run skill\""
+  },
+  "c02-skill": {
+   "passed": true,
+   "evidence": "prompt.txt: \"with the hyp-goal-run skill\""
+  },
+  "c03-goal": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Its Goal is G-D1CH1R: read it with hyp show G-D1CH1R\""
+  },
+  "c04-design": {
+   "passed": true,
+   "evidence": "goal-show.txt (reached by the prompt's 'hyp show G-D1CH1R'): \"Builds the design recorded in checkpoint-store-design:G-73R704 ... ADR 0020 cites those Results\""
+  },
+  "c04-strict": {
+   "passed": false,
+   "evidence": "prompt.txt and the SKILL.md files never state the design the Goal builds (ADR 0020 / G-73R704 appears only in goal-show.txt; prompt.txt names ADR 0020 only as text it may change)."
+  },
+  "c15-select": {
+   "passed": true,
+   "evidence": "hyp-prototype/SKILL.md: \"Select only when OWED lists `select` for that Hypothesis\"; prompt.txt: \"Done when ... 'runner owes nothing: stop and report to the owner' under OWED\""
+  },
+  "c16-count": {
+   "passed": true,
+   "evidence": "prompt.txt: \"or 5 Results have been recorded under claude-g1b-6\""
+  },
+  "c17-honest": {
+   "passed": true,
+   "evidence": "prompt.txt: \"or you cannot take the next step honestly and say why\""
+  },
+  "c21-may-change": {
+   "passed": true,
+   "evidence": "prompt.txt: \"May change: this repository, in commits on the branch ... that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong\""
+  },
+  "c22-push": {
+   "passed": true,
+   "evidence": "prompt.txt: \"The run may push that branch to update its PR, and never merges it.\""
+  },
+  "c23-main": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: commit to main.\""
+  },
+  "c24-binaries": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.\""
+  },
+  "c25-edits": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.\""
+  },
+  "c26-owner": {
+   "passed": true,
+   "evidence": "prompt.txt: \"Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.\""
+  },
+  "c05-hyp-per-commit": {
+   "passed": false,
+   "evidence": "No skill says each tested commit is a Hypothesis with branch and commit in its title; hyp-goal-run/SKILL.md has no build-Goal section and hyp-prototype only says rival answers are sibling Hypotheses."
+  },
+  "c06-supersede": {
+   "passed": true,
+   "evidence": "hyp-prototype/SKILL.md: \"A fix, an untested part of a claim or a stronger instrument is a new Hypothesis that supersedes the old one\" (general rule covering a fix commit)."
+  },
+  "c07-close": {
+   "passed": true,
+   "evidence": "hyp-prototype/SKILL.md: \"Close it with an Experiment that aims at it (`--aims <R-id>#<n>`) ... its Result names `--closes <R-id>#<n>`\" (general limit rule covering Goal lines/limits)."
+  },
+  "c08-rule-first": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md (B) Work: \"Write and run no candidate until the rule is recorded on the Experiment.\""
+  },
+  "c09-gate": {
+   "passed": false,
+   "evidence": "No SKILL.md in B mentions go vet / go test or the repository's own gate as part of the verdict rule."
+  },
+  "c10-logs": {
+   "passed": true,
+   "evidence": "hyp-verification/SKILL.md: \"Store what you observed by hand under `.tree/evidence/<E-id>/`\" and hyp-prototype: \"point to them with `--evidence`\"; Result cites them."
+  },
+  "c11-review": {
+   "passed": false,
+   "evidence": "No review by a fresh subagent is described in any B skill or the prompt."
+  },
+  "c12-label": {
+   "passed": false,
+   "evidence": "No reviewer or finding labelling in B."
+  },
+  "c13-sort": {
+   "passed": false,
+   "evidence": "B has no sorting of review findings (only limit/refer/reading rules generally; no mapping of a review finding's cases and meaning questions)."
+  },
+  "c14-outside": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Stop 1 (B): \"An out-of-Goal finding is a case of none of the Goal's lines: it gets no limit, no refer and no reading, and it never holds the select. Name each one in the checkpoint\" (owner reads the checkpoint; no explicit 'new Goal or issue')."
+  },
+  "c18-checkpoint": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Stop 1 (B): \"Before your last message, record a runner checkpoint\""
+  },
+  "c19-lines": {
+   "passed": true,
+   "evidence": "hyp-goal-run/SKILL.md Stop 2 (B): \"lists each line under LINES by its key, with the Results that ran it\""
+  },
+  "c20-owner-items": {
+   "passed": false,
+   "evidence": "B's Stop has no list of owner items with exact commands (no merging PR, reinstall hyp, personal skills, out-of-Goal findings as new Goal/issue); item 3 was removed."
+  },
+  "c27-exp-setup": {
+   "passed": false,
+   "evidence": "hyp-prototype/SKILL.md only gives the generic flag form \"--recipe <name@version|none> --rubric <name@version|reading>\"; nothing says a build Goal's commit Experiment uses --recipe none --rubric reading."
+  }
+ },
+ "grill-handoff/A": {
+  "no-answer": {
+   "passed": false,
+   "evidence": "grill-handoff/A/out/handoff.txt: \"Owner answer, 2026-11-11 14:31: R-9SMRB2#5 and R-9SMRB2#7 are accepted ... R-9SMRB2#4 is returned to the runner: amend ADR 0020's subject notation to {base, patch, files}\""
+  }
+ },
+ "grill-handoff/B": {
+  "no-answer": {
+   "passed": true,
+   "evidence": "grill-handoff/B/out/handoff.txt is the plain hyp prompt text; no accept/return/answer text, ends \"The run's PR is #132.\""
+  }
+ },
+ "answer-end/A": {
+  "no-answer": {
+   "passed": false,
+   "evidence": "answer-end/A/out/next.txt: \"The owner's answer is recorded in the store. The owner accepted ... R-9SMRB2#5 and R-9SMRB2#7, and returned R-9SMRB2#4 with the words: \"Amend ADR 0020's subject notation to {base, patch, files}\""
+  }
+ },
+ "answer-end/B": {
+  "no-answer": {
+   "passed": true,
+   "evidence": "answer-end/B/out/next.txt is the plain hyp prompt text; no accept/return/answer text, ends \"The run's PR is #132.\""
+  }
+ },
+ "grill-body/A": {
+  "valid-block": {
+   "passed": true,
+   "evidence": "body.txt: first heading line is \"May change: this repository...\"; every following non-empty line starts with Read only: or Never:; all three headings present."
+  },
+  "all-constraints": {
+   "passed": false,
+   "evidence": "body.txt covers branch, PR never merged, docs, recipes/, hyp binary, owner actor, but weakens read-only: \"Read only: plans/ and every investigations/ tree other than this Goal's own tree. This Goal's tree is written only through the installed hyp.\" -- the owner said every investigations/ tree is read only; the carve-out is not the owner's constraint."
+  }
+ },
+ "grill-body/B": {
+  "valid-block": {
+   "passed": true,
+   "evidence": "body.txt: block starts at \"May change: the repository checkout...\", followed only by \"Read only:\" and four \"Never:\" lines; all three headings present."
+  },
+  "all-constraints": {
+   "passed": true,
+   "evidence": "body.txt: \"May change: the repository checkout, as commits on one local branch with a PR that is opened and never merged, and the docs and skill text that the change makes wrong\"; \"Read only: plans/ and every investigations/ tree\"; \"Never: replace the installed hyp binary\"; \"Never: edit recipes/\"; \"Never: write under the owner's actor\""
+  }
+ },
+ "goal-run-plan/A": {
+  "p1-hyp": {
+   "passed": true,
+   "evidence": "plan.md (1): \"Each commit I test is one Hypothesis ... title carries the branch and the commit\"; \"tie its subject with `hyp subject <H> [PATH\u2026] --base <commit>`\"; \"A fix is a new commit and a new Hypothesis that supersedes the old one\""
+  },
+  "p2-rule": {
+   "passed": true,
+   "evidence": "plan.md (2): rule written \"in the Experiment body before I run anything\"; Goal lines, \"each new test red on the base and green on the candidate\", removal check per refusal, \"`go vet ./...` and `go test ./... -count=1`\""
+  },
+  "p3-logs": {
+   "passed": true,
+   "evidence": "plan.md (3): \"Logs go under `.tree/evidence/<E-id>/`, and the Result cites them.\""
+  },
+  "p4-review": {
+   "passed": true,
+   "evidence": "plan.md (4): fresh subagent given \"the code, the lines, the keys already settled and the owner's words ... not my conclusion\"; sorted into limit (close/refer), reading, fix commit, out-of-Goal finding named in the stop checkpoint, never holds the select"
+  },
+  "p5-owner": {
+   "passed": true,
+   "evidence": "plan.md (5): repeats checkpoint, lists LINES with Results, and \"every owner item with the exact command ... AWAITING OWNER item, each out-of-Goal finding, merging the PR, reinstalling hyp, and each personal skill\""
+  }
+ },
+ "goal-run-plan/B": {
+  "p1-hyp": {
+   "passed": false,
+   "evidence": "plan.md (1): fix supersedes and subject tied with --base, but no one Hypothesis per tested commit and no branch/commit in title; says \"The skills do not give a naming convention for candidate commits.\""
+  },
+  "p2-rule": {
+   "passed": false,
+   "evidence": "plan.md (2): rule written before running, but no Goal lines aimed at, no red-on-base/green-on-candidate, no removal check, no go vet / go test."
+  },
+  "p3-logs": {
+   "passed": true,
+   "evidence": "plan.md (3): \"Hand-gathered evidence goes in `.tree/evidence/<E-id>/` ... A Result cites only files of its own Experiment's run\""
+  },
+  "p4-review": {
+   "passed": false,
+   "evidence": "plan.md (4): \"The skills describe no review step before the stop.\""
+  },
+  "p5-owner": {
+   "passed": false,
+   "evidence": "plan.md (5): lists checkpoint, LINES, AWAITING OWNER keys and out-of-Goal findings, but no exact commands and no merging the PR, reinstalling hyp or personal skills."
+  }
+ }
+}

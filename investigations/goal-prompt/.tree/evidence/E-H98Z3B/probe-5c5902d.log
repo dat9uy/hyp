@@ -1,0 +1,11 @@
+hyp b83eb5a13cc1c56d
+through link /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.ZMCtsYcSrN/repo/tree: exit 3: hyp prompt G-598246: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.ZMCtsYcSrN/ext, so its path relative to the repository root is not known
+through real path /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.ZMCtsYcSrN/ext: exit 3: hyp prompt G-598246: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.ZMCtsYcSrN/ext, so its path relative to the repository root is not known
+same outcome on both paths: yes
+
+hyp b6712e4e51925096
+through link /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.M3rB4SKd9i/repo/tree: exit 0: /goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=r. Its Goal is G-6APPD7: read it with hyp show G-6APPD7, read hyp status G-6APPD7, and name --goal G-6APPD7 on every hyp checkpoint.
+Done when the latest printed hyp status G-6APPD7 shows "runner owes nothing: stop and report to the owner" under OWED, or 5 Results have been recorded under r, or you cannot take the next step honestly and say why.
+through real path /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.M3rB4SKd9i/ext: exit 3: hyp prompt G-6APPD7: no repository holds the store /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.M3rB4SKd9i/ext, so its path relative to the repository root is not known
+same outcome on both paths: no
+

@@ -392,6 +392,9 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		return draft{event.TypeNodeAdd, "", p}, nil
 	})
 	if err == nil && kind == event.KindGoal {
+		if w := blockWarning(p.Body); w != "" {
+			fmt.Fprintln(stderr, w)
+		}
 		for i, l := range p.Lines {
 			fmt.Fprintf(stdout, "  line %s: %s\n", event.DisplayKey(event.KindGoal, event.LimitKey(w.last.ID, i+1)), l.Text)
 		}

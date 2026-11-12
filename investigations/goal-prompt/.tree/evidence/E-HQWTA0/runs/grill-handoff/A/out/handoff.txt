@@ -1,0 +1,16 @@
+Run hyp-goal-run for Goal G-D1CH1R (build Goal) in the hyp store at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/runs/grill-handoff/A/work/investigations/checkpoint-store. Repository copy: /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/runs/grill-handoff/A/work. Set HYP_ACTOR=claude-g1b-6 and put /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/ac7710a0-f21c-4a9e-b692-0c60ed20f878/scratchpad/runs/grill-handoff/A/bin first on PATH. Use only that hyp, never ~/.local/bin/hyp.
+
+Branch: feat/one-subject-per-run, PR 132. Commit on that branch and push it to update PR 132. Never merge it. The candidate is a commit on the branch; go test on its base and on the candidate is the instrument.
+
+Review: one review round per candidate commit, by a fresh subagent given the lines, the code and the keys already settled with the owner's words. Sort each finding: a case of a line is a limit; a question about a line's meaning is a reading; a defect in text the run may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint and never holding the select. The write scope covers every text the change makes wrong, the design record included.
+
+Settled with the owner, as the log records them (confirm with hyp status): G-D1CH1R#9 and R-0HABWN#2 accepted; R-0HABWN#7 returned, so run it as a case: a run at B with inputs covers a Hypothesis whose subject is bare B. R-9SMRB2#5 void. R-9SMRB2#7 is a new Goal, not this one. R-9SMRB2#4 returned: amend ADR 0020's subject notation to {base, patch, files} to match the code, spec and glossary, and name the owner's answer in the commit.
+
+Stop when OWED owes the runner nothing and the select waits on the owner: write the stop checkpoint and stop. Stop and refer with a reason when a step needs the owner. Stop and report when hyp exits 3. In every stop checkpoint, name the PR and the items awaiting the owner.
+
+May change: this repository, in commits on the branch the prompt names that follow AGENTS.md (conventional messages, no AI trailers): the code, ADR 0020, and the spec, glossary, principles, skills/ and README.md text the change makes wrong. The run may push that branch to update its PR, and never merges it.
+Read only: recipes/, rubrics/ and every investigations/ tree except checkpoint-store.
+Never: commit to main.
+Never: replace ~/.local/bin/hyp or ~/.local/share/hyp/hyp-33896ec; write the tree with the installed hyp, and compile the candidate to a separate path.
+Never: edit recipes/, rubrics/, any other investigations/ tree, or another repository.
+Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.

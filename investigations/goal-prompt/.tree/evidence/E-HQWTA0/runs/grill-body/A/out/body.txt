@@ -1,0 +1,9 @@
+Purpose: hyp prints a warning when a recipe pins a binary by commit, not sha256.
+
+A recipe that names the binary it ran by the commit it was built from cannot be checked against the bytes that actually ran, so two runs of the same recipe may test different programs without the ledger showing it. The repository's rule is to name a binary by its sha256. This Goal makes hyp enforce that rule at the point where a recipe pins a binary, so the warning comes from the binary and its go test gate, not from skill text.
+
+The change belongs to the core scope: a recipe's pin of a binary is a concept hyp owns, and every user who installs hyp meets it. Build and test with the commands in AGENTS.md (CGO_ENABLED=0 go build for a binary written outside the installed path, go vet ./..., go test ./... -count=1). A test binary is written under the run's own scratch directory, never to ~/.local/bin/hyp.
+
+May change: this repository, in commits on one local branch and a pull request that is never merged, plus each doc and skill text the change makes wrong
+Read only: plans/ and every tree under investigations/
+Never: replace the installed hyp binary, edit any file under recipes/, or write under the owner's actor name

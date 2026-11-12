@@ -1,0 +1,12 @@
+Result R-8JQPWG
+path: G-ZBM2RE > Q-Z93VJ5 > H-3M3QAS > E-7QQ2DP > R-8JQPWG
+status: recorded
+observation: The fresh review of b4f23b2's fix reports G1-G8. The probe with the b4f23b2 binary confirms G1: one store, one log and flags, exit 3 through a symlinked working directory and exit 0 with 'in inv/t' through the physical path, where G-ZBM2RE#1 prints the same bytes on every call. It confirms G2 (a CRLF blank line inside the block is refused as "\r") and G3 (a no-break space in --branch exits 2). G3, G4, G5, G6 and G7 are text or test defects; G4 also names a rule conflict outside the lines.
+verdicts: H-3M3QAS=contradicts
+evidence: .tree/evidence/E-7QQ2DP/review.md
+evidence: .tree/evidence/E-7QQ2DP/probe-b4f23b2.log
+limit #1: G1, G-ZBM2RE#1: the same store reached through a symlinked working directory and through its physical path must print the same bytes; b4f23b2 exits 3 on one and 0 on the other.
+limit #2: G2, G-ZBM2RE#3: a CRLF body whose block holds a blank line, which is "\r" after the split on \n; b4f23b2 refuses it as a non-empty line with no heading.
+limit #3: G8, G-ZBM2RE#2 and #4: the tests check the Goal id in one of its four places; a prompt that names G in its header and another Goal in hyp show, hyp status or --goal would pass.
+history:
+  2026-11-11 17:21 claude-g113-1 result.record R-8JQPWG — Records E-7QQ2DP under its pre-registered rule.
