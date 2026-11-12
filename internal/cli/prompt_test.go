@@ -52,7 +52,7 @@ func TestPromptPrintsTheGoalsRunPrompt(t *testing.T) {
 	wantOut := "/goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=claude-run-1. Its Goal is " + g +
 		": read it with hyp show " + g + ", read hyp status " + g + ", and name --goal " + g + " on every hyp checkpoint.\n" +
 		"Done when the latest printed hyp status " + g + " shows \"runner owes nothing: stop and report to the owner\" under OWED, " +
-		"or 7 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.\n" +
+		"or 5 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.\n" +
 		promptBlock + "\n"
 	if r.stdout != wantOut {
 		t.Fatalf("hyp prompt printed\n%s\nwant\n%s", r.stdout, wantOut)
@@ -336,7 +336,6 @@ func TestPromptBadArguments(t *testing.T) {
 // of 2026-11-11 14:31, its Goal body given a constraints block. Its prompt is
 // the golden file an eval case compares, clause by clause, with run 6's
 // hand-written prompt; the prompt is the same with or without that answer.
-// Run 6's prompt named 5 Results, so the call names --experiments 5.
 func TestPromptForTheCheckpointStoreFixture(t *testing.T) {
 	repo := t.TempDir()
 	if err := os.CopyFS(repo, os.DirFS("testdata/prompt-fixture")); err != nil {
@@ -350,7 +349,7 @@ func TestPromptForTheCheckpointStoreFixture(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Chdir(filepath.Join(repo, "investigations", "checkpoint-store"))
-	args := []string{"prompt", "G-D1CH1R", "--actor", "claude-g1b-6", "--branch", "feat/one-subject-per-run", "--pr", "132", "--experiments", "5"}
+	args := []string{"prompt", "G-D1CH1R", "--actor", "claude-g1b-6", "--branch", "feat/one-subject-per-run", "--pr", "132"}
 	r := hyp(t, args...)
 	if r.code != 0 || r.stdout != string(golden) {
 		t.Fatalf("exit %d, stderr %q; printed\n%s\nwant\n%s", r.code, r.stderr, r.stdout, golden)
