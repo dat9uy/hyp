@@ -1,0 +1,217 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T09:02:36Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-raise-budget-a-3"
+      ],
+      "exit": 0,
+      "pgid": 73237,
+      "started": "2026-11-12T09:02:36Z",
+      "ended": "2026-11-12T09:02:36Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-raise-budget-a-3",
+      "sha256": "427d35c57e0050cf4c9cc185562820cba2c7e684b32e1907c4949069f47afa4d",
+      "files": 36,
+      "entries": [
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/encoding_utils.cpython-312.pyc",
+          "sha256": "357b15070f7feaef6d14da845bdeec4b370846d60d53c65db27d3526cdab362e"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/frontmatter_validation.cpython-312.pyc",
+          "sha256": "0381b6c836c8e41ab607328283e5da62dd7d007cd20cb2a1bc64a58d7ae0b9a2"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/metadata_routing.cpython-312.pyc",
+          "sha256": "59ee54f20b3122873663caf5d8bf125c6a994226e792fcde9aa273db92018200"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/resource_validation.cpython-312.pyc",
+          "sha256": "7f1288c643e679e65328e0ec7294bd52b41d216fc0fe379ae1bc109dae4bbdbb"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/standard_validation.cpython-312.pyc",
+          "sha256": "ff04e629e5d4c914c2bd4651b02e39add1bfd332ef803dbfa2531e969a743d1a"
+        },
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "08e42c2a551737e2b2a9e3449a9866b7f8c9c564f6528d6d71dceef7bc31ccbd"
+        },
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "521f1c5c3ac3d069e1199893210f92f2717cd9fbf2a4733bfbec7594eae2e9ea"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "8291d4edac1c7dabefb7f24cee7dc9dfd8ffdf1a99c59fb7700b371a5902ac52"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "4f936b651eedec50b7193b516ea49b64ec55bd798b2ca640f37d91f57ca9a338"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "e8af5a2067a51ffb3d6ae5a47f821bed75c4257a905f4591e206c23adb9b3c22"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-6NPZFA/skill-scripts.log",
+          "sha256": "c55efad1ccef4e78d6c1c921a17bd7067db266c74a1cb591344d085602f17a11"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-BWRFQB/gate-candidate.log",
+          "sha256": "f703132df1d2ec8e360adada5e629664e3d5da32f8d42f636e60c3bad965b89b"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-BWRFQB/git-above-tmpdir.log",
+          "sha256": "622e430c8307ae9435202b351c742c02a8e4ebe785e6981fcc0646ba42e183a9"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-BWRFQB/removal.log",
+          "sha256": "6a2ddd006d47dafe9276bec7dcf28500151472f15af65dd161e7f7f93fd804d0"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-ZK2V7B/gate-candidate.log",
+          "sha256": "37eed782d39e2047accc7722b9dd50adfdf84689f651a2399a2cef9a91fdadba"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-ZK2V7B/red-green.log",
+          "sha256": "c704e47ec13f8b23607363f58493b4421dd21e089317c781b8a8a06278c28520"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-ZK2V7B/removal.log",
+          "sha256": "b739d117663dcaac6d592c23dfd8784a5296295997be37d0a8acaa900deb8d88"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-ZK2V7B/review.md",
+          "sha256": "3ac0d3edc1c339d3a1d73fe5f441117d633540ab4c6f5ee1b3cd9ed507e390a3"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-ZK2V7B/skill-scripts.log",
+          "sha256": "d7adce237a557f4e55ab86b8056d713e7051664608d74e9fb1a74f72bf5503d6"
+        },
+        {
+          "path": "changes/skills/hyp-goal-run/SKILL.md",
+          "sha256": "cb15e2f2e207b5a66807c9369e4d776d5378e61c2dd99679c36dfba402fa750e"
+        },
+        {
+          "path": "changes/skills/hyp-owner-answer/SKILL.md",
+          "sha256": "179b6883bb57c28eacd6eda5a4b088f0976ebe5c869aa64ca9584f3a8440ba1a"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "eb1fc16ee9dffd482e10c2bb7053e00107325655ecf599a3646d4c0e369bae3b"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "c9953b9618600197f9f8f03bbd175aa9715ad0ac1a9c0353c45eb176af2b263f"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "27b824dd60540a23960bb940bf21a2a7f80e5b44ab413ac2057de611e431e52c"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "92b30814f579074709f6114179ef0bd7c3397352fbf74b1d8904ec2ea6033427"
+        },
+        {
+          "path": "inputs/rr-raise-budget-a-3.txt",
+          "sha256": "99801db374a9d6a2f973cbb50f2a15e7ca0407877cdf9db19d20360dcc848ac8"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f1139c5767191ab694d4d99eb7bb8137a29f3543d99424360977231a95f0efd4"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "7afd4e540681e233249ad124354d31217a395e82b86bc28fc7eb0f0e9250a547"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "df639485131cffd3cb9ad386362907a65ef99e5b3b5872cda8d6d504b470b4c2"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "53947bcc061a158be5f2c633ca082cfe35d3e4090eda3a026d80260a90a84e54"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "99801db374a9d6a2f973cbb50f2a15e7ca0407877cdf9db19d20360dcc848ac8"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "11a142b42a85000d422403baa1b7028e32f3975ee86d845d72e52e49acd622e9"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "44aa217679cc66aeb1ffac90142a4171312533e82edcbf84e66444637ea8e815"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "a28737064b21e3ae0f2174892a4f8abfd0ac1df53ddc1e54afcaaaf716d4095b"
+        }
+      ]
+    }
+  ]
+}

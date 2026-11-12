@@ -1,0 +1,56 @@
+diff --git a/internal/cli/prompt.go b/internal/cli/prompt.go
+index dee0d73..62989c9 100644
+--- a/internal/cli/prompt.go
++++ b/internal/cli/prompt.go
+@@ -106,7 +106,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
+ 	actor := fs.String("actor", "", "the runner's actor name (required; $HYP_ACTOR is not read)")
+ 	branch := fs.String("branch", "", "the branch the run commits on")
+ 	pr := fs.Int("pr", 0, "the number of the PR the run updates")
+-	experiments := fs.Int("experiments", 5, "stop after this many Results recorded under the actor")
++	experiments := fs.Int("experiments", 7, "stop after this many Results recorded under the actor")
+ 	pos, err := parse(fs, args)
+ 	if err != nil {
+ 		return err
+diff --git a/internal/cli/prompt_test.go b/internal/cli/prompt_test.go
+index af53fdf..62237de 100644
+--- a/internal/cli/prompt_test.go
++++ b/internal/cli/prompt_test.go
+@@ -52,7 +52,7 @@ func TestPromptPrintsTheGoalsRunPrompt(t *testing.T) {
+ 	wantOut := "/goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=claude-run-1. Its Goal is " + g +
+ 		": read it with hyp show " + g + ", read hyp status " + g + ", and name --goal " + g + " on every hyp checkpoint.\n" +
+ 		"Done when the latest printed hyp status " + g + " shows \"runner owes nothing: stop and report to the owner\" under OWED, " +
+-		"or 5 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.\n" +
++		"or 7 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.\n" +
+ 		promptBlock + "\n"
+ 	if r.stdout != wantOut {
+ 		t.Fatalf("hyp prompt printed\n%s\nwant\n%s", r.stdout, wantOut)
+@@ -336,6 +336,7 @@ func TestPromptBadArguments(t *testing.T) {
+ // of 2026-11-11 14:31, its Goal body given a constraints block. Its prompt is
+ // the golden file an eval case compares, clause by clause, with run 6's
+ // hand-written prompt; the prompt is the same with or without that answer.
++// Run 6's prompt named 5 Results, so the call names --experiments 5.
+ func TestPromptForTheCheckpointStoreFixture(t *testing.T) {
+ 	repo := t.TempDir()
+ 	if err := os.CopyFS(repo, os.DirFS("testdata/prompt-fixture")); err != nil {
+@@ -349,7 +350,7 @@ func TestPromptForTheCheckpointStoreFixture(t *testing.T) {
+ 		t.Fatal(err)
+ 	}
+ 	t.Chdir(filepath.Join(repo, "investigations", "checkpoint-store"))
+-	args := []string{"prompt", "G-D1CH1R", "--actor", "claude-g1b-6", "--branch", "feat/one-subject-per-run", "--pr", "132"}
++	args := []string{"prompt", "G-D1CH1R", "--actor", "claude-g1b-6", "--branch", "feat/one-subject-per-run", "--pr", "132", "--experiments", "5"}
+ 	r := hyp(t, args...)
+ 	if r.code != 0 || r.stdout != string(golden) {
+ 		t.Fatalf("exit %d, stderr %q; printed\n%s\nwant\n%s", r.code, r.stderr, r.stdout, golden)
+diff --git a/skills/hyp-owner-grill/SKILL.md b/skills/hyp-owner-grill/SKILL.md
+index f97c763..08c77ea 100644
+--- a/skills/hyp-owner-grill/SKILL.md
++++ b/skills/hyp-owner-grill/SKILL.md
+@@ -113,7 +113,7 @@ hyp prints the `/goal` prompt for hyp-goal-run from the log. Choose a new runner
+ hyp prompt <G-id> --actor <runner-actor> [--branch <branch>] [--pr <N>] [--experiments <N>]
+ ```
+ 
+-It prints the store's path, the actor, the Goal id, the skill, the stop clauses (the runner owes nothing, or N Results under the actor, 5 by default) and the Goal body's constraints block, line for line; `--branch` and `--pr` add a clause each after the block. Give the owner its output as it is, and do not add to it. The prompt carries no owner answer: OWED lists each answer and each returned limit the runner applies. The practice of a run, a build Goal's review round included, is in hyp-goal-run. Run `hyp prompt` on the log the run starts from: the prompt names the Goal by its id, so the Goal's add must be in that log, merged or on the branch the prompt names. If `hyp prompt` refuses (exit 1), the Goal body has no valid constraints block; a Goal is never edited, so tell the owner, who adds a new Goal with a valid block. Exit 2 is a bad argument, such as a `--branch` with a space; exit 3 means no repository holds the store, so run it from the store inside its repository.
++It prints the store's path, the actor, the Goal id, the skill, the stop clauses (the runner owes nothing, or N Results under the actor, 7 by default, room for a gate and a review per candidate) and the Goal body's constraints block, line for line; `--branch` and `--pr` add a clause each after the block. Give the owner its output as it is, and do not add to it. The prompt carries no owner answer: OWED lists each answer and each returned limit the runner applies. The practice of a run, a build Goal's review round included, is in hyp-goal-run. Run `hyp prompt` on the log the run starts from: the prompt names the Goal by its id, so the Goal's add must be in that log, merged or on the branch the prompt names. If `hyp prompt` refuses (exit 1), the Goal body has no valid constraints block; a Goal is never edited, so tell the owner, who adds a new Goal with a valid block. Exit 2 is a bad argument, such as a `--branch` with a space; exit 3 means no repository holds the store, so run it from the store inside its repository.
+ 
+ ## Never
+ 

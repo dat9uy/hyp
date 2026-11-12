@@ -1,0 +1,10 @@
+R-KWYBA6 cases in E-2TJK2N's trials (arm review-result, skills_commit ea697bfc5ae18bfa0c712321b3c1317b7bf7275b)
+Read from each trial's tree.tar (events after the cut) and subagents.tar (Bash calls of each subagent).
+
+#1 git show, not git diff <base> <commit>: ran in rr-review-result-b-3. The run built 82ca52f (H-RGJCRR) on 3cfd08d and 511fbf0 (H-JEYG54) on 82ca52f; their subagents ran "git show 82ca52f" and "git show 511fbf0", the delta against the parent. #1 and #2 held in that trial (a1=1, b2=1).
+#2 review ordered after the gate Result: ran in every trial that reviewed. Each candidate got one Result citing the gate logs and the review together (b-3: R-QFJENJ, R-6WEPC4; a-1: R-JPCPGX), no second Result. b2 held in 3 of 3, cost ratio 0.9405 at cut B.
+#3 verdict rule does not name the review: ran in every trial that reviewed; the review was cited by the gate Result whatever its rule said. a1 2 of 3, b2 3 of 3.
+#4 review chain on fixes: ran in rr-review-result-b-3: 3cfd08d, 82ca52f and 511fbf0 each reviewed (3 subagents). Its cost 0.9512 is the highest of the arm; cut-B median 0.4428, ratio 0.9405.
+#5 candidate built after the last Result: ran in rr-review-result-a-3. The run built a00ada4 (H-DHQJV8), gated it in its 5th Result R-KFRDDA with no review and stopped; a1=0 in that trial, l4=1 (its checkpoint names H-DHQJV8 and a00ada4). a1 held in 2 of 3.
+#6 every candidate or only the one to select: ran at cut A. a-1 and a-2 reviewed candidates they never selected (meaning 1); no trial left a gated candidate unreviewed by meaning 2.
+#7 'Give it the code' and a pasted summary: ran in every trial with a subagent. No subagent prompt held a diff; each subagent ran git show or git diff itself, so its transcript holds the diff.

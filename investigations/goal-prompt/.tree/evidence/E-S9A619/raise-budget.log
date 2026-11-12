@@ -1,0 +1,80 @@
+== raise-budget at d0e8591a3bfc3d91e38ce508548554e4e6aec5d8 (d0e8591a3bfc3d91e38ce508548554e4e6aec5d8)
+== SKILL.md files changed vs 7825275:
+skills/hyp-owner-grill/SKILL.md
+== quick_validate.py skills/hyp-owner-grill
+Skill is valid!
+exit 0
+== lint_cruft.py --routing skills/hyp-owner-grill/SKILL.md
+MEDIUM numeric-cap            skills/hyp-owner-grill/SKILL.md:50  "At most 10 lines"
+1 file(s) scanned, 0 skipped; high=0 medium=1 low=0
+exit 0
+== go vet ./...
+exit 0
+== go test ./... -count=1
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.975s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	32.894s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.133s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.129s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.500s
+ok  	github.com/dat9uy/hyp/internal/render	0.177s
+ok  	github.com/dat9uy/hyp/internal/replay	0.159s
+ok  	github.com/dat9uy/hyp/internal/sandbox	90.330s
+ok  	github.com/dat9uy/hyp/internal/signals	0.112s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.332s
+ok  	github.com/dat9uy/hyp/internal/store	0.453s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+exit 0
+== red: candidate's prompt_test.go on 7825275's code
+--- FAIL: TestPromptPrintsTheGoalsRunPrompt (0.01s)
+    prompt_test.go:58: hyp prompt printed
+        /goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=claude-run-1. Its Goal is G-SN9KHY: read it with hyp show G-SN9KHY, read hyp status G-SN9KHY, and name --goal G-SN9KHY on every hyp checkpoint.
+        Done when the latest printed hyp status G-SN9KHY shows "runner owes nothing: stop and report to the owner" under OWED, or 5 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.
+        May change: this repository, in commits on one branch.
+        Read only: plans/.
+        Never: merge a PR.
+        Never: write under an owner's actor.
+        
+        want
+        /goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=claude-run-1. Its Goal is G-SN9KHY: read it with hyp show G-SN9KHY, read hyp status G-SN9KHY, and name --goal G-SN9KHY on every hyp checkpoint.
+        Done when the latest printed hyp status G-SN9KHY shows "runner owes nothing: stop and report to the owner" under OWED, or 7 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.
+        May change: this repository, in commits on one branch.
+        Read only: plans/.
+        Never: merge a PR.
+        Never: write under an owner's actor.
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.346s
+FAIL
+exit 1
+== green: on the candidate
+--- PASS: TestPromptPrintsTheGoalsRunPrompt (0.02s)
+--- PASS: TestPromptForTheCheckpointStoreFixture (0.01s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.175s
+exit 0
+== removal: default set back to 5 on the candidate
+ internal/cli/prompt.go | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+--- FAIL: TestPromptPrintsTheGoalsRunPrompt (0.01s)
+    prompt_test.go:58: hyp prompt printed
+        /goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=claude-run-1. Its Goal is G-YNVPRP: read it with hyp show G-YNVPRP, read hyp status G-YNVPRP, and name --goal G-YNVPRP on every hyp checkpoint.
+        Done when the latest printed hyp status G-YNVPRP shows "runner owes nothing: stop and report to the owner" under OWED, or 5 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.
+        May change: this repository, in commits on one branch.
+        Read only: plans/.
+        Never: merge a PR.
+        Never: write under an owner's actor.
+        
+        want
+        /goal Run the hyp tree in tree with the hyp-goal-run skill, as HYP_ACTOR=claude-run-1. Its Goal is G-YNVPRP: read it with hyp show G-YNVPRP, read hyp status G-YNVPRP, and name --goal G-YNVPRP on every hyp checkpoint.
+        Done when the latest printed hyp status G-YNVPRP shows "runner owes nothing: stop and report to the owner" under OWED, or 7 Results have been recorded under claude-run-1, or you cannot take the next step honestly and say why.
+        May change: this repository, in commits on one branch.
+        Read only: plans/.
+        Never: merge a PR.
+        Never: write under an owner's actor.
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.136s
+FAIL
+exit 1

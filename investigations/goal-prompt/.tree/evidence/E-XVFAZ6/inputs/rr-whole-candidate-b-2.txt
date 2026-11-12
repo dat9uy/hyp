@@ -1,0 +1,13 @@
+arm=whole-candidate
+cut=b
+cut_event=01M76V52SZ9DMCYFVYFRJEGDSA
+trial=2
+model=sonnet
+actor=claude-g113-3
+goal=G-ZBM2RE
+branch=feat/goal-prompt
+store=investigations/goal-prompt
+skills_commit=edb95c6f564b4c4620f4c0ba4749ffbc10b34cba
+skill_sha=4d6142c4e448bfb365d419526a76b41f43cf1cfb25751618bd2d321afc976639
+skill_creator=/Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator
+limit_min=100

@@ -1,0 +1,21 @@
+== run-review-replay@1 standalone: ./score.py tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-reserve-last-a-1
+arm	reserve-last
+cut	a
+trial	1
+actor	claude-g113-1
+n	5
+cost_usd	0.5668
+duration_ms	368678
+num_turns	27
+timed_out	0
+subagents	0
+built	H-NC6XHV
+reviewed	-
+selects	-
+unreviewed_unnamed	H-NC6XHV
+a1	0
+a1_strict	0
+b2	0
+b2_strict	0
+l4	0
+l4_strict	0

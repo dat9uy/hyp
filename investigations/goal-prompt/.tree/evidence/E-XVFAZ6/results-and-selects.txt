@@ -1,0 +1,42 @@
+rr-base-a-1 R:XH06C8=s
+rr-base-a-2 R:9Z4QC3=s
+rr-base-a-3 R:H9WKN7=s
+rr-name-at-stop-a-1 R:E0BJAY=s
+rr-name-at-stop-a-2 R:6GSJT6=c[rev]
+rr-name-at-stop-a-3 R:A6N4S8=s
+rr-one-experiment-a-1 R:7VBF6F=s[rev]
+rr-one-experiment-a-2 R:K2SH52=s[rev]
+rr-one-experiment-a-3 R:6HBEYN=s[rev]
+rr-probe-closes-a-1 R:0PNVVE=s[rev]
+rr-probe-closes-a-2 R:ZCSJJ5=s
+rr-probe-closes-a-3 R:4BJ95A=s[rev]
+rr-raise-budget-a-1 R:4ZK77S=s R:4ZK77S=s[rev] R:4ZK77S=c
+rr-raise-budget-a-2 R:RCB186=s R:RCB186=s R:RCB186=s
+rr-raise-budget-a-3 R:0KBGTC=s[rev] R:1WDY2X=s R:1WDY2X=s
+rr-reserve-last-a-1 R:NC6XHV=s
+rr-reserve-last-a-2 R:Y9X5V4=s[rev]
+rr-reserve-last-a-3 R:TRT82F=s[rev]
+rr-whole-candidate-a-1 R:JYFJF2=s
+rr-whole-candidate-a-2 R:NNFK34=s
+rr-whole-candidate-a-3 R:QBNEMN=s[rev]
+rr-base-b-1 SELECT FQ103R
+rr-base-b-2 R:YGP2RE=s R:YGP2RE=s SELECT YGP2RE
+rr-base-b-3 R:FQ103R=s[rev] R:FQ103R=s R:FQ103R=s SELECT FQ103R
+rr-name-at-stop-b-1 SELECT FQ103R
+rr-name-at-stop-b-2 SELECT FQ103R
+rr-name-at-stop-b-3 R:FQ103R=s[rev] SELECT FQ103R
+rr-one-experiment-b-1 SELECT FQ103R
+rr-one-experiment-b-2 SELECT FQ103R
+rr-one-experiment-b-3 R:1TWJR6=s[rev] R:1TWJR6=s[rev] R:1TWJR6=s SELECT 1TWJR6
+rr-probe-closes-b-1 R:FQ103R=s[rev] R:FQ103R=s[rev] SELECT FQ103R
+rr-probe-closes-b-2 R:FQ103R=s[rev] R:MV593R=s R:MV593R=s R:MV593R=s[rev] SELECT MV593R
+rr-probe-closes-b-3 R:FQ103R=s[rev] SELECT FQ103R
+rr-raise-budget-b-1 R:SWXBQR=s R:SWXBQR=s SELECT SWXBQR
+rr-raise-budget-b-2 SELECT FQ103R
+rr-raise-budget-b-3 R:JKVKEY=s R:9QV161=s SELECT 9QV161
+rr-reserve-last-b-1 R:FQ103R=s[rev] SELECT FQ103R
+rr-reserve-last-b-2 R:FQ103R=s[rev] SELECT FQ103R
+rr-reserve-last-b-3 R:FQ103R=s[rev] SELECT FQ103R
+rr-whole-candidate-b-1 SELECT FQ103R
+rr-whole-candidate-b-2 SELECT FQ103R
+rr-whole-candidate-b-3 SELECT FQ103R

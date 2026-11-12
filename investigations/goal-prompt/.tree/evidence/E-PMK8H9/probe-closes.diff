@@ -1,0 +1,13 @@
+diff --git a/skills/hyp-goal-run/SKILL.md b/skills/hyp-goal-run/SKILL.md
+index fcb178c..f17ddd3 100644
+--- a/skills/hyp-goal-run/SKILL.md
++++ b/skills/hyp-goal-run/SKILL.md
+@@ -32,7 +32,7 @@ A build Goal's candidate is a commit. Its practice:
+ - Before you run anything, write each Experiment's verdict rule in its body: the Goal's lines it aims at, red on the base and green on the candidate for each new test, a removal check for each refusal (remove the refusal and show which test fails), and `go vet ./...` and `go test ./... -count=1`, or the repository's own gate. For skill text, run the original and the candidate skills on the same eval cases.
+ - Keep the logs under `.tree/evidence/<E-id>/` and cite them in the Result.
+ - Before the stop, ask a fresh subagent for one review of each candidate commit's diff against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion. Ask it to label each finding with the line it is a case of, or none.
+-- Sort each finding: a case of a line is a `--limit` you close or, only if void, refer; a question about a line's meaning is a reading; a defect in text you may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint, and it never holds the select.
++- Probe each finding that is a case of a line with a check on the candidate before you record the review's Result. A case the probe runs and the candidate passes is closed in the review's Result: a check ran it, so cite the probe's log there, record no `--limit` for it and commit no fix. Sort the rest: a case no check ran is a `--limit` you close or, only if void, refer; a case the candidate fails is a fix commit; a question about a line's meaning is a reading; a defect in text you may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint, and it never holds the select.
+ - The run may push its branch and open or update one PR. It never merges.
+ 
+ ## Before a trade-off

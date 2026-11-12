@@ -1,0 +1,133 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:49:17Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-whole-candidate-b-2"
+      ],
+      "exit": 0,
+      "pgid": 8162,
+      "started": "2026-11-12T08:49:17Z",
+      "ended": "2026-11-12T08:49:18Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-whole-candidate-b-2",
+      "sha256": "3691ac4092d1331a274b855e6ddada03ecf3187b2090f42d1823e06e17b658e0",
+      "files": 15,
+      "entries": [
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-3.jsonl",
+          "sha256": "5a2b68b94653daf94f5a08e2ef4976954c1b4f8edb024aa0572a012449903830"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "e8660fd9220229dfb1c66d365c26909f404fe9fa5eeb9b4b3b95702c91b77a87"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "321b99b4e8afe2bec883cd8939a5745d6c9e961e8d2bbc03264cf3367739242a"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "31ceaafb6b71d34ec0ac0ba4588a00f90798aa6eada59249c7ffb9c6f232a081"
+        },
+        {
+          "path": "inputs/rr-whole-candidate-b-2.txt",
+          "sha256": "a7a648ebc708266312bd6557d89e53fcda06cc1e4f8cc5d6ac626b73b43a916a"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "461f465e2e25a38635efeac8cc8be933f99417c839ab881905a375832f212923"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "493d7d7c978605e8020e0cc7c065cf8e17a604ebd0f0af1d4b12937d79e9d4b3"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "c892ad44a52c1ea5f68ea67230282030ee501024013e8ca49589c6ac628c2486"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "6a37dd1c85d6a34a9aea396823665ed32c51e1e160a254c802c2389b1ef40cac"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "a7a648ebc708266312bd6557d89e53fcda06cc1e4f8cc5d6ac626b73b43a916a"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "a337c1df2337e3aa42a9899240082bff4d1203d2f6169b7547754aeda29d29f4"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "2e9e9193489e60902c637872577a97a5063d2113cc41eac88df28abf5fc79a11"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "93d9c13b1099cad49ff7a3f34044abd772d630ebfb8db244bcdbfef66db59ec4"
+        }
+      ]
+    }
+  ]
+}

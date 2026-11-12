@@ -1,0 +1,137 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:30:52Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-one-experiment-b-1"
+      ],
+      "exit": 0,
+      "pgid": 92667,
+      "started": "2026-11-12T08:30:52Z",
+      "ended": "2026-11-12T08:30:53Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-one-experiment-b-1",
+      "sha256": "83e4ea048faf26d774b43d2ec0260363770071a8f37f9d07a560cc8af8b7caf3",
+      "files": 16,
+      "entries": [
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-3.jsonl",
+          "sha256": "3f647f6fc3736196b9dcac877a053336c847fe14cf8d7fdbfc3f72e9e22da497"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-Y7C84P/review.md",
+          "sha256": "93639ec86d70af40d0f4296fba9ff46fa5b2c14824f07d008adb1b673b42b7a9"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "e47d25d68ce886a7e0d59cd168247a482a7793d3967848b5779f06962eaa9d49"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "bee6385951e53b51c26b5fccce59df25b1155fb3ff7758969651fc1a90f3c820"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "460573f79d6d13aba35b6fe1ab05b55208065f75b46c4efc2c5923eaa7bf1d41"
+        },
+        {
+          "path": "inputs/rr-one-experiment-b-1.txt",
+          "sha256": "16f36bd2e83fb0dd6466599f63cc43b19eeb14ca6abe1011a83f0a37a70ae8a0"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "887923584396788367e00910b5d1775e920a04189d13713e24d002e7bb912883"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "493d7d7c978605e8020e0cc7c065cf8e17a604ebd0f0af1d4b12937d79e9d4b3"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "cbe19d489a2bc60ead811348e1d946e2083aaa8ad22a8f322ab67a61285357f9"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "56b3adbe6f556655a8d0f8b50051d3b2fa0b6a98dc70d35f8d795a688e3af031"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "16f36bd2e83fb0dd6466599f63cc43b19eeb14ca6abe1011a83f0a37a70ae8a0"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "4de24b24052ca7c5f38997836c5d426e2c2f4f6fd3f11bb7fc979e74af767e1b"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "bbadee2a3836c23f5439899f221742bc9253ef79fda785ab8042e991d646c64b"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "8ac4782346f20be405f15e760c19cfc46ac464615bdc37c93de565e07622dc74"
+        }
+      ]
+    }
+  ]
+}

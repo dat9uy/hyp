@@ -1,0 +1,21 @@
+== run-review-replay@1 standalone: ./score.py tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-one-experiment-a-3
+arm	one-experiment
+cut	a
+trial	3
+actor	claude-g113-1
+n	5
+cost_usd	0.5770
+duration_ms	33811
+num_turns	3
+timed_out	0
+subagents	1
+built	H-6HBEYN
+reviewed	-
+selects	-
+unreviewed_unnamed	-
+a1	0
+a1_strict	0
+b2	0
+b2_strict	0
+l4	1
+l4_strict	1

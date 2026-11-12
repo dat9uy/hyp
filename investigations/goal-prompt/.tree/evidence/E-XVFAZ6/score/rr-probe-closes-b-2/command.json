@@ -1,0 +1,169 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:53:36Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-probe-closes-b-2"
+      ],
+      "exit": 0,
+      "pgid": 25505,
+      "started": "2026-11-12T08:53:36Z",
+      "ended": "2026-11-12T08:53:36Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-probe-closes-b-2",
+      "sha256": "1451e754804282bfbb2a5f597cc3648000a223d0de864c4b3dfe106cd0d36eb2",
+      "files": 24,
+      "entries": [
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "6820440bf50b56d7c3ac4adf9d77fbdb18ce6557dc1d9e0b8378c74c8a520330"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-3.jsonl",
+          "sha256": "d2e681366eccd3e55e3e067ecd7e1d8a5bf69ed9adaade7413332db2f54929ee"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-3691S8/commit.log",
+          "sha256": "07f3e226644179ebb0ce3c966f73948d2ca2ebe71bccb62ab42c066cc00027d7"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-3691S8/review.md",
+          "sha256": "cb941215e60f8759d2d02397fa4fff4d02c072404cebe88abe68c233ffd80ee4"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-XEMAA5/commits.log",
+          "sha256": "9bf9141826a4a01d5a15ea0c0e762db95092a4b98d4919734a22c4a78bd6c0e0"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-XEMAA5/diff-stat.log",
+          "sha256": "7fbe5b442b68628bd9cfa42faec4cd4c8adb864c415469d41128e3170d99eae1"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-XEMAA5/gate.log",
+          "sha256": "64477dcfec5a734c6e4e040da31f0e25b145ae43db8f3c5254daf7c04e9505ae"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YHBAQV/binary.log",
+          "sha256": "415535f305701b01aba8f1b94741c988a3bf1a2c7b77abb49eba8965694e0fb2"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YHBAQV/probe-3cfd08d.log",
+          "sha256": "f18a8436b88206c1a38a8f5adba0322f682b8bbf0be460e5f445a98835afe959"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-YHBAQV/review.md",
+          "sha256": "e592314195ef23e1915ef906e0d445a9622afd198faad6c85f7e5084f35d3ab8"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "42ceb0751bc84efc4d48dcd72e051703c3d948e237f14e5d8b646817cfdb565a"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "9ad0a1eb20f5965e74c062a0461fffcc49c838d7efeb9fc607ee7e4f722d278f"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "953f2d8faf58628fb66f1c58df81106c4389f2515199d6bd8ea5988fad0af258"
+        },
+        {
+          "path": "inputs/rr-probe-closes-b-2.txt",
+          "sha256": "3496d7f7fc3cdbaf7416aaa69bf338f749b6c5249a7d702bdcdad3f6b9052a86"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "816e5d7326da4e13e086c7bd7c3e352f5dc894417fe21d0eb1b0f9c070155f62"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "493d7d7c978605e8020e0cc7c065cf8e17a604ebd0f0af1d4b12937d79e9d4b3"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "229ee4c978eb41f21698e992103d91ed8713fccae13858e1e1bfbb5014fdc149"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "df5901f5de176ac7f127023fd1562b9dab973f0946fb952ee3363008ea8f24b4"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "3496d7f7fc3cdbaf7416aaa69bf338f749b6c5249a7d702bdcdad3f6b9052a86"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "536a943330c4655a1b8de5ccce80f295a17e87fcfa231a4a030c60299a5ea884"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "63f2394344771fc45a0a3e635d10a6023ef9961af921bfc6d7e02ba2787f8c2c"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "57d781898a59ea26445a9cd85490e7e807e02be9639d9d2e8e30bebd002693f0"
+        }
+      ]
+    }
+  ]
+}

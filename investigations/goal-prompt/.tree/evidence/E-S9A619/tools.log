@@ -1,0 +1,4 @@
+quick_validate.py d81f883a9ddbb87fa2b015781e42041811cb14750dd3a703cfaeca409c1d7247
+lint_cruft.py ff36baefb5aa720b3e74a4c3f71df3cdb1c88d320e8296f25ce1b961660a0946
+go version go1.27.3 darwin/arm64
+uv 0.13.7 (316c827e0 2026-11-03 aarch64-apple-darwin)

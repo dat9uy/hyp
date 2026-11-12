@@ -1,0 +1,12 @@
+== run-review-replay@1 known answer score-a-pass
+== run-review-replay@1 known answer score-a-unreviewed
+== run-review-replay@1 known answer score-b-late
+== run-review-replay@1 known answer score-b-pass
+== run-review-replay@1 known answer score-b-unreviewed
+== run-review-replay@1 known answer score-missing
+score: /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/hyp-check-121852532/input has no tree.tar
+score: /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/hyp-check-2250956362/input has no tree.tar
+== run-review-replay@1 known answer table-no-base
+table: cut a has no base trials
+table: cut a has no base trials
+== run-review-replay@1 known answer table-pass

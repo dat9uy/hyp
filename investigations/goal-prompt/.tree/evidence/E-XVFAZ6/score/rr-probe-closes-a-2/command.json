@@ -1,0 +1,197 @@
+{
+  "format": 6,
+  "ref": "run-review-replay@1",
+  "name": "run-review-replay",
+  "version": "1",
+  "sha256": "922e0a7926b26beca9e3af34677dcd3fc553934c1d873a23d3561314cd0f92fb",
+  "path": "tbam-run-review/investigations/goal-prompt/recipes/run-review-replay@1",
+  "step": "standalone",
+  "cwd": "tbam-run-review/investigations/goal-prompt",
+  "created": "2026-11-12T08:44:16Z",
+  "commands": [
+    {
+      "ref": "run-review-replay@1",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-probe-closes-a-2"
+      ],
+      "exit": 0,
+      "pgid": 77582,
+      "started": "2026-11-12T08:44:16Z",
+      "ended": "2026-11-12T08:44:16Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-a-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-late",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-unreviewed",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-run-review/investigations/goal-prompt/.tree/evidence/E-XVFAZ6/trials/rr-probe-closes-a-2",
+      "sha256": "f32506ac2a6f78633450b93afe6b9a50321b58a5988d5f3c649e935f64e5a741",
+      "files": 31,
+      "entries": [
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/encoding_utils.cpython-312.pyc",
+          "sha256": "e1e5822c0230420becbffd583c4b09d9af7758bb67f7c20a8124f2177a49abc8"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/frontmatter_validation.cpython-312.pyc",
+          "sha256": "eca3cdc044fdbc45dbe2929a43cbcc61b065399f44ea2b9bc0806da9ad9da5bd"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/metadata_routing.cpython-312.pyc",
+          "sha256": "496c553fa95d057c11fc27cb9634c3ec472db5dc85ea6353c735cbaefd6c2c7f"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/resource_validation.cpython-312.pyc",
+          "sha256": "576cd6fb2a7a996c963b0968a66679abb0fd141dfb810a17cd1b1b64d41d67c0"
+        },
+        {
+          "path": "changes/.claude/skills/ak-skill-creator/scripts/__pycache__/standard_validation.cpython-312.pyc",
+          "sha256": "4159437a1f88a4e09c1589b4c4f444d43270a89a3e6bc58aef24f9cf182b3deb"
+        },
+        {
+          "path": "changes/docs/glossary.md",
+          "sha256": "46029d707a6952f44678e2acb6090aeec987f676efa7a6e3909c192fea652f21"
+        },
+        {
+          "path": "changes/docs/replay-spec.md",
+          "sha256": "dc0a9cc90177cde37469dc6428e1fa2e0c9b024812bca559e93978ee07fca84b"
+        },
+        {
+          "path": "changes/internal/cli/prompt.go",
+          "sha256": "d597b50c97bff0cbc1f5980e2bac70efa5a2e318f1c771dcc1f08776e8e1fd82"
+        },
+        {
+          "path": "changes/internal/cli/prompt_test.go",
+          "sha256": "64a9ed7ca7b71fc0a43e5ff6ee359d7dff43f83efc11d78cd8daa342b7ddc7cd"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-g113-1.jsonl",
+          "sha256": "01f4ff1372819ba38d106c094cb24e598b46fad792a7992b34bdff35e4ef8f0d"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-BDN5RJ/gate-dc4436a.log",
+          "sha256": "e9bcd62f41b28a3a7177bb0c29e9bda670d2a8bb89eda792280bfb377c57001f"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-BDN5RJ/red-on-b4f23b2.log",
+          "sha256": "c3492afce49827b05e57adc552daff19b691d890b23b28dcf7534a97f2d10e74"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-BDN5RJ/removal.log",
+          "sha256": "f5a61438efb7704e4a583af02df2ea16b7fdfc5daa891ec26f15755f5b4272bb"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/evidence/E-BDN5RJ/scripts.log",
+          "sha256": "9900078f43ef128ab215e4e0f8cdf0887ed9157b960777431a8c577a0462dcdb"
+        },
+        {
+          "path": "changes/skills/hyp-goal-run/SKILL.md",
+          "sha256": "cb15e2f2e207b5a66807c9369e4d776d5378e61c2dd99679c36dfba402fa750e"
+        },
+        {
+          "path": "changes/skills/hyp-owner-answer/SKILL.md",
+          "sha256": "3e68b4346325870b899ad8d20e68e649c8f90a1844ba2671c95e2a73d981bfed"
+        },
+        {
+          "path": "changes/skills/hyp-owner-grill/SKILL.md",
+          "sha256": "0bf40047e64061433855913fcee458717bad2b5ed42ec69764a9f5093604a7db"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "4722e6a590783a6430e8278e8564f35e4c7685c505cf5aea37d1a9b2d5e2e04a"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "commits.json",
+          "sha256": "66aaa2f92dd234901451083f1bd615a3649a2fa98de5458579f7f0063782a5b8"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "da975dd1fc663d8417ca64899f653b64044178b3a6c331c463df9af61d4ea033"
+        },
+        {
+          "path": "inputs/rr-probe-closes-a-2.txt",
+          "sha256": "d8d0eacd00d7cfaedb4ad19fd2f84d84ad5dff221b0ac8f4661bc1520ee9335d"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "d3c6337fe90e253429b2d0845568672af47649a2dad58fb19426650dcea0cf8b"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "7207ff12a6967ab8866d72f3adfdf64bdc4c3f3e0fbda7f6a181caeb1077c260"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "ce4b233c4c20aeb5d3a6c21f39ffc0ff80b0e491321d827827a912d6181a4453"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "e4e2f20a2899a923a2dfe095188de3fddfffc701b2df97db408daf24ec49110f"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "d1be5ac6c7c2b7dbb968af5d1cfebd21f7e1afff8cf5f3aa4858d10558fdb522"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "d8d0eacd00d7cfaedb4ad19fd2f84d84ad5dff221b0ac8f4661bc1520ee9335d"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "84ff92691f909a05b224e1c56abb4864f01b4f8e3c854e4bb4c7baf1d3f6d652"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "a6147f5778ef49df855c92a06071a7e66f880951d535df115cc0188915cfc001"
+        },
+        {
+          "path": "tree.tar",
+          "sha256": "da20c47b51ddfb9aaf3bec1365518e439710d7b431aaa529b75d7842962b81d9"
+        }
+      ]
+    }
+  ]
+}
