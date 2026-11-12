@@ -31,7 +31,8 @@ A build Goal's candidate is a commit. Its practice:
 - Pin the gate as a recipe when the repository keeps one, so a script decides the verdict. When none does, the Experiment on a commit uses `--recipe none --rubric reading`: its body states the gate as the rule, and the Result cites the gate's logs.
 - Before you run anything, write each Experiment's verdict rule in its body: the Goal's lines it aims at, red on the base and green on the candidate for each new test, a removal check for each refusal (remove the refusal and show which test fails), and `go vet ./...` and `go test ./... -count=1`, or the repository's own gate. For skill text, run the original and the candidate skills on the same eval cases.
 - Keep the logs under `.tree/evidence/<E-id>/` and cite them in the Result.
-- Review each candidate in its gate Experiment, so a candidate costs one Result. Before you record the gate's Result, ask a fresh subagent for one review of the candidate commit's diff against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion. Ask it to label each finding with the line it is a case of, or none. Save the review under `.tree/evidence/<E-id>/` and record one Result that cites the gate's logs and the review: the gate's verdicts, and the review's findings sorted as below. Add no separate review Experiment.
+- Before the stop, ask a fresh subagent for one review of each candidate commit's diff against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion. Ask it to label each finding with the line it is a case of, or none.
+- A candidate whose review did not run before the stop stays a candidate without a review. Name it in the stop checkpoint (see Stop), so the owner sees the gap.
 - Sort each finding: a case of a line is a `--limit` you close or, only if void, refer; a question about a line's meaning is a reading; a defect in text you may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint, and it never holds the select.
 - The run may push its branch and open or update one PR. It never merges.
 
@@ -83,7 +84,7 @@ Stop on the clauses the `/goal` prompt names. Stopping is not success.
 1. Before your last message, record a runner checkpoint, so the fork does not live only in chat; the owner reads `hyp status`, which prints the last checkpoint, each reading in full and what each copy's answer can touch. Do not restate a reading's meanings in the checkpoint:
 
    ```text
-   hyp checkpoint --goal <goal-id> --summary "Stopped: <stop clause>. Waiting for the owner: <the keys under AWAITING OWNER>. Out-of-Goal findings: <one short phrase each, or none>" --why "<why>"
+   hyp checkpoint --goal <goal-id> --summary "Stopped: <stop clause>. Candidates without a review: <each candidate with no review Result, by Hypothesis id and commit, or none>. Waiting for the owner: <the keys under AWAITING OWNER>. Out-of-Goal findings: <one short phrase each, or none>" --why "<why>"
    ```
 
    An out-of-Goal finding is a case of none of the Goal's lines: it gets no limit, no refer and no reading, and it never holds the select. Name each one in the checkpoint so it lives in the log, not only in chat. A defect in text you changed and may edit is not one: fix it with a commit before the stop.
