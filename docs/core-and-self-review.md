@@ -42,6 +42,8 @@ When a question needs an instrument, it is a recipe with known answers that meas
 | `recipes/authoring-stops@2` | a recipe this repository keeps to test hyp: it probes whether each stop an author meets while turning a method into an instrument is still live; the tree that pinned it is not published | public |
 | `recipes/recipe-authoring-arms@4` | a recipe this repository keeps to test hyp: a sonnet runner turns the id-citation method into an instrument on two hyp arms; it runs live runners, it does not replay a session; the tree that pinned it is not published | public |
 | `recipes/recipe-base-arms@1` | a recipe this repository keeps to test hyp: a sonnet runner builds a held-out instrument from the skill-text gate method in its bundle on three hyp arms (template only, a coarse base, fine bases), for `investigations/recipe-base`; copied by hand from a version of `recipe-authoring-arms` (its `recipe.md` names it by hash), because `--from` copies the same name only: the one bootstrap exception to starting from a base, had a base shipped (ADR 0009) | public |
+| `investigations/goal-prompt/recipes/hyp-owner-grill-eval@1` | a recipe this repository keeps to test hyp: it replays the hyp-owner-grill skill on two pinned fixture issues with a Sonnet stand-in owner, scores each trial's Goal and cost for `investigations/goal-prompt`, and grades the rest with ak-skill-creator's eval_skill.py and a blind reviewer; its Drive let the grill read the eval, so version 2 replaced it | public |
+| `investigations/goal-prompt/recipes/hyp-owner-grill-eval@2` | a recipe this repository keeps to test hyp: version 1 with the grill denied reads of the sandbox's recipe copy, inputs and session transcripts | public |
 
 ## Core
 
