@@ -13,7 +13,7 @@ The grill is not done when the owner and you agree. It is done when every questi
 
 ## Start
 
-1. Find the store. Run `hyp status` at the repository root. A new purpose in a repository that has a store is a new Goal **in the same store**: one store holds many Goals. If the installed hyp refuses a second Goal in one log, the new Goal is a new tree under its own directory. Run `hyp init` only when there is no store.
+1. Find the store. Read the repository's agent instructions (AGENTS.md, CLAUDE.md) for the directory where trees live, such as `investigations/<topic>/`, and run `hyp status` in each store there. When the issue is part of a parent issue whose Goal is in one of those stores, the new Goal goes **in that store**: one store holds many Goals. Otherwise it gets a new store in that directory: `hyp init` in a new `<topic>/` there. Run `hyp init` at the repository root only when the instructions name no directory for trees. If the owner asks for another place, name what the instructions say before you agree.
 2. Set `HYP_ACTOR` to a runner name unique to this session. Ask the owner for their actor name (lowercase letters, digits and hyphens, for example `owner-dat`) once.
 3. Read the glossary of the repository, if it has one. Use its words. One concept gets one word, and every sense of the word has one shape. Before you name a thing by how it is stored (`bases`, `commits`), look for the domain word.
 
@@ -33,6 +33,7 @@ Every question opens with what exists today and the problem it settles, then giv
 | the purpose, its scope, who asked and why | the Goal's title and body | yes |
 | what a run may change, may only read, or must never do | the Goal body's `May change:`, `Read only:` and `Never:` headings | yes |
 | how the tree is run (process, review, order, cadence) | the Goal body, an Experiment's verdict rule, or the `/goal` prompt; never a line | only where it is a preference |
+| how a candidate is tested, where an installed skill owns the method (for a skill, ak-skill-creator's eval flow: its cases, fixtures, matching and grading) | the Goal body names that flow; the run applies it | only whether to use that flow, and the owner's preferences of model, trial count and budget |
 | a purpose outside this Goal | a separate Goal, added by the owner | name it; the owner decides |
 
 A testable option set is never put to the owner as a choice. If the owner settles such a question in the session anyway, it is still a DesignQuestion with its rivals, recorded as decided with the session as evidence (see Writes), so the tree says it was argued, not tested. A question becomes a DesignQuestion only when you can name the scenario a run would execute to separate its rivals, such as two Goals in one store, or a base that moves mid-run. A decision with alternatives but no such scenario, such as a preferred shape, bound or word, is the owner's: it is a line or body text, never a question recorded as decided. One DesignQuestion holds one question, and every rival under it answers that question; two grill questions are two DesignQuestions.
@@ -86,7 +87,7 @@ The grill ends in these writes, in this order. Show each owner write as the exac
 
 | Output | Command | Actor |
 |---|---|---|
-| a new store, if none exists | `hyp init` | runner |
+| a new store, if Start chose one | `hyp init` in the directory Start chose | runner |
 | the Goal, its purpose and its lines | `hyp add goal --title "…" --body "…" --line "…" --cite N=KEY --why "…"` | owner |
 | a contested question | `hyp add dq --parent <G-id> …`, then one `hyp add hyp --parent <Q-id> …` per rival | runner |
 | a question with rivals the owner settled in the session | the DesignQuestion and each rival as above; then under the chosen rival `hyp add exp --recipe none --rubric reading --target <each other rival>` whose body states the scenarios as its rule, `hyp record` with a verdict per rival citing a scenarios file under `.tree/evidence/<E-id>/`, then the select OWED owes (a runner write, not the owner's) | runner |
@@ -100,6 +101,8 @@ May change: <the repository, how it is changed (for example commits on one local
 Read only: <repositories, directories or data the run may read but never change>
 Never: <acts the run never takes, such as replacing an installed binary or publishing source data>
 ```
+
+`May change:` names the texts the change makes wrong by their directories (`skills/`, `docs/`, `AGENTS.md`, `README.md`), never as a list of files or parts: a run's own edit can make a text wrong that no list foresaw, and then the run cannot fix it. Check each `Never:` line against `May change:` and against the test route the Goal names: a `Never:` that forbids what the route writes, such as a new recipe version under `recipes/`, is a conflict to settle with the owner before the write.
 
 The block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It holds each of the three headings at least once, and every non-empty line in it starts with one of them, so write one constraint per line and put no other text after the block. A line of spaces, a tab or a lone carriage return is not empty: leave a blank line truly empty, and write the body with `\n` line ends. A heading may repeat, such as one `Never:` line per act. `hyp add goal` warns when a body has a heading but no valid block, and `hyp prompt` refuses that Goal.
 
