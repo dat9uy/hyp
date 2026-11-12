@@ -106,7 +106,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	actor := fs.String("actor", "", "the runner's actor name (required; $HYP_ACTOR is not read)")
 	branch := fs.String("branch", "", "the branch the run commits on")
 	pr := fs.Int("pr", 0, "the number of the PR the run updates")
-	experiments := fs.Int("experiments", 5, "stop after this many Results recorded under the actor")
+	experiments := fs.Int("experiments", 7, "stop after this many Results recorded under the actor")
 	pos, err := parse(fs, args)
 	if err != nil {
 		return err
