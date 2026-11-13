@@ -1,0 +1,35 @@
+{
+ "measures": {
+  "arm": "base",
+  "fixture": "b",
+  "trial": "1",
+  "end": "end",
+  "exchanges": 2,
+  "timed_out": 0,
+  "cost_usd": 1.5,
+  "cost_usd_literal": 2.25,
+  "models": "claude-sonnet-5-5",
+  "subagents": 0,
+  "goals": 1,
+  "stores": "investigations/goal-prompt",
+  "has_goal": 1,
+  "l1": 1,
+  "l4": 1,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": "investigations/goal-prompt",
+   "id": "01M7812SD83TP1BVYW0YW463WB",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "A trial Goal",
+   "body": "For issue #141.\nMay change: skills/ and the text the change makes wrong.\nRead only: plans/.\nNever: merge a PR.",
+   "lines": [
+    "[P] each SKILL.md passes quick_validate.py (sha256 d81f883a9ddbb87fa2b015781e42041811cb14750dd3a703cfaeca409c1d7247) with 0 errors.",
+    "[N] hyp prompt exits 1 on a body with no block."
+   ]
+  }
+ ],
+ "bad_hash_lines": []
+}

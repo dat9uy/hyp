@@ -1,0 +1,310 @@
+{
+  "format": 6,
+  "ref": "hyp-owner-grill-eval@2",
+  "name": "hyp-owner-grill-eval",
+  "version": "2",
+  "sha256": "30d868825bdf8b389149613335be4761899ca302c62308afd00b87c523af4529",
+  "path": "tbam-g146/investigations/goal-prompt/recipes/hyp-owner-grill-eval@2",
+  "step": "standalone",
+  "cwd": "tbam-g146/investigations/goal-prompt",
+  "created": "2026-11-12T14:55:38Z",
+  "commands": [
+    {
+      "ref": "hyp-owner-grill-eval@2",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-AATV5F/trials/entry-a-3",
+        "/Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts"
+      ],
+      "exit": 0,
+      "pgid": 7752,
+      "started": "2026-11-12T14:55:38Z",
+      "ended": "2026-11-12T14:55:38Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-bad",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-bad-eval",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-AATV5F/trials/entry-a-3",
+      "sha256": "65342f3dbfcbc6af2d59c016021c881ef8010359c52a73f67523f9f1b3662bf1",
+      "files": 22,
+      "entries": [
+        {
+          "path": "calls.json",
+          "sha256": "52268fc3b4e8cf14e97793ca2d7af9f006849667b88e3c2b73d912eb35399e85"
+        },
+        {
+          "path": "changes/.tree/.gitignore",
+          "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209"
+        },
+        {
+          "path": "changes/.tree/events/claude-goalprompt-1.jsonl",
+          "sha256": "f7e57adec61f96e8ab4e2023a7517c25f6716a0f7869b96e56e55e97d6f57bcf"
+        },
+        {
+          "path": "changes/.tree/events/owner-standin.jsonl",
+          "sha256": "5fe8304330425492484a922562dd2536be0a21a2b65b0fb7b633292528f380a5"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "ac069a0b94e3ce3cd978875d3252d257af27ec6a43a8c8095cf72c14468d67c7"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "3300cc9f5d04b67199eea24895195e7f1bbdde9240a54c429734aa87a49138c8"
+        },
+        {
+          "path": "inputs/g146-entry-a-3.txt",
+          "sha256": "80de269da0e108199e545ad1aab4b5101641d36e47b182ebd005b7b1a799859c"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "2fb42efefa22db7e6decaaa91e46b387cb98eb116ad742058abdf8b6687d1393"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "5ec033df6c823a4e5c4671b440e20f2e20632d31c044a1eb9b8ed84e1cc332b9"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "b532d7b7e736c28e97d7c738e3161c000a6e2fee2009da42c5abcf00fecb09ab"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "877378898a5bbb8b4bd42c5e23533724f484e824f78069991569efa71d217444"
+        },
+        {
+          "path": "skill.tar",
+          "sha256": "c5d8a6c359fac896401c25e742dd48a13c2e6eccd849cfe8361c5e9a521bd018"
+        },
+        {
+          "path": "standin.jsonl",
+          "sha256": "372ef8e7a0f20e0c26ae218bec1f50483ca0283d1b8e0a80417ff3f1136051c7"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "80de269da0e108199e545ad1aab4b5101641d36e47b182ebd005b7b1a799859c"
+        },
+        {
+          "path": "stores.tar",
+          "sha256": "c228621d4631d662da6a083b54fd6fd44d668302261d8804d70e404c279774e3"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "1eeb8e0a4447d03c8aec3a39a9a18b11595a4a8bd40683628e48508affb2db09"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "91dc998f419ec53fe12e0d17c8ae7d54f610cc0bd1cb3db5b7e029acdcc783c4"
+        },
+        {
+          "path": "tree/.gitignore",
+          "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209"
+        },
+        {
+          "path": "tree/events/claude-goalprompt-1.jsonl",
+          "sha256": "f7e57adec61f96e8ab4e2023a7517c25f6716a0f7869b96e56e55e97d6f57bcf"
+        },
+        {
+          "path": "tree/events/owner-standin.jsonl",
+          "sha256": "5fe8304330425492484a922562dd2536be0a21a2b65b0fb7b633292528f380a5"
+        }
+      ]
+    },
+    {
+      "arg": 2,
+      "path": "/Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts",
+      "sha256": "d6aecf4bdca31fc3107225cd8d2163e72418c1f8b5b6094a9d7f3b9561a8e5f9",
+      "files": 37,
+      "entries": [
+        {
+          "path": "__pycache__/encoding_utils.cpython-312.pyc",
+          "sha256": "0539de7d42255693f6022c84dd4b55625cc67d3e473ad71cf4776dec56fa1338"
+        },
+        {
+          "path": "__pycache__/eval_contract.cpython-312.pyc",
+          "sha256": "1e14feb697db95ca98a59c871215ae8e0b6663a9f642a453b62e435a7f70f2a5"
+        },
+        {
+          "path": "__pycache__/frontmatter_validation.cpython-312.pyc",
+          "sha256": "a607740de749a1b7586a0c4eba396a3eafadcae407714684a4a91d3560db6966"
+        },
+        {
+          "path": "__pycache__/metadata_routing.cpython-312.pyc",
+          "sha256": "6edcda69c494a256f9bc4a0bb4f7d42b5cbf09d7f5246a35c22a7c55f3ba5e5f"
+        },
+        {
+          "path": "__pycache__/resource_validation.cpython-312.pyc",
+          "sha256": "247d9a06bcc45d49bd9825b0e4158fa37e944f76ae017e3fcc19dae710a6411d"
+        },
+        {
+          "path": "__pycache__/standard_validation.cpython-312.pyc",
+          "sha256": "0681f7dc7d544fd6bc88a1b62cb7c8485cca26bef502b6cd115bcd4036cfb685"
+        },
+        {
+          "path": "encoding_utils.py",
+          "sha256": "902abf745e28ba81655ff54b270b5686d9a474b294cc51ac1ff192c90f47e235"
+        },
+        {
+          "path": "eval_contract.py",
+          "sha256": "9ca9f96de19d0ab27e34fa06a16d380411c0657f8b4e211d603901971613a77d"
+        },
+        {
+          "path": "eval_skill.py",
+          "sha256": "c47a38dee2456cc6172dff28472052c0f7b28d7baf310af6e83b5ca655d10a24"
+        },
+        {
+          "path": "frontmatter_validation.py",
+          "sha256": "b11c192abf053734fa6ee4a7245152220138c0d005fefd9323da3b7b358ecba0"
+        },
+        {
+          "path": "init_skill.py",
+          "sha256": "6aab0907a47ad29063c21d782f34c4fbc0c53f7ebe20eca98b18be67b8f68437"
+        },
+        {
+          "path": "lint_cruft.py",
+          "sha256": "ff36baefb5aa720b3e74a4c3f71df3cdb1c88d320e8296f25ce1b961660a0946"
+        },
+        {
+          "path": "metadata_routing.py",
+          "sha256": "6a8f988ec41e48cc03b4b4434e8364f9585eb32ac9b088b27b776b16b030f5fc"
+        },
+        {
+          "path": "package_skill.py",
+          "sha256": "9b3d05afb1db02cd3e29f8224086585e480bcf6156520b48797a3fec7fd8ae43"
+        },
+        {
+          "path": "quick_validate.py",
+          "sha256": "d81f883a9ddbb87fa2b015781e42041811cb14750dd3a703cfaeca409c1d7247"
+        },
+        {
+          "path": "requirements.txt",
+          "sha256": "18625c1f784953e13423cf1d8359707b8bab91f66ed5441f3df79f20e5e6b8b3"
+        },
+        {
+          "path": "resource_validation.py",
+          "sha256": "c3fb1fa2ff4cfad2437aa0cc40f87a9c6adfb56f404eaa425d5aacd24eb85350"
+        },
+        {
+          "path": "semantic_routing_contract.py",
+          "sha256": "c125b5246bb88a9a73ce14a47aed626005d4be7c530d73680cd54ede093ca397"
+        },
+        {
+          "path": "semantic_routing_eval.py",
+          "sha256": "37be0bde18c15340b29de6a3bc321f0debea7f35ed3be1098e1729201b3de090"
+        },
+        {
+          "path": "semantic_routing_identity.py",
+          "sha256": "4bddf1a78f2678eb13f0b7cee33499c086f6513cf0412f6ca6ebc7d288679553"
+        },
+        {
+          "path": "semantic_routing_metrics.py",
+          "sha256": "21d21bfd471be276cf0804cc2c8c249b1f17f224b558c60435df99b7efb868ec"
+        },
+        {
+          "path": "semantic_routing_providers.py",
+          "sha256": "d19d8b23b3d49248afe83d8a54b0fef61d9d3b30b5f751fd82d4f95b08af9142"
+        },
+        {
+          "path": "semantic_routing_runner.py",
+          "sha256": "649c90c140efd9d4e0a7aed61bba5ed8f08b293ed4b691150dd6caf2de816aa3"
+        },
+        {
+          "path": "semantic_routing_runtime.py",
+          "sha256": "4b2a4cfea2cedcf4164fa0288c7c2516a87f7321c481caf8aed737383ab7c76a"
+        },
+        {
+          "path": "session_usage.py",
+          "sha256": "863c4f396f8c525d6ce2c032273fc4d6fe087c9f5ce5b3e438cff65c0a78f13a"
+        },
+        {
+          "path": "skill_standard_report.py",
+          "sha256": "f74db0611819d18d5dc39f3ed60039cb50c45c147f6ef0e85f9cf7d0428ad168"
+        },
+        {
+          "path": "standard_validation.py",
+          "sha256": "095f6f0e68b1dbdc165da4ac44f8ed8cc993ac64f889fa4ec3aa6117fcfc67f2"
+        },
+        {
+          "path": "tests/test_eval_skill.py",
+          "sha256": "cbd329cef297d7dc18bccd8bf78e0d9ce1f4c45d58bd542c0174a30f35aa2192"
+        },
+        {
+          "path": "tests/test_init_skill.py",
+          "sha256": "ca77ca6de36aa3752fcd460f96184975af9584662f2efd24e2cd83e1b00eae24"
+        },
+        {
+          "path": "tests/test_lint_cruft.py",
+          "sha256": "b8b7373b047924c6e52da5b0308e91aaee3de2f60de632577df881dab4ef367c"
+        },
+        {
+          "path": "tests/test_quick_validate.py",
+          "sha256": "023b1dbeb48c18687e2bbbd6d6fadc761c6abb346cf3499a7440292d7a1b6d9c"
+        },
+        {
+          "path": "tests/test_semantic_routing.py",
+          "sha256": "95e6855b0a2f276178f6b1f133247dd087d1a54f31994d241f4ecc7f76136b6d"
+        },
+        {
+          "path": "tests/test_semantic_routing_identity.py",
+          "sha256": "b4fee2dd28d4bb3e32a9e7c5d8db7babf0155668347fd5a8eaca960676db322f"
+        },
+        {
+          "path": "tests/test_semantic_routing_validation.py",
+          "sha256": "a465ea76590a8bdc68e5fbf0d479b87ee5d38911a22cc6d72aff99d7d58381e3"
+        },
+        {
+          "path": "tests/test_session_usage.py",
+          "sha256": "626cd0c77792a3010d2356ac49bec9415f9ff2f82d022f2df8850d05e1fe4daa"
+        },
+        {
+          "path": "tests/test_standard_validation.py",
+          "sha256": "6e447625539daa135b0bb747ff323c001e1157241181c843d05a295f58b9f627"
+        },
+        {
+          "path": "tests/test_validation_boundaries.py",
+          "sha256": "751456b7758f1ec4689160cafd6dfd4073d6dae090aaf00fa78151c35fb2b883"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+== hyp-owner-grill-eval@2 standalone: ./score.py tbam-g146/investigations/goal-prompt/.tree/evidence/E-AATV5F/trials/entry-a-3 /Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts
+arm	entry
+fixture	a
+trial	3
+end	grill_error
+exchanges	6
+timed_out	0
+cost_usd	2.313872
+cost_usd_literal	9.504581
+models	claude-sonnet-5-5
+subagents	1
+goals	1
+stores	.,internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/id-citation,investigations/recipe-base
+has_goal	1
+l1	0
+l4	1
+eval_exit	1

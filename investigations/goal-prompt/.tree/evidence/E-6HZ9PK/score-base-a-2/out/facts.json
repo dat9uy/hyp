@@ -1,0 +1,41 @@
+{
+ "measures": {
+  "arm": "base",
+  "fixture": "a",
+  "trial": "2",
+  "end": "end",
+  "exchanges": 6,
+  "timed_out": 0,
+  "cost_usd": 1.446731,
+  "cost_usd_literal": 6.234508,
+  "models": "claude-sonnet-5-5",
+  "subagents": 1,
+  "goals": 1,
+  "stores": "internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/goal-prompt,investigations/id-citation,investigations/recipe-base",
+  "has_goal": 1,
+  "l1": 1,
+  "l4": 1,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": "investigations/goal-prompt",
+   "id": "01M781KHHAFRMHQXMQ72VRG6SA",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "hyp prints the /goal prompt for any Goal from the log, and a Goal body carries the run's constraints",
+   "body": "Builds `hyp prompt` for issue #113: hyp prints the /goal prompt for any Goal from the log, and a Goal body carries the run's constraints under May change:, Read only: and Never:. The candidate is a hyp commit. go test is the instrument, and skillcheck decides the skill text.\nDone means, by the owner on 2026-11-11: for a Goal with a valid block, the prompt carries every clause the hand-written run-5 prompt had, except the actor, the owner's answer, the branch, the PR, the commit and the run's own plan. A test pins this on a synthetic Goal under internal/cli/testdata. checkpoint-store:G-D1CH1R has no block, so hyp prompt refuses it and no test compares it.\nThe session settled that hyp prompt is a command that reads the log, and that no skill writes the prompt.\nMay change: the hyp repository, by commits on the local branch feat/goal-prompt and then a PR that the run opens and never merges\nMay change: cmd, internal, the docs and a new ADR 0022\nMay change: skills, for the descriptions of hyp-goal-run and hyp-prototype that name one kind of Goal, the hand-off of hyp-owner-grill, and a build-Goal review round in hyp-goal-run\nRead only: the existing ADRs, every other tree under investigations, and recipes\nNever: replace the installed hyp binary\nNever: edit an existing ADR or a Goal\nNever: merge a PR or close #113 (write Part of #113)",
+   "lines": [
+    "[P] For a Goal with a valid constraints block, `hyp prompt G --actor A` exits 0 and prints, each ending in a newline and in this order: the store's absolute root, A, the Goal's display id, `hyp-goal-run`, the stop clauses (the runner owes nothing; N non-retracted Results recorded under A in this Goal, N being 5 by default; it cannot take the next step honestly and says why), then the block's lines byte for byte. With no flag there is no branch or PR clause.",
+    "[P] `--experiments N` sets N. `--branch B` and `--pr N` each add exactly one clause after the block, and each clause only narrows what the block allows. The output is the same for any order of the flags.",
+    "[N] A body's block runs from its first line that starts with `May change:`, `Read only:` or `Never:` to the end, and is valid only if all three headings appear, each has text after it, and every non-empty line starts with one (headings are case-sensitive; a line of spaces, a tab or a lone carriage return is not empty). For a body with no valid block, `hyp prompt` exits 1, names the missing heading or the bad line, and prints no prompt on stdout.",
+    "[P] `hyp add goal` with a body that has a heading but no valid block succeeds and warns on stderr, naming the rule; a body with no heading adds without a warning. Replay and `hyp check` report no error for either Goal.",
+    "[N] `hyp prompt` writes nothing: the bytes of `.tree` are the same before and after. It carries no owner answer and no tree state beyond the Goal's id and body.",
+    "[N] These exit 2: a missing or invalid actor, a branch that git refuses (such as one with a space), `--pr` or `--experiments` below 1, a repeated flag, an unknown node, and a node that is not a Goal. A run where no `.tree` is found exits 3.",
+    "[N] In a store with two Goals, `hyp prompt` reads only the named Goal's body: the other Goal's block never appears in the output, and a Goal without a valid block is refused while the other Goal prints.",
+    "[N] `hyp prompt` exits 1, naming the actor, when the actor already has a Result under that Goal."
+   ]
+  }
+ ],
+ "bad_hash_lines": []
+}

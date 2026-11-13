@@ -1,0 +1,5 @@
+arm	base
+fixture	a
+trial	3
+cost_usd	1.0
+cost_usd_literal	2.0000

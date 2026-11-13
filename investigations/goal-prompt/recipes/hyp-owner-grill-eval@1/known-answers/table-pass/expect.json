@@ -1,0 +1,17 @@
+{
+ "step": "standalone",
+ "command": "table",
+ "args": [
+  "$CASE/input/reviews.json",
+  "$CASE/input/map.json",
+  "$CASE/input/s0",
+  "$CASE/input/s1",
+  "$CASE/input/s2",
+  "$CASE/input/s3",
+  "$CASE/input/s4",
+  "$CASE/input/s5",
+  "$CASE/input/s6"
+ ],
+ "exit": 0,
+ "stdout": "arm\tfixture\ttrials\tl1\tl2\tl3\tl4\tl5\tl6\tcosts\tmedian_cost\tratio\tmedian_cost_literal\tratio_literal\nbase\ta\t3\t3/3\t2/3\t3/3\t3/3\t3/3\t-\t1.0000,2.0000,none\t2.0000\t1.000\t4.0000\t1.000\nbase\tb\t1\t0/1\t-\t-\t1/1\t1/1\t1/1\t3.0000\t3.0000\t1.000\t6.0000\t1.000\nx\ta\t1\t1/1\t1/1\t1/1\t1/1\t1/1\t-\t1.0000\t1.0000\t0.500\t2.0000\t0.500\nx\tb\t2\t0/2\t-\t-\t2/2\t2/2\t1/2\t3.0000,6.0000\t6.0000\t2.000\t12.0000\t2.000\n"
+}

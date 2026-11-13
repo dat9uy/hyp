@@ -1,0 +1,7 @@
+== red on base: exit 1
+== green on candidate: exit 0
+== go vet: exit 0
+== go test: exit 0
+== removal check: exit 1
+== quick_validate skills/hyp-owner-grill/SKILL.md: exit 0
+== lint_cruft --routing skills/hyp-owner-grill/SKILL.md: exit 0

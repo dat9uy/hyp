@@ -1,0 +1,392 @@
+{
+  "format": 6,
+  "ref": "hyp-owner-grill-eval@2",
+  "name": "hyp-owner-grill-eval",
+  "version": "2",
+  "sha256": "30d868825bdf8b389149613335be4761899ca302c62308afd00b87c523af4529",
+  "path": "tbam-g146/investigations/goal-prompt/recipes/hyp-owner-grill-eval@2",
+  "step": "standalone",
+  "cwd": "tbam-g146/investigations/goal-prompt",
+  "created": "2026-11-12T14:32:48Z",
+  "commands": [
+    {
+      "ref": "hyp-owner-grill-eval@2",
+      "step": "standalone",
+      "label": "table",
+      "args": [
+        "./table.py",
+        "inputs/1/reviews.json",
+        "inputs/2/map.json",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-a-1",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-a-2",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-a-3",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-b-1",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-b-2",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-b-3"
+      ],
+      "exit": 0,
+      "pgid": 55954,
+      "started": "2026-11-12T14:32:48Z",
+      "ended": "2026-11-12T14:32:48Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-bad",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-bad-eval",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "arg": 1,
+      "path": "inputs/1/reviews.json",
+      "sha256": "44a6187e9c36d8a06807aa1b904c7e58990b0704165fc34a04a7ecdb8a9441d7",
+      "size": 584,
+      "kept": true
+    },
+    {
+      "arg": 2,
+      "path": "inputs/2/map.json",
+      "sha256": "550f31a73a62aa46486028249b1bddd9ae09586701501013a41ee6291d077088",
+      "size": 122,
+      "kept": true
+    }
+  ],
+  "dirs": [
+    {
+      "arg": 3,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-a-1",
+      "sha256": "d72cf1991bdb55776a963940661eff0f2ebf2680739aeabaf16da13384bc4cd9",
+      "files": 11,
+      "entries": [
+        {
+          "path": "command.json",
+          "sha256": "3049180d806a08c7b573a279e6b2b21f21e684524d20d126209ca1a828f67b28"
+        },
+        {
+          "path": "command.log",
+          "sha256": "bccbca42448f9ea989eb2f9c32246fc746a560871a0dc5b6f18b7fc2ea6277a6"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "out/facts.json",
+          "sha256": "2e2c2011c4a4afd4a6d018b9bc90d39afece34a2d84dc28cb8e51402da72d026"
+        },
+        {
+          "path": "out/outputs/conversation.md",
+          "sha256": "7cd726969bd5ea8c67104f8dab7cdfe2be2f2e5b391cc55f3459dcd35aef6204"
+        },
+        {
+          "path": "out/outputs/goals.md",
+          "sha256": "4ba1524f8a5a321dad2a64875fe8bd8e5a76b48218a71a7aea5306c90393d7c1"
+        },
+        {
+          "path": "out/outputs/has_goal.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l1.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l4.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/record.json",
+          "sha256": "1a58e82725317f2bc01bde2d4f2bd360671737a7872bd3052f1a5b71eb5663c1"
+        },
+        {
+          "path": "stdout",
+          "sha256": "e3ec18da1799d6813399b9d5213c0d92cf7f89baac0771c4c60b288c507ae3f4"
+        }
+      ]
+    },
+    {
+      "arg": 4,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-a-2",
+      "sha256": "b480f141279debe14d3bcf30731a6a96120e856042b147d7036de2f19bc66a6f",
+      "files": 11,
+      "entries": [
+        {
+          "path": "command.json",
+          "sha256": "dd5a0943e8e57cbfa47d8a567dcaf5e63d9ebc9fe86ef57df87828fa87f4646d"
+        },
+        {
+          "path": "command.log",
+          "sha256": "c59d67b4f7df60e20130ba1785cfabe77768c12b73b7b2d524ceb515ab26bebc"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "out/facts.json",
+          "sha256": "2495c5779787b0320208e87f56a66c52a88b6b468572ca1eb727ded588f800bd"
+        },
+        {
+          "path": "out/outputs/conversation.md",
+          "sha256": "6ee3015fe9e430435758a2a3381df40c57fca33d5f48816c2f687ce602d491ca"
+        },
+        {
+          "path": "out/outputs/goals.md",
+          "sha256": "427e6a748aed6f35f24a7e3c23b7eec5180502eff24a34046efbb59ec378f5e3"
+        },
+        {
+          "path": "out/outputs/has_goal.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l1.json",
+          "sha256": "cab34bf3e26a5dc168e733a6d0cb871f8419a348d768efec0a7b7cd493c4ea6e"
+        },
+        {
+          "path": "out/outputs/l4.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/record.json",
+          "sha256": "f463852de1308ca914810ec0eb33b9e8f17de6ec5ad3ba1ed2bcd4ff3e2b2970"
+        },
+        {
+          "path": "stdout",
+          "sha256": "7974067f6008c27cc14baacf69fa83e80f5b21b142e010b59d2e5c64aa903bed"
+        }
+      ]
+    },
+    {
+      "arg": 5,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-a-3",
+      "sha256": "081d2c5a3f2774376546cf2aa6ef1082f1115455b86c65c34b32aaa284ba73bb",
+      "files": 11,
+      "entries": [
+        {
+          "path": "command.json",
+          "sha256": "7456552be2e04b0ae3bc292362ad24cbc4a0aa4934c8bf74b2f7680a40d11049"
+        },
+        {
+          "path": "command.log",
+          "sha256": "fbecf5f053a65c0cd0fe9b37254cfc9cc43ea5d5a6f25f0209d1edf99ce25010"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "out/facts.json",
+          "sha256": "0c7b4462b34e7c5805d2fbd1ff34b867e38600310a3afabcfa9fdcf278172f22"
+        },
+        {
+          "path": "out/outputs/conversation.md",
+          "sha256": "bd16e44f0fd4bf57d705fa71e42139e2c4e5ae38012baba2932fb455cc26541f"
+        },
+        {
+          "path": "out/outputs/goals.md",
+          "sha256": "7fbfab4a6098cde620263230ae47c17e8b866f69297b6061d88e0fbe469d09ca"
+        },
+        {
+          "path": "out/outputs/has_goal.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l1.json",
+          "sha256": "cab34bf3e26a5dc168e733a6d0cb871f8419a348d768efec0a7b7cd493c4ea6e"
+        },
+        {
+          "path": "out/outputs/l4.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/record.json",
+          "sha256": "6ff8e2ddfd66de48123fcd182c11c594c4eaee9a20cfb508abe09ea98e7182dc"
+        },
+        {
+          "path": "stdout",
+          "sha256": "56765a6479cdd46791b84f87d67a839f53c7b4757c8da1c09adfcece67f64ae8"
+        }
+      ]
+    },
+    {
+      "arg": 6,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-b-1",
+      "sha256": "0feca6f6b76b85e3ad3f4974b53169ebd1993bd41bd2be6a415992429c6357eb",
+      "files": 11,
+      "entries": [
+        {
+          "path": "command.json",
+          "sha256": "ea7ceb69dedf54c85efb9ee23808030c0cf2851af0dae161fd245f0ad2cc9ce9"
+        },
+        {
+          "path": "command.log",
+          "sha256": "2ee27205ee6650e78e5fa85adc9b8126e1bce9f071e9cb8e01cd8902c07b6098"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "out/facts.json",
+          "sha256": "b6ea7fcbe65de4620df18555edc450998aaf4f952a9f27df16e8d392c9dcfd70"
+        },
+        {
+          "path": "out/outputs/conversation.md",
+          "sha256": "ea4ead88e2fa77f0205e672a6938dd842dbf8da9f382137e4465e9c961271d18"
+        },
+        {
+          "path": "out/outputs/goals.md",
+          "sha256": "5ec810e24c494a61278d977ff2a198be327e006c8f5789f23455934c0d6cd5b0"
+        },
+        {
+          "path": "out/outputs/has_goal.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l1.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l4.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/record.json",
+          "sha256": "7dad81596814a9ca286cfdd5b9578bcf310361d4ab55befb061f66ae562f5181"
+        },
+        {
+          "path": "stdout",
+          "sha256": "df32a82d87c69eab53177b97daa1b61993970011d32b8886690b3268f50c1678"
+        }
+      ]
+    },
+    {
+      "arg": 7,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-b-2",
+      "sha256": "0655a32680e1df73210d6f2813b83a40bdb433c7a0a9b3aabaf841a357f9ee7c",
+      "files": 11,
+      "entries": [
+        {
+          "path": "command.json",
+          "sha256": "d0d6bacdbe0e2e0a0adaae2d0a2238fbabea224e108a770c51c2443db92f6467"
+        },
+        {
+          "path": "command.log",
+          "sha256": "e29cca96055e0779a8b716fe95a9222e5f967783f019d3a2fa8fb9b9df9bec0a"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "out/facts.json",
+          "sha256": "0144dc6e99223bd35cb9de3d2153b281feebadaa83b8018af107622f68672388"
+        },
+        {
+          "path": "out/outputs/conversation.md",
+          "sha256": "143ae2809000fbe6596ed16a7f4b2d855547e5e06a96618566100a26786e0eb9"
+        },
+        {
+          "path": "out/outputs/goals.md",
+          "sha256": "d3ff391e3e77bf70db58756c7b173f66deb747b1ba10db9fd4e8beeaa2951a14"
+        },
+        {
+          "path": "out/outputs/has_goal.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l1.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l4.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/record.json",
+          "sha256": "5eccde4e0e08c0e3e6a6b8e6b3e6378f2b874672fc5c8b67ad099f3740c2489e"
+        },
+        {
+          "path": "stdout",
+          "sha256": "d2cd677053e67a593eebd592009cd1ffa386478168797e06051dcb19dd829f8e"
+        }
+      ]
+    },
+    {
+      "arg": 8,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-8BJ6T5/score-base-b-3",
+      "sha256": "b4400fb1dbd0934794d2bbb68aa7952951c746f6dd781b4eb95ad0dd08a0fd92",
+      "files": 11,
+      "entries": [
+        {
+          "path": "command.json",
+          "sha256": "2139627dbe99a4a7eeb68cb8d044cb2065184d40a12c80139879810730af160b"
+        },
+        {
+          "path": "command.log",
+          "sha256": "4ee63e8843a1cf945cc5f1eb846cf57e8ad197c18afaa6ecc9b3c61670ce1a37"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "out/facts.json",
+          "sha256": "399732babcbd3b1b1220776c13f6f625524f88e57fbb021d5ae84d73c18646ac"
+        },
+        {
+          "path": "out/outputs/conversation.md",
+          "sha256": "83f82eb0e84db5d03ea0c902b12d62ed57b8ebc4e0f9a161aa6ea5c4bdbdd97a"
+        },
+        {
+          "path": "out/outputs/goals.md",
+          "sha256": "a4221ff63e2ec8d2921e83c827429c7aa4396329a93a55d14b4f148ff7ad0798"
+        },
+        {
+          "path": "out/outputs/has_goal.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l1.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/outputs/l4.json",
+          "sha256": "97f6908ce921a23750612f3d8906aabc13a6cace9f95647189cad5e80d2577ac"
+        },
+        {
+          "path": "out/record.json",
+          "sha256": "7aa5ae8a4791ce622e0c62c9be568eabc518363fa30aee38a5920e8e1cba4ba1"
+        },
+        {
+          "path": "stdout",
+          "sha256": "d668b25ba96b19155bd48f9ee983e762d2d6132eddc87d77442345339a6f7509"
+        }
+      ]
+    }
+  ]
+}

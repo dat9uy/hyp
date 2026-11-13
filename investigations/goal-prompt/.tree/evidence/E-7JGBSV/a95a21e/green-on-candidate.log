@@ -1,0 +1,7 @@
+=== RUN   TestAddGoalRefusesATruncatedHash
+--- PASS: TestAddGoalRefusesATruncatedHash (0.04s)
+=== RUN   TestALogWithATruncatedHashStillReplays
+--- PASS: TestALogWithATruncatedHashStillReplays (0.01s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.535s
+exit 0

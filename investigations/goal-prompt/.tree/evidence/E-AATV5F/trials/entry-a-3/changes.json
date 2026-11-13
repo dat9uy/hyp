@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": ".tree/.gitignore",
+      "change": "added",
+      "size": 28,
+      "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": ".tree/events/claude-goalprompt-1.jsonl",
+      "change": "added",
+      "size": 1142,
+      "sha256": "f7e57adec61f96e8ab4e2023a7517c25f6716a0f7869b96e56e55e97d6f57bcf",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": ".tree/events/owner-standin.jsonl",
+      "change": "added",
+      "size": 5588,
+      "sha256": "5fe8304330425492484a922562dd2536be0a21a2b65b0fb7b633292528f380a5",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}

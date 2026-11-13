@@ -1,0 +1,9 @@
+arm=entry
+fixture=b
+trial=2
+model=claude-sonnet-5-5
+skills_commit=6b7095eef67063d433de3340bb673cbcfdaa8615
+skill_sha=fc8b6982ecf3b26b34eab5dcc236c687675bb8feb8cc3a975527bb4df495e48b
+skill_creator=/Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator
+limit_min=50
+max_exchanges=20

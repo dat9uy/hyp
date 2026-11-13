@@ -1,0 +1,21 @@
+{
+ "arm": "pre",
+ "fixture": "a",
+ "trial": "1",
+ "model": "claude-sonnet-5-5",
+ "claude_version": "2.1.322 (Claude Code)",
+ "start": 1794494132.334,
+ "end": "end",
+ "timed_out": false,
+ "grill_session": "ca6abbd9-20aa-47b2-9376-6d042c58cf7b",
+ "standin_session": "b7ed29db-db9d-4e8d-b368-376e8d1b6e46",
+ "exchanges": 3,
+ "transcript_kept": true,
+ "subagents": 1,
+ "cost_usd": 1.146717,
+ "cost_usd_literal": 2.561145,
+ "models": [
+  "claude-sonnet-5-5"
+ ],
+ "home_hyp_unchanged": true
+}

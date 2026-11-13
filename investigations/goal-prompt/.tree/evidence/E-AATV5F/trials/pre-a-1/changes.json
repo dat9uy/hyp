@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": "investigations/goal-prompt/.tree/.gitignore",
+      "change": "added",
+      "size": 28,
+      "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/claude-grill-113.jsonl",
+      "change": "added",
+      "size": 1351,
+      "sha256": "c3804cd14c4e4266338c9d27bb0d168b26a56e4085995aa74980d131ce58b925",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/owner-standin.jsonl",
+      "change": "added",
+      "size": 4339,
+      "sha256": "bab1d2b4ee496d96f77ca396f45c55b90a2a253deca4fc4610734a41a342d52c",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}

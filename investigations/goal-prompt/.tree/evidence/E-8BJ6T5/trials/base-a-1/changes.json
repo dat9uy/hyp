@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": "investigations/goal-prompt/.tree/.gitignore",
+      "change": "added",
+      "size": 28,
+      "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/claude-grill-113.jsonl",
+      "change": "added",
+      "size": 18512,
+      "sha256": "26cb5db7252faed07d8631ae60f7569d576354a83fd804df35e48f2f16c2ead1",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/owner-standin.jsonl",
+      "change": "added",
+      "size": 5545,
+      "sha256": "f4f7d37230575ef28ba43100a9fcd83c5cbcce2cf991a50c319ddbccb94a53c0",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/evidence/E-3RF017/scenarios.md",
+      "change": "added",
+      "size": 358,
+      "sha256": "b8509cf2810b684209a2e1aa87cb46fa726f2181669285da2add088c5f8d6562",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/evidence/E-5B0901/scenarios.md",
+      "change": "added",
+      "size": 329,
+      "sha256": "877996c5747a83c09f742a8bed0afd57b1d112356cd0f36574b192dbab005253",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/evidence/E-TDFGA0/scenarios.md",
+      "change": "added",
+      "size": 351,
+      "sha256": "80799c9ee6f67a354d64fd49a1f8d4b8723ce3571cb861054c3906858b47b52e",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}

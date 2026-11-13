@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "baseline": "manifest.json at create",
+  "changes": [
+    {
+      "path": "investigations/goal-prompt/.tree/events/grill-141.jsonl",
+      "change": "added",
+      "size": 7240,
+      "sha256": "b9e0624b2686327286764c26e43d432d37af25c1b800c2d2a365bf55fdd6d900",
+      "mode": "-rw-r--r--",
+      "copied": true
+    },
+    {
+      "path": "investigations/goal-prompt/.tree/events/owner-standin.jsonl",
+      "change": "added",
+      "size": 3604,
+      "sha256": "5cd5fe1bc2b9f9178a464207894844ae6bb043e5e9a411b6917ff5e1407ec3ad",
+      "mode": "-rw-r--r--",
+      "copied": true
+    }
+  ]
+}

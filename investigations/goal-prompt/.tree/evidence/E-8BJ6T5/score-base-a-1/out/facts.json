@@ -1,0 +1,42 @@
+{
+ "measures": {
+  "arm": "base",
+  "fixture": "a",
+  "trial": "1",
+  "end": "end",
+  "exchanges": 6,
+  "timed_out": 0,
+  "cost_usd": 1.91271,
+  "cost_usd_literal": 8.540828,
+  "models": "claude-sonnet-5-5",
+  "subagents": 1,
+  "goals": 1,
+  "stores": "internal/testutil/testdata/synth,investigations/checkpoint-store,investigations/checkpoint-store-design,investigations/goal-prompt,investigations/id-citation,investigations/recipe-base",
+  "has_goal": 1,
+  "l1": 1,
+  "l4": 1,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": "investigations/goal-prompt",
+   "id": "01M782F0SMXXWW50293VN77C5E",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "hyp prints a run's /goal prompt from the log, and a Goal body records the run's constraints",
+   "body": "Builds #113: `hyp prompt` prints a run's /goal prompt from the log; the constraints block below is its read side. Owner decision 2026-11-11: constraints live in the body under May change:, Read only: and Never:, and a typed field waits until a real run misreads or loses one. Every block line needs text after its colon. One checker serves `hyp add goal` (warns, still appends) and `hyp prompt` (refuses, exit 1). hyp prints the run cap and never enforces it; ADR 0022 supersedes ADR 0017's cap line in part. Lines 8 and 9 are an ak-skill-creator eval of the hyp-owner-grill Hand off: 2 cases, 3 Sonnet trials each, candidate and base skill, graded by eval_skill.py. The description edits have no line and no routing traces run: a known gap. A commit Goal's other needs from hyp are #114.\nMay change: this repository (hyp): commits on one local branch\nMay change: one pull request, opened and never merged\nMay change: internal/cli and internal/replay for the command and the shared block checker\nMay change: the descriptions of hyp-goal-run and hyp-prototype, which name one Goal kind\nMay change: skills/hyp-owner-grill Hand off, and the block definition in each skill that states it\nMay change: README.md, docs/glossary.md, docs/replay-spec.md, docs/core-and-self-review.md, docs/how-hyp-improves-itself.md\nMay change: a new docs/adr/0022, and a new recipes/hyp-owner-grill-eval@1\nRead only: investigations/checkpoint-store and the other published trees\nRead only: the ak-skill-creator skill, named on the eval command's External: line and never copied\nNever: replace the installed ~/.local/bin/hyp\nNever: edit a stored Goal or event\nNever: add a typed constraints field to `hyp add goal`\nNever: store a Result count, an actor baseline or a parsed constraint field",
+   "lines": [
+    "[P] For a valid block, `hyp prompt G --actor A` exits 0 and prints: `/goal Run the hyp tree in \"<store path>\" with the hyp-goal-run skill, as HYP_ACTOR=A. Its Goal is G.` / `First run `hyp status G` there; if no such Goal shows, stop.` / `Done when the latest `hyp status G` shows `runner owes nothing: stop and report to the owner` under OWED, or 5 Results have been recorded under A, or you cannot take the next step honestly and say why.` / `At each stop, record the stop checkpoint the skill names, and list the lines under LINES with the Results that ran them.` / the block, line for line.",
+    "[P] `--results N` changes only the 5. `--branch B` adds exactly `Commit only to branch B.` and `--pr P` adds exactly `Do not merge PR #P.`, each as one line after the block, and nothing else changes.",
+    "[P] The output depends only on the merged log and the flags: the same bytes for any order of the actors' events files. `hyp prompt` appends no event and changes no file. The Results counted are the actor's recorded Results under this Goal; a retracted one does not count.",
+    "[N] A Goal with no valid block (no heading, a missing heading, a bare heading with no text after its colon, or a non-empty line in the block that starts with no heading) makes `hyp prompt` exit 1, name the missing heading or the first bad line, and print nothing on stdout. CRLF line ends read as LF.",
+    "[P] `hyp add goal` with a body that has no heading, or a heading but no valid block, appends the Goal, exits 0 and prints a `warn:` line that names the rule and the first bad line. A body with a valid block prints no warning. One checker serves both commands.",
+    "[N] Bad arguments exit 2: an invalid actor, a `--pr` that is not digits, a `--branch` with whitespace, a control character or a leading `-`, a `--results` below 1, and an id that is not a Goal. No repository holding the store exits 3. `hyp prompt -h` exits 0 with no store.",
+    "[N] `hyp prompt` for an actor that already wrote any event in the store exits 1, names the rule and tells the owner to choose a new actor.",
+    "[P] At the candidate, each of 3 fresh Sonnet trials of the hyp-owner-grill Hand off, given a finished grill whose Goal has a valid block, ends with the output of `hyp prompt` for that Goal byte for byte and adds no sentence.",
+    "[N] At the candidate, no one of 3 fresh Sonnet trials of the Hand off, given a Goal that `hyp prompt` refuses, writes a prompt by hand. Each tells the owner of the refusal."
+   ]
+  }
+ ],
+ "bad_hash_lines": []
+}

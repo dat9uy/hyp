@@ -1,0 +1,37 @@
+{
+ "measures": {
+  "arm": "base",
+  "fixture": "a",
+  "trial": "1",
+  "end": "end",
+  "exchanges": 2,
+  "timed_out": 0,
+  "cost_usd": 1.5,
+  "cost_usd_literal": 2.25,
+  "models": "claude-sonnet-5-5",
+  "subagents": 0,
+  "goals": 1,
+  "stores": ".,investigations/x",
+  "has_goal": 1,
+  "l1": 0,
+  "l4": 0,
+  "eval_exit": 1
+ },
+ "goals": [
+  {
+   "store": ".",
+   "id": "01M7812VTDVN3GZ9QB6HHQCCZ9",
+   "actor": "owner-standin",
+   "kind": "Goal",
+   "title": "Root Goal",
+   "body": "",
+   "lines": [
+    "[N] no write is refused.",
+    "[P] graded by eval_skill.py (sha256 c47a38de\u2026) with no error."
+   ]
+  }
+ ],
+ "bad_hash_lines": [
+  "[P] graded by eval_skill.py (sha256 c47a38de\u2026) with no error."
+ ]
+}

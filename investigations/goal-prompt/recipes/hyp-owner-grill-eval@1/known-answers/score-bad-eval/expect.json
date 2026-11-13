@@ -1,0 +1,10 @@
+{
+ "step": "standalone",
+ "command": "score",
+ "args": [
+  "$CASE/input/od",
+  "$CASE/input/scripts"
+ ],
+ "exit": 2,
+ "stdout": ""
+}

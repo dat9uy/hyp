@@ -23,6 +23,16 @@ Work in rounds. A round asks every question whose prerequisites are settled, num
 
 Every question opens with what exists today and the problem it settles, then gives one small worked example of each option and the principle behind it. A choice without its basis is not a question the owner can answer. Name why each mechanism is in the question; if you cannot, drop it.
 
+Run the mistakes checklist below on each round before you send it, and again before Confirm the routing.
+
+## Mistakes checklist
+
+Each item is a mistake earlier grills made. Check the round or the table against every item, and fix what fails before the owner sees it.
+
+1. **Store.** The Goal goes where the repository's agent instructions (AGENTS.md, CLAUDE.md) say trees live, such as `investigations/<topic>/`: in the store there that holds the Goal of the issue's parent issue, when one does, or else in a new store in that directory. No `hyp init` at the repository root unless the instructions name no directory for trees.
+2. **Test method.** Where an installed skill owns the test method (for a skill, ak-skill-creator's eval flow: its cases, fixtures, matching and grading), the round asks only whether to use that flow and the owner's preferences of model, trial count and budget, never a choice among the method's parts.
+3. **Constraints.** `May change:` covers the texts the change makes wrong by their directories (`skills/`, `docs/`, `AGENTS.md`, `README.md`), not as a list of files or parts. No `Never:` line forbids what `May change:` or the Goal's test route needs, such as a new recipe version under `recipes/`.
+
 ## Route each question before you ask it
 
 | The question is | Its place | Ask the owner? |
@@ -78,7 +88,7 @@ hyp owes every line on every top-level question that has a candidate. So draw a 
 
 ## Confirm the routing
 
-Before any write, show the owner one table with a row per grill question: the question, where it goes (line, Goal body, DesignQuestion with its rivals, looked up, another Goal), and for a DesignQuestion the scenario that separates its rivals. Mark each line `[P]` or `[N]` and the invariant it states. The owner confirms each row or moves it. Which settled questions the tree records as DesignQuestions is the owner's call; the table is where they make it. Write nothing before they confirm.
+Run the mistakes checklist on the table first. Before any write, show the owner one table with a row per grill question: the question, where it goes (line, Goal body, DesignQuestion with its rivals, looked up, another Goal), and for a DesignQuestion the scenario that separates its rivals. Mark each line `[P]` or `[N]` and the invariant it states. The owner confirms each row or moves it. Which settled questions the tree records as DesignQuestions is the owner's call; the table is where they make it. Write nothing before they confirm.
 
 ## Writes
 

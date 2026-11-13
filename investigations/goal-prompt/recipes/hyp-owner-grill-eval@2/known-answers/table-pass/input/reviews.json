@@ -1,0 +1,48 @@
+{
+ "trial-01": {
+  "l1-init": "pass",
+  "l2": "pass",
+  "l3": "pass",
+  "l4-grader": "pass",
+  "l5": "pass"
+ },
+ "trial-02": {
+  "l1-init": "pass",
+  "l2": "fail",
+  "l3": "pass",
+  "l4-grader": "pass",
+  "l5": "pass"
+ },
+ "trial-03": {
+  "l1-init": "pass",
+  "l2": "pass",
+  "l3": "pass",
+  "l4-grader": "pass",
+  "l5": "pass"
+ },
+ "trial-04": {
+  "l1-init": "pass",
+  "l4-grader": "pass",
+  "l5": "pass",
+  "l6": "pass"
+ },
+ "trial-05": {
+  "l1-init": "pass",
+  "l2": "pass",
+  "l3": "pass",
+  "l4-grader": "pass",
+  "l5": "pass"
+ },
+ "trial-06": {
+  "l1-init": "pass",
+  "l4-grader": "pass",
+  "l5": "pass",
+  "l6": "pass"
+ },
+ "trial-07": {
+  "l1-init": "pass",
+  "l4-grader": "pass",
+  "l5": "pass",
+  "l6": "fail"
+ }
+}

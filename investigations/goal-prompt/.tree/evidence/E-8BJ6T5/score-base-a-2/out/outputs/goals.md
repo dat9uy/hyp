@@ -1,0 +1,33 @@
+# Nodes the grill added
+
+Stores at the end: ., internal/testutil/testdata/synth, investigations/checkpoint-store, investigations/checkpoint-store-design, investigations/id-citation, investigations/recipe-base
+
+## Goal in ., by owner-standin: hyp prints the /goal prompt for any Goal from the log, reading a run's constraints from the Goal body
+
+Body:
+
+```text
+Adds `hyp prompt <G-id> --actor A [--branch B] [--pr N] [--experiments N]`, which prints the /goal prompt for hyp-goal-run from the log for any Goal, discovery or build; a warning in `hyp add goal` for a body with a constraints heading but no valid block; and a build-Goal section in skills/hyp-goal-run. Part of #113 (gap 1), core scope. Owner decisions: 2026-11-11, a run's constraints live in the Goal body under three headings, a prompt may narrow them and never widen them, and no typed field until a run misreads one; 2026-11-12, the prompt may differ from a hand-written prompt only in the actor, the owner's answer, the branch, the PR, the commit and the run's own plan. Run 6's prompt is in no file, so the lines pin the clause list the owner confirmed on 2026-11-12, not run 6's text. The candidate is a hyp commit; go test on its base and on the candidate is the instrument, with one named test case per prompt clause.
+May change: commits on one local branch of this repository, in cmd/, internal/, skills/ and docs/ text: the Hand off of skills/hyp-owner-grill, a build-Goal section of skills/hyp-goal-run, the descriptions of skills/hyp-goal-run and skills/hyp-prototype, and the README, glossary and spec text that the change makes wrong.
+Read only: investigations/, recipes/, the other skills, and the ADRs.
+Never: open or merge a PR.
+Never: replace the installed hyp binary.
+Never: edit an existing ADR, a recorded event or a frozen recipe version.
+Never: put application code or real source data in this repository.
+```
+
+Lines:
+
+1. [P] `hyp prompt G --actor A` on a Goal whose body holds a valid constraints block exits 0 and prints exactly three parts, in order, and no other byte: the line `/goal Run the hyp tree in <store dir> with the hyp-goal-run skill, as HYP_ACTOR=A. Its Goal is <display id>.`; the Done-when line; then the block's lines, unchanged. <store dir> is the absolute directory that holds .tree.
+2. [P] The Done-when line of `hyp prompt` reads exactly: `Done when the latest printed `hyp status <display id>` shows `runner owes nothing: stop and report to the owner` under OWED, or 5 Experiments have a Result under A, or you cannot take the next step honestly and say why. At each stop, record the stop checkpoint the skill names, and list the lines under LINES with the Results that ran them.`
+3. [P] `--experiments N` changes only the 5 in the Done-when line. `--branch B` appends exactly `Work on branch B.` after the block, and `--pr N` appends exactly `The PR for the branch is #N. Never merge it.` after that, in this order. No flag changes any other byte.
+4. [N] The bytes `hyp prompt` prints depend only on the store directory, the Goal, the actor, the flags and the Goal's body: two stores that differ only in Results, answers, selects, checkpoints or other Goals give identical output. In a store with two Goals, each prompt holds only its own block.
+5. [N] A Goal body with no valid constraints block gives exit 1, empty stdout and a message that names the missing heading or the offending line. The block starts at the first line that begins with `May change:`, `Read only:` or `Never:` (case-sensitive, first column), holds all three headings, has text after each heading, and has only non-empty lines that each begin with a heading; a line of spaces, a tab or a lone carriage return is not empty.
+6. [N] `hyp prompt` gives exit 2 and empty stdout for an actor outside ^[a-z0-9][a-z0-9-]{0,39}$, a branch outside letters, digits, `.`, `_`, `/` and `-` or one that starts with `-`, a `--pr` or `--experiments` that is not an integer of 1 or more, and a ref that is not a Goal of this store, `<tree>:<id>` included. It gives exit 3 for a store path with a control character, and for no store.
+7. [N] `hyp add goal` with a body that has a heading line but no valid block exits 0, writes the Goal, and warns with the message `hyp prompt` gives for it. A valid block, or a body with no heading line, gives no warning. Replay and `hyp check` never warn on or reject a Goal for its block, so a store of Goals with no block checks `check: 0 errors`.
+8. [P] The Hand off of skills/hyp-owner-grill runs `hyp prompt <G-id> --actor <runner-actor>` with the optional `--branch`, `--pr` and `--experiments`, gives its output as it is, and holds no instruction to hand-write a prompt. The skillcheck test passes.
+9. [P] skills/hyp-goal-run has a section for a build Goal: one review round per candidate commit by a fresh subagent given the lines, the code and the keys settled with the owner's words, and a sort of each finding: a case of a line is a limit; a question about a line's meaning is a reading; a defect in text the run may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint and never holding the select.
+
+## DesignQuestion in ., by claude-p113-grill: Which hyp commit implements hyp prompt and the skill changes of Goal G-SVK8PF?
+
+

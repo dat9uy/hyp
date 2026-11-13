@@ -1,0 +1,10 @@
+{
+ "step": "standalone",
+ "command": "score",
+ "args": [
+  "$CASE/input/od",
+  "/Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts"
+ ],
+ "exit": 0,
+ "stdout": "arm\tbase\nfixture\ta\ntrial\t1\nend\tend\nexchanges\t2\ntimed_out\t0\ncost_usd\t1.5\ncost_usd_literal\t2.25\nmodels\tclaude-sonnet-5-5\nsubagents\t0\ngoals\t1\nstores\t.,investigations/x\nhas_goal\t1\nl1\t0\nl4\t0\neval_exit\t1\n"
+}
