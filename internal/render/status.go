@@ -100,7 +100,7 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 	if cp := p.LastCheckpoint[g]; cp != nil {
 		var s event.Checkpoint
 		_ = json.Unmarshal(cp.Payload, &s)
-		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, s.Summary)
+		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, OneLine(s.Summary))
 	} else {
 		add(kKeep, "CHECKPOINT none")
 	}
@@ -665,6 +665,12 @@ func goalsTable(p replay.Projection) []line {
 		add("REJECTED %d events (run hyp check)", len(p.Rejections))
 	}
 	return out
+}
+
+// OneLine prints s whole on one line: each line break becomes a space, so a
+// summary's own lines never read as a section or a field of the view.
+func OneLine(s string) string {
+	return strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(s)
 }
 
 // Cut shortens s to at most n runes, ending in … when it was cut.

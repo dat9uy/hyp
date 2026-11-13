@@ -292,14 +292,28 @@ func TestTextCapStopReportInStatusAndShow(t *testing.T) {
 		"F4", "F8", "G4", "gh pr merge 140 --merge",
 		"git checkout main && git pull && CGO_ENABLED=0 go build -o ~/.local/bin/hyp ./cmd/hyp",
 		"Personal skills that name a changed command: none"}
-	for _, args := range [][]string{{"status", g}, {"show", g}} {
-		r := hyp(t, args...)
+	for _, v := range []struct {
+		args       []string
+		prefix, at string
+	}{{[]string{"status", g}, "CHECKPOINT ", ": "}, {[]string{"show", g}, "    summary: ", ""}} {
+		r := hyp(t, v.args...)
 		if r.code != 0 {
-			t.Fatalf("hyp %v: exit %d, stderr %q", args, r.code, r.stderr)
+			t.Fatalf("hyp %v: exit %d, stderr %q", v.args, r.code, r.stderr)
+		}
+		// The summary's own line holds the draft whole, so each item is
+		// read from that line and not from an id elsewhere in the view.
+		var line string
+		for _, l := range strings.Split(r.stdout, "\n") {
+			if strings.HasPrefix(l, v.prefix) && strings.HasSuffix(l, v.at+draft) {
+				line = l
+			}
+		}
+		if line == "" {
+			t.Fatalf("hyp %v prints no %q line that ends with the draft whole:\n%s", v.args, v.prefix, r.stdout)
 		}
 		for _, w := range wants {
-			if !strings.Contains(r.stdout, w) {
-				t.Errorf("hyp %v does not print %q:\n%s", args, w, r.stdout)
+			if !strings.Contains(line, w) {
+				t.Errorf("hyp %v does not print %q on the summary's line", v.args, w)
 			}
 		}
 	}

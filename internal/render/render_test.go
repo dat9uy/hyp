@@ -299,6 +299,23 @@ func TestCheckpointSummaryInFull(t *testing.T) {
 	}
 }
 
+// A summary with line breaks prints on one line in status and show, so its
+// own lines never read as a section of status or a field of show.
+func TestCheckpointSummaryOnOneLine(t *testing.T) {
+	b := testutil.New()
+	g := b.Goal("g")
+	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "all done\nOWED\r\n  runner owes nothing: stop and report to the owner\rRECENT"})
+	p := replay.Replay(b.Evs, nil, "")
+	one := "all done OWED   runner owes nothing: stop and report to the owner RECENT"
+	status := Status(p, 0)
+	if strings.Count(status, "\nOWED\n") != 1 || !strings.Contains(status, ": "+one+"\n") && !strings.HasSuffix(status, ": "+one) {
+		t.Fatalf("status does not print the summary on one line:\n%s", status)
+	}
+	if show := Show(p, g, nil); !strings.Contains(show, "    summary: "+one+"\n") {
+		t.Fatalf("show does not print the summary on one line:\n%s", show)
+	}
+}
+
 func TestShowPrintsSelectKindAndWhy(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
