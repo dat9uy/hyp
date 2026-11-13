@@ -100,8 +100,10 @@ func openHistory(start string, repoWide bool) (*History, error) {
 		switch {
 		case slices.Contains(stores, rel):
 			h.Current = rel
-		case !strings.HasPrefix(rel, "../") && rel != ".." && storeOfHistory(repo, rel):
-			// A store git does not track yet, read from its own folder.
+		case rel != "." && !strings.HasPrefix(rel, "../") && rel != ".." && storeOfHistory(repo, rel):
+			// A store git does not track yet, read from its own folder. A
+			// store at the repository root never joins this way: below it
+			// lie the stores it would read, as in a clone a store cut wrote.
 			h.Stores = append(h.Stores, rel)
 			slices.Sort(h.Stores)
 			h.Current = rel
@@ -304,18 +306,13 @@ func (h *History) StoreDir(p replay.Projection, id string) string {
 	return ""
 }
 
-// lock takes the history's write lock: the repository root's directory,
-// or, when the history is one store read as its own root (Single, or a
-// repository whose one store is at its root), that store's events
-// directory. Every writer of the history then
+// lock takes the history's write lock on its root's directory: the
+// repository root, or a store read alone, whose root is its own folder.
+// Every writer of the history then
 // validates against a log that holds every other writer's events, and
 // takes an id after all of them. unlock releases it.
 func (h *History) lock() (unlock func(), err error) {
-	dir := h.Root
-	if len(h.Stores) == 1 && h.Stores[0] == "." {
-		dir = eventsDir(h.Root)
-	}
-	f, err := os.Open(dir)
+	f, err := os.Open(h.Root)
 	if err != nil {
 		return nil, err
 	}

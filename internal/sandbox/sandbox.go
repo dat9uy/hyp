@@ -352,8 +352,10 @@ type CreateOptions struct {
 	// ref none, and is required; Recipes is the directory that holds recipes/.
 	Refs    []string
 	Recipes string
-	// Store and Cut, both or neither: write wt/.tree from the store at
-	// Store as it was at the event Cut.
+	// Cut alone is a history cut: each store of the host's history is
+	// written in its own folder as it was at the event Cut. Store with Cut
+	// writes wt/.tree from the store at Store as it was at Cut. Store needs
+	// Cut.
 	Store, Cut string
 	// Inputs is a file of this run's inputs, or "": the sandbox keeps a
 	// copy and passes it to every command as HYP_SANDBOX_INPUTS.

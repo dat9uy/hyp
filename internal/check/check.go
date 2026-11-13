@@ -38,7 +38,11 @@ func RunHistory(h *store.History) (report []string, errorsFound int) {
 		report = append(report, fmt.Sprintf("error: %s:%d %v", le.File, le.Line, le.Err))
 	}
 	for _, r := range p.Rejections {
-		report = append(report, fmt.Sprintf("error: rejected %s: %s", display(r.EventID), r.Reason))
+		in := ""
+		if len(h.Stores) > 1 {
+			in = " in store " + replay.StoreName(r.Store)
+		}
+		report = append(report, fmt.Sprintf("error: rejected %s%s: %s", display(r.EventID), in, r.Reason))
 	}
 	errorsFound = len(report)
 

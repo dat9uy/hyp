@@ -161,7 +161,7 @@ func TestStatusShowsTheFolderStoresGoals(t *testing.T) {
 // by Goal; hyp status G-id prints what it prints in its store's folder.
 func TestStatusAllListsTheHistory(t *testing.T) {
 	r := newHistRepo(t)
-	_, _, rb := readingIn(t, r.b, r.gb, "h-b")
+	hb, _, rb := readingIn(t, r.b, r.gb, "h-b")
 	gitIn(t, r.root, "add", "-A")
 	other := filepath.Join(r.root, "docs")
 	if err := os.Mkdir(other, 0o755); err != nil {
@@ -199,6 +199,15 @@ func TestStatusAllListsTheHistory(t *testing.T) {
 		outside = append(outside, dir)
 	}
 	gitIn(t, r.root, "add", "-A")
+	// An --as-of node of the Goal's store resolves there too.
+	qb := questionOf(t, r.b, hb)
+	asOf := in(t, r.b, "status", r.gb, "--as-of", qb)
+	want(t, asOf, 0, "GOAL "+r.gb)
+	for _, dir := range outside {
+		if got := in(t, dir, "status", r.gb, "--as-of", qb); got != asOf {
+			t.Errorf("hyp status %s --as-of %s in %s:\n%+v\nwant\n%+v", r.gb, qb, dir, got, asOf)
+		}
+	}
 	for _, dir := range outside {
 		want(t, in(t, dir, "status"), 0, "Left out")
 		if got := in(t, dir, "status", "--all"); got != all {
@@ -336,7 +345,7 @@ func TestCiteAcrossStores(t *testing.T) {
 	ga := histID(t, r.root, r.ga)
 	early := "00000000000000000000000001"
 	appendLine(t, r.b, "z", rawLine(early, "z", "node.add", early, `{"kind":"Goal","parent":"","title":"early","lines":[{"text":"x","cites":["`+ga+`#1"]}]}`))
-	want(t, in(t, r.root, "check"), 1, "rejected "+early+": bad cite")
+	want(t, in(t, r.root, "check"), 1, "rejected "+early+" in store investigations/b: bad cite")
 }
 
 // TestAppendSortsAfterOtherStores: an appended event's id sorts after every
@@ -517,7 +526,7 @@ func TestEventNeverCrossesStores(t *testing.T) {
 		i := id()
 		appendLine(t, r.a, "z", ev(i))
 		got := in(t, r.root, "check")
-		if !strings.Contains(got.stdout, i[20:]+": event crosses stores") {
+		if !strings.Contains(got.stdout, i[20:]+" in store investigations/a: event crosses stores") {
 			t.Errorf("replay did not reject %s for crossing stores:\n%s", ev(i), got.stdout)
 		}
 	}
@@ -631,4 +640,46 @@ func TestSandboxHistoryCut(t *testing.T) {
 		t.Errorf("status --all in the clone:\n%+v\nstatus --all --as-of %s in the host:\n%+v", inClone, cut, asOf)
 	}
 	want(t, in(t, r.root, "sandbox", "remove", "t1", "--discard"), 0, "removed t1; discarded")
+}
+
+// TestUntrackedStoreAllAndRoot: hyp status --all in a store git does not
+// track yet lists the history's Goals and its own; a store at the
+// repository root that git does not track, as in a clone a store cut
+// wrote, never joins the history and is read alone, with no duplicate of
+// a store below it.
+func TestUntrackedStoreAllAndRoot(t *testing.T) {
+	r := newHistRepo(t)
+	c := filepath.Join(r.root, "investigations", "c")
+	if err := os.MkdirAll(c, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustIn(t, c, "init")
+	mustIn(t, c, "add", "goal", "--title", "Fresh", "--why", "w")
+	all := in(t, c, "status", "--all")
+	for _, s := range []string{"Goal A", "Goal B", "Fresh"} {
+		want(t, all, 0, s)
+	}
+
+	// A copy of store a at the root, untracked, holds the same ids.
+	if out, err := exec.Command("cp", "-R", filepath.Join(r.a, ".tree"), r.root).CombinedOutput(); err != nil {
+		t.Fatalf("cp: %v: %s", err, out)
+	}
+	want(t, in(t, r.root, "check"), 0, "check: 0 errors")
+	root := in(t, r.root, "status")
+	want(t, root, 0, "Goal A")
+	if strings.Contains(root.stdout, "Goal B") {
+		t.Errorf("an untracked root store joined the history:\n%s", root.stdout)
+	}
+}
+
+// TestSameAskAcrossStores: a reading of another store that asks the same as
+// the one answered is answered with its own hyp answer, since an answer's
+// keys never lie in two stores.
+func TestSameAskAcrossStores(t *testing.T) {
+	r := newHistRepo(t)
+	_, _, ra := readingIn(t, r.a, r.ga, "h-a")
+	_, _, rb := readingIn(t, r.b, r.gb, "h-b")
+	gitIn(t, r.root, "add", "-A")
+	got := in(t, r.a, "answer", "--answer", ra+"#r1=one", "--actor", "owner")
+	want(t, got, 0, "warn: "+rb+"#r1 asks the same as "+ra+"#r1 and stays open; it is in store investigations/b, so answer it with its own hyp answer --answer "+rb+"#r1")
 }

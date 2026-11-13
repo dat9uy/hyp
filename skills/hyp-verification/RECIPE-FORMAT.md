@@ -450,12 +450,21 @@ A replay starts from a hyp store as it was at one event.
   under SRC's evidence is refused (exit 3, and the sandbox is removed).
 - The cut replaces any `.tree` the base commit holds at its root: `wt/.tree`
   holds the cut and no other file of the base's `.tree`.
-- `--store` and `--cut` go together. An `EVENT` that SRC does not hold and a
+- `--store` needs `--cut`. An `EVENT` that SRC does not hold and a
   SRC with no `.tree/events` are refused with exit 2 before anything is
   made. An events line that does
   not parse exits 3; run `hyp check` in SRC.
 - The record names the cut: `store` (SRC as `<host>/REL` when it is inside
   the host, an absolute path otherwise) and `cut`.
+
+`--cut EVENT` without `--store` is a history cut. A repository reads all
+its stores as one history: every store whose events files git tracks,
+except a store under another store's `.tree/`, under `testdata/`, under a
+bundle's `known-answers/` or under a nested repository. The history cut
+writes each store of the host's history in its own folder, holding exactly
+the history's events at or before `EVENT`, and its evidence without the
+`E-*` folders of Experiments added after `EVENT`. A store of the base that
+holds no such event is not in the clone.
 
 ## Stacking recipes
 

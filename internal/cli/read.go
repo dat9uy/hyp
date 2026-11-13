@@ -143,30 +143,35 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	p, err := r.at(*asOf)
-	if err != nil {
-		return err
-	}
 	// hyp status G-… prints one Goal; with no Goal, a store with many Goals
 	// prints the GOALS table (ADR 0020).
 	goal := ""
-	if len(pos) == 1 {
+	resolve := func(r *reader) (replay.Projection, string, error) {
+		p, err := r.at(*asOf)
+		if err != nil || len(pos) == 0 {
+			return p, "", err
+		}
 		id, err := resolveRef(p, r.hist.Current, pos[0])
-		if err != nil && !*all {
-			// A Goal the history found from here does not hold may be held
-			// by the repository's history, when this folder's store adds
-			// nothing to it.
-			if rr, rerr := openReaderWith(store.OpenRepoHistory); rerr == nil && !sameHistory(rr.hist, r.hist) {
-				if rp, perr := rr.at(*asOf); perr == nil {
-					if rid, rerr := resolveRef(rp, rr.hist.Current, pos[0]); rerr == nil {
-						r, p, id, err = rr, rp, rid, nil
-					}
-				}
+		if err != nil {
+			return p, "", usageErr("%v", err)
+		}
+		return p, id, nil
+	}
+	p, id, err := resolve(r)
+	if err != nil && len(pos) == 1 && !*all {
+		// A Goal, or an --as-of node, the history found from here does not
+		// hold may be held by the repository's history, when this folder's
+		// store adds nothing to it.
+		if rr, rerr := openReaderWith(store.OpenRepoHistory); rerr == nil && !sameHistory(rr.hist, r.hist) {
+			if rp, rid, verr := resolve(rr); verr == nil {
+				r, p, id, err = rr, rp, rid, nil
 			}
 		}
-		if err != nil {
-			return usageErr("%v", err)
-		}
+	}
+	if err != nil {
+		return err
+	}
+	if len(pos) == 1 {
 		if p.Nodes[id].Kind != event.KindGoal {
 			return usageErr("hyp status takes a Goal: %s is a %s", pos[0], p.Nodes[id].Kind)
 		}

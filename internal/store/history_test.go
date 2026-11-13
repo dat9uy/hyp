@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/replay"
@@ -114,4 +115,56 @@ func TestAppendSortsAfterHistory(t *testing.T) {
 	if len(order) != 30 || !slices.IsSorted(order) {
 		t.Errorf("merged appends in lock order %v, want 1 to 30 in order", order)
 	}
+}
+
+// TestOneLockRoot: a store at the repository root, read with the history,
+// and an untracked store below it, read from its own folder, lock the same
+// directory, so their appends are serialized.
+func TestOneLockRoot(t *testing.T) {
+	repo := t.TempDir()
+	gitRun(t, repo, "init", "-q", "-b", "main")
+	if err := Init(repo); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Append(repo, "a", nodeAdd(t, event.KindGoal, "", "root goal", "why")); err != nil {
+		t.Fatal(err)
+	}
+	gitRun(t, repo, "add", "-A")
+	sub := filepath.Join(repo, "sub")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(eventsDir(sub), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	hr, err := OpenHistory(repo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hs, err := OpenHistory(sub)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hr.Root != hs.Root || !slices.Equal(hs.Stores, []string{".", "sub"}) {
+		t.Fatalf("root history %+v, sub history %+v: want one root and sub joined", hr, hs)
+	}
+	unlock, err := hr.lock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() {
+		u, err := hs.lock()
+		if err == nil {
+			u()
+		}
+		close(done)
+	}()
+	select {
+	case <-done:
+		t.Fatal("the sub store's writer took its lock while the root store's writer held it")
+	case <-time.After(200 * time.Millisecond):
+	}
+	unlock()
+	<-done
 }

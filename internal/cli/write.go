@@ -1124,7 +1124,11 @@ func (w *writer) checkpointGoal(named string) (string, error) {
 		}
 		return goals[0], nil
 	}
-	return "", usageErr("missing --goal: the store holds %d Goals", len(goals))
+	holder := "the store holds"
+	if w.hist.Current == "" {
+		holder = "the history holds"
+	}
+	return "", usageErr("missing --goal: %s %d Goals", holder, len(goals))
 }
 
 // sameAskWarnings names each reading that asks the same question as one the
@@ -1142,6 +1146,13 @@ func sameAskWarnings(p replay.Projection, closes, revises []string) []string {
 					continue
 				}
 				seen[m] = true
+				// An answer never crosses stores: a copy in another store
+				// is answered by its own hyp answer.
+				if ms, ks := p.Nodes[event.KeyResult(m)], p.Nodes[event.KeyResult(k)]; ms != nil && ks != nil && ms.Store != ks.Store {
+					out = append(out, fmt.Sprintf("warn: %s asks the same as %s and %s; it is in store %s, so answer it with its own hyp answer %s %s",
+						p.KeyLabel(m), p.KeyLabel(k), left, replay.StoreName(ms.Store), flag, p.KeyLabel(m)))
+					continue
+				}
 				out = append(out, fmt.Sprintf("warn: %s asks the same as %s and %s; add %s %s",
 					p.KeyLabel(m), p.KeyLabel(k), left, flag, p.KeyLabel(m)))
 			}
