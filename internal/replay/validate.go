@@ -21,6 +21,10 @@ var (
 	hexRe    = regexp.MustCompile(`^[0-9a-f]+$`)
 )
 
+// ValidID reports whether id has the form of an event id, a 26-character
+// ULID in upper case; replay rejects an event whose id has another form.
+func ValidID(id string) bool { return ulidRe.MatchString(id) }
+
 // Validate reports why ev may not be applied to st, or nil when it may. The
 // CLI calls it before appending; Replay calls it on every event.
 func Validate(st *State, ev event.Event) (err error) {

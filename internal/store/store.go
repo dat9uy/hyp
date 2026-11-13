@@ -205,8 +205,9 @@ func newID(t time.Time) string {
 // bits: two clones of one store whose clocks are behind then append
 // different ids, which a union merge keeps apart. In the greatest ULID
 // millisecond it adds one plus a random 32-bit amount to last's random bits,
-// or one when that overflows. It returns "" when no ULID sorts after last:
-// last is the greatest ULID, or an id above it that replay admits.
+// or one when that overflows, which two clones may then share. It returns ""
+// when no ULID sorts after last: last is the greatest ULID, or an id of the
+// id form above it. last is "" or has the id form (replay.ValidID).
 func idAfter(t time.Time, last string) string {
 	id := newID(t)
 	if id > last {
@@ -271,9 +272,14 @@ func AppendWith(root, actor string, build func(*replay.State, replay.Projection)
 	}
 
 	now := time.Now().UTC()
+	// The newest id the store holds is the greatest id of the id form;
+	// a line whose id replay rejects for its form holds no event.
 	last := ""
-	if len(evs) > 0 {
-		last = evs[len(evs)-1].ID
+	for i := len(evs) - 1; i >= 0; i-- {
+		if replay.ValidID(evs[i].ID) {
+			last = evs[i].ID
+			break
+		}
 	}
 	ev.V = event.Version
 	if ev.ID = idAfter(now, last); ev.ID == "" {

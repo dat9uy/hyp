@@ -275,3 +275,22 @@ func TestAppendInGreatestMillisecond(t *testing.T) {
 		}
 	}
 }
+
+// TestAppendAfterRejectedID: a line whose id replay rejects for its form, such
+// as a lower-case ULID or a short junk id that sorts after every applied id,
+// neither blocks an append nor counts as the newest id; the appended id sorts
+// after every id of the id form.
+func TestAppendAfterRejectedID(t *testing.T) {
+	for _, bad := range []string{"01mzzzzzzzzzzzzzzzzzzzzzzz", "zz", "7ZZZZZZZZZZZZZZZZZZZZZZZZ"} {
+		root := newStore(t)
+		g, err := Append(root, "a", nodeAdd(t, event.KindGoal, "", "g", "why"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		writeLines(t, root, "z", goalLine(bad, "z"))
+		ev, err := Append(root, "a", nodeAdd(t, event.KindDesignQuestion, g.ID, "q", "why"))
+		if err != nil || ev.ID <= g.ID {
+			t.Errorf("after rejected id %q: id %s, err %v; want an id after %s", bad, ev.ID, err, g.ID)
+		}
+	}
+}
