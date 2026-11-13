@@ -258,7 +258,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 			if ev.Type == event.TypeCheckpoint {
 				var s event.Checkpoint
 				_ = json.Unmarshal(ev.Payload, &s)
-				w("    summary: %s", Cut(s.Summary, event.MaxText))
+				w("    summary: %s", OneLine(s.Summary))
 				for _, k := range s.Closes {
 					w("    closes: %s", r.limitLabel(event.KeyResult(k), k))
 				}

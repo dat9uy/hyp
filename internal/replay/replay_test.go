@@ -576,7 +576,7 @@ func TestRefusals(t *testing.T) {
 			e.Payload = []byte(`{"kind":"Hypothesis","parent":"` + q + `","title":"x","status":"supported"}`)
 		}), "unknown field"},
 		{"1 ts not UTC", with(node(event.KindHypothesis, q, "x"), func(e *event.Event) { e.TS = "2026-10-24T07:00:00+07:00" }), "not UTC"},
-		{"1 over-cap title", node(event.KindHypothesis, q, strings.Repeat("ế", 121)), "over limit: title"},
+		{"1 over-cap title", node(event.KindHypothesis, q, strings.Repeat("ế", event.MaxTitle+1)), "over limit: title"},
 		{"2 duplicate id", with(node(event.KindHypothesis, q, "x"), func(e *event.Event) { e.ID = h1; e.Node = h1 }), "duplicate id"},
 		{"3 unknown node", node(event.KindHypothesis, "01JB9999999999999999999999", "x"), "unknown node"},
 		{"4 wrong parent kind", node(event.KindHypothesis, g, "x"), "wrong parent kind"},

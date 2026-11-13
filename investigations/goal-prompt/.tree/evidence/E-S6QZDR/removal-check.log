@@ -1,0 +1,58 @@
+candidate a14faa83f93b2fc4ec6868afc13236c13ea92a58 with the Experiment body cap back at 600 and the summary printed raw in status and show:
+diff --git a/internal/event/event.go b/internal/event/event.go
+index 4497f60..75f88bf 100644
+--- a/internal/event/event.go
++++ b/internal/event/event.go
+@@ -117,7 +117,7 @@ func MaxBodyOf(kind string) int {
+ 	switch kind {
+ 	case KindGoal:
+ 		return MaxGoalBody
+-	case KindExperiment, KindDesignQuestion:
++	case KindDesignQuestion:
+ 		return MaxBody
+ 	}
+ 	return MaxText
+diff --git a/internal/render/show.go b/internal/render/show.go
+index a5b8be3..4e84676 100644
+--- a/internal/render/show.go
++++ b/internal/render/show.go
+@@ -258,7 +258,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
+ 			if ev.Type == event.TypeCheckpoint {
+ 				var s event.Checkpoint
+ 				_ = json.Unmarshal(ev.Payload, &s)
+-				w("    summary: %s", OneLine(s.Summary))
++				w("    summary: %s", s.Summary)
+ 				for _, k := range s.Closes {
+ 					w("    closes: %s", r.limitLabel(event.KeyResult(k), k))
+ 				}
+diff --git a/internal/render/status.go b/internal/render/status.go
+index f5be7b0..e032edf 100644
+--- a/internal/render/status.go
++++ b/internal/render/status.go
+@@ -100,7 +100,7 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
+ 	if cp := p.LastCheckpoint[g]; cp != nil {
+ 		var s event.Checkpoint
+ 		_ = json.Unmarshal(cp.Payload, &s)
+-		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, OneLine(s.Summary))
++		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, s.Summary)
+ 	} else {
+ 		add(kKeep, "CHECKPOINT none")
+ 	}
+ok  	github.com/dat9uy/hyp/internal/check	0.720s
+--- FAIL: TestTextCapDraftKeptWholeInItsEvent (0.17s)
+--- FAIL: TestTextCapShowPrintsTheDraftWhole (0.19s)
+--- FAIL: TestTextCapEdges (0.24s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	26.127s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.344s
+ok  	github.com/dat9uy/hyp/internal/event	0.745s
+ok  	github.com/dat9uy/hyp/internal/recipe	0.572s
+--- FAIL: TestCheckpointSummaryOnOneLine (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/render	0.372s
+ok  	github.com/dat9uy/hyp/internal/replay	0.763s
+ok  	github.com/dat9uy/hyp/internal/sandbox	78.373s
+ok  	github.com/dat9uy/hyp/internal/signals	0.315s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.341s
+ok  	github.com/dat9uy/hyp/internal/store	0.475s
+FAIL

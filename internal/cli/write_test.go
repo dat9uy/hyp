@@ -90,7 +90,7 @@ func TestStatusFlagRejected(t *testing.T) {
 
 func TestOverCapTitleRefused(t *testing.T) {
 	_, _, q := setup(t)
-	want(t, hyp(t, "add", "hyp", "--parent", q, "--title", strings.Repeat("ế", 121), "--why", "w"), 1, "refused:")
+	want(t, hyp(t, "add", "hyp", "--parent", q, "--title", strings.Repeat("ế", event.MaxTitle+1), "--why", "w"), 1, "refused:")
 }
 
 func TestWrongParentRefused(t *testing.T) {
@@ -653,8 +653,10 @@ func TestGoalBodyHoldsLongerTextThanOtherNodes(t *testing.T) {
 	t.Chdir(dir)
 	t.Setenv("HYP_ACTOR", "a")
 	must(t, "init")
-	want(t, hyp(t, "add", "goal", "--title", "G", "--body", strings.Repeat("x", 2001), "--why", "w"), 1, "body")
-	g := must(t, "add", "goal", "--title", "G", "--body", strings.Repeat("x", 2000), "--why", "w")
-	must(t, "add", "dq", "--parent", g, "--title", "Q", "--body", strings.Repeat("x", 600), "--why", "w")
-	want(t, hyp(t, "add", "dq", "--parent", g, "--title", "Q", "--body", strings.Repeat("x", 601), "--why", "w"), 1, "body")
+	want(t, hyp(t, "add", "goal", "--title", "G", "--body", strings.Repeat("x", event.MaxGoalBody+1), "--why", "w"), 1, "body")
+	g := must(t, "add", "goal", "--title", "G", "--body", strings.Repeat("x", event.MaxGoalBody), "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--body", strings.Repeat("x", event.MaxBody), "--why", "w")
+	want(t, hyp(t, "add", "dq", "--parent", g, "--title", "Q", "--body", strings.Repeat("x", event.MaxBody+1), "--why", "w"), 1, "body")
+	must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", strings.Repeat("x", event.MaxText), "--why", "w")
+	want(t, hyp(t, "add", "hyp", "--parent", q, "--title", "H", "--body", strings.Repeat("x", event.MaxText+1), "--why", "w"), 1, "body")
 }

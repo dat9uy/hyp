@@ -251,10 +251,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	kind := addKinds[args[0]]
 	w := newWriter("add "+args[0], stdout, stderr)
 	title := w.fs.String("title", "", fmt.Sprintf("title (required, at most %d runes)", event.MaxTitle))
-	maxBody := event.MaxText
-	if kind == event.KindGoal {
-		maxBody = event.MaxGoalBody
-	}
+	maxBody := event.MaxBodyOf(kind)
 	body := w.fs.String("body", "", fmt.Sprintf("body (at most %d runes)", maxBody))
 	alias := w.fs.String("alias", "", "optional unique alias")
 	var parent, recipeRef, decidedBy, rubricRef *string
@@ -905,7 +902,7 @@ var retiredOwnerFlags = map[string]string{
 
 func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("checkpoint", stdout, stderr)
-	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (at most %d runes); a checkpoint holds a summary, refers, or both", event.MaxText))
+	summary := w.fs.String("summary", "", fmt.Sprintf("where the investigation stands (at most %d runes); a checkpoint holds a summary, refers, or both", event.MaxSummary))
 	goal := w.fs.String("goal", "", "the Goal this checkpoint is on; required when the store holds more than one Goal")
 	var refers multi
 	w.fs.Var(&refers, "refers", "K or K=TEXT: R-id#n or G-id#n of a limit no test within the Goal's lines can settle, handed to the owner; TEXT, or else --summary, says why (repeatable)")

@@ -100,11 +100,7 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 	if cp := p.LastCheckpoint[g]; cp != nil {
 		var s event.Checkpoint
 		_ = json.Unmarshal(cp.Payload, &s)
-		sum := Cut(s.Summary, 200)
-		if sum != Cut(s.Summary, event.MaxText) {
-			sum += " (full: hyp show " + r.id(cp.Node) + ")"
-		}
-		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, sum)
+		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, OneLine(s.Summary))
 	} else {
 		add(kKeep, "CHECKPOINT none")
 	}
@@ -670,6 +666,15 @@ func goalsTable(p replay.Projection) []line {
 	}
 	return out
 }
+
+// OneLine prints s whole on one line: each line break becomes a space, so a
+// summary's own lines never read as a section or a field of the view. A line
+// break is CR LF, or one of LF, CR, VT, FF, NEL, LS and PS.
+func OneLine(s string) string {
+	return lineBreaks.Replace(s)
+}
+
+var lineBreaks = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\v", " ", "\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ")
 
 // Cut shortens s to at most n runes, ending in … when it was cut.
 func Cut(s string, n int) string {

@@ -1,0 +1,50 @@
+candidate b3f223e1fb7c3b274b6bca1aab2f827a62b06120
+=== RUN   TestTextCapDraftKeptWholeInItsEvent
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/e-hqwta0-650.txt
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/g908prz-gate-1346.txt
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/gzbm2re-run1-stop-full.txt
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/gzbm2re-run2-stop-609.txt
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/g908prz-goal-2441.txt
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/gqxm27f-goal-2068.txt
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/q8ymfw1-title-126.txt
+--- PASS: TestTextCapDraftKeptWholeInItsEvent (0.24s)
+=== RUN   TestTextCapShowPrintsTheDraftWhole
+=== RUN   TestTextCapShowPrintsTheDraftWhole/e-hqwta0-650.txt
+=== RUN   TestTextCapShowPrintsTheDraftWhole/g908prz-gate-1346.txt
+=== RUN   TestTextCapShowPrintsTheDraftWhole/gzbm2re-run1-stop-full.txt
+=== RUN   TestTextCapShowPrintsTheDraftWhole/gzbm2re-run2-stop-609.txt
+=== RUN   TestTextCapShowPrintsTheDraftWhole/g908prz-goal-2441.txt
+=== RUN   TestTextCapShowPrintsTheDraftWhole/gqxm27f-goal-2068.txt
+=== RUN   TestTextCapShowPrintsTheDraftWhole/q8ymfw1-title-126.txt
+--- PASS: TestTextCapShowPrintsTheDraftWhole (0.22s)
+=== RUN   TestTextCapStopReportInStatusAndShow
+--- PASS: TestTextCapStopReportInStatusAndShow (0.06s)
+=== RUN   TestTextCapPromptPrintsEachConstraintLine
+=== RUN   TestTextCapPromptPrintsEachConstraintLine/g908prz-goal-2441.txt
+=== RUN   TestTextCapPromptPrintsEachConstraintLine/gqxm27f-goal-2068.txt
+--- PASS: TestTextCapPromptPrintsEachConstraintLine (0.07s)
+=== RUN   TestTextCapEdges
+=== RUN   TestTextCapEdges/goal_title
+=== RUN   TestTextCapEdges/question_title
+=== RUN   TestTextCapEdges/hypothesis_title
+=== RUN   TestTextCapEdges/experiment_title
+=== RUN   TestTextCapEdges/goal_body
+=== RUN   TestTextCapEdges/question_body
+=== RUN   TestTextCapEdges/experiment_body
+=== RUN   TestTextCapEdges/hypothesis_body
+=== RUN   TestTextCapEdges/hypothesis_amend
+=== RUN   TestTextCapEdges/observation
+=== RUN   TestTextCapEdges/runner_checkpoint_summary
+=== RUN   TestTextCapEdges/refer_text
+=== RUN   TestTextCapEdges/answer_item_text
+--- PASS: TestTextCapEdges (0.30s)
+=== RUN   TestTextCapOldOwnerSummaryEdge
+--- PASS: TestTextCapOldOwnerSummaryEdge (0.02s)
+=== RUN   TestTextCapRecordsPathEdge
+--- PASS: TestTextCapRecordsPathEdge (0.02s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.299s
+=== RUN   TestCheckpointSummaryInFull
+--- PASS: TestCheckpointSummaryInFull (0.00s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/render	0.366s

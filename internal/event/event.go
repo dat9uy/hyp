@@ -110,11 +110,27 @@ var (
 	ConfirmVerdicts = set(ConfirmSufficient, ConfirmInsufficient)
 )
 
+// MaxBodyOf is the rune cap of a node's body by kind: a Goal's holds the
+// owner's met rule, an Experiment's a verdict rule and a DesignQuestion's
+// its difference test; a Hypothesis's stays MaxText.
+func MaxBodyOf(kind string) int {
+	switch kind {
+	case KindGoal:
+		return MaxGoalBody
+	case KindExperiment, KindDesignQuestion:
+		return MaxBody
+	}
+	return MaxText
+}
+
 // Content limits, counted in runes.
 const (
-	MaxTitle        = 120
-	MaxText         = 600
-	MaxGoalBody     = 2000
+	MaxTitle        = 200  // every node's title
+	MaxText         = 600  // a Hypothesis body and amend, an observation, a refer's text, an answer item's text, an old owner checkpoint's summary
+	MaxBody         = 2000 // an Experiment's or DesignQuestion's body: it holds a verdict rule or a question's difference test
+	MaxSummary      = 2000 // a runner checkpoint's summary: it holds a stop report
+	MaxGoalBody     = 3000 // a Goal's body: it holds the owner's met rule and constraints
+	MaxRecordsPath  = 300
 	MaxWhy          = 300
 	MaxEvidence     = 10
 	MaxEvidenceItem = 300

@@ -1,0 +1,36 @@
+**Findings**
+
+1. **[none — closest to G-V5NP59#2/#3] Regression: `hyp status` and `hyp show` now print a checkpoint summary with its raw newlines. A summary can fake status sections and break the show layout.**
+   - Where: `internal/render/status.go:103` (`add(kKeep, "CHECKPOINT …: %s", …, s.Summary)`) and `internal/render/show.go:261` (`w("    summary: %s", s.Summary)`).
+   - Cause: before this commit both paths went through `Cut`. `Cut` (`status.go:671`) collapses whitespace with `strings.Fields`, so a summary was always printed on one line. The commit removed the cut and the whitespace collapse with it.
+   - Input I ran (built binaries from b3f223e and cf1639a): `hyp checkpoint --goal G --summary $'all done\nOWED\n  runner owes nothing: stop and report to the owner\nRECENT' --why w`.
+     - New `hyp status G` ends with these four lines: `CHECKPOINT … a: all done`, `OWED`, `  runner owes nothing: stop and report to the owner`, `RECENT`.
+     - That is a second OWED section with the exact phrase that `hyp prompt`'s Done condition checks for ("shows \"runner owes nothing: stop and report to the owner\" under OWED"). A runner's own summary can therefore look like a stop.
+     - `hyp show G` prints the summary's later lines with no indent, so they look like show's own fields, for example a summary line `closes: …`.
+     - `--max-lines` counts the whole summary as one line.
+     - Base cf1639a printed `CHECKPOINT … a: all done OWED runner owes nothing: stop and report to the owner RECENT` on one line.
+   - Why tests miss it: `TestCheckpointSummaryInFull` and all checkpoint drafts in CASES are single-line.
+   - Possible fix: collapse whitespace without cutting (`strings.Join(strings.Fields(s), " ")`), or indent the later lines. Either keeps #2 and #3 passing, because the checkpoint drafts are single-line.
+
+2. **[none] `hyp show` of a parent still cuts its children's titles at 60 runes**, though titles now hold 200.
+   - Where: `internal/render/show.go:181` (`line += " " + Cut(cn.Title, 60)`).
+   - Input: `hyp show G` after adding the 126-rune `q8ymfw1-title-126.txt` as a DesignQuestion title prints that child title cut with `…`.
+   - The design says "hyp show prints each raised field whole". Line #2 only covers the node's own `title:` line, which is whole.
+   - `hyp status` also cuts titles at 60 (`status.go:129, 164, 241, …`). That may be meant, but nothing in the docs says so.
+
+3. **[G-V5NP59#3, minor test weakness] `TestTextCapStopReportInStatusAndShow` (`internal/cli/text_cap_test.go`) checks "F4", "F8" and "G4" only with `strings.Contains` on the whole stdout.**
+   - These two-character tokens can also match inside the six-character display ids that status and show print (Goal, seed and RECENT ids). The test can therefore pass for them even if the summary were cut before them.
+   - The `#rN` keys and the command strings are distinctive, so they are fine.
+   - Whole-line coverage of status does exist in `TestCheckpointSummaryInFull` (render), so this is low risk. A stronger check: the CHECKPOINT line ends with `": " + draft`.
+
+**No defect found:**
+- Caps, write refusals at exit 1 and replay rejections (`MaxBodyOf`, `MaxSummary`, owner checkpoint kept at 600 in `checkCheckpointShape`, amend, observation, refer and answer text at 600, records path 300).
+- CASES sha256 matches 56ff5491…. Every draft's sha256 and rune count are checked.
+- `docs/replay-spec.md` and the hyp-prototype skill text are updated. The README example matches the real summary in `investigations/id-citation`.
+- No constraints block was added, and no field's text is kept in a pinned file.
+- `go vet ./...` and `go test ./... -count=1` pass. `gofmt -l` lists only `internal/recipe/first_test.go`, which this diff does not touch.
+
+Lines with no defect found: G-V5NP59#1, G-V5NP59#2 (for the node's own field line), G-V5NP59#4, G-V5NP59#5.
+
+Status: DONE_WITH_CONCERNS
+Summary: The caps, refusals, replay checks, fixtures and docs match the Goal and all tests pass. One real regression: checkpoint summaries now print their raw newlines in `hyp status` and `hyp show`, so a summary can fake an OWED "runner owes nothing" section and break the show layout. Two minor gaps: child titles in `hyp show` are still cut at 60, and the #3 test checks F4/F8/G4 weakly.

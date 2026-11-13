@@ -198,7 +198,7 @@ RECENT
   2026-11-01 01:16 verifier-240-1 confirm Q-DVZZHY — R-BV4CWV: text-refuse exits 2, appends nothing on K1-K6, passes G1-G5; warn and…
   2026-11-01 01:15 claude-240-1 dq.select Q-DVZZHY — Owner chose h-text-refuse over h-text-warn and h-cite after kongming's counsel:…
   2026-11-01 00:26 claude-240-1 result.record R-BV4CWV — e-arms' pre-registered rule (8e5bc68), read from id-citation-arms@1 verdict
-CHECKPOINT 2026-11-01 01:51 claude-240-1: Q-DVZZHY answered: h-text-refuse (H-88ZF3E) selected as the owner's trade-off on R-BV4CWV, verifier and owner sufficient. Next: port the rule into internal/cli (exit 2, write-time only), implementing… (full: hyp show G-4S36M5)
+CHECKPOINT 2026-11-01 01:51 claude-240-1: Q-DVZZHY answered: h-text-refuse (H-88ZF3E) selected as the owner's trade-off on R-BV4CWV, verifier and owner sufficient. Next: port the rule into internal/cli (exit 2, write-time only), implementing the body (3+ X placeholders, full placeholder word in the message), and rerun the arms recipe with the delivered hyp.
 ```
 
 The goal is complete and nothing is open. `hyp show Q-DVZZHY` shows how the question was answered (lines selected from its output):

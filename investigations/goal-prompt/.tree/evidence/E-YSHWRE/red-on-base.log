@@ -1,0 +1,73 @@
+base 2277aa9418128c283c09d8f09c330b74e1e670c7 with text_cap_test.go of b3f223e1fb7c3b274b6bca1aab2f827a62b06120
+=== RUN   TestTextCapDraftKeptWholeInItsEvent
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/e-hqwta0-650.txt
+    text_cap_test.go:229: e-hqwta0-650.txt: exit 1, stderr "refused: over limit: body has 650 runes (max 600)\n"
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/g908prz-gate-1346.txt
+    text_cap_test.go:229: g908prz-gate-1346.txt: exit 1, stderr "refused: over limit: body has 1346 runes (max 600)\n"
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/gzbm2re-run1-stop-full.txt
+    text_cap_test.go:229: gzbm2re-run1-stop-full.txt: exit 1, stderr "refused: over limit: summary has 1029 runes (max 600)\n"
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/gzbm2re-run2-stop-609.txt
+    text_cap_test.go:229: gzbm2re-run2-stop-609.txt: exit 1, stderr "refused: over limit: summary has 609 runes (max 600)\n"
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/g908prz-goal-2441.txt
+    text_cap_test.go:229: g908prz-goal-2441.txt: exit 1, stderr "refused: over limit: body has 2441 runes (max 2000)\n"
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/gqxm27f-goal-2068.txt
+    text_cap_test.go:229: gqxm27f-goal-2068.txt: exit 1, stderr "refused: over limit: body has 2068 runes (max 2000)\n"
+=== RUN   TestTextCapDraftKeptWholeInItsEvent/q8ymfw1-title-126.txt
+    text_cap_test.go:229: q8ymfw1-title-126.txt: exit 1, stderr "refused: over limit: title has 126 runes (max 120)\n"
+--- FAIL: TestTextCapDraftKeptWholeInItsEvent (0.19s)
+=== RUN   TestTextCapShowPrintsTheDraftWhole
+=== RUN   TestTextCapShowPrintsTheDraftWhole/e-hqwta0-650.txt
+    text_cap_test.go:267: e-hqwta0-650.txt: exit 1, stderr "refused: over limit: body has 650 runes (max 600)\n"
+=== RUN   TestTextCapShowPrintsTheDraftWhole/g908prz-gate-1346.txt
+    text_cap_test.go:267: g908prz-gate-1346.txt: exit 1, stderr "refused: over limit: body has 1346 runes (max 600)\n"
+=== RUN   TestTextCapShowPrintsTheDraftWhole/gzbm2re-run1-stop-full.txt
+    text_cap_test.go:267: gzbm2re-run1-stop-full.txt: exit 1, stderr "refused: over limit: summary has 1029 runes (max 600)\n"
+=== RUN   TestTextCapShowPrintsTheDraftWhole/gzbm2re-run2-stop-609.txt
+    text_cap_test.go:267: gzbm2re-run2-stop-609.txt: exit 1, stderr "refused: over limit: summary has 609 runes (max 600)\n"
+=== RUN   TestTextCapShowPrintsTheDraftWhole/g908prz-goal-2441.txt
+    text_cap_test.go:267: g908prz-goal-2441.txt: exit 1, stderr "refused: over limit: body has 2441 runes (max 2000)\n"
+=== RUN   TestTextCapShowPrintsTheDraftWhole/gqxm27f-goal-2068.txt
+    text_cap_test.go:267: gqxm27f-goal-2068.txt: exit 1, stderr "refused: over limit: body has 2068 runes (max 2000)\n"
+=== RUN   TestTextCapShowPrintsTheDraftWhole/q8ymfw1-title-126.txt
+    text_cap_test.go:267: q8ymfw1-title-126.txt: exit 1, stderr "refused: over limit: title has 126 runes (max 120)\n"
+--- FAIL: TestTextCapShowPrintsTheDraftWhole (0.18s)
+=== RUN   TestTextCapStopReportInStatusAndShow
+    text_cap_test.go:290: hyp [checkpoint --goal G-BGJBJ7 --summary Stopped: the runner owes nothing on G-ZBM2RE, and 5 Experiments are recorded (E-HQWTA0, E-C3GGGJ, E-Z5BTZR, E-7QQ2DP, E-NZR3GV). H-YXSJEM (feat/goal-prompt at 5c5902d, PR #140) is the one candidate on Q-Z93VJ5; lines #1-#7 ran in R-
+--- FAIL: TestTextCapStopReportInStatusAndShow (0.05s)
+=== RUN   TestTextCapPromptPrintsEachConstraintLine
+=== RUN   TestTextCapPromptPrintsEachConstraintLine/g908prz-goal-2441.txt
+    text_cap_test.go:323: hyp [add goal --title G2 --body For issue #141 (part of #113). The candidate is a hyp commit over main 9c8e498b87683e50a94a410b6a3cfecdd7a0d441 that changes the run practice of a build Goal (review, budget, stop) in skills/hyp-goal-run, or hyp prompt's default N. Owner's pr
+=== RUN   TestTextCapPromptPrintsEachConstraintLine/gqxm27f-goal-2068.txt
+    text_cap_test.go:323: hyp [add goal --title G2 --body For issue #146 (part of #113). The candidate is a hyp commit over main 132cb8e21ad5750266e11d413a172d1d9a891976 that changes skills/hyp-owner-grill to fix entries S1 to S6 of #146, and hyp add goal for line 9; S7 is another Goal. An entry who
+--- FAIL: TestTextCapPromptPrintsEachConstraintLine (0.05s)
+=== RUN   TestTextCapEdges
+=== RUN   TestTextCapEdges/goal_title
+    text_cap_test.go:453: 200 runes: exit 1, stderr "refused: over limit: title has 200 runes (max 120)\n"
+=== RUN   TestTextCapEdges/question_title
+    text_cap_test.go:453: 200 runes: exit 1, stderr "refused: over limit: title has 200 runes (max 120)\n"
+=== RUN   TestTextCapEdges/hypothesis_title
+    text_cap_test.go:453: 200 runes: exit 1, stderr "refused: over limit: title has 200 runes (max 120)\n"
+=== RUN   TestTextCapEdges/experiment_title
+    text_cap_test.go:453: 200 runes: exit 1, stderr "refused: over limit: title has 200 runes (max 120)\n"
+=== RUN   TestTextCapEdges/goal_body
+    text_cap_test.go:453: 3000 runes: exit 1, stderr "refused: over limit: body has 3000 runes (max 2000)\n"
+=== RUN   TestTextCapEdges/question_body
+    text_cap_test.go:453: 2000 runes: exit 1, stderr "refused: over limit: body has 2000 runes (max 600)\n"
+=== RUN   TestTextCapEdges/experiment_body
+    text_cap_test.go:453: 2000 runes: exit 1, stderr "refused: over limit: body has 2000 runes (max 600)\n"
+=== RUN   TestTextCapEdges/hypothesis_body
+=== RUN   TestTextCapEdges/hypothesis_amend
+=== RUN   TestTextCapEdges/observation
+=== RUN   TestTextCapEdges/runner_checkpoint_summary
+    text_cap_test.go:453: 2000 runes: exit 1, stderr "refused: over limit: summary has 2000 runes (max 600)\n"
+=== RUN   TestTextCapEdges/refer_text
+=== RUN   TestTextCapEdges/answer_item_text
+--- FAIL: TestTextCapEdges (0.22s)
+=== RUN   TestTextCapOldOwnerSummaryEdge
+--- PASS: TestTextCapOldOwnerSummaryEdge (0.01s)
+=== RUN   TestTextCapRecordsPathEdge
+--- PASS: TestTextCapRecordsPathEdge (0.02s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.851s
+FAIL
+go test exit 1

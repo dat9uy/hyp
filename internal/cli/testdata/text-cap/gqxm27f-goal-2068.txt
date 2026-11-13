@@ -1,0 +1,11 @@
+For issue #146 (part of #113). The candidate is a hyp commit over main 132cb8e21ad5750266e11d413a172d1d9a891976 that changes skills/hyp-owner-grill to fix entries S1 to S6 of #146, and hyp add goal for line 9; S7 is another Goal. An entry whose line holds on the base is recorded as not a skill defect, with that Result as the reason, and gets no text change.
+Fixture A: the #113 grill; repository and hyp at a51f140; issue #113 as of 2026-11-11T16:20Z. Fixture B: the #141 grill; repository and hyp at 9c8e498; issue #141 as of 2026-11-12T03:45Z. A trial runs the grill under the candidate or the base text in a sandbox; a stand-in owner gives the owner's replies in session 285fa63e or f50e4740 to the questions the grill asks, paraphrased in a file of the bundle. The method is in the Question's body.
+May change: this repository, in commits on the branch the prompt names, in a worktree separate from the checkout ~/.claude/skills links to, following AGENTS.md; the run may push that branch and open or update one PR, and never merges it.
+May change: skills/hyp-owner-grill and every text the change makes wrong (skills/, docs/, AGENTS.md, README.md); cmd/, internal/ and testdata for line 9; a new investigations/goal-prompt/recipes/hyp-owner-grill-eval@N.
+Read only: plans/, every investigations/ tree except goal-prompt, ak-skill-creator under .claude/skills, the transcripts 285fa63e and f50e4740 to write the stand-in's replies.
+Never: commit to main or merge a PR.
+Never: replace an installed hyp; compile each candidate to a separate path.
+Never: edit an existing recipe version, rubrics/, another tree, .claude/skills or another repository.
+Never: commit the transcripts 285fa63e or f50e4740 or text copied from them.
+Never: let a trial reach a remote or write outside its sandbox, or run a trial or its subagents on a model other than Sonnet.
+Never: write under an owner's actor in this repository's stores; a trial's stand-in writes as owner-standin only in its sandbox store; if a step needs the owner, refer with a reason or record a reading, and stop.

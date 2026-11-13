@@ -1,0 +1,45 @@
+candidate 69f0979e9b00c3b5ceccb7030ce3a2476924d36a with the Experiment body cap back at 600 and OneLine back to LF, CR LF and CR only:
+diff --git a/internal/event/event.go b/internal/event/event.go
+index 4497f60..75f88bf 100644
+--- a/internal/event/event.go
++++ b/internal/event/event.go
+@@ -117,7 +117,7 @@ func MaxBodyOf(kind string) int {
+ 	switch kind {
+ 	case KindGoal:
+ 		return MaxGoalBody
+-	case KindExperiment, KindDesignQuestion:
++	case KindDesignQuestion:
+ 		return MaxBody
+ 	}
+ 	return MaxText
+diff --git a/internal/render/status.go b/internal/render/status.go
+index 2a35187..eb96bd7 100644
+--- a/internal/render/status.go
++++ b/internal/render/status.go
+@@ -674,7 +674,7 @@ func OneLine(s string) string {
+ 	return lineBreaks.Replace(s)
+ }
+ 
+-var lineBreaks = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\v", " ", "\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ")
++var lineBreaks = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ")
+ 
+ // Cut shortens s to at most n runes, ending in … when it was cut.
+ func Cut(s string, n int) string {
+ok  	github.com/dat9uy/hyp/internal/check	0.684s
+--- FAIL: TestTextCapDraftKeptWholeInItsEvent (0.17s)
+--- FAIL: TestTextCapShowPrintsTheDraftWhole (0.20s)
+--- FAIL: TestTextCapEdges (0.17s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	24.009s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.344s
+ok  	github.com/dat9uy/hyp/internal/event	0.403s
+ok  	github.com/dat9uy/hyp/internal/recipe	0.579s
+--- FAIL: TestCheckpointSummaryOnOneLine (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/render	0.384s
+ok  	github.com/dat9uy/hyp/internal/replay	0.366s
+ok  	github.com/dat9uy/hyp/internal/sandbox	73.943s
+ok  	github.com/dat9uy/hyp/internal/signals	0.302s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.316s
+ok  	github.com/dat9uy/hyp/internal/store	0.487s
+FAIL

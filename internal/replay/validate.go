@@ -80,10 +80,7 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 	if err := textLimit("title", p.Title, 1, event.MaxTitle); err != nil {
 		return err
 	}
-	maxBody := event.MaxText
-	if p.Kind == event.KindGoal {
-		maxBody = event.MaxGoalBody // a Goal's body holds the owner's met rule
-	}
+	maxBody := event.MaxBodyOf(p.Kind)
 	if err := textLimit("body", p.Body, 0, maxBody); err != nil {
 		return err
 	}
@@ -218,7 +215,7 @@ func checkRecords(files []event.SubjectFile) error {
 	}
 	seen := map[string]bool{}
 	for _, f := range files {
-		if err := textLimit("records path", f.Path, 1, event.MaxText/2); err != nil {
+		if err := textLimit("records path", f.Path, 1, event.MaxRecordsPath); err != nil {
 			return fmt.Errorf("bad records: %w", err)
 		}
 		if seen[f.Path] {

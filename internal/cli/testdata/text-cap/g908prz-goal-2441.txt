@@ -1,0 +1,12 @@
+For issue #141 (part of #113). The candidate is a hyp commit over main 9c8e498b87683e50a94a410b6a3cfecdd7a0d441 that changes the run practice of a build Goal (review, budget, stop) in skills/hyp-goal-run, or hyp prompt's default N. Owner's prediction: H-whole-candidate is contradicted on cost.
+Cut A: this store as of 01M75T1YRF2R2Z99DX0E8JQPWG (R-8JQPWG), actor claude-g113-1, code at b4f23b2. Cut B: as of 01M76V52SZ9DMCYFVYFRJEGDSA (run 2's stop), a fresh actor, code at 3cfd08d. A trial replays a cut with the prompt hyp prompt prints for it with N = the candidate's default.
+The run builds the instrument as a new recipe: a sandbox at the cut's commit; the candidate's skills/ copied to wt/.claude/skills and claude -p run on Sonnet with --setting-sources project; gh auth unset; Doctor shows the loaded hyp-goal-run sha256 is the candidate's and no later commit is reachable. Every trial pins the same model, effort, claude version, timeout and cut; only skills and N differ. Each row is (candidate, cut, trial 1-3) with total_cost_usd, duration_ms, num_turns and pass, from the result record; no trial is dropped. Cost is total_cost_usd only, never estimated; a bundle script takes the middle of the 3 sorted values, and a trial with no result record counts as the highest. One Opus trial of the selected candidate on cut A.
+A review Result gives a verdict on a candidate and cites a review written by a subagent whose transcript in the trial read that candidate's diff.
+May change: this repository, in commits on the branch the prompt names, in a worktree separate from the checkout ~/.claude/skills links to, following AGENTS.md; the run may push that branch and open or update one PR, and never merges it.
+May change: skills/hyp-goal-run and the text the change makes wrong (skills/, docs/, AGENTS.md, README.md); cmd/, internal/ and testdata for H-raise-budget only; a new recipes/ directory.
+Read only: plans/, every investigations/ tree except goal-prompt, ak-skill-creator under .claude/skills.
+Never: commit to main or merge a PR.
+Never: replace an installed hyp; compile each candidate to a separate path.
+Never: edit an existing recipe version, rubrics/, another tree, .claude/skills or another repository.
+Never: let a trial reach a remote, or run one on a model other than Sonnet except the one Opus trial.
+Never: write under an owner's actor; if a step needs the owner, refer with a reason or record a reading, and stop.

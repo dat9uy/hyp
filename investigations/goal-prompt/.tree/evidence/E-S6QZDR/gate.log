@@ -1,0 +1,19 @@
+candidate a14faa83f93b2fc4ec6868afc13236c13ea92a58
+go vet exit 0
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.879s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	26.358s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.322s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.326s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.609s
+ok  	github.com/dat9uy/hyp/internal/render	0.133s
+ok  	github.com/dat9uy/hyp/internal/replay	0.333s
+ok  	github.com/dat9uy/hyp/internal/sandbox	75.630s
+ok  	github.com/dat9uy/hyp/internal/signals	0.319s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.320s
+ok  	github.com/dat9uy/hyp/internal/store	0.529s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+go test exit 0
