@@ -1,6 +1,8 @@
 ---
 name: hyp-goal-run
 description: "Run a hyp tree under an owner's Goal as an unattended /goal, for a discovery Goal or a build Goal: act only on what OWED says the runner owes, test before asking, write readings the owner can answer, reassess the targets under the owner's answers, and stop with a report the owner can read from hyp status. Use when a /goal prompt names this skill, such as the one hyp prompt prints."
+metadata:
+  version: "1.1.0"
 ---
 
 The `/goal` prompt names the tree, your actor, the Goal, the stop and the Goal body's constraints; `hyp prompt <goal-id> --actor <actor>` prints it from the log. This skill says how to work until that stop. Use it with the hyp-prototype skill, which says how to add Questions, Hypotheses, Experiments and Results, and the hyp-verification skill, which says how to run an Experiment.
@@ -36,8 +38,19 @@ A build Goal's candidate is a commit. Its practice:
 - Keep the logs under `.tree/evidence/<E-id>/` and cite them in the Result.
 - Review each candidate before any select of it, in its gate Experiment, so the review costs no extra Result. Ask a fresh subagent for one review of the candidate commit's diff (`git show <commit>`) against the design and the Goal's lines. Give it the code, the lines and the keys already settled, with the owner's words; do not give it your conclusion. Ask it to label each finding with the line it is a case of, or none.
 - Save the subagent's reply word for word under `.tree/evidence/<E-id>/`, never your summary of it, and cite that file in the Result that gives the candidate its verdict. A candidate is reviewed only when such a Result exists. Select no candidate that is not reviewed.
-- Sort each finding: a case of a line is a `--limit` you close or, only if void, refer; a question about a line's meaning is a reading; a defect in text you may edit is a fix commit; anything else is an out-of-Goal finding, named in the stop checkpoint, and it never holds the select.
+- Sort each finding: a case of a line is a `--limit` you close or, only if void, refer; a question about a line's meaning is a reading; anything else is an out-of-Goal finding, which you triage as "Out-of-Goal findings" below.
 - The run may push its branch and open or update one PR. It never merges.
+
+## Out-of-Goal findings
+
+An out-of-Goal finding is a case of none of the Goal's lines and asks no question about what a line means. It gets no limit, no refer and no reading, and it never holds the select. Give each one the first destination that fits:
+
+1. **Check that it is a defect.** Cite the file and line, or the run, that shows it. If the code or the run does not show it, drop it, and give the reason in one phrase in the checkpoint.
+2. **Fix it on the run's branch** when the Goal's `May change:` lines let you edit what the fix touches: one commit, before the stop. On a build Goal it is a fix like any other, so a new Hypothesis that passes the gate and the review before any select.
+3. **Fold it into a known issue** when an open issue in the repository's tracker already covers it: name the issue and write the comment that adds the finding.
+4. **Propose a new issue** only when no open issue covers it: write its title and body, with the evidence from step 1.
+
+You post nothing for steps 3 and 4: the owner decides what enters the tracker, so you write the comment or the issue and the owner posts it.
 
 ## Before a trade-off
 
@@ -87,14 +100,14 @@ Stop on the clauses the `/goal` prompt names. Stopping is not success.
 1. Before your last message, record a runner checkpoint, so the fork does not live only in chat; the owner reads `hyp status`, which prints the last checkpoint, each reading in full and what each copy's answer can touch. Do not restate a reading's meanings in the checkpoint:
 
    ```text
-   hyp checkpoint --goal <goal-id> --summary "Stopped: <stop clause>. Candidates not reviewed: <each by Hypothesis id and commit, or none>. Waiting for the owner: <the keys under AWAITING OWNER>. Out-of-Goal findings: <one short phrase each, or none>" --why "<why>"
+   hyp checkpoint --goal <goal-id> --summary "Stopped: <stop clause>. Candidates not reviewed: <each by Hypothesis id and commit, or none>. Waiting for the owner: <the keys under AWAITING OWNER>. Out-of-Goal findings: <each as one short phrase and its destination: fixed in <commit>, issue <id>, new issue, or dropped, or none>" --why "<why>"
    ```
 
-   An out-of-Goal finding is a case of none of the Goal's lines: it gets no limit, no refer and no reading, and it never holds the select. Name each one in the checkpoint so it lives in the log, not only in chat. A defect in text you changed and may edit is not one: fix it with a commit before the stop.
+   Name each out-of-Goal finding in the checkpoint so it lives in the log, not only in chat.
 
 2. Your last message repeats the checkpoint, and lists each line under LINES by its key, with the Results that ran it, and names each question where OWED still owes a line. A run that ends with lines owed is a normal result.
 
-3. Then list every owner item with the exact command the owner runs: each item under AWAITING OWNER, each out-of-Goal finding (a new Goal or an issue), merging the PR, reinstalling hyp, and each personal skill that names a command the change altered.
+3. Then list every owner item with the exact command the owner runs: each item under AWAITING OWNER, each out-of-Goal finding with what its destination asks of the owner (a fix commit to check, or a comment or issue to post, with its text), merging the PR, reinstalling hyp, and each personal skill that names a command the change altered.
 
 ## Never
 

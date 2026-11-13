@@ -176,7 +176,7 @@ A limit the owner records on the Goal: a case every candidate must meet, keyed `
 _Avoid_: met line, acceptance criterion, requirement, rule change (a change is a reading, an accept, a return or a new tree)
 
 **Out-of-Goal finding**:
-A finding, often from a run's review, that is a case of none of the Goal's lines and asks no question about what a line means. It is not a limit, since a limit is a case the Goal covers, so it gets no tree event, no refer and no accept, and it never holds the select. The runner names it in its stop checkpoint's summary and its last message as a possible new Goal or issue, and the owner decides at global scope whether to add one. A defect in text the run changed and may edit is not one: the run fixes it with a commit.
+A finding, often from a run's review, that is a case of none of the Goal's lines and asks no question about what a line means. It is not a limit, since a limit is a case the Goal covers, so it gets no tree event, no refer and no accept, and it never holds the select. The runner first shows that it is a defect, then gives it the first destination that fits: a fix commit in the run's PR when the Goal's `May change:` lines allow the edit, a comment on an open issue that already covers it, or a new issue. It names each finding with its destination in its stop checkpoint's summary and its last message, and the owner posts the comment or the issue, or adds a new Goal.
 _Avoid_: limit, refer (for a case no line covers), side note
 
 **Keyed item**:
