@@ -275,7 +275,7 @@ var rules = map[string]rule{
 			if err := checkCheckpointShape(p); err != nil {
 				return err
 			}
-			if err := textLimit("summary", p.Summary, 0, event.MaxText); err != nil {
+			if err := textLimit("summary", p.Summary, 0, event.MaxSummary); err != nil {
 				return err
 			}
 			if err := f.checkLines(ev.Node, p); err != nil {

@@ -100,11 +100,7 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 	if cp := p.LastCheckpoint[g]; cp != nil {
 		var s event.Checkpoint
 		_ = json.Unmarshal(cp.Payload, &s)
-		sum := Cut(s.Summary, 200)
-		if sum != Cut(s.Summary, event.MaxText) {
-			sum += " (full: hyp show " + r.id(cp.Node) + ")"
-		}
-		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, sum)
+		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, s.Summary)
 	} else {
 		add(kKeep, "CHECKPOINT none")
 	}

@@ -275,7 +275,7 @@ func TestShowPrintsFullWhy(t *testing.T) {
 }
 
 func TestCheckpointSummaryInFull(t *testing.T) {
-	long := strings.Repeat("abcdefghij", 52) + "END-OF-SUMMARY"
+	long := strings.Repeat("abcdefghij", 198) + "END-OF-SUMMARY"
 	b := testutil.New()
 	g := b.Goal("g")
 	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: long})
@@ -283,27 +283,19 @@ func TestCheckpointSummaryInFull(t *testing.T) {
 	if len(p.Rejections) != 0 {
 		t.Fatalf("rejections: %v", p.Rejections)
 	}
-	if show := Show(p, g, nil); !strings.Contains(show, "    summary: "+long) {
+	if show := Show(p, g, nil); !strings.Contains(show, "    summary: "+long+"\n") {
 		t.Fatalf("show lacks the full summary:\n%s", show)
 	}
+	// hyp status prints the last checkpoint's summary whole, with no cut and
+	// no pointer to hyp show: a stop report's owner commands are read there.
 	var line string
 	for _, l := range strings.Split(Status(p, 0), "\n") {
 		if strings.HasPrefix(l, "CHECKPOINT ") {
 			line = l
 		}
 	}
-	if want := " (full: hyp show " + event.DisplayID(event.KindGoal, g) + ")"; !strings.Contains(line, "…") || !strings.HasSuffix(line, want) {
-		t.Fatalf("cut summary lacks pointer %q: %q", want, line)
-	}
-
-	b2 := testutil.New()
-	g2 := b2.Goal("g")
-	b2.Emit(event.TypeCheckpoint, g2, event.Checkpoint{Summary: "short summary"})
-	p2 := replay.Replay(b2.Evs, nil, "")
-	for _, l := range strings.Split(Status(p2, 0), "\n") {
-		if strings.HasPrefix(l, "CHECKPOINT ") && (!strings.HasSuffix(l, ": short summary") || strings.Contains(l, "(full:")) {
-			t.Fatalf("short summary changed: %q", l)
-		}
+	if !strings.HasSuffix(line, ": "+long) || strings.Contains(line, "(full:") {
+		t.Fatalf("status does not print the summary whole: %q", line)
 	}
 }
 

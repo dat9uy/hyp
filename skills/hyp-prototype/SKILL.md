@@ -200,7 +200,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
 
 ## End of session
 
-1. `hyp checkpoint --summary "<what is next, at most 600 characters>" --why "end of session"`.
+1. `hyp checkpoint --summary "<what is next, at most 2000 characters>" --why "end of session"`.
 2. `hyp check` must print `check: 0 errors`. Fix any rejected event by
    recording a correct one; never edit the log.
 3. Commit `.tree/events/` and `.tree/evidence/` with the code they describe.
