@@ -1,6 +1,8 @@
 package replay
 
 import (
+	"bytes"
+	"encoding/json"
 	"slices"
 	"sort"
 	"strings"
@@ -11,8 +13,8 @@ import (
 // Merge orders the events of per-actor files by id, then by actor (the file
 // name without .jsonl), whatever the line order inside a file: a file that
 // git merged with the union driver holds both branches' lines in any order,
-// and replays the same. Two events with the same id and actor keep their
-// file order.
+// and replays the same. Two events with the same id and actor are ordered by
+// their JSON encoding, so not by file order either.
 func Merge(files map[string][]event.Event) []event.Event {
 	order := MergeOrder(files)
 	out := make([]event.Event, len(order))
@@ -44,7 +46,9 @@ func MergeOrder(files map[string][]event.Event) []At {
 		if c := strings.Compare(a.Actor, b.Actor); c != 0 {
 			return c
 		}
-		return a.Index - b.Index
+		ea, _ := json.Marshal(files[a.Actor][a.Index])
+		eb, _ := json.Marshal(files[b.Actor][b.Index])
+		return bytes.Compare(ea, eb)
 	})
 	return out
 }

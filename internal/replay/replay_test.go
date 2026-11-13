@@ -531,6 +531,17 @@ func TestMergeOrdersByIDThenActor(t *testing.T) {
 	}
 }
 
+// TestMergeSameIDSameActor: two lines with one id in one file, as two clones
+// could write, merge in the same order whichever comes first in the file.
+func TestMergeSameIDSameActor(t *testing.T) {
+	x, y := event.Event{ID: "01JB0000000000000000000005", Why: "x"}, event.Event{ID: "01JB0000000000000000000005", Why: "y"}
+	one := Merge(map[string][]event.Event{"a": {x, y}})
+	other := Merge(map[string][]event.Event{"a": {y, x}})
+	if !reflect.DeepEqual(one, other) {
+		t.Fatalf("merge depends on file order: %v vs %v", one, other)
+	}
+}
+
 func TestRefusals(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")

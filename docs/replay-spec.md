@@ -26,7 +26,7 @@ This spec adds the minimum needed to make the owner-confirmed design executable;
 
 ## 2. Ids
 
-- Every event has `id`, a ULID (26 characters, Crockford base32, upper case), generated monotonic per process. An appended event's id sorts after every event id the store holds: when the clock reads earlier than the newest id, or in its millisecond, the new id is the newest id plus one (ADR 0022). `ts` keeps the clock's time.
+- Every event has `id`, a ULID (26 characters, Crockford base32, upper case), generated monotonic per process. An appended event's id sorts after every event id the store holds: when the clock reads earlier than the newest id, or in its millisecond, the new id takes the millisecond after the newest id's, with fresh random bits, so two clones whose clocks are behind append different ids (ADR 0022). `ts` keeps the clock's time.
 - `node.add` and `result.record` create a node whose node id equals the event id.
 - Display id: `<K>-<last 6 characters of the ULID>`, where K is `G` (Goal), `Q` (DesignQuestion), `H` (Hypothesis), `E` (Experiment) or `R` (Result). Example: `H-7QK2ZD`.
 - Optional alias on `node.add`: it must match `^[a-z][a-z0-9-]{0,31}$` and be unique in the log.
@@ -155,7 +155,7 @@ More refusals come from the CLI before it appends, not from `Validate`. They rea
 
 ## 6. Merge order
 
-- Read every `.tree/events/*.jsonl` file and order all events by `id`, then by actor (the file name without `.jsonl`), whatever the line order inside a file; two lines with the same id in one file keep their file order. A file that git merged with the union driver (§1) may hold two branches' lines in any order, so a store whose files hold the same lines in another order replays, prints `hyp status` and `hyp check`, and cuts the same (ADR 0022). ULIDs embed time, and §2 makes an appended id the greatest, so this is append order within one store.
+- Read every `.tree/events/*.jsonl` file and order all events by `id`, then by actor (the file name without `.jsonl`), whatever the line order inside a file; two lines with the same id in one file are ordered by their JSON encoding, so not by file order either. A file that git merged with the union driver (§1) may hold two branches' lines in any order, so a store whose files hold the same lines in another order replays, prints `hyp status` and `hyp check`, and cuts the same (ADR 0022). ULIDs embed time, and §2 makes an appended id the greatest, so this is append order within one store.
 - `hyp check` warns, without rejecting, when an event references an id that sorts after it.
 - `hyp sandbox create --store SRC --cut EVENT` writes a store cut in this order: the merged events up to and including the first with id `EVENT` (the `asOf` stop in §7), each line as written and each events file's kept lines in id order, so the cut store replays to the same state as `asOf = EVENT` on SRC and the same lines in another file order cut to the same bytes. The cut replaces any `.tree` the base holds at its root.
 - A line that does not parse has no id, so it is not in the merge. `hyp check` reports it as an error naming `file:line`; `hyp status` (with or without `--as-of`) replays the other lines, exits as usual, and prints `warn: skipped file:line: …` on stderr for each such line; `hyp sandbox create --store SRC --cut EVENT` refuses the store with exit 3, naming the first such `file:line`.

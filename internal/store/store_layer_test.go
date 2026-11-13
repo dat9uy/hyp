@@ -133,3 +133,67 @@ func TestUnionMergeKeepsBothBranches(t *testing.T) {
 		}
 	}
 }
+
+// TestClockBehindOnTwoClones: two clones of a store whose newest id is from a
+// clock far ahead each append one event under the same actor. The two ids
+// differ, both sort after the newest, and the events file holding both
+// clones' lines, in either order, replays every event with no rejection.
+func TestClockBehindOnTwoClones(t *testing.T) {
+	root := newStore(t)
+	g, err := Append(root, "a", nodeAdd(t, event.KindGoal, "", "goal", "why"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A far time below the greatest, so the next millisecond exists.
+	future := "7ZZZZZZZZY0000000000000000"
+	writeLines(t, root, "z", `{"v":1,"id":"`+future+`","ts":"2026-10-27T00:00:00Z","actor":"z","type":"node.add","node":"`+future+`","payload":{"kind":"DesignQuestion","parent":"`+g.ID+`","title":"q"},"why":"w"}`)
+	base, err := os.ReadFile(filepath.Join(root, ".tree", "events", "a.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var added [2]string
+	var ids [2]string
+	for i := range 2 {
+		clone := filepath.Join(t.TempDir(), "clone")
+		if err := os.CopyFS(clone, os.DirFS(root)); err != nil {
+			t.Fatal(err)
+		}
+		ev, err := Append(clone, "a", nodeAdd(t, event.KindDesignQuestion, g.ID, "q", "why"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, _ := os.ReadFile(filepath.Join(clone, ".tree", "events", "a.jsonl"))
+		added[i], ids[i] = string(data[len(base):]), ev.ID
+	}
+	if ids[0] == ids[1] || ids[0] <= future || ids[1] <= future {
+		t.Fatalf("clone ids %v, want two different ids after %s", ids, future)
+	}
+	var applied [2][]string
+	for i, order := range [][2]int{{0, 1}, {1, 0}} {
+		merged := newStore(t)
+		data := string(base) + added[order[0]] + added[order[1]]
+		if err := os.WriteFile(filepath.Join(merged, ".tree", "events", "a.jsonl"), []byte(data), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		zs, _ := os.ReadFile(filepath.Join(root, ".tree", "events", "z.jsonl"))
+		if err := os.WriteFile(filepath.Join(merged, ".tree", "events", "z.jsonl"), zs, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		p, lineErrs, err := Load(merged)
+		if err != nil || len(lineErrs) > 0 || len(p.Rejections) > 0 {
+			t.Fatalf("order %v: %v %v %v", order, err, lineErrs, p.Rejections)
+		}
+		applied[i] = ids2(p.Applied)
+	}
+	if !slices.Equal(applied[0], applied[1]) || len(applied[0]) != 4 {
+		t.Errorf("applied %v and %v, want the same four events", applied[0], applied[1])
+	}
+}
+
+func ids2(evs []event.Event) []string {
+	var out []string
+	for _, ev := range evs {
+		out = append(out, ev.ID)
+	}
+	return out
+}

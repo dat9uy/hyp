@@ -177,8 +177,10 @@ func newID(t time.Time) string {
 
 // idAfter returns a new id for time t that sorts after last, the greatest id
 // the store holds. When the clock reads earlier than last, or the same
-// millisecond, the id is last plus one, so an appended event always sorts
-// after every event the store holds. A last that is not a ULID is ignored.
+// millisecond, the id takes the millisecond after last's, with fresh random
+// bits: two clones of one store whose clocks are behind then append
+// different ids, which a union merge keeps apart. A last that is not a ULID
+// is ignored.
 func idAfter(t time.Time, last string) string {
 	id := newID(t)
 	if id > last {
@@ -187,6 +189,9 @@ func idAfter(t time.Time, last string) string {
 	u, err := ulid.ParseStrict(last)
 	if err != nil {
 		return id
+	}
+	if ms := u.Time(); ms < ulid.MaxTime() {
+		return newID(ulid.Time(ms + 1))
 	}
 	for i := len(u) - 1; i >= 0; i-- {
 		u[i]++
