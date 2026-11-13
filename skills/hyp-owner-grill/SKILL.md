@@ -42,7 +42,7 @@ Each item is a mistake earlier grills made. Check the round or the table against
 | what the purpose must allow or must never allow | a line of the Goal | yes |
 | the purpose, its scope, who asked and why | the Goal's title and body | yes |
 | what a run may change, may only read, or must never do | the Goal body's `May change:`, `Read only:` and `Never:` headings | yes |
-| how the tree is run (process, review, order, cadence) | the Goal body, an Experiment's verdict rule, or the `/goal` prompt; never a line | only where it is a preference |
+| how the tree is run (process, review, order, cadence) | the Goal body, an Experiment's body, or the `/goal` prompt; never a line | only where it is a preference |
 | a purpose outside this Goal | a separate Goal, added by the owner | name it; the owner decides |
 
 A testable option set is never put to the owner as a choice. If the owner settles such a question in the session anyway, it is still a DesignQuestion with its rivals, recorded as decided with the session as evidence (see Writes), so the tree says it was argued, not tested. A question becomes a DesignQuestion only when you can name the scenario a run would execute to separate its rivals, such as two Goals in one store, or a base that moves mid-run. A decision with alternatives but no such scenario, such as a preferred shape, bound or word, is the owner's: it is a line or body text, never a question recorded as decided. One DesignQuestion holds one question, and every rival under it answers that question; two grill questions are two DesignQuestions.
@@ -70,7 +70,7 @@ Lines are the Goal's positive and negative space, written once and never edited.
 5. state one invariant in the P or N form?
 6. fail on some commit that could be named?
 
-A line that names history ("fails on the commit before"), the process, an owner act or a reading fails. Red on base, the removal check and "each rule has a test pair" are facts about the tests, so they go in each Experiment's verdict rule, never in a line. A runner cannot meet a line about history, and it will stop on it.
+A line that names history ("fails on the commit before"), the process, an owner act or a reading fails. Red on base, the removal check and "each rule has a test pair" are facts about the tests, so they go in each Experiment's rubric, never in a line. A runner cannot meet a line about history, and it will stop on it.
 
 **For a discovery Goal** (the candidate is a claim, measured by a recipe and a rubric), a line names a case every candidate must meet that a check can run on every candidate.
 

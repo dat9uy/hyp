@@ -253,10 +253,10 @@ func vcases(spec map[string][4]any) map[string]string {
 	return files
 }
 
-// WeakCases warns, per check, when a verdict check's known answers miss a
-// supports or a contradicts case for a label, print a malformed verdict
-// line, or print one label twice in one case; a check whose cases print no
-// verdict line gets only the must-pass and must-fail warnings.
+// WeakCases warns, per check, when the known answers of a check that prints
+// verdict lines miss a supports or a contradicts case for a label, print a
+// malformed verdict line, or print one label twice in one case; a check whose
+// cases print no verdict line gets only the must-pass and must-fail warnings.
 func TestWeakCasesVerdicts(t *testing.T) {
 	const standalone = "## Standalone\n\nRun v: ./v.sh\n"
 	sup, con, inc := "verdict: x=supports\n", "verdict: x=contradicts\n", "verdict: x=inconclusive\n"
