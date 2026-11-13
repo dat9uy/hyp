@@ -39,7 +39,7 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
 
 1. **A real event points at hyp.** In a real run the ledger shows an item that does not settle, a refusal or warning fires, `hyp signals` reports a design mark (one-rival or D1), or the owner flags a round. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
-3. **A tree holds the question.** Under `investigations/<topic>/`, run `hyp init`, add the goal, the design question and at least two rival Hypotheses, and pre-register each Experiment's rubric before running it: a pinned rubric bundle, or prose in its body. The [hyp-prototype skill](skills/hyp-prototype/SKILL.md) describes each step.
+3. **A tree holds the question.** Under `investigations/<topic>/`, run `hyp init`, add the goal, the design question and its Hypotheses (two rivals only when a scenario separates them on a line; otherwise one, with the base as its rival), and pre-register each Experiment's rubric before running it: a pinned rubric bundle, or prose in its body. The [hyp-prototype skill](skills/hyp-prototype/SKILL.md) describes each step.
 4. **Experiments run from a pinned, versioned recipe.** The [hyp-verification skill](skills/hyp-verification/SKILL.md) and [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md) describe Launch, Doctor, Drive, Evidence and Cleanup. hyp admits a select only when the ledger owes it; the owner decides trade-offs.
 5. **The change passes its gate.**
    - A failure that can be detected from the tree goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.

@@ -76,7 +76,7 @@ hyp keeps the append-only log and the supersede rule. But a row has no parent, s
 
 | In the decision log | The rule in hyp |
 |---|---|
-| Each row stands alone. | **Rivals are siblings.** Each design question has a minimum of two rival Hypotheses. A refinement is a new sibling that supersedes the old Hypothesis, so the lineage stays visible. |
+| Each row stands alone. | **Rivals are siblings.** A design question has one Hypothesis whose rival is the base, or rivals that a scenario separates on a line. A refinement is a new sibling that supersedes the old Hypothesis, so the lineage stays visible. |
 | A row states its result in words. | **hyp calculates each status.** hyp calculates `supported`, `contradicted`, `stale` and `answered` from the events. No command can set a status. |
 | The log is local, and you commit it only when a reviewer needs it. | **The log is the source of truth.** Each write adds an event to an append-only log under `.tree/`. You commit the log with the work. |
 | A new session reads the rows to find the current state. | **`hyp status` shows the current state.** A new session does not need a summary. |
@@ -139,7 +139,7 @@ hyp keeps the rounds, the frontier, the recommended answers and the split betwee
 | In the grilling skill | The rule in hyp |
 |---|---|
 | The result is a shared understanding in the chat. | **The grill writes the tree.** The grill records the Goal, its lines and its DesignQuestions in the store. It runs each owner write only after the owner approves the command. |
-| The user decides each choice, also a choice that a test can decide. | **A testable choice becomes rivals.** When a run can separate the options, the grill adds a DesignQuestion with a minimum of two rival Hypotheses. The grill does not ask the owner to choose. |
+| The user decides each choice, also a choice that a test can decide. | **A testable choice becomes rivals.** When a run can separate the options, the grill adds a DesignQuestion: two rivals when a scenario separates them on a line, otherwise one Hypothesis with the base as its rival. The grill does not ask the owner to choose. |
 | The agreement does not state what the result must allow or must never allow. | **The grill derives the lines.** Each line is one state that the Goal must allow (`[P]`) or must never allow (`[N]`). When a rejected option can cause a state, that state becomes an `[N]` line. |
 | The session is done when the user and the agent agree. | **Done when the tree is complete.** Each question has its place in the tree, and nothing stays that only the owner can answer. |
 | The same session acts on the result. | **A separate run, then the owner's answers.** `hyp prompt` prints the `/goal` prompt for a new session. A stopped run leaves its questions under AWAITING OWNER for the owner. |
@@ -269,8 +269,9 @@ If `hyp status` says there is no .tree store, run `hyp init` at the repository r
 Record this goal with its lines under my actor name <your-name>, showing me
 the command first: <the outcome I want, and who needs it>.
 Lines: <each case every candidate must meet>.
-Add the first design question under it, with at least two rival hypotheses,
-one of them "no change needed". Do not add or run experiments yet.
+Add the first design question under it, with one hypothesis. Add a rival only
+if you can name a scenario where one meets a line and the other does not.
+Do not add or run experiments yet.
 Show me `hyp status` and stop.
 ```
 

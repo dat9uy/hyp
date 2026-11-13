@@ -34,7 +34,13 @@ never type one. Run `hyp help` for every command and flag.
   holds goes under that hypothesis. It blocks: its parent cannot become the
   answer until the sub-question is settled, whichever way it is settled.
 - Rival answers are siblings: `hyp add hyp --parent <Q-id> --title "..." --why "..."`.
-  Add at least two when the answer is genuinely uncertain.
+  Add a second only when, for the pair, you can write the difference test
+  sentence "on <scenario>, A meets line n and B does not, because
+  <mechanism>", and put it in the question's body when you add the
+  question (`hyp add dq --body`); for a rival added later, put it in the
+  new Hypothesis's body, because a question's body cannot change.
+  Options that can both be applied in one candidate are not rivals.
+  Otherwise add one, and the base, or what exists today, is its rival.
 - New information goes in a new node. A fix, an untested part of a claim
   or a stronger instrument is a new Hypothesis that supersedes the old one,
   and it exists before the Experiment that tests it. Run, in this order:
@@ -76,7 +82,7 @@ never type one. Run `hyp help` for every command and flag.
 - Use a recipe from `recipes/` when one fits (`name@version` from its
   frontmatter). A recipe measures and never prints a verdict; a rubric
   from `rubrics/` turns its measures into verdicts (`--rubric
-  <name@version>`, RECIPE-FORMAT.md, Rubrics), and `--rubric reading`
+  <name@version>`, the hyp-verification skill's RECIPE-FORMAT.md, section Rubrics), and `--rubric reading`
   says the body decides them by reading. To reassess records an earlier
   run kept, pin them with `--records .tree/evidence/<E-id>`. Run the
   experiment with the hyp-verification skill.
@@ -111,9 +117,12 @@ never type one. Run `hyp help` for every command and flag.
   (`contradicts` or `inconclusive`), not only in the observation text; status
   is derived from verdicts and never reads prose.
 - A failed pre-registered pass rule is `contradicts`, not `inconclusive`.
+  When the Experiment counts trials and one cell's miss alone would
+  contradict, rerun that cell once first, as its body states.
   `inconclusive` means the experiment ran as designed and still could not
   decide the claim, for example a count inside a pre-registered inconclusive
-  band. Its next round must change the instrument or the power, or add a rival.
+  band. Its next round must change the instrument or the power, or add a rival
+  that passes the difference test above.
 - `--why` holds at most 300 characters and `--observation` at most 600. Put
   anything longer (logs, reasoning, screenshots) in files under
   `.tree/evidence/<E-id>/` and point to them with `--evidence` (repeatable).
@@ -152,7 +161,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
   its Result gave a verdict on, and `hyp select` names it. Run its case on the
   candidates. If no test within the Goal's lines can close it, or its case
   is void for every candidate, refer it with your reason:
-  `hyp checkpoint --refers "<R-id>#<n>=<why no test can close it>" --why "..."`.
+  `hyp checkpoint --goal <G-id> --refers "<R-id>#<n>=<why no test can close it>" --why "..."`.
   The owner then accepts it, or returns it when the Goal covers its case, and
   it is yours to run again. Until the owner
   does one of these, the select waits on the referred limit. A Result that runs
@@ -162,7 +171,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
   new since the select. A new candidate reopens the question
   (`new_candidate`); OWED then lists `select` or `choose` again.
 - A select never changes the Goal's scope. When the answer will not meet a
-  Goal line, refer the line with `hyp checkpoint --refers "G-<id>#<n>=<why>"`,
+  Goal line, refer the line with `hyp checkpoint --goal <G-id> --refers "G-<id>#<n>=<why>"`,
   and the owner accepts it (`hyp answer --accept "G-<id>#<n>=<their words>"`).
   When the answer needs more than the Goal holds, that is a new Goal. It may
   sit in the same store and cite this Goal's settled keys with
@@ -195,12 +204,13 @@ that no longer matters is `hyp withdraw <Q-id>`.
     `hyp answer --accept "<key>=<their words>"` or
     `hyp answer --returns "<key>=<their words>"`, under their actor name.
 - The Goal completes when it has at least one top-level question and every
-  one is answered. Complete is not met: `hyp status` lists the Goal's lines
-  under LINES, and a line still owed under OWED means the Goal is not met.
+  one is answered. Complete does not mean every line is covered: `hyp status`
+  lists the Goal's lines under LINES, and a line still owed under OWED means
+  the owner's purpose is not yet reached.
 
 ## End of session
 
-1. `hyp checkpoint --summary "<what is next, at most 2000 characters>" --why "end of session"`.
+1. `hyp checkpoint --goal <G-id> --summary "<what is next, at most 2000 characters>" --why "end of session"`.
 2. `hyp check` must print `check: 0 errors`. Fix any rejected event by
    recording a correct one; never edit the log.
 3. Commit `.tree/events/` and `.tree/evidence/` with the code they describe.
