@@ -5,6 +5,7 @@ package check
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/dat9uy/hyp/internal/claim"
@@ -14,17 +15,18 @@ import (
 	"github.com/dat9uy/hyp/internal/store"
 )
 
-// Run checks the store at root. Errors are unparseable lines and rejected
-// events; everything else is a warning. The last line is the summary.
-func Run(root string) (report []string, errorsFound int) {
-	evs, lineErrs, err := store.Events(root)
+// Run checks the store at root.
+func Run(root string) (report []string, errorsFound int) { return RunHistory(store.Single(root)) }
+
+// RunHistory checks a history: every store of it, read as one log. Errors
+// are unparseable lines and rejected events; everything else is a warning.
+// The last line is the summary.
+func RunHistory(h *store.History) (report []string, errorsFound int) {
+	evs, lineErrs, err := h.Events()
 	if err != nil {
 		return []string{"error: " + err.Error(), "check: 1 errors, 0 warnings"}, 1
 	}
-	p, _, err := store.Load(root)
-	if err != nil {
-		return []string{"error: " + err.Error(), "check: 1 errors, 0 warnings"}, 1
-	}
+	p := h.Replay(evs, h.Hashes(), "")
 	display := func(id string) string {
 		if n := p.Nodes[id]; n != nil {
 			return event.DisplayID(n.Kind, id)
@@ -67,11 +69,21 @@ func Run(root string) (report []string, errorsFound int) {
 		warns = append(warns, fmt.Sprintf("warn: %s is %s but reads run: its Result %s applied after the close",
 			display(id), x.Close, display(x.Live[0])))
 	}
-	// One line per pin that disagrees with the current recipe hashes.
-	hashes, problems := recipe.Scan(root)
+	// One line per pin that disagrees with the current recipe hashes of
+	// the Result's own store.
+	hashes, problems := map[string]map[string]string{}, []string{}
+	for _, s := range h.Stores {
+		m, pr := recipe.Scan(h.Dir(s))
+		hashes[s] = m
+		for _, x := range pr {
+			if !slices.Contains(problems, x) {
+				problems = append(problems, x)
+			}
+		}
+	}
 	for _, id := range resultIDs(p) {
 		for _, pin := range p.Results[id].Pins {
-			now, ok := hashes[pin.Ref.String()]
+			now, ok := hashes[p.Nodes[id].Store][pin.Ref.String()]
 			if ok && now == pin.Hash {
 				continue
 			}
@@ -93,7 +105,7 @@ func Run(root string) (report []string, errorsFound int) {
 	}
 	// A Result whose text disagrees with the files it cites (spec §7.6).
 	for _, id := range resultIDs(p) {
-		warns = append(warns, claim.Warnings(root, p, id)...)
+		warns = append(warns, claim.Warnings(h.StoreDir(p, id), p, id)...)
 	}
 	// Two questions whose candidates assume each other's Hypotheses hold
 	// each other's select (spec §8.1).

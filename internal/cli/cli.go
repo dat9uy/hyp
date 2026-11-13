@@ -76,7 +76,7 @@ write:
   answer [--answer R#rN=TEXT]... [--accept K=TEXT]... [--returns K=TEXT]...   the owner's act; no --why
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
-  status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals
+  status [G-id | --all] [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default: this folder's store, or with --all every store of the repository; --live hides contradicted rivals
   show REF|R-id#n|G-id#n [--as-of REF|TIME]  one node, or one limit or line, in full, with its history
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
@@ -95,7 +95,7 @@ bundle (a recipe in recipes/ or a rubric in rubrics/; a name lives in one librar
   bundle known-answers REF                     run every known-answers/NAME/ case of bundle REF, twice each; 1 on a wrong answer
 
 sandbox (a disposable clone under ~/.hyp-sandbox/ID for one Experiment):
-  sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--store SRC --cut EVENT] [--inputs FILE] [--hyp BIN]
+  sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--cut EVENT [--store SRC]] [--inputs FILE] [--hyp BIN]
   sandbox drive ID                             run every recipe's Drive commands in the sandbox; exits with the failing one's code
   sandbox remove ID OUT_DIR [--keep REL]... | sandbox remove ID --discard
 `

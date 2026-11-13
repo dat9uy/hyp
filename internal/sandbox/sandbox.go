@@ -20,7 +20,10 @@
 //
 // With Store and Cut, create writes wt/.tree from the store as replay sees it
 // as of the cut event (store.CutAt), so hyp status in wt/ equals hyp status
-// --as-of CUT in the store, before any recipe runs.
+// --as-of CUT in the store, before any recipe runs. With Cut alone, it cuts
+// the host's history (History.CutAt): each store of it that holds an event
+// at or before the cut is written in its own folder under wt/, and every
+// other store of the base loses its .tree.
 //
 // A create that fails midway deletes its partial sandbox. A clone, not
 // `git worktree add`: a worktree and its branches are host refs, and a clone
@@ -133,7 +136,8 @@ import (
 // Recipes lists the sandbox's recipes in stack order; --recipe none is the
 // one entry {"ref": "none"}. Store and Cut name the store wt/.tree was cut
 // from, as <host>/REL when it is inside the host, and the cut event, when
-// create made one. Commands lists every command hyp ran in the sandbox, in
+// create made one; Cut alone names the event a cut of the host's whole
+// history was made at. Commands lists every command hyp ran in the sandbox, in
 // order. Extra holds every other field of a record read from disk (an older
 // hyp's wt, tmp, bin or port, or a key a recipe script added), so it is
 // written back as read.
@@ -663,8 +667,8 @@ func Create(o CreateOptions) (*Record, error) {
 	if names["none"] && len(o.Refs) > 1 {
 		return nil, herr.BadArgs("--recipe none sets nothing up and is given alone, not with another recipe")
 	}
-	if (o.Store == "") != (o.Cut == "") {
-		return nil, herr.BadArgs("--store and --cut go together: the store to cut and the event to cut it at")
+	if o.Store != "" && o.Cut == "" {
+		return nil, herr.BadArgs("--store needs --cut: the event to cut the store at")
 	}
 	r, err := root()
 	if err != nil {
@@ -698,9 +702,15 @@ func Create(o CreateOptions) (*Record, error) {
 			return nil, herr.BadArgs("--patch %s=%s: %s is not a regular file", p.Arm, p.File, p.File)
 		}
 	}
-	var cut *store.Cut
-	if o.Store != "" {
-		if cut, err = store.CutAt(o.Store, o.Cut); err != nil {
+	// cuts maps each store to write, relative to wt/, to its cut. With
+	// --store it is that one store, written to wt/.tree; with --cut alone it
+	// is every store of the host's history that holds an event at or before
+	// the cut, each in its own folder.
+	var cuts map[string]*store.Cut
+	switch {
+	case o.Store != "":
+		cut, err := store.CutAt(o.Store, o.Cut)
+		if err != nil {
 			if errors.Is(err, store.ErrNoStore) {
 				return nil, herr.BadArgs("--store %s holds no .tree/events", o.Store)
 			}
@@ -708,6 +718,30 @@ func Create(o CreateOptions) (*Record, error) {
 				return nil, herr.BadArgs("--cut: %v", err)
 			}
 			return nil, herr.Env("--cut: %v; nothing created", err)
+		}
+		cuts = map[string]*store.Cut{".": cut}
+	case o.Cut != "":
+		h, err := store.OpenHistory(o.Host)
+		if errors.Is(err, store.ErrNoStore) {
+			return nil, herr.BadArgs("--cut without --store cuts the history of %s, which holds no store", o.Host)
+		} else if err != nil {
+			return nil, herr.Env("--cut: %v; nothing created", err)
+		}
+		if cuts, err = h.CutAt(o.Cut); err != nil {
+			if errors.Is(err, store.ErrNoEvent) {
+				return nil, herr.BadArgs("--cut: %v", err)
+			}
+			return nil, herr.Env("--cut: %v; nothing created", err)
+		}
+		host, _ := filepath.Abs(o.Host)
+		if h.Root != host {
+			// The history is one store found from the host's root, outside
+			// the repository's history: it goes to the clone where it sits.
+			rel, err := filepath.Rel(host, h.Root)
+			if err != nil || strings.HasPrefix(rel, "..") {
+				return nil, herr.BadArgs("--cut: the history found from %s is outside it", o.Host)
+			}
+			cuts = map[string]*store.Cut{filepath.ToSlash(rel): cuts["."]}
 		}
 	}
 	var rcps []*recipe.Recipe
@@ -765,7 +799,7 @@ func Create(o CreateOptions) (*Record, error) {
 		return nil, err
 	}
 	defer unlock()
-	rec, cps, err := build(o, box, version, rcps, kas, cut)
+	rec, cps, err := build(o, box, version, rcps, kas, cuts)
 	if err != nil {
 		os.RemoveAll(box)
 		return nil, herr.New(herr.KindOf(err), "%s; partial sandbox removed", herr.Text(err))
@@ -1090,10 +1124,41 @@ func hypVersion(bin string) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-// build makes the sandbox's contents and record, writing cut, when there is
-// one, to wt/.tree. For each recipe it also returns the recipe opened from
+// writeHistoryCut replaces the stores of the base's history in wt with the
+// host history's cut: every store of the base loses its .tree, and each
+// store that holds an event at or before the cut gets, in its own folder,
+// that store's cut. Each written events file is marked for git with
+// intent-to-add, so a store the base did not hold is in the clone's history
+// too.
+func writeHistoryCut(wt string, cuts map[string]*store.Cut) error {
+	base, err := store.RepoStores(wt)
+	if err != nil {
+		return err
+	}
+	for _, s := range base {
+		if err := os.RemoveAll(filepath.Join(wt, filepath.FromSlash(s), ".tree")); err != nil {
+			return err
+		}
+	}
+	for s, cut := range cuts {
+		dest := filepath.Join(wt, filepath.FromSlash(s))
+		if err := os.RemoveAll(filepath.Join(dest, ".tree")); err != nil {
+			return err
+		}
+		if err := cut.Write(dest); err != nil {
+			return err
+		}
+		if _, err := git("-C", wt, "add", "--intent-to-add", "--", filepath.Join(dest, ".tree", "events")); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// build makes the sandbox's contents and record, writing each cut to its
+// store's folder under wt/. For each recipe it also returns the recipe opened from
 // its copy in <box>/recipes, whose commands point there, in stack order.
-func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*cmdrecord.KnownAnswers, cut *store.Cut) (*Record, []*recipe.Recipe, error) {
+func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*cmdrecord.KnownAnswers, cuts map[string]*store.Cut) (*Record, []*recipe.Recipe, error) {
 	wt, tmp, bin := filepath.Join(box, "wt"), filepath.Join(box, "tmp"), filepath.Join(box, "bin")
 	for _, args := range [][]string{
 		{"clone", "--quiet", "--no-checkout", o.Host, wt},
@@ -1114,7 +1179,7 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		return nil, nil, err
 	}
 	var src string
-	if cut != nil {
+	if cut := cuts["."]; cut != nil && o.Store != "" {
 		var err error
 		if src, err = filepath.Abs(cut.Src); err != nil {
 			return nil, nil, err
@@ -1125,6 +1190,10 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 			return nil, nil, err
 		}
 		if err := cut.Write(wt); err != nil {
+			return nil, nil, err
+		}
+	} else if o.Cut != "" {
+		if err := writeHistoryCut(wt, cuts); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -1165,7 +1234,7 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		return nil, nil, err
 	}
 	hostName := filepath.Base(host)
-	if a, ok := anchor(host, hostName, src); ok {
+	if a, ok := anchor(host, hostName, src); ok && src != "" {
 		src = a
 	}
 	rec := &Record{

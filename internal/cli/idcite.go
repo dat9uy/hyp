@@ -42,7 +42,7 @@ func unresolvedCites(p replay.Projection, text string) []string {
 			continue
 		}
 		token := text[i : i+8]
-		if _, err := resolveRef(p, token); err != nil {
+		if _, err := resolveRef(p, "", token); err != nil {
 			out = append(out, token)
 		}
 	}

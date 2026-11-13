@@ -9,14 +9,17 @@ import (
 )
 
 // resolveRef turns a user-typed reference into a node id (spec §2): an exact
-// ULID first, then an alias, then a display id.
-func resolveRef(p replay.Projection, ref string) (string, error) {
+// ULID first, then an alias, then a display id. An alias is local to its
+// store: with scope, the store found from the current folder, it resolves
+// among that store's nodes only; with scope "" among every store's, and an
+// alias two stores hold is ambiguous.
+func resolveRef(p replay.Projection, scope, ref string) (string, error) {
 	if _, ok := p.Nodes[ref]; ok {
 		return ref, nil
 	}
 	var byAlias, byDisplay []string
 	for id, n := range p.Nodes {
-		if n.Alias != "" && n.Alias == ref {
+		if n.Alias != "" && n.Alias == ref && (scope == "" || n.Store == scope) {
 			byAlias = append(byAlias, id)
 		}
 		if strings.EqualFold(event.DisplayID(n.Kind, id), ref) {

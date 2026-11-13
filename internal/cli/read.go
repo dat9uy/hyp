@@ -10,10 +10,8 @@ import (
 	"time"
 
 	"github.com/dat9uy/hyp/internal/check"
-	"github.com/dat9uy/hyp/internal/contain"
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
-	"github.com/dat9uy/hyp/internal/recipe"
 	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/replay"
 	"github.com/dat9uy/hyp/internal/signals"
@@ -23,10 +21,10 @@ import (
 // reader is one read command: it replays the whole log and can replay again
 // up to an --as-of point. hyp keeps no index; every read replays (ADR 0006).
 type reader struct {
-	root     string
+	hist     *store.History
 	evs      []event.Event
 	lineErrs []store.LineError
-	hashes   map[string]string
+	hashes   replay.Hashes
 	full     replay.Projection
 }
 
@@ -35,7 +33,7 @@ func openReader() (*reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	r.hashes = recipe.Hashes(r.root)
+	r.hashes = r.hist.Hashes()
 	r.full = r.project(r.evs, "")
 	return r, nil
 }
@@ -48,10 +46,10 @@ func openEvents() (*reader, error) {
 		return nil, err
 	}
 	r := &reader{}
-	if r.root, err = store.FindRoot(cwd); err != nil {
+	if r.hist, err = store.OpenHistory(cwd); err != nil {
 		return nil, err
 	}
-	if r.evs, r.lineErrs, err = store.Events(r.root); err != nil {
+	if r.evs, r.lineErrs, err = r.hist.Events(); err != nil {
 		return nil, err
 	}
 	return r, nil
@@ -60,9 +58,7 @@ func openEvents() (*reader, error) {
 // project replays evs up to asOf and marks the uncontained Results, so no
 // read path renders a projection without the marks.
 func (r *reader) project(evs []event.Event, asOf string) replay.Projection {
-	p := replay.Replay(evs, r.hashes, asOf)
-	contain.Mark(r.root, &p)
-	return p
+	return r.hist.Replay(evs, r.hashes, asOf)
 }
 
 // ancestors lists id's ancestors, nearest first.
@@ -101,7 +97,7 @@ func (r *reader) at(point string) (replay.Projection, error) {
 	if dateRe.MatchString(point) {
 		return replay.Projection{}, usageErr("%q is not an RFC3339 time (want e.g. 2026-10-24T09:00:00Z)", point)
 	}
-	id, err := resolveRef(r.full, point)
+	id, err := resolveRef(r.full, r.hist.Current, point)
 	if err != nil {
 		return replay.Projection{}, err
 	}
@@ -120,12 +116,15 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("status", stderr)
 	asOf := fs.String("as-of", "", "event id, node ref or RFC3339 time")
 	maxLines := fs.Int("max-lines", render.DefaultMaxLines, "line budget (0 for unlimited)")
+	all := fs.Bool("all", false, "every Goal of the repository's history, and every item awaiting the owner, grouped by Goal; the default where store discovery finds no store")
 	live := fs.Bool("live", false, "leave out of FRONTIER each contradicted Hypothesis with no marked Experiment, counted under its question; for the owner, since a runner needs the contradicted rivals")
 	pos, err := parse(fs, args)
 	if err != nil {
 		return err
 	} else if len(pos) > 1 {
-		return usageErr("usage: hyp status [G-id] [--as-of REF|TIME] [--max-lines N] [--live]")
+		return usageErr("usage: hyp status [G-id | --all] [--as-of REF|TIME] [--max-lines N] [--live]")
+	} else if len(pos) == 1 && *all {
+		return usageErr("hyp status takes a Goal or --all, not both")
 	}
 	r, err := openReader()
 	if err != nil {
@@ -139,7 +138,7 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	// prints the GOALS table (ADR 0020).
 	goal := ""
 	if len(pos) == 1 {
-		id, err := resolveRef(p, pos[0])
+		id, err := resolveRef(p, r.hist.Current, pos[0])
 		if err != nil {
 			return usageErr("%v", err)
 		}
@@ -154,7 +153,17 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	for _, le := range r.lineErrs {
 		fmt.Fprintf(stderr, "warn: skipped %s:%d: %v; run hyp check\n", le.File, le.Line, le.Err)
 	}
-	fmt.Fprint(stdout, render.StatusOf(p, goal, *maxLines, *live))
+	if goal != "" {
+		fmt.Fprint(stdout, render.StatusOf(p, goal, *maxLines, *live))
+		return nil
+	}
+	// In a store's folder, the Goals that store holds; with --all, or where
+	// discovery finds no store, every Goal of the history.
+	goals := storeGoals(r.hist, p)
+	if *all {
+		goals = storeGoals(&store.History{}, p)
+	}
+	fmt.Fprint(stdout, render.StatusOfGoals(p, goals, *maxLines, *live))
 	return nil
 }
 
@@ -177,7 +186,7 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if k, ok := event.ParseKey(pos[0]); ok && k.Kind == event.KeyLimit {
-		res, err := resolveRef(p, k.Result)
+		res, err := resolveRef(p, r.hist.Current, k.Result)
 		if err != nil {
 			return err
 		}
@@ -189,7 +198,7 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 		fmt.Fprint(stdout, render.ShowLimit(p, l))
 		return nil
 	}
-	id, err := resolveRef(p, pos[0])
+	id, err := resolveRef(p, r.hist.Current, pos[0])
 	if err != nil {
 		return err
 	}
@@ -234,7 +243,7 @@ func cmdRender(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(stdout, render.Markdown(p))
+	fmt.Fprint(stdout, render.Markdown(render.OnlyGoals(p, storeGoals(r.hist, p))))
 	return nil
 }
 
@@ -250,11 +259,11 @@ func cmdCheck(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	root, err := store.FindRoot(cwd)
+	h, err := store.OpenHistory(cwd)
 	if err != nil {
 		return err
 	}
-	report, errs := check.Run(root)
+	report, errs := check.RunHistory(h)
 	for _, l := range report {
 		fmt.Fprintln(stdout, l)
 	}
@@ -312,12 +321,25 @@ func cmdEvents(args []string, stdout, stderr io.Writer) error {
 		Format     int           `json:"format"`
 		Events     []event.Event `json:"events"`
 		Rejections []rejection   `json:"rejections"`
-	}{Format: 1, Events: r.full.Applied, Rejections: []rejection{}}
-	if out.Events == nil {
-		out.Events = []event.Event{}
+	}{Format: 1, Events: []event.Event{}, Rejections: []rejection{}}
+	// In a store's folder, the events of that store; where discovery finds
+	// no store, every event of the history.
+	cur := r.hist.Current
+	inStore := map[string]bool{}
+	for _, ev := range r.evs {
+		if cur == "" || ev.Store == cur {
+			inStore[ev.ID] = true
+		}
+	}
+	for _, ev := range r.full.Applied {
+		if cur == "" || ev.Store == cur {
+			out.Events = append(out.Events, ev)
+		}
 	}
 	for _, x := range r.full.Rejections {
-		out.Rejections = append(out.Rejections, rejection{x.EventID, x.Reason})
+		if inStore[x.EventID] {
+			out.Rejections = append(out.Rejections, rejection{x.EventID, x.Reason})
+		}
 	}
 	return json.NewEncoder(stdout).Encode(out)
 }

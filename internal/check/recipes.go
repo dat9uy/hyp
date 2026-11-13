@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/dat9uy/hyp/internal/event"
@@ -82,6 +83,16 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 	if err != nil {
 		return nil, 0, 0, err
 	}
+	// A store of the repository's history is read in the history, so a
+	// cite into another store does not drop its Goal's pins; a store
+	// outside it is read alone.
+	var hist *store.History
+	var histP replay.Projection
+	if h, err := store.OpenHistory(top); err == nil && h.Root == top {
+		if histP, _, err = h.Load(); err == nil {
+			hist = h
+		}
+	}
 	pins, drift := 0, 0
 	pinned := map[string]bool{} // "ref hash" of every pin
 	bundles := map[string]bool{}
@@ -97,8 +108,12 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 		}
 		rel, _ := filepath.Rel(top, root)
 		rel = filepath.ToSlash(rel)
-		p, _, err := store.Load(root)
-		if err != nil {
+		keep := func(string) bool { return true }
+		var p replay.Projection
+		if hist != nil && slices.Contains(hist.Stores, rel) {
+			p = histP
+			keep = func(id string) bool { return p.Nodes[id].Store == rel }
+		} else if p, _, err = store.Load(root); err != nil {
 			report = append(report, fmt.Sprintf("error: %s: %v", rel, err))
 			failures++
 			continue
@@ -145,6 +160,9 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 		// again. Every other Experiment pins them itself, planned or closed.
 		reached := map[string]bool{}
 		for _, id := range resultIDs(p) {
+			if !keep(id) {
+				continue
+			}
 			reached[p.Nodes[id].Parent] = true
 			for _, pin := range p.Results[id].Pins {
 				check(id, pin)
@@ -152,7 +170,7 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 		}
 		var exps []string
 		for id := range p.Exps {
-			if !reached[id] {
+			if !reached[id] && keep(id) {
 				exps = append(exps, id)
 			}
 		}

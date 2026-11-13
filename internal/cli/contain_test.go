@@ -91,7 +91,7 @@ func reasonsOf(t *testing.T, dir, ref string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := resolveRef(p, ref)
+	id, err := resolveRef(p, "", ref)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,7 +347,7 @@ func TestContainRetractedResultSkipped(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := resolveRef(p, r)
+	id, err := resolveRef(p, "", r)
 	if err != nil {
 		t.Fatal(err)
 	}

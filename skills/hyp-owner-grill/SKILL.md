@@ -119,7 +119,7 @@ Never: <acts the run never takes, such as replacing an installed binary or publi
 
 The block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It holds each of the three headings at least once, and every non-empty line in it starts with one of them, so write one constraint per line and put no other text after the block. A line of spaces, a tab or a lone carriage return is not empty: leave a blank line truly empty, and write the body with `\n` line ends. A heading may repeat, such as one `Never:` line per act. `hyp add goal` warns when a body has a heading but no valid block, and `hyp prompt` refuses that Goal.
 
-A body that names another tree's ids writes each as `<tree>:<id>`. Then run `hyp status <G-id>` and `hyp check`: it must print `check: 0 errors`. Commit `.tree/events/` and `.tree/evidence/`.
+A body may name the id of a node in another store of this repository as it is, such as `R-BV4CWV`: hyp reads the repository's stores as one history and checks it. It writes the id of a tree outside the repository as `<tree>:<id>`, which hyp does not check. Then run `hyp status <G-id>` and `hyp check`: it must print `check: 0 errors`. Commit `.tree/events/` and `.tree/evidence/`.
 
 ## Hand off
 

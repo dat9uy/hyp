@@ -133,7 +133,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	id, err := resolveRef(r.full, pos[0])
+	id, err := resolveRef(r.full, r.hist.Current, pos[0])
 	if err != nil {
 		return usageErr("%v", err)
 	}
@@ -148,7 +148,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	}
 	// The working directory may reach the store through a symbolic link;
 	// the store's place in its repository is read from its real path.
-	storeDir, err := filepath.EvalSymlinks(r.root)
+	storeDir, err := filepath.EvalSymlinks(r.hist.Dir(n.Store))
 	if err != nil {
 		return herr.Env("%v", err)
 	}

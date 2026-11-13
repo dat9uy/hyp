@@ -42,6 +42,26 @@ func StatusLive(p replay.Projection, maxLines int, live bool) string {
 	return StatusOf(p, "", maxLines, live)
 }
 
+// StatusOfGoals is the status of the Goals goals, in the history's order,
+// with no other Goal in its GOALS table or its AWAITING OWNER list: the
+// Goals of the store found from the current folder, or every Goal of the
+// history.
+func StatusOfGoals(p replay.Projection, goals []string, maxLines int, live bool) string {
+	return StatusOf(OnlyGoals(p, goals), "", maxLines, live)
+}
+
+// OnlyGoals is p with only the Goals goals in its Goals list.
+func OnlyGoals(p replay.Projection, goals []string) replay.Projection {
+	q := p
+	q.Goals = nil
+	for _, gs := range p.Goals {
+		if slices.Contains(goals, gs.GoalID) {
+			q.Goals = append(q.Goals, gs)
+		}
+	}
+	return q
+}
+
 // StatusOf renders the status of Goal g, or of the store when g is "". A
 // store with one Goal prints that Goal as it always did; a store with many
 // prints a GOALS table and one AWAITING OWNER list, grouped by Goal, and

@@ -32,6 +32,27 @@ func Mark(root string, p *replay.Projection) {
 	}
 }
 
+// MarkStores is Mark over a history: each Result's evidence pointers are
+// relative to the folder of its own store, roots[store].
+func MarkStores(roots map[string]string, p *replay.Projection) {
+	ms := map[string]*marker{}
+	for id, res := range p.Results {
+		res.Uncontained = nil
+		if res.Status == replay.ResRetracted {
+			continue
+		}
+		s := p.Nodes[id].Store
+		m := ms[s]
+		if m == nil {
+			m = newMarker(roots[s])
+			ms[s] = m
+		}
+		if why := m.reasons(*p, id); len(why) > 0 {
+			res.Uncontained = why
+		}
+	}
+}
+
 // Reasons lists, in rule order, why hyp cannot vouch for Result id's verdict
 // script. root is the store root that evidence pointers are relative to.
 func Reasons(root string, p replay.Projection, id string) []string {

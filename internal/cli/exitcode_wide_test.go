@@ -29,7 +29,7 @@ func TestNodeRefIsBadArgument(t *testing.T) {
 		"a": {ID: "a", Kind: "hypothesis", Alias: "twin"},
 		"b": {ID: "b", Kind: "hypothesis", Alias: "twin"},
 	}}
-	if _, err := resolveRef(p, "twin"); herr.KindOf(err) != herr.BadArguments {
+	if _, err := resolveRef(p, "", "twin"); herr.KindOf(err) != herr.BadArguments {
 		t.Fatalf("ambiguous ref: %v (kind %d), want bad arguments", err, herr.KindOf(err))
 	}
 }

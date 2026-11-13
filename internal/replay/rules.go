@@ -47,10 +47,10 @@ var rules = map[string]rule{
 				rubric = event.RubricReading // the older spelling (ADR 0018)
 			}
 			st.addNode(&Node{ID: ev.ID, Kind: p.Kind, Parent: p.Parent, Title: p.Title, Body: p.Body,
-				Alias: p.Alias, Recipe: p.Recipe, RecipeHash: p.RecipeHash, DecidedBy: p.DecidedBy, Actor: ev.Actor,
+				Alias: p.Alias, Recipe: p.Recipe, RecipeHash: p.RecipeHash, DecidedBy: p.DecidedBy, Actor: ev.Actor, Store: ev.Store,
 				AddedBy: ev.ID, Targets: p.Targets, Aims: p.Aims, Rubric: rubric, RubricHash: p.RubricHash, Records: p.Records})
 			if p.Alias != "" {
-				st.Aliases[p.Alias] = ev.ID
+				st.Aliases[AliasKey{ev.Store, p.Alias}] = ev.ID
 			}
 			if p.Kind == event.KindGoal {
 				st.Goals = append(st.Goals, ev.ID)
@@ -78,7 +78,7 @@ var rules = map[string]rule{
 		apply: func(st *State, ev event.Event) {
 			var p event.ResultRecord
 			_ = event.DecodePayload(ev, &p)
-			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
+			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor, Store: ev.Store,
 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
 				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
 				Subjects: runSubjects(p)})

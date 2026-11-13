@@ -57,7 +57,7 @@ func Warnings(root string, p replay.Projection, id string) []string {
 	said := map[string][]string{}
 	for _, t := range texts {
 		for _, m := range verdictLine.FindAllStringSubmatch(t, -1) {
-			if h := hypothesis(p, m[1]); h != "" && !slices.Contains(said[h], m[2]) {
+			if h := hypothesis(p, r.Store, m[1]); h != "" && !slices.Contains(said[h], m[2]) {
 				said[h] = append(said[h], m[2])
 			}
 		}
@@ -94,10 +94,11 @@ func Warnings(root string, p replay.Projection, id string) []string {
 }
 
 // hypothesis resolves a verdict line's label, an alias or an id, to a
-// Hypothesis id, or "".
-func hypothesis(p replay.Projection, lbl string) string {
+// Hypothesis id of store, the store of the Result that cites the line, or
+// "". An alias is local to its store, and arms reuse labels such as h-null.
+func hypothesis(p replay.Projection, store, lbl string) string {
 	for id, n := range p.Nodes {
-		if n.Kind != event.KindHypothesis {
+		if n.Kind != event.KindHypothesis || n.Store != store {
 			continue
 		}
 		if n.Alias == lbl || id == lbl || event.DisplayID(event.KindHypothesis, id) == lbl {
