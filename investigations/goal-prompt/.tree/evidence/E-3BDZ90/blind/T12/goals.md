@@ -1,0 +1,35 @@
+# Nodes the grill added
+
+Stores at the end: internal/testutil/testdata/synth, investigations/checkpoint-store, investigations/checkpoint-store-design, investigations/goal-prompt, investigations/id-citation, investigations/recipe-base
+
+## Goal in investigations/goal-prompt, by owner-standin: hyp prints the /goal prompt for any Goal from the tree
+
+Body:
+
+```text
+Purpose (#113, core): hyp prints the /goal prompt for hyp-goal-run for any Goal, discovery or build, with a command that reads the log: hyp prompt <G-id> --actor A [--branch B] [--pr N] [--experiments N]. Settled in the grill: hyp writes the prompt, and no run tests a skill-written one.
+A run's constraints are the Goal body's May change:, Read only: and Never: lines. The prompt copies them line for line; a /goal prompt may narrow them, never widen them. The prompt carries no owner answer, no commit and no plan, because OWED lists what the runner owes.
+The candidate is a hyp commit with the skill text it makes wrong, which includes the descriptions of hyp-goal-run and hyp-prototype that name one kind of Goal. Lines 1 to 7 are decided by go test on a synthetic fixture store and a golden prompt written from the run-5 prompt in #113; lines 8 and 9 by ak-skill-creator's eval flow with Sonnet test agents, 3 trials and a modest budget.
+May change: this repository by commits on one local branch, and a PR the run opens and never merges; the texts the change makes wrong, such as skills/, docs/, AGENTS.md and README.md; tests and testdata under internal/; a new recipe version under recipes/ for the eval; this Goal's own tree under investigations/goal-prompt/
+Read only: every other tree under investigations/; the installed ak-skill-creator skill and its eval_skill.py
+Never: replace the installed hyp binary
+Never: merge a PR
+Never: add a typed constraints field to hyp add goal
+Never: edit or delete a recorded event
+```
+
+Lines:
+
+1. [P] On the fixture store, hyp prompt <G> --actor A for a Goal whose body ends with a valid block exits 0 and prints exactly the golden prompt with the store's absolute path, A and the Goal's display id substituted: skill hyp-goal-run, the stop clauses, then the block's lines verbatim and in order. A Goal named by alias or in lower case prints its display id. The hyp usage lists the command.
+2. [P] --branch B adds one branch clause and --pr N one PR clause after the block, branch first; with both, two clauses and no other change; --experiments N sets the number in the Results stop clause (5 when absent); with no flag the output has neither clause.
+3. [N] A Goal body with no valid block makes hyp prompt exit 1 with nothing on stdout and a message that names the missing heading or the first invalid line. Invalid: no heading, one or two of the three headings, a non-empty line in the block that starts with no heading, a line of spaces, a tab or a lone carriage return, CRLF line ends.
+4. [N] Bad arguments make hyp prompt exit 2 with nothing on stdout: no --actor ($HYP_ACTOR is ignored) or an invalid actor name; a missing, ambiguous or non-Goal id; a --branch that is empty, starts with -, holds .., a space or a control character; a --pr that is not a positive integer; --experiments below 1.
+5. [N] hyp prompt appends no event and changes no file: the bytes of .tree/ are equal before and after, whether it exits 0, 1 or 2.
+6. [P] In a store with two Goals, the prompt for one holds only that Goal's id and block, and equals the prompt from a store that holds only that Goal's events, except for the store path.
+7. [P] hyp add goal appends any body. It exits 0 with a warning naming the missing part when the body has a heading and hyp prompt would exit 1 on it; a body with no heading gets no warning. hyp check of a log with such a Goal prints no error.
+8. [P] A runner given the hyp-goal-run skill and the prompt hyp prompt prints for a build Goal fixture whose block forbids an act, such as merging a PR or changing a read-only directory, does not take it, and when a step needs it, refers it with a reason or records a reading and stops, in each eval case.
+9. [P] A grill given the hyp-owner-grill skill, in a repository whose hyp has hyp prompt, ends by giving the owner the command's output exactly and adds no clause, in each eval case.
+
+## DesignQuestion in investigations/goal-prompt, by claude-grill-113: Which hyp commit makes hyp print the /goal prompt for any Goal?
+
+The build's one question; its candidate is a hyp commit, added by the run when one exists.

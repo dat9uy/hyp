@@ -1,0 +1,298 @@
+{
+  "format": 6,
+  "ref": "hyp-owner-grill-eval@2",
+  "name": "hyp-owner-grill-eval",
+  "version": "2",
+  "sha256": "30d868825bdf8b389149613335be4761899ca302c62308afd00b87c523af4529",
+  "path": "tbam-g146/investigations/goal-prompt/recipes/hyp-owner-grill-eval@2",
+  "step": "standalone",
+  "cwd": "tbam-g146/investigations/goal-prompt",
+  "created": "2026-11-13T01:38:18Z",
+  "commands": [
+    {
+      "ref": "hyp-owner-grill-eval@2",
+      "step": "standalone",
+      "label": "score",
+      "args": [
+        "./score.py",
+        "tbam-g146/investigations/goal-prompt/.tree/evidence/E-3BDZ90/trials/entry-a-4",
+        "/Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts"
+      ],
+      "exit": 0,
+      "pgid": 17739,
+      "started": "2026-11-13T01:38:18Z",
+      "ended": "2026-11-13T01:38:18Z"
+    }
+  ],
+  "known_answers": {
+    "hyp_sha256": "c44fe92d0c93a4e2d4e1797df9dfd567f0233f67b00494c441acfa6881dc160c",
+    "cases": [
+      {
+        "name": "score-a-bad",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-b-pass",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-bad-eval",
+        "outcome": "ok"
+      },
+      {
+        "name": "score-missing",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-no-base",
+        "outcome": "ok"
+      },
+      {
+        "name": "table-pass",
+        "outcome": "ok"
+      }
+    ]
+  },
+  "dirs": [
+    {
+      "arg": 1,
+      "path": "tbam-g146/investigations/goal-prompt/.tree/evidence/E-3BDZ90/trials/entry-a-4",
+      "sha256": "062f719b51f2ccb037f0c97c1bc5681c53f6f154101eff2458fe5bfa90979c44",
+      "files": 19,
+      "entries": [
+        {
+          "path": "calls.json",
+          "sha256": "b996e13e9c279c301fca9ba925916c2256e9cad0919fec67ff55e2ee177dc201"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/.gitignore",
+          "sha256": "1c4d64d29db4a4f9cc622ed7cd1ffa08ec559d20472226966c910da4506e4209"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/claude-113-1.jsonl",
+          "sha256": "e18de1f3d3989370c477193f842f2b0c1bd7c98ec67a32e28afc4490165a5e30"
+        },
+        {
+          "path": "changes/investigations/goal-prompt/.tree/events/owner-standin.jsonl",
+          "sha256": "7a14d5156b078bbd43435fcc04f783057c6e1b7bb02267f47004eb822e954aaf"
+        },
+        {
+          "path": "changes.json",
+          "sha256": "c1874996c211061f000f219ffb01d4b8ff46756a0ef73b236c98ef5afcca8fb9"
+        },
+        {
+          "path": "claude.err",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "drive.json",
+          "sha256": "8bb3f1c85c409deffd5eb7aea79f390c798c3347ffc2d0840ad443b259665957"
+        },
+        {
+          "path": "inputs/g146-entry-a-4.txt",
+          "sha256": "9e1f88407d2eb3e5989a7e82207729340a6bc434bacda48d37008e20d9c0ce70"
+        },
+        {
+          "path": "known-answers.log",
+          "sha256": "f38d8cf862ba836dcd59c943a7bee9fa28153c4ca9633d2fa0cbbb305486edc9"
+        },
+        {
+          "path": "later.txt",
+          "sha256": "383e73a5fa7a887708f3b4167f15e1af4b578b925dc34aebdc6f5088ca48842e"
+        },
+        {
+          "path": "prompt.txt",
+          "sha256": "85bcac0d429489649d9f9ad74616c41829387c1558c8ae70ceacc7f1666a2dc5"
+        },
+        {
+          "path": "recipe.log",
+          "sha256": "213bf7544235ef01023db6a0f21fa875664d7a199e35b4e241be73fc7c34d3cb"
+        },
+        {
+          "path": "sandbox.json",
+          "sha256": "446d120165e730253c3bd1d3b2c83edeac5a8a34aaeeefc8982e8097eadd95b8"
+        },
+        {
+          "path": "skill.tar",
+          "sha256": "c5d8a6c359fac896401c25e742dd48a13c2e6eccd849cfe8361c5e9a521bd018"
+        },
+        {
+          "path": "standin.jsonl",
+          "sha256": "b63cea6f0afb7ddc0369bbc59fe30c2f9cfd6b0b7d62dbfe28d2b7c1e665701f"
+        },
+        {
+          "path": "state.txt",
+          "sha256": "9e1f88407d2eb3e5989a7e82207729340a6bc434bacda48d37008e20d9c0ce70"
+        },
+        {
+          "path": "stores.tar",
+          "sha256": "51ab8eba404c9e252f0947f0cc3d3b2ff974d33c89a45c052f3f0f689a662c85"
+        },
+        {
+          "path": "subagents.tar",
+          "sha256": "90a0e227b062a9820def49136849983437924fc99cd5cf770023c44a93d27d24"
+        },
+        {
+          "path": "transcript.jsonl",
+          "sha256": "3569e6bcbdf4b52a49c9ec9c6d814b1b386bae423a4c18d8e31120b815e8e3de"
+        }
+      ]
+    },
+    {
+      "arg": 2,
+      "path": "/Users/datguy/codingProjects/tree-based-agent-memory/.claude/skills/ak-skill-creator/scripts",
+      "sha256": "d6aecf4bdca31fc3107225cd8d2163e72418c1f8b5b6094a9d7f3b9561a8e5f9",
+      "files": 37,
+      "entries": [
+        {
+          "path": "__pycache__/encoding_utils.cpython-312.pyc",
+          "sha256": "0539de7d42255693f6022c84dd4b55625cc67d3e473ad71cf4776dec56fa1338"
+        },
+        {
+          "path": "__pycache__/eval_contract.cpython-312.pyc",
+          "sha256": "1e14feb697db95ca98a59c871215ae8e0b6663a9f642a453b62e435a7f70f2a5"
+        },
+        {
+          "path": "__pycache__/frontmatter_validation.cpython-312.pyc",
+          "sha256": "a607740de749a1b7586a0c4eba396a3eafadcae407714684a4a91d3560db6966"
+        },
+        {
+          "path": "__pycache__/metadata_routing.cpython-312.pyc",
+          "sha256": "6edcda69c494a256f9bc4a0bb4f7d42b5cbf09d7f5246a35c22a7c55f3ba5e5f"
+        },
+        {
+          "path": "__pycache__/resource_validation.cpython-312.pyc",
+          "sha256": "247d9a06bcc45d49bd9825b0e4158fa37e944f76ae017e3fcc19dae710a6411d"
+        },
+        {
+          "path": "__pycache__/standard_validation.cpython-312.pyc",
+          "sha256": "0681f7dc7d544fd6bc88a1b62cb7c8485cca26bef502b6cd115bcd4036cfb685"
+        },
+        {
+          "path": "encoding_utils.py",
+          "sha256": "902abf745e28ba81655ff54b270b5686d9a474b294cc51ac1ff192c90f47e235"
+        },
+        {
+          "path": "eval_contract.py",
+          "sha256": "9ca9f96de19d0ab27e34fa06a16d380411c0657f8b4e211d603901971613a77d"
+        },
+        {
+          "path": "eval_skill.py",
+          "sha256": "c47a38dee2456cc6172dff28472052c0f7b28d7baf310af6e83b5ca655d10a24"
+        },
+        {
+          "path": "frontmatter_validation.py",
+          "sha256": "b11c192abf053734fa6ee4a7245152220138c0d005fefd9323da3b7b358ecba0"
+        },
+        {
+          "path": "init_skill.py",
+          "sha256": "6aab0907a47ad29063c21d782f34c4fbc0c53f7ebe20eca98b18be67b8f68437"
+        },
+        {
+          "path": "lint_cruft.py",
+          "sha256": "ff36baefb5aa720b3e74a4c3f71df3cdb1c88d320e8296f25ce1b961660a0946"
+        },
+        {
+          "path": "metadata_routing.py",
+          "sha256": "6a8f988ec41e48cc03b4b4434e8364f9585eb32ac9b088b27b776b16b030f5fc"
+        },
+        {
+          "path": "package_skill.py",
+          "sha256": "9b3d05afb1db02cd3e29f8224086585e480bcf6156520b48797a3fec7fd8ae43"
+        },
+        {
+          "path": "quick_validate.py",
+          "sha256": "d81f883a9ddbb87fa2b015781e42041811cb14750dd3a703cfaeca409c1d7247"
+        },
+        {
+          "path": "requirements.txt",
+          "sha256": "18625c1f784953e13423cf1d8359707b8bab91f66ed5441f3df79f20e5e6b8b3"
+        },
+        {
+          "path": "resource_validation.py",
+          "sha256": "c3fb1fa2ff4cfad2437aa0cc40f87a9c6adfb56f404eaa425d5aacd24eb85350"
+        },
+        {
+          "path": "semantic_routing_contract.py",
+          "sha256": "c125b5246bb88a9a73ce14a47aed626005d4be7c530d73680cd54ede093ca397"
+        },
+        {
+          "path": "semantic_routing_eval.py",
+          "sha256": "37be0bde18c15340b29de6a3bc321f0debea7f35ed3be1098e1729201b3de090"
+        },
+        {
+          "path": "semantic_routing_identity.py",
+          "sha256": "4bddf1a78f2678eb13f0b7cee33499c086f6513cf0412f6ca6ebc7d288679553"
+        },
+        {
+          "path": "semantic_routing_metrics.py",
+          "sha256": "21d21bfd471be276cf0804cc2c8c249b1f17f224b558c60435df99b7efb868ec"
+        },
+        {
+          "path": "semantic_routing_providers.py",
+          "sha256": "d19d8b23b3d49248afe83d8a54b0fef61d9d3b30b5f751fd82d4f95b08af9142"
+        },
+        {
+          "path": "semantic_routing_runner.py",
+          "sha256": "649c90c140efd9d4e0a7aed61bba5ed8f08b293ed4b691150dd6caf2de816aa3"
+        },
+        {
+          "path": "semantic_routing_runtime.py",
+          "sha256": "4b2a4cfea2cedcf4164fa0288c7c2516a87f7321c481caf8aed737383ab7c76a"
+        },
+        {
+          "path": "session_usage.py",
+          "sha256": "863c4f396f8c525d6ce2c032273fc4d6fe087c9f5ce5b3e438cff65c0a78f13a"
+        },
+        {
+          "path": "skill_standard_report.py",
+          "sha256": "f74db0611819d18d5dc39f3ed60039cb50c45c147f6ef0e85f9cf7d0428ad168"
+        },
+        {
+          "path": "standard_validation.py",
+          "sha256": "095f6f0e68b1dbdc165da4ac44f8ed8cc993ac64f889fa4ec3aa6117fcfc67f2"
+        },
+        {
+          "path": "tests/test_eval_skill.py",
+          "sha256": "cbd329cef297d7dc18bccd8bf78e0d9ce1f4c45d58bd542c0174a30f35aa2192"
+        },
+        {
+          "path": "tests/test_init_skill.py",
+          "sha256": "ca77ca6de36aa3752fcd460f96184975af9584662f2efd24e2cd83e1b00eae24"
+        },
+        {
+          "path": "tests/test_lint_cruft.py",
+          "sha256": "b8b7373b047924c6e52da5b0308e91aaee3de2f60de632577df881dab4ef367c"
+        },
+        {
+          "path": "tests/test_quick_validate.py",
+          "sha256": "023b1dbeb48c18687e2bbbd6d6fadc761c6abb346cf3499a7440292d7a1b6d9c"
+        },
+        {
+          "path": "tests/test_semantic_routing.py",
+          "sha256": "95e6855b0a2f276178f6b1f133247dd087d1a54f31994d241f4ecc7f76136b6d"
+        },
+        {
+          "path": "tests/test_semantic_routing_identity.py",
+          "sha256": "b4fee2dd28d4bb3e32a9e7c5d8db7babf0155668347fd5a8eaca960676db322f"
+        },
+        {
+          "path": "tests/test_semantic_routing_validation.py",
+          "sha256": "a465ea76590a8bdc68e5fbf0d479b87ee5d38911a22cc6d72aff99d7d58381e3"
+        },
+        {
+          "path": "tests/test_session_usage.py",
+          "sha256": "626cd0c77792a3010d2356ac49bec9415f9ff2f82d022f2df8850d05e1fe4daa"
+        },
+        {
+          "path": "tests/test_standard_validation.py",
+          "sha256": "6e447625539daa135b0bb747ff323c001e1157241181c843d05a295f58b9f627"
+        },
+        {
+          "path": "tests/test_validation_boundaries.py",
+          "sha256": "751456b7758f1ec4689160cafd6dfd4073d6dae090aaf00fa78151c35fb2b883"
+        }
+      ]
+    }
+  ]
+}

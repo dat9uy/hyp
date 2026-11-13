@@ -1,0 +1,142 @@
+[
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 105.2,
+  "session_id": "b4efb304-655d-49c9-990e-50255e9fd3bd",
+  "total_cost_usd": 0.33523610000000004,
+  "num_turns": 13,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 13.7,
+  "session_id": "e688f169-7148-4fb8-86bf-d9645dfdc50f",
+  "total_cost_usd": 0.03295,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 157.1,
+  "session_id": "b4efb304-655d-49c9-990e-50255e9fd3bd",
+  "total_cost_usd": 0.7450323000000001,
+  "num_turns": 7,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 8.1,
+  "session_id": "e688f169-7148-4fb8-86bf-d9645dfdc50f",
+  "total_cost_usd": 0.0582114,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 35.5,
+  "session_id": "b4efb304-655d-49c9-990e-50255e9fd3bd",
+  "total_cost_usd": 0.8599556,
+  "num_turns": 3,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 4.3,
+  "session_id": "e688f169-7148-4fb8-86bf-d9645dfdc50f",
+  "total_cost_usd": 0.072353,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 37.3,
+  "session_id": "b4efb304-655d-49c9-990e-50255e9fd3bd",
+  "total_cost_usd": 1.0088632000000002,
+  "num_turns": 6,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 5.1,
+  "session_id": "e688f169-7148-4fb8-86bf-d9645dfdc50f",
+  "total_cost_usd": 0.0824993,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "grill",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 4.7,
+  "session_id": "b4efb304-655d-49c9-990e-50255e9fd3bd",
+  "total_cost_usd": 1.0288714,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ },
+ {
+  "who": "standin",
+  "exit": 0,
+  "timed_out": false,
+  "seconds": 2.9,
+  "session_id": "e688f169-7148-4fb8-86bf-d9645dfdc50f",
+  "total_cost_usd": 0.0860055,
+  "num_turns": 1,
+  "is_error": false,
+  "models": [
+   "claude-sonnet-5-5"
+  ],
+  "permission_denials": 0
+ }
+]

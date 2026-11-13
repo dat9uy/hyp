@@ -1,0 +1,12 @@
+== hyp-owner-grill-eval@2 known answer score-a-bad
+== hyp-owner-grill-eval@2 known answer score-b-pass
+== hyp-owner-grill-eval@2 known answer score-bad-eval
+score: eval_skill.py in SCRIPTS_DIR is not sha256 c47a38dee2456cc6172dff28472052c0f7b28d7baf310af6e83b5ca655d10a24
+score: eval_skill.py in SCRIPTS_DIR is not sha256 c47a38dee2456cc6172dff28472052c0f7b28d7baf310af6e83b5ca655d10a24
+== hyp-owner-grill-eval@2 known answer score-missing
+score: OUT_DIR has no stores.tar
+score: OUT_DIR has no stores.tar
+== hyp-owner-grill-eval@2 known answer table-no-base
+table: fixture a has trials and no base row
+table: fixture a has trials and no base row
+== hyp-owner-grill-eval@2 known answer table-pass
