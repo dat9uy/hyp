@@ -203,6 +203,14 @@ func TestStatusAllListsTheHistory(t *testing.T) {
 	qb := questionOf(t, r.b, hb)
 	asOf := in(t, r.b, "status", r.gb, "--as-of", qb)
 	want(t, asOf, 0, "GOAL "+r.gb)
+	// An --as-of alias resolves in the Goal's store, from any folder.
+	asOfAlias := in(t, r.b, "status", r.gb, "--as-of", "h-b")
+	want(t, asOfAlias, 0, "GOAL "+r.gb)
+	for _, dir := range []string{r.a, r.root, outside[0]} {
+		if got := in(t, dir, "status", r.gb, "--as-of", "h-b"); got != asOfAlias {
+			t.Errorf("hyp status %s --as-of h-b in %s:\n%+v\nwant\n%+v", r.gb, dir, got, asOfAlias)
+		}
+	}
 	for _, dir := range outside {
 		if got := in(t, dir, "status", r.gb, "--as-of", qb); got != asOf {
 			t.Errorf("hyp status %s --as-of %s in %s:\n%+v\nwant\n%+v", r.gb, qb, dir, got, asOf)
@@ -359,19 +367,6 @@ func TestAppendSortsAfterOtherStores(t *testing.T) {
 	q := mustIn(t, r.b, "add", "dq", "--parent", r.gb, "--title", "after", "--why", "w")
 	if id := histID(t, r.root, q); id <= future {
 		t.Errorf("appended id %s in store b sorts at or before %s, an id of store a", id, future)
-	}
-	// A store git does not track yet, which the history read from b does
-	// not hold, still holds ids an append in b sorts after.
-	u := filepath.Join(r.root, "investigations", "u")
-	if err := os.MkdirAll(u, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	mustIn(t, u, "init")
-	ahead := "7ZZZZZZZZZ0000000000000005"
-	appendLine(t, u, "z", rawLine(ahead, "z", "node.add", ahead, `{"kind":"Goal","parent":"","title":"ahead"}`))
-	q2 := mustIn(t, r.b, "add", "dq", "--parent", r.gb, "--title", "after u", "--why", "w")
-	if id := histID(t, r.root, q2); id <= ahead {
-		t.Errorf("appended id %s in store b sorts at or before %s, an id of an untracked store", id, ahead)
 	}
 	// A store git does not track yet appends after the history too.
 	c := filepath.Join(r.root, "investigations", "c")
@@ -542,6 +537,13 @@ func TestEventNeverCrossesStores(t *testing.T) {
 		if !strings.Contains(got.stdout, i[20:]+" in store investigations/a: event crosses stores") {
 			t.Errorf("replay did not reject %s for crossing stores:\n%s", ev(i), got.stdout)
 		}
+	}
+	// A legacy confirm in store b, on b's question, that accepts a line of
+	// store a's Goal: its key's node lies in another store.
+	ci := id()
+	appendLine(t, r.b, "z", rawLine(ci, "z", "confirm", qbF, `{"select":"","role":"owner","verdict":"","accepts":["`+gaF+`#1"]}`))
+	if got := in(t, r.root, "check"); !strings.Contains(got.stdout, ci[20:]+" in store investigations/b: event crosses stores") {
+		t.Errorf("replay did not reject a confirm that accepts another store's line:\n%s", got.stdout)
 	}
 }
 
@@ -720,6 +722,20 @@ func TestStoreByAnotherPath(t *testing.T) {
 	if _, err := os.Stat(upper); err == nil {
 		paths = append(paths, upper)
 	}
+	// A link from outside the repository reads the repository's history:
+	// --all lists store b's Goal, and an append sorts after b's ids.
+	outLink := filepath.Join(t.TempDir(), "alink")
+	if err := os.Symlink(r.a, outLink); err != nil {
+		t.Fatal(err)
+	}
+	want(t, in(t, outLink, "status", "--all"), 0, "Goal B")
+	future := "7ZZZZZZZZZ0000000000000007"
+	appendLine(t, r.b, "z", rawLine(future, "z", "node.add", future, `{"kind":"DesignQuestion","parent":"`+histID(t, r.root, r.gb)+`","title":"ahead"}`))
+	gitIn(t, r.root, "add", "-A")
+	q := mustIn(t, outLink, "add", "dq", "--parent", r.ga, "--title", "via link", "--why", "w")
+	if id := histID(t, r.root, q); id <= future {
+		t.Errorf("an append through an outside link has id %s, at or before %s, an id of store b", id, future)
+	}
 	inA := in(t, r.a, "status")
 	for _, p := range paths {
 		if got := in(t, p, "check"); !strings.Contains(got.stdout, "check: 0 errors") {
@@ -728,5 +744,24 @@ func TestStoreByAnotherPath(t *testing.T) {
 		if got := in(t, p, "status"); got != inA {
 			t.Errorf("hyp status in %s:\n%+v\nwant it as in store a:\n%+v", p, got, inA)
 		}
+	}
+}
+
+// TestAppendSortsAfterUntracked: an append in a tracked store sorts after
+// every id of a store git does not track yet, which the history read from
+// the tracked store's folder does not hold, so the order of ids stays the
+// order of appends once git tracks that store.
+func TestAppendSortsAfterUntracked(t *testing.T) {
+	r := newHistRepo(t)
+	u := filepath.Join(r.root, "investigations", "u")
+	if err := os.MkdirAll(u, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustIn(t, u, "init")
+	ahead := "7ZZZZZZZZZ0000000000000005"
+	appendLine(t, u, "z", rawLine(ahead, "z", "node.add", ahead, `{"kind":"Goal","parent":"","title":"ahead"}`))
+	q := mustIn(t, r.b, "add", "dq", "--parent", r.gb, "--title", "after u", "--why", "w")
+	if id := histID(t, r.root, q); id <= ahead {
+		t.Errorf("appended id %s in store b sorts at or before %s, an id of an untracked store", id, ahead)
 	}
 }

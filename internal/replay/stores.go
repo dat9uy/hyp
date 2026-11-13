@@ -112,6 +112,14 @@ func (st *State) checkStore(ev event.Event) error {
 		if p.Type != event.EdgeExternalRef {
 			return cross("edge's end", p.To)
 		}
+	case event.TypeConfirm:
+		var p event.Confirm
+		_ = json.Unmarshal(ev.Payload, &p)
+		for _, k := range p.Accepts {
+			if err := cross("key's node", event.KeyResult(k)); err != nil {
+				return err
+			}
+		}
 	case event.TypeCheckpoint:
 		var p event.Checkpoint
 		_ = json.Unmarshal(ev.Payload, &p)

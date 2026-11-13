@@ -168,3 +168,46 @@ func TestOneLockRoot(t *testing.T) {
 	unlock()
 	<-done
 }
+
+// TestAppendSortsAfterUnreadRoot: an append in a tracked store sorts after
+// the ids of a store at the repository root that git does not track, which
+// the history read from the tracked store does not hold.
+func TestAppendSortsAfterUnreadRoot(t *testing.T) {
+	repo := t.TempDir()
+	gitRun(t, repo, "init", "-q", "-b", "main")
+	a := filepath.Join(repo, "a")
+	if err := os.MkdirAll(a, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := Init(a); err != nil {
+		t.Fatal(err)
+	}
+	g, err := Append(a, "a", nodeAdd(t, event.KindGoal, "", "goal a", "why"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitRun(t, repo, "add", "-A")
+	if err := Init(repo); err != nil {
+		t.Fatal(err)
+	}
+	ahead := "7ZZZZZZZZZ0000000000000005"
+	f, err := os.OpenFile(filepath.Join(repo, ".tree", "events", "z.jsonl"), os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Fprintf(f, `{"v":1,"id":%q,"ts":"2026-10-27T00:00:00Z","actor":"z","type":"node.add","node":%q,"payload":{"kind":"Goal","parent":"","title":"root"},"why":"w"}`+"\n", ahead, ahead)
+	f.Close()
+	h, err := OpenHistory(a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ev, err := h.AppendWith("a", func(*replay.State, replay.Projection) (event.Event, error) {
+		return nodeAdd(t, event.KindDesignQuestion, g.ID, "q", "after root"), nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.ID <= ahead {
+		t.Errorf("appended id %s sorts at or before %s, an id of the untracked root store", ev.ID, ahead)
+	}
+}

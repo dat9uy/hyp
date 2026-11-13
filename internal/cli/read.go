@@ -81,6 +81,12 @@ func ancestors(p replay.Projection, id string) []string {
 // or alias of a node-creating event, or an RFC3339 time (the last applied
 // event, in merge order, whose ts is at or before it).
 func (r *reader) at(point string) (replay.Projection, error) {
+	return r.atIn(point, r.hist.Current)
+}
+
+// atIn is at with an alias of point resolved among the nodes of store scope
+// ("" for every store).
+func (r *reader) atIn(point, scope string) (replay.Projection, error) {
 	if point == "" {
 		return r.full, nil
 	}
@@ -104,7 +110,7 @@ func (r *reader) at(point string) (replay.Projection, error) {
 	if dateRe.MatchString(point) {
 		return replay.Projection{}, usageErr("%q is not an RFC3339 time (want e.g. 2026-10-24T09:00:00Z)", point)
 	}
-	id, err := resolveRef(r.full, r.hist.Current, point)
+	id, err := resolveRef(r.full, scope, point)
 	if err != nil {
 		return replay.Projection{}, err
 	}
@@ -146,14 +152,23 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	// hyp status G-… prints one Goal; with no Goal, a store with many Goals
 	// prints the GOALS table (ADR 0020).
 	goal := ""
+	// With a Goal, --as-of resolves an alias in the Goal's store, so the
+	// view is the one its store's folder prints.
 	resolve := func(r *reader) (replay.Projection, string, error) {
-		p, err := r.at(*asOf)
-		if err != nil || len(pos) == 0 {
+		if len(pos) == 0 {
+			p, err := r.at(*asOf)
 			return p, "", err
 		}
-		id, err := resolveRef(p, r.hist.Current, pos[0])
+		id, err := resolveRef(r.full, r.hist.Current, pos[0])
 		if err != nil {
-			return p, "", usageErr("%v", err)
+			return replay.Projection{}, "", usageErr("%v", err)
+		}
+		p, err := r.atIn(*asOf, r.full.Nodes[id].Store)
+		if err != nil {
+			return p, "", err
+		}
+		if p.Nodes[id] == nil {
+			return p, "", usageErr("unknown node %s at %s", pos[0], *asOf)
 		}
 		return p, id, nil
 	}

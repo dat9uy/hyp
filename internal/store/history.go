@@ -55,18 +55,28 @@ func sameStore(repo string, stores []string, cur string) string {
 	return ""
 }
 
-// untrackedLast returns the greatest valid event id held by a store of the
-// repository that git does not track yet but that would add to its history
-// once tracked, and that the history does not read: a store hyp init just
-// made, read from another folder. An append sorts after it too, so the
-// order of ids stays the order of appends once git tracks that store.
-func (h *History) untrackedLast() string {
+// unreadLast returns the greatest valid event id held by a store of the
+// repository that holds h, tracked by git or not yet, that would add to
+// that repository's history once tracked, the store at its root included,
+// and that h does not read: a store hyp init just made, read from another
+// folder, or a root store read alone. An append sorts after it too, so the
+// order of ids stays the order of appends once git tracks every store.
+func (h *History) unreadLast() string {
+	repo := h.Root
 	if !h.repo {
-		return ""
+		r, ok := recipe.RepoRoot(h.Root)
+		if !ok {
+			return ""
+		}
+		repo = r
 	}
-	out, err := exec.Command("git", "-C", h.Root, "ls-files", "-z", "--others", "--exclude-standard", "--", ":(glob)**/.tree/events/*.jsonl").Output()
+	out, err := exec.Command("git", "-C", repo, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", ":(glob)**/.tree/events/*.jsonl").Output()
 	if err != nil {
 		return ""
+	}
+	read := map[string]bool{}
+	for _, st := range h.Stores {
+		read[filepath.Clean(h.Dir(st))] = true
 	}
 	last := ""
 	for _, p := range strings.Split(string(out), "\x00") {
@@ -78,10 +88,10 @@ func (h *History) untrackedLast() string {
 		if dir == "" {
 			dir = "."
 		}
-		if dir == "." || slices.Contains(h.Stores, dir) || !storeOfHistory(h.Root, dir) {
+		if read[filepath.Clean(filepath.Join(repo, filepath.FromSlash(dir)))] || !storeOfHistory(repo, dir) {
 			continue
 		}
-		data, err := os.ReadFile(filepath.Join(h.Root, filepath.FromSlash(p)))
+		data, err := os.ReadFile(filepath.Join(repo, filepath.FromSlash(p)))
 		if err != nil {
 			continue
 		}
@@ -125,6 +135,16 @@ func openHistory(start string, repoWide bool) (*History, error) {
 	abs, err := filepath.Abs(start)
 	if err != nil {
 		return nil, err
+	}
+	// A folder reached through a symbolic link from outside its
+	// repository is read where it lies, so a store linked from outside
+	// reads its repository's history.
+	if _, ok := recipe.RepoRoot(abs); !ok {
+		if real, err := filepath.EvalSymlinks(abs); err == nil && real != abs {
+			if _, ok := recipe.RepoRoot(real); ok {
+				abs = real
+			}
+		}
 	}
 	cur, err := FindRoot(abs)
 	if err != nil && !errors.Is(err, ErrNoStore) {
@@ -492,7 +512,7 @@ func (h *History) AppendWith(actor string, build func(*replay.State, replay.Proj
 			break
 		}
 	}
-	if u := h.untrackedLast(); u > last {
+	if u := h.unreadLast(); u > last {
 		last = u
 	}
 	ev.V = event.Version
