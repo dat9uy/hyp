@@ -1,0 +1,50 @@
+candidate b3f223e1fb7c3b274b6bca1aab2f827a62b06120 with the Experiment body cap back at 600 and the status summary cut at 200:
+diff --git a/internal/event/event.go b/internal/event/event.go
+index 4497f60..75f88bf 100644
+--- a/internal/event/event.go
++++ b/internal/event/event.go
+@@ -117,7 +117,7 @@ func MaxBodyOf(kind string) int {
+ 	switch kind {
+ 	case KindGoal:
+ 		return MaxGoalBody
+-	case KindExperiment, KindDesignQuestion:
++	case KindDesignQuestion:
+ 		return MaxBody
+ 	}
+ 	return MaxText
+diff --git a/internal/render/status.go b/internal/render/status.go
+index e4001bb..91b88e1 100644
+--- a/internal/render/status.go
++++ b/internal/render/status.go
+@@ -100,7 +100,11 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
+ 	if cp := p.LastCheckpoint[g]; cp != nil {
+ 		var s event.Checkpoint
+ 		_ = json.Unmarshal(cp.Payload, &s)
+-		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, s.Summary)
++		sum := Cut(s.Summary, 200)
++		if sum != Cut(s.Summary, event.MaxSummary) {
++			sum += " (full: hyp show " + r.id(cp.Node) + ")"
++		}
++		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, sum)
+ 	} else {
+ 		add(kKeep, "CHECKPOINT none")
+ 	}
+ok  	github.com/dat9uy/hyp/internal/check	0.759s
+--- FAIL: TestTextCapDraftKeptWholeInItsEvent (0.17s)
+--- FAIL: TestTextCapShowPrintsTheDraftWhole (0.18s)
+--- FAIL: TestTextCapStopReportInStatusAndShow (0.05s)
+--- FAIL: TestTextCapEdges (0.18s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	28.545s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.363s
+ok  	github.com/dat9uy/hyp/internal/event	0.361s
+ok  	github.com/dat9uy/hyp/internal/recipe	0.662s
+--- FAIL: TestCheckpointSummaryInFull (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/render	0.408s
+ok  	github.com/dat9uy/hyp/internal/replay	0.407s
+ok  	github.com/dat9uy/hyp/internal/sandbox	84.963s
+ok  	github.com/dat9uy/hyp/internal/signals	0.329s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.343s
+ok  	github.com/dat9uy/hyp/internal/store	0.522s
+FAIL

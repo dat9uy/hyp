@@ -1,0 +1,33 @@
+Review of 2277aa9..69f0979 (b3f223e, a14faa8, 69f0979), not counting investigations/. I found no defect for any Goal line.
+
+What I checked:
+- `go vet ./...` is clean, and `go test ./... -count=1` passes in /Users/datguy/codingProjects/tbam-text-cap.
+- The CASES sha256 is 56ff5491…71fd. Each draft's rune count matches its row.
+- Every write and replay cap: `textLimit` call sites in /Users/datguy/codingProjects/tbam-text-cap/internal/replay/validate.go and /Users/datguy/codingProjects/tbam-text-cap/internal/replay/rules.go, and the `MaxBodyOf` use in /Users/datguy/codingProjects/tbam-text-cap/internal/cli/write.go.
+- Every place a raised field is printed (the `Cut` and `.Summary` calls in internal/render and internal/cli).
+- How `hyp prompt` gets its constraints block.
+- The docs, skills and README for caps that are now wrong.
+
+Findings by line:
+- G-V5NP59#1: no defect. The one event the write appends holds the draft whole. `store.Load` replays from events/ only, and the test removes .tree/evidence/ before it.
+- G-V5NP59#2: no defect. `hyp show` prints title and body raw (show.go:26,29). The checkpoint summary goes through `OneLine` (show.go:261), which changes no CASES checkpoint draft because none holds a line break. A multi-line Goal-body draft prints as "body: "+draft, which is what the test checks.
+- G-V5NP59#3: no defect. The status CHECKPOINT line is `OneLine(s.Summary)` with no cut and no "(full:" pointer (status.go:103). The test reads each required item from the summary's own line, in both status and show.
+- G-V5NP59#4: no defect. `hyp prompt` writes the constraints block lines byte for byte (prompt.go). The test checks each heading line in the draft's order, for both goal-body drafts.
+- G-V5NP59#5: no defect. These caps all hold at write and on replay, each tested at the cap (accepted) and at cap+1 (exit 1, "over limit: <field>", then rejected on replay):
+  - 200 for the Goal, DesignQuestion, Hypothesis and Experiment titles.
+  - 3000 for the Goal body, and 2000 for the DesignQuestion body, Experiment body and runner checkpoint summary.
+  - 600 for the Hypothesis body, amend, observation, refer text and answer item text.
+  - 600 for the old owner summary on replay only (rules.go:367 runs before the 2000 check, at rules.go:278).
+  - 300 for the records path (now `MaxRecordsPath`; it was MaxText/2, also 300).
+- Docs and skills: replay-spec §4 table and content limits, rule 30, hyp-prototype SKILL.md:203 and README.md:201 are all correct. No "(full: hyp show" text is left anywhere. The glossary is consistent.
+
+Two notes that are a case of no line ("none"); neither is a cap or cut defect:
+1. none — /Users/datguy/codingProjects/tbam-text-cap/internal/render/status.go:670-677 (`OneLine`), used at show.go:261, status.go:103 and showlimit.go:151. A checkpoint summary is not printed byte for byte when it holds a line break; each break becomes a space. For example, `--summary $'a\nb'` prints "summary: a b", and the reader cannot tell it from `--summary "a b"`. The spec documents this (replay-spec.md:92) and the test pins it (TestCheckpointSummaryOnOneLine). It goes beyond the design's "prints whole", so the owner should know about it. Tabs and other control characters still pass through unchanged, where the old `Cut` folded them into one space.
+2. none — the summary and body paths are now inconsistent:
+   - Bodies keep their line breaks (show.go:29, 283). With the raised 2000/3000 caps, an Experiment body such as `$'rule\ntitle: X'` prints a line that reads as a show field. Only summaries are protected from this.
+   - In the limit history (showlimit.go:151), a refer with no text prints its summary through `OneLine`, so runs of spaces are kept. Refer text (showlimit.go:153) and old-owner accepts/returns summaries (showlimit.go:162) still go through `Cut`, which folds whitespace. No cut results at the current caps; the same view just treats text two ways.
+
+Lines with no defect found: G-V5NP59#1, #2, #3, #4, #5.
+
+Status: DONE
+Summary: The candidate meets all five Goal lines; vet and the full test suite pass, and every raised cap holds at write and on replay with an edge test. The only notes are outside the lines: line breaks in a summary print as spaces, and bodies and summaries handle line breaks and whitespace differently.

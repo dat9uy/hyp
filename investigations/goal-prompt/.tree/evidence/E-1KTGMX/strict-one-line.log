@@ -1,0 +1,11 @@
+candidate 69f0979e9b00c3b5ceccb7030ce3a2476924d36a with strict_one_line_test.go (sha256 cc35f95c52953d8cb60afe1f7fbe9760f23600410e0d611d344b84ffca1b2c6b)
+    strict_one_line_test.go:32: stand-in "one line": PASS (known answer PASS)
+    strict_one_line_test.go:32: stand-in "two\nlines": FAIL (known answer FAIL)
+    strict_one_line_test.go:42: e-hqwta0-650.txt experiment-body line breaks=0: PASS
+    strict_one_line_test.go:42: g908prz-gate-1346.txt experiment-body line breaks=0: PASS
+    strict_one_line_test.go:42: gzbm2re-run1-stop-full.txt checkpoint-summary line breaks=0: PASS
+    strict_one_line_test.go:42: gzbm2re-run2-stop-609.txt checkpoint-summary line breaks=0: PASS
+    strict_one_line_test.go:42: g908prz-goal-2441.txt goal-body line breaks=11: FAIL
+    strict_one_line_test.go:42: gqxm27f-goal-2068.txt goal-body line breaks=10: FAIL
+    strict_one_line_test.go:42: q8ymfw1-title-126.txt question-title line breaks=0: PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.580s
