@@ -27,6 +27,6 @@ echo "nightly: the page reads one totals row; per-request: the page sums every o
 
 "$HYP" select "$q"
 "$HYP" select "$q" "$h1" --why "only supported candidate"
-"$HYP" checkpoint --summary "Totals question answered: nightly precompute. Next: schedule the job." --why "end of session"
+"$HYP" checkpoint --goal "$goal" --summary "Totals question answered: nightly precompute. Next: schedule the job." --why "end of session"
 "$HYP" status
 "$HYP" check

@@ -28,9 +28,10 @@ sandbox exists then.
 
 ```text
 ---
-name: <name>        # equals the file name without .md, or the bundle directory name before any @
+name: <name>        # equals the bundle directory name before the @
 version: <integer>  # a new version for any byte change to a frozen version; a versioned bundle's directory name ends in @<version>
 from: <name>@<N> <sha256>  # written by hyp bundle new: the version this one was copied from and its hash; absent in a first version
+format: 1  # the one recipe format; every use of a bundle without it is refused
 subject: <what is under test, e.g. "Rails app with seed data">
 ---
 ```
@@ -45,11 +46,13 @@ the recipe, or add a new Experiment or a new version.
 
 ## Versions and lookup
 
-`hyp add exp --recipe <name>@<version>` and `hyp sandbox create` look for the
+`hyp add exp --recipe <name>@<version>` looks for the
 ref in `recipes/` beside `.tree/`, then in `recipes/` of each parent directory
 up to the repository root (the first directory holding `.git`). Outside a git
 repository only `recipes/` beside `.tree/` is searched. So a repo-root
 library serves every tree in the repository, and a tree needs no copy.
+`hyp sandbox create` takes the library from `--recipes DIR` (the directory
+that holds `recipes/`), which it requires unless `--recipe none`.
 
 - In each directory, `recipes/<name>@<version>/` is the copy of the ref.
 - Every copy found must hash the same. Otherwise hyp refuses the ref and
@@ -176,8 +179,7 @@ The rule is held by a refusal and a check:
   asks for the renames. A stray file in a pinned bundle shows
   as drift (dot-entries and `__pycache__` are not hashed). Run it before
   opening any pull
-  request that touches `recipes/`; the go test
-  `TestRepositoryRecipePinsMatch` runs it on this repository too.
+  request that touches `recipes/`.
   Drift means a cited version was edited in place: restore it and
   make the change as a new version.
 - A `.go` file in a bundle breaks `go vet ./...` in a Go repository,
@@ -190,7 +192,7 @@ The rule is held by a refusal and a check:
   pins. Both still exit 0. Keep Go source in a bundle under a non-`.go`
   name, such as `probe_test.go.txt`.
 
-Per-store `hyp check` is unchanged: it warns about questionable
+Per-store `hyp check` warns about questionable
 Results in its own store and exits 0.
 
 ## Sections
@@ -241,7 +243,7 @@ hyp opens each copy it makes by the ref it was copied for: the copy's
 `recipe.md` must give that name and version, wherever the copy sits. The shell equivalent:
 
 ```bash
-(cd recipes/NAME && find . \( -name '.*' ! -name . -o -name __pycache__ \) -prune -o -type f -print \
+(cd recipes/NAME@VERSION && find . \( -name '.*' ! -name . -o -name __pycache__ \) -prune -o -type f -print \
   | sed 's|^\./||' | LC_ALL=C sort \
   | while read -r f; do printf '%s  %s\n' "$(shasum -a 256 "$f" | cut -d' ' -f1)" "$f"; done \
   | shasum -a 256 | cut -d' ' -f1)
@@ -252,8 +254,8 @@ The executable bit is not hashed. A bundle holds scripts and small
 inputs, not data dumps, because hyp hashes it on every read.
 
 `hyp bundle hash DIR` prints the hash of the bundle in `DIR`, the same value
-`hyp add exp --recipe` records for it, and refuses (exit 1) a directory that
-does not open as a recipe. A `DIR` whose name has no `@<N>` hashes too: its
+`hyp add exp --recipe` records for it. It exits 2 for a directory with no
+`recipe.md`, and 1 for a `recipe.md` that does not match the directory. A `DIR` whose name has no `@<N>` hashes too: its
 `recipe.md` name must match the directory and its version is not checked. `--json` prints `ref`, `name`, `version`, `path` and `sha256`. A recipe script that needs its own hash, for example to tell
 whether its copy changed, runs this instead of hashing the files itself.
 
@@ -323,7 +325,7 @@ Rules:
   distinct names.
 - The sandbox owns no port or socket. A recipe that needs one sets it up in
   Launch, checks it in Doctor and frees it in Cleanup. Prefer a Unix socket
-  under `$HYP_SANDBOX_TMP` to a TCP port, as scratch-pg does.
+  under `$HYP_SANDBOX_TMP` to a TCP port, as the Example below does.
 - Launch must start servers in the background (daemonised, for example
   `pg_ctl -w start -l LOG`), and Cleanup must stop everything Launch started:
   remove (and create, after a failed Launch or Doctor) deletes nothing while
@@ -414,11 +416,12 @@ in a file. A Standalone command takes its arguments from
    later processes.
 3. `hyp sandbox remove` copies it to `OUT_DIR/inputs/<base name>`, so a
    Result that depends on the inputs cites the kept copy. `inputs`,
-   `patches`, `changes` and `changes.json` are reserved names in OUT_DIR for
-   `--keep`.
+   `patches`, `changes`, `changes.json`, `tree`, `sandbox.json`,
+   `recipe.log` and `known-answers.log` are reserved names in OUT_DIR for
+   `--keep`; remove keeps `wt/.tree` as `OUT_DIR/tree`.
 4. A throwaway Arm, a change over the base that never lands in code, is
    one patch: `hyp sandbox create ... --patch ARM=FILE`, repeatable, at
-   most one per Arm (ARM is `[a-z][a-z0-9-]`, at most 40 characters). A
+   most one per Arm (ARM is `[a-z][a-z0-9-]{0,39}`). A
    change that lands is a commit, given as `--base` instead. hyp refuses a
    patch that does not apply to the base with exit 2 before any command
    runs, and leaves no sandbox. It applies nothing to `wt/`: it copies
@@ -427,7 +430,7 @@ in a file. A Standalone command takes its arguments from
    `sandbox.json` names each by `arm` and `sha256` under `patches`, and
    remove keeps it as `OUT_DIR/patches/<ARM>.patch`.
 
-A recipe no longer names a variable of its own for its inputs.
+A recipe reads its inputs only from `HYP_SANDBOX_INPUTS`.
 
 ## A store cut
 
@@ -622,7 +625,7 @@ A recipe's cases never expect a verdict: `hyp add exp --recipe` refuses a
 recipe when any case's expected `stdout` holds a line starting with
 `verdict:`. A frozen recipe whose checks print verdicts stays valid for the
 Experiments that already pin it; its next version splits into a recipe
-and a rubric. A rubric's cases are its rule's specification (see
+and a rubric. A rubric's cases are its specification (see
 Rubrics).
 
 ### Cases as data
@@ -763,7 +766,7 @@ records it is given and prints one `verdict: LABEL=WORD` line per label, a
 whole line, where LABEL is the rubric's own name for a rival (an alias,
 `[a-z][a-z0-9-]{0,31}`) and WORD is `supports`, `contradicts` or
 `inconclusive`; a case prints each label at most once. Its known-answer
-cases are the rule's specification: every label needs a case printing
+cases are the rubric's specification: every label needs a case printing
 `supports` and a case printing `contradicts`; `inconclusive` needs none.
 A rubric names no tree id. hyp never reads a verdict line at run time and
 never binds a label to an H-id: the operator types each target's verdict

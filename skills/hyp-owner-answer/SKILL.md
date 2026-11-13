@@ -9,20 +9,22 @@ The owner's input: $ARGUMENTS
 
 A `/goal` run stopped and the owner now reads what waits for them. Use the tree of this session. If this session has no tree, ask for its path. Read the Goal with `hyp show <goal>`, including its lines and checkpoints, and read `hyp status`. In a store with many Goals, `hyp status` prints a GOALS table and one Awaiting owner list grouped by Goal; read `hyp status <goal>` for one Goal's lines and OWED. The owner's acts are `hyp answer` events: each item is `KEY=TEXT` with the owner's words, and an answer has no `--why` and no summary. One answer may name keys of several Goals in the store.
 
+Set `HYP_ACTOR` to a runner name unique to this session, never the owner's actor or the actor that referred the limits; the owner's writes take `--actor <owner-actor>`.
+
 Write in ASD-STE100 Simplified Technical English: short sentences, active verbs, one meaning for each word, and the Goal's words for things. Name a Hypothesis by its alias. This rule covers each part of what you show, also the explanation of a quote. Quote the runner's or a recipe's words only briefly, then explain them in STE. Define each tree or recipe word the first time you use it, for example a check name, "structure", "shape", "host" or "stand-in".
 
 ## What the owner decides
 
 Each owner move turns the direction of an item so that it serves the Goal, or starts a new Goal:
 
-- A reading answer sets what a line or an answer means, so the runner judges by it.
+- A reading answer sets what a line or an answer means, so the runner gives verdicts by it.
 - An accept says this tree does not run a case. A return sends the case back to run.
 - A choose selects one of the candidates that meet every line, for the owner's own reasons. The runner records the select in the owner's words.
-
-The Goal's lines are the owner's one move that no item asks for. Each other move answers what the ledger hands the owner under AWAITING OWNER.
 - A new Goal is a new tree, for a purpose this Goal does not hold.
 
-The owner never runs a case, never judges a verdict and never edits a recorded event. The Goal's lines are written once, so this tree never gets a new line. A recipe check is not a line: it counts toward a verdict only through a line or an owner answer, and the runner maps checks to a line when it closes it.
+The Goal's lines are the owner's one move that no item asks for. Each other move answers what the ledger hands the owner under AWAITING OWNER.
+
+The owner never runs a case, never gives a verdict and never edits a recorded event. The Goal's lines are written once, so this tree never gets a new line. A recipe check is not a line: it counts toward a verdict only through a line or an owner answer, and the runner maps checks to a line when it closes it.
 
 ## Show each open reading
 
@@ -40,7 +42,7 @@ Do not ask the owner to decide what a test can decide. Do not recommend a meanin
 ## Do what the owner's words ask
 
 - **A question.** Explain from the tree and the recipe. Write nothing to the tree. The reading stays open.
-- **"I don't know", or no decision.** Leave the reading open. Do not close it, because a closed reading sets the meaning of the line. It blocks nothing. Propose a test that can give the owner the facts, and name the Goal line it runs under.
+- **"I don't know", or no decision.** Leave the reading open. Do not close it, because a closed reading sets the meaning of the line. While it is open, the select and the owner's choice on its question wait on it (`hyp status` prints a `waits on open reading` line); tell the owner so. Propose a test that can give the owner the facts, and name the Goal line it runs under.
 - **A test.** If the test fits the Goal's lines, run it as in "Apply the answers". If no line holds it, it cannot decide here: show the owner the fork in "A test outside the Goal's lines". The reading stays open until the owner answers it.
 - **An answer.** Answer the reading with their exact words, under the actor of their earlier owner acts. When `hyp status` prints several keys on one reading line, they ask the same question: name every key in the same answer, with the same words. A `warn: … asks the same as …` line means a copy was left behind; answer it with the same words:
 
@@ -48,7 +50,7 @@ Do not ask the owner to decide what a test can decide. Do not recommend a meanin
   hyp answer --answer "<R-id>#r<n>=<their words>" [--answer "<R-id>#r<n>=<their words>" ...] --actor <owner-actor>
   ```
 
-- **A new answer to a reading they already answered.** `hyp show <R-id>` prints `closed by owner checkpoint …, answer: "…"` for it. Give the new answer with the same command and their new words, naming every key that asks it; hyp derives that it is a revision from the reading's state:
+- **A new answer to a reading they already answered.** `hyp show <R-id>` prints `closed by owner answer …, answer: "…"` for it. Give the new answer with the same command and their new words, naming every key that asks it; hyp derives that it is a revision from the reading's state:
 
   ```text
   hyp answer --answer "<R-id>#r<n>=<their new words>" [--answer ...] --actor <owner-actor>
@@ -62,7 +64,7 @@ The owner names the reading: "Answer <key>: …" answers a reading that waits un
 
 ## Show each referred limit
 
-A line `Q-… limit referred, accept or return R-…#n` under AWAITING OWNER is a limit, and one with a `G-…#n` key is a line of the Goal: a case the Goal covers that no check ran on the Hypotheses its Result judged. The runner referred it because it says no test within the Goal's lines can run the case, or the case is void for every candidate. If the input is empty, show each referred limit after the readings. If the input names a limit key, show only that limit.
+A line `Q-… limit referred, accept or return R-…#n` under AWAITING OWNER is a limit, and one with a `G-…#n` key is a line of the Goal: a case the Goal covers that no check ran on the Hypotheses its Result gave a verdict on. The runner referred it because it says no test within the Goal's lines can run the case, or the case is void for every candidate. If the input is empty, show each referred limit after the readings. If the input names a limit key, show only that limit.
 
 Run `hyp show <key>` first; for a line, `<key>` is `G-…#n`. It prints the limit's state, what its Result judged and their status now, the candidates, the Experiments that aim at it, and the runner's refer summary. Show the limit in this order:
 
@@ -100,7 +102,7 @@ Do not recommend an answer. Then do what the owner's words ask:
   If "A return also needs" named something, ask the owner for it in the same answer, and put their words for it in the return's text, so no second ask follows. A returned limit is the runner's `limit` line under OWED again, and it holds the select until a Result closes it.
 - **A question, "I don't know", or no decision.** Explain from the tree. Write nothing. The limit stays referred. While it is referred, it holds the select and the choice on its question, so tell the owner that the question waits for their answer.
 
-If the owner's words answer a limit but do not name it, ask which key before you write. hyp refuses `--returns` on a limit that is not referred or is already closed; tell the owner what `hyp show <R-id>#<n>` prints. Show the owner each write under their actor.
+If the owner's words answer a limit but do not name it, ask which key before you write. hyp admits `--returns` only on a referred or accepted limit, and a return after an accept takes the accept back; tell the owner what `hyp show <R-id>#<n>` prints. Show the owner each write under their actor.
 
 ## Apply the answers
 
@@ -108,7 +110,7 @@ Apply only when the owner asks you to reassess, or to update the tree. A closed 
 
 Reassess as the hyp-goal-run skill's "Reassess" section says; it is the one copy of these steps, shared with the `/goal` run. The owner is in this session, so show the answer lines of step 1 and wait for their yes.
 
-Run `hyp check` and `hyp bundle check` after the Results. If the run's instruction expects new structures or variants, ask the owner.
+Run `hyp check` and `hyp bundle check` after the Results. Add no new structure or variant unless the owner asks for it, or hyp-goal-run's "Before a trade-off" calls for it; ask the owner first.
 
 ## Show the candidates
 
@@ -117,20 +119,20 @@ If no reading is open, show each open Question with the candidates left, by alia
 - **None.** Say so. Each rival failed, or has no Result yet.
 - **One.** It is the suggested select. Show each `limit` line under OWED for it. Run a test within the Goal's lines that can close one, if the owner asks you to reassess. Show each referred limit under AWAITING OWNER as "Show each referred limit" says.
 - **Several.** `hyp status` prints `Q-… choose: …` under AWAITING OWNER only when the runner owes nothing on that Question. Until then, apply what the runner owes first.
-   The owner can choose one by their own reasons, in their own words, or ask for a test or a question that rules more out. Name the test that would separate them, if one exists. If that test is under no Goal line, show the fork below.
+   The owner can choose one by their own reasons, in their own words; record it with `hyp select <Q-id> <H-id> --why "<their words>"` under this session's runner actor. Or they can ask for a test or a question that rules more out. Name the test that would separate them, if one exists. If that test is under no Goal line, show the fork below.
 
 ## A test outside the Goal's lines
 
 The runner or a recipe can name a check that separates candidates but that no Goal line holds, for example a check the recipe prints and counts for no verdict. That check cannot decide in this tree: a verdict on it would drop a candidate for a case the Goal never asked for. Show the owner the two ways, with what each costs, and do not recommend one:
 
 - **A preference between designs that both meet the Goal.** The owner chooses. The check can run as one Experiment that measures it, and its Result is evidence for the choice, not a verdict. The owner's choose names the reason in their words.
-- **A requirement this Goal lacks.** It is a new purpose, so a new Goal in the same store: the owner adds it with `hyp add goal --title … --line "<the new case>" --cite <n>=<key> --actor <owner-actor>`, citing the settled keys of this Goal it builds on, and every case runs again under it. A move never crosses Goals: in this Goal, the runner refers each item the new Goal takes over, and the owner accepts it with words that name the new Goal.
+- **A requirement this Goal lacks.** It is a new purpose, so a new Goal in the same store. A move never crosses Goals, so first, in this Goal, the runner refers each item the new Goal takes over, and the owner accepts it with words that name the new purpose. Then the owner adds the Goal, citing the settled keys of this Goal it builds on: `hyp add goal --title … --line "<the new case>" --cite <n>=<accepted or settled key> --actor <owner-actor> --why "…"`. `--cite` refuses a key that is not yet settled. Every case runs again under the new Goal.
 
 Ask one question in the owner's words: would they reject a design that fails this check? Yes points to a new Goal; no points to a choice. Do not write either until the owner says which.
 
 ## End each turn
 
-If this turn recorded a Result or changed what a reading does to the candidates, record a runner checkpoint before you end, under the runner's actor, not the owner's:
+If this turn recorded a Result, changed what a reading does to the candidates, or left a question for the owner, record a runner checkpoint before you end, under the runner's actor, not the owner's:
 
 ```text
 hyp checkpoint --goal <G-id> --summary "Stopped: <what waits>. Waiting for the owner: <the keys under AWAITING OWNER>" --why "<why>"
