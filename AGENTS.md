@@ -39,7 +39,7 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
 
 1. **A real event points at hyp.** In a real run the ledger shows an item that does not settle, a refusal or warning fires, `hyp signals` reports a design mark (one-rival or D1), or the owner flags a round. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
-3. **A tree holds the question.** Under `investigations/<topic>/`, run `hyp init`, add the goal, the design question and its Hypotheses (two rivals only when a scenario separates them on a line; otherwise one, with the base as its rival), and pre-register each Experiment's rubric before running it: a pinned rubric bundle, or prose in its body. The [hyp-prototype skill](skills/hyp-prototype/SKILL.md) describes each step.
+3. **A tree holds the question.** A new Goal goes in the store that holds the Goal it continues; otherwise run `hyp init` in a new `investigations/<topic>/`. Add the goal, the design question and its Hypotheses (two rivals only when a scenario separates them on a line; otherwise one, with the base as its rival), and pre-register each Experiment's rubric before running it: a pinned rubric bundle, or prose in its body. The [hyp-prototype skill](skills/hyp-prototype/SKILL.md) describes each step.
 4. **Experiments run from a pinned, versioned recipe.** The [hyp-verification skill](skills/hyp-verification/SKILL.md) and [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md) describe Launch, Doctor, Drive, Evidence and Cleanup. hyp admits a select only when the ledger owes it; the owner decides trade-offs.
 5. **The change passes its gate.**
    - A failure that can be detected from the tree goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.
@@ -61,6 +61,7 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
 - hyp exits 1 for a rule refusal, 2 for bad arguments and 3 for an environment problem, such as a busy port or a missing tool ([sandbox-spec.md](docs/sandbox-spec.md) §1.3).
 - Skill text cites no ADR and no file under `docs/`: the skills are copied into other repositories without them. A skill states its rule inline, and the ADR behind it names the skill file. Removing such a citation is a product fix.
 - A state machine has one spec, and a change to the machine updates that spec in the same PR. Every spec states the states or statuses, what is stored and what is derived, the events or steps with what each state refuses and its exit code, and what happens on a crash or a merged log.
+- A PR whose events file conflicts on GitHub is merged locally first: GitHub does not run the union merge that each store's `.tree/.gitattributes` names, so take main's `.tree/.gitattributes` (`git checkout origin/main -- <store>/.tree/.gitattributes`), then run `git merge origin/main`, and push.
 - Write "Part of #N", never a closing keyword, next to an issue that stays open.
 - An issue that closes with its goal not met gets a new issue first, as a placeholder that states the unmet goal, and its closing comment names that issue. A goal is never held only in a closed issue.
 - Commits use the conventional format (`feat:`, `fix:`, `docs:` and so on) and carry no AI trailers.

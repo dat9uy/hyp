@@ -13,8 +13,10 @@ This spec adds the minimum needed to make the owner-confirmed design executable;
 ## 1. Names and locations
 
 - Binary: `hyp` (the word `tree` is aliased in the owner's shell and collides with the common `tree` utility). "tree" stays the concept name.
-- Store directory in the investigated repo: `.tree/`, found by walking up from the current directory, the way git finds `.git`.
-  - `.tree/events/<actor>.jsonl`: git-tracked, append-only.
+- Store directory in the investigated repo: `.tree/`, found by walking up from the current directory. The walk stops at the repository root, the first directory that holds `.git` (a directory, or a file in a worktree): when no directory from the current one up to that one holds `.tree/events`, a command reports `no .tree store found` (exit 3), even when a directory above the root holds a store. With no `.git` at or above, the walk goes to the filesystem root (ADR 0022).
+- `hyp init` refuses, at exit 1, a directory from which this walk finds a store, at it or above it, names that store's directory and creates nothing; a store is made only where no command would read another one.
+  - `.tree/events/<actor>.jsonl`: git-tracked, append-only, in any line order (§6).
+  - `.tree/.gitattributes` contains exactly `events/*.jsonl merge=union`, which `hyp init` writes: `git merge` of two branches that each appended to one events file keeps every line of both once, with no conflict.
   - hyp keeps no index; every read replays the events (ADR 0006). Older hyp binaries write `.tree/index.sqlite`, so the `.gitignore` below still names it; hyp neither reads nor deletes one.
   - `.tree/evidence/<experiment-display-id>/`: evidence files referenced by pointer.
   - `.tree/.gitignore` contains exactly `index.sqlite` plus `index.sqlite-*`.
@@ -24,7 +26,7 @@ This spec adds the minimum needed to make the owner-confirmed design executable;
 
 ## 2. Ids
 
-- Every event has `id`, a ULID (26 characters, Crockford base32, upper case), generated monotonic per process.
+- Every event has `id`, a ULID (26 characters, Crockford base32, upper case), generated monotonic per process. An appended event's id sorts after every event id the store holds: when the clock reads earlier than the newest id, or in its millisecond, the new id is the newest id plus one (ADR 0022). `ts` keeps the clock's time.
 - `node.add` and `result.record` create a node whose node id equals the event id.
 - Display id: `<K>-<last 6 characters of the ULID>`, where K is `G` (Goal), `Q` (DesignQuestion), `H` (Hypothesis), `E` (Experiment) or `R` (Result). Example: `H-7QK2ZD`.
 - Optional alias on `node.add`: it must match `^[a-z][a-z0-9-]{0,31}$` and be unique in the log.
@@ -153,10 +155,9 @@ More refusals come from the CLI before it appends, not from `Validate`. They rea
 
 ## 6. Merge order
 
-- Read each `.tree/events/*.jsonl` file in its own line order. Within one actor file, append order is preserved even if `ts` goes backwards.
-- Merge the files by a stable k-way merge: repeatedly take the head event with the smallest `id` (ULIDs embed time, so this approximates time order), breaking ties by actor name.
+- Read every `.tree/events/*.jsonl` file and order all events by `id`, then by actor (the file name without `.jsonl`), whatever the line order inside a file; two lines with the same id in one file keep their file order. A file that git merged with the union driver (§1) may hold two branches' lines in any order, so a store whose files hold the same lines in another order replays, prints `hyp status` and `hyp check`, and cuts the same (ADR 0022). ULIDs embed time, and §2 makes an appended id the greatest, so this is append order within one store.
 - `hyp check` warns, without rejecting, when an event references an id that sorts after it.
-- `hyp sandbox create --store SRC --cut EVENT` writes a store cut in this order: the merged events up to and including the first with id `EVENT` (the `asOf` stop in §7), each line as written, so the cut store replays to the same state as `asOf = EVENT` on SRC.
+- `hyp sandbox create --store SRC --cut EVENT` writes a store cut in this order: the merged events up to and including the first with id `EVENT` (the `asOf` stop in §7), each line as written and each events file's kept lines in id order, so the cut store replays to the same state as `asOf = EVENT` on SRC and the same lines in another file order cut to the same bytes. The cut replaces any `.tree` the base holds at its root.
 - A line that does not parse has no id, so it is not in the merge. `hyp check` reports it as an error naming `file:line`; `hyp status` (with or without `--as-of`) replays the other lines, exits as usual, and prints `warn: skipped file:line: …` on stderr for each such line; `hyp sandbox create --store SRC --cut EVENT` refuses the store with exit 3, naming the first such `file:line`.
 
 ## 7. Derived state (forward pass)

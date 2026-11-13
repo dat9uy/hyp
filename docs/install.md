@@ -40,8 +40,8 @@ copy the skills again, so the binary and the skills stay the same version.
 In the repository you investigate:
 
 ```bash
-hyp init                         # creates .tree/events, .tree/evidence, .tree/.gitignore
-git add .tree/.gitignore .tree/events
+hyp init                         # creates .tree/events, .tree/evidence, .tree/.gitignore, .tree/.gitattributes
+git add .tree/.gitignore .tree/.gitattributes .tree/events
 hyp bundle new NAME@1            # optional: a first versioned procedure, in recipes/ beside .tree/
 ```
 

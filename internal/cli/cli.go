@@ -210,6 +210,9 @@ func cmdInit(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if err := store.Init(cwd); err != nil {
+		if herr.KindOf(err) == herr.Refusal {
+			return err
+		}
 		return herr.Env("%v", err)
 	}
 	fmt.Fprintf(stdout, "initialised .tree in %s\n", cwd)

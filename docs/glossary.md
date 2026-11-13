@@ -11,7 +11,7 @@ One investigation: a Goal and the DesignQuestions, Hypotheses, Experiments and R
 _Avoid_: graph, log (the log is its events), project
 
 **Store**:
-The `.tree/` directory of a repository: one events file per actor and the evidence files Results point at ([spec §1](replay-spec.md#1-names-and-locations)). hyp finds it by walking up from the current directory, as git finds `.git`. In code: package `store`.
+The `.tree/` directory of a repository: one events file per actor and the evidence files Results point at ([spec §1](replay-spec.md#1-names-and-locations)). hyp finds it by walking up from the current directory to the repository root, the first directory that holds `.git`, and never above it; `hyp init` is refused where it finds one. In code: package `store`.
 _Avoid_: database, index (hyp keeps none, ADR 0006)
 
 **Event**:

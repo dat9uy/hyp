@@ -128,8 +128,8 @@ func ids(evs []event.Event) []string {
 }
 
 // TestCutFollowsMergeOrder: an actor file out of id order. The merge puts
-// 01B (file b) before 01C and 01A (file a, in that order), so the cut at 01B
-// keeps 01B alone; comparing ids would also keep 01A.
+// 01A, 01B (file b) and 01C in id order, whatever the order in file a, so the
+// cut at 01A keeps 01A alone and writes no b.jsonl.
 func TestCutFollowsMergeOrder(t *testing.T) {
 	src := newStore(t)
 	writeLines(t, src, "a", goalLine("01C", "a"), goalLine("01A", "a"))
@@ -153,11 +153,14 @@ func TestCutFollowsMergeOrder(t *testing.T) {
 			t.Errorf("cut at %s: applied %v, as-of applied %v", ev.ID, g, w)
 		}
 	}
-	if g := ids(all); !slices.Equal(g, []string{"01B", "01C", "01A"}) {
+	if g := ids(all); !slices.Equal(g, []string{"01A", "01B", "01C"}) {
 		t.Fatalf("merge order %v", g)
 	}
-	if _, err := os.Stat(filepath.Join(writeCut(t, src, "01B"), ".tree", "events", "a.jsonl")); !os.IsNotExist(err) {
-		t.Errorf("a.jsonl written with no event before the cut: %v", err)
+	if _, err := os.Stat(filepath.Join(writeCut(t, src, "01A"), ".tree", "events", "b.jsonl")); !os.IsNotExist(err) {
+		t.Errorf("b.jsonl written with no event before the cut: %v", err)
+	}
+	if got := files(t, filepath.Join(writeCut(t, src, "01C"), ".tree", "events"))["a.jsonl"]; string(got) != goalLine("01A", "a")+"\n"+goalLine("01C", "a")+"\n" {
+		t.Errorf("cut a.jsonl = %q, want its lines in id order", got)
 	}
 }
 

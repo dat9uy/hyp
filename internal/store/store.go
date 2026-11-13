@@ -44,6 +44,10 @@ func Dir(root string) string { return filepath.Join(root, ".tree") }
 func eventsDir(root string) string { return filepath.Join(root, ".tree", "events") }
 
 // FindRoot walks up from start to the directory that contains .tree/events.
+// The walk stops at the repository root, the first directory that holds .git
+// (a directory, or a file in a worktree), so a store above the repository is
+// never found. With no .git at or above start it walks to the filesystem
+// root.
 func FindRoot(start string) (string, error) {
 	dir, err := filepath.Abs(start)
 	if err != nil {
@@ -53,6 +57,9 @@ func FindRoot(start string) (string, error) {
 		if fi, err := os.Stat(eventsDir(dir)); err == nil && fi.IsDir() {
 			return dir, nil
 		}
+		if _, err := os.Lstat(filepath.Join(dir, ".git")); err == nil {
+			return "", ErrNoStore
+		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			return "", ErrNoStore
@@ -61,17 +68,31 @@ func FindRoot(start string) (string, error) {
 	}
 }
 
-// Init creates .tree/events, .tree/evidence and .tree/.gitignore in dir. It
-// changes nothing when .tree/events already exists. The .gitignore names
-// index.sqlite because older hyp binaries write one (ADR 0006).
+// GitAttributes is the content of .tree/.gitattributes: git merges an events
+// file of two branches by keeping every line of both, and replay orders the
+// lines by id whatever their order in the file.
+const GitAttributes = "events/*.jsonl merge=union\n"
+
+// Init creates .tree/events, .tree/evidence, .tree/.gitignore and
+// .tree/.gitattributes in dir. It refuses, and creates nothing, when store
+// discovery from dir finds a store, at dir or above it, since a command run
+// there would then read that store and never the new one. The .gitignore
+// names index.sqlite because older hyp binaries write one (ADR 0006).
 func Init(dir string) error {
-	if _, err := os.Stat(eventsDir(dir)); err == nil {
-		return fmt.Errorf("store already exists: %s", eventsDir(dir))
+	root, err := FindRoot(dir)
+	if err == nil {
+		return herr.Refused("store discovery from %s finds the store at %s; run hyp init where it finds none", dir, root)
+	}
+	if !errors.Is(err, ErrNoStore) {
+		return err
 	}
 	for _, sub := range []string{"events", "evidence"} {
 		if err := os.MkdirAll(filepath.Join(Dir(dir), sub), 0o755); err != nil {
 			return err
 		}
+	}
+	if err := os.WriteFile(filepath.Join(Dir(dir), ".gitattributes"), []byte(GitAttributes), 0o644); err != nil {
+		return err
 	}
 	return os.WriteFile(filepath.Join(Dir(dir), ".gitignore"), []byte("index.sqlite\nindex.sqlite-*\n"), 0o644)
 }
@@ -154,6 +175,28 @@ func newID(t time.Time) string {
 	return ulid.MustNew(ulid.Timestamp(t), entropy).String()
 }
 
+// idAfter returns a new id for time t that sorts after last, the greatest id
+// the store holds. When the clock reads earlier than last, or the same
+// millisecond, the id is last plus one, so an appended event always sorts
+// after every event the store holds. A last that is not a ULID is ignored.
+func idAfter(t time.Time, last string) string {
+	id := newID(t)
+	if id > last {
+		return id
+	}
+	u, err := ulid.ParseStrict(last)
+	if err != nil {
+		return id
+	}
+	for i := len(u) - 1; i >= 0; i-- {
+		u[i]++
+		if u[i] != 0 {
+			break
+		}
+	}
+	return u.String()
+}
+
 // Append validates ev against the current log and, when it is allowed, writes
 // it as one line to .tree/events/<actor>.jsonl and fsyncs. V, ID, TS and
 // Actor are filled in here; for node.add and result.record Node is set to the
@@ -193,8 +236,12 @@ func AppendWith(root, actor string, build func(*replay.State, replay.Projection)
 	}
 
 	now := time.Now().UTC()
+	last := ""
+	if len(evs) > 0 {
+		last = evs[len(evs)-1].ID
+	}
 	ev.V = event.Version
-	ev.ID = newID(now)
+	ev.ID = idAfter(now, last)
 	ev.TS = now.Format(time.RFC3339Nano)
 	ev.Actor = actor
 	if ev.Type == event.TypeNodeAdd || ev.Type == event.TypeResultRecord {

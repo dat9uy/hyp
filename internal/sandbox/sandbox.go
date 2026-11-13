@@ -3,7 +3,8 @@
 // Create makes ~/.hyp-sandbox/ID with:
 //
 //	wt/           a clone of the host detached at the base commit, origin removed;
-//	              with a store cut, wt/.tree is that store as it was at the cut event
+//	              with a store cut, wt/.tree is that store as it was at the cut event,
+//	              in place of any .tree the base holds
 //	tmp/          scratch, holding an empty tmp/<name>/ for each recipe
 //	recipes/      the sandbox's copy of each recipe (recipes/<name>/), unless it is none;
 //	              outside wt/, so the agent working there does not find it; a copy is opened by
@@ -81,7 +82,7 @@
 // OUT_DIR exists, a bad keep path, no such sandbox, a missing --recipe, a
 // recipe name given twice, none stacked with a recipe, a recipe that does
 // not resolve, --store without --cut or the reverse, a store or cut event
-// that does not exist, a base that already holds .tree, a sandbox with no
+// that does not exist, a sandbox with no
 // Drive command, a remove with OUT_DIR of a directory with no record, a record directory that exists, an OUT_DIR without
 // sandbox.json, an unknown Standalone name, a recipe with no Evidence
 // command, an --inputs that is not a regular file, a --patch with a bad or
@@ -699,9 +700,6 @@ func Create(o CreateOptions) (*Record, error) {
 	}
 	var cut *store.Cut
 	if o.Store != "" {
-		if _, err := git("-C", o.Host, "cat-file", "-e", o.Base+":.tree"); err == nil {
-			return nil, herr.BadArgs("%s already holds .tree at %s; a store cut needs a base without one", o.Host, o.Base)
-		}
 		if cut, err = store.CutAt(o.Store, o.Cut); err != nil {
 			if errors.Is(err, store.ErrNoStore) {
 				return nil, herr.BadArgs("--store %s holds no .tree/events", o.Store)
@@ -1119,6 +1117,11 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 	if cut != nil {
 		var err error
 		if src, err = filepath.Abs(cut.Src); err != nil {
+			return nil, nil, err
+		}
+		// The cut replaces every file of the base's own .tree, so the clone's
+		// store is the cut and nothing else.
+		if err := os.RemoveAll(filepath.Join(wt, ".tree")); err != nil {
 			return nil, nil, err
 		}
 		if err := cut.Write(wt); err != nil {

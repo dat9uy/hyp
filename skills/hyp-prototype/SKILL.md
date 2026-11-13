@@ -18,8 +18,11 @@ never type one. Run `hyp help` for every command and flag.
    Goals; then `hyp status` prints a GOALS table and one AWAITING OWNER list,
    and `hyp status <G-id>` prints your Goal with its LINES, FRONTIER and OWED.
    Use `hyp status <G-id>` wherever this skill says `hyp status`.
-2. If it says `no .tree store found`, run `hyp init` at the repository root,
-   then add the Goal with its lines, the cases every candidate must meet.
+2. If it says `no .tree store found`, run `hyp init` where the repository's
+   agent instructions say trees live, or at the repository root when they
+   name no place. hyp finds a store by walking up from the current directory
+   to the repository root, and refuses an init where it finds one. Then add
+   the Goal with its lines, the cases every candidate must meet.
    The lines come with the Goal and no later event adds one, so ask the owner
    for them first. Show the owner the command; once they approve it, run it
    under their actor name:

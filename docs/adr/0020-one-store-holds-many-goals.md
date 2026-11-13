@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; amended 2026-11-13 by ADR 0022: an events file merges by union, replay orders events by id then actor, discovery stops at the repository root
 ---
 
 # One store holds many Goals

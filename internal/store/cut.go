@@ -25,7 +25,7 @@ var ErrNoEvent = errors.New("no such event")
 type Cut struct {
 	Src, At string
 	Events  int
-	lines   map[string][][]byte // kept lines per actor (events file without .jsonl), in file order
+	lines   map[string][][]byte // kept lines per actor (events file without .jsonl), in merge order, so by id
 	exps    map[string]bool     // evidence folders (E-<last 6 of the id>) of kept Experiments
 }
 
@@ -69,8 +69,9 @@ func CutAt(src, at string) (*Cut, error) {
 		}
 	}
 	c := &Cut{Src: src, At: at, lines: map[string][][]byte{}, exps: map[string]bool{}}
-	for _, ev := range replay.Merge(evs) {
-		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[ev.Actor][len(c.lines[ev.Actor])])
+	for _, pos := range replay.MergeOrder(evs) {
+		ev := evs[pos.Actor][pos.Index]
+		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[pos.Actor][pos.Index])
 		c.Events++
 		if ev.Type == event.TypeNodeAdd {
 			var p struct{ Kind string }
@@ -87,7 +88,8 @@ func CutAt(src, at string) (*Cut, error) {
 }
 
 // Write makes dest/.tree/events with one file per actor that has a kept
-// event, each kept line as read, and dest/.tree/evidence without the
+// event, each kept line as read and the lines in merge order, so a store
+// whose files hold the same lines in another order writes the same bytes; and dest/.tree/evidence without the
 // E-* folders of Experiments added after the cut, which would leak the
 // future into a replay. A symlink under the evidence is refused. dest/.tree must not exist. The index is not
 // written; hyp rebuilds it.

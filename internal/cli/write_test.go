@@ -67,9 +67,10 @@ func logLines(t *testing.T, dir string) int {
 }
 
 func TestInitTwiceFails(t *testing.T) {
-	t.Chdir(t.TempDir())
+	dir := t.TempDir()
+	t.Chdir(dir)
 	want(t, hyp(t, "init"), 0, "initialised .tree")
-	want(t, hyp(t, "init"), 3, "already exists")
+	want(t, hyp(t, "init"), 1, "finds the store at "+dir)
 }
 
 func TestMissingWhyIsUsage(t *testing.T) {
