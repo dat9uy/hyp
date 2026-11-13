@@ -20,6 +20,7 @@ Act on what OWED in `hyp status` says the runner owes, and on nothing else. Plan
 - Use the Goal's must-fail cases as known-answer flaw cases, in the owner's terms.
 - The recipe's checks may exist before the verdict rule, because `hyp add exp` pins them. Write and run no candidate until the rule is recorded on the Experiment.
 - Try a new or changed check only on its cases' stand-ins, never on a candidate, until the rule is recorded. If a candidate shows a check is wrong anyway, do not just fix the check: write the case that shows it, in the Goal's terms with the outcome it must give, in a new version, and name that case in the Experiment body. A sentence that discloses a trial run pins nothing.
+- Before you pin a recipe whose Drive runs an agent, run it once on one case while it is still a Draft, and read that run's transcript for reads or writes outside the subject. A Draft may be edited in place. A pinned recipe changes only by a new version, and every trial already run on it is lost.
 - `hyp record` and `hyp check` warn when a Result's text disagrees with its cited files: a verdict that a cited `verdict:` line contradicts, or a commit or hash in the observation or a limit that no cited file holds. Fix each one with a new Result that cites the file; a Result cannot change after it is recorded.
 
 ## Build Goals
