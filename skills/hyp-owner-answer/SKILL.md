@@ -104,7 +104,7 @@ If the owner's words answer a limit but do not name it, ask which key before you
 
 ## Apply the answers
 
-Apply only when the owner asks you to reassess, or to update the tree. A closed reading changes no status until a new Result records the verdicts. A returned limit is applied as hyp-goal-run's Re-judge step 4 says for a `limit` line.
+Apply only when the owner asks you to reassess, or to update the tree. A closed reading changes no status until a new Result records the verdicts. A returned limit is applied as hyp-goal-run's Reassess step 4 says for a `limit` line.
 
 Reassess as the hyp-goal-run skill's "Reassess" section says; it is the one copy of these steps, shared with the `/goal` run. The owner is in this session, so show the answer lines of step 1 and wait for their yes.
 
@@ -115,7 +115,7 @@ Run `hyp check` and `hyp bundle check` after the Results. If the run's instructi
 If no reading is open, show each open Question with the candidates left, by alias.
 
 - **None.** Say so. Each rival failed, or has no Result yet.
-- **One.** It is the suggested select. Show each `limit` line under OWED for it. Run a test within the Goal's lines that can close one, if the owner asks you to re-judge. Show each referred limit under AWAITING OWNER as "Show each referred limit" says.
+- **One.** It is the suggested select. Show each `limit` line under OWED for it. Run a test within the Goal's lines that can close one, if the owner asks you to reassess. Show each referred limit under AWAITING OWNER as "Show each referred limit" says.
 - **Several.** `hyp status` prints `Q-… choose: …` under AWAITING OWNER only when the runner owes nothing on that Question. Until then, apply what the runner owes first.
    The owner can choose one by their own reasons, in their own words, or ask for a test or a question that rules more out. Name the test that would separate them, if one exists. If that test is under no Goal line, show the fork below.
 
@@ -133,7 +133,7 @@ Ask one question in the owner's words: would they reject a design that fails thi
 If this turn recorded a Result or changed what a reading does to the candidates, record a runner checkpoint before you end, under the runner's actor, not the owner's:
 
 ```text
-hyp checkpoint --summary "Stopped: <what waits>. Waiting for the owner: <the keys under AWAITING OWNER>" --why "<why>"
+hyp checkpoint --goal <G-id> --summary "Stopped: <what waits>. Waiting for the owner: <the keys under AWAITING OWNER>" --why "<why>"
 ```
 
 The owner reads `hyp status`, which prints the last checkpoint, so the fork must not live only in chat. A checkpoint holds only a summary and refers; the owner's acts are `hyp answer`.

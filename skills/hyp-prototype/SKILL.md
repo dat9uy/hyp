@@ -34,10 +34,11 @@ never type one. Run `hyp help` for every command and flag.
   holds goes under that hypothesis. It blocks: its parent cannot become the
   answer until the sub-question is settled, whichever way it is settled.
 - Rival answers are siblings: `hyp add hyp --parent <Q-id> --title "..." --why "..."`.
-  Add a second only when, for the pair, you can write "on <scenario>, A
-  meets line n and B does not, because <mechanism>"; options that can both
-  be applied in one candidate are not rivals. Otherwise add one, and the
-  base, or what exists today, is its rival.
+  Add a second only when, for the pair, you can write the difference test
+  sentence "on <scenario>, A meets line n and B does not, because
+  <mechanism>", and put it in the question's body (`hyp add dq --body`).
+  Options that can both be applied in one candidate are not rivals.
+  Otherwise add one, and the base, or what exists today, is its rival.
 - New information goes in a new node. A fix, an untested part of a claim
   or a stronger instrument is a new Hypothesis that supersedes the old one,
   and it exists before the Experiment that tests it. Run, in this order:
@@ -114,9 +115,12 @@ never type one. Run `hyp help` for every command and flag.
   (`contradicts` or `inconclusive`), not only in the observation text; status
   is derived from verdicts and never reads prose.
 - A failed pre-registered pass rule is `contradicts`, not `inconclusive`.
+  When the Experiment counts trials and one cell's miss alone would
+  contradict, rerun that cell once first, as its body states.
   `inconclusive` means the experiment ran as designed and still could not
   decide the claim, for example a count inside a pre-registered inconclusive
-  band. Its next round must change the instrument or the power, or add a rival.
+  band. Its next round must change the instrument or the power, or add a rival
+  that passes the difference test above.
 - `--why` holds at most 300 characters and `--observation` at most 600. Put
   anything longer (logs, reasoning, screenshots) in files under
   `.tree/evidence/<E-id>/` and point to them with `--evidence` (repeatable).
@@ -203,7 +207,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
 
 ## End of session
 
-1. `hyp checkpoint --summary "<what is next, at most 2000 characters>" --why "end of session"`.
+1. `hyp checkpoint --goal <G-id> --summary "<what is next, at most 2000 characters>" --why "end of session"`.
 2. `hyp check` must print `check: 0 errors`. Fix any rejected event by
    recording a correct one; never edit the log.
 3. Commit `.tree/events/` and `.tree/evidence/` with the code they describe.

@@ -1,13 +1,13 @@
 ---
 name: hyp-goal-run
-description: "Run a hyp tree under an owner's Goal and met rule as an unattended /goal, for a discovery Goal or a build Goal: act only on what OWED says the runner owes, test before asking, write readings the owner can answer, reassess the targets under the owner's answers, and stop with a report the owner can read from hyp status. Use when a /goal prompt names this skill, such as the one hyp prompt prints."
+description: "Run a hyp tree under an owner's Goal as an unattended /goal, for a discovery Goal or a build Goal: act only on what OWED says the runner owes, test before asking, write readings the owner can answer, reassess the targets under the owner's answers, and stop with a report the owner can read from hyp status. Use when a /goal prompt names this skill, such as the one hyp prompt prints."
 ---
 
 The `/goal` prompt names the tree, your actor, the Goal, the stop and the Goal body's constraints; `hyp prompt <goal-id> --actor <actor>` prints it from the log. This skill says how to work until that stop. Use it with the hyp-prototype skill, which says how to add Questions, Hypotheses, Experiments and Results, and the hyp-verification skill, which says how to run an Experiment.
 
 ## Start
 
-- Read the Goal first with `hyp show <goal-id>`, including its checkpoints, because `hyp status` does not print its met rule.
+- Read the Goal first with `hyp show <goal-id>`, including its body and checkpoints, because `hyp status` does not print them.
 - Everything you need is in the tree. Do not read session logs, reports or memory about earlier runs.
 - The Goal's body states the run's constraints under three headings: `May change:` (what you may write, and how), `Read only:` (what you may read but never change) and `Never:` (acts you never take). Obey them. A `/goal` prompt may narrow them, never widen them. If a step needs something they forbid, refer it with a reason or record a reading, and stop.
 - A store may hold many Goals. Then `hyp status` prints only a GOALS table and one Awaiting owner list, so run `hyp status <goal-id>` wherever this skill says `hyp status`: OWED, LINES, the stop line and the last checkpoint are per Goal. Name the Goal with `--goal <goal-id>` on `hyp checkpoint`.
@@ -21,7 +21,7 @@ Act on what OWED in `hyp status` says the runner owes, and on nothing else. Plan
 - The recipe's checks may exist before the Experiment, because `hyp add exp` pins them. Write and run no candidate until `hyp add exp` has recorded the Experiment with its rubric.
 - Try a new or changed check only on its cases' stand-ins, never on a candidate, until that Experiment is recorded. If a candidate shows a check is wrong anyway, do not just fix the check: write the case that shows it, in the Goal's terms with the outcome it must give, in a new version, and name that case in the Experiment body. A sentence that discloses a trial run pins nothing.
 - Before you pin a recipe whose Drive runs an agent, run it once on one case while it is still a Draft, and read that run's transcript for reads or writes outside the subject. A Draft may be edited in place. A pinned recipe changes only by a new version, and every trial already run on it is lost.
-- A rubric that counts trials states, before the run, the trials per cell, the threshold, and that a cell whose miss alone would contradict a Hypothesis is rerun once before the Result is recorded, with how the two runs together decide it. The Result cites both runs. A lone miss can be noise: at 2 of 3 per cell over 9 cells, a candidate that passes each cell 85% of the time is contradicted about 4 times in 10 by chance.
+- When an Experiment counts trials, its body states, before the run, the trials per cell (one case on one candidate), the threshold, and that a cell whose miss alone would contradict a Hypothesis is rerun once before the Result is recorded, with how the two runs together decide it. A pinned rubric reads both runs' records, and the Result cites both. A lone miss can be noise: at 2 of 3 per cell over 9 cells, a candidate that passes each cell 85% of the time is contradicted about 4 times in 10 by chance.
 - `hyp record` and `hyp check` warn when a Result's text disagrees with its cited files: a verdict that a cited `verdict:` line contradicts, or a commit or hash in the observation or a limit that no cited file holds. Fix each one with a new Result that cites the file; a Result cannot change after it is recorded.
 
 ## Build Goals
@@ -40,7 +40,7 @@ A build Goal's candidate is a commit. Its practice:
 
 ## Before a trade-off
 
-Before a Question goes to the owner as a trade-off, add one structure that is not among the candidates, and the cheapest variant of each contradicted rival that would hold. Run them through a new version of the pinned recipe and record the Result. If a new structure holds every check, say in a checkpoint that the rule does not decide this Question.
+Before a Question goes to the owner as a trade-off, add one structure that is not among the candidates, and the cheapest variant of each contradicted rival that would hold. Each must pass the difference test against the candidates: "on <scenario>, it meets line <n> and <candidate> does not, because <mechanism>". Run them through a new version of the pinned recipe and record the Result. If a new structure holds every check, say in a checkpoint that the rule does not decide this Question.
 
 ## Readings
 
@@ -71,7 +71,7 @@ Apply each answered reading that `hyp status` lists under OWED as `apply answer`
 3. If applying an answer raises a new question about what a Goal line or the owner's answer means, record it with `hyp record --reading` on that Result. A Result cannot change after it is recorded, so if it is already recorded, record a new Result under the same Experiment.
 4. Act on each `limit` line under OWED, whichever Hypothesis its Result gave a verdict on: a limit is a case the Goal covers that no check ran. If a test within the Goal's lines can run the case on every candidate, add an Experiment with `--aims` at it, run it, and record `--closes` on the Result that ran the case. A close records that the case ran, whatever the verdicts: a candidate that fails the case is contradicted and the limit is still closed, so never write a rule that closes it only on a pass. A close covers every case the limit's text names; `hyp record` prints that text when it closes. Record each case you did not run as a new `--limit` on the closing Result, and refer that new key when its case is void or outside the Goal's lines. A claim that a case is void, out of scope or covered elsewhere is a limit and a refer, never a sentence in a body or an observation. When that claim rests on your reading of a Goal line, put the reading in the refer's text. Write one case per `--limit`. If no such test can, or the case is void for every candidate, refer it with your reason: `hyp checkpoint --refers "<key>=<why no test within the Goal can close it, or why the case is void>" --why "..."`; hyp refuses a refer with no reason. When the owner returns a referred limit, it is an ordinary `limit` line again.
 5. End with the candidates left under each Question: none, one, or several, by alias.
-6. Select only when OWED lists `select` for that Question: `hyp select <Q-id> <H-id> --why "..."`. Never confirm a select. Do not change the Goal or add new structures unless the owner asks.
+6. Select only when OWED lists `select` for that Question: `hyp select <Q-id> <H-id> --why "..."`. Never confirm a select. Do not change the Goal. Add new structures only as "Before a trade-off" says, or when the owner asks.
 
 ## Goal lines
 
@@ -97,5 +97,5 @@ Stop on the clauses the `/goal` prompt names. Stopping is not success.
 
 ## Never
 
-- Never change the Goal or its met rule.
+- Never change the Goal.
 - Never record a choice the owner reserved, and never record an owner answer unless the owner gave those words in this session.
