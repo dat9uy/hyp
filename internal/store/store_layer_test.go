@@ -236,13 +236,20 @@ func TestSameIDLinesAnyOrder(t *testing.T) {
 }
 
 // TestAppendInGreatestMillisecond: in the greatest ULID millisecond two
-// clones still append different ids after the newest; after the greatest
-// ULID no id sorts, so the append is refused and writes nothing.
+// clones still append different ids after the newest, and one below the
+// greatest ULID still gets an id after it. After the greatest ULID, or after
+// an id above it that replay admits, no ULID sorts, so the append is refused
+// and writes nothing.
 func TestAppendInGreatestMillisecond(t *testing.T) {
 	for _, c := range []struct {
-		last    string
-		refused bool
-	}{{"7ZZZZZZZZZ0000000000000000", false}, {"7ZZZZZZZZZZZZZZZZZZZZZZZZZ", true}} {
+		last             string
+		refused, differ bool
+	}{
+		{"7ZZZZZZZZZ0000000000000000", false, true},
+		{"7ZZZZZZZZZZZZZZZZZZZZZZZZY", false, false},
+		{"7ZZZZZZZZZZZZZZZZZZZZZZZZZ", true, false},
+		{"80000000000000000000000000", true, false},
+	} {
 		root := newStore(t)
 		writeLines(t, root, "z", goalLine(c.last, "z"))
 		var ids []string
@@ -263,7 +270,7 @@ func TestAppendInGreatestMillisecond(t *testing.T) {
 			}
 			ids = append(ids, ev.ID)
 		}
-		if !c.refused && ids[0] == ids[1] {
+		if c.differ && ids[0] == ids[1] {
 			t.Errorf("two clones appended one id %s", ids[0])
 		}
 	}

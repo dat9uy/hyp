@@ -203,9 +203,10 @@ func newID(t time.Time) string {
 // the store holds. When the clock reads earlier than last, or the same
 // millisecond, the id takes the millisecond after last's, with fresh random
 // bits: two clones of one store whose clocks are behind then append
-// different ids, which a union merge keeps apart. A last that is not a ULID
-// is ignored. It returns "" when no id sorts after last, or when the random
-// bits cannot be read.
+// different ids, which a union merge keeps apart. In the greatest ULID
+// millisecond it adds one plus a random 32-bit amount to last's random bits,
+// or one when that overflows. It returns "" when no ULID sorts after last:
+// last is the greatest ULID, or an id above it that replay admits.
 func idAfter(t time.Time, last string) string {
 	id := newID(t)
 	if id > last {
@@ -213,25 +214,22 @@ func idAfter(t time.Time, last string) string {
 	}
 	u, err := ulid.ParseStrict(last)
 	if err != nil {
-		return id
+		return ""
 	}
 	if ms := u.Time(); ms < ulid.MaxTime() {
 		return newID(ulid.Time(ms + 1))
 	}
-	// last is in the greatest millisecond: add one plus a random 32-bit
-	// amount to its 80 random bits, so two clones still differ, and refuse
-	// when the bits overflow.
 	var step [4]byte
-	if _, err := rand.Read(step[:]); err != nil {
-		return ""
-	}
+	rand.Read(step[:]) // never fails since Go 1.24
 	n := new(big.Int).SetBytes(u[6:])
-	n.Add(n, big.NewInt(1+int64(binary.BigEndian.Uint32(step[:]))))
-	if n.BitLen() > 80 {
-		return ""
+	for _, add := range []int64{1 + int64(binary.BigEndian.Uint32(step[:])), 1} {
+		next := new(big.Int).Add(n, big.NewInt(add))
+		if next.BitLen() <= 80 {
+			next.FillBytes(u[6:])
+			return u.String()
+		}
 	}
-	n.FillBytes(u[6:])
-	return u.String()
+	return ""
 }
 
 // Append validates ev against the current log and, when it is allowed, writes
@@ -279,7 +277,7 @@ func AppendWith(root, actor string, build func(*replay.State, replay.Projection)
 	}
 	ev.V = event.Version
 	if ev.ID = idAfter(now, last); ev.ID == "" {
-		return ev, herr.Refused("no event id sorts after %s, the newest id the store holds", last)
+		return ev, herr.Refused("no ULID sorts after %s, the newest id the store holds", last)
 	}
 	ev.TS = now.Format(time.RFC3339Nano)
 	ev.Actor = actor

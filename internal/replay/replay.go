@@ -1,29 +1,12 @@
 package replay
 
 import (
-	"bytes"
-	"encoding/json"
 	"slices"
 	"sort"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
 )
-
-// Merge orders the events of per-actor files by id, then by actor (the file
-// name without .jsonl), whatever the line order inside a file: a file that
-// git merged with the union driver holds both branches' lines in any order,
-// and replays the same. Two events with the same id and actor are ordered by
-// their JSON encoding, so not by file order either; the store orders them by
-// their line bytes (MergeOrder's tie).
-func Merge(files map[string][]event.Event) []event.Event {
-	order := MergeOrder(files, nil)
-	out := make([]event.Event, len(order))
-	for i, at := range order {
-		out[i] = files[at.Actor][at.Index]
-	}
-	return out
-}
 
 // At names one event of the files Merge reads: its actor and its index in
 // that actor's file.
@@ -32,17 +15,13 @@ type At struct {
 	Index int
 }
 
-// MergeOrder is the order Merge puts the events in, as positions in files.
-// tie orders two events with the same id and actor; nil orders them by their
-// JSON encoding.
+// MergeOrder orders the events of per-actor files by id, then by actor (the
+// file name without .jsonl), whatever the line order inside a file: a file
+// that git merged with the union driver holds both branches' lines in any
+// order, and replays the same. tie orders two events with the same id and
+// actor; the store passes one that compares their line bytes, so file order
+// decides nothing. It returns positions in files.
 func MergeOrder(files map[string][]event.Event, tie func(a, b At) int) []At {
-	if tie == nil {
-		tie = func(a, b At) int {
-			ea, _ := json.Marshal(files[a.Actor][a.Index])
-			eb, _ := json.Marshal(files[b.Actor][b.Index])
-			return bytes.Compare(ea, eb)
-		}
-	}
 	var out []At
 	for name, evs := range files {
 		for i := range evs {
