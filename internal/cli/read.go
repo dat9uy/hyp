@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/dat9uy/hyp/internal/check"
@@ -28,8 +29,12 @@ type reader struct {
 	full     replay.Projection
 }
 
-func openReader() (*reader, error) {
-	r, err := openEvents()
+func openReader() (*reader, error) { return openReaderWith(store.OpenHistory) }
+
+// openReaderWith reads and replays the history open finds from the
+// current directory.
+func openReaderWith(open func(string) (*store.History, error)) (*reader, error) {
+	r, err := openEventsWith(open)
 	if err != nil {
 		return nil, err
 	}
@@ -40,13 +45,15 @@ func openReader() (*reader, error) {
 
 // openEvents reads the log without replaying it, for a command that
 // replays the events itself.
-func openEvents() (*reader, error) {
+func openEvents() (*reader, error) { return openEventsWith(store.OpenHistory) }
+
+func openEventsWith(open func(string) (*store.History, error)) (*reader, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return nil, err
 	}
 	r := &reader{}
-	if r.hist, err = store.OpenHistory(cwd); err != nil {
+	if r.hist, err = open(cwd); err != nil {
 		return nil, err
 	}
 	if r.evs, r.lineErrs, err = r.hist.Events(); err != nil {
@@ -126,7 +133,13 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	} else if len(pos) == 1 && *all {
 		return usageErr("hyp status takes a Goal or --all, not both")
 	}
-	r, err := openReader()
+	// --all reads the repository's history from any folder, also from one
+	// whose store adds nothing to it.
+	open := store.OpenHistory
+	if *all {
+		open = store.OpenRepoHistory
+	}
+	r, err := openReaderWith(open)
 	if err != nil {
 		return err
 	}
@@ -139,6 +152,18 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	goal := ""
 	if len(pos) == 1 {
 		id, err := resolveRef(p, r.hist.Current, pos[0])
+		if err != nil && !*all {
+			// A Goal the history found from here does not hold may be held
+			// by the repository's history, when this folder's store adds
+			// nothing to it.
+			if rr, rerr := openReaderWith(store.OpenRepoHistory); rerr == nil && !sameHistory(rr.hist, r.hist) {
+				if rp, perr := rr.at(*asOf); perr == nil {
+					if rid, rerr := resolveRef(rp, rr.hist.Current, pos[0]); rerr == nil {
+						r, p, id, err = rr, rp, rid, nil
+					}
+				}
+			}
+		}
 		if err != nil {
 			return usageErr("%v", err)
 		}
@@ -154,17 +179,40 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 		fmt.Fprintf(stderr, "warn: skipped %s:%d: %v; run hyp check\n", le.File, le.Line, le.Err)
 	}
 	if goal != "" {
-		fmt.Fprint(stdout, render.StatusOf(p, goal, *maxLines, *live))
+		// What the Goal's store folder prints: that store's rejections.
+		fmt.Fprint(stdout, render.StatusOf(onlyStoreRejections(p, p.Nodes[goal].Store), goal, *maxLines, *live))
 		return nil
 	}
-	// In a store's folder, the Goals that store holds; with --all, or where
-	// discovery finds no store, every Goal of the history.
-	goals := storeGoals(r.hist, p)
+	// In a store's folder, the Goals and rejections that store holds; with
+	// --all, or where discovery finds no store, all of the history's.
+	view := r.hist.Current
 	if *all {
-		goals = storeGoals(&store.History{}, p)
+		view = ""
 	}
-	fmt.Fprint(stdout, render.StatusOfGoals(p, goals, *maxLines, *live))
+	goals := storeGoals(&store.History{Current: view}, p)
+	fmt.Fprint(stdout, render.StatusOfGoals(onlyStoreRejections(p, view), goals, *maxLines, *live))
 	return nil
+}
+
+// onlyStoreRejections is p with only the rejections of store s, or p when
+// s is "", the whole history.
+func onlyStoreRejections(p replay.Projection, s string) replay.Projection {
+	if s == "" {
+		return p
+	}
+	q := p
+	q.Rejections = nil
+	for _, x := range p.Rejections {
+		if x.Store == s {
+			q.Rejections = append(q.Rejections, x)
+		}
+	}
+	return q
+}
+
+// sameHistory reports whether a and b read the same stores.
+func sameHistory(a, b *store.History) bool {
+	return a.Root == b.Root && slices.Equal(a.Stores, b.Stores)
 }
 
 func cmdShow(args []string, stdout, stderr io.Writer) error {
@@ -325,19 +373,13 @@ func cmdEvents(args []string, stdout, stderr io.Writer) error {
 	// In a store's folder, the events of that store; where discovery finds
 	// no store, every event of the history.
 	cur := r.hist.Current
-	inStore := map[string]bool{}
-	for _, ev := range r.evs {
-		if cur == "" || ev.Store == cur {
-			inStore[ev.ID] = true
-		}
-	}
 	for _, ev := range r.full.Applied {
 		if cur == "" || ev.Store == cur {
 			out.Events = append(out.Events, ev)
 		}
 	}
 	for _, x := range r.full.Rejections {
-		if inStore[x.EventID] {
+		if cur == "" || x.Store == cur {
 			out.Rejections = append(out.Rejections, rejection{x.EventID, x.Reason})
 		}
 	}

@@ -15,7 +15,7 @@ A `.tree/` directory in a repository, such as `investigations/<topic>/.tree`: on
 _Avoid_: database, index (hyp keeps none, ADR 0006)
 
 **History**:
-Every event of every store a repository holds, read as one log ordered by id, then actor, then the store's path ([spec §1](replay-spec.md#1-names-and-locations), [spec §6](replay-spec.md#6-merge-order)). A store adds nothing to it when git tracks none of its events files, or when it sits under another store's `.tree/`, under `testdata/`, under a bundle's `known-answers/`, or under a nested repository. With no `.git`, the history is the one store found from the current directory. `hyp status` in a store's folder shows that store's Goals; `hyp status --all` is the owner's overview of the whole history (ADR 0023). In code: `store.History`.
+Every event of every store a repository holds, read as one log ordered by id, then actor, then the store's path ([spec §1](replay-spec.md#1-names-and-locations), [spec §6](replay-spec.md#6-merge-order)). A store adds nothing to it when git tracks none of its events files, or when it sits under another store's `.tree/`, under `testdata/`, under a bundle's `known-answers/`, or under a nested repository. With no `.git`, the history is the one store found from the current directory. A store `hyp init` just made, not yet tracked, joins the history read from its own folder. `hyp status` in a store's folder shows that store's Goals; `hyp status --all` is the owner's overview of the whole history (ADR 0023). In code: `store.History`.
 _Avoid_: project, workspace, index
 
 **Event**:

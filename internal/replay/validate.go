@@ -37,10 +37,12 @@ func Validate(st *State, ev event.Event) (err error) {
 	if err := validateEnvelope(&st.Facts, ev); err != nil {
 		return err
 	}
-	if err := rules[ev.Type].validate(&st.Facts, ev); err != nil {
+	// The store rule comes first, so an event that crosses stores is
+	// refused for that, whatever else its own rule would say of it.
+	if err := st.checkStore(ev); err != nil {
 		return err
 	}
-	return st.checkStore(ev)
+	return rules[ev.Type].validate(&st.Facts, ev)
 }
 
 func validateEnvelope(f *Facts, ev event.Event) error {

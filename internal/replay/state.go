@@ -106,6 +106,8 @@ type GoalStatus struct {
 type Rejection struct {
 	EventID string
 	Reason  string
+	// Store is the store whose events file holds the rejected line.
+	Store string
 }
 
 // Node holds the static fields of a node.

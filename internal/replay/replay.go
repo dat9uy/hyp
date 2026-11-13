@@ -78,7 +78,7 @@ func BuildHistory(events []event.Event, recipeHashes Hashes, asOf string) (*Stat
 	lastCheckpoint := map[string]*event.Event{}
 	for _, ev := range events {
 		if err := st.Step(ev, recipeHashes); err != nil {
-			rejections = append(rejections, Rejection{EventID: ev.ID, Reason: err.Error()})
+			rejections = append(rejections, Rejection{EventID: ev.ID, Reason: err.Error(), Store: ev.Store})
 		} else if ev.Type == event.TypeCheckpoint && !ownerCheckpoint(ev) {
 			cp := ev
 			lastCheckpoint[ev.Node] = &cp

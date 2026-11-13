@@ -130,9 +130,19 @@ func TestStatusShowsTheFolderStoresGoals(t *testing.T) {
 	if strings.Contains(inA.stdout, r.gb) || strings.Contains(inA.stdout, "Goal B") {
 		t.Errorf("status in store a shows Goal B of store b:\n%s", inA.stdout)
 	}
+	// Goal C is held by store b, whose events file holds its add, though
+	// its line cites a line of store a's Goal A.
+	gc := "7ZZZZZZZZZ0000000000000009"
+	appendLine(t, r.b, "z", rawLine(gc, "z", "node.add", gc, `{"kind":"Goal","parent":"","title":"Goal C","lines":[{"text":"carries a case","cites":["`+histID(t, r.a, r.ga)+`#1"]}]}`))
+	gitIn(t, r.root, "add", "-A")
 	inB := in(t, r.b, "status")
-	want(t, inB, 0, "GOAL "+r.gb+" Goal B")
-	if strings.Contains(inB.stdout, r.ga) || strings.Contains(inB.stdout, "GOALS") {
+	want(t, inB, 0, "GOALS")
+	for _, g := range []string{r.gb + " Goal B", "G-000009 Goal C"} {
+		if !strings.Contains(inB.stdout, g) {
+			t.Errorf("status in store b does not show %s, a Goal its events file holds:\n%s", g, inB.stdout)
+		}
+	}
+	if strings.Contains(inB.stdout, r.ga) || strings.Contains(inB.stdout, "Goal A") {
 		t.Errorf("status in store b shows store a's Goals:\n%s", inB.stdout)
 	}
 	// A subfolder of a store is the store's folder too.
@@ -180,7 +190,22 @@ func TestStatusAllListsTheHistory(t *testing.T) {
 	}
 	inB := in(t, r.b, "status", r.gb)
 	want(t, inB, 0, "GOAL "+r.gb)
-	for _, dir := range []string{r.root, r.a, other} {
+	// A folder whose store adds nothing to the history is in the
+	// repository too: a testdata store and a trial store under a .tree.
+	var outside []string
+	for _, rel := range []string{"internal/x/testdata/synth", "investigations/a/.tree/evidence/E-000001/trial"} {
+		dir := filepath.Join(r.root, rel)
+		copyStore(t, goalStore(t, "Left out"), dir)
+		outside = append(outside, dir)
+	}
+	gitIn(t, r.root, "add", "-A")
+	for _, dir := range outside {
+		want(t, in(t, dir, "status"), 0, "Left out")
+		if got := in(t, dir, "status", "--all"); got != all {
+			t.Errorf("hyp status --all in %s, whose store adds nothing to the history:\n%+v\nwant\n%+v", dir, got, all)
+		}
+	}
+	for _, dir := range append([]string{r.root, r.a, other}, outside...) {
 		if got := in(t, dir, "status", r.gb); got != inB {
 			t.Errorf("hyp status %s in %s:\n%+v\nwant it as in its store's folder:\n%+v", r.gb, dir, got, inB)
 		}
@@ -275,9 +300,9 @@ func TestCiteAcrossStores(t *testing.T) {
 	gitIn(t, r.root, "add", "-A")
 
 	// Not settled: an open limit and an open reading of store a.
-	want(t, in(t, r.b, "add", "goal", "--title", "G open", "--line", "x", "--cite", "1="+ra+"#1", "--why", "w"), 1, "")
+	want(t, in(t, r.b, "add", "goal", "--title", "G open", "--line", "x", "--cite", "1="+ra+"#1", "--why", "w"), 1, "#1, which is not settled")
 	hb, xb, _ := readingIn(t, r.b, r.gb, "h-b")
-	want(t, in(t, r.b, "record", "--exp", xb, "--verdict", hb+"=supports", "--observation", "o", "--reading-of", ra+"#r1=it means one", "--why", "w"), 1, "")
+	want(t, in(t, r.b, "record", "--exp", xb, "--verdict", hb+"=supports", "--observation", "o", "--reading-of", ra+"#r1=it means one", "--why", "w"), 1, "#r1 is open; the owner has not answered it")
 
 	// Settled: a line of store a, and its reading once the owner answers it.
 	gc := mustIn(t, r.b, "add", "goal", "--title", "Goal C", "--line", "carries a case", "--cite", "1="+r.ga+"#1", "--why", "carry")
@@ -285,6 +310,20 @@ func TestCiteAcrossStores(t *testing.T) {
 	mustIn(t, r.b, "record", "--exp", xb, "--verdict", hb+"=supports", "--observation", "o", "--reading-of", ra+"#r1=it means one", "--why", "w")
 	gitIn(t, r.root, "add", "-A")
 	want(t, in(t, r.root, "check"), 0, "check: 0 errors")
+
+	// A store hyp init just made, which git does not track yet, reads the
+	// history from its own folder: its first Goal cites store a's line and
+	// names store b's Goal in its body. From elsewhere it adds nothing.
+	c := filepath.Join(r.root, "investigations", "c")
+	if err := os.MkdirAll(c, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustIn(t, c, "init")
+	fresh := mustIn(t, c, "add", "goal", "--title", "Fresh", "--line", "y", "--cite", "1="+r.ga+"#1", "--body", "see "+r.gb, "--why", "w")
+	want(t, in(t, c, "show", fresh), 0, "cites: "+r.ga+" (store investigations/a) Goal A")
+	if all := in(t, r.root, "status", "--all"); strings.Contains(all.stdout, "Fresh") {
+		t.Errorf("an untracked store adds to the history read from the root:\n%s", all.stdout)
+	}
 
 	showA := in(t, r.b, "show", r.ga)
 	want(t, showA, 0, "cited by: "+r.gb+" (store investigations/b) Goal B")
@@ -312,6 +351,16 @@ func TestAppendSortsAfterOtherStores(t *testing.T) {
 	if id := histID(t, r.root, q); id <= future {
 		t.Errorf("appended id %s in store b sorts at or before %s, an id of store a", id, future)
 	}
+	// A store git does not track yet appends after the history too.
+	c := filepath.Join(r.root, "investigations", "c")
+	if err := os.MkdirAll(c, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustIn(t, c, "init")
+	gc := mustIn(t, c, "add", "goal", "--title", "fresh", "--why", "w")
+	if id := histID(t, c, gc); id <= future {
+		t.Errorf("appended id %s in an untracked store sorts at or before %s, an id of store a", id, future)
+	}
 }
 
 // TestDuplicateIDAcrossStores: a history whose stores hold one event id twice
@@ -331,6 +380,21 @@ func TestDuplicateIDAcrossStores(t *testing.T) {
 		t.Errorf("the later line of a twice-held id was applied:\n%s", all.stdout)
 	}
 	want(t, in(t, r.root, "check"), 1, "duplicate id: "+id)
+	// The rejected line is store b's: only b's view counts it.
+	want(t, in(t, r.b, "status"), 0, "REJECTED 1 events")
+	if got := in(t, r.a, "status"); strings.Contains(got.stdout, "REJECTED") {
+		t.Errorf("status in store a counts store b's rejected line:\n%s", got.stdout)
+	}
+	rejected := func(dir string) int {
+		var out struct{ Rejections []struct{ Event string } }
+		if err := json.Unmarshal([]byte(in(t, dir, "events", "--json").stdout), &out); err != nil {
+			t.Fatal(err)
+		}
+		return len(out.Rejections)
+	}
+	if a, b := rejected(r.a), rejected(r.b); a != 0 || b != 1 {
+		t.Errorf("events --json rejections: store a %d, store b %d; want 0 and 1", a, b)
+	}
 
 	// The actor orders before the store: under actor "w", b's line is first.
 	id2 := "7ZZZZZZZZZ0000000000000002"
@@ -408,11 +472,11 @@ func TestEventNeverCrossesStores(t *testing.T) {
 		{"supersede", hb, "--old", ha, "--why", "w"},
 		{"checkpoint", "--goal", r.gb, "--summary", "s", "--why", "w"},
 		{"checkpoint", "--goal", r.ga, "--refers", rb + "#1=void", "--why", "w"},
+		{"select", qb, hb, "--why", "w"},
 		{"abandon", hb, "--why", "w"},
 	} {
-		want(t, in(t, r.a, args...), 1, "")
+		want(t, in(t, r.a, args...), 1, "event crosses stores")
 	}
-	want(t, in(t, r.a, "add", "dq", "--parent", r.gb, "--title", "q", "--why", "w"), 1, "event crosses stores")
 	want(t, in(t, r.root, "answer", "--answer", ra+"#r1=one", "--answer", rb+"#r1=two", "--actor", "owner"), 1, "an answer's keys lie in two stores")
 	want(t, in(t, r.root, "add", "goal", "--title", "nowhere", "--why", "w"), 1, "hyp add goal needs a store")
 	if after := treeFiles(t, filepath.Join(r.a, ".tree", "events")); !maps.EqualFunc(before, after, bytes.Equal) {
@@ -427,7 +491,7 @@ func TestEventNeverCrossesStores(t *testing.T) {
 
 	// Replay rejects each event a store's file holds on another store's node.
 	full := func(d string) string { return histID(t, r.root, d) }
-	gb, hbF, haF, xbF, rbF := full(r.gb), full(hb), full(ha), full(xb), full(rb)
+	gb, hbF, haF, xbF, rbF, qbF, gaF := full(r.gb), full(hb), full(ha), full(xb), full(rb), full(qb), full(r.ga)
 	n := 0
 	id := func() string { n++; return fmt.Sprintf("7ZZZZZZZZZ00000000000001%02d", n) }
 	for _, ev := range []func(string) string{
@@ -439,6 +503,12 @@ func TestEventNeverCrossesStores(t *testing.T) {
 		},
 		func(i string) string { return rawLine(i, "z", "edge.add", haF, `{"type":"depends_on","to":"`+hbF+`"}`) },
 		func(i string) string { return rawLine(i, "z", "checkpoint", gb, `{"summary":"s"}`) },
+		func(i string) string {
+			return rawLine(i, "z", "checkpoint", gaF, `{"summary":"s","refers":[{"key":"`+rbF+`#1","text":"void"}]}`)
+		},
+		func(i string) string {
+			return rawLine(i, "z", "dq.select", qbF, `{"hypothesis":"`+hbF+`","prev_select":"","scope_change":false}`)
+		},
 		func(i string) string { return rawLine(i, "z", "hypothesis.abandon", hbF, `{}`) },
 		func(i string) string {
 			return fmt.Sprintf(`{"v":1,"id":%q,"ts":"2026-11-13T00:00:00Z","actor":"owner","type":"answer","node":"","payload":{"answers":[{"key":"%s#r1","text":"t"}]}}`, i, rbF)

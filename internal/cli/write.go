@@ -187,6 +187,12 @@ func (w *writer) run(build func() (draft, error)) error {
 		w.st, w.p = st, p
 		d, err := build()
 		if err != nil {
+			// The drafted event goes back with the refusal, so the store
+			// rule can come first (store.History.AppendWith).
+			if d.typ != "" {
+				raw, _ := json.Marshal(d.payload)
+				return event.Event{Type: d.typ, Node: d.node, Payload: raw}, err
+			}
 			return event.Event{}, err
 		}
 		if err := w.checkCites(); err != nil {

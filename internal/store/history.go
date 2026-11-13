@@ -45,10 +45,27 @@ func (h *History) Dir(s string) string { return filepath.Join(h.Root, filepath.F
 func Single(root string) *History { return &History{Root: root, Stores: []string{"."}, Current: "."} }
 
 // OpenHistory finds the history from start. Inside a repository it is
-// every store the repository holds (repoStores); outside one, or when the
-// store discovery finds from start is not among them, it is that store
-// alone. With no store either way it returns ErrNoStore.
+// every store the repository holds (repoStores), and the store discovery
+// finds from start when git tracks none of its events files yet but it
+// would add to the history once tracked: a store hyp init just made reads
+// and cites the history from its first event. Outside a repository, or
+// when the store found from start would add nothing to the history even
+// if tracked, it is that store alone. With no store either way it returns
+// ErrNoStore.
 func OpenHistory(start string) (*History, error) {
+	return openHistory(start, false)
+}
+
+// OpenRepoHistory is the history of the repository that holds start, from
+// any folder in it: as OpenHistory, except that when the store found from
+// start adds nothing to the history it is not read and Current is "".
+// Outside a repository, or when git cannot list its files, it is
+// OpenHistory.
+func OpenRepoHistory(start string) (*History, error) {
+	return openHistory(start, true)
+}
+
+func openHistory(start string, repoWide bool) (*History, error) {
 	abs, err := filepath.Abs(start)
 	if err != nil {
 		return nil, err
@@ -80,10 +97,17 @@ func OpenHistory(start string) (*History, error) {
 			return nil, err
 		}
 		rel = filepath.ToSlash(rel)
-		if !slices.Contains(stores, rel) {
+		switch {
+		case slices.Contains(stores, rel):
+			h.Current = rel
+		case !strings.HasPrefix(rel, "../") && rel != ".." && storeOfHistory(repo, rel):
+			// A store git does not track yet, read from its own folder.
+			h.Stores = append(h.Stores, rel)
+			slices.Sort(h.Stores)
+			h.Current = rel
+		case !repoWide:
 			return Single(cur), nil
 		}
-		h.Current = rel
 	}
 	if len(h.Stores) == 0 {
 		return nil, ErrNoStore
@@ -280,8 +304,10 @@ func (h *History) StoreDir(p replay.Projection, id string) string {
 	return ""
 }
 
-// lock takes the history's write lock: the repository root's directory, or
-// the one store's events directory. Every writer of the history then
+// lock takes the history's write lock: the repository root's directory,
+// or, when the history is one store read as its own root (Single, or a
+// repository whose one store is at its root), that store's events
+// directory. Every writer of the history then
 // validates against a log that holds every other writer's events, and
 // takes an id after all of them. unlock releases it.
 func (h *History) lock() (unlock func(), err error) {
@@ -377,6 +403,16 @@ func (h *History) AppendWith(actor string, build func(*replay.State, replay.Proj
 	st, p := replay.BuildHistory(evs, h.Hashes(), "")
 	ev, err := build(st, p)
 	if err != nil {
+		// An event build drafts and then refuses is refused for crossing
+		// stores first, as replay's store rule comes before every other.
+		if ev.Type != "" {
+			if t, terr := h.target(st, ev); terr == nil && t != "" {
+				ev.Store = t
+				if cerr := st.CheckStore(ev); cerr != nil {
+					return ev, herr.Refused("%v", cerr)
+				}
+			}
+		}
 		return ev, err
 	}
 	target, err := h.target(st, ev)

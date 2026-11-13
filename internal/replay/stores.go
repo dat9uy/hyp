@@ -40,6 +40,10 @@ func StoreName(s string) string {
 // store that holds its node, so every node and key it moves lies in its own
 // store. A Goal line's cite and a reading's of may name a key in another
 // store; they are not moves, and are not checked here.
+// CheckStore is the store rule (checkStore), for a writer that refuses an
+// event before it reaches Validate.
+func (st *State) CheckStore(ev event.Event) error { return st.checkStore(ev) }
+
 func (st *State) checkStore(ev event.Event) error {
 	cross := func(what, id string) error {
 		n := st.Nodes[id]
