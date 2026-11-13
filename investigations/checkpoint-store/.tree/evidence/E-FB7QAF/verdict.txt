@@ -1,0 +1,6 @@
+verdict: H-DDJJY5=supports
+(a) red: on a7dbc00 the six line tests, F1 and G1 fail on their assertion; on 7a05e9e G2 fails on its assertion (a-red.log)
+(b) green on ded3e4b: 9 of 9 pass; (d) vet and test pass (bd-green-vet-test.log)
+(c) 14 of 14 removals fail their test, diffs non-empty (c-removals.log)
+(e) census 20 of 20 same bytes and exit, a7dbc00 313e0fce vs ded3e4b b88dcadb (e-census.log)
+(f) review f-review.md: finding 1(a) is a limit of line 5; findings 1(b), 1(c), 2 and 3 are a fix commit

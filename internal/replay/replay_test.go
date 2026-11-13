@@ -316,7 +316,7 @@ func TestScenario10CrossActorCycleRejected(t *testing.T) {
 	for _, ev := range b.Evs {
 		files[ev.Actor] = append(files[ev.Actor], ev)
 	}
-	p := Replay(Merge(files), nil, "")
+	p := Replay(merge(files), nil, "")
 	if len(p.Rejections) != 1 || p.Rejections[0].EventID != second {
 		t.Fatalf("rejections = %+v, want only %s", p.Rejections, second)
 	}
@@ -512,17 +512,30 @@ func TestScenario16InconclusiveReason(t *testing.T) {
 	wantStatus(t, p, q, DQOpen, ReasonInconclusive)
 }
 
-func TestMergeKeepsFileOrder(t *testing.T) {
+// merge orders files by MergeOrder; no file here holds one id twice, so the
+// tie is never called.
+func merge(files map[string][]event.Event) []event.Event {
+	var out []event.Event
+	for _, at := range MergeOrder(files, func(a, b At) int { panic("tie") }) {
+		out = append(out, files[at.Actor][at.Index])
+	}
+	return out
+}
+
+// TestMergeOrdersByIDThenActor: line order inside a file does not matter;
+// an id held by two actors comes first from the actor whose name sorts first.
+func TestMergeOrdersByIDThenActor(t *testing.T) {
 	id := func(last string) string { return "01JB000000000000000000000" + last }
 	files := map[string][]event.Event{
-		"a": {{ID: id("5")}, {ID: id("3")}},
-		"b": {{ID: id("4")}},
+		"a":   {{ID: id("5"), Why: "a"}, {ID: id("3")}},
+		"b":   {{ID: id("4")}, {ID: id("5"), Why: "b"}},
+		"a-b": {{ID: id("5"), Why: "a-b"}},
 	}
 	var got []string
-	for _, ev := range Merge(files) {
-		got = append(got, ev.ID)
+	for _, ev := range merge(files) {
+		got = append(got, ev.ID+ev.Why)
 	}
-	want := []string{id("4"), id("5"), id("3")}
+	want := []string{id("3"), id("4"), id("5") + "a", id("5") + "a-b", id("5") + "b"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("merge = %v, want %v", got, want)
 	}

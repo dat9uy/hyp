@@ -3,36 +3,40 @@ package replay
 import (
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
 )
 
-// Merge combines per-actor event files by a stable k-way merge: it repeatedly
-// takes the head event with the smallest id, breaking ties by file name. Order
-// inside one file is never changed.
-func Merge(files map[string][]event.Event) []event.Event {
-	names := make([]string, 0, len(files))
-	total := 0
+// At names one event of the files MergeOrder reads: its actor and its index
+// in that actor's file.
+type At struct {
+	Actor string
+	Index int
+}
+
+// MergeOrder orders the events of per-actor files by id, then by actor (the
+// file name without .jsonl), whatever the line order inside a file: a file
+// that git merged with the union driver holds both branches' lines in any
+// order, and replays the same. tie, which must not be nil, orders two events
+// with the same id and actor; the store passes one that compares their line
+// bytes, so file order decides nothing. It returns positions in files.
+func MergeOrder(files map[string][]event.Event, tie func(a, b At) int) []At {
+	var out []At
 	for name, evs := range files {
-		names = append(names, name)
-		total += len(evs)
-	}
-	sort.Strings(names)
-	cursor := make([]int, len(names))
-	out := make([]event.Event, 0, total)
-	for len(out) < total {
-		best := -1
-		for i, name := range names {
-			if cursor[i] >= len(files[name]) {
-				continue
-			}
-			if best < 0 || files[name][cursor[i]].ID < files[names[best]][cursor[best]].ID {
-				best = i
-			}
+		for i := range evs {
+			out = append(out, At{name, i})
 		}
-		out = append(out, files[names[best]][cursor[best]])
-		cursor[best]++
 	}
+	slices.SortFunc(out, func(a, b At) int {
+		if c := strings.Compare(files[a.Actor][a.Index].ID, files[b.Actor][b.Index].ID); c != 0 {
+			return c
+		}
+		if c := strings.Compare(a.Actor, b.Actor); c != 0 {
+			return c
+		}
+		return tie(a, b)
+	})
 	return out
 }
 

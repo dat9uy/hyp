@@ -438,19 +438,21 @@ A replay starts from a hyp store as it was at one event.
 `hyp sandbox create ID ... --store SRC --cut EVENT` writes that store to
 `wt/.tree` before any recipe's Launch runs, so no recipe copies events.
 
-- The cut is the replay's own: hyp merges SRC's event files in replay order
-  and keeps every event up to and including the
-  first with id `EVENT`, each line as it was written. It never compares ids
-  as strings, so `hyp status` in `wt/` equals `hyp status --as-of EVENT` in
-  SRC.
+- The cut is the replay's own: hyp orders SRC's events as replay does, by
+  id and then by actor, whatever the line order inside a file, and keeps
+  every event up to and including the first with id `EVENT`, each line as it
+  was written. Each events file of the cut holds its kept lines in id order,
+  so `hyp status` in `wt/` equals `hyp status --as-of EVENT` in SRC.
 - `wt/.tree/evidence` is SRC's evidence without the `E-*` folders of
   Experiments added after the cut. No `index.sqlite` is copied: hyp keeps
   no index.
   An actor with no event before the cut gets no events file. A symlink
   under SRC's evidence is refused (exit 3, and the sandbox is removed).
-- `--store` and `--cut` go together. An `EVENT` that SRC does not hold, a
-  SRC with no `.tree/events`, and a base commit that already holds `.tree`
-  are refused with exit 2 before anything is made. An events line that does
+- The cut replaces any `.tree` the base commit holds at its root: `wt/.tree`
+  holds the cut and no other file of the base's `.tree`.
+- `--store` and `--cut` go together. An `EVENT` that SRC does not hold and a
+  SRC with no `.tree/events` are refused with exit 2 before anything is
+  made. An events line that does
   not parse exits 3; run `hyp check` in SRC.
 - The record names the cut: `store` (SRC as `<host>/REL` when it is inside
   the host, an absolute path otherwise) and `cut`.

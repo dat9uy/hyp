@@ -1,0 +1,3 @@
+binary 9643341 sha256 2b4035eaac54af55b3558d96a39d893cbf6642891916f55961c1a3418bb753f8
+known answer: low rejected id: rejected id 0000000000000000000000000x, add dq exit 0, new id 01M79YWA3R975PRGRPH597RAVY: pass (known answer pass)
+R-53N6JZ#1 case: lower-case high id: rejected id 01mzzzzzzzzzzzzzzzzzzzzzzz, add dq exit 0, new id 01M79YWA497FBMKHWEBX256XEN: fail (known answer fail)

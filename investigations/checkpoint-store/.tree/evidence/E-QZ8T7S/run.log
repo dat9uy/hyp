@@ -1,0 +1,73 @@
+== (a) red: ded3e4b ded3e4bf2fd1164371e218024bcb3b64b800e3fb with d966e85c2dd802ee9823689498300e241dd87601's internal/store/store_layer_test.go
+vet: builds
+--- FAIL: TestAppendAfterRejectedIDKeepsClock (0.01s)
+    store_layer_test.go:320: after a rejected lower-case id: appended id 1000000000XMX2PACVP7JXG3HD has millisecond 35184372088832, want the clock's, 1794558649283 to 1794558649295
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.360s
+FAIL
+exit 1
+== (b) green: d966e85c2dd802ee9823689498300e241dd87601
+=== RUN   TestAppendAfterRejectedIDKeepsClock
+--- PASS: TestAppendAfterRejectedIDKeepsClock (0.02s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	0.371s
+exit 0
+== (c) removal: ValidID loop replaced by last = evs[len(evs)-1].ID
+ internal/store/store.go | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+--- FAIL: TestAppendAfterRejectedIDKeepsClock (0.02s)
+    store_layer_test.go:320: after a rejected lower-case id: appended id 1000000000W2AMR5XE9M6XMZRY has millisecond 35184372088832, want the clock's, 1794558651169 to 1794558651181
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.366s
+FAIL
+exit 1
+== (d) vet and test on d966e85c2dd802ee9823689498300e241dd87601
+vet: ok
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.828s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	26.141s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.350s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.346s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.685s
+ok  	github.com/dat9uy/hyp/internal/render	0.382s
+ok  	github.com/dat9uy/hyp/internal/replay	0.375s
+ok  	github.com/dat9uy/hyp/internal/sandbox	76.475s
+ok  	github.com/dat9uy/hyp/internal/signals	0.313s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.320s
+ok  	github.com/dat9uy/hyp/internal/store	0.658s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+exit 0
+== (d) line tests, verbose
+=== RUN   TestSandboxCutOverBaseTree
+--- PASS: TestSandboxCutOverBaseTree (0.44s)
+=== RUN   TestInitRefusedInsideStore
+--- PASS: TestInitRefusedInsideStore (0.00s)
+=== RUN   TestDiscoveryStopsAtRepositoryRoot
+=== RUN   TestDiscoveryStopsAtRepositoryRoot/git_directory
+=== RUN   TestDiscoveryStopsAtRepositoryRoot/git_file
+--- PASS: TestDiscoveryStopsAtRepositoryRoot (0.01s)
+    --- PASS: TestDiscoveryStopsAtRepositoryRoot/git_directory (0.00s)
+    --- PASS: TestDiscoveryStopsAtRepositoryRoot/git_file (0.00s)
+=== RUN   TestReplayIgnoresLineOrder
+--- PASS: TestReplayIgnoresLineOrder (0.03s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.619s
+exit 0
+=== RUN   TestAppendSortsAfterNewest
+--- PASS: TestAppendSortsAfterNewest (0.02s)
+=== RUN   TestUnionMergeKeepsBothBranches
+--- PASS: TestUnionMergeKeepsBothBranches (0.17s)
+=== RUN   TestClockBehindOnTwoClones
+--- PASS: TestClockBehindOnTwoClones (0.02s)
+=== RUN   TestSameIDLinesAnyOrder
+--- PASS: TestSameIDLinesAnyOrder (0.01s)
+=== RUN   TestAppendAfterRejectedID
+--- PASS: TestAppendAfterRejectedID (0.02s)
+=== RUN   TestAppendAfterRejectedIDKeepsClock
+--- PASS: TestAppendAfterRejectedIDKeepsClock (0.00s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	0.377s
+exit 0

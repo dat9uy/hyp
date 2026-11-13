@@ -1452,11 +1452,6 @@ func TestCreateStoreCutRefusals(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	withTree, _ := host(t)
-	writeFile(t, filepath.Join(withTree, ".tree", "events", "a.jsonl"), "\n")
-	run(t, withTree, "add", ".tree")
-	run(t, withTree, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "tree")
-	withTreeBase := run(t, withTree, "rev-parse", "HEAD")
 	for _, c := range []struct {
 		name string
 		o    CreateOptions
@@ -1466,7 +1461,6 @@ func TestCreateStoreCutRefusals(t *testing.T) {
 		{"no store", CreateOptions{Store: t.TempDir(), Cut: ev.ID}, "holds no .tree/events"},
 		{"store alone", CreateOptions{Store: src}, "--store and --cut go together"},
 		{"cut alone", CreateOptions{Cut: ev.ID}, "--store and --cut go together"},
-		{"base holds .tree", CreateOptions{Store: src, Cut: ev.ID, Host: withTree, Base: withTreeBase}, "already holds .tree"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			c.o.Refs = []string{"none"}

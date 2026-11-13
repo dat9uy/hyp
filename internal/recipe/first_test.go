@@ -64,9 +64,9 @@ func TestNewFirstWritesTheTemplate(t *testing.T) {
 		return nil
 	})
 	want := map[string]os.FileMode{
-		"recipe.md":                                0o644,
-		"check.sh":                                 0o755,
-		"known-answers/must-pass/expect.json":      0o644,
+		"recipe.md":                           0o644,
+		"check.sh":                            0o755,
+		"known-answers/must-pass/expect.json": 0o644,
 		"known-answers/must-pass/input/README.txt": 0o644,
 		"known-answers/must-fail/expect.json":      0o644,
 		"known-answers/must-fail/input/README.txt": 0o644,

@@ -25,7 +25,7 @@ var ErrNoEvent = errors.New("no such event")
 type Cut struct {
 	Src, At string
 	Events  int
-	lines   map[string][][]byte // kept lines per actor (events file without .jsonl), in file order
+	lines   map[string][][]byte // kept lines per actor (events file without .jsonl), in merge order, so by id
 	exps    map[string]bool     // evidence folders (E-<last 6 of the id>) of kept Experiments
 }
 
@@ -62,15 +62,26 @@ func CutAt(src, at string) (*Cut, error) {
 			if err != nil {
 				return nil, fmt.Errorf("%s:%d: %v; run hyp check in %s", name, n, err, src)
 			}
-			// Merge never reads Actor, so it carries the file's actor here.
+			// The cut keys its kept lines by the file's actor; the merge order
+			// reads only the id, the file's actor and the line bytes.
 			ev.Actor = actor
 			evs[actor] = append(evs[actor], ev)
 			raw[actor] = append(raw[actor], bytes.Clone(line))
 		}
 	}
 	c := &Cut{Src: src, At: at, lines: map[string][][]byte{}, exps: map[string]bool{}}
-	for _, ev := range replay.Merge(evs) {
-		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[ev.Actor][len(c.lines[ev.Actor])])
+	// Ties break on the trimmed line, as replay's do (byLine), then on the
+	// line as written, so the cut's bytes never depend on the line order.
+	tie := func(a, b replay.At) int {
+		la, lb := raw[a.Actor][a.Index], raw[b.Actor][b.Index]
+		if c := bytes.Compare(bytes.TrimSpace(la), bytes.TrimSpace(lb)); c != 0 {
+			return c
+		}
+		return bytes.Compare(la, lb)
+	}
+	for _, pos := range replay.MergeOrder(evs, tie) {
+		ev := evs[pos.Actor][pos.Index]
+		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[pos.Actor][pos.Index])
 		c.Events++
 		if ev.Type == event.TypeNodeAdd {
 			var p struct{ Kind string }
@@ -87,7 +98,8 @@ func CutAt(src, at string) (*Cut, error) {
 }
 
 // Write makes dest/.tree/events with one file per actor that has a kept
-// event, each kept line as read, and dest/.tree/evidence without the
+// event, each kept line as read and the lines in merge order, so a store
+// whose files hold the same lines in another order writes the same bytes; and dest/.tree/evidence without the
 // E-* folders of Experiments added after the cut, which would leak the
 // future into a replay. A symlink under the evidence is refused. dest/.tree must not exist. The index is not
 // written; hyp rebuilds it.

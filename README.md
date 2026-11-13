@@ -265,7 +265,8 @@ To update, re-run the `go install` line and copy the skills again, so the binary
 
 ```text
 Use the hyp-prototype skill. Set HYP_ACTOR=claude-<topic>-1 for this session.
-If `hyp status` says there is no .tree store, run `hyp init` at the repository root.
+If `hyp status` says there is no .tree store, run `hyp init` where the repository's
+agent instructions say trees live, or at the repository root when they name no place.
 Record this goal with its lines under my actor name <your-name>, showing me
 the command first: <the outcome I want, and who needs it>.
 Lines: <each case every candidate must meet>.

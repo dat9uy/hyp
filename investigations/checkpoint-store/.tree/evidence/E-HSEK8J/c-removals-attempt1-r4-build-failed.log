@@ -1,0 +1,246 @@
+== R1 line 1: the cut keeps the base's .tree (RemoveAll dropped)
+-- diff (14 lines)
+diff --git a/internal/sandbox/sandbox.go b/internal/sandbox/sandbox.go
+index 4dcc650..5d66cbd 100644
+--- a/internal/sandbox/sandbox.go
++++ b/internal/sandbox/sandbox.go
+@@ -1121,9 +1121,6 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
+ 		}
+ 		// The cut replaces every file of the base's own .tree, so the clone's
+ 		// store is the cut and nothing else.
+-		if err := os.RemoveAll(filepath.Join(wt, ".tree")); err != nil {
+-			return nil, nil, err
+-		}
+ 		if err := cut.Write(wt); err != nil {
+ 			return nil, nil, err
+ 		}
+
+-- go test ./internal/cli -run TestSandboxCutOverBaseTree: exit 1
+--- FAIL: TestSandboxCutOverBaseTree (0.26s)
+    store_layer_test.go:119: exit 3 (want 0), stdout "", stderr "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxCutOverBaseTree2668078123/002/.hyp-sandbox/t1/wt/.tree exists; partial sandbox removed\n" (want "sandbox t1:")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.615s
+FAIL
+
+-- R1: diff non-empty, test fails
+
+== R1b line 1: the base refusal restored
+-- diff (14 lines)
+diff --git a/internal/sandbox/sandbox.go b/internal/sandbox/sandbox.go
+index 4dcc650..3fb7a88 100644
+--- a/internal/sandbox/sandbox.go
++++ b/internal/sandbox/sandbox.go
+@@ -700,6 +700,9 @@ func Create(o CreateOptions) (*Record, error) {
+ 	}
+ 	var cut *store.Cut
+ 	if o.Store != "" {
++		if _, err := git("-C", o.Host, "cat-file", "-e", o.Base+":.tree"); err == nil {
++			return nil, herr.BadArgs("%s already holds .tree at %s; a store cut needs a base without one", o.Host, o.Base)
++		}
+ 		if cut, err = store.CutAt(o.Store, o.Cut); err != nil {
+ 			if errors.Is(err, store.ErrNoStore) {
+ 				return nil, herr.BadArgs("--store %s holds no .tree/events", o.Store)
+
+-- go test ./internal/cli -run TestSandboxCutOverBaseTree: exit 1
+--- FAIL: TestSandboxCutOverBaseTree (0.13s)
+    store_layer_test.go:119: exit 2 (want 0), stdout "", stderr "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxCutOverBaseTree601079395/003 already holds .tree at 550f9cbe5b25de0de29c9d91228b359302b1b1ec; a store cut needs a base without one\n" (want "sandbox t1:")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.472s
+FAIL
+
+-- R1b: diff non-empty, test fails
+
+== R2 line 2: init without the discovery refusal
+-- diff (18 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 4df562d..34d2007 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -79,13 +79,6 @@ const GitAttributes = "events/*.jsonl merge=union\n"
+ // there would then read that store and never the new one. The .gitignore
+ // names index.sqlite because older hyp binaries write one (ADR 0006).
+ func Init(dir string) error {
+-	root, err := FindRoot(dir)
+-	if err == nil {
+-		return herr.Refused("store discovery from %s finds the store at %s; run hyp init where it finds none", dir, root)
+-	}
+-	if !errors.Is(err, ErrNoStore) {
+-		return err
+-	}
+ 	for _, sub := range []string{"events", "evidence"} {
+ 		if err := os.MkdirAll(filepath.Join(Dir(dir), sub), 0o755); err != nil {
+ 			return err
+
+-- go test ./internal/cli -run TestInitRefusedInsideStore: exit 1
+--- FAIL: TestInitRefusedInsideStore (0.00s)
+    store_layer_test.go:157: exit 0 (want 1), stdout "initialised .tree in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestInitRefusedInsideStore352805697/001\n", stderr "" (want "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestInitRefusedInsideStore352805697/001")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.337s
+FAIL
+
+-- R2: diff non-empty, test fails
+
+== R3 line 3: discovery without the repository-root stop
+-- diff (14 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 4df562d..53b98b3 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -57,9 +57,6 @@ func FindRoot(start string) (string, error) {
+ 		if fi, err := os.Stat(eventsDir(dir)); err == nil && fi.IsDir() {
+ 			return dir, nil
+ 		}
+-		if _, err := os.Lstat(filepath.Join(dir, ".git")); err == nil {
+-			return "", ErrNoStore
+-		}
+ 		parent := filepath.Dir(dir)
+ 		if parent == dir {
+ 			return "", ErrNoStore
+
+-- go test ./internal/cli -run TestDiscoveryStopsAtRepositoryRoot: exit 1
+--- FAIL: TestDiscoveryStopsAtRepositoryRoot (0.01s)
+    --- FAIL: TestDiscoveryStopsAtRepositoryRoot/git_directory (0.00s)
+        store_layer_test.go:206: exit 0 (want 3), stdout "GOAL G-QA3E18 outer — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\n", stderr "" (want "no .tree store found")
+    --- FAIL: TestDiscoveryStopsAtRepositoryRoot/git_file (0.00s)
+        store_layer_test.go:206: exit 0 (want 3), stdout "GOAL G-QA3E18 outer — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\n", stderr "" (want "no .tree store found")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.335s
+FAIL
+
+-- R3: diff non-empty, test fails
+
+== R4 line 4: Merge by file order (k-way)
+-- diff (45 lines)
+diff --git a/internal/replay/replay.go b/internal/replay/replay.go
+index 427747c..12c4f97 100644
+--- a/internal/replay/replay.go
++++ b/internal/replay/replay.go
+@@ -31,21 +31,28 @@ type At struct {
+ 
+ // MergeOrder is the order Merge puts the events in, as positions in files.
+ func MergeOrder(files map[string][]event.Event) []At {
+-	var out []At
++	names := make([]string, 0, len(files))
++	total := 0
+ 	for name, evs := range files {
+-		for i := range evs {
+-			out = append(out, At{name, i})
++		names = append(names, name)
++		total += len(evs)
++	}
++	sort.Strings(names)
++	cursor := make([]int, len(names))
++	out := make([]At, 0, total)
++	for len(out) < total {
++		best := -1
++		for i, name := range names {
++			if cursor[i] >= len(files[name]) {
++				continue
++			}
++			if best < 0 || files[name][cursor[i]].ID < files[names[best]][cursor[best]].ID {
++				best = i
++			}
+ 		}
++		out = append(out, At{names[best], cursor[best]})
++		cursor[best]++
+ 	}
+-	slices.SortFunc(out, func(a, b At) int {
+-		if c := strings.Compare(files[a.Actor][a.Index].ID, files[b.Actor][b.Index].ID); c != 0 {
+-			return c
+-		}
+-		if c := strings.Compare(a.Actor, b.Actor); c != 0 {
+-			return c
+-		}
+-		return a.Index - b.Index
+-	})
+ 	return out
+ }
+ 
+
+-- go test ./internal/cli -run TestReplayIgnoresLineOrder: exit 1
+FAIL	github.com/dat9uy/hyp/internal/cli [build failed]
+FAIL
+# github.com/dat9uy/hyp/internal/replay
+internal/replay/replay.go:6:2: "strings" imported and not used
+
+-- R4: diff non-empty, test DOES NOT FAIL
+
+== R4b line 4: the cut writes lines in file order
+-- diff (13 lines)
+diff --git a/internal/store/cut.go b/internal/store/cut.go
+index d75c842..479718d 100644
+--- a/internal/store/cut.go
++++ b/internal/store/cut.go
+@@ -71,7 +71,7 @@ func CutAt(src, at string) (*Cut, error) {
+ 	c := &Cut{Src: src, At: at, lines: map[string][][]byte{}, exps: map[string]bool{}}
+ 	for _, pos := range replay.MergeOrder(evs) {
+ 		ev := evs[pos.Actor][pos.Index]
+-		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[pos.Actor][pos.Index])
++		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[ev.Actor][len(c.lines[ev.Actor])])
+ 		c.Events++
+ 		if ev.Type == event.TypeNodeAdd {
+ 			var p struct{ Kind string }
+
+-- go test ./internal/cli -run TestReplayIgnoresLineOrder: exit 1
+--- FAIL: TestReplayIgnoresLineOrder (0.03s)
+    store_layer_test.go:267: cut of /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReplayIgnoresLineOrder2642725123/002: a.jsonl not in id order: [01M79X52YXKHXAFJ7HHT49CP7J 01M79X52YPQZSTE0XANFX69HMZ 01M79X52YGXAR30VV95ZM7GY6R]
+    store_layer_test.go:273: cuts differ: [events/a.jsonl events/b.jsonl evidence/E-X69HMZ/run.log] vs [events/a.jsonl events/b.jsonl evidence/E-X69HMZ/run.log]
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.373s
+FAIL
+
+-- R4b: diff non-empty, test fails
+
+== R5 line 5: append id from the clock alone
+-- diff (14 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 4df562d..f18d1ad 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -241,7 +241,8 @@ func AppendWith(root, actor string, build func(*replay.State, replay.Projection)
+ 		last = evs[len(evs)-1].ID
+ 	}
+ 	ev.V = event.Version
+-	ev.ID = idAfter(now, last)
++	ev.ID = newID(now)
++	_ = last
+ 	ev.TS = now.Format(time.RFC3339Nano)
+ 	ev.Actor = actor
+ 	if ev.Type == event.TypeNodeAdd || ev.Type == event.TypeResultRecord {
+
+-- go test ./internal/store -run TestAppendSortsAfterNewest: exit 1
+--- FAIL: TestAppendSortsAfterNewest (0.01s)
+    store_layer_test.go:48: merged ids [01M79X54P7Y0W1NE0SY1RK8EAM 01M79X54PAGVX0ZH4BTFQ9GNTS 01M79X54PD2DQXWJJ227D01JRD 01M79X54PH2R61NY14QAZJ7H80 7ZZZZZZZZZ0000000000000000], want [01M79X54P7Y0W1NE0SY1RK8EAM 7ZZZZZZZZZ0000000000000000 01M79X54PAGVX0ZH4BTFQ9GNTS 01M79X54PD2DQXWJJ227D01JRD 01M79X54PH2R61NY14QAZJ7H80]: each appended id after 7ZZZZZZZZZ0000000000000000
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.381s
+FAIL
+
+-- R5: diff non-empty, test fails
+
+== R6 line 6: init writes no .gitattributes
+-- diff (14 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 4df562d..fa23b88 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -91,9 +91,6 @@ func Init(dir string) error {
+ 			return err
+ 		}
+ 	}
+-	if err := os.WriteFile(filepath.Join(Dir(dir), ".gitattributes"), []byte(GitAttributes), 0o644); err != nil {
+-		return err
+-	}
+ 	return os.WriteFile(filepath.Join(Dir(dir), ".gitignore"), []byte("index.sqlite\nindex.sqlite-*\n"), 0o644)
+ }
+ 
+
+-- go test ./internal/store -run TestUnionMergeKeepsBothBranches: exit 1
+--- FAIL: TestUnionMergeKeepsBothBranches (0.02s)
+    store_layer_test.go:76: .tree/.gitattributes = "" (open /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestUnionMergeKeepsBothBranches3748579376/001/.tree/.gitattributes: no such file or directory), want exactly the line events/*.jsonl merge=union
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.349s
+FAIL
+
+-- R6: diff non-empty, test fails
+
+== all removals fail their test with a non-empty diff: False

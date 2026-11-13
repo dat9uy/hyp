@@ -1,0 +1,6 @@
+verdict: H-VB4XPK=supports
+(a) red: on a7dbc00 the six line tests and F1 fail on their assertion; on 65a1cc5 F1 and F2 fail on their assertion (a-red.log)
+(b) green on 10e1925: 8 of 8 pass; (d) vet and test pass (bd-green-vet-test.log)
+(c) 10 of 10 removals fail their test, diffs non-empty (c-removals.log)
+(e) census 20 of 20 same bytes and exit, a7dbc00 a649679a vs 10e1925 0c6f05b6 (e-census.log)
+(f) review f-review.md: findings 1 and 5 are limits; finding 2 is the test of finding 1; finding 3 is a fix commit; finding 4 is R-ZN1VJJ#2, already referred

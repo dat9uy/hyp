@@ -1,0 +1,499 @@
+== R1 line 1: the cut keeps the base's .tree (RemoveAll dropped)
+-- diff (14 lines)
+diff --git a/internal/sandbox/sandbox.go b/internal/sandbox/sandbox.go
+index 4dcc650..5d66cbd 100644
+--- a/internal/sandbox/sandbox.go
++++ b/internal/sandbox/sandbox.go
+@@ -1121,9 +1121,6 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
+ 		}
+ 		// The cut replaces every file of the base's own .tree, so the clone's
+ 		// store is the cut and nothing else.
+-		if err := os.RemoveAll(filepath.Join(wt, ".tree")); err != nil {
+-			return nil, nil, err
+-		}
+ 		if err := cut.Write(wt); err != nil {
+ 			return nil, nil, err
+ 		}
+
+-- go test ./internal/cli -run TestSandboxCutOverBaseTree: exit 1
+--- FAIL: TestSandboxCutOverBaseTree (0.26s)
+    store_layer_test.go:119: exit 3 (want 0), stdout "", stderr "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxCutOverBaseTree768285968/002/.hyp-sandbox/t1/wt/.tree exists; partial sandbox removed\n" (want "sandbox t1:")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.622s
+FAIL
+
+-- R1: diff non-empty, test fails
+
+== R1b line 1: the base refusal restored
+-- diff (14 lines)
+diff --git a/internal/sandbox/sandbox.go b/internal/sandbox/sandbox.go
+index 4dcc650..3fb7a88 100644
+--- a/internal/sandbox/sandbox.go
++++ b/internal/sandbox/sandbox.go
+@@ -700,6 +700,9 @@ func Create(o CreateOptions) (*Record, error) {
+ 	}
+ 	var cut *store.Cut
+ 	if o.Store != "" {
++		if _, err := git("-C", o.Host, "cat-file", "-e", o.Base+":.tree"); err == nil {
++			return nil, herr.BadArgs("%s already holds .tree at %s; a store cut needs a base without one", o.Host, o.Base)
++		}
+ 		if cut, err = store.CutAt(o.Store, o.Cut); err != nil {
+ 			if errors.Is(err, store.ErrNoStore) {
+ 				return nil, herr.BadArgs("--store %s holds no .tree/events", o.Store)
+
+-- go test ./internal/cli -run TestSandboxCutOverBaseTree: exit 1
+--- FAIL: TestSandboxCutOverBaseTree (0.12s)
+    store_layer_test.go:119: exit 2 (want 0), stdout "", stderr "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxCutOverBaseTree953447008/003 already holds .tree at 6f31d95623906e59849a82eda8960113411697ab; a store cut needs a base without one\n" (want "sandbox t1:")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.475s
+FAIL
+
+-- R1b: diff non-empty, test fails
+
+== R2 line 2: init without the discovery refusal
+-- diff (18 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..0c128c6 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -81,13 +81,6 @@ const GitAttributes = "events/*.jsonl merge=union\n"
+ // there would then read that store and never the new one. The .gitignore
+ // names index.sqlite because older hyp binaries write one (ADR 0006).
+ func Init(dir string) error {
+-	root, err := FindRoot(dir)
+-	if err == nil {
+-		return herr.Refused("store discovery from %s finds the store at %s; run hyp init where it finds none", dir, root)
+-	}
+-	if !errors.Is(err, ErrNoStore) {
+-		return err
+-	}
+ 	for _, sub := range []string{"events", "evidence"} {
+ 		if err := os.MkdirAll(filepath.Join(Dir(dir), sub), 0o755); err != nil {
+ 			return err
+
+-- go test ./internal/cli -run TestInitRefusedInsideStore: exit 1
+--- FAIL: TestInitRefusedInsideStore (0.00s)
+    store_layer_test.go:157: exit 0 (want 1), stdout "initialised .tree in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestInitRefusedInsideStore1489926195/001\n", stderr "" (want "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestInitRefusedInsideStore1489926195/001")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.351s
+FAIL
+
+-- R2: diff non-empty, test fails
+
+== R3 line 3: discovery without the repository-root stop
+-- diff (14 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..98a8683 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -59,9 +59,6 @@ func FindRoot(start string) (string, error) {
+ 		if fi, err := os.Stat(eventsDir(dir)); err == nil && fi.IsDir() {
+ 			return dir, nil
+ 		}
+-		if _, err := os.Lstat(filepath.Join(dir, ".git")); err == nil {
+-			return "", ErrNoStore
+-		}
+ 		parent := filepath.Dir(dir)
+ 		if parent == dir {
+ 			return "", ErrNoStore
+
+-- go test ./internal/cli -run TestDiscoveryStopsAtRepositoryRoot: exit 1
+--- FAIL: TestDiscoveryStopsAtRepositoryRoot (0.01s)
+    --- FAIL: TestDiscoveryStopsAtRepositoryRoot/git_directory (0.00s)
+        store_layer_test.go:206: exit 0 (want 3), stdout "GOAL G-JV982W outer — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\n", stderr "" (want "no .tree store found")
+    --- FAIL: TestDiscoveryStopsAtRepositoryRoot/git_file (0.00s)
+        store_layer_test.go:206: exit 0 (want 3), stdout "GOAL G-JV982W outer — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\n", stderr "" (want "no .tree store found")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.345s
+FAIL
+
+-- R3: diff non-empty, test fails
+
+== R4 line 4: Merge by file order (k-way)
+-- diff (64 lines)
+diff --git a/internal/replay/replay.go b/internal/replay/replay.go
+index fab0608..e0b5faf 100644
+--- a/internal/replay/replay.go
++++ b/internal/replay/replay.go
+@@ -1,11 +1,8 @@
+ package replay
+ 
+ import (
+-	"bytes"
+-	"encoding/json"
+ 	"slices"
+ 	"sort"
+-	"strings"
+ 
+ 	"github.com/dat9uy/hyp/internal/event"
+ )
+@@ -36,28 +33,28 @@ type At struct {
+ // tie orders two events with the same id and actor; nil orders them by their
+ // JSON encoding.
+ func MergeOrder(files map[string][]event.Event, tie func(a, b At) int) []At {
+-	if tie == nil {
+-		tie = func(a, b At) int {
+-			ea, _ := json.Marshal(files[a.Actor][a.Index])
+-			eb, _ := json.Marshal(files[b.Actor][b.Index])
+-			return bytes.Compare(ea, eb)
+-		}
+-	}
+-	var out []At
++	names := make([]string, 0, len(files))
++	total := 0
+ 	for name, evs := range files {
+-		for i := range evs {
+-			out = append(out, At{name, i})
++		names = append(names, name)
++		total += len(evs)
++	}
++	sort.Strings(names)
++	cursor := make([]int, len(names))
++	out := make([]At, 0, total)
++	for len(out) < total {
++		best := -1
++		for i, name := range names {
++			if cursor[i] >= len(files[name]) {
++				continue
++			}
++			if best < 0 || files[name][cursor[i]].ID < files[names[best]][cursor[best]].ID {
++				best = i
++			}
+ 		}
++		out = append(out, At{names[best], cursor[best]})
++		cursor[best]++
+ 	}
+-	slices.SortFunc(out, func(a, b At) int {
+-		if c := strings.Compare(files[a.Actor][a.Index].ID, files[b.Actor][b.Index].ID); c != 0 {
+-			return c
+-		}
+-		if c := strings.Compare(a.Actor, b.Actor); c != 0 {
+-			return c
+-		}
+-		return tie(a, b)
+-	})
+ 	return out
+ }
+ 
+
+-- go test ./internal/cli -run TestReplayIgnoresLineOrder: exit 1
+--- FAIL: TestReplayIgnoresLineOrder (0.02s)
+    store_layer_test.go:250: hyp [status] differs:
+        in order {code:0 stdout:GOAL G-06AZWD G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-06AZWD#1 no candidate — a case
+        FRONTIER
+          Q-XESY08 open/untested Q
+            H-1ZXJBT proposed H
+              E-3PMJDQ planned E1
+              E-WCB6D1 planned E2
+        STALE
+        OWED
+          runner: Q-XESY08 run E-3PMJDQ E1
+          runner: Q-XESY08 run E-WCB6D1 E2
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT 2026-11-13 07:49 b: after E1
+         stderr:}
+        shuffled {code:0 stdout:GOAL G-06AZWD G — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-06AZWD#1 no candidate — a case
+        FRONTIER
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+        REJECTED 5 events (run hyp check)
+         stderr:}
+    store_layer_test.go:250: hyp [check] differs:
+        in order {code:0 stdout:check: 0 errors, 0 warnings
+         stderr:}
+        shuffled {code:1 stdout:error: rejected 01M79Y3DDFXZEBMW89TBTNSZVW: unknown node 01M79Y3DD4FXHVKJRXQJ06AZWD
+        error: rejected 01M79Y3DD85FSQYH5FMG1ZXJBT: unknown node 01M79Y3DD76CKJRJWT0ZXESY08
+        error: rejected 01M79Y3DDJ70TYQ88TG9WCB6D1: unknown node 01M79Y3DD85FSQYH5FMG1ZXJBT
+        error: rejected 01M79Y3DDCSQN2VQ334D3PMJDQ: unknown node 01M79Y3DD85FSQYH5FMG1ZXJBT
+        error: rejected 01M79Y3DD76CKJRJWT0ZXESY08: unknown node 01M79Y3DD4FXHVKJRXQJ06AZWD
+        check: 5 errors, 0 warnings
+         stderr:refused: check found 5 errors
+        }
+    store_layer_test.go:250: hyp [status --as-of 01M79Y3DDCSQN2VQ334D3PMJDQ] differs:
+        in order {code:0 stdout:GOAL G-06AZWD G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-06AZWD#1 no candidate — a case
+        FRONTIER
+          Q-XESY08 open/untested Q
+            H-1ZXJBT proposed H
+              E-3PMJDQ planned E1
+        STALE
+        OWED
+          runner: Q-XESY08 run E-3PMJDQ E1
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+         stderr:}
+        shuffled {code:0 stdout:GOAL none (hyp add goal --title T --why W)
+         stderr:}
+    store_layer_test.go:267: cut of /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReplayIgnoresLineOrder4190552685/002: a.jsonl not in id order: [01M79Y3DDJ70TYQ88TG9WCB6D1 01M79Y3DDCSQN2VQ334D3PMJDQ]
+    store_layer_test.go:267: cut of /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReplayIgnoresLineOrder4190552685/002: b.jsonl not in id order: [01M79Y3DDFXZEBMW89TBTNSZVW 01M79Y3DD85FSQYH5FMG1ZXJBT]
+    store_layer_test.go:273: cuts differ: [events/a.jsonl events/b.jsonl evidence/E-3PMJDQ/run.log] vs [events/a.jsonl events/b.jsonl evidence/E-3PMJDQ/run.log evidence/E-WCB6D1/run.log]
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.353s
+FAIL
+
+-- R4: diff non-empty, test fails
+
+== R4b line 4: the cut writes lines in file order
+-- diff (13 lines)
+diff --git a/internal/store/cut.go b/internal/store/cut.go
+index 857efed..ce67fcb 100644
+--- a/internal/store/cut.go
++++ b/internal/store/cut.go
+@@ -81,7 +81,7 @@ func CutAt(src, at string) (*Cut, error) {
+ 	}
+ 	for _, pos := range replay.MergeOrder(evs, tie) {
+ 		ev := evs[pos.Actor][pos.Index]
+-		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[pos.Actor][pos.Index])
++		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[ev.Actor][len(c.lines[ev.Actor])])
+ 		c.Events++
+ 		if ev.Type == event.TypeNodeAdd {
+ 			var p struct{ Kind string }
+
+-- go test ./internal/cli -run TestReplayIgnoresLineOrder: exit 1
+--- FAIL: TestReplayIgnoresLineOrder (0.03s)
+    store_layer_test.go:267: cut of /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReplayIgnoresLineOrder1949912622/002: a.jsonl not in id order: [01M79Y3FRCSWDBN87JXP8ST0HH 01M79Y3FR6JXT4RWZ1EXJTTNG7 01M79Y3FR0889310BZY0HTQ2X2]
+    store_layer_test.go:273: cuts differ: [events/a.jsonl events/b.jsonl evidence/E-JTTNG7/run.log] vs [events/a.jsonl events/b.jsonl evidence/E-JTTNG7/run.log]
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.382s
+FAIL
+
+-- R4b: diff non-empty, test fails
+
+== R5 line 5: append id from the clock alone
+-- diff (13 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..3322c3b 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -278,7 +278,7 @@ func AppendWith(root, actor string, build func(*replay.State, replay.Projection)
+ 		last = evs[len(evs)-1].ID
+ 	}
+ 	ev.V = event.Version
+-	if ev.ID = idAfter(now, last); ev.ID == "" {
++	if ev.ID = newID(now); ev.ID == "" && last != "" {
+ 		return ev, herr.Refused("no event id sorts after %s, the newest id the store holds", last)
+ 	}
+ 	ev.TS = now.Format(time.RFC3339Nano)
+
+-- go test ./internal/store -run TestAppendSortsAfterNewest: exit 1
+--- FAIL: TestAppendSortsAfterNewest (0.01s)
+    store_layer_test.go:50: merged ids [01M79Y3HB0QXYCSV3SFJ6VN9PE 01M79Y3HB38R8E1QZBV4KC329T 01M79Y3HB75WEFWN54DTKTA5Z0 01M79Y3HBB3V40P45QPWXYYM7S 7ZZZZZZZZZ0000000000000000], want [01M79Y3HB0QXYCSV3SFJ6VN9PE 7ZZZZZZZZZ0000000000000000 01M79Y3HB38R8E1QZBV4KC329T 01M79Y3HB75WEFWN54DTKTA5Z0 01M79Y3HBB3V40P45QPWXYYM7S]: each appended id after 7ZZZZZZZZZ0000000000000000
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.331s
+FAIL
+
+-- R5: diff non-empty, test fails
+
+== R6 line 6: init writes no .gitattributes
+-- diff (14 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..f70c1bf 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -93,9 +93,6 @@ func Init(dir string) error {
+ 			return err
+ 		}
+ 	}
+-	if err := os.WriteFile(filepath.Join(Dir(dir), ".gitattributes"), []byte(GitAttributes), 0o644); err != nil {
+-		return err
+-	}
+ 	return os.WriteFile(filepath.Join(Dir(dir), ".gitignore"), []byte("index.sqlite\nindex.sqlite-*\n"), 0o644)
+ }
+ 
+
+-- go test ./internal/store -run TestUnionMergeKeepsBothBranches: exit 1
+--- FAIL: TestUnionMergeKeepsBothBranches (0.02s)
+    store_layer_test.go:78: .tree/.gitattributes = "" (open /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestUnionMergeKeepsBothBranches2103763016/001/.tree/.gitattributes: no such file or directory), want exactly the line events/*.jsonl merge=union
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.342s
+FAIL
+
+-- R6: diff non-empty, test fails
+
+== R7 R-ZN1VJJ#1: idAfter back to newest+1
+-- diff (21 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..29b7394 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -215,8 +215,14 @@ func idAfter(t time.Time, last string) string {
+ 	if err != nil {
+ 		return id
+ 	}
+-	if ms := u.Time(); ms < ulid.MaxTime() {
+-		return newID(ulid.Time(ms + 1))
++	for i := len(u) - 1; i >= 0; i-- {
++		u[i]++
++		if u[i] != 0 {
++			break
++		}
++	}
++	if true {
++		return u.String()
+ 	}
+ 	// last is in the greatest millisecond: add one plus a random 32-bit
+ 	// amount to its 80 random bits, so two clones still differ, and refuse
+
+-- go test ./internal/store -run TestClockBehindOnTwoClones: exit 1
+--- FAIL: TestClockBehindOnTwoClones (0.02s)
+    store_layer_test.go:171: clone ids [7ZZZZZZZZY0000000000000001 7ZZZZZZZZY0000000000000001], want two different ids after 7ZZZZZZZZY0000000000000000
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.420s
+FAIL
+
+-- R7: diff non-empty, test fails
+
+== R8 R-ZN1VJJ#1: Merge's default tie to file order
+-- diff (24 lines)
+diff --git a/internal/replay/replay.go b/internal/replay/replay.go
+index fab0608..b10a46e 100644
+--- a/internal/replay/replay.go
++++ b/internal/replay/replay.go
+@@ -1,8 +1,6 @@
+ package replay
+ 
+ import (
+-	"bytes"
+-	"encoding/json"
+ 	"slices"
+ 	"sort"
+ 	"strings"
+@@ -38,9 +36,7 @@ type At struct {
+ func MergeOrder(files map[string][]event.Event, tie func(a, b At) int) []At {
+ 	if tie == nil {
+ 		tie = func(a, b At) int {
+-			ea, _ := json.Marshal(files[a.Actor][a.Index])
+-			eb, _ := json.Marshal(files[b.Actor][b.Index])
+-			return bytes.Compare(ea, eb)
++			return a.Index - b.Index
+ 		}
+ 	}
+ 	var out []At
+
+-- go test ./internal/replay -run TestMergeSameIDSameActor: exit 1
+--- FAIL: TestMergeSameIDSameActor (0.00s)
+    replay_test.go:541: merge depends on file order: [{0 01JB0000000000000000000005     null x} {0 01JB0000000000000000000005     null y}] vs [{0 01JB0000000000000000000005     null y} {0 01JB0000000000000000000005     null x}]
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/replay	0.341s
+FAIL
+
+-- R8: diff non-empty, test fails
+
+== R9 R-SXCDZW#1, #2: the store's tie to file order
+-- diff (13 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..b5ca151 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -154,7 +154,7 @@ func parseFile(name string, data []byte) ([]event.Event, [][]byte, []LineError)
+ // byLine orders two events with the same id and actor by their line bytes,
+ // so the order of the lines in the file decides nothing.
+ func byLine(raw map[string][][]byte) func(a, b replay.At) int {
+-	return func(a, b replay.At) int { return bytes.Compare(raw[a.Actor][a.Index], raw[b.Actor][b.Index]) }
++	return func(a, b replay.At) int { return a.Index - b.Index }
+ }
+ 
+ // Events returns the merged event list of the store.
+
+-- go test ./internal/store -run TestSameIDLinesAnyOrder: exit 1
+--- FAIL: TestSameIDLinesAnyOrder (0.01s)
+    store_layer_test.go:228: order 0: as-of node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:x Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:b AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}, cut node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:y Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:a AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.330s
+FAIL
+
+-- R9: diff non-empty, test fails
+
+== R10 R-SXCDZW#1, #2: the cut's tie to file order
+-- diff (17 lines)
+diff --git a/internal/store/cut.go b/internal/store/cut.go
+index 857efed..cb3ec00 100644
+--- a/internal/store/cut.go
++++ b/internal/store/cut.go
+@@ -73,11 +73,7 @@ func CutAt(src, at string) (*Cut, error) {
+ 	// Ties break on the trimmed line, as replay's do (byLine), then on the
+ 	// line as written, so the cut's bytes never depend on the line order.
+ 	tie := func(a, b replay.At) int {
+-		la, lb := raw[a.Actor][a.Index], raw[b.Actor][b.Index]
+-		if c := bytes.Compare(bytes.TrimSpace(la), bytes.TrimSpace(lb)); c != 0 {
+-			return c
+-		}
+-		return bytes.Compare(la, lb)
++		return a.Index - b.Index
+ 	}
+ 	for _, pos := range replay.MergeOrder(evs, tie) {
+ 		ev := evs[pos.Actor][pos.Index]
+
+-- go test ./internal/store -run TestSameIDLinesAnyOrder: exit 1
+--- FAIL: TestSameIDLinesAnyOrder (0.01s)
+    store_layer_test.go:228: order 0: as-of node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:y Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:a AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}, cut node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:x Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:b AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}
+    store_layer_test.go:233: cut bytes depend on line order: "{\"v\":1,\"id\":\"01JB0000000000000000000005\",\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"b\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"x\"},\"why\":\"w\"}\n" vs "{\"v\":1,\"id\":\"01JB0000000000000000000005\",\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n"
+    store_layer_test.go:233: cut bytes depend on line order: "{\"v\":1,\"id\":\"01JB0000000000000000000005\",\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n" vs "{\"id\":\"01JB0000000000000000000005\",\"v\":1,\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.331s
+FAIL
+
+-- R10: diff non-empty, test fails
+
+== R11 R-SXCDZW#3: a constant step of one in the greatest millisecond
+-- diff (13 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..45e8c81 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -226,7 +226,7 @@ func idAfter(t time.Time, last string) string {
+ 		return ""
+ 	}
+ 	n := new(big.Int).SetBytes(u[6:])
+-	n.Add(n, big.NewInt(1+int64(binary.BigEndian.Uint32(step[:]))))
++	n.Add(n, big.NewInt(1+0*int64(binary.BigEndian.Uint32(step[:]))))
+ 	if n.BitLen() > 80 {
+ 		return ""
+ 	}
+
+-- go test ./internal/store -run TestAppendInGreatestMillisecond: exit 1
+--- FAIL: TestAppendInGreatestMillisecond (0.02s)
+    store_layer_test.go:267: two clones appended one id 7ZZZZZZZZZ0000000000000001
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.329s
+FAIL
+
+-- R11: diff non-empty, test fails
+
+== R12 R-SXCDZW#3: a wrap to zero in place of the refusal
+-- diff (13 lines)
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 117d8b0..7d3ee8a 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -228,7 +228,7 @@ func idAfter(t time.Time, last string) string {
+ 	n := new(big.Int).SetBytes(u[6:])
+ 	n.Add(n, big.NewInt(1+int64(binary.BigEndian.Uint32(step[:]))))
+ 	if n.BitLen() > 80 {
+-		return ""
++		n.SetInt64(0)
+ 	}
+ 	n.FillBytes(u[6:])
+ 	return u.String()
+
+-- go test ./internal/store -run TestAppendInGreatestMillisecond: exit 1
+--- FAIL: TestAppendInGreatestMillisecond (0.03s)
+    store_layer_test.go:257: after 7ZZZZZZZZZZZZZZZZZZZZZZZZZ: err <nil>, 1 lines; want a refusal that writes nothing
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.378s
+FAIL
+
+-- R12: diff non-empty, test fails
+
+== all removals fail their test with a non-empty diff: True

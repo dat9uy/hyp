@@ -1,0 +1,7 @@
+verdict: H-8QBZ4Q=supports (line 5 read as meaning 1)
+(a) red: on a7dbc00 the six line tests, F1 and G1 fail on their assertion; on ded3e4b H1 fails on its assertion (a-red.log)
+(b) green on 9643341: 10 of 10 pass; (d) vet and test pass (bd-green-vet-test.log)
+(c) 15 of 15 removals fail their test, diffs non-empty (c-removals.log)
+(e) census 20 of 20 same bytes and exit, a7dbc00 cc446c09 vs 9643341 2b4035ea (e-census.log)
+S1 strict check, no verdict: known answers right; 9643341 fails meaning 2 on 01mzzzzzzzzzzzzzzzzzzzzzzz (s1-strict-check.log)
+(f) review f-review.md: finding 1 is a limit of line 5; findings 2 and 3 are a text commit

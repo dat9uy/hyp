@@ -1,0 +1,140 @@
+== a7dbc00 a7dbc0039dd3d5294e55961d06a5eab2cac346e5
+vet: builds
+== TestSandboxCutOverBaseTree (internal/cli)
+--- FAIL: TestSandboxCutOverBaseTree (0.14s)
+    store_layer_test.go:119: exit 2 (want 0), stdout "", stderr "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxCutOverBaseTree1632592409/003 already holds .tree at 25a73693f7b9163fc4451d6759b582e21bb1e9f3; a store cut needs a base without one\n" (want "sandbox t1:")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.554s
+FAIL
+exit 1
+== TestInitRefusedInsideStore (internal/cli)
+--- FAIL: TestInitRefusedInsideStore (0.00s)
+    store_layer_test.go:157: exit 3 (want 1), stdout "", stderr "store already exists: /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestInitRefusedInsideStore2311295375/001/.tree/events\n" (want "/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestInitRefusedInsideStore2311295375/001")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.160s
+FAIL
+exit 1
+== TestDiscoveryStopsAtRepositoryRoot (internal/cli)
+--- FAIL: TestDiscoveryStopsAtRepositoryRoot (0.01s)
+    --- FAIL: TestDiscoveryStopsAtRepositoryRoot/git_directory (0.00s)
+        store_layer_test.go:206: exit 0 (want 3), stdout "GOAL G-KZ3DHA outer — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\n", stderr "" (want "no .tree store found")
+    --- FAIL: TestDiscoveryStopsAtRepositoryRoot/git_file (0.00s)
+        store_layer_test.go:206: exit 0 (want 3), stdout "GOAL G-KZ3DHA outer — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\n", stderr "" (want "no .tree store found")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.153s
+FAIL
+exit 1
+== TestReplayIgnoresLineOrder (internal/cli)
+--- FAIL: TestReplayIgnoresLineOrder (0.03s)
+    store_layer_test.go:250: hyp [status] differs:
+        in order {code:0 stdout:GOAL G-W3ZBV0 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-W3ZBV0#1 no candidate — a case
+        FRONTIER
+          Q-FVDY64 open/untested Q
+            H-40TWM5 proposed H
+              E-JXVFKN planned E1
+              E-08B64Y planned E2
+        STALE
+        OWED
+          runner: Q-FVDY64 run E-JXVFKN E1
+          runner: Q-FVDY64 run E-08B64Y E2
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT 2026-11-13 07:47 b: after E1
+         stderr:}
+        shuffled {code:0 stdout:GOAL G-W3ZBV0 G — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-W3ZBV0#1 no candidate — a case
+        FRONTIER
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+        REJECTED 5 events (run hyp check)
+         stderr:}
+    store_layer_test.go:250: hyp [check] differs:
+        in order {code:0 stdout:check: 0 errors, 0 warnings
+         stderr:}
+        shuffled {code:1 stdout:error: rejected 01M79Y0K8ZVT6ZMHRRRTH4T6QK: unknown node 01M79Y0K8D4EVFA5E02WW3ZBV0
+        error: rejected 01M79Y0K8PGKG5EX999440TWM5: unknown node 01M79Y0K8KEH61MNVQA2FVDY64
+        error: rejected 01M79Y0K9311PAT0DDYV08B64Y: unknown node 01M79Y0K8PGKG5EX999440TWM5
+        error: rejected 01M79Y0K8VRHPJ9P4QFVJXVFKN: unknown node 01M79Y0K8PGKG5EX999440TWM5
+        error: rejected 01M79Y0K8KEH61MNVQA2FVDY64: unknown node 01M79Y0K8D4EVFA5E02WW3ZBV0
+        check: 5 errors, 0 warnings
+         stderr:refused: check found 5 errors
+        }
+    store_layer_test.go:250: hyp [status --as-of 01M79Y0K8VRHPJ9P4QFVJXVFKN] differs:
+        in order {code:0 stdout:GOAL G-W3ZBV0 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        LINES
+          G-W3ZBV0#1 no candidate — a case
+        FRONTIER
+          Q-FVDY64 open/untested Q
+            H-40TWM5 proposed H
+              E-JXVFKN planned E1
+        STALE
+        OWED
+          runner: Q-FVDY64 run E-JXVFKN E1
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+         stderr:}
+        shuffled {code:0 stdout:GOAL none (hyp add goal --title T --why W)
+         stderr:}
+    store_layer_test.go:267: cut of /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReplayIgnoresLineOrder3252760353/002: a.jsonl not in id order: [01M79Y0K9311PAT0DDYV08B64Y 01M79Y0K8VRHPJ9P4QFVJXVFKN]
+    store_layer_test.go:267: cut of /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReplayIgnoresLineOrder3252760353/002: b.jsonl not in id order: [01M79Y0K8ZVT6ZMHRRRTH4T6QK 01M79Y0K8PGKG5EX999440TWM5]
+    store_layer_test.go:273: cuts differ: [events/a.jsonl events/b.jsonl evidence/E-JXVFKN/run.log] vs [events/a.jsonl events/b.jsonl evidence/E-08B64Y/run.log evidence/E-JXVFKN/run.log]
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.172s
+FAIL
+exit 1
+== TestAppendSortsAfterNewest (internal/store)
+--- FAIL: TestAppendSortsAfterNewest (0.02s)
+    store_layer_test.go:50: merged ids [01M79Y0KV3WKK0667CNAQPCR2R 01M79Y0KV9QS8JSAX1WR3D7SX8 01M79Y0KVCKMSTXXN7XB71TM4K 01M79Y0KVGW8PGXZY8CY093D1P 7ZZZZZZZZZ0000000000000000], want [01M79Y0KV3WKK0667CNAQPCR2R 7ZZZZZZZZZ0000000000000000 01M79Y0KV9QS8JSAX1WR3D7SX8 01M79Y0KVCKMSTXXN7XB71TM4K 01M79Y0KVGW8PGXZY8CY093D1P]: each appended id after 7ZZZZZZZZZ0000000000000000
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.365s
+FAIL
+exit 1
+== TestUnionMergeKeepsBothBranches (internal/store)
+--- FAIL: TestUnionMergeKeepsBothBranches (0.02s)
+    store_layer_test.go:78: .tree/.gitattributes = "" (open /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestUnionMergeKeepsBothBranches2388636444/001/.tree/.gitattributes: no such file or directory), want exactly the line events/*.jsonl merge=union
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.146s
+FAIL
+exit 1
+== TestClockBehindOnTwoClones (internal/store)
+--- FAIL: TestClockBehindOnTwoClones (0.01s)
+    store_layer_test.go:171: clone ids [01M79Y0MDSEE5FZA9EZ7XQHMF5 01M79Y0MDX2QWDT3FZAW778GTG], want two different ids after 7ZZZZZZZZY0000000000000000
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.146s
+FAIL
+exit 1
+== TestSameIDLinesAnyOrder (internal/store)
+--- FAIL: TestSameIDLinesAnyOrder (0.01s)
+    store_layer_test.go:233: cut bytes depend on line order: "{\"v\":1,\"id\":\"01JB0000000000000000000005\",\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"b\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"x\"},\"why\":\"w\"}\n" vs "{\"v\":1,\"id\":\"01JB0000000000000000000005\",\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n"
+    store_layer_test.go:233: cut bytes depend on line order: "{\"v\":1,\"id\":\"01JB0000000000000000000005\",\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n" vs "{\"id\":\"01JB0000000000000000000005\",\"v\":1,\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.146s
+FAIL
+exit 1
+== 10e1925 10e19258202e891e29b6295078d7a1b56bdaf08f
+vet: builds
+== TestSameIDLinesAnyOrder (internal/store)
+--- FAIL: TestSameIDLinesAnyOrder (0.01s)
+    store_layer_test.go:228: order 0: as-of node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:y Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:a AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}, cut node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:x Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:b AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}
+    store_layer_test.go:228: order 1: as-of node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:y Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:a AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}, cut node &{ID:01JB0000000000000000000005 Kind:Goal Parent: Title:x Body: Alias: Recipe: RecipeHash: DecidedBy: Actor:b AddedBy:01JB0000000000000000000005 Rubric: RubricHash: Records:[] Targets:[] Children:[] Verdicts:map[] VerdictOrder:[] Observation: Evidence:[] EvidenceHashes:map[] Limits:[] Closes:[] Readings:[] Aims:[] Applies:[] Subjects:[]}
+    store_layer_test.go:233: cut bytes depend on line order: "{\"v\":1,\"id\":\"01JB0000000000000000000005\",\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n" vs "{\"id\":\"01JB0000000000000000000005\",\"v\":1,\"ts\":\"2026-10-27T00:00:00Z\",\"actor\":\"a\",\"type\":\"node.add\",\"node\":\"01JB0000000000000000000005\",\"payload\":{\"kind\":\"Goal\",\"parent\":\"\",\"title\":\"y\"},\"why\":\"w\"}\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.361s
+FAIL
+exit 1
+== TestAppendInGreatestMillisecond (internal/store)
+--- FAIL: TestAppendInGreatestMillisecond (0.03s)
+    store_layer_test.go:267: two clones appended one id 7ZZZZZZZZZ0000000000000001
+    store_layer_test.go:257: after 7ZZZZZZZZZZZZZZZZZZZZZZZZZ: err <nil>, 1 lines; want a refusal that writes nothing
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.171s
+FAIL
+exit 1
