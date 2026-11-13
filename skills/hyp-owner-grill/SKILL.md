@@ -13,7 +13,7 @@ The grill is not done when the owner and you agree. It is done when every questi
 
 ## Start
 
-1. Find the store. Run `hyp status` at the repository root. A new purpose in a repository that has a store is a new Goal **in the same store**: one store holds many Goals. If the installed hyp refuses a second Goal in one log, the new Goal is a new tree under its own directory. Run `hyp init` only when there is no store.
+1. Find the store. Trees live where the repository's agent instructions (AGENTS.md, CLAUDE.md) say, such as `investigations/<topic>/`. The Goal goes **in the store there that holds the Goal of the issue's parent issue**, when one does: one store holds many Goals. Run `hyp status` in that store. When no store there holds the parent's Goal, or the installed hyp refuses a second Goal in one log, the Goal gets a new store in a new directory there. Use the repository root only when the instructions name no directory for trees.
 2. Set `HYP_ACTOR` to a runner name unique to this session. Ask the owner for their actor name (lowercase letters, digits and hyphens, for example `owner-dat`) once.
 3. Read the glossary of the repository, if it has one. Use its words. One concept gets one word, and every sense of the word has one shape. Before you name a thing by how it is stored (`bases`, `commits`), look for the domain word.
 
@@ -29,7 +29,7 @@ Run the mistakes checklist below on each round before you send it, and again bef
 
 Each item is a mistake earlier grills made. Check the round or the table against every item, and fix what fails before the owner sees it.
 
-1. **Store.** The Goal goes where the repository's agent instructions (AGENTS.md, CLAUDE.md) say trees live, such as `investigations/<topic>/`: in the store there that holds the Goal of the issue's parent issue, when one does, or else in a new store in that directory. No `hyp init` at the repository root unless the instructions name no directory for trees.
+1. **Store.** The Goal goes in the store Start step 1 finds: where the repository's agent instructions say trees live, in the store that holds the parent issue's Goal, or else in a new store in that directory. No `hyp init` at the repository root unless the instructions name no directory for trees.
 2. **Test method.** Where an installed skill owns the test method (for a skill, ak-skill-creator's eval flow: its cases, fixtures, matching and grading), the round asks only whether to use that flow and the owner's preferences of model, trial count and budget, never a choice among the method's parts.
 3. **Constraints.** `May change:` covers the texts the change makes wrong by their directories (`skills/`, `docs/`, `AGENTS.md`, `README.md`), not as a list of files or parts. No `Never:` line forbids what `May change:` or the Goal's test route needs, such as a new recipe version under `recipes/`.
 
@@ -96,7 +96,7 @@ The grill ends in these writes, in this order. Show each owner write as the exac
 
 | Output | Command | Actor |
 |---|---|---|
-| a new store, if none exists | `hyp init` | runner |
+| a new store, if Start step 1 found none | `hyp init` in the directory Start step 1 names | runner |
 | the Goal, its purpose and its lines | `hyp add goal --title "…" --body "…" --line "…" --cite N=KEY --why "…"` | owner |
 | a contested question | `hyp add dq --parent <G-id> …`, then one `hyp add hyp --parent <Q-id> …` per rival | runner |
 | a question with rivals the owner settled in the session | the DesignQuestion and each rival as above; then under the chosen rival `hyp add exp --recipe none --rubric reading --target <each other rival>` whose body states the scenarios as its rule, `hyp record` with a verdict per rival citing a scenarios file under `.tree/evidence/<E-id>/`, then the select OWED owes (a runner write, not the owner's) | runner |
