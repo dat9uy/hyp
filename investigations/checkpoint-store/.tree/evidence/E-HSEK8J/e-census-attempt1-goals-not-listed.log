@@ -1,0 +1,28 @@
+binary a7dbc00 sha256 cc5ddaba1083d0ea7afa1f75340ecfe5476a40c65dce8e358e066d754b58abee version hyp 0.1.0 (events v1) a7dbc0039dd3
+binary 65a1cc5 sha256 759c40e58ed27f4bce08d52392c2a286deb118debfae9896e692c01af8de286f version hyp 0.1.0 (events v1) 65a1cc526919
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'applied'
+checkpoint-store-design hyp status: exit 0/0 sha256 a8b02cbd6161/a8b02cbd6161 same
+checkpoint-store-design hyp check: exit 0/0 sha256 0bb0fb857011/0bb0fb857011 same
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'applied'
+checkpoint-store hyp status: exit 0/0 sha256 6f57d5643930/6f57d5643930 same
+checkpoint-store hyp check: exit 0/0 sha256 59626524181e/59626524181e same
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'applied'
+goal-prompt hyp status: exit 0/0 sha256 b5bfa7b0006c/b5bfa7b0006c same
+goal-prompt hyp check: exit 0/0 sha256 f654fdc3b2b0/f654fdc3b2b0 same
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'applied'
+id-citation hyp status: exit 0/0 sha256 c0d144a49409/c0d144a49409 same
+id-citation hyp check: exit 0/0 sha256 0bb0fb857011/0bb0fb857011 same
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+KeyError: 'applied'
+recipe-base hyp status: exit 0/0 sha256 72fce9310b75/72fce9310b75 same
+recipe-base hyp check: exit 0/0 sha256 0bb0fb857011/0bb0fb857011 same
+census: 10 same, 0 differ

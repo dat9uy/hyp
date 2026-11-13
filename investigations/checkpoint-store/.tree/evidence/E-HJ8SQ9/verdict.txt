@@ -1,0 +1,6 @@
+verdict: H-J7N18Y=supports
+(a) red: on a7dbc00 the six line tests, F1 and G1 fail on their assertion; on 10e1925 G1 and G2 fail on theirs (a-red.log)
+(b) green on 7a05e9e: 10 of 10 pass; (d) vet and test pass (bd-green-vet-test.log)
+(c) 14 of 14 removals fail their test, diffs non-empty (c-removals.log)
+(e) census 20 of 20 same bytes and exit, a7dbc00 f6e47323 vs 7a05e9e 9f0febd6 (e-census.log)
+(f) review f-review.md: finding 1 is a limit of line 5; findings 2 to 4 are a fix commit

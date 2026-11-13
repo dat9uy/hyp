@@ -1,0 +1,6 @@
+verdict: H-M1EGHZ=supports
+(a) red on a7dbc00: 6 of 6 line tests fail on their assertion (a-red-on-base.log)
+(b) green on 65a1cc5: 6 of 6 pass; (d) vet and test pass (bd-green-vet-test.log)
+(c) 8 of 8 removals fail their line test, diffs non-empty (c-removals.log; attempt 1 did not build on R4, not counted)
+(e) census 20 of 20 same bytes and exit, a7dbc00 cc5ddaba vs 65a1cc5 759c40e5 (e-census.log)
+(f) review f-review.md: findings 1 and 3 are limits of line 4; finding 4 is a fix commit; finding 2 follows finding 1; finding 5 is out of the Goal

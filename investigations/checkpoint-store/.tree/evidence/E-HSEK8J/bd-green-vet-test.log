@@ -1,0 +1,32 @@
+== candidate 65a1cc5269191ea615db15ca3b1f3a71b01ed399
+== (b) line tests
+--- PASS: TestSandboxCutOverBaseTree (0.44s)
+--- PASS: TestInitRefusedInsideStore (0.00s)
+--- PASS: TestDiscoveryStopsAtRepositoryRoot (0.01s)
+--- PASS: TestReplayIgnoresLineOrder (0.03s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.843s
+--- PASS: TestAppendSortsAfterNewest (0.04s)
+--- PASS: TestUnionMergeKeepsBothBranches (0.18s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	0.590s
+== (d) go vet ./...
+exit 0
+== (d) go test ./... -count=1
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	0.850s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	26.286s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.336s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.311s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.603s
+ok  	github.com/dat9uy/hyp/internal/render	0.346s
+ok  	github.com/dat9uy/hyp/internal/replay	0.349s
+ok  	github.com/dat9uy/hyp/internal/sandbox	75.573s
+ok  	github.com/dat9uy/hyp/internal/signals	0.327s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.336s
+ok  	github.com/dat9uy/hyp/internal/store	0.439s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+exit 0
