@@ -1,0 +1,73 @@
+== base eed0938af71fa965afd3a32f0a87d1d261463b5a
+vet: builds
+== TestStatusShowsTheFolderStoresGoals (internal/cli)
+ok  	github.com/dat9uy/hyp/internal/cli	0.537s
+exit 0
+== TestStatusAllListsTheHistory (internal/cli)
+--- FAIL: TestStatusAllListsTheHistory (0.09s)
+    history_test.go:164: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory2105368306/001:
+        {code:3 stdout: stderr:no .tree store found; run 'hyp init'
+        }
+        want hyp status --all at the root:
+        {code:2 stdout: stderr:flag provided but not defined: -all
+        }
+    history_test.go:164: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory2105368306/001/docs:
+        {code:3 stdout: stderr:no .tree store found; run 'hyp init'
+        }
+        want hyp status --all at the root:
+        {code:2 stdout: stderr:flag provided but not defined: -all
+        }
+    history_test.go:173: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.232s
+FAIL
+exit 1
+== TestHistoryLeavesOutStores (internal/cli)
+--- FAIL: TestHistoryLeavesOutStores (0.15s)
+    history_test.go:248: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.305s
+FAIL
+exit 1
+== TestCiteAcrossStores (internal/cli)
+--- FAIL: TestCiteAcrossStores (0.07s)
+    history_test.go:278: exit 2 (want 1), stdout "", stderr "unknown node R-EY5A35\n" (want "")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.217s
+FAIL
+exit 1
+== TestAppendSortsAfterOtherStores (internal/cli)
+--- FAIL: TestAppendSortsAfterOtherStores (0.06s)
+    history_test.go:309: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.206s
+FAIL
+exit 1
+== TestDuplicateIDAcrossStores (internal/cli)
+--- FAIL: TestDuplicateIDAcrossStores (0.07s)
+    history_test.go:329: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Dup in a")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.225s
+FAIL
+exit 1
+== TestAliasLocalToStore (internal/cli)
+--- FAIL: TestAliasLocalToStore (0.08s)
+    history_test.go:359: exit 3 (want 2), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "ambiguous node h-null")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.229s
+FAIL
+exit 1
+== TestEventNeverCrossesStores (internal/cli)
+--- FAIL: TestEventNeverCrossesStores (0.09s)
+    history_test.go:413: exit 2 (want 1), stdout "", stderr "unknown node G-0YTDBD\n" (want "")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.250s
+FAIL
+exit 1
+== TestSandboxHistoryCut (internal/cli)
+--- FAIL: TestSandboxHistoryCut (0.09s)
+    history_test.go:479: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.243s
+FAIL
+exit 1

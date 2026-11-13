@@ -1,0 +1,10 @@
+E-JK94NX rubric (a) to (f), read on the logs in this folder:
+(a) FAILS: on eed0938 eight of the nine cli line tests fail on their own assertion, but TestStatusShowsTheFolderStoresGoals (line 1) passes (a-red-on-base.log): the base reads one store, so a store's folder already shows only its own Goals.
+(b) holds: the ten tests pass on a9963fc (b-green.log).
+(c) holds: R3, R6, R7a, R7b, R7c, R8a, R8b, R8c each fail their line's test (c-removals.log).
+(d) holds: go vet and go test ./... -count=1 pass on a9963fc (d-vet-test.log).
+(e) holds: census 16 same, 0 differ (ef-census-root-check.log).
+(f) holds: hyp check at the root prints check: 0 errors, exit 0; status --all misses no Goal of the five stores (ef-census-root-check.log).
+(g) the review is g-review.md; its findings are sorted in the Result.
+Any failure contradicts:
+verdict: one-history-1=contradicts

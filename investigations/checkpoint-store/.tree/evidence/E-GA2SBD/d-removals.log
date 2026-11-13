@@ -1,0 +1,327 @@
+== R3 (TestHistoryLeavesOutStores)
+diff --git a/internal/store/history.go b/internal/store/history.go
+index d570612..93385bf 100644
+--- a/internal/store/history.go
++++ b/internal/store/history.go
+@@ -125,7 +125,7 @@ func RepoStores(repo string) ([]string, error) { return repoStores(repo) }
+ // known-answers/ (a directory beside a recipe.md), or under a directory
+ // below repo that holds its own .git.
+ func repoStores(repo string) ([]string, error) {
+-	cmd := exec.Command("git", "-C", repo, "ls-files", "-z", "--cached", "--", ":(glob)**/.tree/events/*.jsonl")
++	cmd := exec.Command("git", "-C", repo, "ls-files", "-z", "--cached", "--others", "--", ":(glob)**/.tree/events/*.jsonl")
+ 	out, err := cmd.Output()
+ 	if err != nil {
+ 		return nil, fmt.Errorf("git ls-files in %s: %v", repo, err)
+@@ -158,9 +158,7 @@ func storeOfHistory(repo, rel string) bool {
+ 	if fi, err := os.Stat(filepath.Join(repo, filepath.FromSlash(rel), ".tree", "events")); err != nil || !fi.IsDir() {
+ 		return false
+ 	}
+-	if rel == "." {
+-		return true
+-	}
++	return true
+ 	parts := strings.Split(rel, "/")
+ 	for i, part := range parts {
+ 		if part == ".tree" || part == "testdata" {
+
+--- FAIL: TestHistoryLeavesOutStores (0.26s)
+    history_test.go:276: the history holds a store it leaves out:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.618s
+FAIL
+exit 1 -> fails as required
+== R6 (TestDuplicateIDAcrossStores)
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 8801bde..1d18f64 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -55,7 +55,7 @@ func validateEnvelope(f *Facts, ev event.Event) error {
+ 	if !ulidRe.MatchString(ev.ID) {
+ 		return fmt.Errorf("missing field: id must be a 26-character ULID, got %q", ev.ID)
+ 	}
+-	if f.SeenIDs[ev.ID] {
++	if false && f.SeenIDs[ev.ID] {
+ 		return errors.New("duplicate id: " + ev.ID)
+ 	}
+ 	if !actorRe.MatchString(ev.Actor) {
+
+--- FAIL: TestDuplicateIDAcrossStores (0.11s)
+    history_test.go:378: exit 0 (want 0), stdout "GOALS (hyp status G-… prints one Goal)\n  G-MZA8JR Goal A — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint none\n  G-Y180JW Goal B — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint none\n  G-000001 Dup in b — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint none\n  G-000001 Dup in b — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint none\nAWAITING OWNER\n", stderr "" (want "Dup in a")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.458s
+FAIL
+exit 1 -> fails as required
+== R7a (TestAliasLocalToStore)
+diff --git a/internal/cli/resolve.go b/internal/cli/resolve.go
+index 2afb682..db3991f 100644
+--- a/internal/cli/resolve.go
++++ b/internal/cli/resolve.go
+@@ -19,7 +19,7 @@ func resolveRef(p replay.Projection, scope, ref string) (string, error) {
+ 	}
+ 	var byAlias, byDisplay []string
+ 	for id, n := range p.Nodes {
+-		if n.Alias != "" && n.Alias == ref && (scope == "" || n.Store == scope) {
++		if n.Alias != "" && n.Alias == ref && true {
+ 			byAlias = append(byAlias, id)
+ 		}
+ 		if strings.EqualFold(event.DisplayID(n.Kind, id), ref) {
+
+--- FAIL: TestAliasLocalToStore (0.20s)
+    history_test.go:421: exit 2 (want 0), stdout "", stderr "ambiguous node h-null\n" (want "Hypothesis H-T8THQV")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.577s
+FAIL
+exit 1 -> fails as required
+== R7b (TestAliasLocalToStore)
+diff --git a/internal/replay/rules.go b/internal/replay/rules.go
+index 87d23fa..1f6ed57 100644
+--- a/internal/replay/rules.go
++++ b/internal/replay/rules.go
+@@ -50,7 +50,7 @@ var rules = map[string]rule{
+ 				Alias: p.Alias, Recipe: p.Recipe, RecipeHash: p.RecipeHash, DecidedBy: p.DecidedBy, Actor: ev.Actor, Store: ev.Store,
+ 				AddedBy: ev.ID, Targets: p.Targets, Aims: p.Aims, Rubric: rubric, RubricHash: p.RubricHash, Records: p.Records})
+ 			if p.Alias != "" {
+-				st.Aliases[AliasKey{ev.Store, p.Alias}] = ev.ID
++				st.Aliases[AliasKey{"", p.Alias}] = ev.ID
+ 			}
+ 			if p.Kind == event.KindGoal {
+ 				st.Goals = append(st.Goals, ev.ID)
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 8801bde..501a4ad 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -98,7 +98,7 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
+ 		if !aliasRe.MatchString(p.Alias) {
+ 			return fmt.Errorf("invalid alias: %q", p.Alias)
+ 		}
+-		if _, used := f.Aliases[AliasKey{ev.Store, p.Alias}]; used {
++		if _, used := f.Aliases[AliasKey{"", p.Alias}]; used {
+ 			return fmt.Errorf("alias already used: %q", p.Alias)
+ 		}
+ 	}
+
+--- FAIL: TestAliasLocalToStore (0.16s)
+    history_test.go:419: hyp [add hyp --parent Q-TZGJJP --title H --alias h-null --why try]: exit 1, stderr "refused: alias already used: \"h-null\"\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.545s
+FAIL
+exit 1 -> fails as required
+== R7c (TestAliasLocalToStore)
+diff --git a/internal/claim/claim.go b/internal/claim/claim.go
+index 63fe474..17ab84d 100644
+--- a/internal/claim/claim.go
++++ b/internal/claim/claim.go
+@@ -98,7 +98,7 @@ func Warnings(root string, p replay.Projection, id string) []string {
+ // "". An alias is local to its store, and arms reuse labels such as h-null.
+ func hypothesis(p replay.Projection, store, lbl string) string {
+ 	for id, n := range p.Nodes {
+-		if n.Kind != event.KindHypothesis || n.Store != store {
++		if n.Kind != event.KindHypothesis {
+ 			continue
+ 		}
+ 		if n.Alias == lbl || id == lbl || event.DisplayID(event.KindHypothesis, id) == lbl {
+
+--- FAIL: TestAliasLocalToStore (0.28s)
+    history_test.go:442: exit 0 (want 0), stdout "check: 0 errors, 0 warnings\n", stderr "" (want "warn: verdict mismatch R-6K5HMX: H-JMT9CC (h-null) typed supports")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.725s
+FAIL
+exit 1 -> fails as required
+== R8a (TestEventNeverCrossesStores)
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 8801bde..e716f44 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -39,9 +39,6 @@ func Validate(st *State, ev event.Event) (err error) {
+ 	}
+ 	// The store rule comes first, so an event that crosses stores is
+ 	// refused for that, whatever else its own rule would say of it.
+-	if err := st.checkStore(ev); err != nil {
+-		return err
+-	}
+ 	return rules[ev.Type].validate(&st.Facts, ev)
+ }
+ 
+
+--- FAIL: TestEventNeverCrossesStores (0.24s)
+    history_test.go:478: exit 0 (want 1), stdout "Q-91MX6B node.add\n", stderr "" (want "event crosses stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.605s
+FAIL
+exit 1 -> fails as required
+== R8b (TestEventNeverCrossesStores)
+diff --git a/internal/store/history.go b/internal/store/history.go
+index d570612..eeb146b 100644
+--- a/internal/store/history.go
++++ b/internal/store/history.go
+@@ -368,7 +368,7 @@ func (h *History) target(st *replay.State, ev event.Event) (string, error) {
+ 		var p event.NodeAdd
+ 		_ = json.Unmarshal(ev.Payload, &p)
+ 		if p.Kind == event.KindGoal {
+-			return "", herr.Refused("hyp add goal needs a store: store discovery finds none from here, and a Goal has no parent whose store holds it; run it in the store's folder")
++			return "", nil
+ 		}
+ 		return storeOf(p.Parent), nil
+ 	case event.TypeResultRecord:
+
+--- FAIL: TestEventNeverCrossesStores (0.32s)
+    history_test.go:481: exit 1 (want 1), stdout "", stderr "refused: no store holds the event's node\n" (want "hyp add goal needs a store")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.691s
+FAIL
+exit 1 -> fails as required
+== R8c (TestEventNeverCrossesStores)
+diff --git a/internal/store/history.go b/internal/store/history.go
+index d570612..5baa765 100644
+--- a/internal/store/history.go
++++ b/internal/store/history.go
+@@ -348,7 +348,7 @@ func (h *History) target(st *replay.State, ev event.Event) (string, error) {
+ 				}
+ 			}
+ 		}
+-		if len(stores) > 1 {
++		if false && len(stores) > 1 {
+ 			return "", herr.Refused("an answer's keys lie in two stores, %s and %s; an event never crosses stores, so answer each store's keys in its own hyp answer",
+ 				replay.StoreName(stores[0]), replay.StoreName(stores[1]))
+ 		}
+
+--- FAIL: TestEventNeverCrossesStores (0.30s)
+    history_test.go:480: exit 1 (want 1), stdout "", stderr "refused: event crosses stores: its key's node R-0TE2TF is in store investigations/a and the event in store .; an event is appended to the store that holds its node\n" (want "an answer's keys lie in two stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.670s
+FAIL
+exit 1 -> fails as required
+== R8d store rule first (TestEventNeverCrossesStores)
+diff --git a/internal/replay/validate.go b/internal/replay/validate.go
+index 8801bde..b3217df 100644
+--- a/internal/replay/validate.go
++++ b/internal/replay/validate.go
+@@ -39,10 +39,10 @@ func Validate(st *State, ev event.Event) (err error) {
+ 	}
+ 	// The store rule comes first, so an event that crosses stores is
+ 	// refused for that, whatever else its own rule would say of it.
+-	if err := st.checkStore(ev); err != nil {
++	if err := rules[ev.Type].validate(&st.Facts, ev); err != nil {
+ 		return err
+ 	}
+-	return rules[ev.Type].validate(&st.Facts, ev)
++	return st.checkStore(ev)
+ }
+ 
+ func validateEnvelope(f *Facts, ev event.Event) error {
+diff --git a/internal/store/history.go b/internal/store/history.go
+index d570612..ab17d05 100644
+--- a/internal/store/history.go
++++ b/internal/store/history.go
+@@ -405,7 +405,7 @@ func (h *History) AppendWith(actor string, build func(*replay.State, replay.Proj
+ 	if err != nil {
+ 		// An event build drafts and then refuses is refused for crossing
+ 		// stores first, as replay's store rule comes before every other.
+-		if ev.Type != "" {
++		if false {
+ 			if t, terr := h.target(st, ev); terr == nil && t != "" {
+ 				ev.Store = t
+ 				if cerr := st.CheckStore(ev); cerr != nil {
+
+--- FAIL: TestEventNeverCrossesStores (0.25s)
+    history_test.go:478: exit 1 (want 1), stdout "", stderr "refused: cross-DQ supersedes: both Hypotheses must share a DesignQuestion\n" (want "event crosses stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.613s
+FAIL
+exit 1 -> fails as required
+== RF fresh store joins (TestCiteAcrossStores)
+diff --git a/internal/store/history.go b/internal/store/history.go
+index d570612..0d55a56 100644
+--- a/internal/store/history.go
++++ b/internal/store/history.go
+@@ -100,7 +100,7 @@ func openHistory(start string, repoWide bool) (*History, error) {
+ 		switch {
+ 		case slices.Contains(stores, rel):
+ 			h.Current = rel
+-		case !strings.HasPrefix(rel, "../") && rel != ".." && storeOfHistory(repo, rel):
++		case false:
+ 			// A store git does not track yet, read from its own folder.
+ 			h.Stores = append(h.Stores, rel)
+ 			slices.Sort(h.Stores)
+
+--- FAIL: TestCiteAcrossStores (0.28s)
+    history_test.go:322: hyp [add goal --title Fresh --line y --cite 1=G-ZM6W4R#1 --body see G-69FBKB --why w]: exit 2, stderr "unknown node G-ZM6W4R\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.651s
+FAIL
+exit 1 -> fails as required
+== RA --all reads the repository (TestStatusAllListsTheHistory)
+diff --git a/internal/cli/read.go b/internal/cli/read.go
+index 66a3590..a8468cb 100644
+--- a/internal/cli/read.go
++++ b/internal/cli/read.go
+@@ -137,7 +137,7 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
+ 	// whose store adds nothing to it.
+ 	open := store.OpenHistory
+ 	if *all {
+-		open = store.OpenRepoHistory
++		open = store.OpenHistory
+ 	}
+ 	r, err := openReaderWith(open)
+ 	if err != nil {
+
+--- FAIL: TestStatusAllListsTheHistory (0.36s)
+    history_test.go:205: hyp status --all in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory1801776937/001/internal/x/testdata/synth, whose store adds nothing to the history:
+    history_test.go:205: hyp status --all in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory1801776937/001/investigations/a/.tree/evidence/E-000001/trial, whose store adds nothing to the history:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.718s
+FAIL
+exit 1 -> fails as required
+== RG G-id lookup (TestStatusAllListsTheHistory)
+diff --git a/internal/cli/read.go b/internal/cli/read.go
+index 66a3590..cea6ab6 100644
+--- a/internal/cli/read.go
++++ b/internal/cli/read.go
+@@ -152,7 +152,7 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
+ 	goal := ""
+ 	if len(pos) == 1 {
+ 		id, err := resolveRef(p, r.hist.Current, pos[0])
+-		if err != nil && !*all {
++		if false {
+ 			// A Goal the history found from here does not hold may be held
+ 			// by the repository's history, when this folder's store adds
+ 			// nothing to it.
+
+--- FAIL: TestStatusAllListsTheHistory (0.34s)
+    history_test.go:210: hyp status G-J1Z2VE in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory488672110/001/internal/x/testdata/synth:
+    history_test.go:210: hyp status G-J1Z2VE in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory488672110/001/investigations/a/.tree/evidence/E-000001/trial:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.706s
+FAIL
+exit 1 -> fails as required
+== RR store view rejections (TestDuplicateIDAcrossStores)
+diff --git a/internal/cli/read.go b/internal/cli/read.go
+index 66a3590..7e6a6b0 100644
+--- a/internal/cli/read.go
++++ b/internal/cli/read.go
+@@ -197,7 +197,7 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
+ // onlyStoreRejections is p with only the rejections of store s, or p when
+ // s is "", the whole history.
+ func onlyStoreRejections(p replay.Projection, s string) replay.Projection {
+-	if s == "" {
++	if true {
+ 		return p
+ 	}
+ 	q := p
+@@ -379,7 +379,7 @@ func cmdEvents(args []string, stdout, stderr io.Writer) error {
+ 		}
+ 	}
+ 	for _, x := range r.full.Rejections {
+-		if cur == "" || x.Store == cur {
++		if true {
+ 			out.Rejections = append(out.Rejections, rejection{x.EventID, x.Reason})
+ 		}
+ 	}
+
+--- FAIL: TestDuplicateIDAcrossStores (0.17s)
+    history_test.go:386: status in store a counts store b's rejected line:
+    history_test.go:396: events --json rejections: store a 1, store b 1; want 0 and 1
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.587s
+FAIL
+exit 1 -> fails as required

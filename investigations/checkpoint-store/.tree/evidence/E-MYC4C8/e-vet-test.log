@@ -1,0 +1,14 @@
+== candidate 8a12324a6570c8b693f7c036eeda428a6466ff3a
+vet exit 0
+ok  	github.com/dat9uy/hyp/internal/check	1.015s
+ok  	github.com/dat9uy/hyp/internal/cli	42.617s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.377s
+ok  	github.com/dat9uy/hyp/internal/event	0.374s
+ok  	github.com/dat9uy/hyp/internal/recipe	0.628s
+ok  	github.com/dat9uy/hyp/internal/render	0.432s
+ok  	github.com/dat9uy/hyp/internal/replay	0.414s
+ok  	github.com/dat9uy/hyp/internal/sandbox	94.207s
+ok  	github.com/dat9uy/hyp/internal/signals	0.360s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.380s
+ok  	github.com/dat9uy/hyp/internal/store	1.930s
+test exit 0
