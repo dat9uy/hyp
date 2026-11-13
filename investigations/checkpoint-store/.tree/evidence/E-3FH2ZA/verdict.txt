@@ -1,0 +1,7 @@
+E-3FH2ZA rubric outcome on candidate 07d44c04d9c785d944b5148e3b1bce2415c03fc7
+(a) red on ded3e4b: TestAppendAfterRejectedIDKeepsClock fails on its millisecond assertion (run.log line 4), vet builds.
+(b) green on 07d44c0: passes.
+(c) removal of the ValidID loop: the test fails (run.log line 19).
+(d) go vet ./... ok; go test ./... -count=1 exit 0; line tests pass, 0 skipped.
+(e) e-review.md: no defect in the code. Findings 2 and 3 are defects in text this run may edit (the test's 01 prefix, replay-spec rule 1 wording); sorted as a fix commit, not as a case of a line.
+verdict: H-T83XWY=supports

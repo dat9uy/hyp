@@ -1,0 +1,7 @@
+E-QZ8T7S rubric outcome on candidate d966e85c2dd802ee9823689498300e241dd87601
+(a) red on ded3e4b: TestAppendAfterRejectedIDKeepsClock fails on its millisecond assertion (run.log line 4), vet builds.
+(b) green on d966e85: passes.
+(c) removal of the ValidID loop: the test fails (run.log line 19).
+(d) go vet ./... ok; go test ./... -count=1 exit 0; line tests pass, 0 skipped.
+(e) e-review.md: no defect in the diff; findings 1 and 3 are labeled none, finding 2 is informational.
+verdict: H-VG5D0F=supports
