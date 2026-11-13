@@ -34,7 +34,10 @@ never type one. Run `hyp help` for every command and flag.
   holds goes under that hypothesis. It blocks: its parent cannot become the
   answer until the sub-question is settled, whichever way it is settled.
 - Rival answers are siblings: `hyp add hyp --parent <Q-id> --title "..." --why "..."`.
-  Add at least two when the answer is genuinely uncertain.
+  Add a second only when, for the pair, you can write "on <scenario>, A
+  meets line n and B does not, because <mechanism>"; options that can both
+  be applied in one candidate are not rivals. Otherwise add one, and the
+  base, or what exists today, is its rival.
 - New information goes in a new node. A fix, an untested part of a claim
   or a stronger instrument is a new Hypothesis that supersedes the old one,
   and it exists before the Experiment that tests it. Run, in this order:

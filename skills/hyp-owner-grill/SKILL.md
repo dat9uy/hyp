@@ -38,14 +38,16 @@ Each item is a mistake earlier grills made. Check the round or the table against
 | The question is | Its place | Ask the owner? |
 |---|---|---|
 | a fact about the code, the stores or the history | look it up yourself or with a subagent; check a subagent's fact before you rely on it | never |
-| a choice between options a run could separate | a DesignQuestion with at least two rival Hypotheses, and the scenario that separates them in the body; this holds also when the owner settles it in the grill | never as a choice; ask only whether the run should test it |
+| a choice between options a run could separate | a DesignQuestion with one Hypothesis, or with rivals that pass the difference test, and the scenario that separates them in the body; this holds also when the owner settles it in the grill | never as a choice; ask only whether the run should test it |
 | what the purpose must allow or must never allow | a line of the Goal | yes |
 | the purpose, its scope, who asked and why | the Goal's title and body | yes |
 | what a run may change, may only read, or must never do | the Goal body's `May change:`, `Read only:` and `Never:` headings | yes |
 | how the tree is run (process, review, order, cadence) | the Goal body, an Experiment's body, or the `/goal` prompt; never a line | only where it is a preference |
 | a purpose outside this Goal | a separate Goal, added by the owner | name it; the owner decides |
 
-A testable option set is never put to the owner as a choice. If the owner settles such a question in the session anyway, it is still a DesignQuestion with its rivals, recorded as decided with the session as evidence (see Writes), so the tree says it was argued, not tested. A question becomes a DesignQuestion only when you can name the scenario a run would execute to separate its rivals, such as two Goals in one store, or a base that moves mid-run. A decision with alternatives but no such scenario, such as a preferred shape, bound or word, is the owner's: it is a line or body text, never a question recorded as decided. One DesignQuestion holds one question, and every rival under it answers that question; two grill questions are two DesignQuestions.
+A testable option set is never put to the owner as a choice. If the owner settles such a question in the session anyway, it is still a DesignQuestion with its rivals, recorded as decided with the session as evidence (see Writes), so the tree says it was argued, not tested. A question becomes a DesignQuestion only when you can name the scenario a run would execute to separate its rivals, or its one Hypothesis from the base, such as two Goals in one store, or a base that moves mid-run. A decision with alternatives but no such scenario, such as a preferred shape, bound or word, is the owner's: it is a line or body text, never a question recorded as decided. One DesignQuestion holds one question, and every rival under it answers that question; two grill questions are two DesignQuestions.
+
+**The difference test.** Two options are rivals only when, for each pair, you can write one sentence: "On <scenario>, <A> meets line <n> and <B> does not, because <mechanism>." Put each sentence in the DesignQuestion's body. Options that can both be applied in one candidate are not rivals. When no such sentence exists, the question gets one Hypothesis, and the base is its rival through red on base. Add a second Hypothesis only when the first misses a line. Each rival costs its own runs on every line, so a rival no line separates is paid for and decides nothing.
 
 ## The derivation guard
 
@@ -68,9 +70,11 @@ Lines are the Goal's positive and negative space, written once and never edited.
 3. use an input that can be built on the candidate?
 4. need only runner acts on the branch?
 5. state one invariant in the P or N form?
-6. fail on some commit that could be named?
+6. fail on the base, when a trial scores it?
 
 A line that names history ("fails on the commit before"), the process, an owner act or a reading fails. Red on base, the removal check and "each rule has a test pair" are facts about the tests, so they go in each Experiment's rubric, never in a line. A runner cannot meet a line about history, and it will stop on it.
+
+Answer question 6 from a recorded event or a run that shows the line red on base, never from the report that raised it. When agent trials score a line and no such record exists, run the instrument on the base before you write the line, keep its output, and write lines only for the entries that fail there. The base run is owed anyway, so this changes only its order; a line that is green on base costs trials on every candidate and decides nothing. A line a deterministic test checks, such as `go test`, may be green on base as a regression guard.
 
 **For a discovery Goal** (the candidate is a claim, measured by a recipe and a rubric), a line names a case every candidate must meet that a check can run on every candidate.
 
@@ -80,7 +84,9 @@ A line that names history ("fails on the commit before"), the process, an owner 
 
 hyp owes every line on every top-level question that has a candidate. So draw a grid: lines down the side, top-level questions across, and in each cell ask "could one run cover every candidate of this question for this line?" A cell no run could ever fill means the question and the line serve different purposes: put them in separate Goals. A quick proxy: group the top-level questions by what their candidate is (a claim argued with stand-ins, a commit in repository X, a commit in repository Y). Each group is one Goal. A design record and the build of that design are two Goals.
 
-## Before the round closes
+## Before round 1, and before Confirm the routing
+
+Run these checks on the draft routing before you send round 1, and again on the settled rules before Confirm the routing. Round 1 is where the grill's own design is most often wrong, and a rule they overturn after the owner answered can reopen that answer. The second pass checks the rules the owner's answers settled.
 
 1. **A second reader.** Ask an independent reviewer, such as a fresh subagent on the strongest model, to walk every settled rule through a scenario the grill did not draw: two Goals in one store, a merged log from two actors, a base that moves mid-run. Give it the rules and the code, not your conclusion. Check each fact it reports against the source before you rely on it.
 2. **Apply the model to itself.** If the Goal changes the tool or rules that will judge it, check its lines against that change.
@@ -88,7 +94,7 @@ hyp owes every line on every top-level question that has a candidate. So draw a 
 
 ## Confirm the routing
 
-Run the mistakes checklist on the table first. Before any write, show the owner one table with a row per grill question: the question, where it goes (line, Goal body, DesignQuestion with its rivals, looked up, another Goal), and for a DesignQuestion the scenario that separates its rivals. Mark each line `[P]` or `[N]` and the invariant it states. The owner confirms each row or moves it. Which settled questions the tree records as DesignQuestions is the owner's call; the table is where they make it. Write nothing before they confirm.
+Run the mistakes checklist on the table first. Before any write, show the owner one table with a row per grill question: the question, where it goes (line, Goal body, DesignQuestion with its rivals, looked up, another Goal), and for a DesignQuestion the scenario that separates its rivals. Mark each line `[P]` or `[N]` and the invariant it states, and for a line a trial scores, the record that shows it red on base. The owner confirms each row or moves it. Which settled questions the tree records as DesignQuestions is the owner's call; the table is where they make it. Write nothing before they confirm.
 
 ## Writes
 
