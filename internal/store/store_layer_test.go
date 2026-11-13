@@ -9,8 +9,10 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/oklog/ulid/v2"
 )
 
 // TestAppendSortsAfterNewest: the newest event's id is from a clock far ahead
@@ -242,7 +244,7 @@ func TestSameIDLinesAnyOrder(t *testing.T) {
 // and writes nothing.
 func TestAppendInGreatestMillisecond(t *testing.T) {
 	for _, c := range []struct {
-		last             string
+		last            string
 		refused, differ bool
 	}{
 		{"7ZZZZZZZZZ0000000000000000", false, true},
@@ -292,5 +294,28 @@ func TestAppendAfterRejectedID(t *testing.T) {
 		if err != nil || ev.ID <= g.ID {
 			t.Errorf("after rejected id %q: id %s, err %v; want an id after %s", bad, ev.ID, err, g.ID)
 		}
+	}
+}
+
+// TestAppendAfterRejectedIDKeepsClock: a line whose id replay rejects for its
+// form does not move the appended id off the clock. A lower-case ULID such as
+// 01mzzzzzzzzzzzzzzzzzzzzzzz sorts after every upper-case id of today; when it
+// counted as the newest id, the appended id took the millisecond after it.
+// The appended id's millisecond is the clock's, read before and after Append.
+func TestAppendAfterRejectedIDKeepsClock(t *testing.T) {
+	root := newStore(t)
+	writeLines(t, root, "z", goalLine("01mzzzzzzzzzzzzzzzzzzzzzzz", "z"))
+	before := ulid.Timestamp(time.Now())
+	ev, err := Append(root, "a", nodeAdd(t, event.KindGoal, "", "g", "why"))
+	after := ulid.Timestamp(time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, err := ulid.ParseStrict(ev.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ms := u.Time(); ms < before || ms > after {
+		t.Errorf("after a rejected lower-case id: appended id %s has millisecond %d, want the clock's, %d to %d", ev.ID, ms, before, after)
 	}
 }
