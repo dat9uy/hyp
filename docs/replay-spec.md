@@ -101,7 +101,7 @@ Each event type's rule is its entry in the table in `internal/replay/rules.go`, 
 
 An event is refused when any of these holds:
 
-1. `v` ≠ 1, the type is unknown, a required field is missing, `id` is not a 26-character upper-case ULID, an unknown payload field is present, `ts` is not UTC, or a content limit is exceeded.
+1. `v` ≠ 1, the type is unknown, a required field is missing, `id` is not 26 characters of upper-case Crockford base32 (an id of that form above the greatest ULID passes, and an append after it is refused), an unknown payload field is present, `ts` is not UTC, or a content limit is exceeded.
 2. Its `id` duplicates an earlier event id.
 3. `node` or a referenced id (parent, target, hypothesis, select, `to`) does not exist yet, or has the wrong kind.
 4. Wrong parent kind. Goal: parent `""`. A store holds many Goals (ADR 0020): a tree is the view of one Goal and every node whose parents lead to it. DesignQuestion: parent is the Goal or a Hypothesis. Hypothesis: parent is a DesignQuestion. Experiment: parent is a Hypothesis, or a DesignQuestion. Result: parent is an Experiment.

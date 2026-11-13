@@ -298,13 +298,14 @@ func TestAppendAfterRejectedID(t *testing.T) {
 }
 
 // TestAppendAfterRejectedIDKeepsClock: a line whose id replay rejects for its
-// form does not move the appended id off the clock. A lower-case ULID such as
-// 01mzzzzzzzzzzzzzzzzzzzzzzz sorts after every upper-case id of today; when it
+// form does not move the appended id off the clock. The lower-case id
+// 0zzzzzzzzzzzzzzzzzzzzzzzzz sorts after every upper-case id whose first
+// character is 0, which covers every clock until about the year 3084; when it
 // counted as the newest id, the appended id took the millisecond after it.
 // The appended id's millisecond is the clock's, read before and after Append.
 func TestAppendAfterRejectedIDKeepsClock(t *testing.T) {
 	root := newStore(t)
-	writeLines(t, root, "z", goalLine("01mzzzzzzzzzzzzzzzzzzzzzzz", "z"))
+	writeLines(t, root, "z", goalLine("0zzzzzzzzzzzzzzzzzzzzzzzzz", "z"))
 	before := ulid.Timestamp(time.Now())
 	ev, err := Append(root, "a", nodeAdd(t, event.KindGoal, "", "g", "why"))
 	after := ulid.Timestamp(time.Now())
