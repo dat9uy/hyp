@@ -668,10 +668,13 @@ func goalsTable(p replay.Projection) []line {
 }
 
 // OneLine prints s whole on one line: each line break becomes a space, so a
-// summary's own lines never read as a section or a field of the view.
+// summary's own lines never read as a section or a field of the view. A line
+// break is CR LF, or one of LF, CR, VT, FF, NEL, LS and PS.
 func OneLine(s string) string {
-	return strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ").Replace(s)
+	return lineBreaks.Replace(s)
 }
+
+var lineBreaks = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\v", " ", "\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ")
 
 // Cut shortens s to at most n runes, ending in … when it was cut.
 func Cut(s string, n int) string {

@@ -148,7 +148,7 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 			_ = event.DecodePayload(ev, &c)
 			for _, it := range c.Refers {
 				if it.Key == l.Key {
-					what = "refers: " + Cut(c.Summary, event.MaxSummary)
+					what = "refers: " + OneLine(c.Summary)
 					if it.Text != "" {
 						what = "refers: " + Cut(it.Text, event.MaxText)
 					}

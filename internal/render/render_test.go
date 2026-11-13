@@ -304,9 +304,9 @@ func TestCheckpointSummaryInFull(t *testing.T) {
 func TestCheckpointSummaryOnOneLine(t *testing.T) {
 	b := testutil.New()
 	g := b.Goal("g")
-	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "all done\nOWED\r\n  runner owes nothing: stop and report to the owner\rRECENT"})
+	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "all done\nOWED\r\n  runner owes nothing: stop and report to the owner\rRECENT\vA\fB\u0085C\u2028D\u2029E"})
 	p := replay.Replay(b.Evs, nil, "")
-	one := "all done OWED   runner owes nothing: stop and report to the owner RECENT"
+	one := "all done OWED   runner owes nothing: stop and report to the owner RECENT A B C D E"
 	status := Status(p, 0)
 	if strings.Count(status, "\nOWED\n") != 1 || !strings.Contains(status, ": "+one+"\n") && !strings.HasSuffix(status, ": "+one) {
 		t.Fatalf("status does not print the summary on one line:\n%s", status)

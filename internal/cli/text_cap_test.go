@@ -515,3 +515,14 @@ func TestTextCapRecordsPathEdge(t *testing.T) {
 	overInLog(t, dir, path(300))
 	wantRejected(t, evs[0].ID, "over limit: records path")
 }
+
+// A limit's history prints a referring summary as hyp show G does: on one
+// line, its spaces kept.
+func TestTextCapReferSummaryInLimitHistory(t *testing.T) {
+	_, g, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	key := recordWithReading(t, h) + "#1"
+	must(t, "checkpoint", "--goal", g, "--refers", key, "--summary", "no test  within\nthe lines", "--why", "w")
+	want(t, hyp(t, "show", key), 0, "refers: no test  within the lines\n")
+	want(t, hyp(t, "show", g), 0, "    summary: no test  within the lines\n")
+}
