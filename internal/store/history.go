@@ -36,6 +36,62 @@ type History struct {
 	// Current is the store discovery finds from the current directory, as
 	// one of Stores, or "" when it finds none.
 	Current string
+	// repo is true when Root is a repository root whose files git lists.
+	repo bool
+}
+
+// sameStore returns the store of stores whose folder is the folder cur,
+// reached by any path, or "".
+func sameStore(repo string, stores []string, cur string) string {
+	ci, err := os.Stat(cur)
+	if err != nil {
+		return ""
+	}
+	for _, s := range stores {
+		if si, err := os.Stat(filepath.Join(repo, filepath.FromSlash(s))); err == nil && os.SameFile(si, ci) {
+			return s
+		}
+	}
+	return ""
+}
+
+// untrackedLast returns the greatest valid event id held by a store of the
+// repository that git does not track yet but that would add to its history
+// once tracked, and that the history does not read: a store hyp init just
+// made, read from another folder. An append sorts after it too, so the
+// order of ids stays the order of appends once git tracks that store.
+func (h *History) untrackedLast() string {
+	if !h.repo {
+		return ""
+	}
+	out, err := exec.Command("git", "-C", h.Root, "ls-files", "-z", "--others", "--exclude-standard", "--", ":(glob)**/.tree/events/*.jsonl").Output()
+	if err != nil {
+		return ""
+	}
+	last := ""
+	for _, p := range strings.Split(string(out), "\x00") {
+		i := strings.LastIndex(p, ".tree/events/")
+		if p == "" || i < 0 || (i > 0 && p[i-1] != '/') {
+			continue
+		}
+		dir := strings.TrimSuffix(p[:i], "/")
+		if dir == "" {
+			dir = "."
+		}
+		if dir == "." || slices.Contains(h.Stores, dir) || !storeOfHistory(h.Root, dir) {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(h.Root, filepath.FromSlash(p)))
+		if err != nil {
+			continue
+		}
+		for _, line := range bytes.Split(data, []byte("\n")) {
+			if ev, err := event.ParseLine(bytes.TrimSpace(line)); err == nil && replay.ValidID(ev.ID) && ev.ID > last {
+				last = ev.ID
+			}
+		}
+	}
+	return last
 }
 
 // Dir returns the folder of store s.
@@ -90,13 +146,18 @@ func openHistory(start string, repoWide bool) (*History, error) {
 		}
 		return Single(cur), nil
 	}
-	h := &History{Root: repo, Stores: stores}
+	h := &History{Root: repo, Stores: stores, repo: true}
 	if cur != "" {
 		rel, err := filepath.Rel(repo, cur)
 		if err != nil {
 			return nil, err
 		}
 		rel = filepath.ToSlash(rel)
+		// A folder that reaches a store of the history by another path, a
+		// symbolic link or another letter case, is that store.
+		if s := sameStore(repo, stores, cur); s != "" {
+			rel = s
+		}
 		switch {
 		case slices.Contains(stores, rel):
 			h.Current = rel
@@ -403,7 +464,11 @@ func (h *History) AppendWith(actor string, build func(*replay.State, replay.Proj
 		// An event build drafts and then refuses is refused for crossing
 		// stores first, as replay's store rule comes before every other.
 		if ev.Type != "" {
-			if t, terr := h.target(st, ev); terr == nil && t != "" {
+			t, terr := h.target(st, ev)
+			if terr != nil {
+				return ev, terr
+			}
+			if t != "" {
 				ev.Store = t
 				if cerr := st.CheckStore(ev); cerr != nil {
 					return ev, herr.Refused("%v", cerr)
@@ -426,6 +491,9 @@ func (h *History) AppendWith(actor string, build func(*replay.State, replay.Proj
 			last = evs[i].ID
 			break
 		}
+	}
+	if u := h.untrackedLast(); u > last {
+		last = u
 	}
 	ev.V = event.Version
 	if ev.ID = idAfter(now, last); ev.ID == "" {

@@ -1150,6 +1150,15 @@ func writeHistoryCut(wt string, cuts map[string]*store.Cut) error {
 		if err := cut.Write(dest); err != nil {
 			return err
 		}
+		// The store's merge driver and ignore file come with it from the
+		// host, as the base would hold them.
+		for _, f := range []string{".gitattributes", ".gitignore"} {
+			if data, err := os.ReadFile(filepath.Join(store.Dir(cut.Src), f)); err == nil {
+				if err := os.WriteFile(filepath.Join(store.Dir(dest), f), data, 0o644); err != nil {
+					return err
+				}
+			}
+		}
 		if _, err := git("-C", wt, "add", "--intent-to-add", "--", filepath.Join(dest, ".tree", "events")); err != nil {
 			return err
 		}

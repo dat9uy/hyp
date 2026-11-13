@@ -360,6 +360,19 @@ func TestAppendSortsAfterOtherStores(t *testing.T) {
 	if id := histID(t, r.root, q); id <= future {
 		t.Errorf("appended id %s in store b sorts at or before %s, an id of store a", id, future)
 	}
+	// A store git does not track yet, which the history read from b does
+	// not hold, still holds ids an append in b sorts after.
+	u := filepath.Join(r.root, "investigations", "u")
+	if err := os.MkdirAll(u, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	mustIn(t, u, "init")
+	ahead := "7ZZZZZZZZZ0000000000000005"
+	appendLine(t, u, "z", rawLine(ahead, "z", "node.add", ahead, `{"kind":"Goal","parent":"","title":"ahead"}`))
+	q2 := mustIn(t, r.b, "add", "dq", "--parent", r.gb, "--title", "after u", "--why", "w")
+	if id := histID(t, r.root, q2); id <= ahead {
+		t.Errorf("appended id %s in store b sorts at or before %s, an id of an untracked store", id, ahead)
+	}
 	// A store git does not track yet appends after the history too.
 	c := filepath.Join(r.root, "investigations", "c")
 	if err := os.MkdirAll(c, 0o755); err != nil {
@@ -629,6 +642,12 @@ func TestSandboxHistoryCut(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(wt, "investigations", "a", ".tree", "evidence", x1, "run.log")); err != nil {
 		t.Errorf("clone lacks the evidence of %s, added before the cut: %v", x1, err)
 	}
+	// Each store of the cut keeps its merge driver and ignore file.
+	for _, f := range []string{".gitattributes", ".gitignore"} {
+		if _, err := os.Stat(filepath.Join(wt, "investigations", "a", ".tree", f)); err != nil {
+			t.Errorf("clone store a lacks its .tree/%s: %v", f, err)
+		}
+	}
 	if _, err := os.Stat(filepath.Join(wt, "investigations", "c", ".tree")); !os.IsNotExist(err) {
 		t.Errorf("store c of the base holds no event at or before the cut, yet is in the clone: %v", err)
 	}
@@ -682,4 +701,32 @@ func TestSameAskAcrossStores(t *testing.T) {
 	gitIn(t, r.root, "add", "-A")
 	got := in(t, r.a, "answer", "--answer", ra+"#r1=one", "--actor", "owner")
 	want(t, got, 0, "warn: "+rb+"#r1 asks the same as "+ra+"#r1 and stays open; it is in store investigations/b, so answer it with its own hyp answer --answer "+rb+"#r1")
+}
+
+// TestStoreByAnotherPath: a folder that reaches a store of the history by
+// a symbolic link, or by another letter case where the file system ignores
+// case, is that store: it joins the history once, not again as an
+// untracked store.
+func TestStoreByAnotherPath(t *testing.T) {
+	r := newHistRepo(t)
+	readingIn(t, r.a, r.ga, "h-a")
+	gitIn(t, r.root, "add", "-A")
+	link := filepath.Join(r.root, "alink")
+	if err := os.Symlink(filepath.Join("investigations", "a"), link); err != nil {
+		t.Fatal(err)
+	}
+	paths := []string{link}
+	upper := filepath.Join(r.root, "INVESTIGATIONS", "a")
+	if _, err := os.Stat(upper); err == nil {
+		paths = append(paths, upper)
+	}
+	inA := in(t, r.a, "status")
+	for _, p := range paths {
+		if got := in(t, p, "check"); !strings.Contains(got.stdout, "check: 0 errors") {
+			t.Errorf("hyp check in %s, which reaches store a by another path:\n%+v", p, got)
+		}
+		if got := in(t, p, "status"); got != inA {
+			t.Errorf("hyp status in %s:\n%+v\nwant it as in store a:\n%+v", p, got, inA)
+		}
+	}
 }
