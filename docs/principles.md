@@ -31,8 +31,8 @@ stays in history. See [replay-spec.md](replay-spec.md) §7 and §8,
 
 ## 3. A claim is tested by rivals and cases, not by a reader
 
-**A question has rival Hypotheses, and an Experiment states its verdict rule
-before it runs.** A recipe's known answers run before every use, so an
+**A question has rival Hypotheses, and an Experiment fixes its rubric before
+it runs.** A recipe's known answers run before every use, so an
 instrument shows it can fail before its verdicts count. A reader who checks a
 verdict after the fact catches less than a rival that could have won: the
 retired verifier passed a wrong verdict, and so did the owner. See

@@ -26,7 +26,8 @@ the result means; that is the `hyp record` verdict.
   Changing a recipe and Known answers). A recipe measures and never
   prints a verdict. How measures become verdicts is a rubric in
   `rubrics/`, pinned with `--rubric <name>@<version>` (RECIPE-FORMAT.md,
-  Rubrics); `--rubric reading` is for a verdict decided by reading.
+  Rubrics); `--rubric reading` is for a verdict decided by reading,
+  and then the rubric is prose in the Experiment's body.
 - `hyp add exp ... --recipe <name>@<version>` stores a hash of the recipe (the
   file, or every file of a bundle directory).
   A changed recipe is a new version. Old Results that followed the

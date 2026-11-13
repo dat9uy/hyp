@@ -37,7 +37,7 @@ flowchart TD
   HB["Hypothesis H-b<br/>superseded"]
   HC["Hypothesis H-c<br/>refines H-b"]
   H0["Hypothesis H-null<br/>no change needed"]
-  E["Experiment E-…<br/>verdict rule written first<br/>recipe pinned by hash"]
+  E["Experiment E-…<br/>rubric fixed first<br/>recipe pinned by hash"]
   R["Result R-…<br/>H-a supported, H-c supported,<br/>H-null contradicted<br/>limit #1: a case it did not run"]
   S{{"select H-a<br/>only when the ledger owes it"}}
 
@@ -97,7 +97,7 @@ hyp keeps the five sections as the steps of a recipe (refer to "Step" in [glossa
 | In a verify skill | The rule in hyp |
 |---|---|
 | A proof is about one feature. | **Rivals in one Experiment.** One Experiment tests the rival Hypotheses of a question. Its Result gives a verdict for each rival. |
-| The agent decides after the run whether the evidence is a proof. | **A verdict rule before the run.** Each Experiment states which outcome gives which verdict. It states this before it runs ("Verdict rule" in [glossary.md](docs/glossary.md)). |
+| The agent decides after the run whether the evidence is a proof. | **A rubric before the run.** Each Experiment states which outcome gives which verdict. It states this before it runs ("Rubric" in [glossary.md](docs/glossary.md)). |
 | The agent runs each command. The record of the run is the report of the agent. | **hyp runs the commands.** hyp runs each recipe command and records each command that it ran ([ADR 0001](docs/adr/0001-hyp-runs-every-recipe-command.md)). |
 | The skill changes when the app changes. An old proof does not show which version of the procedure made it. | **Versioned recipes.** A recipe is a bundle of files with a version. A tree pins a recipe by its hash. Nobody edits a pinned recipe; a change is a new version ([ADR 0005](docs/adr/0005-a-bundle-is-its-ref-and-hash.md), [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md)). |
 | The skill proves itself one time, when the agent makes it. | **Known answers first.** Before each run, the checks of a recipe must give their known answers. A check runs the same way in this gate and in the run ([ADR 0002](docs/adr/0002-known-answers-gate-every-recipe-run.md), [ADR 0003](docs/adr/0003-a-check-runs-the-same-way-in-the-gate-and-in-the-run.md)). |

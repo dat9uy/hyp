@@ -1,5 +1,5 @@
 // Package skillcheck keeps the skills honest: every hyp command they show
-// must be one the CLI dispatches.
+// must be one the CLI dispatches, and they use no word the glossary retires.
 package skillcheck
 
 import (
@@ -58,5 +58,34 @@ func TestSkillCommandsExist(t *testing.T) {
 	}
 	if seen < 20 {
 		t.Fatalf("only %d hyp commands found in the skills; the extractor is probably broken", seen)
+	}
+}
+
+// retiredRe matches the words docs/glossary.md retires for an Experiment's
+// rubric. A skill that teaches one makes runners write it into Goal bodies,
+// and from there into the spec and the code.
+var retiredRe = regexp.MustCompile(`(?i)verdict[ -](rule|check)`)
+
+func TestSkillsUseNoRetiredWord(t *testing.T) {
+	files, err := filepath.Glob("../../skills/*/*.md")
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no skill files found: %v", err)
+	}
+	for _, f := range files {
+		data, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The path from the repository root: every skill file is SKILL.md, so
+		// the base name alone does not say which skill holds the word.
+		name, err := filepath.Rel("../..", f)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, line := range strings.Split(string(data), "\n") {
+			if m := retiredRe.FindString(line); m != "" {
+				t.Errorf("%s:%d: %q is retired; say the Experiment's rubric, or its body", name, i+1, m)
+			}
+		}
 	}
 }

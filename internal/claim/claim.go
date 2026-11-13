@@ -1,7 +1,7 @@
 // Package claim reports where a Result's text disagrees with the files it
 // cites: a typed verdict that a cited `verdict:` line contradicts, and a
 // commit or hash in the observation or a limit that no cited file holds. These are
-// warnings: hyp never reads a verdict rule, and replay never reads files
+// warnings: hyp never reads a rubric's prose, and replay never reads files
 // (ADR 0004, spec §7.6).
 package claim
 
