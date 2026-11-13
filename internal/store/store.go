@@ -6,9 +6,11 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/rand"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -100,26 +102,36 @@ func Init(dir string) error {
 // ReadAll parses every .tree/events/*.jsonl file, keyed by actor (the base
 // name without .jsonl). Unparseable lines are returned as LineErrors.
 func ReadAll(root string) (map[string][]event.Event, []LineError, error) {
+	out, _, lineErrs, err := readLines(root)
+	return out, lineErrs, err
+}
+
+// readLines is ReadAll that also returns each parsed event's line, trimmed,
+// at the same actor and index.
+func readLines(root string) (map[string][]event.Event, map[string][][]byte, []LineError, error) {
 	files, err := filepath.Glob(filepath.Join(eventsDir(root), "*.jsonl"))
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	out := map[string][]event.Event{}
+	raw := map[string][][]byte{}
 	var lineErrs []LineError
 	for _, f := range files {
 		data, err := os.ReadFile(f)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
-		evs, errs := parseFile(filepath.Base(f), data)
-		out[strings.TrimSuffix(filepath.Base(f), ".jsonl")] = evs
+		actor := strings.TrimSuffix(filepath.Base(f), ".jsonl")
+		evs, lines, errs := parseFile(filepath.Base(f), data)
+		out[actor], raw[actor] = evs, lines
 		lineErrs = append(lineErrs, errs...)
 	}
-	return out, lineErrs, nil
+	return out, raw, lineErrs, nil
 }
 
-func parseFile(name string, data []byte) ([]event.Event, []LineError) {
+func parseFile(name string, data []byte) ([]event.Event, [][]byte, []LineError) {
 	var evs []event.Event
+	var lines [][]byte
 	var errs []LineError
 	sc := bufio.NewScanner(bytes.NewReader(data))
 	sc.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
@@ -134,17 +146,29 @@ func parseFile(name string, data []byte) ([]event.Event, []LineError) {
 			continue
 		}
 		evs = append(evs, ev)
+		lines = append(lines, bytes.Clone(line))
 	}
-	return evs, errs
+	return evs, lines, errs
+}
+
+// byLine orders two events with the same id and actor by their line bytes,
+// so the order of the lines in the file decides nothing.
+func byLine(raw map[string][][]byte) func(a, b replay.At) int {
+	return func(a, b replay.At) int { return bytes.Compare(raw[a.Actor][a.Index], raw[b.Actor][b.Index]) }
 }
 
 // Events returns the merged event list of the store.
 func Events(root string) ([]event.Event, []LineError, error) {
-	files, lineErrs, err := ReadAll(root)
+	files, raw, lineErrs, err := readLines(root)
 	if err != nil {
 		return nil, nil, err
 	}
-	return replay.Merge(files), lineErrs, nil
+	order := replay.MergeOrder(files, byLine(raw))
+	out := make([]event.Event, len(order))
+	for i, at := range order {
+		out[i] = files[at.Actor][at.Index]
+	}
+	return out, lineErrs, nil
 }
 
 // Load replays the store with the current recipe hashes.
@@ -180,7 +204,8 @@ func newID(t time.Time) string {
 // millisecond, the id takes the millisecond after last's, with fresh random
 // bits: two clones of one store whose clocks are behind then append
 // different ids, which a union merge keeps apart. A last that is not a ULID
-// is ignored.
+// is ignored. It returns "" when no id sorts after last, or when the random
+// bits cannot be read.
 func idAfter(t time.Time, last string) string {
 	id := newID(t)
 	if id > last {
@@ -193,12 +218,19 @@ func idAfter(t time.Time, last string) string {
 	if ms := u.Time(); ms < ulid.MaxTime() {
 		return newID(ulid.Time(ms + 1))
 	}
-	for i := len(u) - 1; i >= 0; i-- {
-		u[i]++
-		if u[i] != 0 {
-			break
-		}
+	// last is in the greatest millisecond: add one plus a random 32-bit
+	// amount to its 80 random bits, so two clones still differ, and refuse
+	// when the bits overflow.
+	var step [4]byte
+	if _, err := rand.Read(step[:]); err != nil {
+		return ""
 	}
+	n := new(big.Int).SetBytes(u[6:])
+	n.Add(n, big.NewInt(1+int64(binary.BigEndian.Uint32(step[:]))))
+	if n.BitLen() > 80 {
+		return ""
+	}
+	n.FillBytes(u[6:])
 	return u.String()
 }
 
@@ -246,7 +278,9 @@ func AppendWith(root, actor string, build func(*replay.State, replay.Projection)
 		last = evs[len(evs)-1].ID
 	}
 	ev.V = event.Version
-	ev.ID = idAfter(now, last)
+	if ev.ID = idAfter(now, last); ev.ID == "" {
+		return ev, herr.Refused("no event id sorts after %s, the newest id the store holds", last)
+	}
 	ev.TS = now.Format(time.RFC3339Nano)
 	ev.Actor = actor
 	if ev.Type == event.TypeNodeAdd || ev.Type == event.TypeResultRecord {

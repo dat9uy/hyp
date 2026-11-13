@@ -14,9 +14,10 @@ import (
 // name without .jsonl), whatever the line order inside a file: a file that
 // git merged with the union driver holds both branches' lines in any order,
 // and replays the same. Two events with the same id and actor are ordered by
-// their JSON encoding, so not by file order either.
+// their JSON encoding, so not by file order either; the store orders them by
+// their line bytes (MergeOrder's tie).
 func Merge(files map[string][]event.Event) []event.Event {
-	order := MergeOrder(files)
+	order := MergeOrder(files, nil)
 	out := make([]event.Event, len(order))
 	for i, at := range order {
 		out[i] = files[at.Actor][at.Index]
@@ -32,7 +33,16 @@ type At struct {
 }
 
 // MergeOrder is the order Merge puts the events in, as positions in files.
-func MergeOrder(files map[string][]event.Event) []At {
+// tie orders two events with the same id and actor; nil orders them by their
+// JSON encoding.
+func MergeOrder(files map[string][]event.Event, tie func(a, b At) int) []At {
+	if tie == nil {
+		tie = func(a, b At) int {
+			ea, _ := json.Marshal(files[a.Actor][a.Index])
+			eb, _ := json.Marshal(files[b.Actor][b.Index])
+			return bytes.Compare(ea, eb)
+		}
+	}
 	var out []At
 	for name, evs := range files {
 		for i := range evs {
@@ -46,9 +56,7 @@ func MergeOrder(files map[string][]event.Event) []At {
 		if c := strings.Compare(a.Actor, b.Actor); c != 0 {
 			return c
 		}
-		ea, _ := json.Marshal(files[a.Actor][a.Index])
-		eb, _ := json.Marshal(files[b.Actor][b.Index])
-		return bytes.Compare(ea, eb)
+		return tie(a, b)
 	})
 	return out
 }

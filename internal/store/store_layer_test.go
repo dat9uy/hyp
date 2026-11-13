@@ -1,6 +1,8 @@
 package store
 
 import (
+	"bytes"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -196,4 +198,73 @@ func ids2(evs []event.Event) []string {
 		out = append(out, ev.ID)
 	}
 	return out
+}
+
+// TestSameIDLinesAnyOrder: one events file holds two lines with one id, as a
+// hand edit could write. Whichever comes first in the file, replay as of that
+// id applies the same event as the store cut at it, and the cut writes the
+// same bytes. The pairs differ in the actor field, and in key order alone.
+func TestSameIDLinesAnyOrder(t *testing.T) {
+	const x = "01JB0000000000000000000005"
+	goal := func(actor, title string) string {
+		return `{"v":1,"id":"` + x + `","ts":"2026-10-27T00:00:00Z","actor":"` + actor + `","type":"node.add","node":"` + x + `","payload":{"kind":"Goal","parent":"","title":"` + title + `"},"why":"w"}`
+	}
+	keysSwapped := `{"id":"` + x + `","v":1,"ts":"2026-10-27T00:00:00Z","actor":"a","type":"node.add","node":"` + x + `","payload":{"kind":"Goal","parent":"","title":"y"},"why":"w"}`
+	for _, pair := range [][2]string{{goal("b", "x"), goal("a", "y")}, {goal("a", "y"), keysSwapped}} {
+		var cuts [2]map[string][]byte
+		for i, lines := range [][2]string{pair, {pair[1], pair[0]}} {
+			src := newStore(t)
+			writeLines(t, src, "a", lines[0], lines[1])
+			asOf, _, err := LoadAsOf(src, x)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dest := writeCut(t, src, x)
+			cut, _, err := Load(dest)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if a, c := asOf.Nodes[x], cut.Nodes[x]; a == nil || c == nil || a.Title != c.Title {
+				t.Errorf("order %d: as-of node %+v, cut node %+v", i, a, c)
+			}
+			cuts[i] = files(t, filepath.Join(dest, ".tree", "events"))
+		}
+		if !maps.EqualFunc(cuts[0], cuts[1], bytes.Equal) {
+			t.Errorf("cut bytes depend on line order: %q vs %q", cuts[0]["a.jsonl"], cuts[1]["a.jsonl"])
+		}
+	}
+}
+
+// TestAppendInGreatestMillisecond: in the greatest ULID millisecond two
+// clones still append different ids after the newest; after the greatest
+// ULID no id sorts, so the append is refused and writes nothing.
+func TestAppendInGreatestMillisecond(t *testing.T) {
+	for _, c := range []struct {
+		last    string
+		refused bool
+	}{{"7ZZZZZZZZZ0000000000000000", false}, {"7ZZZZZZZZZZZZZZZZZZZZZZZZZ", true}} {
+		root := newStore(t)
+		writeLines(t, root, "z", goalLine(c.last, "z"))
+		var ids []string
+		for range 2 {
+			clone := filepath.Join(t.TempDir(), "clone")
+			if err := os.CopyFS(clone, os.DirFS(root)); err != nil {
+				t.Fatal(err)
+			}
+			ev, err := Append(clone, "a", nodeAdd(t, event.KindGoal, "", "g", "why"))
+			if c.refused {
+				if err == nil || !strings.HasPrefix(err.Error(), "refused: ") || lines(t, clone, "a") != 0 {
+					t.Fatalf("after %s: err %v, %d lines; want a refusal that writes nothing", c.last, err, lines(t, clone, "a"))
+				}
+				continue
+			}
+			if err != nil || ev.ID <= c.last {
+				t.Fatalf("after %s: id %s, err %v", c.last, ev.ID, err)
+			}
+			ids = append(ids, ev.ID)
+		}
+		if !c.refused && ids[0] == ids[1] {
+			t.Errorf("two clones appended one id %s", ids[0])
+		}
+	}
 }

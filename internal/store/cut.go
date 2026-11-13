@@ -62,14 +62,24 @@ func CutAt(src, at string) (*Cut, error) {
 			if err != nil {
 				return nil, fmt.Errorf("%s:%d: %v; run hyp check in %s", name, n, err, src)
 			}
-			// Merge never reads Actor, so it carries the file's actor here.
+			// The cut keys its kept lines by the file's actor; the merge order
+			// reads only the id, the file's actor and the line bytes.
 			ev.Actor = actor
 			evs[actor] = append(evs[actor], ev)
 			raw[actor] = append(raw[actor], bytes.Clone(line))
 		}
 	}
 	c := &Cut{Src: src, At: at, lines: map[string][][]byte{}, exps: map[string]bool{}}
-	for _, pos := range replay.MergeOrder(evs) {
+	// Ties break on the trimmed line, as replay's do (byLine), then on the
+	// line as written, so the cut's bytes never depend on the line order.
+	tie := func(a, b replay.At) int {
+		la, lb := raw[a.Actor][a.Index], raw[b.Actor][b.Index]
+		if c := bytes.Compare(bytes.TrimSpace(la), bytes.TrimSpace(lb)); c != 0 {
+			return c
+		}
+		return bytes.Compare(la, lb)
+	}
+	for _, pos := range replay.MergeOrder(evs, tie) {
 		ev := evs[pos.Actor][pos.Index]
 		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[pos.Actor][pos.Index])
 		c.Events++
