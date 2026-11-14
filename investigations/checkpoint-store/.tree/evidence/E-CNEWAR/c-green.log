@@ -1,0 +1,40 @@
+== candidate c770b503fe7a3f68ad043a9ca2497cdd1acd53d6
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 0
+--- PASS: TestStatusShowsTheFolderStoresGoals (0.16s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.550s
+== TestStatusAllListsTheHistory (internal/cli): go test exit 0
+--- PASS: TestStatusAllListsTheHistory (0.39s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.546s
+== TestHistoryLeavesOutStores (internal/cli): go test exit 0
+--- PASS: TestHistoryLeavesOutStores (0.21s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.361s
+== TestCiteAcrossStores (internal/cli): go test exit 0
+--- PASS: TestCiteAcrossStores (0.32s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.472s
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 0
+--- PASS: TestAppendSortsAfterOtherStores (0.13s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.288s
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 0
+--- PASS: TestDuplicateIDAcrossStores (0.16s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.322s
+== TestAliasLocalToStore (internal/cli): go test exit 0
+--- PASS: TestAliasLocalToStore (0.48s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.655s
+== TestEventNeverCrossesStores (internal/cli): go test exit 0
+--- PASS: TestEventNeverCrossesStores (0.40s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.555s
+== TestSandboxHistoryCut (internal/cli): go test exit 0
+--- PASS: TestSandboxHistoryCut (0.66s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.817s
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 0
+--- PASS: TestUntrackedStoreAllAndRoot (0.12s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.272s
+== TestSameAskAcrossStores (internal/cli): go test exit 0
+--- PASS: TestSameAskAcrossStores (0.18s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.340s
+== TestAppendSortsAfterHistory (internal/store): go test exit 0
+--- PASS: TestAppendSortsAfterHistory (0.15s)
+ok  	github.com/dat9uy/hyp/internal/store	0.542s
+== TestOneLockRoot (internal/store): go test exit 0
+--- PASS: TestOneLockRoot (0.28s)
+ok  	github.com/dat9uy/hyp/internal/store	0.420s

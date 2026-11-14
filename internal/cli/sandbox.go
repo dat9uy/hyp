@@ -45,7 +45,7 @@ func sandboxDrive(args []string, stdout io.Writer) error {
 }
 
 func sandboxCreate(args []string, stdout io.Writer) error {
-	const use = "usage: hyp sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--store SRC --cut EVENT] [--inputs FILE] [--patch ARM=FILE]... [--hyp BIN]"
+	const use = "usage: hyp sandbox create ID --host H --base REV --recipe NAME@VERSION|none [--recipe NAME@VERSION]... [--recipes DIR] [--cut EVENT [--store SRC]] [--inputs FILE] [--patch ARM=FILE]... [--hyp BIN]"
 	fs := readFlags("sandbox create", nil)
 	host := fs.String("host", "", "host repository root (required)")
 	base := fs.String("base", "", "commit to detach the clone at (required)")
@@ -54,7 +54,7 @@ func sandboxCreate(args []string, stdout io.Writer) error {
 	fs.Var(&refs, "recipe", "recipe NAME@VERSION to set up, repeatable in stack order, or none (required)")
 	recipes := fs.String("recipes", "", "directory that holds recipes/ (required unless --recipe none)")
 	src := fs.String("store", "", "store directory (holding .tree) to cut into wt/.tree; needs --cut")
-	cut := fs.String("cut", "", "event id: wt/.tree is the store as of this event; needs --store")
+	cut := fs.String("cut", "", "event id: each store of the host's history, in its own folder, as of this event; with --store, wt/.tree is that one store as of it")
 	inputs := fs.String("inputs", "", "file of this run's inputs; the sandbox keeps a copy, hashes it and passes it as HYP_SANDBOX_INPUTS")
 	var patchArgs multi
 	fs.Var(&patchArgs, "patch", "ARM=FILE: a throwaway Arm's patch over --base, at most one per Arm, repeatable; checked to apply, hashed, kept and passed in HYP_SANDBOX_PATCHES")
@@ -78,8 +78,10 @@ func sandboxCreate(args []string, stdout io.Writer) error {
 		return err
 	}
 	line := fmt.Sprintf("sandbox %s: %s @ %s", pos[0], rec.WTDir(), rec.Base[:min(8, len(rec.Base))])
-	if rec.Cut != "" {
+	if rec.Cut != "" && rec.Store != "" {
 		line += ", store cut at " + rec.Cut
+	} else if rec.Cut != "" {
+		line += ", history cut at " + rec.Cut
 	}
 	for _, r := range rec.Recipes {
 		if r.Ref.IsNone() {

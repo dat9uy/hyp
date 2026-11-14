@@ -1,0 +1,10 @@
+E-CNEWAR rubric (a) to (g), read on the logs in this folder; each "go test exit" is the exit of go test.
+(a) holds: on eed0938 the eleven cli tests of c770b50's history_test.go each exit 1 (ab-red.log).
+(b) holds: on 3bbf187 with c770b50's history tests, TestStatusAllListsTheHistory fails on --as-of (history_test.go:208), TestOneLockRoot fails (:165), TestUntrackedStoreAllAndRoot fails on duplicate id (:667), TestSameAskAcrossStores fails on the warning (:684). TestCiteAcrossStores and TestEventNeverCrossesStores fail on the store named in a rejection line.
+(c) holds: the eleven cli tests and two store tests pass on c770b50 (c-green.log).
+(d) holds: 17 removals each fail their test (d-removals.log).
+(e) holds: go vet and go test ./... -count=1 pass on c770b50 (e-vet-test.log).
+(f) holds: census 16 same, 0 differ, eed0938 vs c770b50 (fg-census-root-check.log).
+(g) holds: hyp check at the root: check: 0 errors, exit 0; status --all misses no Goal of the five stores.
+(h) the review is h-review.md.
+verdict: one-history-3=supports

@@ -1,0 +1,87 @@
+binary eed0938 sha256 a66b0b54b38423444bd7d0af6777aa23b0283e36571870a5695dffc96bb6fece version hyp 0.1.0 (events v1) eed0938af71f
+binary 3bbf187 sha256 ca44d8d9b0464001154dc0c8fce231e19cc23991b01ec09264f8b82115ee4f97 version hyp 0.1.0 (events v1) 3bbf187abd1b
+store checkpoint-store-design: goals G-73R704
+checkpoint-store-design hyp status: exit 0/0 sha256 a8b02cbd6161/a8b02cbd6161 same
+checkpoint-store-design hyp status G-73R704: exit 0/0 sha256 a8b02cbd6161/a8b02cbd6161 same
+store checkpoint-store: goals G-D1CH1R G-1391DM G-AKJJF8
+checkpoint-store hyp status: exit 0/0 sha256 a33691653253/a33691653253 same
+checkpoint-store hyp status G-D1CH1R: exit 0/0 sha256 0f74adecef78/0f74adecef78 same
+checkpoint-store hyp status G-1391DM: exit 0/0 sha256 73d4a640781c/73d4a640781c same
+checkpoint-store hyp status G-AKJJF8: exit 0/0 sha256 146d8e9fc176/146d8e9fc176 same
+store goal-prompt: goals G-GZR6C6 G-ZBM2RE G-908PRZ G-QXM27F G-V5NP59
+goal-prompt hyp status: exit 0/0 sha256 b5bfa7b0006c/b5bfa7b0006c same
+goal-prompt hyp status G-GZR6C6: exit 0/0 sha256 52bc57a71212/52bc57a71212 same
+goal-prompt hyp status G-ZBM2RE: exit 0/0 sha256 2d1f222c01a3/2d1f222c01a3 same
+goal-prompt hyp status G-908PRZ: exit 0/0 sha256 849e91604c08/849e91604c08 same
+goal-prompt hyp status G-QXM27F: exit 0/0 sha256 6361eee15c72/6361eee15c72 same
+goal-prompt hyp status G-V5NP59: exit 0/0 sha256 911fd6ecf073/911fd6ecf073 same
+store id-citation: goals G-4S36M5
+id-citation hyp status: exit 0/0 sha256 c0d144a49409/c0d144a49409 same
+id-citation hyp status G-4S36M5: exit 0/0 sha256 c0d144a49409/c0d144a49409 same
+store recipe-base: goals G-93VFSB
+recipe-base hyp status: exit 0/0 sha256 72fce9310b75/72fce9310b75 same
+recipe-base hyp status G-93VFSB: exit 0/0 sha256 72fce9310b75/72fce9310b75 same
+census: 16 same, 0 differ
+== (g) hyp check at /Users/datguy/codingProjects/tree-based-agent-memory with 3bbf187's binary
+warn: uncontained R-7XVMDC (script outside recipes/: .tree/evidence/E-6PD9S8/remove.py)
+warn: uncontained R-7XVMDC (script outside recipes/: .tree/evidence/E-6PD9S8/vet-test-census.sh)
+warn: uncontained R-Q9WTZB (script outside recipes/: .tree/evidence/E-ZX9APE/remove.py)
+warn: uncontained R-Q9WTZB (script outside recipes/: .tree/evidence/E-ZX9APE/check-spec-texts.py)
+warn: uncontained R-KBW141 (script outside recipes/: .tree/evidence/E-E89EQF/remove.py)
+warn: uncontained R-P1M8A8 (script outside recipes/: .tree/evidence/E-FS4RH5/remove.py)
+warn: uncontained R-KYKWH9 (script outside recipes/: .tree/evidence/E-H98Z3B/probe-k1.sh)
+warn: uncontained R-3YJ7T2 (script outside recipes/: .tree/evidence/E-2A0909/probe-m2-m3.sh)
+warn: uncontained R-JHBCWS (script outside recipes/: .tree/evidence/E-TZTG0G/probe-n1.sh)
+warn: uncontained R-27Y1EV (script outside recipes/: .tree/evidence/E-TZTG0G/probe-n1.sh)
+warn: uncontained R-DER6F8 (script outside recipes/: .tree/evidence/E-ZMMVPN/probe-p1.sh)
+warn: uncontained R-BSWFXG (script outside recipes/: .tree/evidence/E-ZMMVPN/probe-p1.sh)
+warn: uncontained R-HXEBAF (script outside recipes/: .tree/evidence/E-ZG1BC8/probe-q1.sh)
+warn: uncontained R-RSV3E7 (no command record of run-review-replay@1 at 922e0a7926b2 with passing known answers)
+warn: uncontained R-SWVMYT (script outside recipes/: .tree/evidence/E-S6QZDR/strict-bare-store.sh)
+warn: uncontained R-ZN1VJJ (script outside recipes/: .tree/evidence/E-HSEK8J/c-remove.py)
+warn: uncontained R-ZN1VJJ (script outside recipes/: .tree/evidence/E-HSEK8J/e-census.sh)
+warn: uncontained R-ZN1VJJ (script outside recipes/: .tree/evidence/E-HSEK8J/a-red-on-base.sh)
+warn: uncontained R-ZN1VJJ (script outside recipes/: .tree/evidence/E-HSEK8J/bd-green-vet-test.sh)
+warn: uncontained R-SXCDZW (script outside recipes/: .tree/evidence/E-RF2A4J/a-red.sh)
+warn: uncontained R-SXCDZW (script outside recipes/: .tree/evidence/E-RF2A4J/bd-green-vet-test.sh)
+warn: uncontained R-SXCDZW (script outside recipes/: .tree/evidence/E-RF2A4J/c-remove.py)
+warn: uncontained R-SXCDZW (script outside recipes/: .tree/evidence/E-RF2A4J/e-census.sh)
+warn: uncontained R-RZMF87 (script outside recipes/: .tree/evidence/E-HJ8SQ9/a-red.sh)
+warn: uncontained R-RZMF87 (script outside recipes/: .tree/evidence/E-HJ8SQ9/bd-green-vet-test.sh)
+warn: uncontained R-RZMF87 (script outside recipes/: .tree/evidence/E-HJ8SQ9/c-remove.py)
+warn: uncontained R-RZMF87 (script outside recipes/: .tree/evidence/E-HJ8SQ9/e-census.sh)
+warn: uncontained R-53N6JZ (script outside recipes/: .tree/evidence/E-FB7QAF/a-red.sh)
+warn: uncontained R-53N6JZ (script outside recipes/: .tree/evidence/E-FB7QAF/bd-green-vet-test.sh)
+warn: uncontained R-53N6JZ (script outside recipes/: .tree/evidence/E-FB7QAF/c-remove.py)
+warn: uncontained R-53N6JZ (script outside recipes/: .tree/evidence/E-FB7QAF/e-census.sh)
+warn: uncontained R-YYCWTP (script outside recipes/: .tree/evidence/E-8H0YEQ/a-red.sh)
+warn: uncontained R-YYCWTP (script outside recipes/: .tree/evidence/E-8H0YEQ/c-remove.py)
+warn: uncontained R-YYCWTP (script outside recipes/: .tree/evidence/E-8H0YEQ/s1-strict-check.py)
+warn: uncontained R-SJXBFW (script outside recipes/: .tree/evidence/E-3FH2ZA/run.sh)
+warn: uncontained R-N9JJMR (script outside recipes/: .tree/evidence/E-QZ8T7S/run.sh)
+warn: uncontained R-K8ZXR5 (script outside recipes/: .tree/evidence/E-JK94NX/a-red-on-base.sh)
+warn: uncontained R-K8ZXR5 (script outside recipes/: .tree/evidence/E-JK94NX/c-remove.py)
+warn: uncontained R-K8ZXR5 (script outside recipes/: .tree/evidence/E-JK94NX/ef-census-root-check.sh)
+warn: uncited R-FRF929: 2aeb0abe is in the observation but in no cited file
+warn: uncited R-BSWFXG: 2aeb0abe is in the observation but in no cited file
+warn: uncited R-YNB43F: ea697bf is in the observation but in no cited file
+warn: uncited R-1E0YVX: a95a21e is in the observation but in no cited file
+warn: uncited R-1E0YVX: 6b7095e is in the observation but in no cited file
+check: 0 errors, 44 warnings
+check exit 0
+== (g) hyp status --all --max-lines 0 at /Users/datguy/codingProjects/tree-based-agent-memory
+status exit 0
+GOALS (hyp status G-… prints one Goal)
+  G-4S36M5 A write command never appends text that cites a node id thi… — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-01 01:51 claude-240-1
+  G-93VFSB A first author with only hyp and its skills builds a workin… — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-02 01:42 claude-270-1
+  G-73R704 Record the shared-store design: what hyp stores and derives… — complete (answered 4, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-11 09:11 claude-g1-1
+  G-D1CH1R hyp implements the shared store: one store holds many Goals — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-11 14:37 claude-g1b-6
+  G-GZR6C6 Record how hyp makes the /goal prompt: who writes it, and w… — complete (answered 2, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-11 16:47 claude-grill-113
+  G-ZBM2RE hyp prints the /goal prompt for a Goal from its log — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-12 03:28 claude-g113-4
+  G-908PRZ A budget-bound build run ends with its final candidate revi… — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-12 12:50 claude-g141-2
+  G-QXM27F hyp-owner-grill keeps a grill from repeating S1 to S6 of #1… — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-13 01:43 claude-g146-1
+  G-V5NP59 hyp keeps a text past a field's rune cap whole in its event — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-13 04:39 claude-g142-2
+  G-1391DM hyp builds the store layer every layout needs — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes nothing; checkpoint 2026-11-13 08:38 claude-g138-2
+  G-AKJJF8 hyp reads a repository's stores as one history, with the ow… — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0); runner owes 1; checkpoint 2026-11-13 10:24 claude-g168-grill
+AWAITING OWNER
+goals of the five stores missing from status --all: 0

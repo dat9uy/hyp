@@ -1,0 +1,110 @@
+===== eed0938 with 3a886de's history tests: eed0938af71fa965afd3a32f0a87d1d261463b5a
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 1
+--- FAIL: TestStatusShowsTheFolderStoresGoals (0.09s)
+    history_test.go:139: exit 0 (want 0), stdout "GOAL G-XZB9S0 Goal B — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\nREJECTED 1 events (run hyp check)\n", stderr "" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.471s
+FAIL
+== TestStatusAllListsTheHistory (internal/cli): go test exit 1
+--- FAIL: TestStatusAllListsTheHistory (0.08s)
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory196384883/001:
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory196384883/001/docs:
+    history_test.go:183: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.220s
+FAIL
+== TestHistoryLeavesOutStores (internal/cli): go test exit 1
+--- FAIL: TestHistoryLeavesOutStores (0.15s)
+    history_test.go:282: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.282s
+FAIL
+== TestCiteAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestCiteAcrossStores (0.07s)
+    history_test.go:312: exit 2 (want 1), stdout "", stderr "unknown node R-9N7D0F\n" (want "#1, which is not settled")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.213s
+FAIL
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 1
+--- FAIL: TestAppendSortsAfterOtherStores (0.06s)
+    history_test.go:357: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.212s
+FAIL
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestDuplicateIDAcrossStores (0.07s)
+    history_test.go:400: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Dup in a")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.220s
+FAIL
+== TestAliasLocalToStore (internal/cli): go test exit 1
+--- FAIL: TestAliasLocalToStore (0.08s)
+    history_test.go:445: exit 3 (want 2), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "ambiguous node h-null")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.224s
+FAIL
+== TestEventNeverCrossesStores (internal/cli): go test exit 1
+--- FAIL: TestEventNeverCrossesStores (0.08s)
+    history_test.go:500: exit 2 (want 1), stdout "", stderr "unknown node G-S75MDP\n" (want "event crosses stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.213s
+FAIL
+== TestSandboxHistoryCut (internal/cli): go test exit 1
+--- FAIL: TestSandboxHistoryCut (0.10s)
+    history_test.go:571: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.246s
+FAIL
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 1
+--- FAIL: TestUntrackedStoreAllAndRoot (0.05s)
+    history_test.go:679: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.190s
+FAIL
+== TestSameAskAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestSameAskAcrossStores (0.10s)
+    history_test.go:703: exit 0 (want 0), stdout "01M7ABKVGCWDX8C8GMX2CVM9SV answer\n", stderr "" (want "warn: R-D2N3AA#r1 asks the same as R-AAZ8JM#r1 and stays open; it is in store investigations/b, so answer it with its own hyp answer --answer R-D2N3AA#r1")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.266s
+FAIL
+== TestStoreByAnotherPath (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.245s
+===== c770b50 with 3a886de's history tests: c770b503fe7a3f68ad043a9ca2497cdd1acd53d6
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.610s
+== TestStatusAllListsTheHistory (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.688s
+== TestHistoryLeavesOutStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.379s
+== TestCiteAcrossStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.480s
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.299s
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.317s
+== TestAliasLocalToStore (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.647s
+== TestEventNeverCrossesStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.594s
+== TestSandboxHistoryCut (internal/cli): go test exit 1
+--- FAIL: TestSandboxHistoryCut (0.64s)
+    history_test.go:648: clone store a lacks its .tree/.gitattributes: stat /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxHistoryCut2019816407/002/.hyp-sandbox/t1/wt/investigations/a/.tree/.gitattributes: no such file or directory
+    history_test.go:648: clone store a lacks its .tree/.gitignore: stat /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxHistoryCut2019816407/002/.hyp-sandbox/t1/wt/investigations/a/.tree/.gitignore: no such file or directory
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.796s
+FAIL
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.278s
+== TestSameAskAcrossStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.354s
+== TestStoreByAnotherPath (internal/cli): go test exit 1
+--- FAIL: TestStoreByAnotherPath (0.18s)
+    history_test.go:726: hyp check in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStoreByAnotherPath143491034/001/alink, which reaches store a by another path:
+    history_test.go:726: hyp check in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStoreByAnotherPath143491034/001/INVESTIGATIONS/a, which reaches store a by another path:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.337s
+FAIL
+== TestOneLockRoot (internal/store): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/store	0.658s

@@ -1,0 +1,120 @@
+===== eed0938 with 3bbf187's history_test.go: eed0938af71fa965afd3a32f0a87d1d261463b5a
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli)
+--- FAIL: TestStatusShowsTheFolderStoresGoals (0.09s)
+    history_test.go:139: exit 0 (want 0), stdout "GOAL G-MAA4YS Goal B — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\nREJECTED 1 events (run hyp check)\n", stderr "" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.533s
+FAIL
+exit 0
+== TestStatusAllListsTheHistory (internal/cli)
+--- FAIL: TestStatusAllListsTheHistory (0.08s)
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory3390427740/001:
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory3390427740/001/docs:
+    history_test.go:183: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.203s
+FAIL
+exit 0
+== TestHistoryLeavesOutStores (internal/cli)
+--- FAIL: TestHistoryLeavesOutStores (0.16s)
+    history_test.go:273: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.285s
+FAIL
+exit 0
+== TestCiteAcrossStores (internal/cli)
+--- FAIL: TestCiteAcrossStores (0.08s)
+    history_test.go:303: exit 2 (want 1), stdout "", stderr "unknown node R-3GBH7M\n" (want "#1, which is not settled")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.216s
+FAIL
+exit 0
+== TestAppendSortsAfterOtherStores (internal/cli)
+--- FAIL: TestAppendSortsAfterOtherStores (0.05s)
+    history_test.go:348: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.192s
+FAIL
+exit 0
+== TestDuplicateIDAcrossStores (internal/cli)
+--- FAIL: TestDuplicateIDAcrossStores (0.07s)
+    history_test.go:378: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Dup in a")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.221s
+FAIL
+exit 0
+== TestAliasLocalToStore (internal/cli)
+--- FAIL: TestAliasLocalToStore (0.10s)
+    history_test.go:423: exit 3 (want 2), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "ambiguous node h-null")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.247s
+FAIL
+exit 0
+== TestEventNeverCrossesStores (internal/cli)
+--- FAIL: TestEventNeverCrossesStores (0.08s)
+    history_test.go:478: exit 2 (want 1), stdout "", stderr "unknown node G-PA7CNV\n" (want "event crosses stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.202s
+FAIL
+exit 0
+== TestSandboxHistoryCut (internal/cli)
+--- FAIL: TestSandboxHistoryCut (0.08s)
+    history_test.go:549: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.210s
+FAIL
+exit 0
+===== a9963fc with 3bbf187's history_test.go: a9963fc2538fd526e0f2f3d72bae044b0c4ed5cd
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli)
+ok  	github.com/dat9uy/hyp/internal/cli	0.521s
+exit 0
+== TestStatusAllListsTheHistory (internal/cli)
+--- FAIL: TestStatusAllListsTheHistory (0.31s)
+    history_test.go:205: hyp status --all in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory1933973159/001/internal/x/testdata/synth, whose store adds nothing to the history:
+    history_test.go:205: hyp status --all in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory1933973159/001/investigations/a/.tree/evidence/E-000001/trial, whose store adds nothing to the history:
+    history_test.go:210: hyp status G-MWGZ5E in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory1933973159/001/internal/x/testdata/synth:
+    history_test.go:210: hyp status G-MWGZ5E in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory1933973159/001/investigations/a/.tree/evidence/E-000001/trial:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.454s
+FAIL
+exit 0
+== TestHistoryLeavesOutStores (internal/cli)
+ok  	github.com/dat9uy/hyp/internal/cli	0.325s
+exit 0
+== TestCiteAcrossStores (internal/cli)
+--- FAIL: TestCiteAcrossStores (0.28s)
+    history_test.go:322: hyp [add goal --title Fresh --line y --cite 1=G-R1P053#1 --body see G-A1B3YT --why w]: exit 2, stderr "unknown node G-R1P053\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.403s
+FAIL
+exit 0
+== TestAppendSortsAfterOtherStores (internal/cli)
+--- FAIL: TestAppendSortsAfterOtherStores (0.13s)
+    history_test.go:362: appended id 01M7A9ZM3RS8GCQBZPE54A9JV3 in an untracked store sorts at or before 7ZZZZZZZZZ0000000000000000, an id of store a
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.274s
+FAIL
+exit 0
+== TestDuplicateIDAcrossStores (internal/cli)
+--- FAIL: TestDuplicateIDAcrossStores (0.16s)
+    history_test.go:386: status in store a counts store b's rejected line:
+    history_test.go:396: events --json rejections: store a 1, store b 1; want 0 and 1
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.311s
+FAIL
+exit 0
+== TestAliasLocalToStore (internal/cli)
+ok  	github.com/dat9uy/hyp/internal/cli	0.657s
+exit 0
+== TestEventNeverCrossesStores (internal/cli)
+--- FAIL: TestEventNeverCrossesStores (0.22s)
+    history_test.go:478: exit 1 (want 1), stdout "", stderr "refused: cross-DQ supersedes: both Hypotheses must share a DesignQuestion\n" (want "event crosses stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.365s
+FAIL
+exit 0
+== TestSandboxHistoryCut (internal/cli)
+ok  	github.com/dat9uy/hyp/internal/cli	1.112s
+exit 0

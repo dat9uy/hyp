@@ -1,7 +1,6 @@
 package store
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -36,52 +35,32 @@ func CutAt(src, at string) (*Cut, error) {
 	if fi, err := os.Stat(eventsDir(src)); err != nil || !fi.IsDir() {
 		return nil, fmt.Errorf("%s: %w", src, ErrNoStore)
 	}
-	files, err := filepath.Glob(filepath.Join(eventsDir(src), "*.jsonl"))
+	cuts, err := Single(src).CutAt(at)
 	if err != nil {
 		return nil, err
 	}
-	evs := map[string][]event.Event{}
-	raw := map[string][][]byte{}
-	for _, f := range files {
-		name := filepath.Base(f)
-		// Keyed by actor, as ReadAll keys them: the merge breaks id ties by
-		// this key, and "a" sorts before "a-b" where "a.jsonl" does not.
-		actor := strings.TrimSuffix(name, ".jsonl")
-		data, err := os.ReadFile(f)
-		if err != nil {
-			return nil, err
-		}
-		sc := bufio.NewScanner(bytes.NewReader(data))
-		sc.Buffer(make([]byte, 0, 64*1024), 16*1024*1024)
-		for n := 1; sc.Scan(); n++ {
-			line := sc.Bytes()
-			if len(bytes.TrimSpace(line)) == 0 {
-				continue
-			}
-			ev, err := event.ParseLine(bytes.TrimSpace(line))
-			if err != nil {
-				return nil, fmt.Errorf("%s:%d: %v; run hyp check in %s", name, n, err, src)
-			}
-			// The cut keys its kept lines by the file's actor; the merge order
-			// reads only the id, the file's actor and the line bytes.
-			ev.Actor = actor
-			evs[actor] = append(evs[actor], ev)
-			raw[actor] = append(raw[actor], bytes.Clone(line))
-		}
+	return cuts["."], nil
+}
+
+// CutAt is the history as it was at the event at: for each store that holds
+// an event at or before it, in the history's merge order, a Cut of that
+// store. A store that holds none has no Cut.
+func (h *History) CutAt(at string) (map[string]*Cut, error) {
+	hf, _, err := h.read(true)
+	if err != nil {
+		return nil, err
 	}
-	c := &Cut{Src: src, At: at, lines: map[string][][]byte{}, exps: map[string]bool{}}
-	// Ties break on the trimmed line, as replay's do (byLine), then on the
-	// line as written, so the cut's bytes never depend on the line order.
-	tie := func(a, b replay.At) int {
-		la, lb := raw[a.Actor][a.Index], raw[b.Actor][b.Index]
-		if c := bytes.Compare(bytes.TrimSpace(la), bytes.TrimSpace(lb)); c != 0 {
-			return c
+	cuts := map[string]*Cut{}
+	for _, pos := range hf.order() {
+		f := replay.File{Store: pos.Store, Actor: pos.Actor}
+		ev := hf.evs[f][pos.Index]
+		c := cuts[pos.Store]
+		if c == nil {
+			c = &Cut{Src: h.Dir(pos.Store), At: at, lines: map[string][][]byte{}, exps: map[string]bool{}}
+			cuts[pos.Store] = c
 		}
-		return bytes.Compare(la, lb)
-	}
-	for _, pos := range replay.MergeOrder(evs, tie) {
-		ev := evs[pos.Actor][pos.Index]
-		c.lines[ev.Actor] = append(c.lines[ev.Actor], raw[pos.Actor][pos.Index])
+		// The cut keys its kept lines by the file's actor.
+		c.lines[pos.Actor] = append(c.lines[pos.Actor], hf.raw[f][pos.Index])
 		c.Events++
 		if ev.Type == event.TypeNodeAdd {
 			var p struct{ Kind string }
@@ -91,8 +70,12 @@ func CutAt(src, at string) (*Cut, error) {
 		}
 		// Replay stops after the first event with this id; so does the cut.
 		if ev.ID == at {
-			return c, nil
+			return cuts, nil
 		}
+	}
+	src := h.Root
+	if len(h.Stores) == 1 {
+		src = h.Dir(h.Stores[0])
 	}
 	return nil, fmt.Errorf("%w %s in %s", ErrNoEvent, at, src)
 }

@@ -93,7 +93,7 @@ func Compute(evs []event.Event) Report {
 				live = st.LiveRivals(r.QuestionID, "")
 			}
 		}
-		if st.Step(ev, nil) != nil {
+		if st.Step(ev, replay.Hashes{}) != nil {
 			continue
 		}
 		switch {

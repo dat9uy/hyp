@@ -7,24 +7,19 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/oklog/ulid/v2"
 
-	"github.com/dat9uy/hyp/internal/contain"
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
-	"github.com/dat9uy/hyp/internal/recipe"
 	"github.com/dat9uy/hyp/internal/replay"
 )
 
@@ -151,27 +146,10 @@ func parseFile(name string, data []byte) ([]event.Event, [][]byte, []LineError) 
 	return evs, lines, errs
 }
 
-// byLine orders two events with the same id and actor by their line bytes,
-// so the order of the lines in the file decides nothing.
-func byLine(raw map[string][][]byte) func(a, b replay.At) int {
-	return func(a, b replay.At) int { return bytes.Compare(raw[a.Actor][a.Index], raw[b.Actor][b.Index]) }
-}
+// Events returns the merged event list of the store at root.
+func Events(root string) ([]event.Event, []LineError, error) { return Single(root).Events() }
 
-// Events returns the merged event list of the store.
-func Events(root string) ([]event.Event, []LineError, error) {
-	files, raw, lineErrs, err := readLines(root)
-	if err != nil {
-		return nil, nil, err
-	}
-	order := replay.MergeOrder(files, byLine(raw))
-	out := make([]event.Event, len(order))
-	for i, at := range order {
-		out[i] = files[at.Actor][at.Index]
-	}
-	return out, lineErrs, nil
-}
-
-// Load replays the store with the current recipe hashes.
+// Load replays the store at root with its current recipe hashes.
 func Load(root string) (replay.Projection, []LineError, error) {
 	return LoadAsOf(root, "")
 }
@@ -179,13 +157,12 @@ func Load(root string) (replay.Projection, []LineError, error) {
 // LoadAsOf is Load stopped after the event asOf ("" for the whole log),
 // with the uncontained Results marked from files.
 func LoadAsOf(root, asOf string) (replay.Projection, []LineError, error) {
-	evs, lineErrs, err := Events(root)
+	h := Single(root)
+	evs, lineErrs, err := h.Events()
 	if err != nil {
 		return replay.Projection{}, nil, err
 	}
-	p := replay.Replay(evs, recipe.Hashes(root), asOf)
-	contain.Mark(root, &p)
-	return p, lineErrs, nil
+	return h.Replay(evs, h.Hashes(), asOf), lineErrs, nil
 }
 
 var (
@@ -233,80 +210,15 @@ func idAfter(t time.Time, last string) string {
 	return ""
 }
 
-// Append validates ev against the current log and, when it is allowed, writes
-// it as one line to .tree/events/<actor>.jsonl and fsyncs. V, ID, TS and
-// Actor are filled in here; for node.add and result.record Node is set to the
-// new id. A refused event is never written.
+// Append validates ev against the log of the store at root and, when it is
+// allowed, appends it (History.AppendWith).
 func Append(root, actor string, ev event.Event) (event.Event, error) {
 	return AppendWith(root, actor, func(*replay.State, replay.Projection) (event.Event, error) { return ev, nil })
 }
 
-// AppendWith is Append for an event that depends on the current log: build
-// receives the replayed state and projection, under the same lock that the
-// write holds, so references are resolved against exactly the state the
-// event is validated against. An error from build is returned unchanged.
+// AppendWith is History.AppendWith on the history of the one store at root.
 func AppendWith(root, actor string, build func(*replay.State, replay.Projection) (event.Event, error)) (event.Event, error) {
-	if !ValidActor(actor) {
-		return event.Event{}, fmt.Errorf("invalid actor %q (want %s)", actor, actorRe)
-	}
-	// Lock the events directory, not one actor file, so that every writer
-	// validates against a log that already holds all other writers' events.
-	dir, err := os.Open(eventsDir(root))
-	if err != nil {
-		return event.Event{}, err
-	}
-	defer dir.Close()
-	if err := syscall.Flock(int(dir.Fd()), syscall.LOCK_EX); err != nil {
-		return event.Event{}, err
-	}
-	defer syscall.Flock(int(dir.Fd()), syscall.LOCK_UN)
-
-	evs, _, err := Events(root)
-	if err != nil {
-		return event.Event{}, err
-	}
-	st, p := replay.Build(evs, recipe.Hashes(root), "")
-	ev, err := build(st, p)
-	if err != nil {
-		return ev, err
-	}
-
-	now := time.Now().UTC()
-	// The newest id the store holds is the greatest id of the id form;
-	// a line whose id replay rejects for its form holds no event.
-	last := ""
-	for i := len(evs) - 1; i >= 0; i-- {
-		if replay.ValidID(evs[i].ID) {
-			last = evs[i].ID
-			break
-		}
-	}
-	ev.V = event.Version
-	if ev.ID = idAfter(now, last); ev.ID == "" {
-		return ev, herr.Refused("no ULID sorts after %s, the newest id the store holds", last)
-	}
-	ev.TS = now.Format(time.RFC3339Nano)
-	ev.Actor = actor
-	if ev.Type == event.TypeNodeAdd || ev.Type == event.TypeResultRecord {
-		ev.Node = ev.ID
-	}
-	if err := replay.Validate(st, ev); err != nil {
-		return ev, herr.Refused("%v", err)
-	}
-	line, err := json.Marshal(ev)
-	if err != nil {
-		return ev, err
-	}
-	// Open only after validation, so a refused event leaves no file behind.
-	f, err := os.OpenFile(filepath.Join(eventsDir(root), actor+".jsonl"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-	if err != nil {
-		return ev, err
-	}
-	defer f.Close()
-	if _, err := f.Write(append(line, '\n')); err != nil {
-		return ev, err
-	}
-	return ev, f.Sync()
+	return Single(root).AppendWith(actor, build)
 }
 
 // ValidActor reports whether actor matches ^[a-z0-9][a-z0-9-]{0,39}$.

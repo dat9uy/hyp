@@ -42,7 +42,7 @@ func unresolvedCites(p replay.Projection, text string) []string {
 			continue
 		}
 		token := text[i : i+8]
-		if _, err := resolveRef(p, token); err != nil {
+		if _, err := resolveRef(p, "", token); err != nil {
 			out = append(out, token)
 		}
 	}
@@ -97,5 +97,5 @@ func (w *writer) checkCites() error {
 	if len(bad) == 0 {
 		return nil
 	}
-	return herr.BadArgs("%s; cite an id this store holds, or write <name>:<id> for another store's", strings.Join(bad, "; "))
+	return herr.BadArgs("%s; cite an id the history holds, the ids of every store of this repository; write <name>:<id> only for a tree outside the repository", strings.Join(bad, "; "))
 }

@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: accepted; amended 2026-11-13 by ADR 0023: replay reads the repository's history, an appended id sorts after every id the history holds, and a history cut cuts every store
 ---
 
 Amends [ADR 0020](0020-one-store-holds-many-goals.md) (one store holds many Goals).

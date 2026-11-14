@@ -92,5 +92,5 @@ func TestCiteAcceptsResolvedIDsAndProse(t *testing.T) {
 func TestCiteNamesEveryUnresolvedToken(t *testing.T) {
 	_, _, h, _, _, _ := citeStore(t)
 	res := hyp(t, "link", h, "external_ref", "gh:9", "--why", "R-<a> and E-<b>")
-	want(t, res, 2, "--why names R-<a>, which is no node here; --why names E-<b>, which is no node here; cite an id this store holds")
+	want(t, res, 2, "--why names R-<a>, which is no node here; --why names E-<b>, which is no node here; cite an id the history holds")
 }

@@ -129,7 +129,7 @@ func fullID(t *testing.T, ref string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	id, err := resolveRef(p, ref)
+	id, err := resolveRef(p, "", ref)
 	if err != nil {
 		t.Fatal(err)
 	}

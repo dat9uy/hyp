@@ -1,5 +1,5 @@
 ---
-status: accepted; amended 2026-11-13 by ADR 0022: an events file merges by union, replay orders events by id then actor, discovery stops at the repository root
+status: accepted; amended 2026-11-13 by ADR 0022: an events file merges by union, replay orders events by id then actor, discovery stops at the repository root; amended 2026-11-13 by ADR 0023: a repository has one history over its stores, an event never crosses stores, an alias is local to its store, hyp status --all is the overview
 ---
 
 # One store holds many Goals

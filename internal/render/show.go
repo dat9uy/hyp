@@ -32,6 +32,20 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		for _, l := range p.LinesOf(id) {
 			w("line %s", r.lineLine(l))
 		}
+		// The Goals this one cites and the Goals that cite it, wherever in
+		// the history they are; a Goal of another store names its store.
+		for _, rel := range []struct {
+			name  string
+			goals []string
+		}{{"cites", p.CitedGoals(id)}, {"cited by", p.CitingGoals(id)}} {
+			for _, g := range rel.goals {
+				where := ""
+				if s := p.Nodes[g].Store; s != n.Store {
+					where = " (store " + replay.StoreName(s) + ")"
+				}
+				w("%s: %s%s %s", rel.name, r.id(g), where, Cut(p.Nodes[g].Title, 60))
+			}
+		}
 		for _, l := range p.Readings {
 			if p.GoalOf(l.Question) != id {
 				continue

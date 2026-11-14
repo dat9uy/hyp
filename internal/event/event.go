@@ -27,6 +27,10 @@ type Event struct {
 	Node    string          `json:"node"`
 	Payload json.RawMessage `json:"payload"`
 	Why     string          `json:"why"`
+	// Store is the store the event belongs to: the folder of its events
+	// file, relative to the history's root ("." for a store at the root).
+	// No event stores it; the reader sets it from where the line was read.
+	Store string `json:"-"`
 }
 
 // Event types.

@@ -39,6 +39,9 @@ func cmdSubject(args []string, stdout, stderr io.Writer) error {
 	if _, err := w.begin(args, len(pos)); err != nil {
 		return err
 	}
+	if err := w.preRoot(pos[0]); err != nil {
+		return err
+	}
 	var files []event.SubjectFile
 	if len(pos) > 1 {
 		if files, err = subjectFiles(w.root, pos[1:]); err != nil {

@@ -71,10 +71,14 @@ type writer struct {
 	noWhy  bool // the event has no why: an answer (ADR 0020)
 	actor  *string
 	stdout io.Writer
-	root   string
-	st     *replay.State
-	p      replay.Projection
-	last   event.Event // the event run appended
+	hist   *store.History
+	// root is the folder of the store the event is appended to, which file
+	// paths are relative to: the current store, or, where discovery finds
+	// none, the store of the command's node (preRoot, ref).
+	root string
+	st   *replay.State
+	p    replay.Projection
+	last event.Event // the event run appended
 }
 
 func newWriter(name string, stdout, stderr io.Writer) *writer {
@@ -118,18 +122,55 @@ func (w *writer) findRoot() error {
 	if err != nil {
 		return err
 	}
-	if w.root, err = store.FindRoot(cwd); err != nil {
+	if w.hist, err = store.OpenHistory(cwd); err != nil {
 		return err
+	}
+	if w.hist.Current != "" {
+		w.root = w.hist.Dir(w.hist.Current)
 	}
 	return nil
 }
 
+// ref resolves r against the locked state. Where discovery finds no store,
+// the first node it resolves names the store the event goes to.
 func (w *writer) ref(r string) (string, error) {
-	id, err := resolveRef(w.p, r)
+	id, err := resolveRef(w.p, w.hist.Current, r)
 	if err != nil {
 		return "", err
 	}
+	if w.root == "" {
+		w.root = w.hist.StoreDir(w.p, id)
+	}
 	return id, nil
+}
+
+// preRoot sets root, before the lock, from the store of node ref, for a
+// command that reads files before it writes, run where discovery finds no
+// store. An unknown ref is left for the write to refuse.
+func (w *writer) preRoot(ref string) error {
+	if w.root != "" || ref == "" {
+		return nil
+	}
+	p, _, err := w.hist.Load()
+	if err != nil {
+		return err
+	}
+	if id, err := resolveRef(p, "", ref); err == nil {
+		w.root = w.hist.StoreDir(p, id)
+	}
+	return nil
+}
+
+// storeGoals are the Goals of the current store, or of the whole history
+// where discovery finds no store.
+func storeGoals(h *store.History, p replay.Projection) []string {
+	var out []string
+	for _, gs := range p.Goals {
+		if h.Current == "" || p.Nodes[gs.GoalID].Store == h.Current {
+			out = append(out, gs.GoalID)
+		}
+	}
+	return out
 }
 
 // draft is the event a command wants to write.
@@ -142,10 +183,16 @@ type draft struct {
 // against the locked state, and prints "<display id> <event type>". It
 // refuses text flags that cite an id that is no node (checkCites).
 func (w *writer) run(build func() (draft, error)) error {
-	ev, err := store.AppendWith(w.root, *w.actor, func(st *replay.State, p replay.Projection) (event.Event, error) {
+	ev, err := w.hist.AppendWith(*w.actor, func(st *replay.State, p replay.Projection) (event.Event, error) {
 		w.st, w.p = st, p
 		d, err := build()
 		if err != nil {
+			// The drafted event goes back with the refusal, so the store
+			// rule can come first (store.History.AppendWith).
+			if d.typ != "" {
+				raw, _ := json.Marshal(d.payload)
+				return event.Event{Type: d.typ, Node: d.node, Payload: raw}, err
+			}
 			return event.Event{}, err
 		}
 		if err := w.checkCites(); err != nil {
@@ -281,6 +328,11 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 	}
 	if parent != nil && *parent == "" {
 		return usageErr("missing --parent")
+	}
+	if parent != nil {
+		if err := w.preRoot(*parent); err != nil {
+			return err
+		}
 	}
 	p := event.NodeAdd{Kind: kind, Title: *title, Body: *body, Alias: *alias}
 	citeOf, err := lineCites(cites, len(lineTexts))
@@ -467,6 +519,9 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	if *exp == "" {
 		return usageErr("record needs --exp")
 	}
+	if err := w.preRoot(*exp); err != nil {
+		return err
+	}
 	if err := required("--observation", observation); err != nil {
 		return err
 	}
@@ -554,7 +609,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 		for _, l := range warns {
 			fmt.Fprintln(stderr, l)
 		}
-		warnResult(w.root, w.last.Node, stderr)
+		warnResult(w.hist, w.last.Node, stderr)
 	}
 	return err
 }
@@ -562,13 +617,13 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 // warnResult prints the reasons Result id is uncontained (spec §7.6) and
 // where its text disagrees with the files it cites (spec §7.6). The event
 // is already appended, so nothing here changes the exit code.
-func warnResult(root, id string, stderr io.Writer) {
-	evs, _, err := store.Events(root)
+func warnResult(h *store.History, id string, stderr io.Writer) {
+	p, _, err := h.Load()
 	if err != nil {
 		fmt.Fprintf(stderr, "warn: uncontained check skipped: %v\n", err)
 		return
 	}
-	p := replay.Replay(evs, recipe.Hashes(root), "")
+	root := h.StoreDir(p, id)
 	for _, why := range contain.Reasons(root, p, id) {
 		fmt.Fprintf(stderr, "warn: uncontained %s (%s)\n", event.DisplayID(event.KindResult, id), why)
 	}
@@ -830,7 +885,7 @@ func suggest(w *writer, ref string) error {
 	if err := w.findRoot(); err != nil {
 		return err
 	}
-	p, _, err := store.Load(w.root)
+	p, _, err := w.hist.Load()
 	if err != nil {
 		return err
 	}
@@ -1059,13 +1114,21 @@ func (w *writer) checkpointGoal(named string) (string, error) {
 	if named != "" {
 		return w.ref(named)
 	}
-	switch len(w.st.Goals) {
+	goals := storeGoals(w.hist, w.p)
+	switch len(goals) {
 	case 0:
 		return "", refusedErr("no Goal yet")
 	case 1:
-		return w.st.Goals[0], nil
+		if w.root == "" {
+			w.root = w.hist.StoreDir(w.p, goals[0])
+		}
+		return goals[0], nil
 	}
-	return "", usageErr("missing --goal: the store holds %d Goals", len(w.st.Goals))
+	holder := "the store holds"
+	if w.hist.Current == "" {
+		holder = "the history holds"
+	}
+	return "", usageErr("missing --goal: %s %d Goals", holder, len(goals))
 }
 
 // sameAskWarnings names each reading that asks the same question as one the
@@ -1083,6 +1146,13 @@ func sameAskWarnings(p replay.Projection, closes, revises []string) []string {
 					continue
 				}
 				seen[m] = true
+				// An answer never crosses stores: a copy in another store
+				// is answered by its own hyp answer.
+				if ms, ks := p.Nodes[event.KeyResult(m)], p.Nodes[event.KeyResult(k)]; ms != nil && ks != nil && ms.Store != ks.Store {
+					out = append(out, fmt.Sprintf("warn: %s asks the same as %s and %s; it is in store %s, so answer it with its own hyp answer %s %s",
+						p.KeyLabel(m), p.KeyLabel(k), left, replay.StoreName(ms.Store), flag, p.KeyLabel(m)))
+					continue
+				}
 				out = append(out, fmt.Sprintf("warn: %s asks the same as %s and %s; add %s %s",
 					p.KeyLabel(m), p.KeyLabel(k), left, flag, p.KeyLabel(m)))
 			}

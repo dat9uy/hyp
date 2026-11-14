@@ -7,12 +7,16 @@ The words hyp uses for its tree, its recipes and its sandboxes. The specs ([repl
 ### Trees
 
 **Tree**:
-One investigation: a Goal and the DesignQuestions, Hypotheses, Experiments and Results under it, kept as events in one store. The binary is `hyp`; "tree" stays the concept name ([spec §1](replay-spec.md#1-names-and-locations)).
+One investigation: a Goal and the DesignQuestions, Hypotheses, Experiments and Results under it, kept as events in one store. It is a view of the History, not a container: its events stay in the store that holds its Goal. The binary is `hyp`; "tree" stays the concept name ([spec §1](replay-spec.md#1-names-and-locations)).
 _Avoid_: graph, log (the log is its events), project
 
 **Store**:
-The `.tree/` directory of a repository: one events file per actor and the evidence files Results point at ([spec §1](replay-spec.md#1-names-and-locations)). hyp finds it by walking up from the current directory to the repository root, the first directory that holds `.git`, and never above it; `hyp init` is refused where it finds one. In code: package `store`.
+A `.tree/` directory in a repository, such as `investigations/<topic>/.tree`: one events file per actor and the evidence files Results point at ([spec §1](replay-spec.md#1-names-and-locations)). A repository may hold many stores, each in its own folder; together they are its History. The store an event belongs to is the folder of its events file, and an event never crosses stores: it is appended to the store that holds its node. hyp finds the current store by walking up from the current directory to the repository root, the first directory that holds `.git`, and never above it; `hyp init` is refused where it finds one. An alias is a name local to its store. In code: package `store`.
 _Avoid_: database, index (hyp keeps none, ADR 0006)
+
+**History**:
+Every event of every store a repository holds, read as one log ordered by id, then actor, then the store's path ([spec §1](replay-spec.md#1-names-and-locations), [spec §6](replay-spec.md#6-merge-order)). A store adds nothing to it when git tracks none of its events files, or when it sits under another store's `.tree/`, under `testdata/`, under a bundle's `known-answers/`, or under a nested repository. With no `.git`, the history is the one store found from the current directory. A store `hyp init` just made, not yet tracked, joins the history read from its own folder. `hyp status` in a store's folder shows that store's Goals; `hyp status --all` is the owner's overview of the whole history (ADR 0023). In code: `store.History`.
+_Avoid_: project, workspace, index
 
 **Event**:
 One line of `.tree/events/<actor>.jsonl`: an id, a time, an actor, a type from a closed set and its payload ([spec §3](replay-spec.md#3-event-envelope), [spec §4](replay-spec.md#4-event-types-closed-set)). Events are only appended, and every status is derived from them. In code: `event.Event`.
@@ -232,7 +236,7 @@ hyp's no to a write: exit 1, and nothing is appended. It comes from `replay.Vali
 _Avoid_: rejection (that is what replay reports), error
 
 **Cite**:
-A token in a write command's text that names a node: a display id such as `R-BV4CWV`, or a placeholder such as `R-<new>` that stands for one. hyp refuses a write whose cite is no node of the store, with exit 2 (spec §5.1). A token after `<name>:` cites another store and is not checked: a new tree cites the tree it came from as `<tree>:R-…`, and copies the evidence and recipe versions it reads into itself, since an evidence pointer stays inside its store.
+A token in a write command's text that names a node: a display id such as `R-BV4CWV`, or a placeholder such as `R-<new>` that stands for one. hyp refuses a write whose cite is no node of the History, with exit 2 (spec §5.1). A token after `<name>:` is not checked: it stays prose for a tree outside the repository. A Goal line's `--cite` and a reading's `of` are checked cites of a key: they may name a key of a Goal in another store of the History, settled at its place in the History (spec §5 rule 33). An evidence pointer stays inside its store.
 _Avoid_: reference for this (a reference is what a flag such as `--parent` resolves)
 
 **Round**:
@@ -395,7 +399,7 @@ What remove copies out of a sandbox before deleting it, which scripted Evidence 
 _Avoid_: artifacts, output (alone)
 
 **Store cut**:
-A copy of a tree's store as it stood at one event, given to a sandbox.
+A copy of a tree's store as it stood at one event, given to a sandbox (`hyp sandbox create --store SRC --cut EVENT`). A history cut (`--cut EVENT` alone) is the same for the whole History: each store that holds an event at or before EVENT, in its own folder (ADR 0023).
 _Avoid_: snapshot (that is a different thing: a capture of a live session)
 
 **Patch**:

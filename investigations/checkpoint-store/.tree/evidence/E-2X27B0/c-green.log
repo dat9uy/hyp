@@ -1,0 +1,43 @@
+== candidate 3a886def5023d7373cfe26a2123ab26f508a5e50
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 0
+--- PASS: TestStatusShowsTheFolderStoresGoals (0.20s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.602s
+== TestStatusAllListsTheHistory (internal/cli): go test exit 0
+--- PASS: TestStatusAllListsTheHistory (0.44s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.601s
+== TestHistoryLeavesOutStores (internal/cli): go test exit 0
+--- PASS: TestHistoryLeavesOutStores (0.24s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.402s
+== TestCiteAcrossStores (internal/cli): go test exit 0
+--- PASS: TestCiteAcrossStores (0.45s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.609s
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 0
+--- PASS: TestAppendSortsAfterOtherStores (0.20s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.393s
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 0
+--- PASS: TestDuplicateIDAcrossStores (0.18s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.342s
+== TestAliasLocalToStore (internal/cli): go test exit 0
+--- PASS: TestAliasLocalToStore (0.63s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.797s
+== TestEventNeverCrossesStores (internal/cli): go test exit 0
+--- PASS: TestEventNeverCrossesStores (0.58s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.740s
+== TestSandboxHistoryCut (internal/cli): go test exit 0
+--- PASS: TestSandboxHistoryCut (0.72s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.870s
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 0
+--- PASS: TestUntrackedStoreAllAndRoot (0.15s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.313s
+== TestSameAskAcrossStores (internal/cli): go test exit 0
+--- PASS: TestSameAskAcrossStores (0.28s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.439s
+== TestStoreByAnotherPath (internal/cli): go test exit 0
+--- PASS: TestStoreByAnotherPath (0.23s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.392s
+== TestAppendSortsAfterHistory (internal/store): go test exit 0
+--- PASS: TestAppendSortsAfterHistory (0.44s)
+ok  	github.com/dat9uy/hyp/internal/store	0.823s
+== TestOneLockRoot (internal/store): go test exit 0
+--- PASS: TestOneLockRoot (0.28s)
+ok  	github.com/dat9uy/hyp/internal/store	0.421s

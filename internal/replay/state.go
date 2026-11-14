@@ -106,11 +106,15 @@ type GoalStatus struct {
 type Rejection struct {
 	EventID string
 	Reason  string
+	// Store is the store whose events file holds the rejected line.
+	Store string
 }
 
 // Node holds the static fields of a node.
 type Node struct {
 	ID, Kind, Parent, Title, Body, Alias, Recipe, RecipeHash, DecidedBy, Actor, AddedBy string
+	// Store is the store whose events file holds the node's add.
+	Store string
 	// Rubric is an Experiment's rubric (event.RubricReading, a NAME@VERSION
 	// pinned by RubricHash, or ""); an old decided_by reading reads as
 	// RubricReading. Records are its pinned records.
@@ -317,7 +321,7 @@ type Facts struct {
 	// Goals are the store's Goals in creation order. A store holds many;
 	// a tree is a view of one Goal and every node whose parents lead to it.
 	Goals   []string
-	Aliases map[string]string // alias → node id
+	Aliases map[AliasKey]string // a store's alias → node id; an alias is local to its store
 	// Answers holds, for each reading key an owner answered, the
 	// close and then each revise, in merge order (keyed.go).
 	Answers map[string][]Answer
@@ -346,7 +350,7 @@ type State struct {
 	Facts
 	// recipeHashes are the current recipe hashes the last Step was given;
 	// a Result whose pin they do not match is questionable.
-	recipeHashes map[string]string
+	recipeHashes Hashes
 	Snaps        map[string][]Snap
 	EverAnswered map[string]bool
 	// The derived records, rebuilt wholesale by recompute, so a map read
@@ -373,7 +377,7 @@ func NewState() *State {
 			Withdrawn:    map[string]bool{},
 			Hold:         map[string]QuestionState{},
 			Decisions:    map[string]*Decision{},
-			Aliases:      map[string]string{},
+			Aliases:      map[AliasKey]string{},
 			Answers:      map[string][]Answer{},
 			LimitHand:    map[string]Hand{},
 			Subjects:     map[string]event.HypothesisSubject{},

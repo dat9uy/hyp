@@ -25,7 +25,7 @@ func (st *State) results() map[string]*Res {
 			r.Status = ResRetracted
 		}
 		for _, pin := range r.Pins {
-			if h, ok := st.recipeHashes[pin.Ref.String()]; !ok || h != pin.Hash {
+			if h, ok := st.recipeHashes.Of(st.Nodes[id].Store)[pin.Ref.String()]; !ok || h != pin.Hash {
 				r.Questionable = true
 			}
 		}

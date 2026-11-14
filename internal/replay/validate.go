@@ -37,6 +37,11 @@ func Validate(st *State, ev event.Event) (err error) {
 	if err := validateEnvelope(&st.Facts, ev); err != nil {
 		return err
 	}
+	// The store rule comes first, so an event that crosses stores is
+	// refused for that, whatever else its own rule would say of it.
+	if err := st.checkStore(ev); err != nil {
+		return err
+	}
 	return rules[ev.Type].validate(&st.Facts, ev)
 }
 
@@ -93,7 +98,7 @@ func (f *Facts) validateNodeAdd(ev event.Event) error {
 		if !aliasRe.MatchString(p.Alias) {
 			return fmt.Errorf("invalid alias: %q", p.Alias)
 		}
-		if _, used := f.Aliases[p.Alias]; used {
+		if _, used := f.Aliases[AliasKey{ev.Store, p.Alias}]; used {
 			return fmt.Errorf("alias already used: %q", p.Alias)
 		}
 	}

@@ -514,10 +514,14 @@ func TestScenario16InconclusiveReason(t *testing.T) {
 
 // merge orders files by MergeOrder; no file here holds one id twice, so the
 // tie is never called.
-func merge(files map[string][]event.Event) []event.Event {
+func merge(byActor map[string][]event.Event) []event.Event {
+	files := map[File][]event.Event{}
+	for a, evs := range byActor {
+		files[File{Store: ".", Actor: a}] = evs
+	}
 	var out []event.Event
 	for _, at := range MergeOrder(files, func(a, b At) int { panic("tie") }) {
-		out = append(out, files[at.Actor][at.Index])
+		out = append(out, files[File{at.Store, at.Actor}][at.Index])
 	}
 	return out
 }

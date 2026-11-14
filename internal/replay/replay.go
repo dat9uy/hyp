@@ -8,31 +8,39 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 )
 
-// At names one event of the files MergeOrder reads: its actor and its index
-// in that actor's file.
+// At names one event of the files MergeOrder reads: its store, its actor
+// and its index in that store's actor file.
 type At struct {
-	Actor string
-	Index int
+	Store, Actor string
+	Index        int
 }
 
-// MergeOrder orders the events of per-actor files by id, then by actor (the
-// file name without .jsonl), whatever the line order inside a file: a file
+// File is one events file of a history: its store and its actor (the file
+// name without .jsonl).
+type File struct{ Store, Actor string }
+
+// MergeOrder orders the events of a history's files by id, then by actor,
+// then by the store's path, whatever the line order inside a file: a file
 // that git merged with the union driver holds both branches' lines in any
 // order, and replays the same. tie, which must not be nil, orders two events
-// with the same id and actor; the store passes one that compares their line
-// bytes, so file order decides nothing. It returns positions in files.
-func MergeOrder(files map[string][]event.Event, tie func(a, b At) int) []At {
+// with the same id, actor and store; the store passes one that compares
+// their line bytes, so file order decides nothing. It returns positions in
+// files.
+func MergeOrder(files map[File][]event.Event, tie func(a, b At) int) []At {
 	var out []At
-	for name, evs := range files {
+	for f, evs := range files {
 		for i := range evs {
-			out = append(out, At{name, i})
+			out = append(out, At{f.Store, f.Actor, i})
 		}
 	}
 	slices.SortFunc(out, func(a, b At) int {
-		if c := strings.Compare(files[a.Actor][a.Index].ID, files[b.Actor][b.Index].ID); c != 0 {
+		if c := strings.Compare(files[File{a.Store, a.Actor}][a.Index].ID, files[File{b.Store, b.Actor}][b.Index].ID); c != 0 {
 			return c
 		}
 		if c := strings.Compare(a.Actor, b.Actor); c != 0 {
+			return c
+		}
+		if c := strings.Compare(a.Store, b.Store); c != 0 {
 			return c
 		}
 		return tie(a, b)
@@ -52,12 +60,25 @@ func Replay(events []event.Event, recipeHashes map[string]string, asOf string) P
 // Build is Replay that also returns the final State, which Validate needs to
 // check a new event before it is appended.
 func Build(events []event.Event, recipeHashes map[string]string, asOf string) (*State, Projection) {
+	return BuildHistory(events, Hashes{Default: recipeHashes}, asOf)
+}
+
+// ReplayHistory is Replay of a history's events, whose stores each read
+// their own recipe hashes.
+func ReplayHistory(events []event.Event, hashes Hashes, asOf string) Projection {
+	_, p := BuildHistory(events, hashes, asOf)
+	return p
+}
+
+// BuildHistory is Build of a history's events, whose stores each read their
+// own recipe hashes.
+func BuildHistory(events []event.Event, recipeHashes Hashes, asOf string) (*State, Projection) {
 	st := NewState()
 	var rejections []Rejection
 	lastCheckpoint := map[string]*event.Event{}
 	for _, ev := range events {
 		if err := st.Step(ev, recipeHashes); err != nil {
-			rejections = append(rejections, Rejection{EventID: ev.ID, Reason: err.Error()})
+			rejections = append(rejections, Rejection{EventID: ev.ID, Reason: err.Error(), Store: ev.Store})
 		} else if ev.Type == event.TypeCheckpoint && !ownerCheckpoint(ev) {
 			cp := ev
 			lastCheckpoint[ev.Node] = &cp
@@ -100,7 +121,7 @@ func (st *State) Projection() Projection {
 
 // Step validates ev and, when it is allowed, applies it and recomputes every
 // derived field (spec §7 steps 1–5).
-func (st *State) Step(ev event.Event, recipeHashes map[string]string) error {
+func (st *State) Step(ev event.Event, recipeHashes Hashes) error {
 	if err := Validate(st, ev); err != nil {
 		return err
 	}
@@ -304,7 +325,7 @@ func (d *derivation) enter(key string) bool {
 }
 
 // recompute rebuilds the derived records from the stored state.
-func (st *State) recompute(recipeHashes map[string]string) {
+func (st *State) recompute(recipeHashes Hashes) {
 	st.recipeHashes = recipeHashes
 	d := &derivation{st: st, hyp: map[string]HypStatus{}, dq: map[string]*Question{},
 		stale: map[string]*StaleCause{}, staleOK: map[string]bool{}, busy: map[string]bool{}}

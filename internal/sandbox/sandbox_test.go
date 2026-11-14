@@ -1459,8 +1459,8 @@ func TestCreateStoreCutRefusals(t *testing.T) {
 	}{
 		{"unknown cut", CreateOptions{Store: src, Cut: "01NOPE"}, "no such event 01NOPE"},
 		{"no store", CreateOptions{Store: t.TempDir(), Cut: ev.ID}, "holds no .tree/events"},
-		{"store alone", CreateOptions{Store: src}, "--store and --cut go together"},
-		{"cut alone", CreateOptions{Cut: ev.ID}, "--store and --cut go together"},
+		{"store alone", CreateOptions{Store: src}, "--store needs --cut"},
+		{"cut alone, host holds no store", CreateOptions{Cut: ev.ID}, "which holds no store"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			c.o.Refs = []string{"none"}
