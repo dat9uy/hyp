@@ -87,10 +87,11 @@ func reftableRef(b []byte, ref string) (typ byte, found bool, err error) {
 				return 0, false, errReftable
 			}
 			p += n
-			suffix, vt := int(sv>>3), byte(sv&7)
-			if int(prefix) > len(key) || p+suffix > recEnd {
+			vt := byte(sv & 7)
+			if prefix > uint64(len(key)) || sv>>3 > uint64(recEnd-p) {
 				return 0, false, errReftable
 			}
+			suffix := int(sv >> 3)
 			key = append(key[:prefix:prefix], b[p:p+suffix]...)
 			p += suffix
 			if _, n = reftableVarint(b[p:recEnd]); n == 0 {
@@ -105,7 +106,7 @@ func reftableRef(b []byte, ref string) (typ byte, found bool, err error) {
 				p += 2 * hashLen
 			case 3:
 				l, n := reftableVarint(b[p:recEnd])
-				if n == 0 {
+				if n == 0 || l > uint64(recEnd-p-n) {
 					return 0, false, errReftable
 				}
 				p += n + int(l)
@@ -132,7 +133,7 @@ func reftableRef(b []byte, ref string) (typ byte, found bool, err error) {
 }
 
 // reftableVarint reads one reftable varint and returns it with the bytes it
-// took, 0 when b ends inside it.
+// took, 0 when b ends inside it or it does not fit 63 bits.
 func reftableVarint(b []byte) (uint64, int) {
 	if len(b) == 0 {
 		return 0, 0
@@ -141,7 +142,7 @@ func reftableVarint(b []byte) (uint64, int) {
 	i := 0
 	for b[i]&0x80 != 0 {
 		i++
-		if i >= len(b) {
+		if i >= len(b) || v >= 1<<56 {
 			return 0, 0
 		}
 		v = (v+1)<<7 | uint64(b[i]&0x7f)
