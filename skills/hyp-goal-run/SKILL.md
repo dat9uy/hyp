@@ -2,7 +2,7 @@
 name: hyp-goal-run
 description: "Run a hyp tree under an owner's Goal as an unattended /goal, for a discovery Goal or a build Goal: act only on what OWED says the runner owes, test before asking, write readings the owner can answer, reassess the targets under the owner's answers, and stop with a report the owner can read from hyp status. Use when a /goal prompt names this skill, such as the one hyp prompt prints."
 metadata:
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 The `/goal` prompt names the tree, your actor, the Goal, the stop and the Goal body's constraints; `hyp prompt <goal-id> --actor <actor>` prints it from the log. This skill says how to work until that stop. Use it with the hyp-prototype skill, which says how to add Questions, Hypotheses, Experiments and Results, and the hyp-verification skill, which says how to run an Experiment.
@@ -51,7 +51,7 @@ A build Goal's Hypotheses are commits. Two rules of "Work" read differently here
      - **Green.** Nothing: the finding was wrong.
      - **Not run, only described.** No limit. It stays in the saved review file, and you name it in the stop checkpoint.
      - **A case of a line that no test within the Goal can run.** A `--limit` you refer, with the reason it cannot run.
-     - **Red, and the line's words do not say whether the line covers the case.** A reading. The case is in doubt when the words leave it open, and also whenever you and the reviewer place the finding differently. Do not settle it yourself either way: write no fix for the case in this run, and do not sort it out of the Goal. When cases in doubt are the commit's only failures, its Hypothesis's verdict is `inconclusive`: it is not known to meet the Goal until the owner answers. Stop on that question and plan no further Experiment for it, although OWED lists an `undecided` item, and say in the stop checkpoint that the commit waits for the reading.
+     - **Red, and the line's words do not say whether the line covers the case.** A reading. The case is in doubt when the words leave it open, and also whenever you and the reviewer place the finding differently. Leave it for the owner to place, because only the owner says what a line means: write no fix for the case in this run, and do not sort it out of the Goal. When cases in doubt are the commit's only failures, its Hypothesis's verdict is `inconclusive`: it is not known to meet the Goal until the owner answers. Stop on that question and plan no further Experiment for it, although OWED lists an `undecided` item, and say in the stop checkpoint that the commit waits for the reading.
      - **Red, and a kind of case that the line's words, the Goal body or an owner's answer says no line covers.** An out-of-Goal finding, which you triage as "Out-of-Goal findings" below. Name those words, or the answer's key, in the checkpoint.
    - A `supports` Result records no limit whose case ran red on its own commit. A limit's text names the case, never the outcome.
 
@@ -62,7 +62,7 @@ The run may push its branch and open or update one PR. It never merges.
 An out-of-Goal finding is a case of none of the Goal's lines and asks no question about what a line means. It gets no limit, no refer and no reading, and it never holds the select. A finding the reviewer labelled with a line is never sorted here by you alone: when you place it differently, it is a reading. Give each one the first destination that fits:
 
 1. **Check that it is a defect.** Cite the file and line, or the run, that shows it. If the code or the run does not show it, drop it, and give the reason in one phrase in the checkpoint.
-2. **Fix it on the run's branch** when the Goal's `May change:` lines let you edit what the fix touches: one commit, before the stop. On a build Goal it is a fix like any other, so a new Hypothesis that passes the gate and the review before any select.
+2. **Fix it on the run's branch** when the Goal's `May change:` lines let you edit what the fix touches, and OWED already owes a new Hypothesis under the question of the commit it was found on, such as a successor for a limit. Put the fix in that successor, so it passes the gate and the review with it. An out-of-Goal finding never makes a Hypothesis on its own, because the runner acts only on what OWED owes: when OWED owes none, the commit's verdict stands, and the finding takes step 3 or 4, named in the checkpoint as a fix to make after the select.
 3. **Fold it into a known issue** when an open issue in the repository's tracker already covers it: name the issue and write the comment that adds the finding.
 4. **Propose a new issue** only when no open issue covers it: write its title and body, with the evidence from step 1.
 
