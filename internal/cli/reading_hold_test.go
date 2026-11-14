@@ -262,3 +262,19 @@ func TestAnsweredReadingsHoldNothing(t *testing.T) {
 	must(t, "add", "hyp", "--parent", q, "--title", "H2", "--why", "w")
 	must(t, "abandon", h, "--why", "w")
 }
+
+// Line 3, under the owner's answer that it holds every command that writes
+// the same supersedes edge: hyp link NEW supersedes H is held as hyp
+// supersede NEW --old H is, while an open reading's answer can move H.
+func TestLinkSupersedesHeldLikeSupersede(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	next := must(t, "add", "hyp", "--parent", q, "--title", "H next", "--why", "w")
+	k := judge(t, h, "supports", "--reading", "a line") + "#r1"
+
+	want(t, hyp(t, "supersede", next, "--old", h, "--why", "w"), 1, "open reading "+k)
+	want(t, hyp(t, "link", next, "supersedes", h, "--why", "w"), 1, "open reading "+k)
+	if st := hyp(t, "show", h); strings.Contains(st.stdout, "status: superseded") {
+		t.Fatalf("%s is superseded after a held link:\n%s", h, st.stdout)
+	}
+}

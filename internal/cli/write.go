@@ -761,10 +761,8 @@ func cmdSupersede(args []string, stdout, stderr io.Writer) error {
 		if err != nil {
 			return draft{}, err
 		}
-		if n := w.p.Nodes[to]; n != nil && n.Kind == event.KindHypothesis {
-			if _, err := admitted(w.p.AdmitRetire("supersede", to)); err != nil {
-				return draft{}, err
-			}
+		if err := admitSupersede(w.p, to); err != nil {
+			return draft{}, err
 		}
 		return draft{event.TypeEdgeAdd, from, event.Edge{Type: event.EdgeSupersedes, To: to}}, nil
 	})
@@ -804,9 +802,26 @@ func cmdLink(name, typ string) func([]string, io.Writer, io.Writer) error {
 					return draft{}, err
 				}
 			}
+			if typ == event.TypeEdgeAdd && pos[1] == event.EdgeSupersedes {
+				if err := admitSupersede(w.p, to); err != nil {
+					return draft{}, err
+				}
+			}
 			return draft{typ, from, event.Edge{Type: pos[1], To: to}}, nil
 		})
 	}
+}
+
+// admitSupersede holds every command that writes a supersedes edge to a
+// Hypothesis, hyp supersede and hyp link alike, while an open reading's
+// answer can move it.
+func admitSupersede(p replay.Projection, to string) error {
+	if n := p.Nodes[to]; n != nil && n.Kind == event.KindHypothesis {
+		if _, err := admitted(p.AdmitRetire("supersede", to)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func cmdSelect(args []string, stdout, stderr io.Writer) error {
