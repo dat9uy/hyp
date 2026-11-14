@@ -47,9 +47,8 @@ func outside(dir, top string) error {
 
 // CheckPlain refuses a store folder dir of the repository at top whose
 // name is not plain: a part with a character other than ASCII letters,
-// digits, '.', '_', '-' and '@', a part that is git's folder name in any
-// letter case (a filesystem that folds case reads it as git's folder), "."
-// or "..", or a part that differs only in letter case from another name its
+// digits, '.', '_', '-' and '@', a part git's index takes as git's folder
+// name (see gitPart), "." or "..", or a part that differs only in letter case from another name its
 // folder lists. It refuses a folder outside the repository too. The root's
 // own store, ".", is plain. hyp init and hyp import call it before they
 // write anything.
@@ -68,7 +67,7 @@ func CheckPlain(top, dir string) error {
 	cur := realCase(rt)
 	for _, part := range strings.Split(name, "/") {
 		if part == "" || part == "." || part == ".." || gitPart(part) {
-			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part %s, . or ..", name, part, GitName)
+			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part . or .., and none that is %s in any letter case with or without trailing dots", name, part, GitName)
 		}
 		for _, c := range part {
 			if !plainRune(c) {
@@ -91,13 +90,15 @@ func plainRune(c rune) bool {
 	return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '.' || c == '_' || c == '-' || c == '@'
 }
 
-// gitPart reports whether a store name has a part that is git's folder name
-// in any letter case: git keeps nothing below such a folder, and on a
-// filesystem that folds case discovery takes the folder above it as the
+// gitPart reports whether a store name has a part that git's index takes as
+// git's folder name: that name in any letter case, with any run of '.' after
+// it, as a filesystem that drops trailing dots reads it. git keeps nothing
+// below such a folder (update-index ignores the path and still exits 0), and
+// on a filesystem that folds case discovery takes the folder above it as the
 // repository root.
 func gitPart(name string) bool {
 	for _, part := range strings.Split(name, "/") {
-		if strings.EqualFold(part, GitName) {
+		if strings.EqualFold(strings.TrimRight(part, "."), GitName) {
 			return true
 		}
 	}

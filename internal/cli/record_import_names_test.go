@@ -504,3 +504,34 @@ func TestSandboxStoreOutsideTheRepository(t *testing.T) {
 	t.Setenv("PWD", repo)
 	refused(t, hyp(t, "sandbox", "create", "sb1", "--host", repo, "--base", "HEAD", "--recipe", "none", "--store", filepath.Join(repo, "ln"), "--cut", g), "outside the repository")
 }
+
+// Lines 1 and 6: git's index takes a part that is .git in any letter case
+// with trailing dots, such as .git. or .git.., as git's folder (a filesystem
+// that drops trailing dots reads it so): update-index ignores a path below it
+// and still exits 0. hyp init in such a store folder exits 1 and writes
+// nothing, and a write in a work-tree store copied there exits 1, so no write
+// exits 0 on an event the record cannot hold.
+func TestStoreBelowAFolderGitsIndexTakesAsGits(t *testing.T) {
+	repo := recordRepo(t)
+	tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+	for i, part := range []string{".git.", ".git..", ".GIT."} {
+		t.Run(part, func(t *testing.T) {
+			// Each case has its own parent: .git. and .GIT. are one folder
+			// on a filesystem that folds case.
+			dir := filepath.Join(repo, "a"+strings.Repeat("a", i), part, "x")
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			t.Chdir(dir)
+			refused(t, hyp(t, "init"), "store folder")
+			if _, err := os.Stat(filepath.Join(dir, ".tree")); err == nil {
+				t.Fatalf("a refused hyp init below %s wrote a store folder", part)
+			}
+			writeFile(t, filepath.Join(dir, ".tree", "events", "a.jsonl"), "")
+			refused(t, hyp(t, "add", "goal", "--title", "x", "--why", "w"), "store folder")
+			if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again != tip {
+				t.Fatalf("a refused command moved the record from %s to %s", tip, again)
+			}
+		})
+	}
+}

@@ -215,16 +215,36 @@ func (r *Repo) prune(keep string) {
 		if err != nil {
 			continue
 		}
-		if syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil {
-			// The lock file goes with its snapshot. A read waiting on it
-			// finds the file gone once it holds the lock, and takes a new one.
-			if os.RemoveAll(filepath.Join(r.hypDir("snap"), d.Name())) == nil {
-				_ = os.Remove(r.snapLock(d.Name()))
-			}
-			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
-		}
+		r.pruneOpen(f, d.Name())
 		f.Close()
 	}
+}
+
+// pruneOpen removes the snapshot key when it takes, at once, an exclusive
+// lock on f, the lock file it opened for key. Another prune may have removed
+// that file after f was opened, and a read may then hold a new one: a lock on
+// the removed file excludes no read, so pruneOpen skips the snapshot.
+func (r *Repo) pruneOpen(f *os.File, key string) {
+	if syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) != nil {
+		return
+	}
+	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+	if !lockedAt(f, r.snapLock(key)) {
+		return
+	}
+	// The lock file goes with its snapshot. A read waiting on it finds the
+	// file gone once it holds the lock, and takes a new one.
+	if os.RemoveAll(filepath.Join(r.hypDir("snap"), key)) == nil {
+		_ = os.Remove(r.snapLock(key))
+	}
+}
+
+// lockedAt reports whether the open file f is still the file at path p, so a
+// lock on f guards what p names.
+func lockedAt(f *os.File, p string) bool {
+	fi, err1 := f.Stat()
+	pi, err2 := os.Stat(p)
+	return err1 == nil && err2 == nil && os.SameFile(fi, pi)
 }
 
 // snapLock is the lock file of the snapshot key. It lives beside the
@@ -259,9 +279,7 @@ func (r *Repo) holdSnapshot(key string) error {
 		}
 		// A prune may have removed the file while this read waited for
 		// its lock: the lock then guards nothing, so take it again.
-		fi, err1 := f.Stat()
-		pi, err2 := os.Stat(p)
-		if err1 == nil && err2 == nil && os.SameFile(fi, pi) {
+		if lockedAt(f, p) {
 			held[p] = f
 			return nil
 		}

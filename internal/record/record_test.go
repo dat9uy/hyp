@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -235,4 +236,84 @@ func snapRoot(t *testing.T, root string) string {
 	}
 	t.Fatalf("%s is in no snapshot", root)
 	return ""
+}
+
+// Line 3: a read run while two commands prune hyp's snapshots prints the
+// record as it was. Two prunes run at once, as when two commands each write
+// a new snapshot: the first, P, has listed an old snapshot K and opened its
+// lock file; the second, P0, prunes K and removes that lock file. A read of K
+// then makes a new lock file, holds it and writes K again. P's lock would be
+// on the removed file, which excludes no read, so P must leave K.
+func TestTwoPrunesLeaveASnapshotAReadHolds(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(t.TempDir(), "none"))
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	git(t, repo, "init", "-q")
+	dir := filepath.Join(repo, "s")
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeOnce(dir, "first"); err != nil {
+		t.Fatal(err)
+	}
+	// Another command writes and reads, and exits: its snapshot K stays on
+	// disk with no read holding it.
+	cmd := exec.Command(os.Args[0], "-test.run=^$")
+	cmd.Env = append(os.Environ(), "HYP_RECORD_WRITE_READ=second", "HYP_RECORD_DIR="+dir)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("the command that writes and reads: %v: %s", err, out)
+	}
+	s, err := Locate(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := s.Repo
+	ents, err := os.ReadDir(r.hypDir("snap"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var key string
+	for _, e := range ents {
+		if e.IsDir() && !strings.HasPrefix(e.Name(), "tmp-") {
+			key = e.Name()
+		}
+	}
+	if key == "" {
+		t.Fatal("the command wrote no snapshot")
+	}
+	old := time.Now().Add(-2 * snapshotKeep)
+	if err := os.Chtimes(r.hypDir("snap", key), old, old); err != nil {
+		t.Fatal(err)
+	}
+	// P lists K as old and opens its lock file, as prune does.
+	fp, err := os.OpenFile(r.snapLock(key), os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fp.Close()
+	// P0 prunes K.
+	r.prune("")
+	if _, err := os.Stat(r.hypDir("snap", key)); err == nil {
+		t.Fatal("the prune left the old snapshot")
+	}
+	// A read of the record's tip, K: it holds K and writes it again.
+	root, err := s.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ev := filepath.Join(root, filepath.FromSlash(EvidenceDir+"E-1/out-second.txt"))
+	if _, err := os.Stat(ev); err != nil {
+		t.Fatalf("the read's snapshot lacks the file: %v", err)
+	}
+	// P goes on from the lock file it opened.
+	r.pruneOpen(fp, key)
+	if data, err := os.ReadFile(ev); err != nil || string(data) != "bytes of second\n" {
+		t.Fatalf("a prune removed the snapshot a running read holds: the read gets %q, %v", data, err)
+	}
 }
