@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 )
 
@@ -87,7 +88,7 @@ func recordFiles(root string, rootOf func(rel string) string, paths []string) ([
 func changedRecords(root string, records []event.SubjectFile) []string {
 	var out []string
 	for _, f := range records {
-		sum, err := fileSHA256(filepath.Join(root, filepath.FromSlash(f.Path)))
+		sum, err := fileSHA256(record.NamedPath(root, f.Path, f.SHA256))
 		if err != nil || sum != f.SHA256 {
 			out = append(out, f.Path)
 		}

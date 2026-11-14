@@ -74,7 +74,7 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, erro
 			for _, rel := range n.Files {
 				p := filepath.Join(src, filepath.FromSlash(rel))
 				if fi, err := os.Stat(p); err == nil && fi.Mode().IsRegular() {
-					add = append(add, s.StoreFile(rel, p))
+					add = append(add, s.StoreFile(rel, p, ""))
 					continue
 				}
 				if !s.HoldsFile(rel) {

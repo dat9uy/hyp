@@ -8,7 +8,7 @@ package claim
 import (
 	"fmt"
 	"os"
-	"path/filepath"
+	"path"
 	"regexp"
 	"slices"
 	"sort"
@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 )
 
@@ -43,7 +44,7 @@ func Warnings(root string, p replay.Projection, id string) []string {
 		if strings.HasPrefix(e, "http://") || strings.HasPrefix(e, "https://") {
 			continue
 		}
-		if b, ok := read(filepath.Join(root, e)); ok {
+		if b, ok := read(record.NamedPath(root, path.Clean(e), r.EvidenceSHA256[e])); ok {
 			texts = append(texts, b)
 		}
 	}

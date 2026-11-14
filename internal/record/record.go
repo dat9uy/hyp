@@ -301,3 +301,56 @@ func IgnoreEvidence(dir string) error {
 	}
 	return os.WriteFile(p, data, 0o644)
 }
+
+// keptDirRel is the slash path, relative to a store's folder, of the folder
+// where the record keeps, under its sha256, the bytes of a named file whose
+// path it holds with other bytes. Only hyp sync writes there: two clones
+// that each named one path with other bytes each keep their event's bytes.
+const keptDirRel = TreeDir + "/kept"
+
+// NamedPath returns the file below root, the folder a read of a store reads
+// below, that holds the bytes with sha256 sum an event names at slash path
+// rel: the record's kept copy for sum when it keeps one, the file at rel
+// otherwise. A sum that is not 64 hex digits names no kept copy.
+func NamedPath(root, rel, sum string) string {
+	if isHex64(sum) {
+		k := filepath.Join(root, filepath.FromSlash(keptDirRel), sum)
+		if fi, err := os.Stat(k); err == nil && fi.Mode().IsRegular() {
+			return k
+		}
+	}
+	return filepath.Join(root, filepath.FromSlash(rel))
+}
+
+func isHex64(s string) bool {
+	if len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if !('0' <= c && c <= '9' || 'a' <= c && c <= 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// keptPath is the record path where the record keeps the bytes with sha256
+// sum of a file named at record path p: the kept folder of the store whose
+// folder holds p, the longest store name that is a prefix of p, or of the
+// root store when none is.
+func keptPath(entries map[string]entry, p, sum string) string {
+	owner := "."
+	for q, e := range entries {
+		if e.typ != "tree" {
+			continue
+		}
+		name, ok := strings.CutSuffix(q, "/"+EventsDirRel)
+		if !ok {
+			continue
+		}
+		if strings.HasPrefix(p, name+"/") && (owner == "." || len(name) > len(owner)) {
+			owner = name
+		}
+	}
+	return joinName(owner, keptDirRel+"/"+sum)
+}

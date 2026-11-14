@@ -2,6 +2,8 @@ package record
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,19 +16,23 @@ import (
 
 // File is one file a write adds to the record: its slash path relative to
 // the repository root, and where its bytes are, a file on disk (Src) or a
-// blob the repository already holds (Blob).
+// blob the repository already holds (Blob). Sum, when set, is the sha256
+// the event stores for the file: the write refuses bytes that hash
+// otherwise, so the bytes kept are the bytes the event names.
 type File struct {
 	Path string
 	Src  string
 	Blob string
+	Sum  string
 	Exec bool
 }
 
 // StoreFile is the File of the file at slash path rel relative to the
-// store's folder, read from src.
-func (s *Store) StoreFile(rel, src string) File {
+// store's folder, read from src. sum is the sha256 the event stores for it,
+// or "" when the event stores none.
+func (s *Store) StoreFile(rel, src, sum string) File {
 	fi, err := os.Stat(src)
-	return File{Path: s.recordPath(rel), Src: src, Exec: err == nil && fi.Mode()&0o111 != 0}
+	return File{Path: s.recordPath(rel), Src: src, Sum: sum, Exec: err == nil && fi.Mode()&0o111 != 0}
 }
 
 // RepoFile is the File of the file at absolute path abs in the repository.
@@ -94,7 +100,10 @@ var afterStep = func(step string) {}
 // repository it is one commit on Ref, which only its last step, a
 // compare-and-swap of Ref, makes visible: a write stopped before that step
 // leaves the record as it was. A file whose path the record already holds
-// with other bytes is refused, since a file an event named never changes.
+// with other bytes is refused, since a file an event named never changes,
+// unless the record keeps those bytes under their sha256 already. A file
+// whose bytes no longer hash to its Sum is refused, since the event would
+// store a sha256 the record does not hold.
 // Elsewhere it appends to the work-tree events files and syncs. The caller
 // holds Lock.
 func (s *Store) Append(lines map[string][][]byte, files []File, commits []string) error {
@@ -148,14 +157,26 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
 			continue
 		}
 		seen[f.Path] = true
-		sha := f.Blob
+		sha, sum := f.Blob, ""
 		if sha == "" {
-			if sha, err = gitOut(r.Top, nil, nil, "hash-object", "-w", "--no-filters", "--", f.Src); err != nil {
+			data, err := os.ReadFile(f.Src)
+			if err != nil {
+				return err
+			}
+			h := sha256.Sum256(data)
+			sum = hex.EncodeToString(h[:])
+			if f.Sum != "" && f.Sum != sum {
+				return herr.Refused("%s changed while hyp wrote it: its sha256 is %s, not %s as the event stores; run the write again", f.Path, sum[:12], short(f.Sum))
+			}
+			if sha, err = gitOut(r.Top, nil, data, "hash-object", "-w", "--stdin"); err != nil {
 				return err
 			}
 		}
 		if e, ok := s.entries[f.Path]; ok {
 			if e.sha != sha {
+				if k, ok := s.entries[keptPath(s.entries, f.Path, sum)]; sum != "" && ok && k.sha == sha {
+					continue
+				}
 				return herr.Refused("%s differs from the copy the record holds; a file an event names never changes, so write it under a new path", f.Path)
 			}
 			continue

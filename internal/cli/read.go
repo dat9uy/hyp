@@ -177,7 +177,7 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if len(pos) != 1 {
-		return usageErr("usage: hyp show REF|R-id#n|G-id#n|FILE [--as-of REF|TIME]")
+		return usageErr("usage: hyp show REF|R-id#n|G-id#n|FILE[@SHA256] [--as-of REF|TIME]")
 	}
 	r, err := openReader()
 	if err != nil {
@@ -214,27 +214,58 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 // showFile prints the bytes of a file an applied event names, a path
 // relative to the store's folder as the event holds it: in a record
 // repository the record's copy, which no later change to the work tree
-// reaches.
+// reaches. When events name the path with other bytes, which hyp sync of
+// two clones can join, PATH@SHA256 picks one by a prefix of its sha256.
 func showFile(r *reader, arg string, stdout io.Writer) error {
 	clean := path.Clean(filepath.ToSlash(arg))
+	pick := ""
+	if at := strings.LastIndex(clean, "@"); at > 0 && isHexPrefix(clean[at+1:]) {
+		clean, pick = clean[:at], clean[at+1:]
+	}
 	named := false
+	var sums []string
 	for _, ev := range r.full.Applied {
 		n := store.NamesOf(ev)
 		if slices.Contains(n.Files, clean) {
 			named = true
-			break
+			if sum := n.Sums[clean]; sum != "" && !slices.Contains(sums, sum) {
+				sums = append(sums, sum)
+			}
+			continue
 		}
 		if ev.Type == event.TypeResultRecord {
 			if r.full.Nodes[ev.ID] != nil && slices.ContainsFunc(r.full.Nodes[ev.ID].Evidence, func(e string) bool { return path.Clean(e) == clean }) {
 				named = true
-				break
 			}
 		}
 	}
 	if !named {
 		return usageErr("%s is no file an event of this store names", arg)
 	}
-	file := filepath.Join(r.root, filepath.FromSlash(clean))
+	sum := ""
+	switch {
+	case pick != "":
+		for _, s := range sums {
+			if strings.HasPrefix(s, pick) {
+				if sum != "" {
+					return usageErr("%s: the prefix %s fits more than one sha256 the events name", arg, pick)
+				}
+				sum = s
+			}
+		}
+		if sum == "" {
+			return usageErr("%s: no event names %s with a sha256 that starts %s", arg, clean, pick)
+		}
+	case len(sums) > 1:
+		var picks []string
+		for _, s := range sums {
+			picks = append(picks, clean+"@"+s[:12])
+		}
+		return usageErr("events name %s with %d different contents; show one: %s", clean, len(sums), strings.Join(picks, ", "))
+	case len(sums) == 1:
+		sum = sums[0]
+	}
+	file := record.NamedPath(r.root, clean, sum)
 	if ref, ok := event.EvidenceRef(clean); ok {
 		b, err := recipe.Load(r.root, ref.String())
 		if err != nil {
@@ -249,6 +280,19 @@ func showFile(r *reader, arg string, stdout io.Writer) error {
 	}
 	_, err = stdout.Write(data)
 	return err
+}
+
+// isHexPrefix reports whether s is 4 to 64 lower-case hex digits.
+func isHexPrefix(s string) bool {
+	if len(s) < 4 || len(s) > 64 {
+		return false
+	}
+	for _, c := range s {
+		if !('0' <= c && c <= '9' || 'a' <= c && c <= 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func cmdDiff(args []string, stdout, stderr io.Writer) error {

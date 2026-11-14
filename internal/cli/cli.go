@@ -82,7 +82,7 @@ write:
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals
-  show REF|R-id#n|G-id#n|FILE [--as-of REF|TIME]  one node, or one limit or line, in full, with its history; or the bytes of a FILE an event names
+  show REF|R-id#n|G-id#n|FILE[@SHA256] [--as-of REF|TIME]  one node, or one limit or line, in full, with its history; or the bytes of a FILE an event names, picked by a sha256 prefix when events name it with other bytes
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
   check                                       rejected events, bad lines, warnings

@@ -47,7 +47,7 @@ func writeOnce(dir, id string) error {
 	if err := os.WriteFile(src, []byte("bytes of "+id+"\n"), 0o644); err != nil {
 		return err
 	}
-	return s.Append(map[string][][]byte{"a": {[]byte(`{"id":"` + id + `"}`)}}, []File{s.StoreFile(rel, src)}, nil)
+	return s.Append(map[string][][]byte{"a": {[]byte(`{"id":"` + id + `"}`)}}, []File{s.StoreFile(rel, src, "")}, nil)
 }
 
 func git(t *testing.T, dir string, args ...string) {

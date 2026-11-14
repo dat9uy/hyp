@@ -16,11 +16,23 @@ import (
 
 // Names is what one event names outside its own line: files by slash path
 // relative to the store's folder, the bundles it pins by ref and kind, and
-// the commits its subject names.
+// the commits its subject names. Sums holds the sha256 the event stores for
+// each of its files that has one.
 type Names struct {
 	Files   []string
+	Sums    map[string]string
 	Bundles []Pin
 	Commits []string
+}
+
+func (n *Names) file(rel, sum string) {
+	n.Files = append(n.Files, rel)
+	if sum != "" {
+		if n.Sums == nil {
+			n.Sums = map[string]string{}
+		}
+		n.Sums[rel] = sum
+	}
 }
 
 // Pin is one bundle an event pins.
@@ -46,7 +58,7 @@ func NamesOf(ev event.Event) Names {
 			n.Bundles = append(n.Bundles, Pin{Ref: p.Rubric, Hash: p.RubricHash, Rubric: true})
 		}
 		for _, f := range p.Records {
-			n.Files = append(n.Files, f.Path)
+			n.file(f.Path, f.SHA256)
 		}
 	case event.TypeHypothesisSubject:
 		var p event.HypothesisSubject
@@ -54,10 +66,10 @@ func NamesOf(ev event.Event) Names {
 			return n
 		}
 		for _, f := range p.Files {
-			n.Files = append(n.Files, f.Path)
+			n.file(f.Path, f.SHA256)
 		}
 		if p.Patch != nil {
-			n.Files = append(n.Files, p.Patch.Path)
+			n.file(p.Patch.Path, p.Patch.SHA256)
 		}
 		if p.Base != "" {
 			n.Commits = append(n.Commits, p.Base)
@@ -76,7 +88,7 @@ func NamesOf(ev event.Event) Names {
 				n.Bundles = append(n.Bundles, Pin{Ref: ref.String(), Hash: p.EvidenceHashes[e]})
 				continue
 			}
-			n.Files = append(n.Files, clean)
+			n.file(clean, p.EvidenceSHA256[e])
 		}
 	}
 	return n
@@ -92,7 +104,7 @@ func Named(s *record.Store, work string, ev event.Event) ([]record.File, []strin
 	for _, rel := range n.Files {
 		src := filepath.Join(work, filepath.FromSlash(rel))
 		if fi, err := os.Stat(src); err == nil && fi.Mode().IsRegular() {
-			files = append(files, s.StoreFile(rel, src))
+			files = append(files, s.StoreFile(rel, src, n.Sums[rel]))
 			continue
 		}
 		if s.HoldsFile(rel) {

@@ -2,9 +2,12 @@ package record
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -17,7 +20,9 @@ import (
 // the record of remote, and pushes the join. The two logs join as a set by
 // event id: an events file both sides changed keeps every line of both,
 // once per id, in id order; any other file both sides hold with other bytes
-// keeps the local copy, and the conflict is printed to warn. The join
+// keeps the local copy at its path and the remote's under its sha256 in
+// the kept folder of its store, so each event still finds the bytes it
+// names, and the conflict is printed to warn. The join
 // commit has both records as parents, so every subject commit either side
 // keeps stays reachable. A remote with no record gets the local one; a
 // remote that refuses the ref is an environment problem.
@@ -118,6 +123,14 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 		}
 	}
 	slices.Sort(paths)
+	union := make(map[string]entry, len(paths))
+	for p, e := range eb {
+		union[p] = e
+	}
+	for p, e := range ea {
+		union[p] = e
+	}
+	kept := map[string]entry{}
 	for _, p := range paths {
 		x, inA := ea[p]
 		y, inB := eb[p]
@@ -137,13 +150,28 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 				}
 				e = entry{mode: "100644", typ: "blob", sha: sha}
 			} else {
-				fmt.Fprintf(warn, "hyp sync: %s differs between the two records; kept the local copy\n", p)
+				var sum string
+				if err := r.readBlobs([]string{y.sha}, func(_ string, data []byte) error {
+					h := sha256.Sum256(data)
+					sum = hex.EncodeToString(h[:])
+					return nil
+				}); err != nil {
+					return "", err
+				}
+				k := keptPath(union, p, sum)
+				if _, held := union[k]; !held {
+					kept[k] = y
+				}
+				fmt.Fprintf(warn, "hyp sync: %s differs between the two records; kept the local copy there and the other at %s\n", p, k)
 			}
 		}
 		if e.typ != "blob" {
 			continue
 		}
 		fmt.Fprintf(&info, "%s %s\t%s\n", e.mode, e.sha, p)
+	}
+	for _, k := range slices.Sorted(maps.Keys(kept)) {
+		fmt.Fprintf(&info, "%s %s\t%s\n", kept[k].mode, kept[k].sha, k)
 	}
 	idx, err := os.CreateTemp(r.hypDir(), "index-*")
 	if err != nil {
