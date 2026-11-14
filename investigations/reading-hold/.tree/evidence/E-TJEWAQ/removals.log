@@ -1,0 +1,50 @@
+R1: internal/cli/write.go patched; TestOpenReadingHoldsNextHypothesis FAILS (exit 1)
+    --- FAIL: TestOpenReadingHoldsNextHypothesis (0.02s)
+        reading_hold_test.go:156: exit 0 (want 1), stdout "H-1RCEAN node.add\n", stderr "" (want "open reading R-YVSV1T#r1 holds the next Hypothesis of Q-8PA69F")
+    FAIL
+    FAIL	github.com/dat9uy/hyp/internal/cli	0.364s
+    FAIL
+R2: internal/cli/write.go patched; TestOpenReadingHoldsNextHypothesis FAILS (exit 1)
+    --- FAIL: TestOpenReadingHoldsNextHypothesis (0.02s)
+        reading_hold_test.go:157: exit 0 (want 1), stdout "H-EJ616Q edge.add\n", stderr "" (want "open reading R-0RSGS6#r1")
+    FAIL
+    FAIL	github.com/dat9uy/hyp/internal/cli	0.366s
+    FAIL
+R8: internal/cli/write.go patched; TestLinkSupersedesHeldLikeSupersede FAILS (exit 1)
+    --- FAIL: TestLinkSupersedesHeldLikeSupersede (0.02s)
+        reading_hold_test.go:276: exit 0 (want 1), stdout "H-0JC9EZ edge.add\n", stderr "" (want "open reading R-ANJ0FP#r1")
+    FAIL
+    FAIL	github.com/dat9uy/hyp/internal/cli	0.358s
+    FAIL
+R3: internal/cli/write.go patched; TestReadingOnInconclusiveHoldsNextHypothesis FAILS (exit 1)
+    --- FAIL: TestReadingOnInconclusiveHoldsNextHypothesis (0.02s)
+        reading_hold_test.go:174: exit 0 (want 1), stdout "H-MQCMN2 hypothesis.abandon\n", stderr "" (want "open reading R-BSCR3H#r1")
+    FAIL
+    FAIL	github.com/dat9uy/hyp/internal/cli	0.359s
+    FAIL
+R4: internal/cli/write.go patched; TestOpenReadingHoldsStaleAndReaffirm FAILS (exit 1)
+    --- FAIL: TestOpenReadingHoldsStaleAndReaffirm (0.05s)
+        reading_hold_test.go:123: exit 0 (want 1), stdout "H-8M0XHD reaffirm\n", stderr "" (want "open reading R-DG1BX7#r1 waits for the owner")
+    FAIL
+    FAIL	github.com/dat9uy/hyp/internal/cli	0.419s
+    FAIL
+R5: internal/replay/turn.go patched; TestOpenReadingWithNoReachHoldsSelect FAILS (exit 1)
+    --- FAIL: TestOpenReadingWithNoReachHoldsSelect (0.04s)
+        reading_hold_test.go:58: OWED holds "select H-7D7DSN":
+            GOAL G-6VQW8P G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+            FRONTIER
+              Q-Y390XC open/supported_unselected Q
+                candidates (1): H-7D7DSN
+R6: internal/replay/owed.go patched; TestReadingOnInconclusiveOwesNoUndecided FAILS (exit 1)
+    --- FAIL: TestReadingOnInconclusiveOwesNoUndecided (0.04s)
+        reading_hold_test.go:140: OWED holds "decide H-K55ECS":
+            GOAL G-1VK755 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+            FRONTIER
+              Q-7734Y2 open/inconclusive Q
+                H-K55ECS (h-one) inconclusive H1
+R7: internal/replay/admit.go patched; TestPremiseReleasesNextHypothesis FAILS (exit 1)
+    --- FAIL: TestPremiseReleasesNextHypothesis (0.05s)
+        reading_hold_test.go:227: hyp [add hyp --parent Q-E6Y98F --title H2 --why w]: exit 1, stderr "refused: open reading R-923Y3B#r1 holds the next Hypothesis of Q-E6Y98F for the owner: its answer can move H-4W05VV\n"
+    FAIL
+    FAIL	github.com/dat9uy/hyp/internal/cli	0.416s
+    FAIL
