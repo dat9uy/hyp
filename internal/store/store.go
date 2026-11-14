@@ -274,18 +274,29 @@ func AppendTo(s *record.Store, actor string, build func(*replay.State, replay.Pr
 	}
 
 	now := time.Now().UTC()
-	// The newest id the store holds is the greatest id of the id form;
-	// a line whose id replay rejects for its form holds no event.
+	// The newest id is the greatest id of the id form that the store holds
+	// or, in a record repository, that any store of the record holds; a
+	// line whose id replay rejects for its form holds no event.
 	last := ""
-	for i := len(evs) - 1; i >= 0; i-- {
-		if replay.ValidID(evs[i].ID) {
-			last = evs[i].ID
-			break
+	for _, e := range evs {
+		if e.ID > last && replay.ValidID(e.ID) {
+			last = e.ID
+		}
+	}
+	all, err := s.StoreIDs()
+	if err != nil {
+		return event.Event{}, err
+	}
+	for _, ids := range all {
+		for _, id := range ids {
+			if id > last && replay.ValidID(id) {
+				last = id
+			}
 		}
 	}
 	ev.V = event.Version
 	if ev.ID = idAfter(now, last); ev.ID == "" {
-		return ev, herr.Refused("no ULID sorts after %s, the newest id the store holds", last)
+		return ev, herr.Refused("no ULID sorts after %s, the newest id the record holds", last)
 	}
 	ev.TS = now.Format(time.RFC3339Nano)
 	ev.Actor = actor

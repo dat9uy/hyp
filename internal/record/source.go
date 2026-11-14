@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/dat9uy/hyp/internal/herr"
 )
@@ -54,17 +53,19 @@ func (r *Repo) ExtractAt(rev, name, dest string) error {
 	})
 }
 
-// Name is the slash path of dir from the repository root.
-func (r *Repo) Name(dir string) (string, bool) {
+// Name is the name of the store whose folder is dir: its slash path from
+// the repository root, links resolved. It refuses a folder that is not
+// plain or, links resolved, is outside the repository (CheckPlain).
+func (r *Repo) Name(dir string) (string, error) {
 	abs, err := filepath.Abs(dir)
 	if err != nil {
-		return "", false
+		return "", err
 	}
-	rel, err := filepath.Rel(r.Top, abs)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-		return "", false
+	if err := CheckPlain(r.Top, abs); err != nil {
+		return "", err
 	}
-	return storeName(r.Top, abs), true
+	name, _ := storeName(r.Top, abs)
+	return name, nil
 }
 
 // TrackedEvidence lists the files git tracks under the evidence folder of
@@ -100,7 +101,8 @@ func (r *Repo) Untrack(dir string, rels []string) error {
 
 // OpenRecord opens the repository whose work tree holds dir for a write
 // that makes it a record repository when it is not one: hyp import. It is
-// refused in a sandbox clone.
+// refused in a sandbox clone. It writes nothing: the first write on Ref,
+// or EnsureRecord, makes the record.
 func OpenRecord(dir string) (*Repo, error) {
 	repo, ok, err := OpenRepo(dir)
 	if err != nil {
@@ -112,10 +114,19 @@ func OpenRecord(dir string) (*Repo, error) {
 	if _, err := os.Stat(filepath.Join(repo.Common, sandboxMark)); err == nil {
 		return nil, herr.Refused("%s is a sandbox clone, which keeps no record", repo.Top)
 	}
-	if err := repo.ensureRecord(); err != nil {
-		return nil, err
-	}
+	repo.Record = true
 	return repo, nil
+}
+
+// EnsureRecord writes the empty record in a repository OpenRecord opened
+// when Ref does not exist yet, so the repository is a record repository.
+func (r *Repo) EnsureRecord() error {
+	tip, err := r.tip()
+	if err != nil || tip != "" {
+		return err
+	}
+	r.Record = false
+	return r.ensureRecord()
 }
 
 // StoreNamed returns the store the record names name in repo, read at the

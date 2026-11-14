@@ -3,11 +3,12 @@ package record
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 )
 
@@ -93,6 +94,11 @@ func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, err
 	nh := sha256.Sum256([]byte(name))
 	key := tip + "-" + hex.EncodeToString(nh[:])
 	dir := r.hypDir("snap", key)
+	// The read holds its snapshot's lock until the process exits, so a
+	// prune by any command never removes a snapshot a read still uses.
+	if err := r.holdSnapshot(key); err != nil {
+		return "", err
+	}
 	if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
 		now := time.Now()
 		_ = os.Chtimes(dir, now, now)
@@ -189,22 +195,63 @@ func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, err
 	return dir, nil
 }
 
-// prune removes every snapshot but keep that no read used for snapshotKeep.
+// prune removes every snapshot but keep that no read used for snapshotKeep
+// and that no running read holds: it takes each snapshot's lock without
+// waiting, and leaves the snapshot when a read holds it.
 func (r *Repo) prune(keep string) {
 	snaps, err := os.ReadDir(r.hypDir("snap"))
 	if err != nil {
 		return
 	}
 	for _, d := range snaps {
-		if d.Name() == keep || strings.HasPrefix(d.Name(), "tmp-") {
+		if d.Name() == keep || strings.HasPrefix(d.Name(), "tmp-") || !d.IsDir() {
 			continue
 		}
 		fi, err := d.Info()
 		if err != nil || time.Since(fi.ModTime()) < snapshotKeep {
 			continue
 		}
-		if err := os.RemoveAll(filepath.Join(r.hypDir("snap"), d.Name())); err != nil && !errors.Is(err, os.ErrNotExist) {
+		f, err := os.OpenFile(r.snapLock(d.Name()), os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
 			continue
 		}
+		if syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil {
+			_ = os.RemoveAll(filepath.Join(r.hypDir("snap"), d.Name()))
+			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+		}
+		f.Close()
 	}
+}
+
+// snapLock is the lock file of the snapshot key. It lives beside the
+// snapshots and is never removed, so every command locks one file per key.
+func (r *Repo) snapLock(key string) string { return r.hypDir("snaplock", key) }
+
+var (
+	heldMu sync.Mutex
+	held   = map[string]*os.File{}
+)
+
+// holdSnapshot takes a shared lock on the snapshot key's lock file and keeps
+// it until the process exits.
+func (r *Repo) holdSnapshot(key string) error {
+	p := r.snapLock(key)
+	heldMu.Lock()
+	defer heldMu.Unlock()
+	if _, ok := held[p]; ok {
+		return nil
+	}
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		return err
+	}
+	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_SH); err != nil {
+		f.Close()
+		return err
+	}
+	held[p] = f
+	return nil
 }

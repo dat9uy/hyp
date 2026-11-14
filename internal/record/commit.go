@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -113,7 +114,20 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
 	if !s.RecordMode() {
 		return s.appendWorkTree(lines)
 	}
+	return s.AppendStores(map[string]map[string][][]byte{s.Name: lines}, files, commits)
+}
+
+// AppendStores is Append in a record repository for the events of several
+// stores at once, keyed by store name and then by actor: one commit on
+// Ref adds them all, or the record stays as it was. The caller holds Lock.
+func (s *Store) AppendStores(lines map[string]map[string][][]byte, files []File, commits []string) error {
+	if !s.RecordMode() {
+		return fmt.Errorf("hyp: a write of several stores needs a record repository")
+	}
 	r := s.Repo
+	if err := os.MkdirAll(r.hypDir(), 0o755); err != nil {
+		return err
+	}
 	idx, err := os.CreateTemp(r.hypDir(), "index-*")
 	if err != nil {
 		return err
@@ -128,32 +142,36 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
 	} else if _, err := gitOut(r.Top, env, nil, "read-tree", "--empty"); err != nil {
 		return err
 	}
+	// Each index line ends with a NUL, so a path may hold any byte git
+	// can hold in a tree, a newline included.
 	var info bytes.Buffer
-	actors := make([]string, 0, len(lines))
-	for a := range lines {
-		actors = append(actors, a)
-	}
-	slices.Sort(actors)
-	for _, actor := range actors {
-		p := s.recordPath(EventsDirRel + "/" + actor + ".jsonl")
-		var data []byte
-		if e, ok := s.entries[p]; ok {
-			if err := r.readBlobs([]string{e.sha}, func(_ string, b []byte) error { data = b; return nil }); err != nil {
+	var actors []string
+	for _, name := range slices.Sorted(maps.Keys(lines)) {
+		for _, actor := range slices.Sorted(maps.Keys(lines[name])) {
+			if !slices.Contains(actors, actor) {
+				actors = append(actors, actor)
+			}
+			p := joinName(name, EventsDirRel+"/"+actor+".jsonl")
+			var data []byte
+			if e, ok := s.entries[p]; ok {
+				if err := r.readBlobs([]string{e.sha}, func(_ string, b []byte) error { data = b; return nil }); err != nil {
+					return err
+				}
+			}
+			if len(data) > 0 && data[len(data)-1] != '\n' {
+				data = append(data, '\n')
+			}
+			for _, l := range lines[name][actor] {
+				data = append(append(data, l...), '\n')
+			}
+			sha, err := gitOut(r.Top, nil, data, "hash-object", "-w", "--stdin")
+			if err != nil {
 				return err
 			}
+			fmt.Fprintf(&info, "100644 %s\t%s\x00", sha, p)
 		}
-		if len(data) > 0 && data[len(data)-1] != '\n' {
-			data = append(data, '\n')
-		}
-		for _, l := range lines[actor] {
-			data = append(append(data, l...), '\n')
-		}
-		sha, err := gitOut(r.Top, nil, data, "hash-object", "-w", "--stdin")
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(&info, "100644 %s\t%s\n", sha, p)
 	}
+	slices.Sort(actors)
 	type staged struct {
 		f              File
 		sha, sum, mode string
@@ -219,9 +237,9 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
 			}
 			continue
 		}
-		fmt.Fprintf(&info, "%s %s\t%s\n", a.mode, a.sha, p)
+		fmt.Fprintf(&info, "%s %s\t%s\x00", a.mode, a.sha, p)
 	}
-	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "--add", "--index-info"); err != nil {
+	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "-z", "--add", "--index-info"); err != nil {
 		return err
 	}
 	afterStep("objects")

@@ -16,182 +16,166 @@ import (
 	"github.com/dat9uy/hyp/internal/record"
 )
 
-// Import adds to the record of repo every event of the store read at src
-// that the record's store name lacks, by id, in one write, with the bytes
-// of each file those events name and the commits their subjects name. top
-// is the root src's repository paths are relative to: the repository's
-// work tree, or a copy of a commit's tree. A named file src lacks or holds
-// with other bytes than the sha256 its event stores, or a bundle src holds
-// with another hash than its pin, is left out and printed to warn; a later
-// import from a src that holds the file's bytes, or the bundle with its
-// pinned hash, adds them to the event the record holds, as it adds a
-// subject commit the repository holds now and the record does not reach.
-// It returns how many events, and how many files and commits for events
-// the record held, it added; run again, it adds none.
-func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int, error) {
-	if fi, err := os.Stat(record.EventsDir(src)); err != nil || !fi.IsDir() {
-		return 0, 0, herr.BadArgs("%s holds no store", src)
+// Source is one work-tree store that hyp import reads: its name in the
+// record, the folder that holds its store folder, and the root that its
+// repository paths are relative to (the work tree, or a copy of a
+// commit's tree).
+type Source struct {
+	Name, Src, Top string
+}
+
+// Import adds to the record of repo, in one write, every event of each
+// source whose id the record lacks, with the bytes of each file it names,
+// the files of each bundle it pins and the commits its subject names. It
+// adds each event once, with all it names or not at all: when an event
+// it would add names a file the source lacks or holds with other bytes
+// than the sha256 the event stores, pins a bundle the source lacks or
+// holds with another hash, names a subject commit the repository lacks,
+// or has an id that another store holds, it refuses with exit 1 and adds
+// nothing. It changes no event the record holds. It returns how many
+// events it added from each source; run again, it adds none.
+func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+	type read struct {
+		files map[string][]event.Event
+		raw   map[string][][]byte
 	}
-	files, raw, lineErrs, err := readLines(src)
+	reads := make([]read, len(srcs))
+	for i, src := range srcs {
+		if fi, err := os.Stat(record.EventsDir(src.Src)); err != nil || !fi.IsDir() {
+			return nil, herr.BadArgs("%s holds no store", src.Src)
+		}
+		files, raw, lineErrs, err := readLines(src.Src)
+		if err != nil {
+			return nil, err
+		}
+		for _, le := range lineErrs {
+			fmt.Fprintf(warn, "hyp import: %s:%d does not parse and is not imported: %v\n", le.File, le.Line, le.Err)
+		}
+		reads[i] = read{files, raw}
+	}
+	if len(srcs) == 0 {
+		return nil, nil
+	}
+	s, err := repo.StoreNamed(srcs[0].Name)
 	if err != nil {
-		return 0, 0, err
-	}
-	for _, le := range lineErrs {
-		fmt.Fprintf(warn, "hyp import: %s:%d does not parse and is not imported: %v\n", le.File, le.Line, le.Err)
-	}
-	s, err := repo.StoreNamed(name)
-	if err != nil {
-		return 0, 0, err
+		return nil, err
 	}
 	release, err := s.Lock()
 	if err != nil {
-		return 0, 0, err
+		return nil, err
 	}
 	defer release()
-	have := map[string]bool{}
-	if s.InRecord {
-		root, err := s.Root()
-		if err != nil {
-			return 0, 0, err
-		}
-		evs, _, err := Events(root)
-		if err != nil {
-			return 0, 0, err
-		}
-		for _, ev := range evs {
-			have[ev.ID] = true
+	ids, err := s.StoreIDs()
+	if err != nil {
+		return nil, err
+	}
+	// owner is the store that holds each id: the record's, then each
+	// event this import adds.
+	owner := map[string]string{}
+	for name, l := range ids {
+		for _, id := range l {
+			if _, ok := owner[id]; !ok || name < owner[id] {
+				owner[id] = name
+			}
 		}
 	}
-	lines := map[string][][]byte{}
+	lines := map[string]map[string][][]byte{}
 	var add []record.File
 	var commits []string
-	added := 0
-	actors := make([]string, 0, len(files))
-	for a := range files {
-		actors = append(actors, a)
-	}
-	slices.Sort(actors)
-	held := maps.Clone(have)
 	adding := map[string]bool{}
-	// namedFile adds the file rel that ev names from src when src holds it
-	// with the sha256 the event stores, and else prints that the record
-	// lacks it. A file the record holds already is left as it is.
-	namedFile := func(ev event.Event, n Names, rel string) error {
-		if s.HoldsFile(rel) || adding[rel] {
-			return nil
-		}
-		p := filepath.Join(src, filepath.FromSlash(rel))
-		fi, err := os.Stat(p)
-		if err != nil || !fi.Mode().IsRegular() {
-			fmt.Fprintf(warn, "hyp import: %s, which %s names, is not in %s; the record lacks it\n", rel, ev.ID, src)
-			return nil
-		}
-		sum := n.Sums[rel]
-		got, err := fileSHA256(p)
-		if err != nil {
-			return err
-		}
-		if sum != "" && got != sum {
-			fmt.Fprintf(warn, "hyp import: %s, which %s names, hashes %s in %s, not %s as the event stores; the record lacks those bytes\n", rel, ev.ID, got[:12], src, sum[:min(12, len(sum))])
-			return nil
-		}
-		adding[rel] = true
-		add = append(add, s.StoreFile(rel, p, sum))
-		return nil
-	}
-	// recordHolds reports whether the record keeps a copy of bundle b with
-	// its pinned hash, read once from the record's store.
-	var recordHashes map[string]string
-	recordHolds := func(b Pin) (bool, error) {
-		if !s.InRecord {
-			return false, nil
-		}
-		if recordHashes == nil {
-			root, err := s.Root()
-			if err != nil {
-				return false, err
-			}
-			recordHashes = recipe.Hashes(root)
-		}
-		if b.Hash == "" {
-			_, ok := recordHashes[b.Ref]
-			return ok, nil
-		}
-		return recipe.Holds(recordHashes, b.Ref, b.Hash), nil
-	}
-	adoptedBundle := map[Pin]bool{}
-	var lacked []string
-	// pinnedBundle adds the files of bundle b that ev pins from src when src
-	// holds it with the pinned hash, and else prints that the record lacks
-	// it. For an event the record holds, a bundle the record keeps already
-	// is left as it is.
-	pinnedBundle := func(ev event.Event, b Pin, isHeld bool) error {
-		if adoptedBundle[b] {
-			return nil
-		}
-		if isHeld {
-			ok, err := recordHolds(b)
-			if err != nil || ok {
-				return err
-			}
-		}
-		load := recipe.Load
-		if b.Rubric {
-			load = recipe.LoadRubric
-		}
-		r, err := load(src, b.Ref)
-		if err != nil || (b.Hash != "" && r.Hash != b.Hash) {
-			fmt.Fprintf(warn, "hyp import: bundle %s that %s pins is not in %s with its hash; the record lacks it\n", b.Ref, ev.ID, src)
-			return nil
-		}
-		bf, err := dirFilesUnder(top, r.Path)
-		if err != nil {
-			return err
-		}
-		adoptedBundle[b] = true
-		add = append(add, bf...)
-		return nil
-	}
-	for _, actor := range actors {
-		for i, ev := range files[actor] {
-			n := NamesOf(ev)
-			isHeld := held[ev.ID]
-			if !isHeld {
-				if have[ev.ID] {
-					continue
+	adoptedBundle := map[string]bool{}
+	counts := make([]int, len(srcs))
+	for i, src := range srcs {
+		view := s.Sibling(src.Name)
+		files, raw := reads[i].files, reads[i].raw
+		for _, actor := range slices.Sorted(maps.Keys(files)) {
+			for j, ev := range files[actor] {
+				if o, ok := owner[ev.ID]; ok {
+					if o == src.Name {
+						continue
+					}
+					return nil, herr.Refused("event %s of the store %s is also an event of the store %s; an id is one event of one store, so hyp import adds nothing", ev.ID, src.Name, o)
 				}
-				have[ev.ID] = true
-				lines[actor] = append(lines[actor], raw[actor][i])
-				added++
-				commits = append(commits, n.Commits...)
-			} else {
-				for _, c := range n.Commits {
-					if !slices.Contains(lacked, c) && s.LacksCommit(c) {
-						lacked = append(lacked, c)
+				owner[ev.ID] = src.Name
+				n := NamesOf(ev)
+				for _, rel := range n.Files {
+					f, err := namedFile(view, src, ev, n, rel)
+					if err != nil {
+						return nil, err
+					}
+					if key := src.Name + "\x00" + rel; !adding[key] {
+						adding[key] = true
+						add = append(add, f)
 					}
 				}
-			}
-			// An event the record holds gets each named file, pinned bundle
-			// and subject commit an earlier import could not add.
-			for _, rel := range n.Files {
-				if err := namedFile(ev, n, rel); err != nil {
-					return 0, 0, err
+				for _, b := range n.Bundles {
+					bf, dir, err := pinnedBundle(src, ev, b)
+					if err != nil {
+						return nil, err
+					}
+					if !adoptedBundle[dir] {
+						adoptedBundle[dir] = true
+						add = append(add, bf...)
+					}
 				}
-			}
-			for _, b := range n.Bundles {
-				if err := pinnedBundle(ev, b, isHeld); err != nil {
-					return 0, 0, err
+				for _, c := range n.Commits {
+					if _, ok := repo.IsCommit(c); !ok {
+						return nil, herr.Refused("%s, the subject commit that %s names, is not in %s; fetch it, then run hyp import again, which adds nothing until then", c, ev.ID, repo.Top)
+					}
+					commits = append(commits, c)
 				}
+				if lines[src.Name] == nil {
+					lines[src.Name] = map[string][][]byte{}
+				}
+				lines[src.Name][actor] = append(lines[src.Name][actor], raw[actor][j])
+				counts[i]++
 			}
 		}
 	}
-	if added == 0 && len(add) == 0 && len(lacked) == 0 {
-		return 0, 0, nil
+	if len(lines) == 0 {
+		return counts, repo.EnsureRecord()
 	}
-	for actor := range lines {
-		slices.SortStableFunc(lines[actor], func(a, b []byte) int { return compareLineID(a, b) })
+	for _, byActor := range lines {
+		for actor := range byActor {
+			slices.SortStableFunc(byActor[actor], func(a, b []byte) int { return compareLineID(a, b) })
+		}
 	}
-	return added, len(add) + len(lacked), s.Append(lines, add, append(commits, lacked...))
+	return counts, s.AppendStores(lines, add, commits)
+}
+
+// namedFile is the File of rel, which ev names, read from src: refused when
+// src lacks it or holds it with other bytes than the sha256 ev stores.
+func namedFile(view *record.Store, src Source, ev event.Event, n Names, rel string) (record.File, error) {
+	p := filepath.Join(src.Src, filepath.FromSlash(rel))
+	fi, err := os.Stat(p)
+	if err != nil || !fi.Mode().IsRegular() {
+		return record.File{}, herr.Refused("%s, which %s names, is not in %s; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, src.Src)
+	}
+	sum := n.Sums[rel]
+	got, err := fileSHA256(p)
+	if err != nil {
+		return record.File{}, err
+	}
+	if sum != "" && got != sum {
+		return record.File{}, herr.Refused("%s, which %s names, hashes %s in %s, not %s as the event stores; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, got[:12], src.Src, sum[:min(12, len(sum))])
+	}
+	return view.StoreFile(rel, p, sum), nil
+}
+
+// pinnedBundle lists the files of bundle b, which ev pins, read from src,
+// with the bundle's folder: refused when src lacks the bundle or holds it
+// with another hash than the pin.
+func pinnedBundle(src Source, ev event.Event, b Pin) ([]record.File, string, error) {
+	load := recipe.Load
+	if b.Rubric {
+		load = recipe.LoadRubric
+	}
+	r, err := load(src.Src, b.Ref)
+	if err != nil || (b.Hash != "" && r.Hash != b.Hash) {
+		return nil, "", herr.Refused("bundle %s, which %s pins, is not in %s with its pinned hash; hyp import adds an event with what it pins or not at all, so it adds nothing", b.Ref, ev.ID, src.Src)
+	}
+	bf, err := dirFilesUnder(src.Top, r.Path)
+	return bf, r.Path, err
 }
 
 // compareLineID orders two event lines by their id, then by their bytes.

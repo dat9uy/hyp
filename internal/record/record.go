@@ -123,15 +123,18 @@ func Locate(start string) (*Store, error) {
 		}
 	}
 	for dir := abs; ; dir = filepath.Dir(dir) {
-		name := ""
+		name, inside := "", true
 		if inRepo {
-			name = storeName(top, dir)
+			name, inside = storeName(top, dir)
 		}
-		if s.entries != nil && s.hasStore(name) {
+		if inside && s.entries != nil && s.hasStore(name) {
 			s.Dir, s.Name, s.InRecord = dir, name, true
 			return s, nil
 		}
 		if fi, err := os.Stat(EventsDir(dir)); err == nil && fi.IsDir() {
+			if !inside {
+				return nil, outside(dir, top)
+			}
 			s.Dir, s.Name = dir, name
 			return s, nil
 		}
@@ -157,33 +160,6 @@ func At(dir string) (*Store, error) {
 		return nil, ErrNoStore
 	}
 	return s, nil
-}
-
-// storeName is the name of the store whose folder is dir: its slash path
-// from the repository root top, with symbolic links resolved, so a folder
-// reached through a link inside the repository is the store it links to.
-// Each name is spelled as its folder spells it, so on a filesystem that
-// folds letter case or Unicode normalization a folder typed another way is
-// the same store.
-// A link that leaves the repository keeps the path as given.
-func storeName(top, dir string) string {
-	rt, err1 := filepath.EvalSymlinks(top)
-	rd, err2 := filepath.EvalSymlinks(dir)
-	if err1 == nil && err2 == nil {
-		rt, rd = realCase(rt), realCase(rd)
-		if rel, err := filepath.Rel(rt, rd); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return filepath.ToSlash(rel)
-		}
-	}
-	return slashRel(top, dir)
-}
-
-func slashRel(top, dir string) string {
-	rel, err := filepath.Rel(top, dir)
-	if err != nil {
-		return "."
-	}
-	return filepath.ToSlash(rel)
 }
 
 // recordPath is the record path of a slash path relative to the store's
@@ -275,6 +251,16 @@ func readEventFiles(root string) (map[string][]byte, error) {
 // .gitattributes. In a git repository with no record and no sandbox mark it
 // also writes the empty record, which makes it a record repository.
 func Init(dir string) error {
+	top, inRepo := FindTop(dir)
+	if inRepo {
+		abs, err := filepath.Abs(dir)
+		if err != nil {
+			return err
+		}
+		if err := CheckPlain(top, abs); err != nil {
+			return err
+		}
+	}
 	for _, sub := range []string{"events", "evidence"} {
 		if err := os.MkdirAll(filepath.Join(Dir(dir), sub), 0o755); err != nil {
 			return err
@@ -286,8 +272,7 @@ func Init(dir string) error {
 	if err := os.WriteFile(filepath.Join(Dir(dir), ".gitignore"), []byte(GitIgnore), 0o644); err != nil {
 		return err
 	}
-	top, ok := FindTop(dir)
-	if !ok {
+	if !inRepo {
 		return nil
 	}
 	repo, err := openRepo(top)

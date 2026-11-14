@@ -476,7 +476,9 @@ func TestImportAddsEachMissingEvent(t *testing.T) {
 		statuses = append(statuses, hyp(t, "status", g).stdout+hyp(t, "show", h).stdout)
 		goals, hyps = append(goals, g), append(hyps, h)
 	}
-	gitIn(t, repo, "add", "-A")
+	// hyp init makes git ignore the evidence folder, so the commit holds
+	// the cited files only when they are added with -f.
+	gitIn(t, repo, "add", "-f", "-A")
 	gitIn(t, repo, "commit", "-qm", "stores")
 	at := gitIn(t, repo, "rev-parse", "HEAD")
 	// two is read from the commit: its store folder is gone from the checkout.

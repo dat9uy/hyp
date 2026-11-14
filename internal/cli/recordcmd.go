@@ -39,13 +39,14 @@ const importUse = "usage: hyp import [REF:]PATH..."
 
 // cmdImport adds to the record every event of each named work-tree store
 // that the record lacks, read from the checkout or, with REF:, from that
-// commit, with the files those events name and their subject commits. For
+// commit, with the files those events name and their subject commits, in
+// one write that adds each event whole or refuses and adds nothing. For
 // each store read from the checkout it then makes git ignore the store's
 // evidence folder and untracks each file there that no event names,
 // leaving it on disk.
 func cmdImport(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {
-		return helpText(importUse + "\n\nadd each store's events the record lacks, with the files they name; PATH is a store folder, read from the checkout or from commit REF; an argument that names a folder on disk is a PATH, also when it holds a colon")
+		return helpText(importUse + "\n\nadd each store's events the record lacks, with the files they name; PATH is a store folder, read from the checkout or from commit REF; an argument that names a folder on disk is a PATH; each event is added with all it names, or the import exits 1 and adds nothing")
 	}
 	if len(args) == 0 || slices.ContainsFunc(args, func(a string) bool { return strings.HasPrefix(a, "-") }) {
 		return usageErr(importUse)
@@ -58,7 +59,11 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	for _, arg := range args {
+	// Every argument is read before anything is written, so a refusal of
+	// one adds nothing of any.
+	srcs := make([]store.Source, len(args))
+	work := make([]string, len(args))
+	for i, arg := range args {
 		ref, p, fromRef := strings.Cut(arg, ":")
 		if !fromRef || isDir(arg, cwd) {
 			p, ref, fromRef = arg, "", false
@@ -68,11 +73,11 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
 			abs = filepath.Join(cwd, p)
 		}
 		abs = filepath.Clean(abs)
-		name, ok := repo.Name(abs)
-		if !ok {
-			return herr.BadArgs("hyp import %s: %s is outside the repository at %s", arg, abs, repo.Top)
+		name, err := repo.Name(abs)
+		if err != nil {
+			return fmt.Errorf("hyp import %s: %w", arg, err)
 		}
-		src, top := abs, repo.Top
+		srcs[i] = store.Source{Name: name, Src: abs, Top: repo.Top}
 		if fromRef {
 			tmp, err := os.MkdirTemp("", "hyp-import-")
 			if err != nil {
@@ -82,24 +87,35 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
 			if err := repo.ExtractAt(ref, name, tmp); err != nil {
 				return err
 			}
-			src, top = filepath.Join(tmp, filepath.FromSlash(name)), tmp
+			srcs[i].Src, srcs[i].Top = filepath.Join(tmp, filepath.FromSlash(name)), tmp
+		} else {
+			work[i] = abs
 		}
-		n, files, err := store.Import(repo, name, src, top, stderr)
-		if err != nil {
-			return fmt.Errorf("hyp import %s: %w", arg, err)
+	}
+	for i, a := range args {
+		for j := range i {
+			if srcs[j].Name == srcs[i].Name {
+				return herr.BadArgs("hyp import: %s and %s name one store, %s", args[j], a, srcs[i].Name)
+			}
 		}
-		switch {
-		case n == 0 && files == 0:
+	}
+	counts, err := store.Import(repo, srcs, stderr)
+	if err != nil {
+		return fmt.Errorf("hyp import: %w", err)
+	}
+	for i, arg := range args {
+		if counts[i] == 0 {
 			fmt.Fprintf(stdout, "%s: the record holds every event\n", arg)
-		case n == 0:
-			fmt.Fprintf(stdout, "%s: the record holds every event; added %d it lacked: named files, bundle files or subject commits\n", arg, files)
-		default:
-			fmt.Fprintf(stdout, "%s: imported %d events\n", arg, n)
+		} else {
+			fmt.Fprintf(stdout, "%s: imported %d events\n", arg, counts[i])
 		}
-		if fi, err := os.Stat(record.Dir(abs)); err != nil || !fi.IsDir() {
+		if work[i] == "" {
 			continue
 		}
-		if err := untrackUnnamed(repo, name, abs); err != nil {
+		if fi, err := os.Stat(record.Dir(work[i])); err != nil || !fi.IsDir() {
+			continue
+		}
+		if err := untrackUnnamed(repo, srcs[i].Name, work[i]); err != nil {
 			return fmt.Errorf("hyp import %s: %w", arg, err)
 		}
 	}

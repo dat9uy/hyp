@@ -126,7 +126,8 @@ func TestPromptOutsideARepository(t *testing.T) {
 	}
 
 	// A link inside a repository does not move the store into it: through
-	// the link, the same store gives the same outcome as through its real path.
+	// the link, the store folder is outside the repository, which every
+	// command refuses.
 	repo := t.TempDir()
 	if err := os.Mkdir(filepath.Join(repo, ".git"), 0o755); err != nil {
 		t.Fatal(err)
@@ -138,8 +139,8 @@ func TestPromptOutsideARepository(t *testing.T) {
 	t.Chdir(link)
 	t.Setenv("PWD", link)
 	viaLink := hyp(t, "prompt", g, "--actor", "r")
-	if viaLink.code != r.code || viaLink.stdout != r.stdout || viaLink.stderr != r.stderr {
-		t.Fatalf("through the real path: exit %d, stderr %q\nthrough a link inside a repository: exit %d, stderr %q\n%s", r.code, r.stderr, viaLink.code, viaLink.stderr, viaLink.stdout)
+	if viaLink.code != 1 || viaLink.stdout != "" || !strings.Contains(viaLink.stderr, "outside the repository") {
+		t.Fatalf("through a link inside a repository: exit %d (want 1), stdout %q, stderr %q", viaLink.code, viaLink.stdout, viaLink.stderr)
 	}
 }
 

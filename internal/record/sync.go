@@ -208,10 +208,10 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 		if e.typ != "blob" {
 			continue
 		}
-		fmt.Fprintf(&info, "%s %s\t%s\n", e.mode, e.sha, p)
+		fmt.Fprintf(&info, "%s %s\t%s\x00", e.mode, e.sha, p)
 	}
 	for _, k := range slices.Sorted(maps.Keys(kept)) {
-		fmt.Fprintf(&info, "%s %s\t%s\n", kept[k].mode, kept[k].sha, k)
+		fmt.Fprintf(&info, "%s %s\t%s\x00", kept[k].mode, kept[k].sha, k)
 	}
 	idx, err := os.CreateTemp(r.hypDir(), "index-*")
 	if err != nil {
@@ -223,7 +223,7 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 	if _, err := gitOut(r.Top, env, nil, "read-tree", "--empty"); err != nil {
 		return "", err
 	}
-	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "--add", "--index-info"); err != nil {
+	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "-z", "--add", "--index-info"); err != nil {
 		return "", err
 	}
 	tree, err := gitOut(r.Top, env, nil, "write-tree")
