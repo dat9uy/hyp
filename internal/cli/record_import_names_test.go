@@ -207,22 +207,43 @@ func TestNewIDSortsAfterEveryStoresID(t *testing.T) {
 	t.Chdir(other)
 	t.Setenv("HYP_ACTOR", "b")
 	must(t, "init")
-	id := must(t, "add", "goal", "--title", "ahead", "--why", "w")
+	must(t, "add", "goal", "--title", "ahead", "--why", "w")
+	id := lastID(t)
 	ahead := ulid.MustNew(ulid.Timestamp(time.Now().Add(48*time.Hour)), bytes.NewReader(bytes.Repeat([]byte{7}, 16))).String()
 	p := filepath.Join(other, ".tree", "events", "b.jsonl")
 	b, err := os.ReadFile(p)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if !bytes.Contains(b, []byte(id)) {
+		t.Fatalf("setup: the events file does not hold %s", id)
+	}
 	writeFile(t, filepath.Join(repo, "w", ".tree", "events", "b.jsonl"), strings.ReplaceAll(string(b), id, ahead))
 	t.Chdir(repo)
 	want(t, hyp(t, "import", "w"), 0, "imported 1 events")
 	t.Chdir(filepath.Join(repo, "s"))
 	t.Setenv("HYP_ACTOR", "a")
-	next := must(t, "add", "goal", "--title", "next", "--why", "w")
-	if next <= ahead {
+	must(t, "add", "goal", "--title", "next", "--why", "w")
+	if next := lastID(t); next <= ahead {
 		t.Fatalf("the new id %s sorts before %s, the newest id the record holds (store w)", next, ahead)
 	}
+}
+
+// lastID is the greatest event id that hyp events prints from the working
+// directory's store.
+func lastID(t *testing.T) string {
+	t.Helper()
+	last := ""
+	for _, e := range eventsJSON(t, hyp(t, "events", "--json").stdout) {
+		var head struct {
+			ID string `json:"id"`
+		}
+		if err := json.Unmarshal([]byte(e), &head); err != nil {
+			t.Fatal(err)
+		}
+		last = max(last, head.ID)
+	}
+	return last
 }
 
 // Line 6: hyp init and hyp import exit 1 and write nothing for a store
