@@ -1,0 +1,11 @@
+== TestRecordWriteHardensObjectsAndRef on the stand-in f296bc11b4791788ff44d46a6a4b16c0bfb7a91d (h-record-4), test file copied from 9f3434b6b19b
+=== RUN   TestRecordWriteHardensObjectsAndRef
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef228372642/002 hash-object -w --stdin ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef228372642/002 write-tree ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef228372642/002 commit-tree ea67ed82769c55f2a4a1ae9dbfa06501ea69e8e3 -p 45a4c050740bd216309d9f7e0ee53368bf9baaf1 -m hyp: a ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef228372642/002 update-ref refs/hyp/record aaed1d1fc85bcc145b891194e5a39ddaf076e9a7 45a4c050740bd216309d9f7e0ee53368bf9baaf1 ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+--- FAIL: TestRecordWriteHardensObjectsAndRef (0.61s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.976s
+FAIL
+go test exit 1

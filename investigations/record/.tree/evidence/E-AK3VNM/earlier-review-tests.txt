@@ -1,0 +1,13 @@
+== the returned tests of the review of E-KCSN9Y, run at the candidate; TestReviewTwoWorktreesCiteOnePathAtOnce sets no verdict (answer R-BHDBGK#r1)
+=== RUN   TestReviewTwoWorktreesCiteOnePathAtOnce
+    zz_earlier_review_test.go:49: write from /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewTwoWorktreesCiteOnePathAtOnce2133159487/003/w/s: exit status 1
+        refused: s/.tree/evidence/E-XR8SZD/run.log differs from the copy the record holds; a file an event names never changes, so write it under a new path
+--- FAIL: TestReviewTwoWorktreesCiteOnePathAtOnce (1.23s)
+=== RUN   TestReviewSyncKeepsEachSidesPinnedBundle
+--- PASS: TestReviewSyncKeepsEachSidesPinnedBundle (3.41s)
+=== RUN   TestReviewRecordWriteHardensObjectsAndRef
+--- PASS: TestReviewRecordWriteHardensObjectsAndRef (0.62s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	5.605s
+FAIL
+go test exit 1

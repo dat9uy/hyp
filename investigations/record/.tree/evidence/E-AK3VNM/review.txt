@@ -1,0 +1,238 @@
+I reviewed candidate 9f3434b6b19b (commits 8d2cc8aa9096 and 9f3434b6b19b) in a detached temp checkout. That checkout is now removed; copies of the two test files are kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/b077707b-c450-40e1-8eee-2197d7e329da/scratchpad/review_bundle_evidence_show_test.go and /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/b077707b-c450-40e1-8eee-2197d7e329da/scratchpad/review_bundle_two_levels_test.go.
+
+**Baseline.** On the candidate as committed, `go vet ./...` is clean and `go test ./... -count=1` passes in every package. Every hyp run in my tests used t.TempDir() repositories. Nothing was written to the clone, origin or ~/.local/bin/hyp.
+
+## Finding 1 — G-SZCBXZ#1 (also #5)
+
+`hyp show` of an evidence pointer into a bundle prints the wrong clone's bytes after `hyp sync`.
+
+The new kept-copy logic stores each clone's copy of kit@1, but `showFile` (internal/cli/read.go, around line 270) still reads `recipe.Load(r.root, ref)`. That is only the copy at the ref's path. After sync, clone a's Result cites `recipes/kit@1/run.sh`, but `hyp show` prints clone b's bytes. Neither `LoadPinned` nor a `PATH@SHA` pick reaches the kept copy for a bundle pointer.
+
+File internal/cli/review_bundle_evidence_show_test.go:
+```go
+package cli
+
+import (
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Two clones each pin kit@1 with their own bytes, and each Result cites a
+// file of that bundle as evidence (recipes/kit@1/run.sh). After hyp sync
+// joins the records, hyp show of that evidence pointer must still print,
+// in each clone, the bytes that clone's own Result named: the record keeps
+// both copies, one at the ref's path and one under recipes/.kept/.
+func TestReviewShowBundleEvidenceAfterSync(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(top, "remote.git")
+	gitIn(t, top, "init", "-q", "--bare", remote)
+	a := filepath.Join(top, "a")
+	gitIn(t, top, "clone", "-q", remote, a)
+	writeFile(t, filepath.Join(a, "s", "README.md"), "a store\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "push", "-q", "origin", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+	b := filepath.Join(top, "b")
+	gitIn(t, top, "clone", "-q", remote, b)
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	const ptr = "recipes/kit@1/run.sh"
+	type side struct{ clone, tag, r string }
+	sides := []*side{{clone: a, tag: "a"}, {clone: b, tag: "b"}}
+	for _, s := range sides {
+		t.Chdir(filepath.Join(s.clone, "s"))
+		bundleIn(t, filepath.Join(s.clone, "s"), "kit", "", map[string]string{"run.sh": "#!/bin/sh\necho " + s.tag + "\n"})
+		q := must(t, "add", "dq", "--parent", g, "--title", "Q "+s.tag, "--why", "w")
+		h := must(t, "add", "hyp", "--parent", q, "--title", "H "+s.tag, "--why", "w")
+		e := must(t, "add", "exp", "--parent", h, "--title", "E "+s.tag, "--recipe", "kit@1", "--rubric", "reading", "--why", "w")
+		s.r = must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+		if out := hyp(t, "show", ptr).stdout; !strings.Contains(out, "echo "+s.tag) {
+			t.Fatalf("before sync, hyp show %s in clone %s prints %q", ptr, s.tag, out)
+		}
+	}
+	for _, clone := range []string{a, b, a} {
+		t.Chdir(filepath.Join(clone, "s"))
+		want(t, hyp(t, "sync"), 0, "synced")
+	}
+	for _, s := range sides {
+		t.Chdir(filepath.Join(s.clone, "s"))
+		res := hyp(t, "show", ptr)
+		if res.code != 0 || !strings.Contains(res.stdout, "echo "+s.tag) {
+			t.Errorf("after sync, hyp show %s in clone %s (whose Result %s cites it) exits %d and prints %q, not the bytes %s named (echo %s); stderr %q",
+				ptr, s.tag, s.r, res.code, res.stdout, s.r, s.tag, res.stderr)
+		}
+	}
+}
+```
+Output (`go test ./internal/cli -run TestReviewShowBundleEvidenceAfterSync -count=1 -v`):
+```
+=== RUN   TestReviewShowBundleEvidenceAfterSync
+    review_bundle_evidence_show_test.go:59: after sync, hyp show recipes/kit@1/run.sh in clone a (whose Result R-ZWADV9 cites it) exits 0 and prints "#!/bin/sh\necho b\n", not the bytes R-ZWADV9 named (echo a); stderr ""
+--- FAIL: TestReviewShowBundleEvidenceAfterSync (3.29s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.628s
+FAIL
+```
+
+## Finding 2 — G-SZCBXZ#7
+
+One ref pinned at two library levels makes every pin of it questionable, after both writes exited 0.
+
+Setup: one record repository with two worktrees on two branches. Worktree w1 pins kit@1 from `s/recipes/kit@1`. Worktree w2 pins kit@1, with other bytes, from the top-level `recipes/kit@1`. The record keeps both copies, each at its own path. But `recipe.Scan` over the snapshot drops a ref whose copies at different levels hash differently. The candidate's `Holds`/`HeldKey` only covers copies under `.kept/`, so it does not cover this case.
+
+Effect:
+- w1's Result was not questionable when its write exited 0.
+- After w2's write, both Results read "questionable: recipe changed since this Result" from both checkouts.
+- On the base, each work tree sees only its own copy, so neither Result is questionable there.
+
+This is the same failure the candidate's commit message says it fixes ("Questionable … read a pin's bundle from the copy whose hash it names"), reached by another path. It may also be read as a case of #1, since a later write changes what `hyp show` prints.
+
+File internal/cli/review_bundle_two_levels_test.go:
+```go
+package cli
+
+import (
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// One record repository, two worktrees on two branches. The branch of
+// worktree w1 holds kit@1 beside the store (s/recipes/kit@1); the branch of
+// worktree w2 holds kit@1, with other bytes, in the repository's top
+// library (recipes/kit@1). Each worktree pins its own copy in a Result.
+// The record keeps both copies, each at its own path. A Result that was
+// not questionable when its write exited 0 must stay so, from every
+// checkout, after the other worktree's write.
+func TestReviewPinnedBundleAtTwoLibraryLevels(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	w1 := filepath.Join(top, "w1")
+	gitIn(t, top, "init", "-q", "-b", "main", w1)
+	writeFile(t, filepath.Join(w1, "s", "README.md"), "a store\n")
+	gitIn(t, w1, "add", "-A")
+	gitIn(t, w1, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(w1, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+
+	w2 := filepath.Join(top, "w2")
+	gitIn(t, w1, "worktree", "add", "-q", "-b", "other", w2)
+
+	// w1: kit@1 beside the store.
+	bundleIn(t, filepath.Join(w1, "s"), "kit", "", map[string]string{"run.sh": "#!/bin/sh\necho near\n"})
+	q1 := must(t, "add", "dq", "--parent", g, "--title", "Q1", "--why", "w")
+	h1 := must(t, "add", "hyp", "--parent", q1, "--title", "H1", "--why", "w")
+	e1 := must(t, "add", "exp", "--parent", h1, "--title", "E1", "--recipe", "kit@1", "--rubric", "reading", "--why", "w")
+	writeFile(t, ".tree/evidence/"+e1+"/out.txt", "ran near\n")
+	r1 := must(t, "record", "--exp", e1, "--verdict", h1+"=supports", "--observation", "ran", "--evidence", ".tree/evidence/"+e1+"/out.txt", "--why", "w")
+	if out := hyp(t, "show", r1).stdout; strings.Contains(out, "questionable") {
+		t.Fatalf("%s reads questionable right after its write:\n%s", r1, out)
+	}
+
+	// w2: kit@1 with other bytes in the top library, none beside the store.
+	t.Chdir(filepath.Join(w2, "s"))
+	bundleIn(t, w2, "kit", "", map[string]string{"run.sh": "#!/bin/sh\necho far\n"})
+	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "w")
+	h2 := must(t, "add", "hyp", "--parent", q2, "--title", "H2", "--why", "w")
+	e2 := hyp(t, "add", "exp", "--parent", h2, "--title", "E2", "--recipe", "kit@1", "--rubric", "reading", "--why", "w")
+	if e2.code != 0 {
+		t.Fatalf("w2 cannot add an Experiment on its kit@1: exit %d %s", e2.code, e2.stderr)
+	}
+	eid := strings.Fields(e2.stdout)[0]
+	writeFile(t, ".tree/evidence/"+eid+"/out.txt", "ran far\n")
+	r2 := hyp(t, "record", "--exp", eid, "--verdict", h2+"=supports", "--observation", "ran", "--evidence", ".tree/evidence/"+eid+"/out.txt", "--why", "w")
+	if r2.code != 0 {
+		t.Fatalf("w2 cannot record on its kit@1: exit %d %s", r2.code, r2.stderr)
+	}
+	r2id := strings.Fields(r2.stdout)[0]
+
+	t.Logf("record files:\n%s", gitIn(t, w1, "ls-tree", "-r", "--name-only", "refs/hyp/record"))
+	for _, wt := range []string{w1, w2} {
+		t.Chdir(filepath.Join(wt, "s"))
+		for _, id := range []string{r1, r2id} {
+			if out := hyp(t, "show", id).stdout; strings.Contains(out, "questionable") {
+				t.Errorf("from %s, %s reads questionable after both writes exited 0:\n%s", filepath.Base(wt), id, out)
+			}
+		}
+	}
+}
+```
+Output (`go test ./internal/cli -run TestReviewPinnedBundleAtTwoLibraryLevels -count=1 -v`):
+```
+=== RUN   TestReviewPinnedBundleAtTwoLibraryLevels
+    review_bundle_two_levels_test.go:62: record files:
+        recipes/kit@1/recipe.md
+        recipes/kit@1/run.sh
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-DFQE00/out.txt
+        s/.tree/evidence/E-EA4YXZ/out.txt
+        s/recipes/kit@1/recipe.md
+        s/recipes/kit@1/run.sh
+    review_bundle_two_levels_test.go:67: from w1, R-MPW7G0 reads questionable after both writes exited 0:
+        Result R-MPW7G0
+        path: G-JTEX7X > Q-QM33EC > H-76P587 > E-DFQE00 > R-MPW7G0
+        status: recorded
+        observation: ran
+        verdicts: H-76P587=supports
+        evidence: .tree/evidence/E-DFQE00/out.txt sha256 1e98b3c8624737cb994ae60ff0dc63db6e772efa2547be1fc605d640ef13af9d
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:15 a result.record R-MPW7G0 — w
+    review_bundle_two_levels_test.go:67: from w1, R-Y33YMK reads questionable after both writes exited 0:
+        Result R-Y33YMK
+        path: G-JTEX7X > Q-EYA1W5 > H-HBDE8T > E-EA4YXZ > R-Y33YMK
+        status: recorded
+        observation: ran
+        verdicts: H-HBDE8T=supports
+        evidence: .tree/evidence/E-EA4YXZ/out.txt sha256 5de5023a6e5e5fa408f714bc998b5115c59e26a02aedad3e4a45f558ca39a1b1
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:15 a result.record R-Y33YMK — w
+    review_bundle_two_levels_test.go:67: from w2, R-MPW7G0 reads questionable after both writes exited 0:
+        Result R-MPW7G0
+        path: G-JTEX7X > Q-QM33EC > H-76P587 > E-DFQE00 > R-MPW7G0
+        status: recorded
+        observation: ran
+        verdicts: H-76P587=supports
+        evidence: .tree/evidence/E-DFQE00/out.txt sha256 1e98b3c8624737cb994ae60ff0dc63db6e772efa2547be1fc605d640ef13af9d
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:15 a result.record R-MPW7G0 — w
+    review_bundle_two_levels_test.go:67: from w2, R-Y33YMK reads questionable after both writes exited 0:
+        Result R-Y33YMK
+        path: G-JTEX7X > Q-EYA1W5 > H-HBDE8T > E-EA4YXZ > R-Y33YMK
+        status: recorded
+        observation: ran
+        verdicts: H-HBDE8T=supports
+        evidence: .tree/evidence/E-EA4YXZ/out.txt sha256 5de5023a6e5e5fa408f714bc998b5115c59e26a02aedad3e4a45f558ca39a1b1
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:15 a result.record R-Y33YMK — w
+--- FAIL: TestReviewPinnedBundleAtTwoLibraryLevels (2.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.397s
+FAIL
+```
+A second run of both tests together failed the same way, with new ids.
+
+## Observations I could not or did not write as tests
+
+1. **Durability of commit 8d2cc8aa (G-SZCBXZ#1, #3).** Whether a write that exited 0 survives an unclean shutdown cannot be shown by a test without cutting power or using a fault-injection filesystem. On reading, every git run that writes an object or a ref goes through `gitRaw` with `core.fsync=objects,reference`. The one direct `exec.Command` that skips `gitRaw` (`cat-file --batch`, git.go line 212) only reads. The snapshot blob cache now syncs each blob before it renames it. Note that git older than 2.36 ignores `core.fsync` without any error. I found no defect here.
+2. **Kept-copy key compares file modes, the bundle hash does not (line "none").** `listingKey`/`sameListing` include each file's mode, but `bundleHash` ignores modes. A checkout whose bundle differs only in an exec bit gets the same bundle hash but a different listing, so the record adds a redundant whole copy under `.kept/`. I saw no wrong output from this, so I did not write it as a test.
+
+Status: DONE_WITH_CONCERNS
+Summary: The candidate passes vet and its own test suite, but two new tests fail on it. After `hyp sync`, `hyp show` of an evidence pointer into a bundle prints the other clone's bytes (G-SZCBXZ#1). A bundle ref pinned at two library levels with other bytes makes every pin of it questionable from every checkout (G-SZCBXZ#7).

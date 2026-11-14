@@ -1,0 +1,42 @@
+== TestSyncKeepsEachSidesPinnedBundle on the stand-in f296bc11b4791788ff44d46a6a4b16c0bfb7a91d (h-record-4), test file copied from 9f3434b6b19b
+=== RUN   TestSyncKeepsEachSidesPinnedBundle
+    record_bundle_sync_test.go:59: the joined record keeps kit@1 as other than one copy at its path and one whole copy under recipes/.kept/:
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-0NV1AG/out1.txt
+        s/.tree/evidence/E-WZWZ3N/out1.txt
+        s/.tree/kept/96d68d5048de839b8d6443131b2c6260086c5d3bbbb9095db85fe0d8847773b1
+        s/recipes/kit@1/recipe.md
+        s/recipes/kit@1/run.sh
+    record_bundle_sync_test.go:65: after sync, R-C4TFBA reads questionable from clone a:
+        Result R-C4TFBA
+        path: G-CJV21H > Q-S27F29 > H-63PD93 > E-WZWZ3N > R-C4TFBA
+        status: recorded
+        observation: ran
+        verdicts: H-63PD93=supports
+        evidence: .tree/evidence/E-WZWZ3N/out1.txt sha256 a210b97d61af8b733296e29547dc3e1ad8577f0d7279d2ac19a7acedf1fab557
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:06 a result.record R-C4TFBA — w
+    record_bundle_sync_test.go:68: after sync, hyp check in clone a calls R-C4TFBA questionable:
+        warn: questionable evidence R-C4TFBA (recipe kit changed)
+        warn: checked-out bundle kit@1 hashes 7865eb2a4137f50c41c5a3a90adfea62cf0deef24deac75e9d98ebe64f566a0f, not 7d0b9a51a736a139e643b9a5942cf5df7748c5e3da9b9ae745a55a7c9966dc89 as E-0NV1AG pins it
+        check: 0 errors, 2 warnings
+    record_bundle_sync_test.go:65: after sync, R-C4TFBA reads questionable from clone b:
+        Result R-C4TFBA
+        path: G-CJV21H > Q-S27F29 > H-63PD93 > E-WZWZ3N > R-C4TFBA
+        status: recorded
+        observation: ran
+        verdicts: H-63PD93=supports
+        evidence: .tree/evidence/E-WZWZ3N/out1.txt sha256 a210b97d61af8b733296e29547dc3e1ad8577f0d7279d2ac19a7acedf1fab557
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:06 a result.record R-C4TFBA — w
+    record_bundle_sync_test.go:68: after sync, hyp check in clone b calls R-C4TFBA questionable:
+        warn: questionable evidence R-C4TFBA (recipe kit changed)
+        warn: checked-out bundle kit@1 hashes 7d0b9a51a736a139e643b9a5942cf5df7748c5e3da9b9ae745a55a7c9966dc89, not 7865eb2a4137f50c41c5a3a90adfea62cf0deef24deac75e9d98ebe64f566a0f as E-WZWZ3N pins it
+        check: 0 errors, 2 warnings
+--- FAIL: TestSyncKeepsEachSidesPinnedBundle (3.23s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.700s
+FAIL
+go test exit 1
