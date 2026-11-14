@@ -16,11 +16,11 @@ func TestAddGoalRefusesATruncatedHash(t *testing.T) {
 	setup(t)
 	for _, short := range []string{fullSHA[:8] + "…", fullSHA[:8] + "...", fullSHA[:63] + "…", strings.ToUpper(fullSHA[:12]) + "..."} {
 		line := "[P] graded by eval_skill.py (sha256 " + short + ") with 0 errors"
-		r := hyp(t, "add", "goal", "--title", "G2", "--actor", "o", "--line", "[N] fine", "--line", line, "--why", "w")
+		r := hyp(t, "add", "goal", "--title", "refused goal", "--actor", "o", "--line", "[N] fine", "--line", line, "--why", "w")
 		want(t, r, 1, "line 2 names a hash cut to ")
 		want(t, r, 1, "name the file by its whole sha256 (64 hex digits)")
 	}
-	notIn(t, "G2")
+	notIn(t, "refused goal")
 
 	r := hyp(t, "add", "goal", "--title", "G3", "--actor", "o", "--line", "[P] graded by eval_skill.py (sha256 "+fullSHA+") with 0 errors", "--why", "w")
 	want(t, r, 0, "line ")
