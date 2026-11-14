@@ -1,0 +1,13 @@
+diff --git a/internal/record/source.go b/internal/record/source.go
+index c4fca41..7b6f769 100644
+--- a/internal/record/source.go
++++ b/internal/record/source.go
+@@ -89,7 +89,7 @@ func (r *Repo) TrackedEvidence(dir string) ([]string, error) {
+ func (r *Repo) Untrack(dir string, rels []string) error {
+ 	for len(rels) > 0 {
+ 		n := min(len(rels), 200)
+-		args := append([]string{"rm", "--cached", "--force", "--quiet", "--"}, rels[:n]...)
++		args := append([]string{"rm", "--cached", "--quiet", "--"}, rels[:n]...)
+ 		if _, err := gitOut(dir, nil, nil, args...); err != nil {
+ 			return err
+ 		}

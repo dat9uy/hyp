@@ -1,0 +1,13 @@
+diff --git a/internal/cli/recordcmd.go b/internal/cli/recordcmd.go
+index 70f99c6..1d63999 100644
+--- a/internal/cli/recordcmd.go
++++ b/internal/cli/recordcmd.go
+@@ -60,7 +60,7 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
+ 	}
+ 	for _, arg := range args {
+ 		ref, p, fromRef := strings.Cut(arg, ":")
+-		if !fromRef || isDir(arg, cwd) {
++		if !fromRef {
+ 			p, ref, fromRef = arg, "", false
+ 		}
+ 		abs := p

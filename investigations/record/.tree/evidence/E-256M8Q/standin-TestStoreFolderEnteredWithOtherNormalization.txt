@@ -1,0 +1,20 @@
+== TestStoreFolderEnteredWithOtherNormalization on the stand-in fff226fd94d087ea1da4edab23d94496a45b9276, the test added alone
+=== RUN   TestStoreFolderEnteredWithOtherNormalization
+    record_git_env_test.go:445: hyp status G-MAR51W from the decomposed spelling: exit 2, stdout "", stderr "unknown node G-MAR51W\n"; want what the folder prints:
+        GOAL G-MAR51W G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-A9P79H open/supported_unselected Q
+            candidates (1): H-PC5MZH
+            H-PC5MZH supported H
+        STALE
+        OWED
+          runner: Q-A9P79H select H-PC5MZH, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 14:23 a result.record R-4EZNH0 — w
+        CHECKPOINT none
+--- FAIL: TestStoreFolderEnteredWithOtherNormalization (1.15s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.528s
+FAIL
+go test exit 1
