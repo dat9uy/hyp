@@ -217,6 +217,9 @@ func TestPruneLeavesASnapshotAReadHolds(t *testing.T) {
 	if _, err := os.Stat(free); err == nil {
 		t.Fatalf("the old snapshot %s, which no read holds, was not pruned", free)
 	}
+	if _, err := os.Stat(filepath.Join(filepath.Dir(filepath.Dir(free)), "snaplock", filepath.Base(free))); err == nil {
+		t.Fatalf("the lock file of the pruned snapshot %s stays", free)
+	}
 	if _, err := os.Stat(held); err != nil {
 		t.Fatalf("a prune removed the snapshot this read holds: %v", err)
 	}

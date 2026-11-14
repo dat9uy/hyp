@@ -216,7 +216,11 @@ func (r *Repo) prune(keep string) {
 			continue
 		}
 		if syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil {
-			_ = os.RemoveAll(filepath.Join(r.hypDir("snap"), d.Name()))
+			// The lock file goes with its snapshot. A read waiting on it
+			// finds the file gone once it holds the lock, and takes a new one.
+			if os.RemoveAll(filepath.Join(r.hypDir("snap"), d.Name())) == nil {
+				_ = os.Remove(r.snapLock(d.Name()))
+			}
 			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 		}
 		f.Close()
@@ -224,7 +228,7 @@ func (r *Repo) prune(keep string) {
 }
 
 // snapLock is the lock file of the snapshot key. It lives beside the
-// snapshots and is never removed, so every command locks one file per key.
+// snapshots, and a prune removes it with its snapshot.
 func (r *Repo) snapLock(key string) string { return r.hypDir("snaplock", key) }
 
 var (
@@ -244,14 +248,23 @@ func (r *Repo) holdSnapshot(key string) error {
 	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 		return err
 	}
-	f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR, 0o644)
-	if err != nil {
-		return err
-	}
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_SH); err != nil {
+	for {
+		f, err := os.OpenFile(p, os.O_CREATE|os.O_RDWR, 0o644)
+		if err != nil {
+			return err
+		}
+		if err := syscall.Flock(int(f.Fd()), syscall.LOCK_SH); err != nil {
+			f.Close()
+			return err
+		}
+		// A prune may have removed the file while this read waited for
+		// its lock: the lock then guards nothing, so take it again.
+		fi, err1 := f.Stat()
+		pi, err2 := os.Stat(p)
+		if err1 == nil && err2 == nil && os.SameFile(fi, pi) {
+			held[p] = f
+			return nil
+		}
 		f.Close()
-		return err
 	}
-	held[p] = f
-	return nil
 }

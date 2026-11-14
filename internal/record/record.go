@@ -135,6 +135,9 @@ func Locate(start string) (*Store, error) {
 			if !inside {
 				return nil, outside(dir, top)
 			}
+			if gitPart(name) {
+				return nil, belowGit(dir, name)
+			}
 			s.Dir, s.Name = dir, name
 			return s, nil
 		}

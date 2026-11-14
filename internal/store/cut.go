@@ -36,8 +36,13 @@ type Cut struct {
 // place in the merge order.
 func CutAt(src, at string) (*Cut, error) {
 	s, err := record.At(src)
-	if err != nil {
+	if errors.Is(err, ErrNoStore) {
 		return nil, fmt.Errorf("%s: %w", src, ErrNoStore)
+	}
+	if err != nil {
+		// A refusal, such as a store folder outside the repository, or an
+		// environment problem keeps its own exit code.
+		return nil, err
 	}
 	root, err := s.Root()
 	if err != nil {

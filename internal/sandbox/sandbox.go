@@ -709,6 +709,9 @@ func Create(o CreateOptions) (*Record, error) {
 			if errors.Is(err, store.ErrNoEvent) {
 				return nil, herr.BadArgs("--cut: %v", err)
 			}
+			if herr.KindOf(err) == herr.Refusal {
+				return nil, herr.Refused("--store %s: %s; nothing created", o.Store, herr.Text(err))
+			}
 			return nil, herr.Env("--cut: %v; nothing created", err)
 		}
 	}

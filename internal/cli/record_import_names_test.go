@@ -410,7 +410,8 @@ func TestNamedPathWithANewline(t *testing.T) {
 	gitIn(t, repo, "push", "-q", "origin", "main")
 	want(t, hyp(t, "sync"), 0, "synced")
 	other := filepath.Join(t.TempDir(), "b")
-	gitIn(t, repo, "clone", "-q", remote, other)
+	// A clone by the pack protocol, never by copying the remote's files.
+	gitIn(t, repo, "clone", "-q", "--no-local", remote, other)
 	t.Chdir(filepath.Join(other, "s"))
 	want(t, hyp(t, "sync"), 0, "synced")
 	t.Setenv("HYP_ACTOR", "b")
@@ -452,4 +453,54 @@ func eventsJSON(t *testing.T, out string) []string {
 		evs = append(evs, string(e))
 	}
 	return evs
+}
+
+// Line 6: on a filesystem that folds letter case, a folder named .GIT is
+// git's folder: discovery takes the folder above it as the repository
+// root. hyp init below it exits 1 and writes nothing, and a write in a
+// work-tree store copied there exits 1, so no write exits 0 on an event
+// the record cannot hold.
+func TestStoreBelowAFolderNamedAsGitsInOtherCase(t *testing.T) {
+	repo := recordRepo(t)
+	dir := filepath.Join(repo, "g", ".GIT", "x")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(repo, "g", ".git")); err != nil {
+		t.Skip("this filesystem keeps letter case apart")
+	}
+	tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+	t.Chdir(dir)
+	refused(t, hyp(t, "init"), "store folder")
+	if _, err := os.Stat(filepath.Join(dir, ".tree")); err == nil {
+		t.Fatal("a refused hyp init below g/.GIT wrote a store folder")
+	}
+	writeFile(t, filepath.Join(dir, ".tree", "events", "a.jsonl"), "")
+	refused(t, hyp(t, "add", "goal", "--title", "x", "--why", "w"), "store folder")
+	if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again != tip {
+		t.Fatalf("a refused command moved the record from %s to %s", tip, again)
+	}
+}
+
+// Line 9: hyp sandbox create --store naming, through a link inside the host
+// repository, a store folder outside it exits 1.
+func TestSandboxStoreOutsideTheRepository(t *testing.T) {
+	if _, err := exec.LookPath("lsof"); err != nil {
+		t.Skip("lsof not on PATH")
+	}
+	t.Setenv("HOME", t.TempDir())
+	repo := recordRepo(t)
+	outside, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(outside)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "outside", "--why", "w")
+	if err := os.Symlink(outside, filepath.Join(repo, "ln")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repo)
+	t.Setenv("PWD", repo)
+	refused(t, hyp(t, "sandbox", "create", "sb1", "--host", repo, "--base", "HEAD", "--recipe", "none", "--store", filepath.Join(repo, "ln"), "--cut", g), "outside the repository")
 }
