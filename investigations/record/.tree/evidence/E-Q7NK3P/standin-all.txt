@@ -1,0 +1,130 @@
+##### standin-TestImportAddsEachMissingEvent.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportAddsEachMissingEvent in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportAddsEachMissingEvent
+--- PASS: TestImportAddsEachMissingEvent (1.57s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.719s
+exit 0
+##### standin-TestImportOfTwoStoresAddsNothingWhenOneIsRefused.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportOfTwoStoresAddsNothingWhenOneIsRefused in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportOfTwoStoresAddsNothingWhenOneIsRefused
+    record_import_names_test.go:98: exit 0, stderr "hyp import: .tree/evidence/E-SYAASX/out.txt, which 01M7DF6854K6493Z9JG1Y3Q3YY names, is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportOfTwoStoresAddsNothingWhenOneIsRefused3862835223/002/t; the record lacks it\n"; want a refusal, exit 1, naming ".tree/evidence/E-SYAASX/out.txt"
+--- FAIL: TestImportOfTwoStoresAddsNothingWhenOneIsRefused (0.67s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.825s
+FAIL
+exit 1
+##### standin-TestImportRefusesAnEventWithoutItsBundle.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAnEventWithoutItsBundle in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAnEventWithoutItsBundle
+    record_import_names_test.go:126: exit 0, stderr "hyp import: bundle kit@1 that 01M7DF692Y7TYXKBWYPPV8FKN1 pins is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnEventWithoutItsBundle2788499084/002/s with its hash; the record lacks it\n"; want a refusal, exit 1, naming "kit@1"
+--- FAIL: TestImportRefusesAnEventWithoutItsBundle (0.52s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.669s
+FAIL
+exit 1
+##### standin-TestImportRefusesAnEventWithoutItsBytes.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAnEventWithoutItsBytes in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAnEventWithoutItsBytes
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/changed
+    record_import_names_test.go:68: exit 0, stderr "hyp import: .tree/evidence/E-9X5VBR/out.txt, which 01M7DF671S2G7FH0NDJ88EATZN names, hashes b9db52b996a1 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnEventWithoutItsByteschanged593878459/002/s, not a74a65b40a11 as the event stores; the record lacks those bytes\n"; want a refusal, exit 1, naming ".tree/evidence/E-9X5VBR/out.txt"
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/removed
+    record_import_names_test.go:68: exit 0, stderr "hyp import: .tree/evidence/E-03B70T/out.txt, which 01M7DF67ATFBGMPGCP3NDPA7TM names, is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnEventWithoutItsBytesremoved2512843498/002/s; the record lacks it\n"; want a refusal, exit 1, naming ".tree/evidence/E-03B70T/out.txt"
+--- FAIL: TestImportRefusesAnEventWithoutItsBytes (0.57s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/changed (0.30s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/removed (0.27s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.925s
+FAIL
+exit 1
+##### standin-TestImportRefusesAnEventWithoutItsSubjectCommit.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAnEventWithoutItsSubjectCommit in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAnEventWithoutItsSubjectCommit
+    record_import_names_test.go:171: exit 0, stderr ""; want a refusal, exit 1, naming "42cbdc4fcd1f06442b76865b76c5175a72a35d08"
+--- FAIL: TestImportRefusesAnEventWithoutItsSubjectCommit (0.57s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.735s
+FAIL
+exit 1
+##### standin-TestImportRefusesAnIDAnotherStoreHolds.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAnIDAnotherStoreHolds in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAnIDAnotherStoreHolds
+    record_import_names_test.go:192: exit 0, stderr "hyp import: .tree/evidence/E-3W7E39/out.txt, which 01M7DF6BCDREZWWC6MG3C85B34 names, is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnIDAnotherStoreHolds2076222253/002/w; the record lacks it\n"; want a refusal, exit 1, naming "store s"
+--- FAIL: TestImportRefusesAnIDAnotherStoreHolds (1.19s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.341s
+FAIL
+exit 1
+##### standin-TestImportRefusesAPathTwoEventsNameWithOtherBytes.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAPathTwoEventsNameWithOtherBytes in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAPathTwoEventsNameWithOtherBytes
+    record_git_env_test.go:136: hyp import: exit 0, stderr "hyp import: .tree/evidence/E-ZY2FAD/out.txt, which 01M7DF6GERP506JJ4CB5D0WX49 names, hashes 27dd8ed44a83 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAPathTwoEventsNameWithOtherBytes1355495675/002/w, not 2c8b08da5ce6 as the event stores; the record lacks those bytes\n"; want exit 1 naming .tree/evidence/E-ZY2FAD/out.txt
+--- FAIL: TestImportRefusesAPathTwoEventsNameWithOtherBytes (0.37s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.526s
+FAIL
+exit 1
+##### standin-TestNamedPathWithANewline.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestNamedPathWithANewline in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestNamedPathWithANewline
+    record_import_names_test.go:374: hyp [record --exp E-AYGWA8 --verdict H-NQQGDY=supports --observation ran --evidence .tree/evidence/E-AYGWA8/a
+        b.txt --why w]: exit 3, stderr "git update-index --add --index-info failed: exit status 128: fatal: malformed index info b.txt\n"
+--- FAIL: TestNamedPathWithANewline (1.69s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.842s
+FAIL
+exit 1
+##### standin-TestNewIDSortsAfterEveryStoresID.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestNewIDSortsAfterEveryStoresID in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestNewIDSortsAfterEveryStoresID
+    record_import_names_test.go:228: the new id 01M7DF6CJK272B7E1PRZ4HBXTZ sorts before 01M7JKZTAP0W3GE1R70W3GE1R7, the newest id the record holds (store w)
+--- FAIL: TestNewIDSortsAfterEveryStoresID (0.69s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.843s
+FAIL
+exit 1
+##### standin-TestPromptOutsideARepository.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestPromptOutsideARepository in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestPromptOutsideARepository
+    prompt_test.go:143: through a link inside a repository: exit 3 (want 1), stdout "", stderr "hyp prompt G-C2GEEX: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPromptOutsideARepository1545187204/001, so its path relative to the repository root is not known\n"
+--- FAIL: TestPromptOutsideARepository (0.03s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.185s
+FAIL
+exit 1
+##### standin-TestPruneLeavesASnapshotAReadHolds.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestPruneLeavesASnapshotAReadHolds in ./internal/record/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:198: a prune removed the snapshot this read holds: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds3164025884/002/.git/hyp/snap/92f2d3cf1ec6b7e626356d3d71d119079324f2c5-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-first.txt: no such file or directory
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.51s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.618s
+FAIL
+exit 1
+##### standin-TestStoreFolderNameIsPlain-casesensitive.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestStoreFolderNameIsPlain in ./internal/cli/, TMPDIR on a case-sensitive APFS volume
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:266: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreFolderNameIsPlain (0.10s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.245s
+FAIL
+exit 1
+##### standin-TestStoreFolderNameIsPlain.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestStoreFolderNameIsPlain in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:266: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreFolderNameIsPlain (0.10s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.250s
+FAIL
+exit 1
+##### standin-TestStoreFolderOutsideTheRepository.txt
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestStoreFolderOutsideTheRepository in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestStoreFolderOutsideTheRepository
+    record_import_names_test.go:336: exit 0, stderr ""; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestStoreFolderOutsideTheRepository (0.17s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.319s
+FAIL
+exit 1

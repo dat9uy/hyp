@@ -1,0 +1,13 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAnEventWithoutItsBytes in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAnEventWithoutItsBytes
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/changed
+    record_import_names_test.go:68: exit 0, stderr "hyp import: .tree/evidence/E-9X5VBR/out.txt, which 01M7DF671S2G7FH0NDJ88EATZN names, hashes b9db52b996a1 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnEventWithoutItsByteschanged593878459/002/s, not a74a65b40a11 as the event stores; the record lacks those bytes\n"; want a refusal, exit 1, naming ".tree/evidence/E-9X5VBR/out.txt"
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/removed
+    record_import_names_test.go:68: exit 0, stderr "hyp import: .tree/evidence/E-03B70T/out.txt, which 01M7DF67ATFBGMPGCP3NDPA7TM names, is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnEventWithoutItsBytesremoved2512843498/002/s; the record lacks it\n"; want a refusal, exit 1, naming ".tree/evidence/E-03B70T/out.txt"
+--- FAIL: TestImportRefusesAnEventWithoutItsBytes (0.57s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/changed (0.30s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/removed (0.27s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.925s
+FAIL
+exit 1

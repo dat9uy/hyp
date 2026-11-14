@@ -1,0 +1,29 @@
+removal r17: discovery refuses a store below a folder named as git's
+candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+test ./internal/cli/ -run 'TestStoreBelowAFolderNamedAsGitsInOtherCase'
+applied in internal/record/record.go (1x): '\t\t\tif gitPart(name) {\n\t\t\t\treturn nil, belowGit(dir, name)\n\t\t\t}\n' -> ''
+diff:
+diff --git a/internal/record/record.go b/internal/record/record.go
+index 219611f..87afd09 100644
+--- a/internal/record/record.go
++++ b/internal/record/record.go
+@@ -135,9 +135,6 @@ func Locate(start string) (*Store, error) {
+ 			if !inside {
+ 				return nil, outside(dir, top)
+ 			}
+-			if gitPart(name) {
+-				return nil, belowGit(dir, name)
+-			}
+ 			s.Dir, s.Name = dir, name
+ 			return s, nil
+ 		}
+
+=== RUN   TestStoreBelowAFolderNamedAsGitsInOtherCase
+    record_import_names_test.go:479: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderNamedAsGitsInOtherCase (0.34s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.698s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

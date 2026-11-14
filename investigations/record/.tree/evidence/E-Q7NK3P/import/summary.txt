@@ -1,0 +1,7 @@
+checkpoint-store-design: exit 0, prints as before; a second import adds nothing
+checkpoint-store: exit 0, prints as before; a second import adds nothing
+goal-prompt: exit 0, prints as before; a second import adds nothing
+id-citation: exit 0, prints as before; a second import adds nothing
+reading-hold: exit 0, prints as before; a second import adds nothing
+recipe-base: exit 0, prints as before; a second import adds nothing
+record: exit 1, record unchanged: hyp import: refused: f05165acc15408808f59c84396ba7f09b04a7b24, the subject commit that 01M7D11MC9W80QMG0DZG1EQV23 names, is not in /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent

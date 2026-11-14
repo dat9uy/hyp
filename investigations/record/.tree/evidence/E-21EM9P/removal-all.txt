@@ -1,0 +1,754 @@
+===== removal-r1.txt
+removal r1: missing named file is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsBytes/removed'
+applied in internal/store/import.go (1x): 'return record.File{}, herr.Refused("%s, which %s names, is not in %s; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, src.Src)' -> 'return record.File{}, nil'
+applied in internal/store/import.go (1x): 'if key := src.Name + "\\x00" + rel; !adding[key] {' -> 'if key := src.Name + "\\x00" + rel; f.Path != "" && !adding[key] {'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..f81c01d 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -103,7 +103,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 					if err != nil {
+ 						return nil, err
+ 					}
+-					if key := src.Name + "\x00" + rel; !adding[key] {
++					if key := src.Name + "\x00" + rel; f.Path != "" && !adding[key] {
+ 						adding[key] = true
+ 						add = append(add, f)
+ 					}
+@@ -149,7 +149,7 @@ func namedFile(view *record.Store, src Source, ev event.Event, n Names, rel stri
+ 	p := filepath.Join(src.Src, filepath.FromSlash(rel))
+ 	fi, err := os.Stat(p)
+ 	if err != nil || !fi.Mode().IsRegular() {
+-		return record.File{}, herr.Refused("%s, which %s names, is not in %s; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, src.Src)
++		return record.File{}, nil
+ 	}
+ 	sum := n.Sums[rel]
+ 	got, err := fileSHA256(p)
+
+=== RUN   TestImportRefusesAnEventWithoutItsBytes
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/removed
+    record_import_names_test.go:68: exit 0, stderr ""; want a refusal, exit 1, naming ".tree/evidence/E-2YPS67/out.txt"
+--- FAIL: TestImportRefusesAnEventWithoutItsBytes (0.31s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/removed (0.31s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.679s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r2.txt
+removal r2: named file with other bytes is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsBytes/changed|TestImportRefusesAPathTwoEventsNameWithOtherBytes'
+applied in internal/store/import.go (1x): 'return record.File{}, herr.Refused("%s, which %s names, hashes %s in %s, not %s as the event stores; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, got[:12], src.Src, sum[:min(12, len(sum))])' -> 'return record.File{}, nil'
+applied in internal/store/import.go (1x): 'if key := src.Name + "\\x00" + rel; !adding[key] {' -> 'if key := src.Name + "\\x00" + rel; f.Path != "" && !adding[key] {'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..5646d5b 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -103,7 +103,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 					if err != nil {
+ 						return nil, err
+ 					}
+-					if key := src.Name + "\x00" + rel; !adding[key] {
++					if key := src.Name + "\x00" + rel; f.Path != "" && !adding[key] {
+ 						adding[key] = true
+ 						add = append(add, f)
+ 					}
+@@ -157,7 +157,7 @@ func namedFile(view *record.Store, src Source, ev event.Event, n Names, rel stri
+ 		return record.File{}, err
+ 	}
+ 	if sum != "" && got != sum {
+-		return record.File{}, herr.Refused("%s, which %s names, hashes %s in %s, not %s as the event stores; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, got[:12], src.Src, sum[:min(12, len(sum))])
++		return record.File{}, nil
+ 	}
+ 	return view.StoreFile(rel, p, sum), nil
+ }
+
+=== RUN   TestImportRefusesAPathTwoEventsNameWithOtherBytes
+    record_git_env_test.go:136: hyp import: exit 0, stderr ""; want exit 1 naming .tree/evidence/E-BKH7W4/out.txt
+--- FAIL: TestImportRefusesAPathTwoEventsNameWithOtherBytes (0.42s)
+=== RUN   TestImportRefusesAnEventWithoutItsBytes
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/changed
+    record_import_names_test.go:68: exit 0, stderr ""; want a refusal, exit 1, naming ".tree/evidence/E-TNCAK3/out.txt"
+--- FAIL: TestImportRefusesAnEventWithoutItsBytes (0.23s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/changed (0.23s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.112s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r3.txt
+removal r3: pinned bundle the source lacks is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsBundle'
+applied in internal/store/import.go (1x): 'return nil, "", herr.Refused("bundle %s, which %s pins, is not in %s with its pinned hash; hyp import adds an event with what it pins or not at all, so it adds nothing", b.Ref, ev.ID, src.Src)' -> 'return nil, "", nil'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..378395b 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -172,7 +172,7 @@ func pinnedBundle(src Source, ev event.Event, b Pin) ([]record.File, string, err
+ 	}
+ 	r, err := load(src.Src, b.Ref)
+ 	if err != nil || (b.Hash != "" && r.Hash != b.Hash) {
+-		return nil, "", herr.Refused("bundle %s, which %s pins, is not in %s with its pinned hash; hyp import adds an event with what it pins or not at all, so it adds nothing", b.Ref, ev.ID, src.Src)
++		return nil, "", nil
+ 	}
+ 	bf, err := dirFilesUnder(src.Top, r.Path)
+ 	return bf, r.Path, err
+
+=== RUN   TestImportRefusesAnEventWithoutItsBundle
+    record_import_names_test.go:126: exit 0, stderr ""; want a refusal, exit 1, naming "kit@1"
+--- FAIL: TestImportRefusesAnEventWithoutItsBundle (0.56s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.906s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r4.txt
+removal r4: subject commit the repository lacks is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsSubjectCommit'
+applied in internal/store/import.go (1x): 'return nil, herr.Refused("%s, the subject commit that %s names, is not in %s; fetch it, then run hyp import again, which adds nothing until then", c, ev.ID, repo.Top)' -> 'continue'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..c481880 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -120,7 +120,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 				}
+ 				for _, c := range n.Commits {
+ 					if _, ok := repo.IsCommit(c); !ok {
+-						return nil, herr.Refused("%s, the subject commit that %s names, is not in %s; fetch it, then run hyp import again, which adds nothing until then", c, ev.ID, repo.Top)
++						continue
+ 					}
+ 					commits = append(commits, c)
+ 				}
+
+=== RUN   TestImportRefusesAnEventWithoutItsSubjectCommit
+    record_import_names_test.go:171: exit 0, stderr ""; want a refusal, exit 1, naming "5d0b3c72fe1c5f4251cac81d4b62320fefa0a682"
+--- FAIL: TestImportRefusesAnEventWithoutItsSubjectCommit (0.67s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.043s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r5.txt
+removal r5: id another store holds is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestImportRefusesAnIDAnotherStoreHolds'
+applied in internal/store/import.go (1x): 'return nil, herr.Refused("event %s of the store %s is also an event of the store %s; an id is one event of one store, so hyp import adds nothing", ev.ID, src.Name, o)' -> 'continue'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..c2b8846 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -94,7 +94,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 					if o == src.Name {
+ 						continue
+ 					}
+-					return nil, herr.Refused("event %s of the store %s is also an event of the store %s; an id is one event of one store, so hyp import adds nothing", ev.ID, src.Name, o)
++					continue
+ 				}
+ 				owner[ev.ID] = src.Name
+ 				n := NamesOf(ev)
+
+=== RUN   TestImportRefusesAnIDAnotherStoreHolds
+    record_import_names_test.go:192: exit 0, stderr ""; want a refusal, exit 1, naming "store s"
+--- FAIL: TestImportRefusesAnIDAnotherStoreHolds (1.37s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.836s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r6.txt
+removal r6: a name character outside the plain set is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderNameIsPlain'
+applied in internal/record/name.go (1x): '\t\t\tif !plainRune(c) {' -> '\t\t\tif false && !plainRune(c) {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..dce268d 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -70,7 +70,7 @@ func CheckPlain(top, dir string) error {
+ 			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part . or .., and none that is %s in any letter case with or without trailing dots", name, part, GitName)
+ 		}
+ 		for _, c := range part {
+-			if !plainRune(c) {
++			if false && !plainRune(c) {
+ 				return herr.Refused("the store folder %q holds %q; a store folder's name holds only ASCII letters, digits, '.', '_', '-', '@' and '/'", name, string(c))
+ 			}
+ 		}
+
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:266: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreFolderNameIsPlain (0.10s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.449s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r7.txt
+removal r7: a part named as git's folder is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderNameIsPlain'
+applied in internal/record/name.go (1x): 'if part == "" || part == "." || part == ".." || gitPart(part) {' -> 'if part == "" || part == "." || part == ".." {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..6df6e2f 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -66,7 +66,7 @@ func CheckPlain(top, dir string) error {
+ 	}
+ 	cur := realCase(rt)
+ 	for _, part := range strings.Split(name, "/") {
+-		if part == "" || part == "." || part == ".." || gitPart(part) {
++		if part == "" || part == "." || part == ".." {
+ 			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part . or .., and none that is %s in any letter case with or without trailing dots", name, part, GitName)
+ 		}
+ 		for _, c := range part {
+
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:287: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreFolderNameIsPlain (0.45s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.818s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r8.txt
+removal r8: a part that differs only in case from a sibling is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderNameIsPlain' with TMPDIR on a case-sensitive volume
+applied in internal/record/name.go (1x): 'if e.Name() != part && strings.EqualFold(e.Name(), part) {' -> 'if false && e.Name() != part && strings.EqualFold(e.Name(), part) {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..19f3f0e 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -76,7 +76,7 @@ func CheckPlain(top, dir string) error {
+ 		}
+ 		if ents, err := os.ReadDir(cur); err == nil {
+ 			for _, e := range ents {
+-				if e.Name() != part && strings.EqualFold(e.Name(), part) {
++				if false && e.Name() != part && strings.EqualFold(e.Name(), part) {
+ 					return herr.Refused("the store folder %q has the part %q, and its folder also holds %q; each part of a store folder's name differs from every other name in its folder by more than letter case", name, part, e.Name())
+ 				}
+ 			}
+
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:298: exit 0, stderr ""; want a refusal, exit 1, naming "Data"
+--- FAIL: TestStoreFolderNameIsPlain (0.44s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.796s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r9.txt
+removal r9: discovery refuses a store folder outside the repository
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderOutsideTheRepository'
+applied in internal/record/record.go (1x): '\t\t\tif !inside {\n\t\t\t\treturn nil, outside(dir, top)\n\t\t\t}\n' -> ''
+diff:
+diff --git a/internal/record/record.go b/internal/record/record.go
+index 219611f..d91813c 100644
+--- a/internal/record/record.go
++++ b/internal/record/record.go
+@@ -132,9 +132,6 @@ func Locate(start string) (*Store, error) {
+ 			return s, nil
+ 		}
+ 		if fi, err := os.Stat(EventsDir(dir)); err == nil && fi.IsDir() {
+-			if !inside {
+-				return nil, outside(dir, top)
+-			}
+ 			if gitPart(name) {
+ 				return nil, belowGit(dir, name)
+ 			}
+
+=== RUN   TestStoreFolderOutsideTheRepository
+    record_import_names_test.go:336: exit 0, stderr ""; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestStoreFolderOutsideTheRepository (0.20s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.548s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r10.txt
+removal r10: init and import refuse a store folder outside the repository
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderOutsideTheRepository'
+applied in internal/record/name.go (1x): '\tname, ok := storeName(top, dir)\n\tif !ok {\n\t\treturn outside(dir, top)\n\t}' -> '\tname, ok := storeName(top, dir)\n\tif !ok {\n\t\treturn nil\n\t}'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..d4f93e8 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -55,7 +55,7 @@ func outside(dir, top string) error {
+ func CheckPlain(top, dir string) error {
+ 	name, ok := storeName(top, dir)
+ 	if !ok {
+-		return outside(dir, top)
++		return nil
+ 	}
+ 	if name == "." {
+ 		return nil
+
+=== RUN   TestStoreFolderOutsideTheRepository
+    record_import_names_test.go:341: exit 0, stderr ""; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestStoreFolderOutsideTheRepository (0.31s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.665s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r11.txt
+removal r11: a new id sorts after every store's ids
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestNewIDSortsAfterEveryStoresID'
+applied in internal/store/store.go (1x): '\tfor _, ids := range all {\n\t\tfor _, id := range ids {' -> '\tfor _, ids := range all {\n\t\tfor _, id := range ids[:0] {'
+diff:
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 029d7b5..49977b9 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -288,7 +288,7 @@ func AppendTo(s *record.Store, actor string, build func(*replay.State, replay.Pr
+ 		return event.Event{}, err
+ 	}
+ 	for _, ids := range all {
+-		for _, id := range ids {
++		for _, id := range ids[:0] {
+ 			if id > last && replay.ValidID(id) {
+ 				last = id
+ 			}
+
+=== RUN   TestNewIDSortsAfterEveryStoresID
+    record_import_names_test.go:228: the new id 01M7DHN52TRSAG25AQXK0S1G7G sorts before 01M7JPEJSG0W3GE1R70W3GE1R7, the newest id the record holds (store w)
+--- FAIL: TestNewIDSortsAfterEveryStoresID (0.79s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.148s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r12.txt
+removal r12: a write's index lines end in NUL
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestNamedPathWithANewline'
+applied in internal/record/commit.go (1x): '"update-index", "-z", "--add", "--index-info"' -> '"update-index", "--add", "--index-info"'
+applied in internal/record/commit.go (1x): '\\t%s\\x00", sha, p)' -> '\\t%s\\n", sha, p)'
+applied in internal/record/commit.go (1x): '\\t%s\\x00", a.mode, a.sha, p)' -> '\\t%s\\n", a.mode, a.sha, p)'
+diff:
+diff --git a/internal/record/commit.go b/internal/record/commit.go
+index f0f691f..4a9bc78 100644
+--- a/internal/record/commit.go
++++ b/internal/record/commit.go
+@@ -168,7 +168,7 @@ func (s *Store) AppendStores(lines map[string]map[string][][]byte, files []File,
+ 			if err != nil {
+ 				return err
+ 			}
+-			fmt.Fprintf(&info, "100644 %s\t%s\x00", sha, p)
++			fmt.Fprintf(&info, "100644 %s\t%s\n", sha, p)
+ 		}
+ 	}
+ 	slices.Sort(actors)
+@@ -237,9 +237,9 @@ func (s *Store) AppendStores(lines map[string]map[string][][]byte, files []File,
+ 			}
+ 			continue
+ 		}
+-		fmt.Fprintf(&info, "%s %s\t%s\x00", a.mode, a.sha, p)
++		fmt.Fprintf(&info, "%s %s\t%s\n", a.mode, a.sha, p)
+ 	}
+-	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "-z", "--add", "--index-info"); err != nil {
++	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "--add", "--index-info"); err != nil {
+ 		return err
+ 	}
+ 	afterStep("objects")
+
+=== RUN   TestNamedPathWithANewline
+    record_import_names_test.go:374: hyp [record --exp E-PM67H3 --verdict H-0WDYPQ=supports --observation ran --evidence .tree/evidence/E-PM67H3/a
+        b.txt --why w]: exit 3, stderr "git update-index --add --index-info failed: exit status 128: fatal: malformed index info b.txt\n"
+--- FAIL: TestNamedPathWithANewline (1.96s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.293s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r13.txt
+removal r13: a sync join's index lines end in NUL
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestNamedPathWithANewline'
+applied in internal/record/sync.go (1x): '"update-index", "-z", "--add", "--index-info"' -> '"update-index", "--add", "--index-info"'
+applied in internal/record/sync.go (1x): '\\t%s\\x00", e.mode, e.sha, p)' -> '\\t%s\\n", e.mode, e.sha, p)'
+applied in internal/record/sync.go (1x): '\\t%s\\x00", kept[k].mode, kept[k].sha, k)' -> '\\t%s\\n", kept[k].mode, kept[k].sha, k)'
+diff:
+diff --git a/internal/record/sync.go b/internal/record/sync.go
+index 39968a7..004cef6 100644
+--- a/internal/record/sync.go
++++ b/internal/record/sync.go
+@@ -208,10 +208,10 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ 		if e.typ != "blob" {
+ 			continue
+ 		}
+-		fmt.Fprintf(&info, "%s %s\t%s\x00", e.mode, e.sha, p)
++		fmt.Fprintf(&info, "%s %s\t%s\n", e.mode, e.sha, p)
+ 	}
+ 	for _, k := range slices.Sorted(maps.Keys(kept)) {
+-		fmt.Fprintf(&info, "%s %s\t%s\x00", kept[k].mode, kept[k].sha, k)
++		fmt.Fprintf(&info, "%s %s\t%s\n", kept[k].mode, kept[k].sha, k)
+ 	}
+ 	idx, err := os.CreateTemp(r.hypDir(), "index-*")
+ 	if err != nil {
+@@ -223,7 +223,7 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ 	if _, err := gitOut(r.Top, env, nil, "read-tree", "--empty"); err != nil {
+ 		return "", err
+ 	}
+-	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "-z", "--add", "--index-info"); err != nil {
++	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "--add", "--index-info"); err != nil {
+ 		return "", err
+ 	}
+ 	tree, err := gitOut(r.Top, env, nil, "write-tree")
+
+=== RUN   TestNamedPathWithANewline
+    record_import_names_test.go:427: exit 3 (want 0), stdout "", stderr "git update-index --add --index-info failed: exit status 128: fatal: malformed index info b.txt\n" (want "synced")
+--- FAIL: TestNamedPathWithANewline (4.89s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	5.225s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r14.txt
+removal r14: a read holds its snapshot
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/record/ -run 'TestPruneLeavesASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\tif err := r.holdSnapshot(key); err != nil {\n\t\treturn "", err\n\t}\n' -> '\tif err := os.MkdirAll(r.hypDir("snaplock"), 0o755); err != nil {\n\t\treturn "", err\n\t}\n'
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index a398387..8b50d04 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -96,7 +96,7 @@ func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, err
+ 	dir := r.hypDir("snap", key)
+ 	// The read holds its snapshot's lock until the process exits, so a
+ 	// prune by any command never removes a snapshot a read still uses.
+-	if err := r.holdSnapshot(key); err != nil {
++	if err := os.MkdirAll(r.hypDir("snaplock"), 0o755); err != nil {
+ 		return "", err
+ 	}
+ 	if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
+
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:199: a prune removed the snapshot this read holds: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds4126138111/002/.git/hyp/snap/6f6176400742dde1d8b0d8b349e41dbe9e0590e5-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-first.txt: no such file or directory
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.59s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.922s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r15.txt
+removal r15: a prune takes the snapshot's lock first
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/record/ -run 'TestPruneLeavesASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\tif syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) != nil {\n\t\treturn\n\t}\n' -> ''
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index a398387..3110490 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -225,9 +225,6 @@ func (r *Repo) prune(keep string) {
+ // that file after f was opened, and a read may then hold a new one: a lock on
+ // the removed file excludes no read, so pruneOpen skips the snapshot.
+ func (r *Repo) pruneOpen(f *os.File, key string) {
+-	if syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) != nil {
+-		return
+-	}
+ 	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+ 	if !lockedAt(f, r.snapLock(key)) {
+ 		return
+
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:199: a prune removed the snapshot this read holds: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds2539271910/002/.git/hyp/snap/2332f800ff14eed5080bb5feaba1ddfafe7e49ad-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-first.txt: no such file or directory
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.56s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.877s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r16.txt
+removal r16: a part named as git's folder in another letter case is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreBelowAFolderNamedAsGitsInOtherCase'
+applied in internal/record/name.go (1x): 'if part == "" || part == "." || part == ".." || gitPart(part) {' -> 'if part == "" || part == "." || part == ".." || part == GitName {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..85c5020 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -66,7 +66,7 @@ func CheckPlain(top, dir string) error {
+ 	}
+ 	cur := realCase(rt)
+ 	for _, part := range strings.Split(name, "/") {
+-		if part == "" || part == "." || part == ".." || gitPart(part) {
++		if part == "" || part == "." || part == ".." || part == GitName {
+ 			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part . or .., and none that is %s in any letter case with or without trailing dots", name, part, GitName)
+ 		}
+ 		for _, c := range part {
+
+=== RUN   TestStoreBelowAFolderNamedAsGitsInOtherCase
+    record_import_names_test.go:474: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderNamedAsGitsInOtherCase (0.21s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.532s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r17.txt
+removal r17: discovery refuses a store below a folder named as git's
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreBelowAFolderNamedAsGitsInOtherCase'
+applied in internal/record/record.go (1x): '\t\t\tif gitPart(name) {\n\t\t\t\treturn nil, belowGit(dir, name)\n\t\t\t}\n' -> ''
+diff:
+diff --git a/internal/record/record.go b/internal/record/record.go
+index 219611f..87afd09 100644
+--- a/internal/record/record.go
++++ b/internal/record/record.go
+@@ -135,9 +135,6 @@ func Locate(start string) (*Store, error) {
+ 			if !inside {
+ 				return nil, outside(dir, top)
+ 			}
+-			if gitPart(name) {
+-				return nil, belowGit(dir, name)
+-			}
+ 			s.Dir, s.Name = dir, name
+ 			return s, nil
+ 		}
+
+=== RUN   TestStoreBelowAFolderNamedAsGitsInOtherCase
+    record_import_names_test.go:479: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderNamedAsGitsInOtherCase (0.34s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.711s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r18.txt
+removal r18: sandbox create keeps a refusal of --store at exit 1
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestSandboxStoreOutsideTheRepository'
+applied in internal/sandbox/sandbox.go (1x): '\t\t\tif herr.KindOf(err) == herr.Refusal {\n\t\t\t\treturn nil, herr.Refused("--store %s: %s; nothing created", o.Store, herr.Text(err))\n\t\t\t}\n' -> ''
+diff:
+diff --git a/internal/sandbox/sandbox.go b/internal/sandbox/sandbox.go
+index 32d8afe..cb8cdb6 100644
+--- a/internal/sandbox/sandbox.go
++++ b/internal/sandbox/sandbox.go
+@@ -709,9 +709,6 @@ func Create(o CreateOptions) (*Record, error) {
+ 			if errors.Is(err, store.ErrNoEvent) {
+ 				return nil, herr.BadArgs("--cut: %v", err)
+ 			}
+-			if herr.KindOf(err) == herr.Refusal {
+-				return nil, herr.Refused("--store %s: %s; nothing created", o.Store, herr.Text(err))
+-			}
+ 			return nil, herr.Env("--cut: %v; nothing created", err)
+ 		}
+ 	}
+
+=== RUN   TestSandboxStoreOutsideTheRepository
+    record_import_names_test.go:505: exit 3, stderr "--cut: refused: the store folder /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository1315997833/003/ln is /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository1315997833/004, outside the repository at /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository1315997833/003; a repository's stores are below its root; nothing created\n"; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestSandboxStoreOutsideTheRepository (0.19s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.538s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r19.txt
+removal r19: a store cut keeps the refusal of the store folder
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestSandboxStoreOutsideTheRepository'
+applied in internal/store/cut.go (1x): '\tif err != nil {\n\t\t// A refusal, such as a store folder outside the repository, or an\n\t\t// environment problem keeps its own exit code.\n\t\treturn nil, err\n\t}' -> '\tif err != nil {\n\t\treturn nil, fmt.Errorf("%s: %w", src, ErrNoStore)\n\t}'
+diff:
+diff --git a/internal/store/cut.go b/internal/store/cut.go
+index b6ba2fa..b703235 100644
+--- a/internal/store/cut.go
++++ b/internal/store/cut.go
+@@ -40,9 +40,7 @@ func CutAt(src, at string) (*Cut, error) {
+ 		return nil, fmt.Errorf("%s: %w", src, ErrNoStore)
+ 	}
+ 	if err != nil {
+-		// A refusal, such as a store folder outside the repository, or an
+-		// environment problem keeps its own exit code.
+-		return nil, err
++		return nil, fmt.Errorf("%s: %w", src, ErrNoStore)
+ 	}
+ 	root, err := s.Root()
+ 	if err != nil {
+
+=== RUN   TestSandboxStoreOutsideTheRepository
+    record_import_names_test.go:505: exit 2, stderr "--store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository2802089950/003/ln holds no .tree/events\n"; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestSandboxStoreOutsideTheRepository (0.19s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.546s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r20.txt
+removal r20: a prune removes a pruned snapshot's lock file
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/record/ -run 'TestPruneLeavesASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\t\t_ = os.Remove(r.snapLock(key))\n' -> ''
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index a398387..89bbfc7 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -235,7 +235,6 @@ func (r *Repo) pruneOpen(f *os.File, key string) {
+ 	// The lock file goes with its snapshot. A read waiting on it finds the
+ 	// file gone once it holds the lock, and takes a new one.
+ 	if os.RemoveAll(filepath.Join(r.hypDir("snap"), key)) == nil {
+-		_ = os.Remove(r.snapLock(key))
+ 	}
+ }
+ 
+
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:222: the lock file of the pruned snapshot /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds3365338156/002/.git/hyp/snap/a800ab682edf0de15fc79577883b7ba7e66dadda-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89 stays
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.83s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	1.149s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r21.txt
+removal r21: a prune skips a snapshot whose lock file is no longer at the lock's path
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/record/ -run 'TestTwoPrunesLeaveASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\tif !lockedAt(f, r.snapLock(key)) {\n\t\treturn\n\t}\n' -> ''
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index a398387..3ad426f 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -229,9 +229,6 @@ func (r *Repo) pruneOpen(f *os.File, key string) {
+ 		return
+ 	}
+ 	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+-	if !lockedAt(f, r.snapLock(key)) {
+-		return
+-	}
+ 	// The lock file goes with its snapshot. A read waiting on it finds the
+ 	// file gone once it holds the lock, and takes a new one.
+ 	if os.RemoveAll(filepath.Join(r.hypDir("snap"), key)) == nil {
+
+=== RUN   TestTwoPrunesLeaveASnapshotAReadHolds
+    record_test.go:317: a prune removed the snapshot a running read holds: the read gets "", open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestTwoPrunesLeaveASnapshotAReadHolds682550309/002/.git/hyp/snap/6afc38a6c2fa54b8268788af885191f810850677-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-second.txt: no such file or directory
+--- FAIL: TestTwoPrunesLeaveASnapshotAReadHolds (0.54s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.858s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-r22.txt
+removal r22: a part git's index takes as its folder, with trailing dots, is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreBelowAFolderGitsIndexTakesAsGits'
+applied in internal/record/name.go (1x): 'strings.EqualFold(strings.TrimRight(part, "."), GitName)' -> 'strings.EqualFold(part, GitName)'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..d391a14 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -98,7 +98,7 @@ func plainRune(c rune) bool {
+ // repository root.
+ func gitPart(name string) bool {
+ 	for _, part := range strings.Split(name, "/") {
+-		if strings.EqualFold(strings.TrimRight(part, "."), GitName) {
++		if strings.EqualFold(part, GitName) {
+ 			return true
+ 		}
+ 	}
+
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.git.
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.git..
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.GIT.
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits (0.33s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.git. (0.06s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.git.. (0.07s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.GIT. (0.07s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.696s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-p1.txt
+removal p1: line 10: a store-folder literal outside package record
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestOnlyRecordNamesTheFoldersAndRunsGit'
+wrote internal/render/probe.go:
+package render
+
+var probe = "a/.tree/b"
+
+diff:
+
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+    boundary_test.go:32: outside package record:
+        internal/render/probe.go holds .tree
+--- FAIL: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.354s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
+===== removal-p2.txt
+removal p2: line 10: exec.Command with the literal git outside record and sandbox
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestOnlyRecordNamesTheFoldersAndRunsGit'
+wrote internal/render/probe.go:
+package render
+
+import "os/exec"
+
+func probe() { _ = exec.Command("git", "status") }
+
+diff:
+
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+    boundary_test.go:32: outside package record:
+        internal/render/probe.go imports os/exec
+        internal/render/probe.go runs git
+--- FAIL: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.358s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

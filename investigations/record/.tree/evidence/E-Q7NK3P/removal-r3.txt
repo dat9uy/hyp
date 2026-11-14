@@ -1,0 +1,28 @@
+removal r3: pinned bundle the source lacks is refused
+candidate 7500a76960bd84660cd3d3508a2a41331a477e37
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsBundle'
+applied in internal/store/import.go (1x): 'return nil, "", herr.Refused("bundle %s, which %s pins, is not in %s with its pinned hash; hyp import adds an event with what it pins or not at all, so it adds nothing", b.Ref, ev.ID, src.Src)' -> 'return nil, "", nil'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..378395b 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -172,7 +172,7 @@ func pinnedBundle(src Source, ev event.Event, b Pin) ([]record.File, string, err
+ 	}
+ 	r, err := load(src.Src, b.Ref)
+ 	if err != nil || (b.Hash != "" && r.Hash != b.Hash) {
+-		return nil, "", herr.Refused("bundle %s, which %s pins, is not in %s with its pinned hash; hyp import adds an event with what it pins or not at all, so it adds nothing", b.Ref, ev.ID, src.Src)
++		return nil, "", nil
+ 	}
+ 	bf, err := dirFilesUnder(src.Top, r.Path)
+ 	return bf, r.Path, err
+
+=== RUN   TestImportRefusesAnEventWithoutItsBundle
+    record_import_names_test.go:126: exit 0, stderr ""; want a refusal, exit 1, naming "kit@1"
+--- FAIL: TestImportRefusesAnEventWithoutItsBundle (0.47s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.836s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

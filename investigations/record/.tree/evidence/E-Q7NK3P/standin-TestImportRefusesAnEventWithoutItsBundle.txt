@@ -1,0 +1,8 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAnEventWithoutItsBundle in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAnEventWithoutItsBundle
+    record_import_names_test.go:126: exit 0, stderr "hyp import: bundle kit@1 that 01M7DF692Y7TYXKBWYPPV8FKN1 pins is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnEventWithoutItsBundle2788499084/002/s with its hash; the record lacks it\n"; want a refusal, exit 1, naming "kit@1"
+--- FAIL: TestImportRefusesAnEventWithoutItsBundle (0.52s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.669s
+FAIL
+exit 1

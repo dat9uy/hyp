@@ -1,0 +1,6 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportAddsEachMissingEvent in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportAddsEachMissingEvent
+--- PASS: TestImportAddsEachMissingEvent (1.57s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.719s
+exit 0

@@ -1,0 +1,164 @@
+# Review of commit 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+
+## What I checked
+
+- **The prune race fix (snapshot.go, `pruneOpen` and `lockedAt`).** I found no hole. A prune whose lock file another prune removed now skips the snapshot. A read waiting on the old file sees it is gone and takes a new lock. The open file descriptor keeps the old inode alive, so the inode cannot be reused and the `SameFile` check cannot match a new file by mistake. A prune in the same process as a read cannot take the lock either, because flock locks belong to each open file, not to the process. The commit's `TestTwoPrunesLeaveASnapshotAReadHolds` passes.
+- **The store-name fix (name.go, `gitPart`).** For store names it is complete. Git's index also drops these names, with update-index still exiting 0:
+  - `.git` followed by spaces
+  - `git~1`, the short name Windows filesystems give `.git`
+  - `.git` with ignorable Unicode characters, which git checks for HFS
+
+  `plainRune` already refuses every one of those names. I also checked `...`, `a.` and `..a` directly with `git update-index --index-info`: git keeps them. The commit's `TestStoreBelowAFolderGitsIndexTakesAsGits` passes on both the default volume and the case-sensitive volume.
+- **Whole suite.** `CGO_ENABLED=0 go build ./...` and `go vet ./...` are clean. `go test ./... -count=1` passes except for my two new tests below.
+
+The commit's reason applies beyond store names. `git update-index --index-info` prints "Ignoring path" for a path below a part git's index takes as `.git`, and still exits 0. The commit refuses such a part only in a store folder's name. It does not refuse one in the path of a file an event names, which `checkEvidence` accepts, in a write or in an import. So both commands exit 0 on an event whose file the record does not hold. I did not check whether the base commit 5900a1d has the same defect; it most likely does, since this commit does not touch that path.
+
+## Finding 1: a write exits 0 naming a file the record never holds. Label: 1
+
+A path below `.git`, `.GIT`, `.git.`, `.git ` or `git~1` is one git cannot hold. So you could read this as outside line 1's "at whatever path git can hold", which would make the label "none". The defect is that the write exits 0 instead of exiting 1. Line 1 then fails: `hyp show` of a file named by an event a write exited 0 on exits 3 once the work-tree copy is gone.
+
+## Finding 2: hyp import exits 0 and adds an event without its named file's bytes. Label: 8
+
+Line 8 says import adds each event "with the bytes of each file … it names", or exits 1 and adds nothing. Here it prints "imported 5 events" and exits 0. The record then has no copy of the file's bytes: `hyp show` of it exits 3.
+
+## Test file
+
+Both tests are in internal/cli/record_review_test.go. A copy is kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/review-3/record_review_test.go.kept.
+
+```go
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Line 1: a named file whose path has a part git's index takes as git's
+// folder (that name in any letter case, with or without trailing dots or
+// spaces, or its short name git~1) is a path update-index ignores while it
+// exits 0. A write that names such a file must not exit 0 unless the record
+// then holds its bytes: hyp show of the file prints them after the
+// work-tree copy is removed.
+func TestNamedFileBelowAPartGitsIndexTakesAsGits(t *testing.T) {
+	gitDir := "." + "git"
+	for _, part := range []string{gitDir, strings.ToUpper(gitDir), gitDir + ".", gitDir + " ", "git~1"} {
+		t.Run(part, func(t *testing.T) {
+			recordRepo(t)
+			g := must(t, "add", "goal", "--title", "G", "--why", "w")
+			q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+			h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+			e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+			ptr := ".tree/evidence/" + e + "/" + part + "/out.txt"
+			writeFile(t, ptr, "the bytes\n")
+			res := hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+			if res.code != 0 {
+				t.Logf("the write exits %d: %s", res.code, res.stderr)
+				return
+			}
+			if err := os.RemoveAll(filepath.Dir(ptr)); err != nil {
+				t.Fatal(err)
+			}
+			show := hyp(t, "show", ptr)
+			if show.code != 0 || !strings.Contains(show.stdout, "the bytes") {
+				t.Fatalf("hyp record exited 0 naming %s, but hyp show of it after the work-tree copy is gone: exit %d, stdout %q, stderr %q", ptr, show.code, show.stdout, show.stderr)
+			}
+		})
+	}
+}
+
+// Line 8: hyp import adds each event with the bytes of each file it names,
+// or exits 1 and adds nothing. A work-tree store, written with no git, whose
+// Result names a file below a part git's index takes as git's folder:
+// update-index ignores that path and exits 0, so an import that exits 0 must
+// still leave hyp show printing the file's bytes once the work-tree copy is
+// gone.
+func TestImportOfANamedFileBelowAPartGitsIndexTakesAsGits(t *testing.T) {
+	repo := recordRepo(t)
+	other := t.TempDir()
+	t.Chdir(other)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	ptr := ".tree/evidence/" + e + "/." + "git./out.txt"
+	writeFile(t, ptr, "the bytes\n")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+	dst := filepath.Join(repo, "w")
+	if err := os.CopyFS(dst, os.DirFS(other)); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repo)
+	tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+	res := hyp(t, "import", "w")
+	if res.code != 0 {
+		if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); res.code != 1 || again != tip {
+			t.Fatalf("a refused import: exit %d, record %s -> %s, stderr %q", res.code, tip, again, res.stderr)
+		}
+		return
+	}
+	if err := os.RemoveAll(filepath.Join(dst, filepath.Dir(ptr))); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dst)
+	show := hyp(t, "show", ptr)
+	if show.code != 0 || !strings.Contains(show.stdout, "the bytes") {
+		t.Fatalf("hyp import exited 0 (%q), but hyp show %s after the work-tree copy is gone: exit %d, stdout %q, stderr %q", res.stdout, ptr, show.code, show.stdout, show.stderr)
+	}
+}
+```
+
+## Output for finding 1 (red)
+
+`go test ./internal/cli -count=1 -v -run TestNamedFileBelowAPartGitsIndexTakesAsGits` at 8b042a7:
+
+```
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.git
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-A1FEER/.git/out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-A1FEER/.git/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.GIT
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-89EYWR/.GIT/out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-89EYWR/.GIT/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.git.
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-9668RC/.git./out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-9668RC/.git./out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.git_
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-33E20P/.git /out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-33E20P/.git /out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/git~1
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-V4JKYQ/git~1/out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-V4JKYQ/git~1/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+--- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits (6.00s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.git (1.15s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.GIT (1.14s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.git. (1.15s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.git_ (1.36s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/git~1 (1.20s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	6.340s
+FAIL
+```
+
+The test also fails the same way with TMPDIR on the case-sensitive volume.
+
+## Output for finding 2 (red)
+
+`go test ./internal/cli -count=1 -v -run TestImportOfANamedFile` at 8b042a7:
+
+```
+=== RUN   TestImportOfANamedFileBelowAPartGitsIndexTakesAsGits
+    record_review_test.go:79: hyp import exited 0 ("w: imported 5 events\n"), but hyp show .tree/evidence/E-QJ92FD/.git./out.txt after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-QJ92FD/.git./out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+--- FAIL: TestImportOfANamedFileBelowAPartGitsIndexTakesAsGits (0.37s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.732s
+FAIL
+```
+
+The line number is 79 in this run. In the final file it is 80, because I reflowed a comment; the full-suite run reports `record_review_test.go:80` with the same message.
+
+## Where the fix probably goes
+
+The record write (internal/record/commit.go, the update-index step) needs to refuse at exit 1 any path with a part git's index drops, using the rule `gitPart` now has plus `git~1` and trailing spaces. The other choice is to check after write-tree that the tree holds every path the write staged. Either way the import path needs the same check.
+
+The worktree is removed. I ran no hyp binary against the main repository, any worktree or a remote.
+
+Status: DONE_WITH_CONCERNS
+Summary: Both of the commit's fixes, the prune lock check and the store-name rule, are correct and their tests pass. The same "update-index ignores the path and exits 0" defect is still open for the files an event names: `hyp record` (line 1) and `hyp import` (line 8) exit 0 on a file below `.git`, `.GIT`, `.git.`, `.git ` or `git~1` that the record never holds, and both new tests are red.

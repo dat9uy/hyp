@@ -1,0 +1,28 @@
+removal r15: a prune takes the snapshot's lock first
+candidate 7500a76960bd84660cd3d3508a2a41331a477e37
+test ./internal/record/ -run 'TestPruneLeavesASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\t\tif syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil {' -> '\t\tif true {'
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index 7d2208d..04f61d4 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -215,7 +215,7 @@ func (r *Repo) prune(keep string) {
+ 		if err != nil {
+ 			continue
+ 		}
+-		if syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil {
++		if true {
+ 			_ = os.RemoveAll(filepath.Join(r.hypDir("snap"), d.Name()))
+ 			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+ 		}
+
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:198: a prune removed the snapshot this read holds: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds3543146734/002/.git/hyp/snap/91e40566a1d23a8661a5358d0959477f5d9cb737-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-first.txt: no such file or directory
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.53s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.867s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

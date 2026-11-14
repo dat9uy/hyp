@@ -1,0 +1,30 @@
+removal r19: a store cut keeps the refusal of the store folder
+candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+test ./internal/cli/ -run 'TestSandboxStoreOutsideTheRepository'
+applied in internal/store/cut.go (1x): '\tif err != nil {\n\t\t// A refusal, such as a store folder outside the repository, or an\n\t\t// environment problem keeps its own exit code.\n\t\treturn nil, err\n\t}' -> '\tif err != nil {\n\t\treturn nil, fmt.Errorf("%s: %w", src, ErrNoStore)\n\t}'
+diff:
+diff --git a/internal/store/cut.go b/internal/store/cut.go
+index b6ba2fa..b703235 100644
+--- a/internal/store/cut.go
++++ b/internal/store/cut.go
+@@ -40,9 +40,7 @@ func CutAt(src, at string) (*Cut, error) {
+ 		return nil, fmt.Errorf("%s: %w", src, ErrNoStore)
+ 	}
+ 	if err != nil {
+-		// A refusal, such as a store folder outside the repository, or an
+-		// environment problem keeps its own exit code.
+-		return nil, err
++		return nil, fmt.Errorf("%s: %w", src, ErrNoStore)
+ 	}
+ 	root, err := s.Root()
+ 	if err != nil {
+
+=== RUN   TestSandboxStoreOutsideTheRepository
+    record_import_names_test.go:505: exit 2, stderr "--store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository2531551187/003/ln holds no .tree/events\n"; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestSandboxStoreOutsideTheRepository (0.19s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.536s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

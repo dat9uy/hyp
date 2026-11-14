@@ -1,0 +1,28 @@
+removal r16: a part named as git's folder in another letter case is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreBelowAFolderNamedAsGitsInOtherCase'
+applied in internal/record/name.go (1x): 'if part == "" || part == "." || part == ".." || gitPart(part) {' -> 'if part == "" || part == "." || part == ".." || part == GitName {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..85c5020 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -66,7 +66,7 @@ func CheckPlain(top, dir string) error {
+ 	}
+ 	cur := realCase(rt)
+ 	for _, part := range strings.Split(name, "/") {
+-		if part == "" || part == "." || part == ".." || gitPart(part) {
++		if part == "" || part == "." || part == ".." || part == GitName {
+ 			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part . or .., and none that is %s in any letter case with or without trailing dots", name, part, GitName)
+ 		}
+ 		for _, c := range part {
+
+=== RUN   TestStoreBelowAFolderNamedAsGitsInOtherCase
+    record_import_names_test.go:474: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderNamedAsGitsInOtherCase (0.21s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.532s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
