@@ -1,0 +1,8 @@
+== TestRecordRefusesEvidenceChangedDuringTheWrite on 20bdb699b090 (the candidate h-record-3 supersedes), test files from 48cbb70d16a6
+=== RUN   TestRecordRefusesEvidenceChangedDuringTheWrite
+    record_sync_bytes_test.go:131: exit 0 (want 1), stdout "R-QBF8GW result.record\n", stderr "" (want "changed while hyp wrote it")
+--- FAIL: TestRecordRefusesEvidenceChangedDuringTheWrite (0.85s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.008s
+FAIL
+go test exit 1

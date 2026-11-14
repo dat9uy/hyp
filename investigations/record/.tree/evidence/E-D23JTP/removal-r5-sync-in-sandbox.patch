@@ -1,0 +1,15 @@
+diff --git a/internal/record/sync.go b/internal/record/sync.go
+index d589e40..ba4a47f 100644
+--- a/internal/record/sync.go
++++ b/internal/record/sync.go
+@@ -34,9 +34,7 @@ func Sync(dir, remote string, stdout, warn io.Writer) error {
+ 	if !ok || repo.Common == "" {
+ 		return herr.Env("hyp sync: no git repository holds %s", dir)
+ 	}
+-	if _, err := os.Stat(filepath.Join(repo.Common, sandboxMark)); err == nil {
+-		return herr.Refused("hyp sync: %s is a sandbox clone, which keeps no record", repo.Top)
+-	}
++	_ = filepath.Join
+ 	if err := os.MkdirAll(repo.hypDir(), 0o755); err != nil {
+ 		return err
+ 	}

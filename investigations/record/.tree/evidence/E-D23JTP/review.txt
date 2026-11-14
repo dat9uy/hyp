@@ -1,0 +1,210 @@
+## Review of 48cbb70d16a6 against G-SZCBXZ
+
+I checked the candidate out in my own detached worktree. That worktree was `.../scratchpad/rev48`; I have removed it, and the clone is unchanged. I built hyp to a temp path only. The `cand` and `standin` worktrees in the scratchpad were already there, and I did not touch them.
+
+Baseline: `go vet ./...` is clean. On the candidate, `go test ./... -count=1` passes every existing test. Only my three new tests fail.
+
+A copy of the test file is at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/02e6a287-7bd4-4a4c-b1a0-6000a27ba7b2/scratchpad/rv/review_record_test.go`. It goes in `internal/cli/` and reuses that package's helpers: `recordRepo`, `bundleIn`, `must`, `hyp`, `want`, `gitIn`, `pinsOf`, `sha256Hex`.
+
+### Finding 1 — G-SZCBXZ#7 (also touches #8)
+A bundle can hold a store folder inside a known-answer input, as in `recipes/kit@1/known-answers/ok/input/.tree/events/a.jsonl`. The bundle hash covers that file, and the record does hold it. But `keepPath` in `internal/record/snapshot.go` treats any path with a `.tree` part as belonging to another store. So the snapshot of the reading store leaves that file out, the bundle hashes differently there, and the Result reads `questionable: recipe changed`. The same steps in a work-tree store (the control) do not read questionable. `hasStore` also sees `recipes/kit@1/known-answers/ok/input` as a store the record holds.
+
+### Finding 2 — G-SZCBXZ#5 (and #1)
+`isEventsFile` in `internal/record/sync.go` matches any path containing `/.tree/events/` and ending in `.jsonl`. That includes an evidence file under `s/.tree/evidence/...`. When two clones each name such a path with other bytes, `hyp sync` merges the two files line by line instead of keeping both copies. Both sides then print joined bytes whose sha256 matches neither event's pin.
+
+This is not hypothetical: the stores in this repository hold 149 evidence files of this shape, for example under `investigations/recipe-base/.tree/evidence/E-3S24B5/.../input/changes/.tree/events/`.
+
+### Finding 3 — none (the Goal body's Experiment rubric)
+The rubric says each Experiment "runs hyp import in a sandbox clone of this repository". The candidate refuses `hyp import` in every clone marked as a sandbox (`OpenRecord`), and its own `TestSubjectCommitStaysReachable` asserts that refusal. This matches the design sentence "a sandbox clone … use the work-tree .tree/ as today". So the rubric step cannot run as written. Either the rubric means a plain `git clone`, or the refusal is wrong. **The owner should decide which.**
+
+### Test file
+```go
+package cli
+
+import (
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// kitWithStoreInput writes bundle kit@1 under dir whose known answer's
+// input holds a store folder, as a case input often does. The bundle hash
+// covers every file under known-answers/NAME/input/, dot entries included.
+func kitWithStoreInput(t *testing.T, dir string) {
+	t.Helper()
+	bundleIn(t, dir, "kit", "", map[string]string{
+		"known-answers/ok/input/.tree/events/a.jsonl": "{\"v\":1}\n",
+	})
+}
+
+// recipeChain adds a Goal down to a Result on an Experiment pinning kit@1
+// and returns the Experiment and the Result.
+func recipeChain(t *testing.T) (e, r string) {
+	t.Helper()
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e = must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "kit@1", "--rubric", "reading", "--why", "w")
+	ptr := ".tree/evidence/" + e + "/out.txt"
+	writeFile(t, ptr, "ran\n")
+	r = must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+	return e, r
+}
+
+// G-SZCBXZ#7: the record must keep each bundle an event pins, so a Result's
+// questionable flag reads the same as in a work-tree store. A bundle whose
+// known-answer input holds a store folder loses that input in the record's
+// copy of the store, and its Result reads questionable in the record.
+func TestReviewBundleWithStoreInputKeepsItsHash(t *testing.T) {
+	// Control: no git, the work-tree store, as on the base.
+	plain := t.TempDir()
+	gitConfig(t)
+	t.Chdir(plain)
+	must(t, "init")
+	kitWithStoreInput(t, plain)
+	_, r0 := recipeChain(t)
+	if out := hyp(t, "show", r0).stdout; strings.Contains(out, "questionable") {
+		t.Fatalf("control: the work-tree store already reads %s questionable:\n%s", r0, out)
+	}
+
+	repo := recordRepo(t)
+	kitWithStoreInput(t, filepath.Join(repo, "s"))
+	_, r := recipeChain(t)
+	files := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record")
+	if !strings.Contains(files, "s/recipes/kit@1/known-answers/ok/input/.tree/events/a.jsonl") {
+		t.Fatalf("the record lacks the bundle's known-answer input:\n%s", files)
+	}
+	if out := hyp(t, "show", r).stdout; strings.Contains(out, "questionable") {
+		t.Errorf("in a record repository %s reads questionable, though the record holds every file of kit@1 and the work-tree store reads it fine:\n%s", r, out)
+	}
+	if out := hyp(t, "check").stdout; strings.Contains(out, r) {
+		t.Errorf("hyp check names %s in a record repository:\n%s", r, out)
+	}
+}
+
+// G-SZCBXZ#5 (and #1): after hyp sync, each event that names a path finds
+// the bytes it named. A named evidence file whose path has the shape of an
+// events file (a case input holding a store, kept as evidence) is joined
+// line by line like an events file, so neither event finds its bytes.
+func TestReviewSyncKeepsNamedFileShapedLikeAnEventsFile(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(top, "remote.git")
+	gitIn(t, top, "init", "-q", "--bare", remote)
+	a := filepath.Join(top, "a")
+	gitIn(t, top, "clone", "-q", remote, a)
+	writeFile(t, filepath.Join(a, "s", "README.md"), "a store\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "push", "-q", "origin", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+	b := filepath.Join(top, "b")
+	gitIn(t, top, "clone", "-q", remote, b)
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	shared := ".tree/evidence/case/input/.tree/events/x.jsonl"
+	bytesOf := map[string]string{"a": "{\"id\":\"A\"}\n", "b": "{\"id\":\"B\"}\n"}
+	for side, dir := range map[string]string{"a": a, "b": b} {
+		t.Chdir(filepath.Join(dir, "s"))
+		writeFile(t, shared, bytesOf[side])
+		must(t, "add", "exp", "--parent", h, "--title", "E"+side, "--recipe", "none", "--rubric", "reading", "--records", shared, "--why", "w")
+	}
+	t.Chdir(filepath.Join(a, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+	t.Chdir(filepath.Join(a, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	for _, side := range []string{a, b} {
+		t.Chdir(filepath.Join(side, "s"))
+		pins := pinsOf(t, shared)
+		if len(pins) != 2 {
+			t.Fatalf("%s: the events pin %d contents of %s, want 2", filepath.Base(side), len(pins), shared)
+		}
+		for _, pin := range pins {
+			shown := hyp(t, "show", shared+"@"+pin[:12])
+			if got := sha256Hex(shown.stdout); shown.code != 0 || got != pin {
+				t.Errorf("%s: an event pins %s at %s, but hyp show prints exit %d bytes %q (sha256 %.12s) %s", filepath.Base(side), shared, pin[:12], shown.code, shown.stdout, got, shown.stderr)
+			}
+		}
+	}
+}
+
+// Goal body, the Experiment rubric: "runs hyp import in a sandbox clone of
+// this repository". The candidate refuses hyp import in every clone hyp
+// sandbox create makes, so that rubric step cannot run as written.
+func TestReviewImportInASandboxClone(t *testing.T) {
+	repo := recordRepo(t)
+	must(t, "add", "goal", "--title", "G", "--why", "w")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "store")
+	clone := filepath.Join(t.TempDir(), "c")
+	gitIn(t, repo, "clone", "-q", repo, clone)
+	if out, err := exec.Command("git", "-C", clone, "rev-parse", "--verify", "-q", "refs/hyp/record").CombinedOutput(); err == nil {
+		t.Fatalf("a plain clone holds the record: %s", out)
+	}
+	// Mark it the way hyp sandbox create marks its clone.
+	if out, err := exec.Command("sh", "-c", "touch \"$(git -C "+clone+" rev-parse --path-format=absolute --git-common-dir)/hyp-sandbox\"").CombinedOutput(); err != nil {
+		t.Fatalf("mark: %v %s", err, out)
+	}
+	t.Chdir(filepath.Join(clone, "s"))
+	res := hyp(t, "import", ".")
+	if res.code != 0 {
+		t.Errorf("hyp import in a sandbox clone: exit %d, stderr %q", res.code, res.stderr)
+	}
+}
+```
+
+### Output (`go test ./internal/cli -run TestReview -count=1 -v`, go1.27.3 darwin/arm64)
+```
+=== RUN   TestReviewBundleWithStoreInputKeepsItsHash
+    review_record_test.go:58: in a record repository R-WTKM1E reads questionable, though the record holds every file of kit@1 and the work-tree store reads it fine:
+        Result R-WTKM1E
+        path: G-2RJN8X > Q-YTCJV0 > H-K6AA0W > E-K8J3HK > R-WTKM1E
+        status: recorded
+        observation: ran
+        verdicts: H-K6AA0W=supports
+        evidence: .tree/evidence/E-K8J3HK/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 08:54 a result.record R-WTKM1E — w
+    review_record_test.go:61: hyp check names R-WTKM1E in a record repository:
+        warn: questionable evidence R-WTKM1E (recipe kit changed)
+        check: 0 errors, 1 warnings
+--- FAIL: TestReviewBundleWithStoreInputKeepsItsHash (0.99s)
+=== RUN   TestReviewSyncKeepsNamedFileShapedLikeAnEventsFile
+    review_record_test.go:117: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe)
+    review_record_test.go:117: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe)
+    review_record_test.go:117: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe)
+    review_record_test.go:117: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe)
+--- FAIL: TestReviewSyncKeepsNamedFileShapedLikeAnEventsFile (1.84s)
+=== RUN   TestReviewImportInASandboxClone
+    review_record_test.go:143: hyp import in a sandbox clone: exit 1, stderr "refused: /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportInASandboxClone149169124/003/c is a sandbox clone, which keeps no record\n"
+--- FAIL: TestReviewImportInASandboxClone (0.30s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.596s
+FAIL
+```
+
+### Checks that passed (no finding)
+- **Line 8, real stores:** the script `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/02e6a287-7bd4-4a4c-b1a0-6000a27ba7b2/scratchpad/rv/import-real.sh` makes a plain `git clone` of this repository at main in a temp directory, with git configuration kept apart from the user's. There it ran the candidate's `hyp import` on all six stores under `investigations/`, including `record`:
+  - The first run imported 27, 111, 190, 12, 11 and 26 events. A second run printed "the record holds every event" for each store.
+  - `hyp status` and `hyp check` printed the same before and after the import for every store.
+  - Evidence that no event names was untracked, and each `.gitignore` gained the `evidence/` line.
+  - I deleted the temp clone afterwards.
+- **Line 10:** no non-test Go file outside `internal/record` contains `.tree` or `.git`. Only `internal/record` and `internal/sandbox` import `os/exec`.
+- **Lines 1–4, 6 and 9:** I read the code and found no defect beyond the above. Writes go through a lock that covers the whole clone and reread the tip, the record moves by a compare-and-swap `update-ref`, and snapshots appear by an atomic rename.
+
+Status: DONE_WITH_CONCERNS
+Summary: There are two defects in the candidate, each with a failing test. A bundle whose known-answer input holds a store folder makes its Result read questionable in the record (#7). `hyp sync` merges line by line an evidence file whose path looks like an events file, so neither event gets its pinned bytes back (#5/#1). There is also one conflict for the owner: the Goal's rubric runs `hyp import` in a sandbox clone, which the candidate refuses by design.
