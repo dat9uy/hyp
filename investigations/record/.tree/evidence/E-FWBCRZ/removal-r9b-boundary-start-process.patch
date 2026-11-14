@@ -1,0 +1,15 @@
+diff --git a/internal/cli/boundary_test.go b/internal/cli/boundary_test.go
+index bfb714b..4d2d4b4 100644
+--- a/internal/cli/boundary_test.go
++++ b/internal/cli/boundary_test.go
+@@ -126,9 +126,7 @@ func boundaryFindings(t *testing.T, root string) []string {
+ 					bad = append(bad, rel+" runs git")
+ 				}
+ 			case *ast.SelectorExpr:
+-				if id, ok := n.X.(*ast.Ident); ok && slices.Contains(starts[local[id.Name]], n.Sel.Name) {
+-					bad = append(bad, rel+" starts a program with "+local[id.Name]+"."+n.Sel.Name)
+-				}
++				_ = slices.Contains(starts[local[""]], n.Sel.Name)
+ 			}
+ 			return true
+ 		})
