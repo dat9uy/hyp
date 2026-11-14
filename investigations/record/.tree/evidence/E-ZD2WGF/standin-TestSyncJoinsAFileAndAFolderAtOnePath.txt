@@ -1,0 +1,8 @@
+== TestSyncJoinsAFileAndAFolderAtOnePath on the stand-in 926319e7d0b2e05e3afaeb09a9259c1ae4133bab, the test added alone
+=== RUN   TestSyncJoinsAFileAndAFolderAtOnePath
+    record_git_env_test.go:692: exit 0 (want 0), stdout "record 401fd88e24cc synced with origin\n", stderr "" (want "a file in one record and a folder in the other")
+--- FAIL: TestSyncJoinsAFileAndAFolderAtOnePath (1.88s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.041s
+FAIL
+go test exit 1

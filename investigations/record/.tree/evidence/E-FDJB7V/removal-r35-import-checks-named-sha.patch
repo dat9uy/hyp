@@ -1,0 +1,17 @@
+diff --git a/internal/store/import.go b/internal/store/import.go
+index f413253..03dfa59 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -77,12 +77,6 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, erro
+ 				p := filepath.Join(src, filepath.FromSlash(rel))
+ 				if fi, err := os.Stat(p); err == nil && fi.Mode().IsRegular() {
+ 					sum := n.Sums[rel]
+-					if got, err := fileSHA256(p); err != nil {
+-						return 0, err
+-					} else if sum != "" && got != sum {
+-						fmt.Fprintf(warn, "hyp import: %s, which %s names, hashes %s in %s, not %s as the event stores; the record lacks those bytes\n", rel, ev.ID, got[:12], src, sum[:min(12, len(sum))])
+-						continue
+-					}
+ 					add = append(add, s.StoreFile(rel, p, sum))
+ 					continue
+ 				}

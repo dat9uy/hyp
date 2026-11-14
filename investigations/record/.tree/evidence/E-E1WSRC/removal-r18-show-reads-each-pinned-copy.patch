@@ -1,0 +1,13 @@
+diff --git a/internal/cli/read.go b/internal/cli/read.go
+index 0fe9c39..2831c02 100644
+--- a/internal/cli/read.go
++++ b/internal/cli/read.go
+@@ -247,7 +247,7 @@ func showFile(r *reader, arg string, stdout io.Writer) error {
+ 	// several contents, as a named file can.
+ 	copyOf := map[string]string{}
+ 	ref, inBundle := event.EvidenceRef(clean)
+-	if inBundle {
++	if inBundle && false {
+ 		_, rest, _ := strings.Cut(strings.TrimPrefix(clean, "recipes/"), "/")
+ 		var hashes []string
+ 		for _, ev := range r.full.Applied {

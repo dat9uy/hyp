@@ -1,0 +1,10 @@
+== returned test TestReviewImportFromRefAfterCheckoutImportAddsTheBytes of E-FDJB7V, whose commit holds no cited bytes (step 2), run at the candidate; it sets no verdict
+=== RUN   TestReviewImportFromRefAfterCheckoutImportAddsTheBytes
+    zz_returned_test.go:75: hyp import .: exit 0, stdout ".: imported 5 events\n", stderr "hyp import: .tree/evidence/E-P6S5D3/out.txt, which 01M7D8R5ZEPVCEH3MRE64VF16S names, hashes b9db52b996a1 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportFromRefAfterCheckoutImportAddsTheBytes1725801488/002/s, not a74a65b40a11 as the event stores; the record lacks those bytes\n"
+    zz_returned_test.go:77: hyp import HEAD:.: exit 0, stdout "HEAD:.: the record holds every event\n", stderr "hyp import: .tree/evidence/E-P6S5D3/out.txt, which 01M7D8R5ZEPVCEH3MRE64VF16S names, is not in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/hyp-import-2596450148/s; the record lacks it\n"
+    zz_returned_test.go:80: hyp show .tree/evidence/E-P6S5D3/out.txt after both imports: exit 3, stdout "", stderr ".tree/evidence/E-P6S5D3/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"; want the cited bytes, which HEAD:. holds
+--- FAIL: TestReviewImportFromRefAfterCheckoutImportAddsTheBytes (0.43s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.930s
+FAIL
+go test exit 1

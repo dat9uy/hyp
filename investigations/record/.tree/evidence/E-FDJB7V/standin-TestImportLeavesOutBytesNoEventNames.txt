@@ -1,0 +1,8 @@
+== TestImportLeavesOutBytesNoEventNames on the stand-in cca1c2e9aa5c5605faa13fdd18b598153d6f1cc2, the test added alone
+=== RUN   TestImportLeavesOutBytesNoEventNames
+    record_git_env_test.go:388: hyp import kept or dropped .tree/evidence/E-ECVHZ3/out.txt with no warning: stderr ""
+--- FAIL: TestImportLeavesOutBytesNoEventNames (0.30s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.473s
+FAIL
+go test exit 1

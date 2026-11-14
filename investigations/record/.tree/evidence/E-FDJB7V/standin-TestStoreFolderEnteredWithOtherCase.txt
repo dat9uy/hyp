@@ -1,0 +1,20 @@
+== TestStoreFolderEnteredWithOtherCase on the stand-in cca1c2e9aa5c5605faa13fdd18b598153d6f1cc2, the test added alone
+=== RUN   TestStoreFolderEnteredWithOtherCase
+    record_git_env_test.go:411: hyp status G-W5CHQ3 from S: exit 2, stdout "", stderr "unknown node G-W5CHQ3\n"; want what s prints:
+        GOAL G-W5CHQ3 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-MTATRT open/supported_unselected Q
+            candidates (1): H-2EHYN9
+            H-2EHYN9 supported H
+        STALE
+        OWED
+          runner: Q-MTATRT select H-2EHYN9, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 14:14 a result.record R-VDSZRQ — w
+        CHECKPOINT none
+--- FAIL: TestStoreFolderEnteredWithOtherCase (1.13s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.517s
+FAIL
+go test exit 1

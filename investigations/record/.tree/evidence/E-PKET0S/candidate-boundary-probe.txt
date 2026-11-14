@@ -1,0 +1,10 @@
+== TestOnlyRecordNamesTheFoldersAndRunsGit with the probe file internal/render/zz_boundary_probe.go; the line asks it to fail
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+    boundary_test.go:32: outside package record:
+        internal/render/zz_boundary_probe.go imports os/exec
+        internal/render/zz_boundary_probe.go runs git
+--- FAIL: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.346s
+FAIL
+go test exit 1

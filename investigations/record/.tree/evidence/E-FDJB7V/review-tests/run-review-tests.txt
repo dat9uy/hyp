@@ -1,0 +1,15 @@
+== returned tests of the review, run by the runner in the detached checkout of fff226fd94d087ea1da4edab23d94496a45b9276; the NFC and NFD literals are written as the Go escapes é and é the review names
+=== RUN   TestReviewStoreFolderEnteredWithOtherNormalization
+    zz_review_e_fdjb7v_test.go:36: hyp status G-727QZD from the NFD spelling: exit 2, stdout "", stderr "unknown node G-727QZD\n"; want what the NFC folder prints
+    zz_review_e_fdjb7v_test.go:39: hyp add goal from the NFD spelling: exit 0, stdout "G-CM4FRP node.add\n", stderr ""
+    zz_review_e_fdjb7v_test.go:48: the record holds 2 stores for one folder: map["caf\303\251:true "cafe\314\201:true]
+--- FAIL: TestReviewStoreFolderEnteredWithOtherNormalization (1.50s)
+=== RUN   TestReviewImportFromRefAfterCheckoutImportAddsTheBytes
+    zz_review_e_fdjb7v_test.go:75: hyp import .: exit 0, stdout ".: imported 5 events\n", stderr "hyp import: .tree/evidence/E-TWYT3S/out.txt, which 01M7D6V6CJYGYZ7D0E0GXYMDHZ names, hashes b9db52b996a1 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportFromRefAfterCheckoutImportAddsTheBytes2451240346/002/s, not a74a65b40a11 as the event stores; the record lacks those bytes\n"
+    zz_review_e_fdjb7v_test.go:77: hyp import HEAD:.: exit 0, stdout "HEAD:.: the record holds every event\n", stderr ""
+    zz_review_e_fdjb7v_test.go:80: hyp show .tree/evidence/E-TWYT3S/out.txt after both imports: exit 3, stdout "", stderr ".tree/evidence/E-TWYT3S/out.txt: open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportFromRefAfterCheckoutImportAddsTheBytes2451240346/002/.git/hyp/snap/2334422112ad8e9cf4ecfa87cdf57812f67b3796-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-TWYT3S/out.txt: no such file or directory\n"; want the cited bytes, which HEAD:. holds
+--- FAIL: TestReviewImportFromRefAfterCheckoutImportAddsTheBytes (0.43s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.417s
+FAIL
+go test exit 1

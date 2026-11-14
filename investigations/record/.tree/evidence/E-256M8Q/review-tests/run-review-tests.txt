@@ -1,0 +1,46 @@
+== returned tests of the review, run by the runner in the detached checkout of f24a0fdbbec13e92a2d887f1a20fa12df868f5aa
+=== RUN   TestReviewStoreFolderOtherCaseBesideALink
+    zz_review3_case_link_test.go:31: hyp status G-TH24R6 from S: exit 2, stdout "", stderr "unknown node G-TH24R6\n"; want what s prints:
+        GOAL G-TH24R6 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-6FW4GQ open/supported_unselected Q
+            candidates (1): H-PT5N2A
+            H-PT5N2A supported H
+        STALE
+        OWED
+          runner: Q-6FW4GQ select H-PT5N2A, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 14:30 a result.record R-JG05F9 — w
+        CHECKPOINT none
+    zz_review3_case_link_test.go:34: hyp add goal from S: exit 0, stdout "G-K2M54T node.add\n", stderr ""
+    zz_review3_case_link_test.go:37: the record holds a second store for the folder s:
+        a/.tree/events/a.jsonl
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-Y4RWWD/out.txt
+--- FAIL: TestReviewStoreFolderOtherCaseBesideALink (1.27s)
+=== RUN   TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked
+    zz_review3_import_bundle_test.go:42: hyp import s: exit 0, stdout "s: imported 5 events\n", stderr "hyp import: bundle kit@1 that 01M7D7EMY4270YFBF2PSG3WNX6 pins is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked3449393928/002/s with its hash; the record lacks it\n"
+    zz_review3_import_bundle_test.go:44: hyp import HEAD:s: exit 0, stdout "HEAD:s: the record holds every event\n", stderr ""
+    zz_review3_import_bundle_test.go:46: after an import from a commit that holds kit@1 with its pinned hash, the record lacks it:
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-G3WNX6/out.txt
+    zz_review3_import_bundle_test.go:56: R-PGV5ZF reads questionable in the record, though the work-tree store read it fine:
+        Result R-PGV5ZF
+        path: G-GPT2Y4 > Q-NW77Y7 > H-9866KN > E-G3WNX6 > R-PGV5ZF
+        status: recorded
+        observation: ran
+        verdicts: H-9866KN=supports
+        evidence: .tree/evidence/E-G3WNX6/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 14:30 a result.record R-PGV5ZF — w
+--- FAIL: TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked (0.64s)
+=== RUN   TestReviewShowMissingFileWithNoGitNamesNoImport
+    zz_review3_show_nogit_test.go:22: hyp show .tree/evidence/E-MYRZBA/out.txt: exit 3, stdout "", stderr ".tree/evidence/E-MYRZBA/out.txt: an event names it, but this store holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+    zz_review3_show_nogit_test.go:24: with no git, hyp show of a removed cited file names hyp import: ".tree/evidence/E-MYRZBA/out.txt: an event names it, but this store holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+--- FAIL: TestReviewShowMissingFileWithNoGitNamesNoImport (0.02s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.391s
+FAIL
+go test exit 1

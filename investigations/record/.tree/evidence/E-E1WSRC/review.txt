@@ -1,0 +1,219 @@
+# Review of candidate 926319e7d0b2e05e3afaeb09a9259c1ae4133bab (feat/record, over f24a0fdbbec1)
+
+**Checkout and gate.** I made a detached worktree of 926319e at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/9a83d6a6-df31-4643-90e2-0acf464912f4/scratchpad/review4-cand`, using go 1.27.3 darwin/arm64 and git 2.54.0. On the unmodified checkout, `go vet ./...` is clean and `go test ./... -count=1` passes in every package. I built a binary only to `.../scratchpad/review4-bin/hyp` and ran it only in temporary repositories under the scratchpad. When I was done I removed the worktree (`git worktree remove`), the binary and the scratch repositories. Nothing in the clone, on origin or at ~/.local/bin/hyp was written.
+
+**What I read.** The diff of 926319e: the Lstat change in `listedName`, the held-event bundle adoption in `store.Import`, and the `showFile` message, which now names hyp import only in a record repository. I also read the record, store, import, sync, snapshot, source, git and contain code of the branch, and checked it against lines 1 to 10 and the owner answers.
+
+**Probes that found nothing new:**
+- line 10: the boundary scan and a grep of non-test files;
+- refusing an unimported work-tree store, for record stores too;
+- ids under the lock;
+- `commit.gpgsign` does not affect `commit-tree`;
+- evidence and subject paths that leave the store are refused (exit 2);
+- kept copies count for `Holds`.
+
+## Finding 1 — G-SZCBXZ#8 (consequence on G-SZCBXZ#2)
+
+`hyp import` adds a subject commit only together with a new event, and only when the commit is present. In `store.Import`, `commits = append(commits, n.Commits...)` runs only for an event the record lacks. `Append` then drops a commit `IsCommit` cannot resolve, and nothing is printed.
+
+Imports already add, to an event the record holds, the named bytes (r37) and the pinned bundles (r39) that an earlier import lacked. Subject commits get no such second pass. The result:
+1. A clone that lacks the subject's commit imports the store and gets no warning.
+2. After the commit is fetched, `hyp import` again prints "the record holds every event" and still does not add it.
+3. Once the fetched branch is deleted and `git gc --prune=now` runs, the commit is gone, so `hyp sandbox create --base` with it cannot succeed (line 2).
+
+Test file `internal/cli/review4_subject_commit_test.go`:
+
+```go
+package cli
+
+import (
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// G-SZCBXZ#8 and #2: hyp import adds each event "with ... their subject
+// commits", and every commit a Hypothesis subject names stays reachable
+// from a ref. A clone that lacks the subject's commit imports the event
+// first (the commit cannot be added yet). Once the commit is fetched, an
+// import run again must add it, as it now adds named bytes and pinned
+// bundles an earlier import lacked; otherwise the commit is lost when its
+// branch goes and git gc runs, and hyp sandbox create --base fails.
+func TestReviewImportAddsASubjectCommitAnEarlierImportLacked(t *testing.T) {
+	gitConfig(t)
+	a, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, a, "init", "-q")
+	writeFile(t, filepath.Join(a, "s", "README.md"), "r\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "checkout", "-q", "-b", "feat")
+	writeFile(t, filepath.Join(a, "feat.txt"), "only on feat\n")
+	gitIn(t, a, "add", "feat.txt")
+	gitIn(t, a, "commit", "-qm", "feat")
+	c := gitIn(t, a, "rev-parse", "HEAD")
+	gitIn(t, a, "checkout", "-q", "main")
+	// A work-tree store (no record ref) whose subject names c.
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	dropRecord(t, a)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	must(t, "subject", h, "--base", c, "--why", "w")
+	gitIn(t, a, "add", "-f", "-A")
+	gitIn(t, a, "commit", "-qm", "store")
+
+	// b clones main only, so it lacks c.
+	b := filepath.Join(t.TempDir(), "b")
+	if out, err := exec.Command("git", "clone", "-q", "--no-local", "--single-branch", "--branch", "main", a, b).CombinedOutput(); err != nil {
+		t.Fatalf("git clone: %v %s", err, out)
+	}
+	if exec.Command("git", "-C", b, "cat-file", "-e", c+"^{commit}").Run() == nil {
+		t.Fatalf("setup: the clone already holds %s", c)
+	}
+	t.Chdir(b)
+	first := hyp(t, "import", "s")
+	t.Logf("first import (commit absent): exit %d\nstdout: %sstderr: %s", first.code, first.stdout, first.stderr)
+	if first.code != 0 {
+		t.Fatalf("first import: exit %d", first.code)
+	}
+	// The commit arrives.
+	gitIn(t, b, "fetch", "-q", "origin", "feat:refs/remotes/origin/feat")
+	if exec.Command("git", "-C", b, "cat-file", "-e", c+"^{commit}").Run() != nil {
+		t.Fatalf("setup: the fetch did not bring %s", c)
+	}
+	second := hyp(t, "import", "s")
+	t.Logf("second import (commit present): exit %d\nstdout: %sstderr: %s", second.code, second.stdout, second.stderr)
+	if exec.Command("git", "-C", b, "merge-base", "--is-ancestor", c, "refs/hyp/record").Run() != nil {
+		// Show the consequence for line 2.
+		gitIn(t, b, "update-ref", "-d", "refs/remotes/origin/feat")
+		gitIn(t, b, "reflog", "expire", "--expire=now", "--all")
+		gitIn(t, b, "gc", "-q", "--prune=now")
+		gone := exec.Command("git", "-C", b, "cat-file", "-e", c+"^{commit}").Run() != nil
+		t.Fatalf("after an import run again with %s present, the record does not reach it (second import printed %q); after its branch is deleted and gc, the commit is gone: %v",
+			c[:12], strings.TrimSpace(second.stdout), gone)
+	}
+}
+```
+
+Output (`go test ./internal/cli -run TestReview -count=1 -v`, in the checkout of 926319e):
+
+```
+=== RUN   TestReviewImportAddsASubjectCommitAnEarlierImportLacked
+    review4_subject_commit_test.go:54: first import (commit absent): exit 0
+        stdout: s: imported 4 events
+        stderr:
+    review4_subject_commit_test.go:64: second import (commit present): exit 0
+        stdout: s: the record holds every event
+        stderr:
+    review4_subject_commit_test.go:71: after an import run again with 545ffa78e383 present, the record does not reach it (second import printed "s: the record holds every event"); after its branch is deleted and gc, the commit is gone: true
+--- FAIL: TestReviewImportAddsASubjectCommitAnEarlierImportLacked (0.74s)
+```
+
+## Finding 2 — G-SZCBXZ#5 (consequence on G-SZCBXZ#1)
+
+`hyp sync` silently drops a named file when the same path is a file in one record and a folder in the other. `Repo.join` puts both entries into one `update-index --index-info` stream, `s/.tree/evidence/E/run` and `s/.tree/evidence/E/run/log.txt`. Git keeps only the folder, and sync exits 0 with no warning.
+
+The joined record, which is pushed to the remote too, then lacks the bytes clone a's Result names. `hyp show` of that pointer exits 3 with "is a directory".
+
+This is not the "one path, other bytes" case the owner put out of the Goal (R-BHDBGK, R-EK3R0H, R-V2CMZQ): no two events name one path with other content. Line 5 requires every named file of both sides in the union. The setup is two clones recording Results under one Experiment they share, which is unusual but valid.
+
+Test file `internal/cli/review4_sync_file_dir_test.go`:
+
+```go
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+// G-SZCBXZ#5: after hyp sync, both records hold the union of both, every
+// event and named file, also when each side holds events the other lacks.
+// Two clones share an Experiment E (synced before they split). Clone a's
+// Result cites the evidence file .tree/evidence/E/run; clone b's Result
+// cites .tree/evidence/E/run/log.txt, a file under a folder of that name.
+// Neither names one path with other bytes (the case the owner put out of
+// the Goal): one path is a file on one side and a folder on the other. The
+// join must hold both events and both files.
+func TestReviewSyncJoinsAFileAndAFolderAtOnePath(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(top, "remote.git")
+	gitIn(t, top, "init", "-q", "--bare", remote)
+	a := filepath.Join(top, "a")
+	gitIn(t, top, "clone", "-q", remote, a)
+	writeFile(t, filepath.Join(a, "s", "README.md"), "a store\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "push", "-q", "origin", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	b := filepath.Join(top, "b")
+	gitIn(t, top, "clone", "-q", remote, b)
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync", "origin"), 0, "synced")
+
+	t.Chdir(filepath.Join(a, "s"))
+	pa := ".tree/evidence/" + e + "/run"
+	writeFile(t, pa, "a's run\n")
+	ra := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "a ran", "--evidence", pa, "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	t.Chdir(filepath.Join(b, "s"))
+	pb := ".tree/evidence/" + e + "/run/log.txt"
+	if err := os.MkdirAll(filepath.Dir(pb), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, pb, "b's run\n")
+	rb := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "b ran", "--evidence", pb, "--why", "w")
+	res := hyp(t, "sync")
+	t.Logf("hyp sync in b: exit %d\nstdout: %sstderr: %s", res.code, res.stdout, res.stderr)
+	if res.code != 0 {
+		t.Fatalf("hyp sync could not join a record whose file %s is a folder in the other record: exit %d", pa, res.code)
+	}
+	t.Logf("the joined record's evidence of %s:\n%s", e, gitIn(t, b, "ls-tree", "-r", "--name-only", "refs/hyp/record", "s/.tree/evidence/"+e))
+	for _, c := range []struct{ id, ptr string }{{ra, pa}, {rb, pb}} {
+		want(t, hyp(t, "show", c.id), 0, "")
+		want(t, hyp(t, "show", c.ptr), 0, "run")
+	}
+}
+```
+
+Output (same run):
+
+```
+=== RUN   TestReviewSyncJoinsAFileAndAFolderAtOnePath
+    review4_sync_file_dir_test.go:58: hyp sync in b: exit 0
+        stdout: record eb88455964fa synced with origin
+        stderr:
+    review4_sync_file_dir_test.go:62: the joined record's evidence of E-ARABY5:
+        s/.tree/evidence/E-ARABY5/run/log.txt
+    review4_sync_file_dir_test.go:65: exit 3 (want 0), stdout "", stderr ".tree/evidence/E-ARABY5/run: read /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSyncJoinsAFileAndAFolderAtOnePath2466441896/002/b/.git/hyp/snap/eb88455964fa3f053eabea57dfffa8ff9011ed43-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-ARABY5/run: is a directory\n" (want "run")
+--- FAIL: TestReviewSyncJoinsAFileAndAFolderAtOnePath (1.97s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.870s
+FAIL
+```
+
+## Notes that are not findings (none)
+
+- `hyp import` and `hyp sync` are refused (exit 1) in a hyp sandbox clone, as decided. The Goal body's rubric sentence, "runs hyp import in a sandbox clone of this repository", can therefore only be met in a plain `git clone`, not in one `hyp sandbox create` makes. This is a wording tension in the Goal, not a defect of the candidate. I wrote no test for it.
+- A snapshot's non-executable files are hard links into the shared blob cache under `.git/hyp/blobs`. Any process that writes in place through a snapshot path changes that blob for every snapshot. I found no hyp command that does this, so I wrote no test and report no finding.
+
+Status: DONE_WITH_CONCERNS
+Summary: The full suite passes on 926319e, but I found two new defects, each shown red by a test. A re-run of hyp import never adds a subject commit an earlier import lacked (G-SZCBXZ#8, and so #2). hyp sync silently drops a named file when the other record holds a folder at that path (G-SZCBXZ#5).

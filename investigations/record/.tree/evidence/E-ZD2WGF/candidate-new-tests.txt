@@ -1,0 +1,145 @@
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.02s)
+=== RUN   TestBoundaryFindsEveryWayToRunGit
+=== RUN   TestBoundaryFindsEveryWayToRunGit/path
+=== RUN   TestBoundaryFindsEveryWayToRunGit/renamed
+=== RUN   TestBoundaryFindsEveryWayToRunGit/process
+=== RUN   TestBoundaryFindsEveryWayToRunGit/syscall
+=== RUN   TestBoundaryFindsEveryWayToRunGit/literal
+=== RUN   TestBoundaryFindsEveryWayToRunGit/shell
+--- PASS: TestBoundaryFindsEveryWayToRunGit (0.01s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/path (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/renamed (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/process (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/syscall (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/literal (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/shell (0.00s)
+=== RUN   TestBoundaryScansPackageFoldersNamedLikeStoreFolders
+--- PASS: TestBoundaryScansPackageFoldersNamedLikeStoreFolders (0.00s)
+=== RUN   TestBoundaryFindsEveryProgramStart
+=== RUN   TestBoundaryFindsEveryProgramStart/dot_import_of_os
+=== RUN   TestBoundaryFindsEveryProgramStart/raw_execve
+=== RUN   TestBoundaryFindsEveryProgramStart/x/sys/unix.Exec
+--- PASS: TestBoundaryFindsEveryProgramStart (0.00s)
+    --- PASS: TestBoundaryFindsEveryProgramStart/dot_import_of_os (0.00s)
+    --- PASS: TestBoundaryFindsEveryProgramStart/raw_execve (0.00s)
+    --- PASS: TestBoundaryFindsEveryProgramStart/x/sys/unix.Exec (0.00s)
+=== RUN   TestSyncKeepsEachSidesPinnedBundle
+--- PASS: TestSyncKeepsEachSidesPinnedBundle (5.79s)
+=== RUN   TestShowBundleEvidenceAfterSync
+--- PASS: TestShowBundleEvidenceAfterSync (3.51s)
+=== RUN   TestPinnedBundleAtTwoLibraryLevels
+--- PASS: TestPinnedBundleAtTwoLibraryLevels (2.32s)
+=== RUN   TestRecordWriteHardensObjectsAndRef
+--- PASS: TestRecordWriteHardensObjectsAndRef (0.68s)
+=== RUN   TestRecordNeedsGitToReadTheRecord
+--- PASS: TestRecordNeedsGitToReadTheRecord (1.06s)
+=== RUN   TestNoGitInARepositoryWithNoRecordUsesTheWorkTree
+--- PASS: TestNoGitInARepositoryWithNoRecordUsesTheWorkTree (0.03s)
+=== RUN   TestImportKeepsCitedFileTrackedBesideAGlobName
+--- PASS: TestImportKeepsCitedFileTrackedBesideAGlobName (0.38s)
+=== RUN   TestShowPickPrintsOnlyBytesOfThatSha
+--- PASS: TestShowPickPrintsOnlyBytesOfThatSha (0.46s)
+=== RUN   TestReftableRepositoryWithNoGit
+--- PASS: TestReftableRepositoryWithNoGit (0.35s)
+=== RUN   TestRecordRefDeletedWithNoGitUsesTheWorkTree
+--- PASS: TestRecordRefDeletedWithNoGitUsesTheWorkTree (0.16s)
+=== RUN   TestSyncedReftableRecordNeedsGit
+--- PASS: TestSyncedReftableRecordNeedsGit (0.56s)
+=== RUN   TestStoresWithACommonNameHashPrefixReadTheirOwnEvents
+--- PASS: TestStoresWithACommonNameHashPrefixReadTheirOwnEvents (0.65s)
+=== RUN   TestStoreFolderThroughASymlinkIsTheStoreItLinksTo
+--- PASS: TestStoreFolderThroughASymlinkIsTheStoreItLinksTo (0.58s)
+=== RUN   TestImportStoreFolderWithAColon
+--- PASS: TestImportStoreFolderWithAColon (0.79s)
+=== RUN   TestImportUntracksAnUnnamedFileWithStagedChanges
+--- PASS: TestImportUntracksAnUnnamedFileWithStagedChanges (0.63s)
+=== RUN   TestImportLeavesOutBytesNoEventNames
+--- PASS: TestImportLeavesOutBytesNoEventNames (0.34s)
+=== RUN   TestStoreFolderEnteredWithOtherCase
+--- PASS: TestStoreFolderEnteredWithOtherCase (1.75s)
+=== RUN   TestStoreFolderEnteredWithOtherNormalization
+--- PASS: TestStoreFolderEnteredWithOtherNormalization (1.53s)
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked/changed
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked/removed
+--- PASS: TestImportAddsNamedBytesAnEarlierImportLacked (1.48s)
+    --- PASS: TestImportAddsNamedBytesAnEarlierImportLacked/changed (0.74s)
+    --- PASS: TestImportAddsNamedBytesAnEarlierImportLacked/removed (0.74s)
+=== RUN   TestStoreFolderOtherCaseBesideALink
+--- PASS: TestStoreFolderOtherCaseBesideALink (1.52s)
+=== RUN   TestImportAddsAPinnedBundleAnEarlierImportLacked
+--- PASS: TestImportAddsAPinnedBundleAnEarlierImportLacked (0.97s)
+=== RUN   TestShowMissingFileWithNoGitNamesNoImport
+--- PASS: TestShowMissingFileWithNoGitNamesNoImport (0.02s)
+=== RUN   TestImportAddsASubjectCommitAnEarlierImportLacked
+--- PASS: TestImportAddsASubjectCommitAnEarlierImportLacked (1.16s)
+=== RUN   TestSyncJoinsAFileAndAFolderAtOnePath
+--- PASS: TestSyncJoinsAFileAndAFolderAtOnePath (3.67s)
+=== RUN   TestRecordOutlivesEveryWorktreeAct
+--- PASS: TestRecordOutlivesEveryWorktreeAct (3.04s)
+=== RUN   TestSubjectCommitStaysReachable
+--- PASS: TestSubjectCommitStaysReachable (1.31s)
+=== RUN   TestTwoWorktreesWriteAtOnce
+--- PASS: TestTwoWorktreesWriteAtOnce (1.91s)
+=== RUN   TestSyncJoinsTwoRecords
+--- PASS: TestSyncJoinsTwoRecords (5.30s)
+=== RUN   TestRecordHoldsOnlyNamedFiles
+--- PASS: TestRecordHoldsOnlyNamedFiles (1.41s)
+=== RUN   TestFlagsSameFromEveryCheckout
+--- PASS: TestFlagsSameFromEveryCheckout (1.48s)
+=== RUN   TestImportAddsEachMissingEvent
+--- PASS: TestImportAddsEachMissingEvent (1.62s)
+=== RUN   TestUnimportedWorkTreeStore
+--- PASS: TestUnimportedWorkTreeStore (1.03s)
+=== RUN   TestBundleWithStoreInputKeepsItsHash
+--- PASS: TestBundleWithStoreInputKeepsItsHash (1.29s)
+=== RUN   TestSyncKeepsNamedFileShapedLikeAnEventsFile
+--- PASS: TestSyncKeepsNamedFileShapedLikeAnEventsFile (2.44s)
+=== RUN   TestSyncKeepsEachSidesNamedBytes
+--- PASS: TestSyncKeepsEachSidesNamedBytes (3.32s)
+=== RUN   TestRecordRefusesEvidenceChangedDuringTheWrite
+--- PASS: TestRecordRefusesEvidenceChangedDuringTheWrite (0.88s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	55.932s
+go test cli exit 0
+=== RUN   TestAppendRefusesANamedFileNoOneHolds
+--- PASS: TestAppendRefusesANamedFileNoOneHolds (0.70s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	1.054s
+go test store exit 0
+=== RUN   TestStoppedWriteLeavesAllOrNothing
+=== RUN   TestStoppedWriteLeavesAllOrNothing/objects
+=== RUN   TestStoppedWriteLeavesAllOrNothing/tree
+=== RUN   TestStoppedWriteLeavesAllOrNothing/commit
+=== RUN   TestStoppedWriteLeavesAllOrNothing/ref
+--- PASS: TestStoppedWriteLeavesAllOrNothing (1.76s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/objects (0.40s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/tree (0.44s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/commit (0.44s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/ref (0.48s)
+=== RUN   TestReftableHoldsReadsAsGitDoes
+=== RUN   TestReftableHoldsReadsAsGitDoes/sha1
+=== RUN   TestReftableHoldsReadsAsGitDoes/sha256
+--- PASS: TestReftableHoldsReadsAsGitDoes (0.21s)
+    --- PASS: TestReftableHoldsReadsAsGitDoes/sha1 (0.10s)
+    --- PASS: TestReftableHoldsReadsAsGitDoes/sha256 (0.11s)
+=== RUN   TestReftableHoldsRefusesAMalformedTable
+--- PASS: TestReftableHoldsRefusesAMalformedTable (0.00s)
+=== RUN   TestRefOnDiskCountsAnUnreadableReftable
+--- PASS: TestRefOnDiskCountsAnUnreadableReftable (0.00s)
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/prefix_length_past_int
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/suffix_length_past_int
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_length_past_int
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_past_the_block
+--- PASS: TestReftableHoldsRefusesLengthsPastTheBlock (0.00s)
+    --- PASS: TestReftableHoldsRefusesLengthsPastTheBlock/prefix_length_past_int (0.00s)
+    --- PASS: TestReftableHoldsRefusesLengthsPastTheBlock/suffix_length_past_int (0.00s)
+    --- PASS: TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_length_past_int (0.00s)
+    --- PASS: TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_past_the_block (0.00s)
+=== RUN   TestReftableHoldsNeverPanicsOnACorruptTable
+--- PASS: TestReftableHoldsNeverPanicsOnACorruptTable (0.05s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/record	2.358s
+go test record exit 0

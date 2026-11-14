@@ -1,0 +1,232 @@
+Review of candidate f24a0fdbbec13e92a2d887f1a20fa12df868f5aa (feat/record, over fff226fd94d0)
+
+I checked out the candidate in my own temporary detached worktree at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/9a83d6a6-df31-4643-90e2-0acf464912f4/scratchpad/review3-f24a, and removed it with `git worktree remove` when I was done. Every hyp run was a go test using t.TempDir() repositories. I wrote nothing in the clone, on origin or in ~/.local/bin/hyp. Baseline in the checkout: `go vet ./...` is clean and `go test ./... -count=1` passes in every package (go1.27.3 darwin/arm64). Then I added the three test files below to internal/cli and ran them with `go test ./internal/cli -run 'TestReview' -count=1 -v` at f24a0fd. All three fail. Each output below comes from that one run. For findings 2 and 3 I also ran the test against the internal/ tree of fff226f.
+
+---
+
+## Finding 1: G-SZCBXZ#1 (regression this commit introduces)
+
+`listedName` (internal/record/record.go) no longer has the `strings.EqualFold` filter. When a name typed in another case or normalization is not listed in its directory, it now returns the first directory entry for which `os.Stat` (which follows symlinks) plus `os.SameFile` matches. A symlink sibling that points at the store folder and sorts before it is therefore taken as the store's name. Example: a repository with a store `s` and a link `a -> s`, on a filesystem that folds case (macOS default APFS).
+- `hyp status G` run from `S` exits 2 with "unknown node".
+- A write from `S` starts a second store `a/.tree/` in the record.
+
+On fff226f, with only the pre-commit record.go swapped in, the same test passes. So this commit introduces the regression; before it, `TestStoreFolderEnteredWithOtherCase` covered this case. A fix: keep a filter on name equivalence (fold case and Unicode normalization), or use `os.Lstat` so a link entry never matches.
+
+File internal/cli/review3_case_link_test.go:
+```go
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Line 1: on a filesystem that folds case, the folder s typed as S is the
+// store s, also when the repository holds a symbolic link "a" to s, whose
+// name sorts before s. hyp status from S prints what s prints, and a write
+// from S goes to the store s, not to a store named for the link.
+func TestReviewStoreFolderOtherCaseBesideALink(t *testing.T) {
+	repo := recordRepo(t)
+	probe := filepath.Join(repo, "probe-lower")
+	writeFile(t, probe, "x")
+	_, err := os.Stat(filepath.Join(repo, "PROBE-LOWER"))
+	os.Remove(probe)
+	if err != nil {
+		t.Skip("the filesystem does not fold case")
+	}
+	if err := os.Symlink("s", filepath.Join(repo, "a")); err != nil {
+		t.Fatal(err)
+	}
+	g, r, ptr := chain(t, "the bytes\n")
+	views0 := views(t, g, r, ptr)
+	t.Chdir(filepath.Join(repo, "S"))
+	res := hyp(t, "status", g)
+	if res.code != 0 || res.stdout != views0[0] {
+		t.Errorf("hyp status %s from S: exit %d, stdout %q, stderr %q; want what s prints:\n%s", g, res.code, res.stdout, res.stderr, views0[0])
+	}
+	add := hyp(t, "add", "goal", "--title", "from S", "--why", "w")
+	t.Logf("hyp add goal from S: exit %d, stdout %q, stderr %q", add.code, add.stdout, add.stderr)
+	ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record")
+	if strings.Contains(ls, "a/.tree/") || strings.Contains(ls, "S/.tree/") {
+		t.Errorf("the record holds a second store for the folder s:\n%s", ls)
+	}
+}
+```
+Output at f24a0fd:
+```
+=== RUN   TestReviewStoreFolderOtherCaseBesideALink
+    review3_case_link_test.go:31: hyp status G-60T9D3 from S: exit 2, stdout "", stderr "unknown node G-60T9D3\n"; want what s prints:
+        GOAL G-60T9D3 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-YAQB67 open/supported_unselected Q
+            candidates (1): H-3FFJSW
+            H-3FFJSW supported H
+        STALE
+        OWED
+          runner: Q-YAQB67 select H-3FFJSW, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 14:28 a result.record R-9CG4R5 — w
+        CHECKPOINT none
+    review3_case_link_test.go:34: hyp add goal from S: exit 0, stdout "G-19FZFP node.add\n", stderr ""
+    review3_case_link_test.go:37: the record holds a second store for the folder s:
+        a/.tree/events/a.jsonl
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-W7GW4A/out.txt
+--- FAIL: TestReviewStoreFolderOtherCaseBesideALink (1.34s)
+```
+Output with fff226f's internal/record/record.go: `ok  	github.com/dat9uy/hyp/internal/cli	1.763s`
+
+---
+
+## Finding 2: G-SZCBXZ#7 (also bears on #8)
+
+The commit lets a later `hyp import` add, to an event the record already holds, a named file that an earlier import lacked. It does nothing of the kind for a bundle that such an event pins. The held-event branch in internal/store/import.go loops only over `n.Files` and then `continue`s, so it skips `n.Bundles` (and `n.Commits`).
+
+Steps: a work-tree store whose Experiment pins kit@1 is committed, then imported from a checkout that lacks recipes/kit@1, then imported from `HEAD:s`, which holds kit@1 with the pinned hash.
+- The second import prints "the record holds every event".
+- The record never gets kit@1.
+- The Result reads "questionable: recipe changed since this Result" in the record, from checkouts with and without the bundle. The work-tree store read it as not questionable.
+
+So the record does not keep each bundle an event pins (line 7). The flag does not differ between checkouts: both read questionable. The same test also fails on fff226f, so the gap is older, but this commit's fix is partial.
+
+File internal/cli/review3_import_bundle_test.go:
+```go
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Line 7 (with line 8): a work-tree store whose Result pins kit@1 is
+// imported first from a checkout that lacks the bundle, so the record lacks
+// it, then from the commit that holds it with the pinned hash. A later
+// import adds a named file an earlier one lacked; it must also add the
+// pinned bundle, so the Result's questionable flag reads the same from a
+// checkout with or without recipes/kit@1, and as the work-tree store reads.
+func TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, "s", "README.md"), "r\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, "s"))
+	must(t, "init")
+	dropRecord(t, repo)
+	bundleIn(t, filepath.Join(repo, "s"), "kit", "", nil)
+	_, r := recipeChain(t)
+	control := hyp(t, "show", r).stdout
+	if strings.Contains(control, "questionable") {
+		t.Fatalf("control: the work-tree store reads %s questionable:\n%s", r, control)
+	}
+	gitIn(t, repo, "add", "-f", "-A")
+	gitIn(t, repo, "commit", "-qm", "store")
+	if err := os.RemoveAll(filepath.Join(repo, "s", "recipes")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repo)
+	first := hyp(t, "import", "s")
+	t.Logf("hyp import s: exit %d, stdout %q, stderr %q", first.code, first.stdout, first.stderr)
+	second := hyp(t, "import", "HEAD:s")
+	t.Logf("hyp import HEAD:s: exit %d, stdout %q, stderr %q", second.code, second.stdout, second.stderr)
+	if ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"); !strings.Contains(ls, "s/recipes/kit@1/recipe.md") {
+		t.Errorf("after an import from a commit that holds kit@1 with its pinned hash, the record lacks it:\n%s", ls)
+	}
+	t.Chdir(filepath.Join(repo, "s"))
+	without := hyp(t, "show", r).stdout
+	gitIn(t, repo, "checkout", "--", "s/recipes")
+	with := hyp(t, "show", r).stdout
+	if strings.Contains(without, "questionable") != strings.Contains(with, "questionable") {
+		t.Errorf("%s reads questionable=%v from a checkout without recipes/kit@1 and questionable=%v from one with it", r, strings.Contains(without, "questionable"), strings.Contains(with, "questionable"))
+	}
+	if strings.Contains(without, "questionable") {
+		t.Errorf("%s reads questionable in the record, though the work-tree store read it fine:\n%s", r, without)
+	}
+}
+```
+Output at f24a0fd:
+```
+=== RUN   TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked
+    review3_import_bundle_test.go:42: hyp import s: exit 0, stdout "s: imported 5 events\n", stderr "hyp import: bundle kit@1 that 01M7D7B2J9R1XZ8FC2W6EMB60P pins is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked3158546527/002/s with its hash; the record lacks it\n"
+    review3_import_bundle_test.go:44: hyp import HEAD:s: exit 0, stdout "HEAD:s: the record holds every event\n", stderr ""
+    review3_import_bundle_test.go:46: after an import from a commit that holds kit@1 with its pinned hash, the record lacks it:
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-EMB60P/out.txt
+    review3_import_bundle_test.go:56: R-X04ET6 reads questionable in the record, though the work-tree store read it fine:
+        Result R-X04ET6
+        path: G-G5Y9WA > Q-FWT7HE > H-K4K1E3 > E-EMB60P > R-X04ET6
+        status: recorded
+        observation: ran
+        verdicts: H-K4K1E3=supports
+        evidence: .tree/evidence/E-EMB60P/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 14:28 a result.record R-X04ET6 — w
+--- FAIL: TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked (0.69s)
+```
+Output with fff226f's internal/ tree: `--- FAIL: TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked (0.69s)` (the gap is older).
+
+---
+
+## Finding 3: label "none" (minor; closest is G-SZCBXZ#9)
+
+The new `fs.ErrNotExist` branch in `showFile` (internal/cli/read.go) runs in every mode, the no-git work-tree mode included. Outside a record repository, `hyp show` of a cited file removed from the work tree now says "this store holds no copy of its bytes; hyp import from a commit or folder that holds them adds them". There, hyp import cannot help, and in a sandbox clone it is refused. The exit code (3) and the data read are as on the base; only the advice text is new and wrong for that mode. This branch also uses exit 3 (environment) for a record that lacks a file's bytes, while the spec gives exit 1 for a pick with no bytes; I did not test that further. On fff226f this test passes, since the old message did not name hyp import.
+
+File internal/cli/review3_show_nogit_test.go:
+```go
+package cli
+
+import (
+	"os"
+	"strings"
+	"testing"
+)
+
+// Line 9: where no .git is at or above the current directory, hyp reads the
+// work-tree .tree/ as on the base. hyp show of a cited file removed from the
+// work tree should report the missing file, not tell the user to run
+// hyp import, a command for a record repository that cannot help here.
+func TestReviewShowMissingFileWithNoGitNamesNoImport(t *testing.T) {
+	gitConfig(t)
+	t.Chdir(t.TempDir())
+	must(t, "init")
+	_, _, ptr := chain(t, "bytes\n")
+	if err := os.Remove(ptr); err != nil {
+		t.Fatal(err)
+	}
+	res := hyp(t, "show", ptr)
+	t.Logf("hyp show %s: exit %d, stdout %q, stderr %q", ptr, res.code, res.stdout, res.stderr)
+	if strings.Contains(res.stderr, "hyp import") {
+		t.Errorf("with no git, hyp show of a removed cited file names hyp import: %q", res.stderr)
+	}
+}
+```
+Output at f24a0fd:
+```
+=== RUN   TestReviewShowMissingFileWithNoGitNamesNoImport
+    review3_show_nogit_test.go:22: hyp show .tree/evidence/E-J81B5A/out.txt: exit 3, stdout "", stderr ".tree/evidence/E-J81B5A/out.txt: an event names it, but this store holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+    review3_show_nogit_test.go:24: with no git, hyp show of a removed cited file names hyp import: ".tree/evidence/E-J81B5A/out.txt: an event names it, but this store holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+--- FAIL: TestReviewShowMissingFileWithNoGitNamesNoImport (0.02s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.205s
+FAIL
+```
+
+---
+
+## Not raised as findings
+- **Out of Goal.** The new `namedFile` returns early whenever the record holds a path, whatever bytes it holds there. A path held with other bytes is out-of-Goal for lines 1, 4 and 8 under R-BHDBGK#r1, R-EK3R0H#r1 and R-V2CMZQ#r1.
+- **Not tested.** For a held event, a later import does not add subject commits (`n.Commits`) either. I did not write a test for this: subject commits are git objects that are usually present, and a case needs a commit missing at the first import.
+- **Old events.** For an event that stores no sha256 (`sum == ""`), a later import adds whatever bytes the source holds for the file. This touches only events written before the record, so it is out of the lines' scope.
+
+Status: DONE_WITH_CONCERNS
+Summary: f24a0fd passes go vet and go test, but it introduces a G-SZCBXZ#1 regression: with a symlink sibling of the store folder, a folder typed in another case resolves to the link's name and splits the store. Its later-import fix adds missing named files but not missing pinned bundles (G-SZCBXZ#7); a minor third finding (label none) is that the new hyp show message names hyp import even where no git is.

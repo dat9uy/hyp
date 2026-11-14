@@ -1,0 +1,8 @@
+== TestImportUntracksAnUnnamedFileWithStagedChanges on the stand-in 6e298332bcb4c4b0d958b1432e5974bdae50e9a7, the test added alone
+=== RUN   TestImportUntracksAnUnnamedFileWithStagedChanges
+    record_git_env_test.go:356: exit 3 (want 0), stdout "s: imported 5 events\n", stderr "hyp import s: git rm --cached --quiet -- .tree/evidence/stray.txt failed: exit status 1: error: the following file has staged content different from both the\nfile and the HEAD:\n    s/.tree/evidence/stray.txt\n(use -f to force removal)\n" (want "imported")
+--- FAIL: TestImportUntracksAnUnnamedFileWithStagedChanges (0.50s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.664s
+FAIL
+go test exit 1

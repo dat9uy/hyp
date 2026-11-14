@@ -1,0 +1,32 @@
+diff --git a/internal/cli/boundary_test.go b/internal/cli/boundary_test.go
+index 7630cd3..25cc2fd 100644
+--- a/internal/cli/boundary_test.go
++++ b/internal/cli/boundary_test.go
+@@ -73,7 +73,7 @@ func TestBoundaryFindsEveryWayToRunGit(t *testing.T) {
+ func boundaryFindings(t *testing.T, root string) []string {
+ 	t.Helper()
+ 	names := []string{"." + "tree", "." + "git"}
+-	starts := map[string][]string{"os": {"StartProcess"}, "syscall": {"Exec", "ForkExec", "StartProcess", "Syscall", "Syscall6", "Syscall9", "RawSyscall", "RawSyscall6", "SYS_EXECVE", "SYS_EXECVEAT", "CreateProcess"}}
++	starts := map[string][]string{"os": {"StartProcess"}, "syscall": {"Exec", "ForkExec", "StartProcess"}}
+ 	var bad []string
+ 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+ 		if err != nil {
+@@ -112,16 +112,13 @@ func boundaryFindings(t *testing.T, root string) []string {
+ 		local := map[string]string{}
+ 		for _, imp := range f.Imports {
+ 			p, _ := strconv.Unquote(imp.Path.Value)
+-			if p == "os/exec" || strings.HasPrefix(p, "golang.org/x/sys/") {
+-				bad = append(bad, rel+" imports "+p)
++			if p == "os/exec" {
++				bad = append(bad, rel+" imports os/exec")
+ 			}
+ 			name := path.Base(p)
+ 			if imp.Name != nil {
+ 				name = imp.Name.Name
+ 			}
+-			if name == "." && starts[p] != nil {
+-				bad = append(bad, rel+" dot-imports "+p)
+-			}
+ 			local[name] = p
+ 		}
+ 		ast.Inspect(f, func(n ast.Node) bool {

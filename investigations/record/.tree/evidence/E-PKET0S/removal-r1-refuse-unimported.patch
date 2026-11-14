@@ -1,0 +1,16 @@
+diff --git a/internal/store/store.go b/internal/store/store.go
+index aab54be..76727bb 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -262,11 +262,6 @@ func AppendTo(s *record.Store, actor string, build func(*replay.State, replay.Pr
+ 	if err != nil {
+ 		return event.Event{}, err
+ 	}
+-	if s.RecordMode() {
+-		if err := refuseUnimported(s, evs); err != nil {
+-			return event.Event{}, err
+-		}
+-	}
+ 	st, p := replay.Build(evs, recipe.Hashes(root), "")
+ 	ev, err := build(st, p)
+ 	if err != nil {

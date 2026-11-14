@@ -1,0 +1,10 @@
+== out-of-Goal by answer R-EK3R0H#r1: the review tests of E-FWBCRZ for a path named with other bytes, run at the candidate; they set no verdict
+=== RUN   TestReviewShowNeverPrintsOtherBytesForAPickedSha
+    zz_oog_review_test.go:91: hyp show .tree/evidence/E-KK73YH/out.txt@2c8b08da5ce6: exit 1, stdout "", stderr "refused: .tree/evidence/E-KK73YH/out.txt@2c8b08da5ce6: the bytes kept at .tree/evidence/E-KK73YH/out.txt have sha256 27dd8ed44a83, not 2c8b08da5ce6 as an event names it; no copy with that sha256 is kept\n"
+--- PASS: TestReviewShowNeverPrintsOtherBytesForAPickedSha (0.46s)
+=== RUN   TestReviewImportFromRefThenCheckoutAddsTheLaterEvent
+    zz_oog_review_test.go:105: hyp import w after 19d3c8d310d0:w: exit 0, stdout "w: imported 1 events\n", stderr ""
+--- PASS: TestReviewImportFromRefThenCheckoutAddsTheLaterEvent (0.65s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.452s
+go test exit 0

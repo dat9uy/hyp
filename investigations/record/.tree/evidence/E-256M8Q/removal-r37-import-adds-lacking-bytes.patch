@@ -1,0 +1,16 @@
+diff --git a/internal/store/import.go b/internal/store/import.go
+index 654ddd0..6d5ba6d 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -103,11 +103,6 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
+ 			if held[ev.ID] {
+ 				// The record holds the event; it gets each named file an
+ 				// earlier import could not add.
+-				for _, rel := range n.Files {
+-					if err := namedFile(ev, n, rel); err != nil {
+-						return 0, 0, err
+-					}
+-				}
+ 				continue
+ 			}
+ 			if have[ev.ID] {
