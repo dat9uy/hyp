@@ -26,7 +26,7 @@ _Avoid_: state (alone), index, cache
 
 **Event**:
 One line of `.tree/events/<actor>.jsonl`: an id, a time, an actor, a type from a closed set, and its payload ([spec §3](replay-spec.md#3-event-envelope), [spec §4](replay-spec.md#4-event-types-closed-set)). Events are only appended, and every status derives from them. In code: `event.Event`.
-_Avoid_: entry, record (a record is what hyp writes for a sandbox or a command)
+_Avoid_: entry, trace (a trace is what hyp writes about a run of commands)
 
 **Answer**:
 An event that records the owner's act: it answers readings, or accepts or returns referred limits ([spec §4](replay-spec.md#4-event-types-closed-set), ADR 0020). Each key carries the owner's words. It has no node and no why, and owner fields and runner fields never mix in one event ([spec §5](replay-spec.md#5-refusals) rule 30). `hyp answer` writes it. In code: `event.Answer`.
@@ -283,7 +283,7 @@ The recipe of a stack that an Experiment pins, because it defines what is measur
 _Avoid_: main recipe; harness (alone, that is the agent runtime)
 
 **Environment recipe**:
-A recipe of a stack that only sets up something the subject needs, and that no Experiment pins. A sandbox record does not tell it apart: it is the stack entry the Experiment does not pin.
+A recipe of a stack that only sets up something the subject needs, and that no Experiment pins. A sandbox trace does not tell it apart: it is the stack entry the Experiment does not pin.
 _Avoid_: dependency recipe, helper recipe
 
 **Stack**:
@@ -327,7 +327,7 @@ A fixed input of an instrument, with its expected output, kept under `known-answ
 _Avoid_: fixture (alone), golden test
 
 **Known-answer run**:
-A run of one known answer by the gate, as a record lists it: its name and its outcome, `ok` or why it failed. The sandbox record and the command record list one per known answer under `known_answers` ([sandbox spec §5.1](sandbox-spec.md#51-records)). In code: `cmdrecord.Case`.
+A run of one known answer by the gate, as a record lists it: its name and its outcome, `ok` or why it failed. The sandbox trace and the command trace list one per known answer under `known_answers` ([sandbox spec §5.1](sandbox-spec.md#51-records)). In code: `cmdrecord.Case`.
 _Avoid_: case (a case is a scenario that a line or a limit covers), test case (alone), result (a Result is a tree node)
 
 **External line**:
@@ -335,12 +335,16 @@ The `External:` line under an Evidence or Standalone command, which names what t
 _Avoid_: dependencies line, inputs line
 
 **Kept input**:
-A file that an operator argument names, which hyp copies beside the command record and hashes before the first command runs ([sandbox spec §5.1](sandbox-spec.md#51-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). In code: `cmdrecord.Input` and `cmdrecord.Dir`.
+A file that an operator argument names, which hyp copies beside the command trace and hashes before the first command runs ([sandbox spec §5.1](sandbox-spec.md#51-records)). It binds the subject when the command runs, not when the Experiment is added (ADR 0008). In code: `cmdrecord.Input` and `cmdrecord.Dir`.
 _Avoid_: input binding, arg hashes, inputs field (ADR 0008 rejected one on the Experiment)
 
-**Command record**:
-hyp's record of one run of Evidence or Standalone commands outside a sandbox ([sandbox spec §5.1](sandbox-spec.md#51-records)). It keeps each file argument and names no host path for anything a replay needs. In code: `cmdrecord.Record`, read by `cmdrecord.Read`; `Record.CleanRun` is the clean run that containment needs.
-_Avoid_: run record (collides with live run)
+**Trace**:
+hyp's file of one run of a bundle's commands: what ran, on which bytes, and how each command ended. Only hyp writes it. A Result cites it as evidence, and `hyp record` copies its run subjects into the Result ([sandbox spec §5.1](sandbox-spec.md#51-records)). Its two kinds are the Sandbox trace and the Command trace.
+_Avoid_: record (kept for the history on `refs/hyp/record`, #181), receipt, run file, manifest (`manifest.json` is the sandbox's file list)
+
+**Command trace**:
+A trace of one run of Evidence or Standalone commands outside a sandbox: `command.json`, in the directory `--record DIR` names ([sandbox spec §5.1](sandbox-spec.md#51-records)). It keeps each file argument, and containment reads it for a clean run. In code: `cmdrecord.Record`, read by `cmdrecord.Read`; `Record.CleanRun` is the clean run.
+_Avoid_: command record (retired), command log (`command.log` is a file beside it)
 
 **Self-contained**:
 A recipe that relies on nothing but its own files, hyp and the subject, wherever its commands run. A fixed input that is not the subject is a file of the bundle ([sandbox spec §1.2](sandbox-spec.md#12-hyp-runs-every-command), ADR 0008).
@@ -360,9 +364,9 @@ _Avoid_: unpinned (alone)
 A disposable copy of the subject at a recorded base commit, with its own scratch space, pinned hyp and record. It is the only place hyp assembles a subject, and code under test is built in its Launch ([sandbox spec §5.3](sandbox-spec.md#53-the-subject)). It is not process isolation: commands still run on the host.
 _Avoid_: container, VM, environment
 
-**Sandbox record**:
-The record of one sandbox, `sandbox.json`, which only hyp writes. It names no host path: the sandbox's own paths derive from its id ([sandbox spec §5.1](sandbox-spec.md#51-records)).
-_Avoid_: sandbox manifest, metadata
+**Sandbox trace**:
+A trace of one sandbox from create to remove: `sandbox.json`. It names no host path, since the sandbox's own paths derive from its id ([sandbox spec §5.1](sandbox-spec.md#51-records)).
+_Avoid_: sandbox record (retired), sandbox manifest, metadata
 
 **Sandbox state**:
 The derived state of a sandbox: `building`, `setting_up`, `interrupted`, `ready`, `setup_failed` or `removing` ([sandbox spec §2](sandbox-spec.md#2-the-sandbox-machine)). It is never stored. In code: `sandbox.boxState`, from `deriveState`.
@@ -465,3 +469,4 @@ A retired word stays only in old logs, ADRs and history. Do not use it for a cur
 | unjudged | ADR 0018 | a refusal: `hyp record` refuses a Result that leaves a target without a verdict (see Target). Not untested, which is a DesignQuestion reason. |
 | wasted, pending, no-movement, spin | ADR 0017 | the ledger, the one account of progress; a stall is a ledger item that does not settle |
 | verdict check, verdict rule | ADR 0018 | Rubric for the rule; Measure for what a recipe's check prints |
+| command record, sandbox record | owner decision of 2026-11-14 | Command trace, Sandbox trace: "record" is kept for the history on `refs/hyp/record` (#181) |

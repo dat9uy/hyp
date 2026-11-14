@@ -185,7 +185,7 @@ func newFirst(cwd, target string, rubric bool, stdout io.Writer) error {
 // REF's Standalone command NAME with ARGS appended, with no sandbox.
 func cmdRecipeRun(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("bundle run", stderr)
-	record := fs.String("record", "", "new directory for the command record (required)")
+	record := fs.String("record", "", "new directory for the command trace (required)")
 	pos, err := parseHead(fs, args)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ func cmdRecipeRun(args []string, stdout, stderr io.Writer) error {
 // OUT_DIR, whose absolute path each command gets as its last argument.
 func cmdRecipeEvidence(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("bundle evidence", stderr)
-	record := fs.String("record", "", "new directory for the command record (required)")
+	record := fs.String("record", "", "new directory for the command trace (required)")
 	pos, err := parseHead(fs, args)
 	if err != nil {
 		return err

@@ -56,7 +56,7 @@
 // stops at the first that fails. Run runs a recipe's Evidence commands, or
 // one Standalone command, with no sandbox: from a temporary copy of the
 // bundle that hashes the same, in the caller's working directory, with no
-// HYP_SANDBOX_ variable. It writes a command record, command.json and
+// HYP_SANDBOX_ variable. It writes a command trace, command.json and
 // command.log, to a new directory. Every command hyp runs, in the sandbox or
 // not, is a row of its record with its arguments and exit code, written
 // before the command starts; a row with no ended is one hyp stopped during.

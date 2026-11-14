@@ -1,6 +1,6 @@
 // Package contain finds Results whose verdict script hyp cannot vouch for
 // (spec §7.6): a script cited outside recipes/, a pinned instrument without a
-// clean command record whose known answers passed, or a command record that
+// clean command trace whose known answers passed, or a command trace that
 // matches no pin.
 package contain
 
@@ -69,7 +69,7 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 
 	pins := distinct(p.Results[id].Pins)
 	records := m.records(r.Evidence)
-	// A command record among the Experiment's pinned records counts as
+	// A command trace among the Experiment's pinned records counts as
 	// cited for reason 2: a reassessment is contained by the runs it read.
 	// Reason 3 asks only the records this Result cites itself.
 	var pinned []string
@@ -88,7 +88,7 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 			continue
 		}
 		if !slices.ContainsFunc(ran, func(c cited) bool { return c.rec.CleanRun(pin.Ref, pin.Hash) }) {
-			reason := "no command record of " + pin.Ref.String() + " at " + h12(pin.Hash) + " with passing known answers"
+			reason := "no command trace of " + pin.Ref.String() + " at " + h12(pin.Hash) + " with passing known answers"
 			// Name why a cited record of this pin is not clean, so a failed
 			// command is not read as failed known answers.
 			for _, c := range ran {
@@ -104,11 +104,11 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 	// A cited record must be a readable run of something this Result pins.
 	for _, c := range records {
 		if !c.ok || c.rec.Ref.IsZero() || c.rec.SHA256 == "" {
-			why = append(why, "command record "+c.ptr+" names no recipe run")
+			why = append(why, "command trace "+c.ptr+" names no recipe run")
 			continue
 		}
 		if !slices.ContainsFunc(pins, func(pin replay.Pin) bool { return pin.Ref == c.rec.Ref && pin.Hash == c.rec.SHA256 }) {
-			why = append(why, "command record of "+c.rec.Ref.String()+" at "+h12(c.rec.SHA256)+" matches no pin of this Result")
+			why = append(why, "command trace of "+c.rec.Ref.String()+" at "+h12(c.rec.SHA256)+" matches no pin of this Result")
 		}
 	}
 

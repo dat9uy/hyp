@@ -53,7 +53,7 @@ const synthDir = "../testutil/testdata/synth"
 // each actor file against the first lines of the store's own file, and the
 // evidence against the E-* folders of the Experiments the cut keeps. An actor
 // with no event before the cut gets no file. e-short (E-8Y7V9P) is added at
-// event 29, so a cut before it drops its command record.
+// event 29, so a cut before it drops its command trace.
 func TestCutMatchesExpected(t *testing.T) {
 	src := files(t, filepath.Join(synthDir, ".tree", "events"))
 	evidence := files(t, filepath.Join(synthDir, ".tree", "evidence"))

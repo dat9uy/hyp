@@ -150,7 +150,7 @@ The flow has three skills. They run in Claude Code, whose `/goal` command keeps 
 2. **`/goal <that prompt>`** runs the Goal with the `hyp-goal-run` skill. The run does only the items that OWED shows for it. It tests before it asks. It stops with a report that the owner can read in `hyp status`.
 3. **`/hyp-owner-answer`** shows the owner each item that the stopped run left under AWAITING OWNER. It explains each item and records only the answers of the owner. The next `/goal` run starts from there, with a new prompt from `hyp prompt`. The prompt does not hold the answers, because OWED shows the answers that the run must apply.
 
-The [owner guide](docs/owner-guide.md) tells the owner what hyp asks of them, when a run stops for them, and which command records each answer.
+The [owner guide](docs/owner-guide.md) tells the owner what hyp asks of them, when a run stops for them, and which command traces each answer.
 
 ## Who does what: what is owed
 
