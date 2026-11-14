@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -314,6 +316,11 @@ func showFile(r *reader, arg string, stdout io.Writer) error {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return herr.Env("%s: %v", arg, err)
+	}
+	if pick != "" {
+		if got := sha256.Sum256(data); hex.EncodeToString(got[:]) != sum {
+			return herr.Refused("%s: the bytes kept at %s have sha256 %s, not %s as an event names it; no copy with that sha256 is kept", arg, clean, hex.EncodeToString(got[:])[:12], sum[:12])
+		}
 	}
 	_, err = stdout.Write(data)
 	return err

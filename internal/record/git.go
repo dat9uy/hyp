@@ -43,14 +43,22 @@ func MarkSandbox(wt string) error {
 
 // openRepo opens the repository at top. A .git that git cannot open as a
 // repository, or no git on PATH, gives a repository with no record, which
-// reads and writes the work-tree store folder as before the record.
+// reads and writes the work-tree store folder as before the record, unless
+// the repository's files hold the record ref: then hyp cannot read the
+// record, which is an environment problem.
 func openRepo(top string) (*Repo, error) {
 	r := &Repo{Top: top}
 	if _, err := exec.LookPath("git"); err != nil {
+		if refOnDisk(top) {
+			return nil, herr.Env("%s holds the record ref %s, and git is not on PATH, so hyp cannot read the record; install git", top, Ref)
+		}
 		return r, nil
 	}
 	common, err := gitOut(top, nil, nil, "rev-parse", "--path-format=absolute", "--git-common-dir")
 	if err != nil {
+		if refOnDisk(top) {
+			return nil, herr.Env("%s holds the record ref %s, and git cannot open the repository, so hyp cannot read the record: %s", top, Ref, herr.Text(err))
+		}
 		return r, nil
 	}
 	r.Common = common
@@ -74,6 +82,56 @@ func OpenRepo(start string) (repo *Repo, ok bool, err error) {
 	}
 	repo, err = openRepo(top)
 	return repo, err == nil, err
+}
+
+// refOnDisk reports whether the files of the repository at top may hold
+// Ref, read without git: a loose ref, a line of packed-refs, or a reftable,
+// which only git can read and so counts as holding it. A sandbox clone's
+// mark counts as no record.
+func refOnDisk(top string) bool {
+	gitdir := filepath.Join(top, GitName)
+	if fi, err := os.Stat(gitdir); err != nil {
+		return false
+	} else if !fi.IsDir() {
+		b, err := os.ReadFile(gitdir)
+		if err != nil {
+			return false
+		}
+		d, ok := strings.CutPrefix(strings.TrimSpace(string(b)), "gitdir:")
+		if !ok {
+			return false
+		}
+		gitdir = strings.TrimSpace(d)
+		if !filepath.IsAbs(gitdir) {
+			gitdir = filepath.Join(top, gitdir)
+		}
+	}
+	common := gitdir
+	if b, err := os.ReadFile(filepath.Join(gitdir, "commondir")); err == nil {
+		common = strings.TrimSpace(string(b))
+		if !filepath.IsAbs(common) {
+			common = filepath.Join(gitdir, common)
+		}
+	}
+	if _, err := os.Stat(filepath.Join(common, sandboxMark)); err == nil {
+		return false
+	}
+	if _, err := os.Stat(filepath.Join(common, filepath.FromSlash(Ref))); err == nil {
+		return true
+	}
+	if _, err := os.Stat(filepath.Join(common, "reftable")); err == nil {
+		return true
+	}
+	b, err := os.ReadFile(filepath.Join(common, "packed-refs"))
+	if err != nil {
+		return false
+	}
+	for _, line := range strings.Split(string(b), "\n") {
+		if f := strings.Fields(line); len(f) == 2 && f[1] == Ref {
+			return true
+		}
+	}
+	return false
 }
 
 // tip is the commit Ref names, "" when the repository has no record.
@@ -277,7 +335,7 @@ func (e *errGit) Error() string {
 // (core.fsync), so a record write that exits 0 survives an unclean
 // shutdown, as the work-tree store's synced events file does.
 func gitRaw(dir string, env []string, stdin []byte, args ...string) ([]byte, error) {
-	cmd := exec.Command("git", append([]string{"-C", dir, "-c", "core.fsync=objects,reference", "-c", "core.fsyncMethod=fsync"}, args...)...)
+	cmd := exec.Command("git", append([]string{"-C", dir, "--literal-pathspecs", "-c", "core.fsync=objects,reference", "-c", "core.fsyncMethod=fsync"}, args...)...)
 	cmd.Env = append(os.Environ(), env...)
 	if stdin != nil {
 		cmd.Stdin = bytes.NewReader(stdin)
