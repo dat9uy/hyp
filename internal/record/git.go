@@ -273,8 +273,11 @@ func (e *errGit) Error() string {
 	return fmt.Sprintf("git %s failed: %v: %s", strings.Join(e.args, " "), e.err, e.stderr)
 }
 
+// gitRaw runs git in dir. Each run hardens the objects and refs it writes
+// (core.fsync), so a record write that exits 0 survives an unclean
+// shutdown, as the work-tree store's synced events file does.
 func gitRaw(dir string, env []string, stdin []byte, args ...string) ([]byte, error) {
-	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	cmd := exec.Command("git", append([]string{"-C", dir, "-c", "core.fsync=objects,reference", "-c", "core.fsyncMethod=fsync"}, args...)...)
 	cmd.Env = append(os.Environ(), env...)
 	if stdin != nil {
 		cmd.Stdin = bytes.NewReader(stdin)

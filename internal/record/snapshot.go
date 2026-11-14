@@ -95,6 +95,11 @@ func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, err
 			os.Remove(tmp.Name())
 			return err
 		}
+		if err := tmp.Sync(); err != nil {
+			tmp.Close()
+			os.Remove(tmp.Name())
+			return err
+		}
 		if err := tmp.Close(); err != nil {
 			os.Remove(tmp.Name())
 			return err
