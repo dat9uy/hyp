@@ -99,7 +99,7 @@ Run the mistakes checklist on the table first. Before any write, show the owner 
 
 ## Read back the final text
 
-After the owner confirms the routing and before the Goal write, test the text the run will get. Write the Goal's title, body and lines as `hyp show` will print them, and give them to a fresh reader, such as a subagent on the strongest model, with the repository's glossary and code. Give it no drafts, no chat and no routing table. It plays the builder: for each line, it lists the cases it will test and the kinds of case it treats as not covered, and it names each scenario it cannot place as a case or not a case from the words alone.
+After the owner confirms the routing and before the Goal write, test the text the run will get. Make it with a dry write: copy the store's `.tree/` to a scratch directory outside the repository, run the exact `hyp add goal` there under a scratch actor, and take `hyp show <G-id>` from the copy. The dry write writes nothing to the store, and it meets each refusal the real write would, such as a cap or an id the store does not hold, before the owner approves the command. Give that text to a fresh reader, such as a subagent on the strongest model, with the repository's glossary and code, which a run also has. Give it no drafts, no chat and no routing table. It plays the builder: for each line, it lists the cases it will test and the kinds of case it treats as not covered, and it names each scenario it cannot place as a case or not a case from the words alone.
 
 A reader raises many kinds, so sort them before the owner sees any. A kind the reader placed as the grill settled needs nothing. A kind it placed otherwise, or could not place, while the grill settled it, means the words do not carry what was settled: change the words to carry it. Only a kind the grill never settled goes to the owner, who places it by the three choices in "A line says which cases it covers". Each placement goes into the words of the line or the body, never into a later prompt. A line whose words change goes back to the owner for approval of that line, and the read-back runs again on the changed lines only. The read-back is done when a rerun raises no kind that the words leave unplaced.
 
@@ -126,7 +126,7 @@ Never: <acts the run never takes, such as replacing an installed binary or publi
 
 The block runs from the first line that starts with `May change:`, `Read only:` or `Never:` to the end of the body. It holds each of the three headings at least once, and every non-empty line in it starts with one of them, so write one constraint per line and put no other text after the block. A line of spaces, a tab or a lone carriage return is not empty: leave a blank line truly empty, and write the body with `\n` line ends. A heading may repeat, such as one `Never:` line per act. `hyp add goal` warns when a body has a heading but no valid block, and `hyp prompt` refuses that Goal.
 
-A body that names another tree's ids writes each as `<tree>:<id>`. Then run `hyp status <G-id>` and `hyp check`: it must print `check: 0 errors`. Commit `.tree/events/` and `.tree/evidence/`.
+Each id a body or a line names must be one this store holds; write another store's id as `<tree>:<id>`, or `hyp add goal` refuses with exit 2. Then run `hyp status <G-id>` and `hyp check`: it must print `check: 0 errors`. Commit `.tree/events/` and `.tree/evidence/`.
 
 ## Hand off
 
