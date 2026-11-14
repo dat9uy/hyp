@@ -199,8 +199,8 @@ that no longer matters is `hyp withdraw <Q-id>`.
     (a supported one its Result judged, an inconclusive one its Result judged
     inconclusive, or a Hypothesis only its Result contradicts), or while the
     question has no open limit that is not referred: then no rivals are owed,
-    and `hyp add hyp`, `hyp supersede --old`, `hyp link ... supersedes` and
-    `hyp abandon` of a Hypothesis the answer can move exit 1, unless OWED lists a premise item
+    and `hyp add hyp`, `hyp supersede --old` and `hyp abandon` of a
+    Hypothesis the answer can move exit 1, unless OWED lists a premise item
     there. An open limit you can run is still yours to run. Carry on with
     other work and ask the owner at the next stop. Record it with `hyp record --reading "<the
     line>: <how you read it>"`. Record the owner's answer under their own
