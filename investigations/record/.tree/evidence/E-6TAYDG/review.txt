@@ -1,0 +1,235 @@
+I reviewed candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5, one commit over 7500a76960bd, and found two cases where it does not meet a line. I ran both tests at 5900a1d in a detached checkout at review-2/rev and both are red. I also ran both at 7500a76960bd in a second scratch checkout (review-2/base) to see whether the commit causes each one.
+
+At 5900a1d, `CGO_ENABLED=0 go build ./...` and `go vet ./...` are clean. `go test ./... -count=1` fails only on the two tests below. All existing tests pass, including the commit's new TestStoreBelowAFolderGitReadsAsItsOwn... no: the commit's new tests are TestStoreBelowAFolderNamedAsGitsInOtherCase and TestSandboxStoreOutsideTheRepository, and both pass.
+
+I removed both checkouts. I kept two copies of the tests, because there are two test files in two packages:
+- /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/review-2/record_review_test.go.kept (package cli, finding 2)
+- /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/review-2/record_review_record_test.go.kept (package record, finding 1)
+
+---
+
+## Finding 1 — line 3: two prunes running at once remove a snapshot that a running read holds (caused by this commit)
+
+The commit makes a prune delete each pruned snapshot's lock file. `holdSnapshot` was changed to handle this: after it takes its lock, it checks that the lock file at the path is still the one it opened (`os.SameFile`). `prune` was not changed the same way. It opens the lock path, then takes `LOCK_EX|LOCK_NB` on that open file, and never checks that the path still names the same file.
+
+This is the sequence that breaks it:
+1. Prune P lists snapshot K as old and opens K's lock file F.
+2. A second prune, P0, takes K's lock, removes K, removes F and releases the lock.
+3. A read of K creates a new lock file F2, holds a shared lock on F2 and writes K again.
+4. P now takes its exclusive lock on the deleted F. Nothing else holds a lock on F, so this succeeds. P then runs `RemoveAll(snap/K)` and removes F2.
+
+The read holds snapshot K, and K is now gone, so its file reads fail. At 7500a76960bd the lock file is never removed, so there is one lock file per key: P's exclusive lock conflicts with the read's shared lock, and P skips K.
+
+Test limitation: prune has no point where a test can pause it. P0 and the read are hyp's real code (`r.prune`, `s.Root()`). P's steps for one snapshot are copied from `prune` and run by hand, so that P stops between opening the lock file and taking its lock. The same test is GREEN at 7500a76960bd:
+```
+--- PASS: TestTwoPrunesRemoveASnapshotAReadHolds (0.56s)
+ok  	github.com/dat9uy/hyp/internal/record	0.880s
+```
+
+A likely fix: in `prune`, after taking the exclusive lock, check that the open file and the lock path are the same file (as `holdSnapshot` now does), and skip the snapshot when they are not.
+
+File internal/record/record_review_test.go:
+```go
+package record
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"syscall"
+	"testing"
+	"time"
+)
+
+// Line 3: a read run while two commands prune hyp's snapshots prints the
+// record as it was. Two prunes run at once, as when two commands each
+// write a new snapshot: the first prune, P, has listed an old snapshot K
+// and opened K's lock file, and is about to take its lock; the second
+// prune, P0, takes K's lock, removes K and its lock file. A read of K then
+// makes a new lock file, holds it and writes K again. P's lock is on the
+// removed lock file, so it excludes no read: P takes it and removes the
+// snapshot the read holds.
+//
+// P0 and the read are hyp's own code (prune, Root). P is prune's own steps
+// for one snapshot, run by hand so that it stops between opening the lock
+// file and taking its lock: prune has no point where a test can stop it.
+func TestTwoPrunesRemoveASnapshotAReadHolds(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	t.Setenv("GIT_CONFIG_GLOBAL", filepath.Join(t.TempDir(), "none"))
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	git(t, repo, "init", "-q")
+	dir := filepath.Join(repo, "s")
+	if err := Init(dir); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeOnce(dir, "first"); err != nil {
+		t.Fatal(err)
+	}
+	// Another command writes and reads, and exits: its snapshot K stays on
+	// disk with no read holding it.
+	cmd := exec.Command(os.Args[0], "-test.run=^$")
+	cmd.Env = append(os.Environ(), "HYP_RECORD_WRITE_READ=second", "HYP_RECORD_DIR="+dir)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("the command that writes and reads: %v: %s", err, out)
+	}
+	s, err := Locate(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := s.Repo
+	ents, err := os.ReadDir(r.hypDir("snap"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var key string
+	for _, e := range ents {
+		if e.IsDir() && !strings.HasPrefix(e.Name(), "tmp-") {
+			key = e.Name()
+		}
+	}
+	if key == "" {
+		t.Fatal("the command wrote no snapshot")
+	}
+	old := time.Now().Add(-2 * snapshotKeep)
+	if err := os.Chtimes(r.hypDir("snap", key), old, old); err != nil {
+		t.Fatal(err)
+	}
+	// P lists K as old and opens its lock file, as prune does.
+	fp, err := os.OpenFile(r.snapLock(key), os.O_CREATE|os.O_RDWR, 0o644)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fp.Close()
+	// P0 prunes K.
+	r.prune("")
+	if _, err := os.Stat(r.hypDir("snap", key)); err == nil {
+		t.Fatal("the prune left the old snapshot")
+	}
+	// A read of the record's tip, K: it holds K and writes it again.
+	root, err := s.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ev := filepath.Join(root, filepath.FromSlash(EvidenceDir+"E-1/out-second.txt"))
+	if _, err := os.Stat(ev); err != nil {
+		t.Fatalf("the read's snapshot lacks the file: %v", err)
+	}
+	// P takes its lock without waiting and, holding it, removes K, as
+	// prune does.
+	if syscall.Flock(int(fp.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) == nil {
+		if os.RemoveAll(r.hypDir("snap", key)) == nil {
+			_ = os.Remove(r.snapLock(key))
+		}
+		syscall.Flock(int(fp.Fd()), syscall.LOCK_UN)
+	}
+	if data, err := os.ReadFile(ev); err != nil || string(data) != "bytes of second\n" {
+		t.Fatalf("a prune removed the snapshot a running read holds: the read gets %q, %v", data, err)
+	}
+}
+```
+
+`go test ./internal/record -count=1 -v -run TestTwoPrunesRemoveASnapshotAReadHolds` at 5900a1d (RED):
+```
+=== RUN   TestTwoPrunesRemoveASnapshotAReadHolds
+    record_review_test.go:101: a prune removed the snapshot a running read holds: the read gets "", open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestTwoPrunesRemoveASnapshotAReadHolds2379607774/002/.git/hyp/snap/d01da40d617e1e21f8d95e8f17f1c1b05ccc3126-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-second.txt: no such file or directory
+--- FAIL: TestTwoPrunesRemoveASnapshotAReadHolds (0.56s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.887s
+FAIL
+```
+
+---
+
+## Finding 2 — line 1 (the cause is a store-name gap next to line 6): a write in store folder `a/.git./x` or `a/.git../x` exits 0, but the record never holds its event (already true at 7500a76960bd, not caused by this commit)
+
+This commit refuses a part that is `.git` in any letter case. git's index also refuses other parts that some filesystems read as git's folder, such as `.git.` and `.git..` (`core.protectNTFS` is on by default). For those paths `git update-index --index-info` prints "Ignoring path" and still exits 0. I checked this by hand with git 2.54.0 in a scratch repository: every path was ignored with exit 0. With `-c core.protectNTFS=false` the same path was added.
+
+`CheckPlain` accepts `.git.` and `.git..`: all their characters are plain and neither equals `.git` in any case. So `hyp init` and `hyp add goal` there both exit 0, but the record write silently drops the store's paths.
+
+Once the work-tree `.tree` is removed (as `git clean -fdx` would), `hyp show` of the event exits 3 with "no .tree store found". Line 1 requires that event to stay printed. The same test is RED at 7500a76960bd too (`FAIL github.com/dat9uy/hyp/internal/cli 0.972s`).
+
+A likely fix: refuse, in `CheckPlain`, `Locate` and every path the record writes, each part git's `verify_path` refuses (`.git` followed by any run of `.` or space, in any case). Or treat "Ignoring path" from update-index as a failure.
+
+File internal/cli/record_review_test.go:
+```go
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Line 1 (and line 6): git's index takes no path with a part that a
+// filesystem reads as git's folder, such as ".git." (core.protectNTFS is
+// on by default): update-index prints "Ignoring path" and exits 0. A store
+// folder named a/.git./x has only plain characters and no part ".git", so
+// hyp init takes it; an event a write there exits 0 on must then print in
+// that store's folder, also after its work-tree .tree is removed.
+func TestStoreBelowAFolderGitReadsAsItsOwn(t *testing.T) {
+	repo := recordRepo(t)
+	for _, part := range []string{".git.", ".git.."} {
+		t.Run(part, func(t *testing.T) {
+			dir := filepath.Join(repo, "a", part, "x")
+			if err := os.MkdirAll(dir, 0o755); err != nil {
+				t.Fatal(err)
+			}
+			t.Chdir(dir)
+			r := hyp(t, "init")
+			if r.code == 1 {
+				// A refusal of the name keeps every exit-0 event printable.
+				return
+			}
+			if r.code != 0 {
+				t.Fatalf("hyp init: exit %d, stderr %q", r.code, r.stderr)
+			}
+			w := hyp(t, "add", "goal", "--title", "kept", "--why", "w")
+			if w.code != 0 {
+				t.Logf("hyp add goal: exit %d, stderr %q", w.code, w.stderr)
+				return
+			}
+			g := strings.Fields(w.stdout)[0]
+			if err := os.RemoveAll(filepath.Join(dir, ".tree")); err != nil {
+				t.Fatal(err)
+			}
+			show := hyp(t, "show", g)
+			if show.code != 0 || !strings.Contains(show.stdout, "kept") {
+				t.Fatalf("hyp add goal exited 0 with %s in %s; after its work-tree .tree is removed, hyp show %s: exit %d, stdout %q, stderr %q", g, dir, g, show.code, show.stdout, show.stderr)
+			}
+		})
+	}
+}
+```
+
+`go test ./internal/cli -count=1 -v -run TestStoreBelowAFolderGitReadsAsItsOwn` at 5900a1d (RED):
+```
+=== RUN   TestStoreBelowAFolderGitReadsAsItsOwn
+=== RUN   TestStoreBelowAFolderGitReadsAsItsOwn/.git.
+    record_review_test.go:44: hyp add goal exited 0 with G-R1DZKK in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStoreBelowAFolderGitReadsAsItsOwn652469513/002/a/.git./x; after its work-tree .tree is removed, hyp show G-R1DZKK: exit 3, stdout "", stderr "no .tree store found; run 'hyp init'\n"
+=== RUN   TestStoreBelowAFolderGitReadsAsItsOwn/.git..
+    record_review_test.go:44: hyp add goal exited 0 with G-FHHXWY in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStoreBelowAFolderGitReadsAsItsOwn652469513/002/a/.git../x; after its work-tree .tree is removed, hyp show G-FHHXWY: exit 3, stdout "", stderr "no .tree store found; run 'hyp init'\n"
+--- FAIL: TestStoreBelowAFolderGitReadsAsItsOwn (0.59s)
+    --- FAIL: TestStoreBelowAFolderGitReadsAsItsOwn/.git. (0.23s)
+    --- FAIL: TestStoreBelowAFolderGitReadsAsItsOwn/.git.. (0.22s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.971s
+FAIL
+```
+
+---
+
+## Checked and found nothing
+- **The `--store` exit codes in `sandbox.go` and `cut.go`:** a refusal now keeps exit 1 and an environment error keeps exit 3. `CutAt` has one caller, `sandbox.go:705`.
+- **`holdSnapshot`'s retry loop:** it correctly handles a lock file that a prune removed while the read waited for its lock.
+- **Refusing `.GIT` in any letter case:** git's index also refuses `.git` in any case, so the commit matches git.
+
+Status: DONE_WITH_CONCERNS
+Summary: Two red tests. Finding 1 (line 3) is caused by this commit: a prune deletes a snapshot's lock file but never checks that its own lock is still on the file at the path, so two prunes running at once can remove a snapshot that a running read holds. Finding 2 (line 1, already true at 7500a76) is that a store folder with a `.git.` or `.git..` part is accepted, and git silently drops its events from the record although the write exits 0.

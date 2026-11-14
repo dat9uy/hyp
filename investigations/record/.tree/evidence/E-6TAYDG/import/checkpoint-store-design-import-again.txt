@@ -1,0 +1,1 @@
+investigations/checkpoint-store-design: the record holds every event

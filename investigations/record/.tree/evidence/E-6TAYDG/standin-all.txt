@@ -1,0 +1,34 @@
+##### standin-TestNamedPathWithANewline.txt
+stand-in 7500a76960bd84660cd3d3508a2a41331a477e37, test TestNamedPathWithANewline in ./internal/cli/, test files from 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+=== RUN   TestNamedPathWithANewline
+--- PASS: TestNamedPathWithANewline (5.24s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	5.404s
+exit 0
+##### standin-TestPruneLeavesASnapshotAReadHolds.txt
+stand-in 7500a76960bd84660cd3d3508a2a41331a477e37, test TestPruneLeavesASnapshotAReadHolds in ./internal/record/, test files from 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:221: the lock file of the pruned snapshot /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds1611134081/002/.git/hyp/snap/9bf6a237651e36d388f8527adcd304c0e1d36881-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89 stays
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.74s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	1.110s
+FAIL
+exit 1
+##### standin-TestSandboxStoreOutsideTheRepository.txt
+stand-in 7500a76960bd84660cd3d3508a2a41331a477e37, test TestSandboxStoreOutsideTheRepository in ./internal/cli/, test files from 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+=== RUN   TestSandboxStoreOutsideTheRepository
+    record_import_names_test.go:505: exit 2, stderr "--store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository2657082391/003/ln holds no .tree/events\n"; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestSandboxStoreOutsideTheRepository (0.20s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.367s
+FAIL
+exit 1
+##### standin-TestStoreBelowAFolderNamedAsGitsInOtherCase.txt
+stand-in 7500a76960bd84660cd3d3508a2a41331a477e37, test TestStoreBelowAFolderNamedAsGitsInOtherCase in ./internal/cli/, test files from 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+=== RUN   TestStoreBelowAFolderNamedAsGitsInOtherCase
+    record_import_names_test.go:474: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderNamedAsGitsInOtherCase (0.22s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.593s
+FAIL
+exit 1
