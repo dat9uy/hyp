@@ -1,0 +1,12 @@
+returned tests at 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestReviewStoreBelowAFolderNamedAsGitsInOtherCase
+    record_review_test.go:34: hyp init below g/.GIT: exit 0, want 1; store folder written: true
+    record_review_test.go:53: Line 1: hyp show G-TYQ6GT in the same store folder of another worktree: exit 3, stderr "no .tree store found; run 'hyp init'\n"
+--- FAIL: TestReviewStoreBelowAFolderNamedAsGitsInOtherCase (0.40s)
+=== RUN   TestReviewSandboxStoreOutsideTheRepository
+    record_review_test.go:80: hyp sandbox create --store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSandboxStoreOutsideTheRepository1038208609/003/ln (a link to /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSandboxStoreOutsideTheRepository1038208609/004, outside the repository): exit 2, want 1; stdout "" stderr "--store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSandboxStoreOutsideTheRepository1038208609/003/ln holds no .tree/events\n"
+--- FAIL: TestReviewSandboxStoreOutsideTheRepository (0.17s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.050s
+FAIL
+exit 1

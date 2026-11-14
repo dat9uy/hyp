@@ -1,0 +1,43 @@
+removal r13: a sync join's index lines end in NUL
+candidate 7500a76960bd84660cd3d3508a2a41331a477e37
+test ./internal/cli/ -run 'TestNamedPathWithANewline'
+applied in internal/record/sync.go (1x): '"update-index", "-z", "--add", "--index-info"' -> '"update-index", "--add", "--index-info"'
+applied in internal/record/sync.go (1x): '\\t%s\\x00", e.mode, e.sha, p)' -> '\\t%s\\n", e.mode, e.sha, p)'
+applied in internal/record/sync.go (1x): '\\t%s\\x00", kept[k].mode, kept[k].sha, k)' -> '\\t%s\\n", kept[k].mode, kept[k].sha, k)'
+diff:
+diff --git a/internal/record/sync.go b/internal/record/sync.go
+index 39968a7..004cef6 100644
+--- a/internal/record/sync.go
++++ b/internal/record/sync.go
+@@ -208,10 +208,10 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ 		if e.typ != "blob" {
+ 			continue
+ 		}
+-		fmt.Fprintf(&info, "%s %s\t%s\x00", e.mode, e.sha, p)
++		fmt.Fprintf(&info, "%s %s\t%s\n", e.mode, e.sha, p)
+ 	}
+ 	for _, k := range slices.Sorted(maps.Keys(kept)) {
+-		fmt.Fprintf(&info, "%s %s\t%s\x00", kept[k].mode, kept[k].sha, k)
++		fmt.Fprintf(&info, "%s %s\t%s\n", kept[k].mode, kept[k].sha, k)
+ 	}
+ 	idx, err := os.CreateTemp(r.hypDir(), "index-*")
+ 	if err != nil {
+@@ -223,7 +223,7 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ 	if _, err := gitOut(r.Top, env, nil, "read-tree", "--empty"); err != nil {
+ 		return "", err
+ 	}
+-	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "-z", "--add", "--index-info"); err != nil {
++	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "--add", "--index-info"); err != nil {
+ 		return "", err
+ 	}
+ 	tree, err := gitOut(r.Top, env, nil, "write-tree")
+
+=== RUN   TestNamedPathWithANewline
+    record_import_names_test.go:413: git [clone -q /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestNamedPathWithANewline3213409719/003/remote /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestNamedPathWithANewline3213409719/004/b]: exit status 128: fatal: failed to copy file to '/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestNamedPathWithANewline3213409719/004/b/.git/objects/aa/bbcf7fd22ce449ed70c897b0f8648378322ce3': No such file or directory
+--- FAIL: TestNamedPathWithANewline (3.14s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.295s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

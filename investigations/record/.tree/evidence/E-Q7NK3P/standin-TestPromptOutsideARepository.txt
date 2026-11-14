@@ -1,0 +1,8 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestPromptOutsideARepository in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestPromptOutsideARepository
+    prompt_test.go:143: through a link inside a repository: exit 3 (want 1), stdout "", stderr "hyp prompt G-C2GEEX: no repository holds the store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPromptOutsideARepository1545187204/001, so its path relative to the repository root is not known\n"
+--- FAIL: TestPromptOutsideARepository (0.03s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.185s
+FAIL
+exit 1

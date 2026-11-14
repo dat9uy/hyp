@@ -1,0 +1,8 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAPathTwoEventsNameWithOtherBytes in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAPathTwoEventsNameWithOtherBytes
+    record_git_env_test.go:136: hyp import: exit 0, stderr "hyp import: .tree/evidence/E-ZY2FAD/out.txt, which 01M7DF6GERP506JJ4CB5D0WX49 names, hashes 27dd8ed44a83 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAPathTwoEventsNameWithOtherBytes1355495675/002/w, not 2c8b08da5ce6 as the event stores; the record lacks those bytes\n"; want exit 1 naming .tree/evidence/E-ZY2FAD/out.txt
+--- FAIL: TestImportRefusesAPathTwoEventsNameWithOtherBytes (0.37s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.526s
+FAIL
+exit 1
