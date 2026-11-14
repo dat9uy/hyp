@@ -102,7 +102,9 @@ rules:
 A check the Goal never asked for cannot decide inside the tree, because a
 verdict on it would drop a candidate for a case the Goal does not hold. It can
 inform a choice. If the owner would reject a design that fails it, it is a
-requirement the Goal lacks, and so a new Goal.
+requirement the Goal lacks, and so a new Goal. Whether the Goal holds a case is
+read from the line's words and the owner's answers; where they do not say, the
+runner asks with a reading and settles it by no verdict, fix or sort.
 
 The runner settles every item the ledger owes it, maps a recipe's checks onto a
 line when it closes the line, refers what no test within the Goal can run, and

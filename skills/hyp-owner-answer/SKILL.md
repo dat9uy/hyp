@@ -64,7 +64,7 @@ The owner names the reading: "Answer <key>: …" answers a reading that waits un
 
 ## Show each referred limit
 
-A line `Q-… limit referred, accept or return R-…#n` under AWAITING OWNER is a limit, and one with a `G-…#n` key is a line of the Goal: a case the Goal covers that no check ran on the Hypotheses its Result gave a verdict on. The runner referred it because it says no test within the Goal's lines can run the case, or the case is void for every candidate. If the input is empty, show each referred limit after the readings. If the input names a limit key, show only that limit.
+A line `Q-… limit referred, accept or return R-…#n` under AWAITING OWNER is a limit, and one with a `G-…#n` key is a line of the Goal: a case the Goal holds that no check ran on the Hypotheses its Result gave a verdict on. The runner referred it because it says no test within the Goal's lines can run the case, or the case is void for every candidate. If the input is empty, show each referred limit after the readings. If the input names a limit key, show only that limit.
 
 Run `hyp show <key>` first; for a line, `<key>` is `G-…#n`. It prints the limit's state, what its Result judged and their status now, the candidates, the Experiments that aim at it, and the runner's refer summary. Show the limit in this order:
 
