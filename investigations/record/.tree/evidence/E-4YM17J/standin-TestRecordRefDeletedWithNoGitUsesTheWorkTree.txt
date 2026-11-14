@@ -1,0 +1,8 @@
+== TestRecordRefDeletedWithNoGitUsesTheWorkTree on the stand-in 741ade58a14b841e1c14e6aa0c60150b926bf8d7, the test file copied from b8521fac4e6d
+=== RUN   TestRecordRefDeletedWithNoGitUsesTheWorkTree
+    record_git_env_test.go:221: exit 3 (want 0), stdout "", stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordRefDeletedWithNoGitUsesTheWorkTree1817126281/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n" (want "G-Q1ZT7V")
+--- FAIL: TestRecordRefDeletedWithNoGitUsesTheWorkTree (0.17s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.523s
+FAIL
+go test exit 1

@@ -1,0 +1,14 @@
+diff --git a/internal/record/git.go b/internal/record/git.go
+index e1f0a51..d961061 100644
+--- a/internal/record/git.go
++++ b/internal/record/git.go
+@@ -136,9 +136,6 @@ func refOnDisk(top string) bool {
+ 	if _, err := os.Stat(filepath.Join(common, filepath.FromSlash(Ref))); err == nil {
+ 		return true
+ 	}
+-	if _, err := os.Stat(filepath.Join(common, recordMark)); err == nil {
+-		return true
+-	}
+ 	b, err := os.ReadFile(filepath.Join(common, "packed-refs"))
+ 	if err != nil {
+ 		return false

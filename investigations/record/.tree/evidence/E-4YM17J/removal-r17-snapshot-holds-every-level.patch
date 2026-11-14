@@ -1,0 +1,13 @@
+diff --git a/internal/recipe/recipe.go b/internal/recipe/recipe.go
+index 2a0dd77..8e574fc 100644
+--- a/internal/recipe/recipe.go
++++ b/internal/recipe/recipe.go
+@@ -478,7 +478,7 @@ func Scan(root string) (hashes map[string]string, problems []string) {
+ 	// A snapshot of the record keeps every copy of a ref an event pinned,
+ 	// each at its own library level, so a pin is held when any copy hashes
+ 	// as it pins.
+-	snap := record.IsSnapshot(root)
++	snap := record.IsSnapshot(root) && false
+ 	for _, ref := range refs {
+ 		cs, ok := seen[ref], true
+ 		if snap {

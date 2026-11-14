@@ -1,0 +1,5 @@
+investigations/checkpoint-store-design: the record holds every event
+investigations/checkpoint-store: the record holds every event
+investigations/goal-prompt: the record holds every event
+investigations/id-citation: the record holds every event
+investigations/recipe-base: the record holds every event

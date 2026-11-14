@@ -1,0 +1,6 @@
+== TestReftableHoldsNeverPanicsOnACorruptTable on the stand-in b8521fac4e6da1c4a792ac348f34b8c33d0e9071, the test file copied from 32d707c23b7c
+=== RUN   TestReftableHoldsNeverPanicsOnACorruptTable
+--- PASS: TestReftableHoldsNeverPanicsOnACorruptTable (0.06s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/record	0.185s
+go test exit 0

@@ -1,0 +1,1 @@
+The first gate run of E-4YM17J ran in the checkout <scratchpad>/cand, where the review subagent also wrote its test files (internal/record/reftable_review_test.go and others, see candidate-clean.txt) instead of a checkout of its own. Its logs are kept here and decide nothing; the gate ran again in a fresh detached checkout gate9 that only the runner uses.

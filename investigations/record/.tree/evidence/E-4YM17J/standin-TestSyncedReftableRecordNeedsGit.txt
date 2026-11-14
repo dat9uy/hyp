@@ -1,0 +1,8 @@
+== TestSyncedReftableRecordNeedsGit on the stand-in 741ade58a14b841e1c14e6aa0c60150b926bf8d7, the test file copied from b8521fac4e6d
+=== RUN   TestSyncedReftableRecordNeedsGit
+    record_git_env_test.go:249: exit 3 (want 3), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "cannot read the record")
+--- FAIL: TestSyncedReftableRecordNeedsGit (0.41s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.563s
+FAIL
+go test exit 1

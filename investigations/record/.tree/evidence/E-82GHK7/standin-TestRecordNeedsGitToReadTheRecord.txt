@@ -1,0 +1,8 @@
+== TestRecordNeedsGitToReadTheRecord on the stand-in 3a3220f332631606c3055f7696c3d5a87970accb, the test file copied from 2b03fa3c4d3e
+=== RUN   TestRecordNeedsGitToReadTheRecord
+    record_git_env_test.go:38: exit 0 (want 3), stdout "GOAL none (hyp add goal --title T --why W)\n", stderr "" (want "cannot read the record")
+--- FAIL: TestRecordNeedsGitToReadTheRecord (0.31s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.675s
+FAIL
+go test exit 1

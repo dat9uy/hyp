@@ -1,0 +1,14 @@
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index 49f0ffc..beb4ad7 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -44,9 +44,6 @@ func keepPath(name, p string) bool {
+ func storeOf(p string) (owner, rest string, ok bool) {
+ 	parts := strings.Split(p, "/")
+ 	for i, c := range parts {
+-		if (c == "recipes" || c == "rubrics") && i+1 < len(parts) && (strings.Contains(parts[i+1], "@") || parts[i+1] == KeptDir) {
+-			return "", "", false
+-		}
+ 		if c != TreeDir {
+ 			continue
+ 		}

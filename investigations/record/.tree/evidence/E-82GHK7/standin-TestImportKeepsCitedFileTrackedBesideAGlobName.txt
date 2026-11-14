@@ -1,0 +1,8 @@
+== TestImportKeepsCitedFileTrackedBesideAGlobName on the stand-in 3a3220f332631606c3055f7696c3d5a87970accb, the test file copied from 2b03fa3c4d3e
+=== RUN   TestImportKeepsCitedFileTrackedBesideAGlobName
+    record_git_env_test.go:108: hyp import left tracked [""]; want only the cited w/.tree/evidence/E-N6CE73/out.txt
+--- FAIL: TestImportKeepsCitedFileTrackedBesideAGlobName (0.42s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.570s
+FAIL
+go test exit 1

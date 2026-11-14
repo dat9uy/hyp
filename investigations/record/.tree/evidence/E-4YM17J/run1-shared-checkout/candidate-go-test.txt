@@ -1,0 +1,25 @@
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	1.015s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	78.388s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.317s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.317s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.641s
+--- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints (0.00s)
+    --- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints/prefix_length_past_int (0.00s)
+        reftable_review_test.go:55: reftableHolds panicked: runtime error: slice bounds out of range [::9223372036854775808] with capacity 0
+    --- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints/symref_target_length_past_int (0.00s)
+        reftable_review_test.go:55: reftableHolds panicked: runtime error: slice bounds out of range [-958:]
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	2.561s
+ok  	github.com/dat9uy/hyp/internal/render	0.343s
+ok  	github.com/dat9uy/hyp/internal/replay	0.332s
+ok  	github.com/dat9uy/hyp/internal/sandbox	89.238s
+ok  	github.com/dat9uy/hyp/internal/signals	0.313s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.324s
+ok  	github.com/dat9uy/hyp/internal/store	1.614s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+FAIL
+go test exit 1

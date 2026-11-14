@@ -1,0 +1,153 @@
+I reviewed candidate 6e298332bcb4 (feat/record, 12 commits over main e10d985) in my own detached worktree at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/fc96ab71-fe38-4ca0-b860-aa05bdeb848c/scratchpad/rev. I have removed that worktree since, and the clone is clean.
+
+On the candidate, `go vet ./...` is clean and `go test ./... -count=1` passes in every package.
+
+I read through `internal/record` (record, commit, git, snapshot, sync, source), `internal/store` (store, import, named), `internal/check`, `internal/contain`, `internal/cli/recordcmd.go` and the boundary test. Three findings fail when run as tests. All three are in one test file, kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/fc96ab71-fe38-4ca0-b860-aa05bdeb848c/scratchpad/review_e_btm3wf_test.go. I ran it as `internal/cli/review_e_btm3wf_test.go` in the checkout. Every hyp run in it is in a temporary repository.
+
+## Findings
+1. **G-SZCBXZ#8.** `hyp import` reads any argument that contains ":" as REF:PATH, because it cuts at the first colon. A store whose folder name holds a colon, which git and the filesystem both allow, cannot be imported in any spelling: relative, `./`, or absolute. Each fails with exit 2, "<prefix> names no commit or tree".
+2. **G-SZCBXZ#6.** `hyp import` untracks the unnamed files with `git rm --cached`. Git refuses that for a tracked file whose staged bytes differ from both HEAD and the work tree. When that happens:
+   - the import writes the record, then exits 3;
+   - the unnamed file stays tracked;
+   - every later run fails the same way.
+3. **G-SZCBXZ#10.** This is a gap in the test, not a breach in the source: no non-test file outside `record` and `sandbox` runs git today. But line 10 requires that `go test` fail on any such file, and the boundary scan misses three ways to start a program:
+   - a dot import of os (a bare `StartProcess(...)` is an identifier, not a selector, so the scan does not see it);
+   - `syscall.Syscall(syscall.SYS_EXECVE, ...)`;
+   - `golang.org/x/sys/unix.Exec`.
+
+## Test file (full text)
+```go
+package cli
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// G-SZCBXZ#8: hyp import PATH names a work-tree store by its folder. A
+// folder whose name holds a colon, which git and the filesystem allow, is
+// read as REF:PATH in every spelling (relative, ./ and absolute), so no
+// form of the command imports that store.
+func TestReviewImportStoreFolderWithAColon(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, "a:b", "README.md"), "r\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, "a:b"))
+	must(t, "init")
+	dropRecord(t, repo)
+	g := must(t, "add", "goal", "--title", "colon goal", "--why", "w")
+	t.Chdir(repo)
+	for _, arg := range []string{"a:b", "./a:b", filepath.Join(repo, "a:b")} {
+		r := hyp(t, "import", arg)
+		t.Logf("hyp import %s: exit %d, stdout %q, stderr %q", arg, r.code, r.stdout, r.stderr)
+		if r.code == 0 {
+			t.Chdir(filepath.Join(repo, "a:b"))
+			want(t, hyp(t, "show", g), 0, "colon goal")
+			return
+		}
+	}
+	t.Fatalf("no spelling of hyp import PATH imports the store in folder a:b")
+}
+
+// G-SZCBXZ#6: hyp import untracks each file under the store's evidence
+// folder that no event names, leaving it on disk. A tracked unnamed file
+// whose staged bytes differ from both HEAD and the work tree makes
+// git rm --cached refuse, so the import exits non-zero after its record
+// write and the file stays tracked, on every later run too.
+func TestReviewImportUntracksAnUnnamedFileWithStagedChanges(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, "s", "README.md"), "r\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, "s"))
+	must(t, "init")
+	dropRecord(t, repo)
+	chain(t, "cited\n")
+	stray := filepath.Join(repo, "s", ".tree", "evidence", "stray.txt")
+	writeFile(t, stray, "one\n")
+	gitIn(t, repo, "add", "-f", "-A")
+	gitIn(t, repo, "commit", "-qm", "stores")
+	writeFile(t, stray, "two\n")
+	gitIn(t, repo, "add", "-f", "s/.tree/evidence/stray.txt")
+	writeFile(t, stray, "three\n")
+	t.Chdir(repo)
+	for i := 0; i < 2; i++ {
+		r := hyp(t, "import", "s")
+		t.Logf("run %d: hyp import s: exit %d, stdout %q, stderr %q", i+1, r.code, r.stdout, r.stderr)
+	}
+	if out := gitIn(t, repo, "ls-files", "s/.tree/evidence/stray.txt"); out != "" {
+		t.Fatalf("after hyp import, git still tracks %s, which no event names", out)
+	}
+	if _, err := os.Stat(stray); err != nil {
+		t.Fatalf("hyp import removed the unnamed file from disk: %v", err)
+	}
+}
+
+// G-SZCBXZ#10: the go test over the source must fail on any non-test Go
+// file outside packages record and sandbox that runs git. A dot import of
+// os, a raw execve system call and golang.org/x/sys/unix.Exec each start
+// a program, and the boundary scan reports none of them.
+func TestReviewBoundaryFindsEveryProgramStart(t *testing.T) {
+	cases := map[string]string{
+		"dot import of os": "package x\n\nimport . \"os\"\n\nfunc f() { StartProcess(\"/bin/sh\", []string{\"sh\", \"-c\", \"g\" + \"it status\"}, &ProcAttr{}) }\n",
+		"raw execve":       "package x\n\nimport \"syscall\"\n\nfunc f(p, a, e *byte) { syscall.Syscall(syscall.SYS_EXECVE, 0, 0, 0) }\n",
+		"x/sys/unix.Exec":  "package x\n\nimport \"golang.org/x/sys/unix\"\n\nfunc f() { unix.Exec(\"/bin/sh\", nil, nil) }\n",
+	}
+	var missed []string
+	for name, src := range cases {
+		root := t.TempDir()
+		writeFile(t, filepath.Join(root, "go.mod"), "module m\n")
+		writeFile(t, filepath.Join(root, "internal", "render", "probe.go"), src)
+		if bad := boundaryFindings(t, root); len(bad) == 0 {
+			missed = append(missed, name)
+		}
+	}
+	if len(missed) > 0 {
+		t.Fatalf("the boundary scan finds nothing for: %s", strings.Join(missed, ", "))
+	}
+}
+
+var _ = exec.Command
+```
+
+## Output (`go test ./internal/cli -run 'TestReview' -count=1 -v`, in the checkout of 6e298332bcb4)
+```
+=== RUN   TestReviewImportStoreFolderWithAColon
+    review_e_btm3wf_test.go:32: hyp import a:b: exit 2, stdout "", stderr "a names no commit or tree in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon4054563387/002\n"
+    review_e_btm3wf_test.go:32: hyp import ./a:b: exit 2, stdout "", stderr "./a names no commit or tree in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon4054563387/002\n"
+    review_e_btm3wf_test.go:32: hyp import /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon4054563387/002/a:b: exit 2, stdout "", stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon4054563387/002/a names no commit or tree in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon4054563387/002\n"
+    review_e_btm3wf_test.go:39: no spelling of hyp import PATH imports the store in folder a:b
+--- FAIL: TestReviewImportStoreFolderWithAColon (0.25s)
+=== RUN   TestReviewImportUntracksAnUnnamedFileWithStagedChanges
+    review_e_btm3wf_test.go:71: run 1: hyp import s: exit 3, stdout "s: imported 5 events\n", stderr "hyp import s: git rm --cached --quiet -- .tree/evidence/stray.txt failed: exit status 1: error: the following file has staged content different from both the\nfile and the HEAD:\n    s/.tree/evidence/stray.txt\n(use -f to force removal)\n"
+    review_e_btm3wf_test.go:71: run 2: hyp import s: exit 3, stdout "s: the record holds every event\n", stderr "hyp import s: git rm --cached --quiet -- .tree/evidence/stray.txt failed: exit status 1: error: the following file has staged content different from both the\nfile and the HEAD:\n    s/.tree/evidence/stray.txt\n(use -f to force removal)\n"
+    review_e_btm3wf_test.go:74: after hyp import, git still tracks s/.tree/evidence/stray.txt, which no event names
+--- FAIL: TestReviewImportUntracksAnUnnamedFileWithStagedChanges (0.52s)
+=== RUN   TestReviewBoundaryFindsEveryProgramStart
+    review_e_btm3wf_test.go:101: the boundary scan finds nothing for: dot import of os, raw execve, x/sys/unix.Exec
+--- FAIL: TestReviewBoundaryFindsEveryProgramStart (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.268s
+FAIL
+```
+
+## Suspected, not run as tests
+- **G-SZCBXZ#5.** A store folder inside a bundle, such as a known-answer input `recipes/kit@1/input/st/.tree`, is still found as a work-tree store. A write there in the host checkout goes into the record under the bundle's path. Because `storeOf` treats that path as a bundle file and not as a store, `hyp sync` would not join its events file by id. It would keep the remote's copy in the kept folder, and reads would not see the remote's events. I did not build it because it needs hyp writes inside a frozen recipe's input folder, which is a contrived setup.
+- **none.** `Sync` pushes without a lease after its `ls-remote` and fetch. If the remote's record moves between those steps, the push is rejected and reported as "refused the record", with exit 3, although a second run would succeed. I did not test it because the window is a timing race.
+
+Status: DONE_WITH_CONCERNS
+Summary: The candidate builds, vets and passes its whole suite, but three review tests fail on 6e298332bcb4: `hyp import` cannot name a store folder that has a colon (#8), the untrack step fails on a staged unnamed evidence file and leaves it tracked (#6), and the boundary test misses dot-import, raw execve and `x/sys/unix.Exec` program starts (#10).

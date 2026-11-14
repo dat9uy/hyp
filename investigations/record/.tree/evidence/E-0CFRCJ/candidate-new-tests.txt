@@ -1,0 +1,79 @@
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.02s)
+=== RUN   TestBoundaryFindsEveryWayToRunGit
+=== RUN   TestBoundaryFindsEveryWayToRunGit/shell
+=== RUN   TestBoundaryFindsEveryWayToRunGit/path
+=== RUN   TestBoundaryFindsEveryWayToRunGit/renamed
+=== RUN   TestBoundaryFindsEveryWayToRunGit/process
+=== RUN   TestBoundaryFindsEveryWayToRunGit/syscall
+=== RUN   TestBoundaryFindsEveryWayToRunGit/literal
+--- PASS: TestBoundaryFindsEveryWayToRunGit (0.01s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/shell (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/path (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/renamed (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/process (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/syscall (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/literal (0.00s)
+=== RUN   TestSyncKeepsEachSidesPinnedBundle
+--- PASS: TestSyncKeepsEachSidesPinnedBundle (6.44s)
+=== RUN   TestShowBundleEvidenceAfterSync
+--- PASS: TestShowBundleEvidenceAfterSync (4.19s)
+=== RUN   TestPinnedBundleAtTwoLibraryLevels
+--- PASS: TestPinnedBundleAtTwoLibraryLevels (2.66s)
+=== RUN   TestRecordWriteHardensObjectsAndRef
+--- PASS: TestRecordWriteHardensObjectsAndRef (0.61s)
+=== RUN   TestRecordNeedsGitToReadTheRecord
+--- PASS: TestRecordNeedsGitToReadTheRecord (0.96s)
+=== RUN   TestNoGitInARepositoryWithNoRecordUsesTheWorkTree
+--- PASS: TestNoGitInARepositoryWithNoRecordUsesTheWorkTree (0.02s)
+=== RUN   TestImportKeepsCitedFileTrackedBesideAGlobName
+--- PASS: TestImportKeepsCitedFileTrackedBesideAGlobName (0.38s)
+=== RUN   TestShowPickPrintsOnlyBytesOfThatSha
+--- PASS: TestShowPickPrintsOnlyBytesOfThatSha (0.44s)
+=== RUN   TestReftableRepositoryWithNoGit
+--- PASS: TestReftableRepositoryWithNoGit (0.34s)
+=== RUN   TestRecordOutlivesEveryWorktreeAct
+--- PASS: TestRecordOutlivesEveryWorktreeAct (2.73s)
+=== RUN   TestSubjectCommitStaysReachable
+--- PASS: TestSubjectCommitStaysReachable (1.49s)
+=== RUN   TestTwoWorktreesWriteAtOnce
+--- PASS: TestTwoWorktreesWriteAtOnce (2.08s)
+=== RUN   TestSyncJoinsTwoRecords
+--- PASS: TestSyncJoinsTwoRecords (5.69s)
+=== RUN   TestRecordHoldsOnlyNamedFiles
+--- PASS: TestRecordHoldsOnlyNamedFiles (1.48s)
+=== RUN   TestFlagsSameFromEveryCheckout
+--- PASS: TestFlagsSameFromEveryCheckout (1.52s)
+=== RUN   TestImportAddsEachMissingEvent
+--- PASS: TestImportAddsEachMissingEvent (1.70s)
+=== RUN   TestUnimportedWorkTreeStore
+--- PASS: TestUnimportedWorkTreeStore (1.01s)
+=== RUN   TestBundleWithStoreInputKeepsItsHash
+--- PASS: TestBundleWithStoreInputKeepsItsHash (1.28s)
+=== RUN   TestSyncKeepsNamedFileShapedLikeAnEventsFile
+--- PASS: TestSyncKeepsNamedFileShapedLikeAnEventsFile (2.29s)
+=== RUN   TestSyncKeepsEachSidesNamedBytes
+--- PASS: TestSyncKeepsEachSidesNamedBytes (3.10s)
+=== RUN   TestRecordRefusesEvidenceChangedDuringTheWrite
+--- PASS: TestRecordRefusesEvidenceChangedDuringTheWrite (0.85s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	41.658s
+go test cli exit 0
+=== RUN   TestAppendRefusesANamedFileNoOneHolds
+--- PASS: TestAppendRefusesANamedFileNoOneHolds (0.65s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	0.995s
+go test store exit 0
+=== RUN   TestStoppedWriteLeavesAllOrNothing
+=== RUN   TestStoppedWriteLeavesAllOrNothing/objects
+=== RUN   TestStoppedWriteLeavesAllOrNothing/tree
+=== RUN   TestStoppedWriteLeavesAllOrNothing/commit
+=== RUN   TestStoppedWriteLeavesAllOrNothing/ref
+--- PASS: TestStoppedWriteLeavesAllOrNothing (1.63s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/objects (0.39s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/tree (0.40s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/commit (0.41s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/ref (0.42s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/record	1.977s
+go test record exit 0

@@ -1,0 +1,19 @@
+== returned tests of the review, run by the runner in the detached checkout of 6e298332bcb4c4b0d958b1432e5974bdae50e9a7
+=== RUN   TestReviewImportStoreFolderWithAColon
+    zz_review_e_btm3wf_test.go:32: hyp import a:b: exit 2, stdout "", stderr "a names no commit or tree in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon128137320/002\n"
+    zz_review_e_btm3wf_test.go:32: hyp import ./a:b: exit 2, stdout "", stderr "./a names no commit or tree in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon128137320/002\n"
+    zz_review_e_btm3wf_test.go:32: hyp import /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon128137320/002/a:b: exit 2, stdout "", stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon128137320/002/a names no commit or tree in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportStoreFolderWithAColon128137320/002\n"
+    zz_review_e_btm3wf_test.go:39: no spelling of hyp import PATH imports the store in folder a:b
+--- FAIL: TestReviewImportStoreFolderWithAColon (0.24s)
+=== RUN   TestReviewImportUntracksAnUnnamedFileWithStagedChanges
+    zz_review_e_btm3wf_test.go:71: run 1: hyp import s: exit 3, stdout "s: imported 5 events\n", stderr "hyp import s: git rm --cached --quiet -- .tree/evidence/stray.txt failed: exit status 1: error: the following file has staged content different from both the\nfile and the HEAD:\n    s/.tree/evidence/stray.txt\n(use -f to force removal)\n"
+    zz_review_e_btm3wf_test.go:71: run 2: hyp import s: exit 3, stdout "s: the record holds every event\n", stderr "hyp import s: git rm --cached --quiet -- .tree/evidence/stray.txt failed: exit status 1: error: the following file has staged content different from both the\nfile and the HEAD:\n    s/.tree/evidence/stray.txt\n(use -f to force removal)\n"
+    zz_review_e_btm3wf_test.go:74: after hyp import, git still tracks s/.tree/evidence/stray.txt, which no event names
+--- FAIL: TestReviewImportUntracksAnUnnamedFileWithStagedChanges (0.57s)
+=== RUN   TestReviewBoundaryFindsEveryProgramStart
+    zz_review_e_btm3wf_test.go:101: the boundary scan finds nothing for: dot import of os, raw execve, x/sys/unix.Exec
+--- FAIL: TestReviewBoundaryFindsEveryProgramStart (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.286s
+FAIL
+go test exit 1

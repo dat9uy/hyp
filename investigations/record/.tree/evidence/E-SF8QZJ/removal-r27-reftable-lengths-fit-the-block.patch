@@ -1,0 +1,22 @@
+diff --git a/internal/record/reftable.go b/internal/record/reftable.go
+index 7a76a7f..402c6ea 100644
+--- a/internal/record/reftable.go
++++ b/internal/record/reftable.go
+@@ -88,7 +88,7 @@ func reftableRef(b []byte, ref string) (typ byte, found bool, err error) {
+ 			}
+ 			p += n
+ 			vt := byte(sv & 7)
+-			if prefix > uint64(len(key)) || sv>>3 > uint64(recEnd-p) {
++			if false {
+ 				return 0, false, errReftable
+ 			}
+ 			suffix := int(sv >> 3)
+@@ -106,7 +106,7 @@ func reftableRef(b []byte, ref string) (typ byte, found bool, err error) {
+ 				p += 2 * hashLen
+ 			case 3:
+ 				l, n := reftableVarint(b[p:recEnd])
+-				if n == 0 || l > uint64(recEnd-p-n) {
++				if n == 0 {
+ 					return 0, false, errReftable
+ 				}
+ 				p += n + int(l)

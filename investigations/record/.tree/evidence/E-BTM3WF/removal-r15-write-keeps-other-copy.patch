@@ -1,0 +1,13 @@
+diff --git a/internal/record/commit.go b/internal/record/commit.go
+index 26ebe05..0e32e6b 100644
+--- a/internal/record/commit.go
++++ b/internal/record/commit.go
+@@ -201,7 +201,7 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
+ 	moved := map[string]string{}
+ 	held := bundles(s.entries)
+ 	for dir, l := range written {
+-		if h, ok := held[dir]; ok && !sameListing(h, l) {
++		if h, ok := held[dir]; false && ok && !sameListing(h, l) {
+ 			moved[dir] = keptBundleDir(dir, listingKey(l))
+ 		}
+ 	}

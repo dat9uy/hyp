@@ -1,0 +1,8 @@
+== TestStoresWithACommonNameHashPrefixReadTheirOwnEvents on the stand-in 32d707c23b7cbd247b72eeb7b7f9e0b862ca890f, the test files copied from 6e298332bcb4
+=== RUN   TestStoresWithACommonNameHashPrefixReadTheirOwnEvents
+    record_git_env_test.go:282: exit 2 (want 0), stdout "", stderr "unknown node G-F1J66E\n" (want "goal of s130636")
+--- FAIL: TestStoresWithACommonNameHashPrefixReadTheirOwnEvents (0.58s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.948s
+FAIL
+go test exit 1

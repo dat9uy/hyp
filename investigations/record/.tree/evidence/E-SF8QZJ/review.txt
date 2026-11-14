@@ -1,0 +1,271 @@
+## Review of candidate 32d707c23b7c (feat/record) against G-SZCBXZ
+
+**Method.** I made my own detached checkout at `<scratchpad>/cand`, read the whole change from the merge base 9d3f875 (60 files: the new `internal/record` package, store, cli, check, contain and docs), then removed the checkout with `git worktree remove`. Every hyp run and test used t.TempDir repositories. I wrote nothing in the clone and did not touch `~/.local/bin/hyp`.
+
+**Baseline.** Before adding anything, `go vet ./...` was clean and `go test ./... -count=1` passed in every package.
+
+**Findings.** I wrote 4 tests in one file, `internal/cli/review_findings_test.go`. They are run in the checkout of 32d707c and all 4 fail there: three are defects on lines #1 and #10, and the fourth is the line 7 / line 8 tension in finding D. A copy of the file is kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/fc96ab71-fe38-4ca0-b860-aa05bdeb848c/scratchpad/review_findings_test.go.
+
+### A — G-SZCBXZ#1: two stores can share one snapshot, and one of them then shows no events
+- **Cause.** In `internal/record/snapshot.go`, `snapshot()` names the snapshot folder by the record tip plus only the first 4 bytes of sha256(store name): `key := tip + "-" + hex.EncodeToString(nh[:4])`.
+- **Failure.** Two store names whose sha256 starts with the same 4 bytes get the same folder. The folder is built for the first store read, and it leaves out the other store's folder (`keepPath`). The second store then reads no events.
+- **How easy.** A birthday search over "s<N>" found such a pair in about 130k names: s2330 and s130636 (prefix b07b8ed5).
+- **Observed.** In s130636, `hyp show` and `hyp status` of its own Goal exit 2 with "unknown node".
+- **Fix direction.** Key the snapshot by the full hash or by the name itself.
+
+### B — G-SZCBXZ#10: the boundary test does not scan some folders that Go builds
+- **Cause.** In `internal/cli/boundary_test.go`, `boundaryFindings` skips every folder named `investigations`, `recipes` or `rubrics`, at any depth.
+- **Failure.** Go builds packages in such folders, for example `internal/check/recipes`. A non-test Go file there that holds `.tree` and runs `exec.Command("git", ...)` gets no finding.
+- **Why it matters.** Line 10 asks for a go test that "fails on any other" file.
+- **Fix direction.** Skip those names only at the module root.
+
+### C — G-SZCBXZ#1: a store reached through a symlink inside the repository splits in two
+- **Cause.** `record.Locate` names a store by its path from the repository root without resolving symlinks.
+- **Failure.** A link `repo/link -> s` is seen as a separate store named "link". Discovery stops at the empty work-tree `.tree/events` that `hyp init` left, not at the record's store `s`.
+- **Observed.** `hyp show G` through the link exits 2 ("unknown node"). A write through the link adds a second store `link/.tree/events/a.jsonl` to the record.
+- **Base comparison.** On the base, both paths read the same events file. `cli/prompt.go` already calls `EvalSymlinks` for the same reason.
+
+### D — "none" (closest to G-SZCBXZ#8; it conflicts with G-SZCBXZ#7)
+- **Setup.** Two work-tree stores pin the same bundle, root `recipes/kit@1`, at the same hash. Store one is imported. Then the checked-out bundle is edited.
+- **Observed.** Store two's work-tree replay shows its Result as `QUESTIONABLE` / "recipe changed since this Result". After `hyp import two`, the record's copy of the bundle matches the pin, so the questionable flag is gone.
+- **Why I labelled it "none".** The node status lines are the same, so I read it as no breach of line 8's literal text ("node statuses"). It is still a place where line 8 equality and line 7 checkout-independence cannot both hold. That is for the owner to decide.
+
+### What I checked and found no failure
+- **Line 2:** a local `git clone` of a host or of a linked worktree carries the commit the record ref keeps.
+- **Line 3:** the write is one compare-and-swap `update-ref`, and the snapshot is built in a temp folder and renamed into place.
+- **Line 4:** writes from every worktree take one lock in the common git folder, and the tip is reread once the lock is held.
+- **Lines 5–9:** the existing tests (sync, cited files only, flags, import, the unimported-store refusal) pass, and my reading of the code found no gap.
+
+### Concerns I did not write a test for
+1. **(none)** A snapshot is pruned when its folder's mtime is more than an hour old. The mtime is refreshed only when a read reuses that snapshot, so two concurrent readers could race, and a command that holds a snapshot for over an hour could lose it. It is timing-dependent, so I could not write a deterministic test.
+2. **(none)** `NamesOf` keeps only Hypothesis subject commits. It skips the base commits of a Result's run subjects (`Subjects`), so those commits are not kept reachable. The Goal names only Hypothesis subjects, so this is out of scope.
+
+### Full test file (as run)
+```go
+package cli
+
+import (
+	"crypto/sha256"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Finding A (G-SZCBXZ#1). The snapshot of a store is keyed by the record's
+// tip and only the first 4 bytes of sha256(store name). Two store names
+// whose sha256 share those 4 bytes (s2330 and s130636, found by a birthday
+// search over "s<N>") read one snapshot, which was built for the other
+// store and so leaves out this store's folder: the event the write exited 0
+// on is not printed by hyp show / hyp status in its own store's folder.
+func TestReviewSnapshotKeyCollision(t *testing.T) {
+	a, b := "s2330", "s130636"
+	ha, hb := sha256.Sum256([]byte(a)), sha256.Sum256([]byte(b))
+	if string(ha[:4]) != string(hb[:4]) {
+		t.Fatalf("precondition: %s and %s must share 4 sha256 bytes", a, b)
+	}
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	for _, n := range []string{a, b} {
+		writeFile(t, filepath.Join(repo, n, "README.md"), n+"\n")
+	}
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	goals := map[string]string{}
+	for _, n := range []string{a, b} {
+		t.Chdir(filepath.Join(repo, n))
+		must(t, "init")
+		goals[n] = must(t, "add", "goal", "--title", "goal of "+n, "--why", "w")
+	}
+	// Both reads happen at the same record tip.
+	for _, n := range []string{a, b} {
+		t.Chdir(filepath.Join(repo, n))
+		res := hyp(t, "show", goals[n])
+		if res.code != 0 || !strings.Contains(res.stdout, "goal of "+n) {
+			t.Errorf("store %s: hyp show %s exit %d, stdout %q, stderr %q; want its Goal", n, goals[n], res.code, res.stdout, res.stderr)
+		}
+		st := hyp(t, "status", goals[n])
+		if st.code != 0 || !strings.Contains(st.stdout, "goal of "+n) {
+			t.Errorf("store %s: hyp status %s exit %d, stdout %q, stderr %q; want its Goal", n, goals[n], st.code, st.stdout, st.stderr)
+		}
+	}
+}
+
+// Finding B (G-SZCBXZ#10). The boundary test skips every directory named
+// investigations, recipes or rubrics at any depth, but go builds a package
+// in such a directory (for example internal/check/recipes). A non-test Go
+// file there that names the store folder and runs git is not reported.
+func TestReviewBoundarySkipsBuildablePackages(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "go.mod"), "module m\n")
+	src := "package recipes\n\nimport \"os/exec\"\n\nvar dir = \".tr\" + \"ee\"\nvar s = \"x/." + "tree/events\"\n\nfunc f() { exec.Command(\"git\", \"status\").Run() }\n"
+	for _, d := range []string{"recipes", "rubrics", "investigations"} {
+		writeFile(t, filepath.Join(root, "internal", "check", d, "probe.go"), src)
+	}
+	bad := boundaryFindings(t, root)
+	for _, d := range []string{"recipes", "rubrics", "investigations"} {
+		found := false
+		for _, b := range bad {
+			if strings.HasPrefix(b, "internal/check/"+d+"/") {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("internal/check/%s/probe.go names the store folder and runs git; the boundary test reports nothing for it (findings: %q)", d, bad)
+		}
+	}
+}
+
+// Finding C (G-SZCBXZ#1). A store's folder reached through a symbolic link
+// inside the repository is named by the link's path, so discovery there
+// finds the empty work-tree folder hyp init left, not the record's store:
+// hyp show prints no event the write exited 0 on, and a write there starts
+// a second store in the record.
+func TestReviewStoreFolderThroughSymlink(t *testing.T) {
+	repo := recordRepo(t)
+	g := must(t, "add", "goal", "--title", "the goal", "--why", "w")
+	if err := os.Symlink("s", filepath.Join(repo, "link")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(repo, "link"))
+	res := hyp(t, "show", g)
+	if res.code != 0 || !strings.Contains(res.stdout, "the goal") {
+		t.Errorf("hyp show %s through the link: exit %d, stdout %q, stderr %q; want the Goal", g, res.code, res.stdout, res.stderr)
+	}
+	must(t, "add", "goal", "--title", "second", "--why", "w")
+	if names := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"); strings.Contains(names, "link/") {
+		t.Errorf("a write through the link started a second store in the record:\n%s", names)
+	}
+}
+
+// Finding D (G-SZCBXZ#8, in tension with G-SZCBXZ#7). Two work-tree stores
+// pin one bundle, recipes/kit@1 at the repository root, at the same hash.
+// Store one is imported while the checkout holds that hash, so the record
+// keeps the bundle; then the checkout's bundle is edited. Store two, still a
+// work-tree store, replays its Result as questionable; once imported, the
+// record's copy holds the pinned hash and the Result is no longer
+// questionable, so the imported Goal does not print what its work-tree
+// store replays to.
+func TestReviewImportStatusDiffersWhenRecordHoldsTheBundle(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	bundleIn(t, repo, "kit", "", map[string]string{"run.sh": "#!/bin/sh\n"})
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	type ids struct{ g, r string }
+	got := map[string]ids{}
+	for _, name := range []string{"one", "two"} {
+		if err := os.Mkdir(filepath.Join(repo, name), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Chdir(filepath.Join(repo, name))
+		must(t, "init")
+		dropRecord(t, repo)
+		g := must(t, "add", "goal", "--title", "G "+name, "--why", "w")
+		q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+		h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+		e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "kit@1", "--rubric", "reading", "--why", "w")
+		ptr := ".tree/evidence/" + e + "/out.txt"
+		writeFile(t, ptr, "ran\n")
+		r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+		got[name] = ids{g, r}
+	}
+	t.Chdir(repo)
+	want(t, hyp(t, "import", "one"), 0, "imported")
+	writeFile(t, filepath.Join(repo, "recipes", "kit@1", "run.sh"), "#!/bin/sh\necho edited\n")
+	t.Chdir(filepath.Join(repo, "two"))
+	view := func() string {
+		return hyp(t, "status", got["two"].g).stdout + hyp(t, "show", got["two"].r).stdout
+	}
+	before := view()
+	if !strings.Contains(before, "questionable") {
+		t.Fatalf("precondition: the work-tree store two should read its Result questionable:\n%s", before)
+	}
+	t.Chdir(repo)
+	want(t, hyp(t, "import", "two"), 0, "imported")
+	t.Chdir(filepath.Join(repo, "two"))
+	if after := view(); after != before {
+		t.Errorf("store two after import prints\n%s\nits work-tree store replayed to\n%s", after, before)
+	}
+}
+```
+
+### Full output (`go test ./internal/cli -run TestReview -count=1 -v`, in the checkout of 32d707c)
+```
+=== RUN   TestReviewSnapshotKeyCollision
+    review_findings_test.go:45: store s130636: hyp show G-RNPX19 exit 2, stdout "", stderr "unknown node G-RNPX19\n"; want its Goal
+    review_findings_test.go:49: store s130636: hyp status G-RNPX19 exit 2, stdout "", stderr "unknown node G-RNPX19\n"; want its Goal
+--- FAIL: TestReviewSnapshotKeyCollision (0.60s)
+=== RUN   TestReviewBoundarySkipsBuildablePackages
+    review_findings_test.go:74: internal/check/recipes/probe.go names the store folder and runs git; the boundary test reports nothing for it (findings: [])
+    review_findings_test.go:74: internal/check/rubrics/probe.go names the store folder and runs git; the boundary test reports nothing for it (findings: [])
+    review_findings_test.go:74: internal/check/investigations/probe.go names the store folder and runs git; the boundary test reports nothing for it (findings: [])
+--- FAIL: TestReviewBoundarySkipsBuildablePackages (0.00s)
+=== RUN   TestReviewStoreFolderThroughSymlink
+    review_findings_test.go:93: hyp show G-4ZBXZF through the link: exit 2, stdout "", stderr "unknown node G-4ZBXZF\n"; want the Goal
+    review_findings_test.go:97: a write through the link started a second store in the record:
+        link/.tree/events/a.jsonl
+        s/.tree/events/a.jsonl
+--- FAIL: TestReviewStoreFolderThroughSymlink (0.41s)
+=== RUN   TestReviewImportStatusDiffersWhenRecordHoldsTheBundle
+    review_findings_test.go:152: store two after import prints
+        GOAL G-D61K54 G two — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-88PCRX open/supported_unselected Q
+            candidates (1): H-PXD8WP
+            H-PXD8WP supported H
+        STALE
+        OWED
+          runner: Q-88PCRX select H-PXD8WP, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 12:49 a result.record R-439B5X — w
+        CHECKPOINT none
+        Result R-439B5X
+        path: G-D61K54 > Q-88PCRX > H-PXD8WP > E-W2FZXA > R-439B5X
+        status: recorded
+        observation: ran
+        verdicts: H-PXD8WP=supports
+        evidence: .tree/evidence/E-W2FZXA/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        history:
+          2026-11-14 12:49 a result.record R-439B5X — w
+        
+        its work-tree store replayed to
+        GOAL G-D61K54 G two — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-88PCRX open/supported_unselected Q
+            candidates (1): H-PXD8WP
+            H-PXD8WP supported H
+        STALE
+        OWED
+          runner: Q-88PCRX select H-PXD8WP, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 12:49 a result.record R-439B5X — w
+        CHECKPOINT none
+        QUESTIONABLE 1 results
+        Result R-439B5X
+        path: G-D61K54 > Q-88PCRX > H-PXD8WP > E-W2FZXA > R-439B5X
+        status: recorded
+        observation: ran
+        verdicts: H-PXD8WP=supports
+        evidence: .tree/evidence/E-W2FZXA/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:49 a result.record R-439B5X — w
+--- FAIL: TestReviewImportStatusDiffersWhenRecordHoldsTheBundle (0.98s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.161s
+FAIL
+```
+
+Status: DONE_WITH_CONCERNS
+Summary: Three tests show real defects in candidate 32d707c: a store whose name shares the first 4 sha256 bytes with another reads the wrong snapshot (#1), a store reached through an in-repository symlink splits into a second store (#1), and the boundary test skips buildable packages named recipes, rubrics or investigations (#10). A fourth test shows that import can drop a Result's questionable flag when the record already holds the bundle; I labelled it "none" because the node statuses match, but it is a place where line 8 and line 7 cannot both hold.

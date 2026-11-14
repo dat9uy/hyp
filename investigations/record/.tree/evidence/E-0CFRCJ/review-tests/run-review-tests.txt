@@ -1,0 +1,23 @@
+== returned tests of the review, run by the runner in the detached checkout of 741ade58a14b841e1c14e6aa0c60150b926bf8d7
+=== RUN   TestReviewStaleRecordMarkAfterRefDeleted
+    review_record_mark_test.go:31: no record ref, no git on PATH: hyp status exit 3, stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewStaleRecordMarkAfterRefDeleted3797646591/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n"; want 0 and the work-tree store
+    review_record_mark_test.go:35: no record ref, no git on PATH: hyp add exit 3, stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewStaleRecordMarkAfterRefDeleted3797646591/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n"; want 0
+--- FAIL: TestReviewStaleRecordMarkAfterRefDeleted (0.17s)
+=== RUN   TestReviewSyncedReftableRecordHasNoMark
+    review_record_mark_test.go:58: after hyp sync the clone has no record mark: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSyncedReftableRecordHasNoMark2067784181/004/clone/.git/hyp-record: no such file or directory
+    review_record_mark_test.go:68: reftable record repository, no git on PATH: hyp init exit 0, stderr ""; want 3
+    review_record_mark_test.go:72: reftable record repository, no git on PATH: hyp add exit 0, stdout "G-96R737 node.add\n"; want 3
+    review_record_mark_test.go:81: the write exited 0 with no git, but hyp status in another worktree does not print it:
+        GOAL G-SET84C in the record — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+--- FAIL: TestReviewSyncedReftableRecordHasNoMark (0.45s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.095s
+FAIL
+go test exit 1

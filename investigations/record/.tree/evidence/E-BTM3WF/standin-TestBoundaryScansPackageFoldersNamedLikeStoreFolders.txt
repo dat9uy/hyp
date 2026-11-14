@@ -1,0 +1,10 @@
+== TestBoundaryScansPackageFoldersNamedLikeStoreFolders on the stand-in 32d707c23b7cbd247b72eeb7b7f9e0b862ca890f, with only the new test function of 6e298332bcb4 added to the stand-in's own boundary_test.go
+=== RUN   TestBoundaryScansPackageFoldersNamedLikeStoreFolders
+    boundary_test.go:155: the boundary scan reports nothing for internal/check/recipes/probe.go:
+    boundary_test.go:155: the boundary scan reports nothing for internal/check/rubrics/probe.go:
+    boundary_test.go:155: the boundary scan reports nothing for internal/check/investigations/probe.go:
+--- FAIL: TestBoundaryScansPackageFoldersNamedLikeStoreFolders (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.451s
+FAIL
+go test exit 1

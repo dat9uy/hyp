@@ -1,0 +1,12 @@
+== returned tests of the review, run by the runner in the detached checkout of 2b03fa3c4d3e422a344adc74f889e69afbdf571a
+=== RUN   TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree
+    review_probe_test.go:29: exit 3 (want 0), stdout "", stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree3767464618/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n" (want "G-6W1JY6")
+--- FAIL: TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree (0.04s)
+=== RUN   TestProbeReftableRecordRepo
+--- PASS: TestProbeReftableRecordRepo (0.31s)
+=== RUN   TestProbeLinkedWorktreePackedRefsNoGit
+--- PASS: TestProbeLinkedWorktreePackedRefsNoGit (0.31s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.124s
+FAIL
+go test exit 1

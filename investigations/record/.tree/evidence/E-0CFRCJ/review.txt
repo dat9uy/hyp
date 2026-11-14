@@ -1,0 +1,156 @@
+Review of candidate 741ade58a14b (feat/record, over 2b03fa3c4d3e)
+
+I made two detached checkouts of my own: rv-cand at 741ade5 and rv-base at 2b03fa3. I ran the tests there and removed both when done. I wrote nothing into the clone, its refs or origin, and did not touch ~/.local/bin/hyp. Every hyp run happened inside go test temp dirs.
+
+On the candidate with no test added, `go vet ./...` is clean and `go test ./... -count=1` passes.
+
+**What the commit changes.** Before, when git could not run, a `reftable` folder counted as "may hold the record", so it gave exit 3. Now hyp looks for a `hyp-record` mark file in the common git directory instead. `openRepo` writes the mark whenever it sees the record with git; `ensureRecord` also writes it. Nothing ever removes the mark, and `hyp sync` creates the ref with `update-ref` without writing the mark.
+
+The mark therefore does not always match the ref. That gives two findings, both red on the candidate and green on 2b03fa3.
+
+**Finding 1 — G-SZCBXZ#9 (no record ref with no git must behave as on the base).**
+The mark outlives the record ref. After `git update-ref -d refs/hyp/record`, hyp with git correctly treats the repository as having no record. With no git on PATH, the candidate exits 3 ("holds the record ref ... install git"). The base reads and writes the work-tree store and exits 0.
+
+**Finding 2 — G-SZCBXZ#1 (an event a write exited 0 on is printed in every worktree), and the spec's no-git exit 3.**
+1. Make a reftable clone (`git clone --ref-format=reftable`) of a record repository.
+2. Run `hyp sync origin` there. This creates `refs/hyp/record` but writes no mark.
+3. With no git on PATH, run `hyp status`, `hyp init` and `hyp add goal`. All exit 0, and the event goes into the work-tree `.tree/` instead of the record.
+4. In another worktree of the clone, `hyp status` does not print that event.
+
+The base exits 3 here because the reftable folder exists. The same gap applies to any reftable record ref that a hyp with git never opened: one fetched with plain `git fetch`, one made by a hyp built before this commit, or a git that cannot open the repository (the `failingGit` case).
+
+**Possible fixes (not tested).** Write the mark in `Sync` after its `update-ref`. Remove the mark when `openRepo` with git finds no tip. In a reftable repository with no mark and no git, exit 3, so that the only error is the safe one.
+
+**Side note (none of the lines).** Since this commit, read-only commands such as `hyp status` and `hyp show` write `hyp-record` into the common git directory of any record repository they open.
+
+**Test file** (put at internal/cli/review_record_mark_test.go; also kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/fc96ab71-fe38-4ca0-b860-aa05bdeb848c/scratchpad/review_record_mark_test.go):
+
+```go
+package cli
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// The record mark outlives the record ref: after the ref is deleted, the
+// repository is a git repository with no record ref, and hyp with git
+// reads and writes the work-tree store; with no git on PATH it must do the
+// same (as on the base), not exit 3.
+func TestReviewStaleRecordMarkAfterRefDeleted(t *testing.T) {
+	repo := recordRepo(t) // files ref backend; hyp init made the record
+	other := t.TempDir()
+	t.Chdir(other)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "work tree", "--why", "w")
+	dst := filepath.Join(repo, "w")
+	if err := os.CopyFS(dst, os.DirFS(other)); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "update-ref", "-d", "refs/hyp/record")
+	t.Chdir(dst)
+	want(t, hyp(t, "status"), 0, g) // with git: no record, work tree
+	t.Setenv("PATH", t.TempDir())
+	r := hyp(t, "status")
+	if r.code != 0 {
+		t.Errorf("no record ref, no git on PATH: hyp status exit %d, stderr %q; want 0 and the work-tree store", r.code, r.stderr)
+	}
+	r = hyp(t, "add", "goal", "--title", "written with no git", "--why", "w")
+	if r.code != 0 {
+		t.Errorf("no record ref, no git on PATH: hyp add exit %d, stderr %q; want 0", r.code, r.stderr)
+	}
+}
+
+// A reftable clone whose record arrived through hyp sync carries no record
+// mark, so with no git on PATH hyp takes it for a repository with no record
+// and writes the work-tree store: the write exits 0 but the record, and so
+// every other worktree, never sees the event.
+func TestReviewSyncedReftableRecordHasNoMark(t *testing.T) {
+	gitConfig(t)
+	origin := recordRepo(t)
+	must(t, "add", "goal", "--title", "in the record", "--why", "w")
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	clone := filepath.Join(base, "clone")
+	if out, err := exec.Command("git", "clone", "-q", "--ref-format=reftable", origin, clone).CombinedOutput(); err != nil {
+		t.Skipf("git cannot make a reftable clone: %v %s", err, out)
+	}
+	t.Chdir(filepath.Join(clone, "s"))
+	want(t, hyp(t, "sync", "origin"), 0, "synced")
+	if _, err := os.Stat(filepath.Join(clone, ".git", "hyp-record")); err != nil {
+		t.Logf("after hyp sync the clone has no record mark: %v", err)
+	}
+	path := os.Getenv("PATH")
+	t.Setenv("PATH", t.TempDir())
+	r := hyp(t, "status")
+	if r.code != 3 {
+		t.Errorf("reftable record repository, no git on PATH: hyp status exit %d, stdout %q stderr %q; want 3", r.code, r.stdout, r.stderr)
+	}
+	r = hyp(t, "init")
+	if r.code != 3 {
+		t.Errorf("reftable record repository, no git on PATH: hyp init exit %d, stderr %q; want 3", r.code, r.stderr)
+	}
+	r = hyp(t, "add", "goal", "--title", "written with no git", "--why", "w")
+	if r.code != 3 {
+		t.Errorf("reftable record repository, no git on PATH: hyp add exit %d, stdout %q; want 3", r.code, r.stdout)
+	}
+	g2 := r.stdout
+	t.Setenv("PATH", path)
+	if r.code == 0 && g2 != "" {
+		wt := filepath.Join(base, "wt2")
+		gitIn(t, clone, "worktree", "add", "-q", "--detach", wt)
+		t.Chdir(filepath.Join(wt, "s"))
+		if r := hyp(t, "status"); r.code == 0 && !strings.Contains(r.stdout, "written with no git") {
+			t.Errorf("the write exited 0 with no git, but hyp status in another worktree does not print it:\n%s", r.stdout)
+		}
+	}
+}
+```
+
+**Output on the candidate 741ade5** (`go test ./internal/cli -run TestReview -count=1 -v`):
+
+```
+=== RUN   TestReviewStaleRecordMarkAfterRefDeleted
+    review_record_mark_test.go:31: no record ref, no git on PATH: hyp status exit 3, stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewStaleRecordMarkAfterRefDeleted121569770/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n"; want 0 and the work-tree store
+    review_record_mark_test.go:35: no record ref, no git on PATH: hyp add exit 3, stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewStaleRecordMarkAfterRefDeleted121569770/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n"; want 0
+--- FAIL: TestReviewStaleRecordMarkAfterRefDeleted (0.16s)
+=== RUN   TestReviewSyncedReftableRecordHasNoMark
+    review_record_mark_test.go:58: after hyp sync the clone has no record mark: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSyncedReftableRecordHasNoMark3054948808/004/clone/.git/hyp-record: no such file or directory
+    review_record_mark_test.go:68: reftable record repository, no git on PATH: hyp init exit 0, stderr ""; want 3
+    review_record_mark_test.go:72: reftable record repository, no git on PATH: hyp add exit 0, stdout "G-M49JWA node.add\n"; want 3
+    review_record_mark_test.go:81: the write exited 0 with no git, but hyp status in another worktree does not print it:
+        GOAL G-8HFETT in the record — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+--- FAIL: TestReviewSyncedReftableRecordHasNoMark (0.50s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.979s
+FAIL
+```
+
+**Output on the base 2b03fa3c4d3e:**
+
+```
+=== RUN   TestReviewStaleRecordMarkAfterRefDeleted
+--- PASS: TestReviewStaleRecordMarkAfterRefDeleted (0.17s)
+=== RUN   TestReviewSyncedReftableRecordHasNoMark
+    review_record_mark_test.go:58: after hyp sync the clone has no record mark: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSyncedReftableRecordHasNoMark361991329/004/clone/.git/hyp-record: no such file or directory
+--- PASS: TestReviewSyncedReftableRecordHasNoMark (0.42s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.949s
+```
+
+**Scope.** I reviewed only this commit's change, the record mark. I did not re-review the rest of feat/record against lines 2–8 or 10. Older worktrees named cand, candbin and standin are in the shared scratchpad; they are not mine, so I left them in place.
+
+Status: DONE
+Summary: The new `hyp-record` mark does not always match the record ref. It stays after the ref is deleted, so a repository with no record exits 3 with no git (G-SZCBXZ#9). `hyp sync` never writes it, so a synced reftable clone with no git takes writes into the work tree that exit 0 and that other worktrees never see (G-SZCBXZ#1). Both tests are red on 741ade5 and green on 2b03fa3.
