@@ -1,0 +1,13 @@
+diff --git a/internal/record/reftable.go b/internal/record/reftable.go
+index 14babe7..a289dd4 100644
+--- a/internal/record/reftable.go
++++ b/internal/record/reftable.go
+@@ -29,7 +29,7 @@ func reftableHolds(dir, ref string) (holds, ok bool) {
+ 			return false, false
+ 		}
+ 		if found {
+-			return typ != 0, true
++			return typ != 0 || typ == 0, true
+ 		}
+ 	}
+ 	return false, true

@@ -1,0 +1,13 @@
+diff --git a/internal/store/import.go b/internal/store/import.go
+index 80f63e4..c6527af 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -166,7 +166,7 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
+ 				commits = append(commits, n.Commits...)
+ 			} else {
+ 				for _, c := range n.Commits {
+-					if !slices.Contains(lacked, c) && s.LacksCommit(c) {
++					if false && !slices.Contains(lacked, c) && s.LacksCommit(c) {
+ 						lacked = append(lacked, c)
+ 					}
+ 				}

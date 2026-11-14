@@ -1,0 +1,8 @@
+== TestImportAddsASubjectCommitAnEarlierImportLacked on the stand-in 926319e7d0b2e05e3afaeb09a9259c1ae4133bab, the test added alone
+=== RUN   TestImportAddsASubjectCommitAnEarlierImportLacked
+    record_git_env_test.go:637: exit 0 (want 0), stdout "s: the record holds every event\n", stderr "" (want "added 1 it lacked")
+--- FAIL: TestImportAddsASubjectCommitAnEarlierImportLacked (0.65s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.020s
+FAIL
+go test exit 1

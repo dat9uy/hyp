@@ -1,0 +1,148 @@
+# Review of candidate c5b34da6e8eea5b507bed00d624b46afddbe4a44 (feat/record, over 926319e7d0b2)
+
+**Checkout and gate.** I made a detached worktree of c5b34da at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/9a83d6a6-df31-4643-90e2-0acf464912f4/scratchpad/review5-c5b34da` (go 1.27.3 darwin/arm64). On the checkout as committed, `go vet ./...` is clean and `go test ./... -count=1` passes in every package. I built a binary only to `.../scratchpad/review5-bin/hyp` and ran it only in temporary repositories under `.../scratchpad/review5-play`, with HOME pointed there. I added one test file to the temporary checkout. When I was done I removed the worktree (`git worktree remove --force`), the binary and the scratch folders. Nothing in the clone, on origin or at ~/.local/bin/hyp was written, and the clone's status is clean.
+
+**What I read.** The diff of c5b34da: `LacksCommit` and its use in `store.Import`, the file-or-folder case in `join`, `blobSum`, the import message, and replay-spec.md. I also read `record.go`, `commit.go` (Append, Lock), `snapshot.go` and `sync.go` of the branch, and the earlier review records in E-E1WSRC, E-256M8Q and E-FDJB7V, so I would not raise their findings again.
+
+**Probes that found nothing new:**
+- Line 10: no non-test Go file outside `internal/record` contains `.tree` or `.git`. Only `record` and `sandbox` import os/exec or start processes.
+- Line 2: `hyp subject --base feat` stores the resolved full sha, not the branch name. The record commit takes that commit as a second parent.
+- Line 9 last sentence: store discovery, which stops at the first `.git`, and `hyp init`'s refusal when discovery finds a store above both match the base.
+- Line 1: the snapshot and the blob cache are written to a temp name and then renamed, so neither is ever seen half written.
+
+## Finding 1 — G-SZCBXZ#1
+
+`Store.Append` (internal/record/commit.go) stages every file with `git update-index --add --index-info`. It sends one `"<mode> <sha>\t<path>\n"` line per file, without `-z`, and it never checks the path. A cited file's path that holds a newline therefore adds index lines that the path itself chooses. These lines come after the events-file line, so they override it.
+
+In the test, the evidence path is `.tree/evidence/<E>/x\n100644 <blob>\ts/.tree/events/a.jsonl`. The `<blob>` is the git blob id of the cited file's own bytes, and hyp writes that blob with `hash-object -w` just before staging. The write moves the ref (it prints `R-… result.record`), and its tree has the store's events file replaced by those bytes. Every earlier event is then gone from `hyp show` and `hyp status` in every worktree, including the Goal and an earlier Result that cited a normal file. After moving the ref, hyp then panics in `contain.(*marker).reasons` from `warnResult` (exit 2).
+
+`join` in internal/record/sync.go builds its index the same way (`update-index --add --index-info` without `-z`). So a record path that holds a newline, which a plain git tree can hold, can rewrite paths there too. I did not write a separate test for sync. The fix in both places is `--index-info -z` with NUL-ended records, or refusing such paths.
+
+## Finding 2 — none (closest G-SZCBXZ#1)
+
+This has the same cause as Finding 1, with a harmless name. A work-tree store, which is the base behaviour (checked with the candidate binary in a folder with no git), takes an evidence file named `a\nb.txt`: `hyp record` exits 0. In a record repository the same write exits 3 with git's raw message `git update-index --add --index-info failed: exit status 128: fatal: malformed index info b.txt`. Exit 3 means an environment problem, but this is a path hyp cannot store, which should be a rule refusal (exit 1) that names the path, or the write should be taken. Line 1 covers only writes that exited 0, so this is a case of no line.
+
+## Test file `internal/cli/review5_index_info_path_test.go` (full text)
+
+```go
+package cli
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// G-SZCBXZ#1: a write that exits 0 keeps every earlier event. A record
+// write stages its files with `git update-index --index-info`, one
+// "mode sha\tpath" line per file, without -z. An evidence path that holds a
+// newline therefore adds a second index line of the path's choosing. Here
+// the cited file's path holds a newline followed by the line that stages
+// the cited file's own blob at s/.tree/events/a.jsonl, so the write
+// replaces the store's events file in the record, and every earlier event,
+// the Goal and the first Result among them, is gone from hyp show and hyp
+// status in every worktree.
+func TestReviewEvidencePathWithANewlineRewritesTheEventsFile(t *testing.T) {
+	repo := recordRepo(t)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	first := ".tree/evidence/" + e + "/first.txt"
+	writeFile(t, first, "first run\n")
+	r1 := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "first ran", "--evidence", first, "--why", "w")
+	want(t, hyp(t, "show", g), 0, "G")
+
+	content := "not an event\n"
+	cmd := exec.Command("git", "hash-object", "--stdin")
+	cmd.Stdin = strings.NewReader(content)
+	out, err := cmd.Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	sha := strings.TrimSpace(string(out))
+	dir := ".tree/evidence/" + e + "/x\n100644 " + sha + "\ts"
+	crafted := dir + "/.tree/events/a.jsonl"
+	writeFile(t, crafted, content)
+
+	before := gitIn(t, repo, "show", "refs/hyp/record:s/.tree/events/a.jsonl")
+	// The write runs in its own process: hyp panics after it in this case.
+	rec := exec.Command(os.Args[0], "record", "--exp", e, "--verdict", h+"=supports", "--observation", "second ran", "--evidence", crafted, "--why", "w")
+	rec.Dir = filepath.Join(repo, "s")
+	rec.Env = append(os.Environ(), "HYP_TEST_AS_HYP=1", "HYP_ACTOR=a")
+	recOut, recErr := rec.CombinedOutput()
+	t.Logf("second hyp record: err %v\n%s", recErr, firstLines(string(recOut), 3))
+
+	after := gitIn(t, repo, "show", "refs/hyp/record:s/.tree/events/a.jsonl")
+	if !strings.HasPrefix(after, strings.TrimSpace(before)) {
+		t.Errorf("a write whose evidence path holds a newline replaced the record's events file:\nbefore %d bytes, after %q", len(before), after)
+	}
+	if r := hyp(t, "show", g); r.code != 0 {
+		t.Errorf("after that write, hyp show %s: exit %d, %q; want the Goal", g, r.code, strings.TrimSpace(r.stderr))
+	}
+	if r := hyp(t, "show", r1); r.code != 0 || !strings.Contains(r.stdout, "first ran") {
+		t.Errorf("after that write, hyp show %s: exit %d, %q; want the first Result", r1, r.code, strings.TrimSpace(r.stderr))
+	}
+	if r := hyp(t, "status"); !strings.Contains(r.stdout, g) {
+		t.Errorf("after that write, hyp status no longer shows %s:\n%s", g, firstLines(r.stdout+r.stderr, 3))
+	}
+}
+
+// none (closest G-SZCBXZ#1): a work-tree store takes an evidence file whose
+// name holds a newline; the record refuses it with exit 3, an environment
+// code, and git's own message, not a rule refusal that names the path.
+func TestReviewEvidenceNameWithANewlineExitsThree(t *testing.T) {
+	recordRepo(t)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	p := ".tree/evidence/" + e + "/a\nb.txt"
+	writeFile(t, p, "bytes\n")
+	r := hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", p, "--why", "w")
+	if r.code != 0 {
+		t.Errorf("hyp record citing a file whose name holds a newline: exit %d, stderr %q; a work-tree store takes it", r.code, strings.TrimSpace(r.stderr))
+	}
+}
+
+func firstLines(s string, n int) string {
+	l := strings.SplitN(s, "\n", n+1)
+	if len(l) > n {
+		l = l[:n]
+	}
+	return strings.Join(l, "\n")
+}
+```
+
+## Output in the checkout of c5b34da (`go test ./internal/cli -run 'TestReviewEvidence' -count=1 -v`)
+
+```
+=== RUN   TestReviewEvidencePathWithANewlineRewritesTheEventsFile
+    review5_index_info_path_test.go:49: second hyp record: err exit status 2
+        R-GW18CS result.record
+        panic: runtime error: invalid memory address or nil pointer dereference
+        [signal SIGSEGV: segmentation violation code=0x2 addr=0x148 pc=0x100660110]
+    review5_index_info_path_test.go:53: a write whose evidence path holds a newline replaced the record's events file:
+        before 1405 bytes, after "not an event"
+    review5_index_info_path_test.go:56: after that write, hyp show G-NVJXNA: exit 2, "unknown node G-NVJXNA"; want the Goal
+    review5_index_info_path_test.go:59: after that write, hyp show R-1PMNG6: exit 2, "unknown node R-1PMNG6"; want the first Result
+    review5_index_info_path_test.go:62: after that write, hyp status no longer shows G-NVJXNA:
+        GOAL none (hyp add goal --title T --why W)
+        warn: skipped a.jsonl:1: invalid character 'o' in literal null (expecting 'u'); run hyp check
+--- FAIL: TestReviewEvidencePathWithANewlineRewritesTheEventsFile (1.31s)
+=== RUN   TestReviewEvidenceNameWithANewlineExitsThree
+    review5_index_info_path_test.go:79: hyp record citing a file whose name holds a newline: exit 3, stderr "git update-index --add --index-info failed: exit status 128: fatal: malformed index info b.txt"; a work-tree store takes it
+--- FAIL: TestReviewEvidenceNameWithANewlineExitsThree (0.79s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.568s
+FAIL
+```
+
+**Base check for Finding 2:** I ran the candidate binary in a folder with no git, where it uses the work-tree store as the base does. `hyp record --evidence ".tree/evidence/E-…/a<newline>b.txt"` printed `R-ESN1R3 result.record` and exited 0.
+
+**Not tested:** I wrote no separate test for the same injection through `hyp sync`'s join. It builds its index with the same `--index-info` call without `-z`, so I expect the same result, but I have not run it.
+
+Status: DONE_WITH_CONCERNS
+Summary: go vet and go test pass on c5b34da, but one new G-SZCBXZ#1 defect is shown red by a test. A record write stages files with `git update-index --index-info` without `-z`, so a cited path that holds a newline can replace the store's events file in the record and erase every earlier event (hyp then panics), and a harmless newline file name gets exit 3 where a work-tree store takes it (label none).

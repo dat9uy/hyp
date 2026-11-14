@@ -1,0 +1,13 @@
+diff --git a/internal/record/sync.go b/internal/record/sync.go
+index 004cef6..b5959ea 100644
+--- a/internal/record/sync.go
++++ b/internal/record/sync.go
+@@ -165,7 +165,7 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ 		switch {
+ 		case !inA:
+ 			e = y
+-		case inB && x.typ != y.typ:
++		case false && inB && x.typ != y.typ:
+ 			// One record names a file at p, the other files below a folder
+ 			// p: the folder stays, and the file is kept by its sha256.
+ 			f := x

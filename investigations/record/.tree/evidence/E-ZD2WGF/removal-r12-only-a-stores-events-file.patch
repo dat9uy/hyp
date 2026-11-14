@@ -1,0 +1,13 @@
+diff --git a/internal/record/sync.go b/internal/record/sync.go
+index b40bace..d8316c9 100644
+--- a/internal/record/sync.go
++++ b/internal/record/sync.go
+@@ -201,7 +201,7 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ func isEventsFile(p string) bool {
+ 	_, rest, ok := storeOf(p)
+ 	file, found := strings.CutPrefix(rest, "events/")
+-	return ok && found && strings.HasSuffix(file, ".jsonl") && !strings.Contains(file, "/")
++	return strings.HasSuffix(p, ".jsonl") && (strings.HasPrefix(p, EventsDirRel+"/") || strings.Contains(p, "/"+EventsDirRel+"/")) || ok && found && file == ""
+ }
+ 
+ // joinLines joins two events files as a set by id: each id once, the first

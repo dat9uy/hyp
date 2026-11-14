@@ -1,0 +1,13 @@
+diff --git a/internal/record/sync.go b/internal/record/sync.go
+index 973f73b..db79fe4 100644
+--- a/internal/record/sync.go
++++ b/internal/record/sync.go
+@@ -140,7 +140,7 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ 	ba := bundles(ea)
+ 	for dir, lb := range bundles(eb) {
+ 		la, ok := ba[dir]
+-		if !ok || sameListing(la, lb) {
++		if true || !ok || sameListing(la, lb) {
+ 			continue
+ 		}
+ 		kd := keptBundleDir(dir, listingKey(lb))

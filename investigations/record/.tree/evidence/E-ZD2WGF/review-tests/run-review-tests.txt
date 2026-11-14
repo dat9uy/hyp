@@ -1,0 +1,21 @@
+== returned tests of the review, run by the runner in the detached checkout of c5b34da6e8eea5b507bed00d624b46afddbe4a44
+=== RUN   TestReviewEvidencePathWithANewlineRewritesTheEventsFile
+    zz_review5_index_info_path_test.go:49: second hyp record: err exit status 2
+        R-6NC270 result.record
+        panic: runtime error: invalid memory address or nil pointer dereference
+        [signal SIGSEGV: segmentation violation code=0x2 addr=0x148 pc=0x1022cc110]
+    zz_review5_index_info_path_test.go:53: a write whose evidence path holds a newline replaced the record's events file:
+        before 1403 bytes, after "not an event"
+    zz_review5_index_info_path_test.go:56: after that write, hyp show G-8VH9YY: exit 2, "unknown node G-8VH9YY"; want the Goal
+    zz_review5_index_info_path_test.go:59: after that write, hyp show R-3DWY3V: exit 2, "unknown node R-3DWY3V"; want the first Result
+    zz_review5_index_info_path_test.go:62: after that write, hyp status no longer shows G-8VH9YY:
+        GOAL none (hyp add goal --title T --why W)
+        warn: skipped a.jsonl:1: invalid character 'o' in literal null (expecting 'u'); run hyp check
+--- FAIL: TestReviewEvidencePathWithANewlineRewritesTheEventsFile (1.38s)
+=== RUN   TestReviewEvidenceNameWithANewlineExitsThree
+    zz_review5_index_info_path_test.go:79: hyp record citing a file whose name holds a newline: exit 3, stderr "git update-index --add --index-info failed: exit status 128: fatal: malformed index info b.txt"; a work-tree store takes it
+--- FAIL: TestReviewEvidenceNameWithANewlineExitsThree (0.87s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.844s
+FAIL
+go test exit 1

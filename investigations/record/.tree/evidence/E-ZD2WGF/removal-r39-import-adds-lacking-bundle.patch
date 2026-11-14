@@ -1,0 +1,14 @@
+diff --git a/internal/store/import.go b/internal/store/import.go
+index 2e6935c..2892014 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -170,6 +170,9 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
+ 				}
+ 			}
+ 			for _, b := range n.Bundles {
++				if isHeld {
++					break
++				}
+ 				if err := pinnedBundle(ev, b, isHeld); err != nil {
+ 					return 0, 0, err
+ 				}
