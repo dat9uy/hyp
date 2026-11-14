@@ -1,0 +1,128 @@
+===== eed0938 with c770b50's history tests: eed0938af71fa965afd3a32f0a87d1d261463b5a
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 1
+--- FAIL: TestStatusShowsTheFolderStoresGoals (0.10s)
+    history_test.go:139: exit 0 (want 0), stdout "GOAL G-YR5PRH Goal B — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\nREJECTED 1 events (run hyp check)\n", stderr "" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.600s
+FAIL
+== TestStatusAllListsTheHistory (internal/cli): go test exit 1
+--- FAIL: TestStatusAllListsTheHistory (0.08s)
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory614031850/001:
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory614031850/001/docs:
+    history_test.go:183: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.206s
+FAIL
+== TestHistoryLeavesOutStores (internal/cli): go test exit 1
+--- FAIL: TestHistoryLeavesOutStores (0.16s)
+    history_test.go:282: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.313s
+FAIL
+== TestCiteAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestCiteAcrossStores (0.09s)
+    history_test.go:312: exit 2 (want 1), stdout "", stderr "unknown node R-SJM36D\n" (want "#1, which is not settled")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.234s
+FAIL
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 1
+--- FAIL: TestAppendSortsAfterOtherStores (0.05s)
+    history_test.go:357: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.187s
+FAIL
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestDuplicateIDAcrossStores (0.07s)
+    history_test.go:387: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Dup in a")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.221s
+FAIL
+== TestAliasLocalToStore (internal/cli): go test exit 1
+--- FAIL: TestAliasLocalToStore (0.08s)
+    history_test.go:432: exit 3 (want 2), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "ambiguous node h-null")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.216s
+FAIL
+== TestEventNeverCrossesStores (internal/cli): go test exit 1
+--- FAIL: TestEventNeverCrossesStores (0.09s)
+    history_test.go:487: exit 2 (want 1), stdout "", stderr "unknown node G-645KCW\n" (want "event crosses stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.240s
+FAIL
+== TestSandboxHistoryCut (internal/cli): go test exit 1
+--- FAIL: TestSandboxHistoryCut (0.09s)
+    history_test.go:558: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.232s
+FAIL
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 1
+--- FAIL: TestUntrackedStoreAllAndRoot (0.09s)
+    history_test.go:660: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.221s
+FAIL
+== TestSameAskAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestSameAskAcrossStores (0.08s)
+    history_test.go:684: exit 0 (want 0), stdout "01M7AATTAJN9VAA2YMWNSJE30Y answer\n", stderr "" (want "warn: R-J9VEKP#r1 asks the same as R-PNFAK0#r1 and stays open; it is in store investigations/b, so answer it with its own hyp answer --answer R-J9VEKP#r1")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.213s
+FAIL
+===== 3bbf187 with c770b50's history tests: 3bbf187abd1b9492a203688afb7fab69e85a0110
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.523s
+== TestStatusAllListsTheHistory (internal/cli): go test exit 1
+--- FAIL: TestStatusAllListsTheHistory (0.35s)
+    history_test.go:208: hyp status G-VDZYHT --as-of Q-MDK5SD in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory3904477319/001/internal/x/testdata/synth:
+    history_test.go:208: hyp status G-VDZYHT --as-of Q-MDK5SD in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory3904477319/001/investigations/a/.tree/evidence/E-000001/trial:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.477s
+FAIL
+== TestHistoryLeavesOutStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.377s
+== TestCiteAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestCiteAcrossStores (0.32s)
+    history_test.go:348: exit 1 (want 1), stdout "error: rejected 00000000000000000000000001: bad cite: line 1 cites R-TVRZT1#1, which is not settled: bad limit ref: 01M7AATYP4GTC35BCMMTTVRZT1 is not a Result; a cite is a line, an accepted or closed limit, an answered reading, or a selected or contradicted Hypothesis\ncheck: 1 errors, 0 warnings\n", stderr "refused: check found 1 errors\n" (want "
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.470s
+FAIL
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.282s
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.340s
+== TestAliasLocalToStore (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.640s
+== TestEventNeverCrossesStores (internal/cli): go test exit 1
+--- FAIL: TestEventNeverCrossesStores (0.42s)
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000101","ts":"2026-11-13T00:00:00Z","actor":"z","type":"node.add","node":"7ZZZZZZZZZ0000000000000101","payload":{"kind":"DesignQuestion","parent":"01M7AAV11XS1FWDAF90YXB6V0Z","title":"q"},"why":"w"} for crossing stores:
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000102","ts":"2026-11-13T00:00:00Z","actor":"z","type":"result.record","node":"7ZZZZZZZZZ0000000000000102","payload":{"parent":"01M7AAV14WR0MPEJRTXZQ7PZCJ","verdicts":{"01M7AAV14GD9804PETPPMR9GGK":"supports"},"observation":"o"},"why":"w"} for crossing stores:
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000103","ts":"2026-11-13T00:00:00Z","actor":"z","type":"edge.add","node":"01M7AAV132R5G4Z0Y002DP8386","payload":{"type":"depends_on","to":"01M7AAV14GD9804PETPPMR9GGK"},"why":"w"} for crossing stores:
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000104","ts":"2026-11-13T00:00:00Z","actor":"z","type":"checkpoint","node":"01M7AAV11XS1FWDAF90YXB6V0Z","payload":{"summary":"s"},"why":"w"} for crossing stores:
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000105","ts":"2026-11-13T00:00:00Z","actor":"z","type":"checkpoint","node":"01M7AAV112W74J26TWJJ5XRG77","payload":{"summary":"s","refers":[{"key":"01M7AAV158RTC9YTM7Q4HM0N92#1","text":"void"}]},"why":"w"} for crossing stores:
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000106","ts":"2026-11-13T00:00:00Z","actor":"z","type":"dq.select","node":"01M7AAV1452E7JG8GA27VST9C3","payload":{"hypothesis":"01M7AAV14GD9804PETPPMR9GGK","prev_select":"","scope_change":false},"why":"w"} for crossing stores:
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000107","ts":"2026-11-13T00:00:00Z","actor":"z","type":"hypothesis.abandon","node":"01M7AAV14GD9804PETPPMR9GGK","payload":{},"why":"w"} for crossing stores:
+    history_test.go:530: replay did not reject {"v":1,"id":"7ZZZZZZZZZ0000000000000108","ts":"2026-11-13T00:00:00Z","actor":"owner","type":"answer","node":"","payload":{"answers":[{"key":"01M7AAV158RTC9YTM7Q4HM0N92#r1","text":"t"}]}} for crossing stores:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.581s
+FAIL
+== TestSandboxHistoryCut (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	1.075s
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 1
+--- FAIL: TestUntrackedStoreAllAndRoot (0.12s)
+    history_test.go:667: exit 1 (want 0), stdout "error: rejected G-65E4H3: duplicate id: 01M7AAV2YNFT2WNXET6765E4H3\ncheck: 1 errors, 0 warnings\n", stderr "refused: check found 1 errors\n" (want "check: 0 errors")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.277s
+FAIL
+== TestSameAskAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestSameAskAcrossStores (0.20s)
+    history_test.go:684: exit 0 (want 0), stdout "01M7AAV3JQE44RT7WF91KHRY31 answer\n", stderr "warn: R-8790A5#r1 asks the same as R-HMB2KY#r1 and stays open; add --answer R-8790A5#r1\n" (want "warn: R-8790A5#r1 asks the same as R-HMB2KY#r1 and stays open; it is in store investigations/b, so answer it with its own hyp answer --answer R-8790A5#r1")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.385s
+FAIL
+== TestOneLockRoot (internal/store): go test exit 1
+--- FAIL: TestOneLockRoot (0.07s)
+    history_test.go:165: the sub store's writer took its lock while the root store's writer held it
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.690s
+FAIL

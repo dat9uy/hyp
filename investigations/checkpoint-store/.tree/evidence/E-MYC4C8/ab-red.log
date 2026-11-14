@@ -1,0 +1,128 @@
+===== eed0938 with 8a12324's history tests: eed0938af71fa965afd3a32f0a87d1d261463b5a
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 1
+--- FAIL: TestStatusShowsTheFolderStoresGoals (0.11s)
+    history_test.go:139: exit 0 (want 0), stdout "GOAL G-JE9MGB Goal B — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\nRECENT\nCHECKPOINT none\nREJECTED 1 events (run hyp check)\n", stderr "" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.642s
+FAIL
+== TestStatusAllListsTheHistory (internal/cli): go test exit 1
+--- FAIL: TestStatusAllListsTheHistory (0.08s)
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory2870633011/001:
+    history_test.go:174: hyp [status] in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory2870633011/001/docs:
+    history_test.go:183: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "GOALS")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.223s
+FAIL
+== TestHistoryLeavesOutStores (internal/cli): go test exit 1
+--- FAIL: TestHistoryLeavesOutStores (0.15s)
+    history_test.go:290: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.302s
+FAIL
+== TestCiteAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestCiteAcrossStores (0.08s)
+    history_test.go:320: exit 2 (want 1), stdout "", stderr "unknown node R-7C2010\n" (want "#1, which is not settled")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.236s
+FAIL
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 1
+--- FAIL: TestAppendSortsAfterOtherStores (0.05s)
+    history_test.go:365: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.207s
+FAIL
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestDuplicateIDAcrossStores (0.07s)
+    history_test.go:395: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Dup in a")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.227s
+FAIL
+== TestAliasLocalToStore (internal/cli): go test exit 1
+--- FAIL: TestAliasLocalToStore (0.08s)
+    history_test.go:440: exit 3 (want 2), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "ambiguous node h-null")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.229s
+FAIL
+== TestEventNeverCrossesStores (internal/cli): go test exit 1
+--- FAIL: TestEventNeverCrossesStores (0.08s)
+    history_test.go:495: exit 2 (want 1), stdout "", stderr "unknown node G-HT2D2A\n" (want "event crosses stores")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.223s
+FAIL
+== TestSandboxHistoryCut (internal/cli): go test exit 1
+--- FAIL: TestSandboxHistoryCut (0.08s)
+    history_test.go:573: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.246s
+FAIL
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 1
+--- FAIL: TestUntrackedStoreAllAndRoot (0.05s)
+    history_test.go:681: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal A")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.204s
+FAIL
+== TestSameAskAcrossStores (internal/cli): go test exit 1
+--- FAIL: TestSameAskAcrossStores (0.10s)
+    history_test.go:705: exit 0 (want 0), stdout "01M7ACCGXC9B5APV8BJYPPRHGS answer\n", stderr "" (want "warn: R-1BAJDN#r1 asks the same as R-HPTED4#r1 and stays open; it is in store investigations/b, so answer it with its own hyp answer --answer R-1BAJDN#r1")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.266s
+FAIL
+== TestStoreByAnotherPath (internal/cli): go test exit 1
+--- FAIL: TestStoreByAnotherPath (0.09s)
+    history_test.go:731: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -all\n" (want "Goal B")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.251s
+FAIL
+== TestAppendSortsAfterUntracked (internal/cli): go test exit 1
+--- FAIL: TestAppendSortsAfterUntracked (0.08s)
+    history_test.go:764: events --json: unexpected end of JSON input: 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.239s
+FAIL
+===== 3a886de with 8a12324's history tests: 3a886def5023d7373cfe26a2123ab26f508a5e50
+vet: compiles
+== TestStatusShowsTheFolderStoresGoals (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.576s
+== TestStatusAllListsTheHistory (internal/cli): go test exit 1
+--- FAIL: TestStatusAllListsTheHistory (0.46s)
+    history_test.go:211: hyp status G-QZY9KM --as-of h-b in /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStatusAllListsTheHistory39225693/001/investigations/a:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.603s
+FAIL
+== TestHistoryLeavesOutStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.431s
+== TestCiteAcrossStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.646s
+== TestAppendSortsAfterOtherStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.301s
+== TestDuplicateIDAcrossStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.371s
+== TestAliasLocalToStore (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.788s
+== TestEventNeverCrossesStores (internal/cli): go test exit 1
+--- FAIL: TestEventNeverCrossesStores (0.57s)
+    history_test.go:546: replay did not reject a confirm that accepts another store's line:
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.732s
+FAIL
+== TestSandboxHistoryCut (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	1.040s
+== TestUntrackedStoreAllAndRoot (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.305s
+== TestSameAskAcrossStores (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.471s
+== TestStoreByAnotherPath (internal/cli): go test exit 1
+--- FAIL: TestStoreByAnotherPath (0.19s)
+    history_test.go:731: exit 0 (want 0), stdout "GOAL G-Q98TCG Goal A — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)\nLINES\n  G-Q98TCG#1 uncovered on Q-FQ2HB3: H-NTT6SY (h-a) — a case\nFRONTIER\n  Q-FQ2HB3 open/supported_unselected Q\n    candidates (1): H-NTT6SY (h-a)\n    H-NTT6SY (h-a) supported H\nSTALE\nOWED\n  runner: Q-FQ2HB3 limit R-GF91FW#1 [owed] — a c
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.451s
+FAIL
+== TestAppendSortsAfterUntracked (internal/cli): go test exit 0
+ok  	github.com/dat9uy/hyp/internal/cli	0.298s
+== TestAppendSortsAfterUnreadRoot (internal/store): go test exit 1
+--- FAIL: TestAppendSortsAfterUnreadRoot (0.07s)
+    history_test.go:211: appended id 01M7ACCXG98R0VF8QSV21JMY85 sorts at or before 7ZZZZZZZZZ0000000000000005, an id of the untracked root store
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.473s
+FAIL

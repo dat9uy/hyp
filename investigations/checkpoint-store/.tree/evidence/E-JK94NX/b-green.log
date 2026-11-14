@@ -1,0 +1,50 @@
+== candidate a9963fc2538fd526e0f2f3d72bae044b0c4ed5cd
+== TestStatusShowsTheFolderStoresGoals (internal/cli)
+--- PASS: TestStatusShowsTheFolderStoresGoals (0.13s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.487s
+exit 0
+== TestStatusAllListsTheHistory (internal/cli)
+--- PASS: TestStatusAllListsTheHistory (0.24s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.390s
+exit 0
+== TestHistoryLeavesOutStores (internal/cli)
+--- PASS: TestHistoryLeavesOutStores (0.21s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.365s
+exit 0
+== TestCiteAcrossStores (internal/cli)
+--- PASS: TestCiteAcrossStores (0.29s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.442s
+exit 0
+== TestAppendSortsAfterOtherStores (internal/cli)
+--- PASS: TestAppendSortsAfterOtherStores (0.12s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.362s
+exit 0
+== TestDuplicateIDAcrossStores (internal/cli)
+--- PASS: TestDuplicateIDAcrossStores (0.12s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.289s
+exit 0
+== TestAliasLocalToStore (internal/cli)
+--- PASS: TestAliasLocalToStore (0.48s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.624s
+exit 0
+== TestEventNeverCrossesStores (internal/cli)
+--- PASS: TestEventNeverCrossesStores (0.40s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.550s
+exit 0
+== TestSandboxHistoryCut (internal/cli)
+--- PASS: TestSandboxHistoryCut (0.89s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.035s
+exit 0
+== TestAppendSortsAfterHistory (internal/store)
+--- PASS: TestAppendSortsAfterHistory (0.13s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	0.472s

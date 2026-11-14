@@ -1,0 +1,10 @@
+E-GA2SBD rubric (a) to (g), read on the logs in this folder. In ab-red.log each "exit" line is the exit of the cut that follows go test, not of go test; the --- FAIL / ok lines are what count.
+(a) holds: on eed0938 the nine cli line tests each fail on their own assertion (ab-red.log), line 1's at history_test.go:139: status in store b lacks Goal C.
+(b) holds: on a9963fc these fail: TestStatusAllListsTheHistory (testdata folder, :205 and :210), TestCiteAcrossStores (fresh store, :322), TestAppendSortsAfterOtherStores (fresh store, :362), TestDuplicateIDAcrossStores (store view rejections, :386, :396), TestEventNeverCrossesStores (crossing message, :478).
+(c) holds: the ten line tests pass on 3bbf187 (c-green.log).
+(d) holds: 13 removals, each with a non-empty diff, each fail their test (d-removals.log).
+(e) holds: go vet and go test ./... -count=1 pass on 3bbf187 (e-vet-test.log).
+(f) holds: census 16 same, 0 differ, eed0938 vs 3bbf187 (fg-census-root-check.log).
+(g) holds: hyp check at the root: check: 0 errors, exit 0; status --all misses no Goal of the five stores.
+(h) the review is h-review.md.
+verdict: one-history-2=supports

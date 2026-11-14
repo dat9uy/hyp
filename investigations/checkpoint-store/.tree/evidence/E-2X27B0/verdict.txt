@@ -1,0 +1,11 @@
+E-2X27B0 rubric (a) to (g), read on the logs in this folder; each "go test exit" is the exit of go test.
+(a) FAILS: on eed0938, eleven of the twelve cli tests exit 1, but TestStoreByAnotherPath exits 0 (ab-red.log): a base that reads one store never reads a store twice.
+(b) FAILS in part: on c770b50, TestStoreByAnotherPath and TestSandboxHistoryCut exit 1, but TestAppendSortsAfterOtherStores exits 0 (ab-red.log): its untracked id ...0005 sorts below the ids store a's earlier future id already forces, so the test does not run the untracked case.
+(c) holds: the twelve cli tests and two store tests pass on 3a886de (c-green.log).
+(d) FAILS: Runtracked (untracked ids) passes its test, so that removal is not caught; R8d ran with its history.go pattern missing, so only its validate.go half applied (d-removals.log). The 18 other removals fail their test.
+(e) holds: go vet and go test ./... -count=1 pass on 3a886de (e-vet-test.log).
+(f) holds: census 16 same, 0 differ, eed0938 vs 3a886de (fg-census-root-check.log).
+(g) holds: hyp check at the root: check: 0 errors, exit 0; status --all misses no Goal of the five stores.
+(h) the review is h-review.md.
+Any failure contradicts:
+verdict: one-history-4=contradicts

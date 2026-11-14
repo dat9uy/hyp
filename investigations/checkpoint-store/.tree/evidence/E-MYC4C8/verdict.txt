@@ -1,0 +1,10 @@
+E-MYC4C8 rubric (a) to (g), read on the logs in this folder; each "go test exit" is the exit of go test.
+(a) holds: on eed0938 the thirteen cli tests of 8a12324's history_test.go each exit 1 (ab-red.log).
+(b) holds: on 3a886de with 8a12324's history tests, TestStoreByAnotherPath fails on the outside link (history_test.go:731), TestEventNeverCrossesStores on the confirm (:546), TestStatusAllListsTheHistory on --as-of h-b (:211), and TestAppendSortsAfterUnreadRoot in internal/store on the root store's id (store history_test.go:211).
+(c) holds: the thirteen cli tests and three store tests pass on 8a12324 (c-green.log).
+(d) holds: 24 removals each apply whole and fail their test; no pattern is missing (d-removals.log).
+(e) holds: go vet and go test ./... -count=1 pass on 8a12324 (e-vet-test.log).
+(f) holds: census 16 same, 0 differ, eed0938 vs 8a12324 (fg-census-root-check.log).
+(g) holds: hyp check at the root: check: 0 errors, exit 0; status --all misses no Goal of the five stores.
+(h) the review is h-review.md.
+verdict: one-history-5=supports
