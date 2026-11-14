@@ -1,0 +1,58 @@
+== returned tests of the review, run by the runner in the detached checkout of 9f3434b6b19bffd90add37693251aed713a36aa9
+=== RUN   TestReviewShowBundleEvidenceAfterSync
+    review_bundle_evidence_show_test.go:59: after sync, hyp show recipes/kit@1/run.sh in clone a (whose Result R-GTE506 cites it) exits 0 and prints "#!/bin/sh\necho b\n", not the bytes R-GTE506 named (echo a); stderr ""
+--- FAIL: TestReviewShowBundleEvidenceAfterSync (3.15s)
+=== RUN   TestReviewPinnedBundleAtTwoLibraryLevels
+    review_bundle_two_levels_test.go:62: record files:
+        recipes/kit@1/recipe.md
+        recipes/kit@1/run.sh
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-0KX7YA/out.txt
+        s/.tree/evidence/E-WGYTQ0/out.txt
+        s/recipes/kit@1/recipe.md
+        s/recipes/kit@1/run.sh
+    review_bundle_two_levels_test.go:67: from w1, R-F3KJ5J reads questionable after both writes exited 0:
+        Result R-F3KJ5J
+        path: G-CHK36Z > Q-BWH4R1 > H-VE9K1B > E-0KX7YA > R-F3KJ5J
+        status: recorded
+        observation: ran
+        verdicts: H-VE9K1B=supports
+        evidence: .tree/evidence/E-0KX7YA/out.txt sha256 1e98b3c8624737cb994ae60ff0dc63db6e772efa2547be1fc605d640ef13af9d
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:16 a result.record R-F3KJ5J — w
+    review_bundle_two_levels_test.go:67: from w1, R-R2ZPEP reads questionable after both writes exited 0:
+        Result R-R2ZPEP
+        path: G-CHK36Z > Q-F4CD6H > H-K1NKQS > E-WGYTQ0 > R-R2ZPEP
+        status: recorded
+        observation: ran
+        verdicts: H-K1NKQS=supports
+        evidence: .tree/evidence/E-WGYTQ0/out.txt sha256 5de5023a6e5e5fa408f714bc998b5115c59e26a02aedad3e4a45f558ca39a1b1
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:16 a result.record R-R2ZPEP — w
+    review_bundle_two_levels_test.go:67: from w2, R-F3KJ5J reads questionable after both writes exited 0:
+        Result R-F3KJ5J
+        path: G-CHK36Z > Q-BWH4R1 > H-VE9K1B > E-0KX7YA > R-F3KJ5J
+        status: recorded
+        observation: ran
+        verdicts: H-VE9K1B=supports
+        evidence: .tree/evidence/E-0KX7YA/out.txt sha256 1e98b3c8624737cb994ae60ff0dc63db6e772efa2547be1fc605d640ef13af9d
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:16 a result.record R-F3KJ5J — w
+    review_bundle_two_levels_test.go:67: from w2, R-R2ZPEP reads questionable after both writes exited 0:
+        Result R-R2ZPEP
+        path: G-CHK36Z > Q-F4CD6H > H-K1NKQS > E-WGYTQ0 > R-R2ZPEP
+        status: recorded
+        observation: ran
+        verdicts: H-K1NKQS=supports
+        evidence: .tree/evidence/E-WGYTQ0/out.txt sha256 5de5023a6e5e5fa408f714bc998b5115c59e26a02aedad3e4a45f558ca39a1b1
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:16 a result.record R-R2ZPEP — w
+--- FAIL: TestReviewPinnedBundleAtTwoLibraryLevels (1.96s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	5.567s
+FAIL
+go test exit 1

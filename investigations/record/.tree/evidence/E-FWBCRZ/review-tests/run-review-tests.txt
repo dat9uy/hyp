@@ -1,0 +1,39 @@
+== returned tests of the review, run by the runner in the detached checkout of 3a3220f332631606c3055f7696c3d5a87970accb
+=== RUN   TestReviewImportKeepsCitedFileTrackedBesideAGlobName
+    review_findings_test.go:46: hyp import untracked the cited file .tree/evidence/E-WCTNS6/out.txt; tracked evidence now:
+--- FAIL: TestReviewImportKeepsCitedFileTrackedBesideAGlobName (0.45s)
+=== RUN   TestReviewShowNeverPrintsOtherBytesForAPickedSha
+    review_findings_test.go:91: hyp show .tree/evidence/E-PP1CFZ/out.txt@2c8b08da5ce6: exit 0, stdout "two\n", stderr ""
+    review_findings_test.go:93: hyp show .tree/evidence/E-PP1CFZ/out.txt@2c8b08da5ce6 printed "two\n", whose sha256 is 27dd8ed44a83, not 2c8b08da5ce6
+--- FAIL: TestReviewShowNeverPrintsOtherBytesForAPickedSha (0.44s)
+=== RUN   TestReviewImportFromRefThenCheckoutAddsTheLaterEvent
+    review_findings_test.go:105: hyp import w after 72956e0f3c66:w: exit 1, stdout "", stderr "hyp import w: refused: w/.tree/evidence/E-5X8D0S/out.txt differs from the copy the record holds; a file an event names never changes, so write it under a new path\n"
+    review_findings_test.go:106: exit 1 (want 0), stdout "", stderr "hyp import w: refused: w/.tree/evidence/E-5X8D0S/out.txt differs from the copy the record holds; a file an event names never changes, so write it under a new path\n" (want "imported 1 events")
+--- FAIL: TestReviewImportFromRefThenCheckoutAddsTheLaterEvent (0.53s)
+=== RUN   TestReviewNoGitOnPathInARecordRepository
+    review_findings_test.go:119: hyp status with no git: exit 0, stdout "GOAL none (hyp add goal --title T --why W)\n", stderr ""
+    review_findings_test.go:121: hyp status with no git on PATH exits 0 and does not print G-HKXRAN, which a write exited 0 on
+    review_findings_test.go:124: hyp add goal with no git: exit 0, stdout "G-3ED25V node.add\n", stderr ""
+    review_findings_test.go:129: hyp add goal exited 0 with no git on PATH, and with git back hyp status does not print G-3ED25V:
+        GOAL G-HKXRAN in the record — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+    review_findings_test.go:132: the next write with git back: exit 1, stderr "refused: the work-tree store at /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewNoGitOnPathInARecordRepository2754879762/002/s holds event 01M7CT8AMMJ9A0S8A82G3ED25V, which the record lacks; run hyp import /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewNoGitOnPathInARecordRepository2754879762/002/s first\n"
+--- FAIL: TestReviewNoGitOnPathInARecordRepository (0.39s)
+=== RUN   TestReviewTwoWorktreesRecordEvidenceAtOnce
+--- PASS: TestReviewTwoWorktreesRecordEvidenceAtOnce (3.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	5.394s
+FAIL
+go test exit 1
+== control: REVIEW_CONTROL=1
+=== RUN   TestReviewImportKeepsCitedFileTrackedBesideAGlobName
+--- PASS: TestReviewImportKeepsCitedFileTrackedBesideAGlobName (0.40s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.567s
+go test exit 0

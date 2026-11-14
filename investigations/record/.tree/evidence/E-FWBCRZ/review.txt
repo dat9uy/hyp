@@ -1,0 +1,354 @@
+## Review of 3a3220f33263 (feat/record) against G-SZCBXZ
+
+I built and tested in my own detached worktree, which I have since removed. I imported the real stores into a separate temporary `git clone`, never a worktree of the clone, and deleted it afterwards. Nothing was written in /Users/datguy/codingProjects/tree-based-agent-memory: it has no refs/hyp ref, and I made no commit or branch change there. I did not touch ~/.local/bin/hyp.
+
+`go build`, `go vet` and `go test ./... -count=1` on the candidate: everything passes except one run of `TestAddGoalRefusesATruncatedHash` (internal/cli). That failure is a flake already present in the test, not caused by this change. `notIn(t, "G2")` matched the random id `Q-NEG2TT`, and the test passes on rerun (`-count=3`). Label: none.
+
+### Four findings
+
+**1. G-SZCBXZ#6 (and the body's "cited files tracked").** `hyp import` untracks a cited evidence file when an uncited file's name is a glob that matches it. The cause is `Repo.Untrack` in internal/record/source.go, which runs `git rm --cached --quiet -- <paths>`. Git reads each path as a pathspec, so the uncited `ou[t].txt` also matches the cited `out.txt`. A fix would pass `--literal-pathspecs` or `:(literal)`. The control run (`REVIEW_CONTROL=1`, no glob-named file) passes.
+
+**2. G-SZCBXZ#1 / #8.** `hyp show PATH@SHA` prints bytes whose sha256 is not SHA. The setup is a work-tree store where Result R1 cites P = "one", then P is overwritten with "two" and E2 pins it with `--records`. After `hyp import .`, `hyp show P@<sha("one")>` exits 0 and prints "two". The cause is in `showFile` (internal/cli/read.go): `record.NamedPath` falls back to the file at that path when no kept copy exists, and nothing checks the sha256 of what it prints.
+
+**3. G-SZCBXZ#8.** With the same history, `hyp import <first-commit>:w` and then `hyp import w` stops with exit 1: "w/.tree/evidence/E-…/out.txt differs from the copy the record holds". The later event E2 is never added. `Store.Append` refuses a held path with other bytes. The owner's answer R-BHDBGK#r1 ("content … out-of-Goal") may cover this, and through it finding 2. I report it under line 8 because line 8 says import "adds every event … that the record lacks".
+
+**4. G-SZCBXZ#1 / #9, and the exit-code rule.** In a record repository with git not on PATH, hyp quietly falls back to the work-tree `.tree/` instead of exiting 3:
+- `hyp status` exits 0 and does not print the Goal already in the record.
+- `hyp add goal` exits 0 but writes only to the work-tree file. With git back, `hyp status` does not print that event, and the next write is refused with "run hyp import".
+
+The cause is `openRepo` in internal/record/git.go, which returns a repository with no record when `LookPath("git")` fails or `git rev-parse` fails. So a "dubious ownership" error from rev-parse leads to the same fallback; I found that by reading the code, not with a test.
+
+### One finding I did not write a new test for (label: none)
+
+The Goal's rubric sentence "Each Experiment's rubric also runs hyp import in a sandbox clone of this repository" cannot run as written. The candidate marks every `hyp sandbox create` clone as a sandbox and refuses `hyp import` there (exit 1). The existing assertion `want(t, hyp(t, "import", "."), 1, "sandbox clone")` in `TestSubjectCommitStaysReachable` (internal/cli/record_lines_test.go) already shows this. That follows from the body's "a sandbox clone … use[s] the work-tree .tree/". The owner should decide which clone the rubric means, for example a plain `git clone`.
+
+### Checked and held
+
+- **Line 4:** six concurrent `hyp record --evidence` writes from two worktrees all applied, and each file shows from the other worktree (test below).
+- **Line 10:** my own scan agrees. Outside internal/record, no non-test Go file contains the two folder names. Only record/git.go and the sandbox files import os/exec.
+- **Real data, lines 6, 7 and 8:** on a temporary clone of this repository (main cdb0642), I imported all six stores under investigations/. The second import added nothing. `hyp status --max-lines 100000`, `hyp render --markdown` and `hyp check` printed byte-identical output before and after import. They were still identical after I deleted every work-tree `.tree/`, `recipes/`, `rubrics/` and `arms/`.
+  - Of 375 file sha256s stored in events (evidence, records, subject files and patches), all 375 match the bytes in the record.
+  - After import, no tracked evidence file is outside the record. No cited file that was tracked before became untracked.
+  - Importing from the tags `g-akjjf8/record:` and `g-akjjf8/candidates:` exited 0. The first added 30 events to checkpoint-store; the rest reported "the record holds every event".
+
+### Test file (temp checkout path internal/cli/review_findings_test.go; copy kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/b077707b-c450-40e1-8eee-2197d7e329da/scratchpad/review_findings_test.go)
+
+```go
+package cli
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+)
+
+func sumOf(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
+}
+
+// G-SZCBXZ#6 (and the Goal body: "old .tree/ folders stay as frozen copies,
+// cited files tracked"): hyp import untracks only the evidence files no
+// event names. An uncited file whose name holds a glob character must not
+// take a cited file with it.
+func TestReviewImportKeepsCitedFileTrackedBesideAGlobName(t *testing.T) {
+	repo := recordRepo(t)
+	other := t.TempDir()
+	t.Chdir(other)
+	must(t, "init")
+	_, _, ptr := chain(t, "cited\n") // .tree/evidence/E-x/out.txt
+	dir := filepath.Dir(ptr)
+	if os.Getenv("REVIEW_CONTROL") == "" {
+		writeFile(t, filepath.Join(other, dir, "ou[t].txt"), "uncited\n")
+	}
+	dst := filepath.Join(repo, "w")
+	if err := os.CopyFS(dst, os.DirFS(other)); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(dst, ".tree", ".gitignore")); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "add", "-A", "w")
+	gitIn(t, repo, "commit", "-qm", "work-tree store")
+	t.Chdir(dst)
+	want(t, hyp(t, "import", "."), 0, "imported")
+	tracked := gitIn(t, repo, "ls-files", "w/.tree/evidence")
+	if !strings.Contains(tracked, "w/"+ptr) {
+		t.Fatalf("hyp import untracked the cited file %s; tracked evidence now:\n%s", ptr, tracked)
+	}
+}
+
+// storeHistory writes, in a folder outside git, a store whose Result R1
+// cites P with "one", then an Experiment E2 that pins P as a record after
+// the file was overwritten with "two", as a work-tree store allows. It copies the store
+// into repo/name after each event and commits it, and returns the first
+// commit and P.
+func storeHistory(t *testing.T, repo, name string) (first, p string) {
+	t.Helper()
+	other := t.TempDir()
+	t.Chdir(other)
+	must(t, "init")
+	_, h, _, ptr := chainH(t, "one\n")
+	dst := filepath.Join(repo, name)
+	cp := func(msg string) string {
+		if err := os.RemoveAll(filepath.Join(dst, ".tree")); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.CopyFS(dst, os.DirFS(other)); err != nil {
+			t.Fatal(err)
+		}
+		_ = os.Remove(filepath.Join(dst, ".tree", ".gitignore"))
+		gitIn(t, repo, "add", "-A", name)
+		gitIn(t, repo, "commit", "-qm", msg)
+		return gitIn(t, repo, "rev-parse", "HEAD")
+	}
+	first = cp("R1")
+	t.Chdir(other)
+	writeFile(t, ptr, "two\n")
+	must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--rubric", "reading", "--records", ptr, "--why", "w")
+	cp("E2")
+	return first, ptr
+}
+
+// G-SZCBXZ#1 and #8: after hyp import, hyp show PATH@SHA prints the bytes
+// with that sha256 or refuses; it never prints other bytes under it.
+func TestReviewShowNeverPrintsOtherBytesForAPickedSha(t *testing.T) {
+	repo := recordRepo(t)
+	_, ptr := storeHistory(t, repo, "w")
+	t.Chdir(filepath.Join(repo, "w"))
+	want(t, hyp(t, "import", "."), 0, "imported")
+	one := sumOf("one\n")
+	r := hyp(t, "show", ptr+"@"+one[:12])
+	t.Logf("hyp show %s@%s: exit %d, stdout %q, stderr %q", ptr, one[:12], r.code, r.stdout, r.stderr)
+	if r.code == 0 && r.stdout != "one\n" {
+		t.Fatalf("hyp show %s@%s printed %q, whose sha256 is %s, not %s", ptr, one[:12], r.stdout, sumOf(r.stdout)[:12], one[:12])
+	}
+}
+
+// G-SZCBXZ#8: hyp import from REF and then from the checkout adds every
+// event the record lacks; running it again adds nothing.
+func TestReviewImportFromRefThenCheckoutAddsTheLaterEvent(t *testing.T) {
+	repo := recordRepo(t)
+	first, _ := storeHistory(t, repo, "w")
+	t.Chdir(repo)
+	want(t, hyp(t, "import", first+":w"), 0, "imported")
+	r := hyp(t, "import", "w")
+	t.Logf("hyp import w after %s:w: exit %d, stdout %q, stderr %q", first[:12], r.code, r.stdout, r.stderr)
+	want(t, r, 0, "imported 1 events")
+}
+
+// G-SZCBXZ#1 and #9: in a record repository, an event a write exited 0 on is
+// printed by hyp status; a write either reaches the record or fails. With
+// no git on PATH hyp cannot read the record, which is an environment
+// problem (exit 3), not a cue to read and write the work-tree store.
+func TestReviewNoGitOnPathInARecordRepository(t *testing.T) {
+	recordRepo(t)
+	g := must(t, "add", "goal", "--title", "in the record", "--why", "w")
+	path := os.Getenv("PATH")
+	t.Setenv("PATH", t.TempDir())
+	st := hyp(t, "status")
+	t.Logf("hyp status with no git: exit %d, stdout %q, stderr %q", st.code, st.stdout, st.stderr)
+	if st.code == 0 && !strings.Contains(st.stdout, g) {
+		t.Errorf("hyp status with no git on PATH exits 0 and does not print %s, which a write exited 0 on", g)
+	}
+	w := hyp(t, "add", "goal", "--title", "written with no git", "--why", "w")
+	t.Logf("hyp add goal with no git: exit %d, stdout %q, stderr %q", w.code, w.stdout, w.stderr)
+	t.Setenv("PATH", path)
+	if w.code == 0 {
+		lost := strings.Fields(w.stdout)[0]
+		if out := hyp(t, "status").stdout; !strings.Contains(out, lost) {
+			t.Errorf("hyp add goal exited 0 with no git on PATH, and with git back hyp status does not print %s:\n%s", lost, out)
+		}
+		next := hyp(t, "add", "goal", "--title", "next", "--why", "w")
+		t.Logf("the next write with git back: exit %d, stderr %q", next.code, next.stderr)
+	}
+}
+
+// G-SZCBXZ#4: writes that each name a file, run at once from two worktrees,
+// all apply.
+func TestReviewTwoWorktreesRecordEvidenceAtOnce(t *testing.T) {
+	repo := recordRepo(t)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	wt := filepath.Join(t.TempDir(), "w")
+	gitIn(t, repo, "worktree", "add", "-q", "-b", "work", wt)
+	dirs := []string{filepath.Join(repo, "s"), filepath.Join(wt, "s")}
+	const n = 6
+	exps := make([]string, n)
+	for i := range n {
+		t.Chdir(dirs[i%2])
+		exps[i] = must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+		writeFile(t, filepath.Join(dirs[i%2], ".tree", "evidence", exps[i], "out.txt"), exps[i]+"\n")
+	}
+	var wg sync.WaitGroup
+	errs := make([]string, n)
+	for i := range n {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cmd := exec.Command(os.Args[0], "record", "--exp", exps[i], "--verdict", h+"=supports", "--observation", "ran", "--evidence", ".tree/evidence/"+exps[i]+"/out.txt", "--why", "w")
+			cmd.Dir = dirs[i%2]
+			cmd.Env = append(os.Environ(), "HYP_TEST_AS_HYP=1", "HYP_ACTOR=a")
+			if out, err := cmd.CombinedOutput(); err != nil {
+				errs[i] = string(out) + err.Error()
+			}
+		}()
+	}
+	wg.Wait()
+	for i, e := range errs {
+		if e != "" {
+			t.Errorf("write %d from %s failed: %s", i, dirs[i%2], e)
+		}
+	}
+	for i := range n {
+		t.Chdir(dirs[(i+1)%2])
+		want(t, hyp(t, "show", ".tree/evidence/"+exps[i]+"/out.txt"), 0, exps[i])
+	}
+}
+```
+
+### Output: `go test ./internal/cli -run TestReview -count=1 -v` in the 3a3220f33263 checkout
+
+```
+=== RUN   TestReviewImportKeepsCitedFileTrackedBesideAGlobName
+    review_findings_test.go:46: hyp import untracked the cited file .tree/evidence/E-2KDPZJ/out.txt; tracked evidence now:
+--- FAIL: TestReviewImportKeepsCitedFileTrackedBesideAGlobName (0.39s)
+=== RUN   TestReviewShowNeverPrintsOtherBytesForAPickedSha
+    review_findings_test.go:91: hyp show .tree/evidence/E-VYT7DT/out.txt@2c8b08da5ce6: exit 0, stdout "two\n", stderr ""
+    review_findings_test.go:93: hyp show .tree/evidence/E-VYT7DT/out.txt@2c8b08da5ce6 printed "two\n", whose sha256 is 27dd8ed44a83, not 2c8b08da5ce6
+--- FAIL: TestReviewShowNeverPrintsOtherBytesForAPickedSha (0.41s)
+=== RUN   TestReviewImportFromRefThenCheckoutAddsTheLaterEvent
+    review_findings_test.go:105: hyp import w after dd55a1399456:w: exit 1, stdout "", stderr "hyp import w: refused: w/.tree/evidence/E-X5YQBY/out.txt differs from the copy the record holds; a file an event names never changes, so write it under a new path\n"
+    review_findings_test.go:106: exit 1 (want 0), stdout "", stderr "hyp import w: refused: w/.tree/evidence/E-X5YQBY/out.txt differs from the copy the record holds; a file an event names never changes, so write it under a new path\n" (want "imported 1 events")
+--- FAIL: TestReviewImportFromRefThenCheckoutAddsTheLaterEvent (0.49s)
+=== RUN   TestReviewNoGitOnPathInARecordRepository
+    review_findings_test.go:119: hyp status with no git: exit 0, stdout "GOAL none (hyp add goal --title T --why W)\n", stderr ""
+    review_findings_test.go:121: hyp status with no git on PATH exits 0 and does not print G-RK54VV, which a write exited 0 on
+    review_findings_test.go:124: hyp add goal with no git: exit 0, stdout "G-YHGPNV node.add\n", stderr ""
+    review_findings_test.go:129: hyp add goal exited 0 with no git on PATH, and with git back hyp status does not print G-YHGPNV:
+        GOAL G-RK54VV in the record — in_progress (answered 0, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+        RECENT
+        CHECKPOINT none
+    review_findings_test.go:132: the next write with git back: exit 1, stderr "refused: the work-tree store at /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewNoGitOnPathInARecordRepository2969114318/002/s holds event 01M7CT2V1V6H3AR281XHYHGPNV, which the record lacks; run hyp import /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewNoGitOnPathInARecordRepository2969114318/002/s first\n"
+--- FAIL: TestReviewNoGitOnPathInARecordRepository (0.34s)
+=== RUN   TestReviewTwoWorktreesRecordEvidenceAtOnce
+--- PASS: TestReviewTwoWorktreesRecordEvidenceAtOnce (2.78s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	4.569s
+FAIL
+```
+
+Control run of the first test with `REVIEW_CONTROL=1` (no glob-named file):
+```
+=== RUN   TestReviewImportKeepsCitedFileTrackedBesideAGlobName
+--- PASS: TestReviewImportKeepsCitedFileTrackedBesideAGlobName (0.42s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.577s
+```
+
+### Real-data scripts (G-SZCBXZ#6, #7, #8; all held)
+
+These ran with the candidate binary, built to the scratchpad at bin/hyp (`hyp 0.1.0 (events v1) 3a3220f33263`), on a temporary `git clone` of the repository at cdb0642.
+
+import-real.sh (args: HYP CLONE OUT):
+```sh
+#!/bin/sh
+# Imports every store of a fresh clone of the hyp repository with the
+# candidate hyp and compares what hyp prints for each store before and after.
+set -u
+HYP=$1; CLONE=$2; OUT=$3
+mkdir -p "$OUT/before" "$OUT/after"
+export GIT_CONFIG_NOSYSTEM=1
+cd "$CLONE"
+stores=$(ls investigations)
+snap() {
+  for s in $stores; do
+    (cd "$CLONE/investigations/$s" && {
+      "$HYP" status --max-lines 100000 > "$OUT/$1/$s.status" 2>&1; echo "exit $?" >> "$OUT/$1/$s.status"
+      "$HYP" render --markdown > "$OUT/$1/$s.md" 2>&1; echo "exit $?" >> "$OUT/$1/$s.md"
+      "$HYP" check > "$OUT/$1/$s.check" 2>&1; echo "exit $?" >> "$OUT/$1/$s.check"
+    })
+  done
+}
+snap before
+args=""; for s in $stores; do args="$args investigations/$s"; done
+"$HYP" import $args; echo "import exit $?"
+git for-each-ref refs/hyp
+"$HYP" import $args; echo "second import exit $?"
+snap after
+for s in $stores; do
+  for k in status md check; do
+    if cmp -s "$OUT/before/$s.$k" "$OUT/after/$s.$k"; then echo "$s.$k same"; else echo "$s.$k DIFFERS"; diff "$OUT/before/$s.$k" "$OUT/after/$s.$k" | head -20; fi
+  done
+done
+git status --short | head -20
+```
+Output (tail): `investigations/checkpoint-store: imported 111 events`, checkpoint-store-design 27, goal-prompt 190, id-citation 12, recipe-base 11, record 39, then `import exit 0`. A second import printed "the record holds every event" for each store, then `second import exit 0`. All 18 comparisons (6 stores × status/md/check) printed "same". `git diff --cached --stat`: 5261 untracked evidence files.
+
+strip-real.sh (deletes every work-tree `.tree/`, `recipes/`, `rubrics/` and `arms/` after import, then compares):
+```sh
+#!/bin/sh
+HYP=$1; CLONE=$2; OUT=$3
+cd "$CLONE"
+mkdir -p "$OUT/stripped"
+for s in $(ls investigations); do rm -rf "investigations/$s/.tree" "investigations/$s/recipes" "investigations/$s/rubrics" "investigations/$s/arms"; done
+rm -rf recipes rubrics
+for s in $(ls investigations); do
+  (cd "$CLONE/investigations/$s" && {
+    "$HYP" status --max-lines 100000 > "$OUT/stripped/$s.status" 2>&1; echo "exit $?" >> "$OUT/stripped/$s.status"
+    "$HYP" render --markdown > "$OUT/stripped/$s.md" 2>&1; echo "exit $?" >> "$OUT/stripped/$s.md"
+    "$HYP" check > "$OUT/stripped/$s.check" 2>&1; echo "exit $?" >> "$OUT/stripped/$s.check"
+  })
+  for k in status md check; do
+    if cmp -s "$OUT/after/$s.$k" "$OUT/stripped/$s.$k"; then echo "$s.$k same"; else echo "$s.$k DIFFERS"; diff "$OUT/after/$s.$k" "$OUT/stripped/$s.$k" | head -10; fi
+  done
+done
+```
+Output: all 18 comparisons printed "same".
+
+sumcheck.py (run with `python3 -I sumcheck.py CLONE`):
+```python
+import json, subprocess, sys, hashlib, os
+clone = sys.argv[1]
+def git(*a, inp=None):
+    return subprocess.run(["git","-C",clone,*a], capture_output=True, input=inp).stdout
+names = git("ls-tree","-r","--name-only","refs/hyp/record").decode().split("\n")
+bad = 0; checked = 0
+for p in names:
+    if "/.tree/events/" not in p or not p.endswith(".jsonl"): continue
+    store = p.split("/.tree/")[0]
+    for line in git("show","refs/hyp/record:"+p).decode().splitlines():
+        try: ev = json.loads(line)
+        except Exception: continue
+        pl = ev.get("payload",{})
+        pairs = list((pl.get("evidence_sha256") or {}).items())
+        pairs += [(f["path"], f.get("sha256")) for f in (pl.get("records") or []) + (pl.get("files") or [])]
+        if pl.get("patch"): pairs.append((pl["patch"]["path"], pl["patch"].get("sha256")))
+        for rel, s in pairs:
+            if not s: continue
+            checked += 1
+            rp = os.path.normpath(store + "/" + rel)
+            data = subprocess.run(["git","-C",clone,"show","refs/hyp/record:"+rp], capture_output=True)
+            if data.returncode != 0:
+                print("MISSING", ev["id"], rp); bad += 1; continue
+            if hashlib.sha256(data.stdout).hexdigest() != s:
+                print("WRONG BYTES", ev["id"], rp); bad += 1
+print("checked", checked, "bad", bad)
+```
+Output: `checked 375 bad 0`.
+
+Index check after import, using `comm` on `git ls-files`, `git ls-tree HEAD` and `git ls-tree refs/hyp/record`, each filtered to `/.tree/evidence/`. Tracked before: 5792, tracked after: 531, record evidence: 527. The only tracked files outside the record are 4 files under internal/testutil/testdata/synth, a store that was not imported. No file that is in the record and was tracked before became untracked.
+
+Status: DONE_WITH_CONCERNS
+Summary: The candidate meets lines 1–10 on this repository's real stores, and line 4 and line 10 held in my own checks. Four tests fail: hyp import's untrack reads paths as globs and can untrack a cited file (#6); `hyp show PATH@SHA` can print bytes with another sha256, and a REF-then-checkout import is refused (#1/#8, possibly out-of-Goal under R-BHDBGK#r1); and with no git on PATH, a record repository silently falls back to the work-tree store instead of exiting 3 (#1/#9). Separately, the rubric's "hyp import in a sandbox clone" is refused by design.
