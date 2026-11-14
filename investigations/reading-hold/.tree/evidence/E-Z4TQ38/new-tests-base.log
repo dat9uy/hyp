@@ -1,0 +1,17 @@
+base afe2c1f with the commit's internal/cli/reading_hold_test.go and reach_test.go copied in
+--- FAIL: TestReadingOnDeadRivalHoldsNextHypothesis (0.04s)
+--- PASS: TestReadingOnDecidingContradictsHoldsRivals (0.02s)
+--- FAIL: TestOpenReadingWithNoReachHoldsSelect (0.03s)
+--- FAIL: TestOpenReadingWithNoReachHoldsChoice (0.03s)
+--- FAIL: TestOpenReadingOnNoTargetResultHoldsSelect (0.06s)
+--- FAIL: TestOpenReadingHoldsStaleAndReaffirm (0.04s)
+--- FAIL: TestReadingOnInconclusiveOwesNoUndecided (0.03s)
+--- FAIL: TestOpenReadingHoldsNextHypothesis (0.02s)
+--- FAIL: TestReadingOnInconclusiveHoldsNextHypothesis (0.02s)
+--- FAIL: TestReadingWithNoReachHoldsNextHypothesis (0.07s)
+--- PASS: TestPremiseReleasesNextHypothesis (0.05s)
+--- PASS: TestReadingWithNoReachReleasedByLimit (0.06s)
+--- PASS: TestAnsweredReadingsHoldNothing (0.02s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.649s
+FAIL
