@@ -1,0 +1,37 @@
+== returned tests of the review, run by the runner in the detached checkout of f296bc11b479
+=== RUN   TestReviewTwoWorktreesCiteOnePathAtOnce
+    review_record_test.go:49: write from /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewTwoWorktreesCiteOnePathAtOnce4017709179/003/w/s: exit status 1
+        refused: s/.tree/evidence/E-E0P0RM/run.log differs from the copy the record holds; a file an event names never changes, so write it under a new path
+--- FAIL: TestReviewTwoWorktreesCiteOnePathAtOnce (0.89s)
+=== RUN   TestReviewSyncKeepsEachSidesPinnedBundle
+    review_record_test.go:123: after sync, R-VXA7X9 reads questionable from clone a:
+        Result R-VXA7X9
+        path: G-TX7FVV > Q-083E7H > H-CY5JMH > E-EG2J19 > R-VXA7X9
+        status: recorded
+        observation: ran
+        verdicts: H-CY5JMH=supports
+        evidence: .tree/evidence/E-EG2J19/out.txt sha256 11e552e25b0cc1caf61ba77c1ccca04eb352280dc4bec6fc0462d914c3ed6258
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 09:19 a result.record R-VXA7X9 — w
+    review_record_test.go:123: after sync, R-VXA7X9 reads questionable from clone b:
+        Result R-VXA7X9
+        path: G-TX7FVV > Q-083E7H > H-CY5JMH > E-EG2J19 > R-VXA7X9
+        status: recorded
+        observation: ran
+        verdicts: H-CY5JMH=supports
+        evidence: .tree/evidence/E-EG2J19/out.txt sha256 11e552e25b0cc1caf61ba77c1ccca04eb352280dc4bec6fc0462d914c3ed6258
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 09:19 a result.record R-VXA7X9 — w
+--- FAIL: TestReviewSyncKeepsEachSidesPinnedBundle (2.74s)
+=== RUN   TestReviewRecordWriteHardensObjectsAndRef
+    review_record_test.go:171: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewRecordWriteHardensObjectsAndRef2152177664/002 hash-object -w --stdin ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    review_record_test.go:171: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewRecordWriteHardensObjectsAndRef2152177664/002 write-tree ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    review_record_test.go:171: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewRecordWriteHardensObjectsAndRef2152177664/002 commit-tree 3974a6d5d2e6166089391de77675c9f5c017eed7 -p fc85691e4962233a72d4e1bf2de55f7ddf12fecf -m hyp: a ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    review_record_test.go:171: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewRecordWriteHardensObjectsAndRef2152177664/002 update-ref refs/hyp/record d67b00a1820b526e1b427c38391677cf36f7ab3a fc85691e4962233a72d4e1bf2de55f7ddf12fecf ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+--- FAIL: TestReviewRecordWriteHardensObjectsAndRef (0.59s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	4.565s
+FAIL
+go test exit 1

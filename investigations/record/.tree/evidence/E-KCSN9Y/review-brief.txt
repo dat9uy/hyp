@@ -1,0 +1,55 @@
+You are reviewing one candidate commit of the Go program hyp, against an owner's Goal. Work only from what is below and from the code.
+
+## The code
+Repository: /Users/datguy/codingProjects/tree-based-agent-memory (a git clone with several worktrees).
+Candidate: commit f296bc11b4791788ff44d46a6a4b16c0bfb7a91d on branch feat/record, over 48cbb70d16a6 and main 9d3f875. Read the change with:
+  git -C /Users/datguy/codingProjects/tree-based-agent-memory show f296bc11b479
+Make your own checkout of the candidate that is not the run's branch, for example:
+  git -C /Users/datguy/codingProjects/tree-based-agent-memory worktree add --detach <a new temp dir> f296bc11b479
+and remove it with git worktree remove when you are done. Build and test only there (go 1.27; `go test ./... -count=1`).
+
+## The Goal the candidate must meet (the owner's words, verbatim)
+    body: Part of #180 (order 1); builds #181. Covers #179, #152, #177's landing step and part of #151; it decides the record for #168, whose filters (status --all, cites across stores, alias scope) are a later Goal. The candidate is a hyp commit; go test on its base and on the candidate is the instrument.
+    
+    The record: every event of every store of one git repository, the bytes of every file an event names (evidence, an Experiment's records, a subject's patch and files, also of retracted Results), each bundle an event pins, and every commit a Hypothesis subject names, kept by hyp as commits on the hidden ref refs/hyp/record, which no branch holds. A record repository is a git repository that holds that ref.
+    
+    Decided in the grill of 2026-11-14 (design record record-design in this store, h-ref selected): a write is durable once it exits 0; one record per repository, and a store keeps its name, its folder's path from the repository root; hyp sync [REMOTE] fetches the remote's record, joins the two logs as a set by id and pushes, and the hyp-goal-run skill runs it at every stop; the record keeps only cited files, and git ignores every other file under .tree/evidence/ (#152); an evidence pointer stores its file's sha256; a sandbox clone, a git repository with no record ref and a directory with no git use the work-tree .tree/ as today; hyp import [REF:]PATH... names its stores and may run again. After this Goal merges, the owner imports this repository's five stores and tag g-akjjf8/record; old .tree/ folders stay as frozen copies, cited files tracked. Accepted: a hyp built before this change reads only those copies, sees no later event, and rejects an event that stores an evidence sha256. Reopens ADR 0022 and 0023 (unmerged); a new ADR records it; the glossary gains Record and Record repository.
+    
+    Each Experiment's rubric also runs hyp import in a sandbox clone of this repository and compares each Goal's node statuses with its work-tree store's.
+    
+    Line 3 and the last sentence of line 9 hold on the base.
+    
+    May change: hyp in this repository (cmd/, internal/, docs/), as commits on one local branch pushed as a PR the run never merges
+    May change: any text in skills/, README.md or AGENTS.md the change makes wrong
+    May change: this Goal's store, investigations/record, written with the installed hyp on a branch cut from main that holds only .tree/ changes, in its own worktree, pushed as a record PR the owner merges at every stop
+    Read only: the events and evidence of every other store under investigations/; every frozen recipe version under recipes/ and investigations/*/recipes/; the tags g-akjjf8/record, g-akjjf8/candidates and goal-prompt/subject-*
+    Never: run a candidate's hyp so that it writes a ref, a record or a store in this clone or on origin; its tests and Experiments use fixtures, temporary repositories and sandbox clones
+    Never: replace the installed hyp binary at ~/.local/bin/hyp
+    Never: edit or remove a line of any events file
+    Never: merge a PR
+    line G-SZCBXZ#1 no candidate — [P] In a record repository, an event a write exited 0 on, and the bytes of each file it names, are printed by `hyp show` and `hyp status` run in its store's folder in every worktree of that clone, also after a branch is deleted, squash- or rebase-merged, reset or checked out, after `git clean -fdx` and `git gc --prune=now`, and after the worktree the write ran in is removed. A later change or removal of a work-tree file the event names changes nothing those commands print for it.
+    line G-SZCBXZ#2 no candidate — [P] In a record repository, every commit a Hypothesis subject names stays reachable from a ref, and `hyp sandbox create --base` with it succeeds, also after every branch that held it is deleted, squash- or rebase-merged, and after `git gc --prune=now`.
+    line G-SZCBXZ#3 no candidate — [N] No command reads part of a write: a write stopped after any of its steps and before it exits leaves the record holding either the whole event, with the bytes of every file it names, or nothing of it.
+    line G-SZCBXZ#4 no candidate — [P] Two writes run at once from two worktrees of one record repository both apply, and each new id sorts after every id its store held before that write; the refusal when no ULID sorts after the newest id stays.
+    line G-SZCBXZ#5 no candidate — [P] After `hyp sync REMOTE`, the local record and REMOTE's record each hold the union of both, every event, named file and subject commit, also when each side holds events the other lacks, and both replay to the same projection. A fresh `git clone` of REMOTE followed by `hyp sync origin` prints what the syncing clone prints. On a REMOTE with no record, `hyp sync` pushes the local one; a REMOTE that refuses the ref gives exit 3.
+    line G-SZCBXZ#6 no candidate — [N] The record holds no file but those an event names and the files of each bundle an event pins. `hyp init`, and `hyp import` for each store it imports, write an ignore rule under which git ignores every file under that store's `.tree/evidence/`, and `hyp import` untracks each file there that no event names, leaving it on disk.
+    line G-SZCBXZ#7 no candidate — [P] A Result's `questionable` and `uncontained` flags, and the warnings `hyp check` prints for it, are the same from every checkout of a record repository, whatever its `recipes/`, `rubrics/` and `.tree/evidence/` hold: the record keeps each bundle an event pins.
+    line G-SZCBXZ#8 no candidate — [P] `hyp import [REF:]PATH...` adds to the record every event of each named work-tree store, read from the checkout or from REF, that the record lacks, with the bytes of each file those events name and their subject commits; running it again adds nothing, and each imported Goal's node statuses equal those its work-tree store replays to.
+    line G-SZCBXZ#9 no candidate — [N] In a record repository, a write in a folder where store discovery finds a work-tree `.tree/` holding an event the record lacks is refused with exit 1, naming `hyp import`; `hyp check` reports that store, and each checked-out bundle whose hash differs from a pin of the same ref. `hyp init` in a git repository makes it a record repository. In a git repository with no record ref, and where no `.git` is at or above the current directory, hyp reads and writes the work-tree `.tree/` as on the base.
+    line G-SZCBXZ#10 no candidate — [N] No non-test Go file outside package `record` contains the string `.tree` or `.git`, and none outside packages `record` and `sandbox` runs git; a go test over the source fails on any other.
+
+The keys already settled are the decisions in the Goal body above ("Decided in the grill of 2026-11-14 ..." and "Accepted: ..."), in the owner's words, and this owner answer:
+    R-8ZKFQV#r1, on G-SZCBXZ#7: "the warnings hyp check prints for it are the same from every checkout" has two meanings. Meaning 1: every warning that names the Result, also the line 9 warning "checked-out bundle kit@1 hashes X, not Y as R-1 pins it". Meaning 2: only warnings about the Result; a warning about a checked-out bundle that names the Result as its pinner is outside line 7. The owner answered: "meaning 2, the bundle warning is about the checkout".
+
+## What to return
+Review the diff against the design in the Goal body and against each line G-SZCBXZ#1 to #10. Return each finding as a Go test file (or a shell script when a Go test cannot express it) together with its output when run in your checkout of f296bc11b479, and label each finding with the line it is a case of (G-SZCBXZ#n), or "none" when it is a case of no line. A finding you could not run as a test: say so, and why. Give the full text of each test file and of its output.
+
+## Rules you must keep
+- Never run the candidate's hyp, or any test, so that it writes a ref, a record or a store in the clone at /Users/datguy/codingProjects/tree-based-agent-memory or on its remote origin: use temporary directories, temporary git repositories and clones for every hyp run. Tests under go test already use temp dirs; any test you add must too.
+- Never replace or write ~/.local/bin/hyp. Build any binary to a temp path.
+- Never commit, push, merge or change a branch of the clone; never edit any file of the clone outside your own temp checkout.
+- Do not edit any events file (.tree/events/*.jsonl) anywhere in the clone.
+
+End with:
+Status: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+Summary: one or two sentences
