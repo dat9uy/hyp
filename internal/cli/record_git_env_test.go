@@ -302,3 +302,63 @@ func TestStoreFolderThroughASymlinkIsTheStoreItLinksTo(t *testing.T) {
 	t.Chdir(filepath.Join(repo, "s"))
 	want(t, hyp(t, "show", g2), 0, "second")
 }
+
+// Line 8: a store whose folder name holds a colon is imported by PATH in
+// every spelling: an argument that names a folder on disk is a PATH.
+func TestImportStoreFolderWithAColon(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, "a:b", "README.md"), "r\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, "a:b"))
+	must(t, "init")
+	dropRecord(t, repo)
+	g := must(t, "add", "goal", "--title", "colon goal", "--why", "w")
+	t.Chdir(repo)
+	want(t, hyp(t, "import", "a:b"), 0, "imported")
+	for _, arg := range []string{"a:b", "./a:b", filepath.Join(repo, "a:b")} {
+		want(t, hyp(t, "import", arg), 0, "holds every event")
+	}
+	t.Chdir(filepath.Join(repo, "a:b"))
+	want(t, hyp(t, "show", g), 0, "colon goal")
+}
+
+// Line 6: hyp import untracks an evidence file no event names, leaving it
+// on disk, also when its staged bytes differ from both HEAD and the work
+// tree, and a second import exits 0.
+func TestImportUntracksAnUnnamedFileWithStagedChanges(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, "s", "README.md"), "r\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, "s"))
+	must(t, "init")
+	dropRecord(t, repo)
+	chain(t, "cited\n")
+	stray := filepath.Join(repo, "s", ".tree", "evidence", "stray.txt")
+	writeFile(t, stray, "one\n")
+	gitIn(t, repo, "add", "-f", "-A")
+	gitIn(t, repo, "commit", "-qm", "stores")
+	writeFile(t, stray, "two\n")
+	gitIn(t, repo, "add", "-f", "s/.tree/evidence/stray.txt")
+	writeFile(t, stray, "three\n")
+	t.Chdir(repo)
+	want(t, hyp(t, "import", "s"), 0, "imported")
+	want(t, hyp(t, "import", "s"), 0, "holds every event")
+	if out := gitIn(t, repo, "ls-files", "s/.tree/evidence/stray.txt"); out != "" {
+		t.Fatalf("after hyp import, git still tracks %s, which no event names", out)
+	}
+	if b, err := os.ReadFile(stray); err != nil || string(b) != "three\n" {
+		t.Fatalf("hyp import changed the unnamed file on disk: %q %v", b, err)
+	}
+}

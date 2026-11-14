@@ -84,11 +84,12 @@ func (r *Repo) TrackedEvidence(dir string) ([]string, error) {
 }
 
 // Untrack removes each slash path relative to dir from git's index,
-// leaving the file on disk.
+// leaving the file on disk, also when its staged bytes differ from both
+// HEAD and the work tree.
 func (r *Repo) Untrack(dir string, rels []string) error {
 	for len(rels) > 0 {
 		n := min(len(rels), 200)
-		args := append([]string{"rm", "--cached", "--quiet", "--"}, rels[:n]...)
+		args := append([]string{"rm", "--cached", "--force", "--quiet", "--"}, rels[:n]...)
 		if _, err := gitOut(dir, nil, nil, args...); err != nil {
 			return err
 		}

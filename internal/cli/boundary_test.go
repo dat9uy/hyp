@@ -18,8 +18,10 @@ import (
 // package sandbox alone runs git. Every non-test Go file of the module is
 // read; a file elsewhere that holds either name fails. A file elsewhere
 // that can start a program fails too, since git can be run by any name,
-// through a shell or by an absolute path: it imports os/exec or calls
-// os.StartProcess, syscall.Exec, syscall.ForkExec or syscall.StartProcess.
+// through a shell or by an absolute path: it imports os/exec or a package
+// under golang.org/x/sys, dot-imports os or syscall, or names
+// os.StartProcess or a syscall function or number that starts a program or
+// makes a raw system call.
 // A string literal "git", or one ending in "/git", fails as well.
 func TestOnlyRecordNamesTheFoldersAndRunsGit(t *testing.T) {
 	root := filepath.Join("..", "..")
@@ -71,7 +73,7 @@ func TestBoundaryFindsEveryWayToRunGit(t *testing.T) {
 func boundaryFindings(t *testing.T, root string) []string {
 	t.Helper()
 	names := []string{"." + "tree", "." + "git"}
-	starts := map[string][]string{"os": {"StartProcess"}, "syscall": {"Exec", "ForkExec", "StartProcess"}}
+	starts := map[string][]string{"os": {"StartProcess"}, "syscall": {"Exec", "ForkExec", "StartProcess", "Syscall", "Syscall6", "Syscall9", "RawSyscall", "RawSyscall6", "SYS_EXECVE", "SYS_EXECVEAT", "CreateProcess"}}
 	var bad []string
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -110,12 +112,15 @@ func boundaryFindings(t *testing.T, root string) []string {
 		local := map[string]string{}
 		for _, imp := range f.Imports {
 			p, _ := strconv.Unquote(imp.Path.Value)
-			if p == "os/exec" {
-				bad = append(bad, rel+" imports os/exec")
+			if p == "os/exec" || strings.HasPrefix(p, "golang.org/x/sys/") {
+				bad = append(bad, rel+" imports "+p)
 			}
 			name := path.Base(p)
 			if imp.Name != nil {
 				name = imp.Name.Name
+			}
+			if name == "." && starts[p] != nil {
+				bad = append(bad, rel+" dot-imports "+p)
 			}
 			local[name] = p
 		}
@@ -158,5 +163,25 @@ func TestBoundaryScansPackageFoldersNamedLikeStoreFolders(t *testing.T) {
 		if strings.Contains(bad, d+"/skip.go") && !strings.Contains(bad, "internal/check/"+d+"/skip.go") {
 			t.Errorf("the boundary scan reads %s/ at the module root:\n%s", d, bad)
 		}
+	}
+}
+
+// A dot import of os, a raw execve system call and golang.org/x/sys/unix.Exec
+// each start a program, and the boundary scan finds each.
+func TestBoundaryFindsEveryProgramStart(t *testing.T) {
+	cases := map[string]string{
+		"dot import of os": "package x\n\nimport . \"os\"\n\nfunc f() { StartProcess(\"/bin/sh\", []string{\"sh\", \"-c\", \"g\" + \"it status\"}, &ProcAttr{}) }\n",
+		"raw execve":       "package x\n\nimport \"syscall\"\n\nfunc f(p, a, e *byte) { syscall.Syscall(syscall.SYS_EXECVE, 0, 0, 0) }\n",
+		"x/sys/unix.Exec":  "package x\n\nimport \"golang.org/x/sys/unix\"\n\nfunc f() { unix.Exec(\"/bin/sh\", nil, nil) }\n",
+	}
+	for name, src := range cases {
+		t.Run(name, func(t *testing.T) {
+			root := t.TempDir()
+			writeFile(t, filepath.Join(root, "go.mod"), "module m\n")
+			writeFile(t, filepath.Join(root, "internal", "render", "probe.go"), src)
+			if bad := boundaryFindings(t, root); len(bad) == 0 {
+				t.Fatalf("internal/render/probe.go starts a program by %s and the boundary scan finds nothing", name)
+			}
+		})
 	}
 }

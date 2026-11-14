@@ -45,7 +45,7 @@ const importUse = "usage: hyp import [REF:]PATH..."
 // leaving it on disk.
 func cmdImport(args []string, stdout, stderr io.Writer) error {
 	if len(args) == 1 && (args[0] == "-h" || args[0] == "--help") {
-		return helpText(importUse + "\n\nadd each store's events the record lacks, with the files they name; PATH is a store folder, read from the checkout or from commit REF")
+		return helpText(importUse + "\n\nadd each store's events the record lacks, with the files they name; PATH is a store folder, read from the checkout or from commit REF; an argument that names a folder on disk is a PATH, also when it holds a colon")
 	}
 	if len(args) == 0 || slices.ContainsFunc(args, func(a string) bool { return strings.HasPrefix(a, "-") }) {
 		return usageErr(importUse)
@@ -60,8 +60,8 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
 	}
 	for _, arg := range args {
 		ref, p, fromRef := strings.Cut(arg, ":")
-		if !fromRef {
-			p, ref = arg, ""
+		if !fromRef || isDir(arg, cwd) {
+			p, ref, fromRef = arg, "", false
 		}
 		abs := p
 		if !filepath.IsAbs(abs) {
@@ -101,6 +101,16 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
 		}
 	}
 	return nil
+}
+
+// isDir reports whether arg, read against cwd when it is relative, names a
+// folder on disk: such an argument is a PATH, even when it holds a colon.
+func isDir(arg, cwd string) bool {
+	if !filepath.IsAbs(arg) {
+		arg = filepath.Join(cwd, arg)
+	}
+	fi, err := os.Stat(arg)
+	return err == nil && fi.IsDir()
 }
 
 // untrackUnnamed makes git ignore the evidence folder of the store at dir
