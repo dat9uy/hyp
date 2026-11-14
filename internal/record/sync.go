@@ -193,9 +193,15 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 	return r.commitTree(tree, []string{a, b}, "hyp: sync")
 }
 
-// isEventsFile reports whether a record path is an events file.
+// isEventsFile reports whether a record path is a store's events file:
+// <store>/.tree/events/<actor>.jsonl. A file a store keeps deeper, such as
+// evidence whose path holds a store folder of its own, or a file of a
+// bundle, is not one, so sync keeps both copies of it instead of joining
+// its lines.
 func isEventsFile(p string) bool {
-	return strings.HasSuffix(p, ".jsonl") && (strings.HasPrefix(p, EventsDirRel+"/") || strings.Contains(p, "/"+EventsDirRel+"/"))
+	_, rest, ok := storeOf(p)
+	file, found := strings.CutPrefix(rest, "events/")
+	return ok && found && strings.HasSuffix(file, ".jsonl") && !strings.Contains(file, "/")
 }
 
 // joinLines joins two events files as a set by id: each id once, the first

@@ -27,20 +27,35 @@ func (r *Repo) hypDir(parts ...string) string {
 }
 
 // keepPath reports whether a record path belongs in the snapshot of store
-// name: every path but those under another store's folder.
+// name: every path but those under another store's folder. A file of a
+// bundle belongs to the bundle, whatever its path holds below it, so a
+// known-answer input that holds a store folder stays in every snapshot.
 func keepPath(name, p string) bool {
+	owner, _, ok := storeOf(p)
+	return !ok || owner == name || (name == "" && owner == ".")
+}
+
+// storeOf splits a record path under a store's folder into the store's name
+// and the slash path below its .tree folder. ok is false for a path under
+// no store's folder, and for a file of a bundle, a path that reaches a
+// folder recipes/<name>@<version> or rubrics/<name>@<version> before any
+// .tree folder.
+func storeOf(p string) (owner, rest string, ok bool) {
 	parts := strings.Split(p, "/")
 	for i, c := range parts {
+		if (c == "recipes" || c == "rubrics") && i+1 < len(parts) && strings.Contains(parts[i+1], "@") {
+			return "", "", false
+		}
 		if c != TreeDir {
 			continue
 		}
-		owner := "."
+		owner = "."
 		if i > 0 {
 			owner = path.Join(parts[:i]...)
 		}
-		return owner == name || (name == "" && owner == ".")
+		return owner, strings.Join(parts[i+1:], "/"), true
 	}
-	return true
+	return "", "", false
 }
 
 // snapshot writes, once, the files of commit tip that a read of store name

@@ -337,7 +337,7 @@ func isHex64(s string) bool {
 // keptPath is the record path where the record keeps the bytes with sha256
 // sum of a file named at record path p: the kept folder of the store whose
 // folder holds p, the longest store name that is a prefix of p, or of the
-// root store when none is.
+// root store when none is. A store folder inside a bundle is no store.
 func keptPath(entries map[string]entry, p, sum string) string {
 	owner := "."
 	for q, e := range entries {
@@ -345,7 +345,7 @@ func keptPath(entries map[string]entry, p, sum string) string {
 			continue
 		}
 		name, ok := strings.CutSuffix(q, "/"+EventsDirRel)
-		if !ok {
+		if _, rest, store := storeOf(q); !ok || !store || rest != "events" {
 			continue
 		}
 		if strings.HasPrefix(p, name+"/") && (owner == "." || len(name) > len(owner)) {
