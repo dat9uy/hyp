@@ -1,6 +1,8 @@
 package store
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -16,9 +18,9 @@ import (
 // that the record's store name lacks, by id, in one write, with the bytes
 // of each file those events name and the commits their subjects name. top
 // is the root src's repository paths are relative to: the repository's
-// work tree, or a copy of a commit's tree. A named file src lacks, or a
-// bundle src holds with another hash than its pin, is left out and printed
-// to warn. It returns how many events it added; run again, it adds none.
+// work tree, or a copy of a commit's tree. A named file src lacks or holds
+// with other bytes than the sha256 its event stores, or a bundle src holds
+// with another hash than its pin, is left out and printed to warn. It returns how many events it added; run again, it adds none.
 func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, error) {
 	if fi, err := os.Stat(record.EventsDir(src)); err != nil || !fi.IsDir() {
 		return 0, herr.BadArgs("%s holds no store", src)
@@ -74,7 +76,14 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, erro
 			for _, rel := range n.Files {
 				p := filepath.Join(src, filepath.FromSlash(rel))
 				if fi, err := os.Stat(p); err == nil && fi.Mode().IsRegular() {
-					add = append(add, s.StoreFile(rel, p, ""))
+					sum := n.Sums[rel]
+					if got, err := fileSHA256(p); err != nil {
+						return 0, err
+					} else if sum != "" && got != sum {
+						fmt.Fprintf(warn, "hyp import: %s, which %s names, hashes %s in %s, not %s as the event stores; the record lacks those bytes\n", rel, ev.ID, got[:12], src, sum[:min(12, len(sum))])
+						continue
+					}
+					add = append(add, s.StoreFile(rel, p, sum))
 					continue
 				}
 				if !s.HoldsFile(rel) {
@@ -136,4 +145,14 @@ func NamedFiles(root string) (map[string]bool, error) {
 		}
 	}
 	return out, nil
+}
+
+// fileSHA256 is the hex sha256 of the bytes of the file at p.
+func fileSHA256(p string) (string, error) {
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return "", err
+	}
+	h := sha256.Sum256(data)
+	return hex.EncodeToString(h[:]), nil
 }

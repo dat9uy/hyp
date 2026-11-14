@@ -362,3 +362,58 @@ func TestImportUntracksAnUnnamedFileWithStagedChanges(t *testing.T) {
 		t.Fatalf("hyp import changed the unnamed file on disk: %q %v", b, err)
 	}
 }
+
+// Line 8: hyp import adds each named file with the bytes its event names.
+// A file whose bytes on disk changed after the event, so that they no
+// longer hash as the event stores, is left out and printed, never kept.
+func TestImportLeavesOutBytesNoEventNames(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(top, "s"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(top, "s"))
+	must(t, "init")
+	_, _, ptr := chain(t, "the bytes the Result cited\n")
+	gitIn(t, top, "init", "-q")
+	gitIn(t, top, "add", "-A")
+	gitIn(t, top, "commit", "-qm", "store")
+	writeFile(t, ptr, "changed after the Result\n")
+	res := hyp(t, "import", ".")
+	want(t, res, 0, "imported")
+	if !strings.Contains(res.stderr, ptr) {
+		t.Fatalf("hyp import kept or dropped %s with no warning: stderr %q", ptr, res.stderr)
+	}
+	if out, _ := exec.Command("git", "-C", top, "show", "refs/hyp/record:s/"+ptr).CombinedOutput(); strings.Contains(string(out), "changed after the Result") {
+		t.Fatalf("the record keeps bytes no event names at s/%s", ptr)
+	}
+}
+
+// Line 1: on a filesystem that folds case, the folder s typed as S is the
+// same folder, so hyp status there prints what s prints, and a write from
+// there goes to the store s, which then prints it.
+func TestStoreFolderEnteredWithOtherCase(t *testing.T) {
+	repo := recordRepo(t)
+	probe := filepath.Join(repo, "probe-lower")
+	writeFile(t, probe, "x")
+	_, err := os.Stat(filepath.Join(repo, "PROBE-LOWER"))
+	os.Remove(probe)
+	if err != nil {
+		t.Skip("the filesystem does not fold case")
+	}
+	g, r, ptr := chain(t, "the bytes\n")
+	views0 := views(t, g, r, ptr)
+	t.Chdir(filepath.Join(repo, "S"))
+	if res := hyp(t, "status", g); res.code != 0 || res.stdout != views0[0] {
+		t.Fatalf("hyp status %s from S: exit %d, stdout %q, stderr %q; want what s prints:\n%s", g, res.code, res.stdout, res.stderr, views0[0])
+	}
+	id := must(t, "add", "goal", "--title", "from S", "--why", "w")
+	t.Chdir(filepath.Join(repo, "s"))
+	want(t, hyp(t, "show", id), 0, "from S")
+	if ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"); strings.Contains(ls, "S/.tree/") {
+		t.Fatalf("the record holds two stores for the folder s:\n%s", ls)
+	}
+}

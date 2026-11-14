@@ -162,11 +162,14 @@ func At(dir string) (*Store, error) {
 // storeName is the name of the store whose folder is dir: its slash path
 // from the repository root top, with symbolic links resolved, so a folder
 // reached through a link inside the repository is the store it links to.
+// Each name is spelled as its folder spells it, so on a filesystem that
+// folds case a folder typed with other letter case is the same store.
 // A link that leaves the repository keeps the path as given.
 func storeName(top, dir string) string {
 	rt, err1 := filepath.EvalSymlinks(top)
 	rd, err2 := filepath.EvalSymlinks(dir)
 	if err1 == nil && err2 == nil {
+		rt, rd = realCase(rt), realCase(rd)
 		if rel, err := filepath.Rel(rt, rd); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			return filepath.ToSlash(rel)
 		}
@@ -368,4 +371,47 @@ func keptPath(entries map[string]entry, p, sum string) string {
 		}
 	}
 	return joinName(owner, keptDirRel+"/"+sum)
+}
+
+// realCase spells each name of the absolute path p as its directory lists
+// it. On a filesystem that folds case, a name typed with other letter case
+// names the same file; realCase returns the listed name, which os.SameFile
+// shows is that file. A name it cannot list is kept as given.
+func realCase(p string) string {
+	vol := filepath.VolumeName(p)
+	cur := vol + string(filepath.Separator)
+	for _, part := range strings.Split(strings.Trim(p[len(vol):], string(filepath.Separator)), string(filepath.Separator)) {
+		if part == "" {
+			continue
+		}
+		cur = filepath.Join(cur, listedName(cur, part))
+	}
+	return cur
+}
+
+// listedName is the name dir lists for part: part when dir lists it, else
+// the entry that differs from part only in letter case and is the same file.
+func listedName(dir, part string) string {
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		return part
+	}
+	for _, e := range ents {
+		if e.Name() == part {
+			return part
+		}
+	}
+	want, err := os.Stat(filepath.Join(dir, part))
+	if err != nil {
+		return part
+	}
+	for _, e := range ents {
+		if !strings.EqualFold(e.Name(), part) {
+			continue
+		}
+		if fi, err := os.Stat(filepath.Join(dir, e.Name())); err == nil && os.SameFile(want, fi) {
+			return e.Name()
+		}
+	}
+	return part
 }
