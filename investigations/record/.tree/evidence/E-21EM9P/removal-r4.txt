@@ -1,0 +1,28 @@
+removal r4: subject commit the repository lacks is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsSubjectCommit'
+applied in internal/store/import.go (1x): 'return nil, herr.Refused("%s, the subject commit that %s names, is not in %s; fetch it, then run hyp import again, which adds nothing until then", c, ev.ID, repo.Top)' -> 'continue'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..c481880 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -120,7 +120,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 				}
+ 				for _, c := range n.Commits {
+ 					if _, ok := repo.IsCommit(c); !ok {
+-						return nil, herr.Refused("%s, the subject commit that %s names, is not in %s; fetch it, then run hyp import again, which adds nothing until then", c, ev.ID, repo.Top)
++						continue
+ 					}
+ 					commits = append(commits, c)
+ 				}
+
+=== RUN   TestImportRefusesAnEventWithoutItsSubjectCommit
+    record_import_names_test.go:171: exit 0, stderr ""; want a refusal, exit 1, naming "5d0b3c72fe1c5f4251cac81d4b62320fefa0a682"
+--- FAIL: TestImportRefusesAnEventWithoutItsSubjectCommit (0.67s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.043s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

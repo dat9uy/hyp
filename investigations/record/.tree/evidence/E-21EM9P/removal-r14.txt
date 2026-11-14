@@ -1,0 +1,28 @@
+removal r14: a read holds its snapshot
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/record/ -run 'TestPruneLeavesASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\tif err := r.holdSnapshot(key); err != nil {\n\t\treturn "", err\n\t}\n' -> '\tif err := os.MkdirAll(r.hypDir("snaplock"), 0o755); err != nil {\n\t\treturn "", err\n\t}\n'
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index a398387..8b50d04 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -96,7 +96,7 @@ func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, err
+ 	dir := r.hypDir("snap", key)
+ 	// The read holds its snapshot's lock until the process exits, so a
+ 	// prune by any command never removes a snapshot a read still uses.
+-	if err := r.holdSnapshot(key); err != nil {
++	if err := os.MkdirAll(r.hypDir("snaplock"), 0o755); err != nil {
+ 		return "", err
+ 	}
+ 	if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
+
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:199: a prune removed the snapshot this read holds: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds4126138111/002/.git/hyp/snap/6f6176400742dde1d8b0d8b349e41dbe9e0590e5-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-first.txt: no such file or directory
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.59s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.922s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

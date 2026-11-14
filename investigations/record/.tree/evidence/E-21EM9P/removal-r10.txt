@@ -1,0 +1,28 @@
+removal r10: init and import refuse a store folder outside the repository
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderOutsideTheRepository'
+applied in internal/record/name.go (1x): '\tname, ok := storeName(top, dir)\n\tif !ok {\n\t\treturn outside(dir, top)\n\t}' -> '\tname, ok := storeName(top, dir)\n\tif !ok {\n\t\treturn nil\n\t}'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..d4f93e8 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -55,7 +55,7 @@ func outside(dir, top string) error {
+ func CheckPlain(top, dir string) error {
+ 	name, ok := storeName(top, dir)
+ 	if !ok {
+-		return outside(dir, top)
++		return nil
+ 	}
+ 	if name == "." {
+ 		return nil
+
+=== RUN   TestStoreFolderOutsideTheRepository
+    record_import_names_test.go:341: exit 0, stderr ""; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestStoreFolderOutsideTheRepository (0.31s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.665s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

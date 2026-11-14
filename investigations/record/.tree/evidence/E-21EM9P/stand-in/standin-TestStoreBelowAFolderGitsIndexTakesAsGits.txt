@@ -1,0 +1,16 @@
+stand-in 5900a1d810b5ffdca465b7dbf91d47d76cc542e5, test TestStoreBelowAFolderGitsIndexTakesAsGits in ./internal/cli/, test files from 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.git.
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.git..
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.GIT.
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits (0.35s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.git. (0.06s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.git.. (0.06s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.GIT. (0.07s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.377s
+FAIL
+exit 1
