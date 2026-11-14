@@ -1,0 +1,6 @@
+== 20bdb699b090's own TestOnlyRecordNamesTheFoldersAndRunsGit with the probe file internal/render/zz_boundary_probe.go (E-F9H3N2/review-tests), which runs git through sh and by /usr/bin/git; the line asks the test to fail
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.02s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.393s
+go test exit 0

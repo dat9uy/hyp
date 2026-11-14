@@ -1,0 +1,15 @@
+diff --git a/internal/record/commit.go b/internal/record/commit.go
+index 65b0362..c004db2 100644
+--- a/internal/record/commit.go
++++ b/internal/record/commit.go
+@@ -155,9 +155,7 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
+ 			}
+ 		}
+ 		if e, ok := s.entries[f.Path]; ok {
+-			if e.sha != sha {
+-				return herr.Refused("%s differs from the copy the record holds; a file an event names never changes, so write it under a new path", f.Path)
+-			}
++			_, _ = e, herr.Refused
+ 			continue
+ 		}
+ 		mode := "100644"

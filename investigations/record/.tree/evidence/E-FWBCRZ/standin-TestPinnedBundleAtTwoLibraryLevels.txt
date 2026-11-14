@@ -1,0 +1,17 @@
+== TestPinnedBundleAtTwoLibraryLevels on the stand-in 9f3434b6b19bffd90add37693251aed713a36aa9 (h-record-5b), test file copied from 3a3220f33263
+=== RUN   TestPinnedBundleAtTwoLibraryLevels
+    record_bundle_sync_test.go:215: R-ZTXEP2 reads questionable right after its write:
+        Result R-ZTXEP2
+        path: G-SXJJS0 > Q-W3ESQJ > H-00GYDD > E-SCFQPR > R-ZTXEP2
+        status: recorded
+        observation: ran
+        verdicts: H-00GYDD=supports
+        evidence: .tree/evidence/E-SCFQPR/out.txt sha256 5de5023a6e5e5fa408f714bc998b5115c59e26a02aedad3e4a45f558ca39a1b1
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 10:23 a result.record R-ZTXEP2 — w
+--- FAIL: TestPinnedBundleAtTwoLibraryLevels (1.76s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.931s
+FAIL
+go test exit 1

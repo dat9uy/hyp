@@ -1,0 +1,13 @@
+diff --git a/internal/cli/boundary_test.go b/internal/cli/boundary_test.go
+index 0c71528..3838684 100644
+--- a/internal/cli/boundary_test.go
++++ b/internal/cli/boundary_test.go
+@@ -78,7 +78,7 @@ func boundaryFindings(t *testing.T, root string) []string {
+ 			return err
+ 		}
+ 		if d.IsDir() {
+-			if d.Name() == "testdata" || (strings.HasPrefix(d.Name(), ".") && p != root) || (filepath.Dir(p) == root && (d.Name() == "investigations" || d.Name() == "recipes" || d.Name() == "rubrics")) {
++			if d.Name() == "testdata" || (strings.HasPrefix(d.Name(), ".") && p != root) || d.Name() == "investigations" || d.Name() == "recipes" || d.Name() == "rubrics" {
+ 				return filepath.SkipDir
+ 			}
+ 			return nil

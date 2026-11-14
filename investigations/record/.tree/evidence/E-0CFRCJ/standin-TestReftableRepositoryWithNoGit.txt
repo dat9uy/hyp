@@ -1,0 +1,8 @@
+== TestReftableRepositoryWithNoGit on the stand-in 2b03fa3c4d3e422a344adc74f889e69afbdf571a, the test file copied from 741ade58a14b
+=== RUN   TestReftableRepositoryWithNoGit
+    record_git_env_test.go:186: exit 3 (want 0), stdout "", stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReftableRepositoryWithNoGit2086282992/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n" (want "G-EN3XX8")
+--- FAIL: TestReftableRepositoryWithNoGit (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.410s
+FAIL
+go test exit 1

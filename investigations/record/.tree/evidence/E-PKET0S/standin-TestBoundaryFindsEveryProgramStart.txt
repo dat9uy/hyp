@@ -1,0 +1,16 @@
+== TestBoundaryFindsEveryProgramStart on the stand-in 6e298332bcb4c4b0d958b1432e5974bdae50e9a7, the test added alone
+=== RUN   TestBoundaryFindsEveryProgramStart
+=== RUN   TestBoundaryFindsEveryProgramStart/dot_import_of_os
+    boundary_test.go:178: internal/render/probe.go starts a program by dot import of os and the boundary scan finds nothing
+=== RUN   TestBoundaryFindsEveryProgramStart/raw_execve
+    boundary_test.go:178: internal/render/probe.go starts a program by raw execve and the boundary scan finds nothing
+=== RUN   TestBoundaryFindsEveryProgramStart/x/sys/unix.Exec
+    boundary_test.go:178: internal/render/probe.go starts a program by x/sys/unix.Exec and the boundary scan finds nothing
+--- FAIL: TestBoundaryFindsEveryProgramStart (0.00s)
+    --- FAIL: TestBoundaryFindsEveryProgramStart/dot_import_of_os (0.00s)
+    --- FAIL: TestBoundaryFindsEveryProgramStart/raw_execve (0.00s)
+    --- FAIL: TestBoundaryFindsEveryProgramStart/x/sys/unix.Exec (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.176s
+FAIL
+go test exit 1

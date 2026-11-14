@@ -262,12 +262,11 @@ func TestOwnerAndRunnerFieldsNeverMixWrite(t *testing.T) {
 // checkpoint that mixes refers with an owner field, rejects each.
 func TestOwnerAndRunnerFieldsNeverMixReplay(t *testing.T) {
 	_, g, q := setup(t)
+	// The limit's Hypothesis comes first: an open reading whose answer can
+	// move a Hypothesis holds the question's next one.
+	lim := limitOf(t, q)
 	k := fullKey(t, openReading(t, q))
 	g = fullID(t, g)
-	h := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--why", "w")
-	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
-	lim := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--limit", "case C", "--why", "w") + "#1"
-	lim = fullKey(t, lim)
 	a := rawEvent(t, "o", typeAnswer, "", map[string]any{
 		"answers": []map[string]string{{"key": k, "text": "code only"}},
 		"refers":  []map[string]string{{"key": lim, "text": "t"}}}, "")

@@ -1,0 +1,11 @@
+== TestSyncKeepsNamedFileShapedLikeAnEventsFile on 48cbb70d16a6 (the candidate h-record-4 supersedes), test file from f296bc11b479
+=== RUN   TestSyncKeepsNamedFileShapedLikeAnEventsFile
+    record_store_shaped_test.go:116: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+    record_store_shaped_test.go:116: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+    record_store_shaped_test.go:116: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+    record_store_shaped_test.go:116: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+--- FAIL: TestSyncKeepsNamedFileShapedLikeAnEventsFile (1.82s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.975s
+FAIL
+go test exit 1

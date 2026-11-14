@@ -1,0 +1,13 @@
+== TestImportAddsNamedBytesAnEarlierImportLacked on the stand-in fff226fd94d087ea1da4edab23d94496a45b9276, the test added alone without its line want(t, hyp(t, "show", ptr), 3, "hyp import"), which checks the message of the out-of-Goal fix
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked/changed
+    record_git_env_test.go:491: exit 0 (want 0), stdout "HEAD:.: the record holds every event\n", stderr "" (want "added 1 named files")
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked/removed
+    record_git_env_test.go:491: exit 0 (want 0), stdout "HEAD:.: the record holds every event\n", stderr "" (want "added 1 named files")
+--- FAIL: TestImportAddsNamedBytesAnEarlierImportLacked (0.70s)
+    --- FAIL: TestImportAddsNamedBytesAnEarlierImportLacked/changed (0.37s)
+    --- FAIL: TestImportAddsNamedBytesAnEarlierImportLacked/removed (0.34s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.064s
+FAIL
+go test exit 1

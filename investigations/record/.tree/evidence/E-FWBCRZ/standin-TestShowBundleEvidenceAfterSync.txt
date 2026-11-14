@@ -1,0 +1,9 @@
+== TestShowBundleEvidenceAfterSync on the stand-in 9f3434b6b19bffd90add37693251aed713a36aa9 (h-record-5b), test file copied from 3a3220f33263
+=== RUN   TestShowBundleEvidenceAfterSync
+    record_bundle_sync_test.go:162: after sync, hyp show recipes/kit@1/run.sh in a: exit 0 stdout "#!/bin/sh\necho b\n" stderr "", want exit 2 naming both contents
+    record_bundle_sync_test.go:162: after sync, hyp show recipes/kit@1/run.sh in b: exit 0 stdout "#!/bin/sh\necho b\n" stderr "", want exit 2 naming both contents
+--- FAIL: TestShowBundleEvidenceAfterSync (3.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.395s
+FAIL
+go test exit 1

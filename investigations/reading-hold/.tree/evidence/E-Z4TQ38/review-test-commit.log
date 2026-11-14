@@ -1,0 +1,7 @@
+=== RUN   TestLinkSupersedesHeldLikeSupersede
+    reading_hold_link_test.go:24: hyp link H-9WQ0FS supersedes H-BPR7WM exits 0 while open reading R-W06G6S#r1 can move H-BPR7WM; H-BPR7WM now:
+        status: superseded
+--- FAIL: TestLinkSupersedesHeldLikeSupersede (0.03s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.366s
+FAIL

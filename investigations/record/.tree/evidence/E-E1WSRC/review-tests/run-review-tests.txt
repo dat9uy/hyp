@@ -1,0 +1,22 @@
+== returned tests of the review, run by the runner in the detached checkout of 926319e7d0b2e05e3afaeb09a9259c1ae4133bab
+=== RUN   TestReviewImportAddsASubjectCommitAnEarlierImportLacked
+    zz_review4_subject_commit_test.go:54: first import (commit absent): exit 0
+        stdout: s: imported 4 events
+        stderr: 
+    zz_review4_subject_commit_test.go:64: second import (commit present): exit 0
+        stdout: s: the record holds every event
+        stderr: 
+    zz_review4_subject_commit_test.go:71: after an import run again with 60af41d349b7 present, the record does not reach it (second import printed "s: the record holds every event"); after its branch is deleted and gc, the commit is gone: true
+--- FAIL: TestReviewImportAddsASubjectCommitAnEarlierImportLacked (0.77s)
+=== RUN   TestReviewSyncJoinsAFileAndAFolderAtOnePath
+    zz_review4_sync_file_dir_test.go:58: hyp sync in b: exit 0
+        stdout: record 8217af95b5e1 synced with origin
+        stderr: 
+    zz_review4_sync_file_dir_test.go:62: the joined record's evidence of E-11DMA4:
+        s/.tree/evidence/E-11DMA4/run/log.txt
+    zz_review4_sync_file_dir_test.go:65: exit 3 (want 0), stdout "", stderr ".tree/evidence/E-11DMA4/run: read /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSyncJoinsAFileAndAFolderAtOnePath3338901780/002/b/.git/hyp/snap/8217af95b5e10bf05ed122a5d82ac7f43683229e-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-11DMA4/run: is a directory\n" (want "run")
+--- FAIL: TestReviewSyncJoinsAFileAndAFolderAtOnePath (2.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.319s
+FAIL
+go test exit 1

@@ -1,4 +1,4 @@
-// Package cmdrecord owns the command record, command.json (sandbox spec §5.1): the
+// Package cmdrecord owns the command trace, command.json (sandbox spec §5.1): the
 // recipe that ran, each command hyp ran, and the known answers that ran
 // before them. sandbox writes it; containment reads it. It is a leaf
 // package, so both can import it.
@@ -17,7 +17,7 @@ import (
 // Format is the shape number of command.json.
 const Format = 6
 
-// Run is one command hyp ran, a row of the sandbox record or of a command
+// Run is one command hyp ran, a row of the sandbox trace or of a command
 // record (docs/sandbox-spec.md §5.1). Exit is set when the script exited,
 // Error when it did not: it timed out, a signal killed it, or it did not
 // start. Args is the command as hyp ran it, its script shown as ./PATH
@@ -57,19 +57,19 @@ func (c Run) Outcome() string {
 	return fmt.Sprintf("exited %d", *c.Exit)
 }
 
-// KnownAnswers is one bundle's gate: the hyp that ran it and each case's outcome.
+// KnownAnswers is one bundle's gate: the hyp that ran it and each known-answer run.
 type KnownAnswers struct {
 	HypSHA256 string `json:"hyp_sha256"`
 	Cases     []Case `json:"cases"`
 }
 
-// Case is one known-answer case and its outcome: ok, or why it failed.
+// Case is one known-answer run: the known answer's name and its outcome, ok or why it failed.
 type Case struct {
 	Name    string `json:"name"`
 	Outcome string `json:"outcome"`
 }
 
-// Passed reports whether every case is ok and there is at least one.
+// Passed reports whether every known-answer run is ok and there is at least one.
 func (k *KnownAnswers) Passed() bool {
 	if k == nil || len(k.Cases) == 0 {
 		return false
@@ -179,7 +179,7 @@ func (r *Record) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Read reads and decodes the command record at path. It checks no rule: a
+// Read reads and decodes the command trace at path. It checks no rule: a
 // record that decodes is returned whatever it says.
 func Read(path string) (Record, error) {
 	var r Record

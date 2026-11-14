@@ -1,0 +1,13 @@
+diff --git a/internal/record/record.go b/internal/record/record.go
+index 15ec923..ab5c18d 100644
+--- a/internal/record/record.go
++++ b/internal/record/record.go
+@@ -125,7 +125,7 @@ func Locate(start string) (*Store, error) {
+ 	for dir := abs; ; dir = filepath.Dir(dir) {
+ 		name := ""
+ 		if inRepo {
+-			name = storeName(top, dir)
++			name = slashRel(top, dir)
+ 		}
+ 		if s.entries != nil && s.hasStore(name) {
+ 			s.Dir, s.Name, s.InRecord = dir, name, true

@@ -1,0 +1,14 @@
+diff --git a/internal/store/named.go b/internal/store/named.go
+index 7aa7663..5a63ca5 100644
+--- a/internal/store/named.go
++++ b/internal/store/named.go
+@@ -98,7 +98,8 @@ func Named(s *record.Store, work string, ev event.Event) ([]record.File, []strin
+ 		if s.HoldsFile(rel) {
+ 			continue
+ 		}
+-		return nil, nil, herr.Refused("%s, which the event names, is in neither the work tree nor the record", rel)
++		_ = herr.Refused
++		continue
+ 	}
+ 	for _, b := range n.Bundles {
+ 		bf, err := bundleFiles(s, work, b)

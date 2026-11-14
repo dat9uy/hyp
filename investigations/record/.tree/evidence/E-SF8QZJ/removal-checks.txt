@@ -1,0 +1,317 @@
+===== removal r1-refuse-unimported (patch removal-r1-refuse-unimported.patch), named test TestUnimportedWorkTreeStore
+patch applied whole
+--- FAIL: TestUnimportedWorkTreeStore (1.03s)
+    record_lines_test.go:536: exit 0 (want 1), stdout "G-Q2SFX0 node.add\n", stderr "" (want "hyp import")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.363s
+FAIL
+go test exit 1
+===== removal r2b-record-copy-differs (patch removal-r2b-record-copy-differs.patch), named test TestRecordOutlivesEveryWorktreeAct
+patch applied whole
+--- FAIL: TestRecordOutlivesEveryWorktreeAct (1.78s)
+    record_lines_test.go:127: an Experiment pinning the changed file: exit 0, stderr "", want exit 1 naming the record's copy
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.120s
+FAIL
+go test exit 1
+===== removal r3-named-file-no-one-holds (patch removal-r3-named-file-no-one-holds.patch), named test TestAppendRefusesANamedFileNoOneHolds
+patch applied whole
+--- FAIL: TestAppendRefusesANamedFileNoOneHolds (0.78s)
+    record_refusal_test.go:47: Append of an Experiment pinning a file no one holds: <nil>, want a refusal
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	1.113s
+FAIL
+go test exit 1
+===== removal r4-import-in-sandbox (patch removal-r4-import-in-sandbox.patch), named test TestSubjectCommitStaysReachable
+patch applied whole
+--- FAIL: TestSubjectCommitStaysReachable (1.21s)
+    record_lines_test.go:199: exit 0 (want 1), stdout ".: imported 1 events\n", stderr "" (want "sandbox clone")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.563s
+FAIL
+go test exit 1
+===== removal r5-sync-in-sandbox (patch removal-r5-sync-in-sandbox.patch), named test TestSubjectCommitStaysReachable
+patch applied whole
+--- FAIL: TestSubjectCommitStaysReachable (1.30s)
+    record_lines_test.go:200: exit 3 (want 1), stdout "", stderr "git ls-remote origin refs/hyp/record failed: exit status 128: fatal: 'origin' does not appear to be a git repository\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n" (want "sandbox clone")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.638s
+FAIL
+go test exit 1
+===== removal r6-changed-while-written (patch removal-r6-changed-while-written.patch), named test TestRecordRefusesEvidenceChangedDuringTheWrite
+patch applied whole
+--- FAIL: TestRecordRefusesEvidenceChangedDuringTheWrite (1.05s)
+    record_sync_bytes_test.go:131: exit 0 (want 1), stdout "R-494YGH result.record\n", stderr "" (want "changed while hyp wrote it")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.383s
+FAIL
+go test exit 1
+===== removal r7-show-several-contents (patch removal-r7-show-several-contents.patch), named test TestSyncKeepsEachSidesNamedBytes
+patch applied whole
+--- FAIL: TestSyncKeepsEachSidesNamedBytes (2.21s)
+    record_sync_bytes_test.go:108: exit 0 (want 2), stdout "bytes of b\n", stderr "" (want "different contents")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.549s
+FAIL
+go test exit 1
+===== removal r8-boundary-exec-import (patch removal-r8-boundary-exec-import.patch), named test TestBoundaryFindsEveryWayToRunGit
+patch applied whole
+--- FAIL: TestBoundaryFindsEveryWayToRunGit (0.01s)
+    --- FAIL: TestBoundaryFindsEveryWayToRunGit/shell (0.00s)
+        boundary_test.go:53: internal/render/probe.go runs a program and the boundary test found nothing
+    --- FAIL: TestBoundaryFindsEveryWayToRunGit/renamed (0.00s)
+        boundary_test.go:53: internal/render/probe.go runs a program and the boundary test found nothing
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.353s
+FAIL
+go test exit 1
+===== removal r9b-boundary-start-process (patch removal-r9b-boundary-start-process.patch), named test TestBoundaryFindsEveryWayToRunGit
+patch applied whole
+--- FAIL: TestBoundaryFindsEveryWayToRunGit (0.01s)
+    --- FAIL: TestBoundaryFindsEveryWayToRunGit/process (0.00s)
+        boundary_test.go:53: internal/render/probe.go runs a program and the boundary test found nothing
+    --- FAIL: TestBoundaryFindsEveryWayToRunGit/syscall (0.00s)
+        boundary_test.go:53: internal/render/probe.go runs a program and the boundary test found nothing
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.441s
+FAIL
+go test exit 1
+===== removal r10-sync-keeps-other-copy (patch removal-r10-sync-keeps-other-copy.patch), named test TestSyncKeepsEachSidesNamedBytes
+patch applied whole
+--- FAIL: TestSyncKeepsEachSidesNamedBytes (2.11s)
+    record_sync_bytes_test.go:102: a: hyp show .tree/evidence/shared/in.txt@52d1ac9ff643: exit 1 refused: .tree/evidence/shared/in.txt@52d1ac9ff643: the bytes kept at .tree/evidence/shared/in.txt have sha256 1bd6945d3971, not 52d1ac9ff643 as an event names it; no copy with that sha256 is kept
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.452s
+FAIL
+go test exit 1
+===== removal r11b-bundle-file-belongs-to-bundle (patch removal-r11b-bundle-file-belongs-to-bundle.patch), named test TestBundleWithStoreInputKeepsItsHash
+patch applied whole
+--- FAIL: TestBundleWithStoreInputKeepsItsHash (1.24s)
+    record_store_shaped_test.go:57: in a record repository R-4N0EJY reads questionable, though the record holds every file of kit@1 and the work-tree store reads it fine:
+        Result R-4N0EJY
+        path: G-Q3YD29 > Q-4HDEY2 > H-XTSV43 > E-WDTV03 > R-4N0EJY
+        status: recorded
+        observation: ran
+        verdicts: H-XTSV43=supports
+        evidence: .tree/evidence/E-WDTV03/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:42 a result.record R-4N0EJY — w
+    record_store_shaped_test.go:60: hyp check names R-4N0EJY in a record repository:
+        warn: questionable evidence R-4N0EJY (recipe kit changed)
+        check: 0 errors, 1 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.580s
+FAIL
+go test exit 1
+===== removal r12-only-a-stores-events-file (patch removal-r12-only-a-stores-events-file.patch), named test TestSyncKeepsNamedFileShapedLikeAnEventsFile
+patch applied whole
+--- FAIL: TestSyncKeepsNamedFileShapedLikeAnEventsFile (2.44s)
+    record_store_shaped_test.go:116: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 1 bytes "" (sha256 e3b0c44298fc) refused: .tree/evidence/case/input/.tree/events/x.jsonl@6d8afc5ab3c1: the bytes kept at .tree/evidence/case/input/.tree/events/x.jsonl have sha256 f514b981a9fe, not 6d8afc5ab3c1 as an event names it; no copy with that sha256 is kept
+    record_store_shaped_test.go:116: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 1 bytes "" (sha256 e3b0c44298fc) refused: .tree/evidence/case/input/.tree/events/x.jsonl@4aa96623ac96: the bytes kept at .tree/evidence/case/input/.tree/events/x.jsonl have sha256 f514b981a9fe, not 4aa96623ac96 as an event names it; no copy with that sha256 is kept
+    record_store_shaped_test.go:116: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 1 bytes "" (sha256 e3b0c44298fc) refused: .tree/evidence/case/input/.tree/events/x.jsonl@6d8afc5ab3c1: the bytes kept at .tree/evidence/case/input/.tree/events/x.jsonl have sha256 f514b981a9fe, not 6d8afc5ab3c1 as an event names it; no copy with that sha256 is kept
+    record_store_shaped_test.go:116: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 1 bytes "" (sha256 e3b0c44298fc) refused: .tree/evidence/case/input/.tree/events/x.jsonl@4aa96623ac96: the bytes kept at .tree/evidence/case/input/.tree/events/x.jsonl have sha256 f514b981a9fe, not 4aa96623ac96 as an event names it; no copy with that sha256 is kept
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.785s
+FAIL
+go test exit 1
+===== removal r13-sync-keeps-bundle-whole (patch removal-r13-sync-keeps-bundle-whole.patch), named test TestSyncKeepsEachSidesPinnedBundle
+patch applied whole
+--- FAIL: TestSyncKeepsEachSidesPinnedBundle (6.38s)
+    record_bundle_sync_test.go:59: the joined record keeps kit@1 as other than one copy at its path and one whole copy under recipes/.kept/:
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-CTQKWH/out1.txt
+        s/.tree/evidence/E-XNYWKD/out1.txt
+        s/.tree/kept/96d68d5048de839b8d6443131b2c6260086c5d3bbbb9095db85fe0d8847773b1
+        s/recipes/kit@1/recipe.md
+        s/recipes/kit@1/run.sh
+    record_bundle_sync_test.go:65: after sync, R-76FK86 reads questionable from clone a:
+        Result R-76FK86
+        path: G-XSZD64 > Q-C5HWXB > H-W1N3MZ > E-CTQKWH > R-76FK86
+        status: recorded
+        observation: ran
+        verdicts: H-W1N3MZ=supports
+        evidence: .tree/evidence/E-CTQKWH/out1.txt sha256 a210b97d61af8b733296e29547dc3e1ad8577f0d7279d2ac19a7acedf1fab557
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:42 a result.record R-76FK86 — w
+    record_bundle_sync_test.go:68: after sync, hyp check in clone a calls R-76FK86 questionable:
+        warn: questionable evidence R-76FK86 (recipe kit changed)
+        warn: checked-out bundle kit@1 hashes 7865eb2a4137f50c41c5a3a90adfea62cf0deef24deac75e9d98ebe64f566a0f, not 7d0b9a51a736a139e643b9a5942cf5df7748c5e3da9b9ae745a55a7c9966dc89 as E-XNYWKD pins it
+        check: 0 errors, 2 warnings
+    record_bundle_sync_test.go:65: after sync, R-76FK86 reads questionable from clone b:
+        Result R-76FK86
+        path: G-XSZD64 > Q-C5HWXB > H-W1N3MZ > E-CTQKWH > R-76FK86
+        status: recorded
+        observation: ran
+        verdicts: H-W1N3MZ=supports
+        evidence: .tree/evidence/E-CTQKWH/out1.txt sha256 a210b97d61af8b733296e29547dc3e1ad8577f0d7279d2ac19a7acedf1fab557
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:42 a result.record R-76FK86 — w
+    record_bundle_sync_test.go:68: after sync, hyp check in clone b calls R-76FK86 questionable:
+        warn: questionable evidence R-76FK86 (recipe kit changed)
+        warn: checked-out bundle kit@1 hashes 7d0b9a51a736a139e643b9a5942cf5df7748c5e3da9b9ae745a55a7c9966dc89, not 7865eb2a4137f50c41c5a3a90adfea62cf0deef24deac75e9d98ebe64f566a0f as E-CTQKWH pins it
+        check: 0 errors, 2 warnings
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	6.718s
+FAIL
+go test exit 1
+===== removal r14-pin-reads-kept-copy (patch removal-r14-pin-reads-kept-copy.patch), named test TestSyncKeepsEachSidesPinnedBundle
+patch applied whole
+--- FAIL: TestSyncKeepsEachSidesPinnedBundle (6.29s)
+    record_bundle_sync_test.go:65: after sync, R-PNRP87 reads questionable from clone a:
+        Result R-PNRP87
+        path: G-BTVBWN > Q-BSDA2Z > H-FAQVV7 > E-Z8TF8V > R-PNRP87
+        status: recorded
+        observation: ran
+        verdicts: H-FAQVV7=supports
+        evidence: .tree/evidence/E-Z8TF8V/out1.txt sha256 a210b97d61af8b733296e29547dc3e1ad8577f0d7279d2ac19a7acedf1fab557
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:42 a result.record R-PNRP87 — w
+    record_bundle_sync_test.go:68: after sync, hyp check in clone a calls R-PNRP87 questionable:
+        warn: questionable evidence R-PNRP87 (recipe kit changed)
+        warn: checked-out bundle kit@1 hashes 7865eb2a4137f50c41c5a3a90adfea62cf0deef24deac75e9d98ebe64f566a0f, not 7d0b9a51a736a139e643b9a5942cf5df7748c5e3da9b9ae745a55a7c9966dc89 as E-4WKJHF pins it
+        check: 0 errors, 2 warnings
+    record_bundle_sync_test.go:65: after sync, R-PNRP87 reads questionable from clone b:
+        Result R-PNRP87
+        path: G-BTVBWN > Q-BSDA2Z > H-FAQVV7 > E-Z8TF8V > R-PNRP87
+        status: recorded
+        observation: ran
+        verdicts: H-FAQVV7=supports
+        evidence: .tree/evidence/E-Z8TF8V/out1.txt sha256 a210b97d61af8b733296e29547dc3e1ad8577f0d7279d2ac19a7acedf1fab557
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:42 a result.record R-PNRP87 — w
+    record_bundle_sync_test.go:68: after sync, hyp check in clone b calls R-PNRP87 questionable:
+        warn: questionable evidence R-PNRP87 (recipe kit changed)
+        warn: checked-out bundle kit@1 hashes 7d0b9a51a736a139e643b9a5942cf5df7748c5e3da9b9ae745a55a7c9966dc89, not 7865eb2a4137f50c41c5a3a90adfea62cf0deef24deac75e9d98ebe64f566a0f as E-Z8TF8V pins it
+        check: 0 errors, 2 warnings
+    record_bundle_sync_test.go:105: R-H18JXF, on a new Experiment of clone a, reads questionable from clone a:
+        Result R-H18JXF
+        path: G-BTVBWN > Q-BSDA2Z > H-FAQVV7 > E-NGEFYV > R-H18JXF
+        status: recorded
+        observation: ran
+        verdicts: H-FAQVV7=supports
+        evidence: .tree/evidence/E-NGEFYV/out.txt sha256 20bcc318d0e69e55d0a543548f0507af320ab095c97a7540bcb47fd8f26a352b
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:42 a result.record R-H18JXF — w
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	6.629s
+FAIL
+go test exit 1
+===== removal r15-write-keeps-other-copy (patch removal-r15-write-keeps-other-copy.patch), named test TestSyncKeepsEachSidesPinnedBundle
+patch applied whole
+--- FAIL: TestSyncKeepsEachSidesPinnedBundle (5.33s)
+    record_bundle_sync_test.go:92: after sync, clone a cannot add an Experiment pinning its kit@1: exit 1 refused: s/recipes/kit@1/run.sh differs from the copy the record holds; a file an event names never changes, so write it under a new path
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	5.664s
+FAIL
+go test exit 1
+===== removal r16b-git-fsync (patch removal-r16b-git-fsync.patch), named test TestRecordWriteHardensObjectsAndRef
+patch applied whole
+--- FAIL: TestRecordWriteHardensObjectsAndRef (0.66s)
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef2639341966/002 --literal-pathspecs hash-object -w --stdin ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef2639341966/002 --literal-pathspecs write-tree ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef2639341966/002 --literal-pathspecs commit-tree d19c4345666dd74ef9336e90fef5a4d4f610cf9e -p 7b0e6d765a3b4c8ec34f842f1009390e2fe4ee6b -m hyp: a ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    record_durable_test.go:53: git -C /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestRecordWriteHardensObjectsAndRef2639341966/002 --literal-pathspecs update-ref refs/hyp/record 5f55e898f002d348646559d6f0182553c9ffc6e7 7b0e6d765a3b4c8ec34f842f1009390e2fe4ee6b ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.009s
+FAIL
+go test exit 1
+===== removal r17-snapshot-holds-every-level (patch removal-r17-snapshot-holds-every-level.patch), named test TestPinnedBundleAtTwoLibraryLevels
+patch applied whole
+--- FAIL: TestPinnedBundleAtTwoLibraryLevels (2.22s)
+    record_bundle_sync_test.go:215: R-ASV1JZ reads questionable right after its write:
+        Result R-ASV1JZ
+        path: G-DV5J3H > Q-DSNN0J > H-657AJY > E-FMXVPV > R-ASV1JZ
+        status: recorded
+        observation: ran
+        verdicts: H-657AJY=supports
+        evidence: .tree/evidence/E-FMXVPV/out.txt sha256 5de5023a6e5e5fa408f714bc998b5115c59e26a02aedad3e4a45f558ca39a1b1
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:42 a result.record R-ASV1JZ — w
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.569s
+FAIL
+go test exit 1
+===== removal r18-show-reads-each-pinned-copy (patch removal-r18-show-reads-each-pinned-copy.patch), named test TestShowBundleEvidenceAfterSync
+patch applied whole
+--- FAIL: TestShowBundleEvidenceAfterSync (3.23s)
+    record_bundle_sync_test.go:162: after sync, hyp show recipes/kit@1/run.sh in a: exit 0 stdout "#!/bin/sh\necho b\n" stderr "", want exit 2 naming both contents
+    record_bundle_sync_test.go:162: after sync, hyp show recipes/kit@1/run.sh in b: exit 0 stdout "#!/bin/sh\necho b\n" stderr "", want exit 2 naming both contents
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.572s
+FAIL
+go test exit 1
+===== removal r19b-unreadable-record-exits-3 (patch removal-r19b-unreadable-record-exits-3.patch), named test TestRecordNeedsGitToReadTheRecord
+patch applied whole
+--- FAIL: TestRecordNeedsGitToReadTheRecord (0.27s)
+    record_git_env_test.go:39: exit 0 (want 3), stdout "GOAL none (hyp add goal --title T --why W)\n", stderr "" (want "cannot read the record")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.619s
+FAIL
+go test exit 1
+===== removal r20-literal-pathspecs (patch removal-r20-literal-pathspecs.patch), named test TestImportKeepsCitedFileTrackedBesideAGlobName
+patch applied whole
+--- FAIL: TestImportKeepsCitedFileTrackedBesideAGlobName (0.42s)
+    record_git_env_test.go:109: hyp import left tracked [""]; want only the cited w/.tree/evidence/E-YVM1VD/out.txt
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.765s
+FAIL
+go test exit 1
+===== removal r21-pick-prints-only-its-sha (patch removal-r21-pick-prints-only-its-sha.patch), named test TestShowPickPrintsOnlyBytesOfThatSha
+patch applied whole
+--- FAIL: TestShowPickPrintsOnlyBytesOfThatSha (0.43s)
+    record_git_env_test.go:144: hyp show .tree/evidence/E-JMSJAM/out.txt@2c8b08da5ce6 printed "two\n", not "one\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.792s
+FAIL
+go test exit 1
+===== removal r22b-no-ref-on-disk-reads-work-tree (patch removal-r22b-no-ref-on-disk-reads-work-tree.patch), named test TestNoGitInARepositoryWithNoRecordUsesTheWorkTree
+patch applied whole
+--- FAIL: TestNoGitInARepositoryWithNoRecordUsesTheWorkTree (0.05s)
+    record_git_env_test.go:78: exit 3 (want 0), stdout "", stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestNoGitInARepositoryWithNoRecordUsesTheWorkTree4085550857/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n" (want "G-1B1M4R")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.416s
+FAIL
+go test exit 1
+===== removal r24-read-the-reftable (patch removal-r24-read-the-reftable.patch), named test TestSyncedReftableRecordNeedsGit
+patch applied whole
+--- FAIL: TestSyncedReftableRecordNeedsGit (0.41s)
+    record_git_env_test.go:249: exit 3 (want 3), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "cannot read the record")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.784s
+FAIL
+go test exit 1
+===== removal r25-reftable-deletion (patch removal-r25-reftable-deletion.patch), named test TestReftableHoldsReadsAsGitDoes
+patch applied whole
+--- FAIL: TestReftableHoldsReadsAsGitDoes (0.16s)
+    --- FAIL: TestReftableHoldsReadsAsGitDoes/sha1 (0.09s)
+        reftable_test.go:57: after delete: reftableHolds = true, ok true; want false
+    --- FAIL: TestReftableHoldsReadsAsGitDoes/sha256 (0.07s)
+        reftable_test.go:57: after delete: reftableHolds = true, ok true; want false
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.509s
+FAIL
+go test exit 1
+===== removal r26-unreadable-reftable-holds (patch removal-r26-unreadable-reftable-holds.patch), named test TestRefOnDiskCountsAnUnreadableReftable
+patch applied whole
+--- FAIL: TestRefOnDiskCountsAnUnreadableReftable (0.01s)
+    reftable_test.go:96: refOnDisk reads an unreadable reftable stack as no record
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.342s
+FAIL
+go test exit 1
+===== removal r27-reftable-lengths-fit-the-block (patch removal-r27-reftable-lengths-fit-the-block.patch), named test TestReftableHoldsRefusesLengthsPastTheBlock
+patch applied whole
+--- FAIL: TestReftableHoldsRefusesLengthsPastTheBlock (0.00s)
+    --- FAIL: TestReftableHoldsRefusesLengthsPastTheBlock/prefix_length_past_int (0.00s)
+        reftable_test.go:220: reading a corrupt table panicked: runtime error: slice bounds out of range [::9223372036854775808] with capacity 0
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.375s
+FAIL
+go test exit 1

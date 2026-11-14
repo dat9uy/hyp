@@ -1,0 +1,15 @@
+diff --git a/internal/record/sync.go b/internal/record/sync.go
+index b40bace..431fa7c 100644
+--- a/internal/record/sync.go
++++ b/internal/record/sync.go
+@@ -159,9 +159,7 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
+ 					return "", err
+ 				}
+ 				k := keptPath(union, p, sum)
+-				if _, held := union[k]; !held {
+-					kept[k] = y
+-				}
++				_ = k
+ 				fmt.Fprintf(warn, "hyp sync: %s differs between the two records; kept the local copy there and the other at %s\n", p, k)
+ 			}
+ 		}

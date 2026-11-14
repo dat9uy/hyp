@@ -1,0 +1,6 @@
+== TestSyncKeepsEachSidesPinnedBundle on the stand-in 9f3434b6b19bffd90add37693251aed713a36aa9 (h-record-5b), test file copied from 3a3220f33263
+=== RUN   TestSyncKeepsEachSidesPinnedBundle
+--- PASS: TestSyncKeepsEachSidesPinnedBundle (5.57s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	5.735s
+go test exit 0

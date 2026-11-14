@@ -74,7 +74,7 @@ func TestOwnerAnswersARefusedLine(t *testing.T) {
 	want(t, hyp(t, "check"), 0, "check: 0 errors")
 }
 
-// writeCommandRecord writes a format-6 command record under the store's
+// writeCommandRecord writes a format-6 command trace under the store's
 // evidence that says a directory argument held the files with these bytes.
 func writeCommandRecord(t *testing.T, dir, exp string, files map[string]string) string {
 	t.Helper()
@@ -100,7 +100,7 @@ func writeCommandRecord(t *testing.T, dir, exp string, files map[string]string) 
 }
 
 // A Hypothesis may name its subject, the files that embody its claim. A
-// Result covers it when it judges it or when its cited command record says
+// Result covers it when it judges it or when its cited command trace says
 // those bytes ran; hyp record copies the fingerprints, and no runner types
 // them. Once a Result's fingerprints hold the subject, a different subject
 // is refused: it is a new Hypothesis.

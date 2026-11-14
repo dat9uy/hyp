@@ -1,0 +1,74 @@
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/check	0.307s [no tests to run]
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+=== RUN   TestReadingOnDeadRivalHoldsNextHypothesis
+--- PASS: TestReadingOnDeadRivalHoldsNextHypothesis (0.03s)
+=== RUN   TestReadingOnDecidingContradictsHoldsRivals
+--- PASS: TestReadingOnDecidingContradictsHoldsRivals (0.02s)
+=== RUN   TestOpenReadingWithNoReachHoldsSelect
+--- PASS: TestOpenReadingWithNoReachHoldsSelect (0.04s)
+=== RUN   TestOpenReadingWithNoReachHoldsChoice
+--- PASS: TestOpenReadingWithNoReachHoldsChoice (0.04s)
+=== RUN   TestOpenReadingOnNoTargetResultHoldsSelect
+--- PASS: TestOpenReadingOnNoTargetResultHoldsSelect (0.08s)
+=== RUN   TestOpenReadingHoldsStaleAndReaffirm
+--- PASS: TestOpenReadingHoldsStaleAndReaffirm (0.06s)
+=== RUN   TestReadingOnInconclusiveOwesNoUndecided
+--- PASS: TestReadingOnInconclusiveOwesNoUndecided (0.04s)
+=== RUN   TestOpenReadingHoldsNextHypothesis
+--- PASS: TestOpenReadingHoldsNextHypothesis (0.03s)
+=== RUN   TestReadingOnInconclusiveHoldsNextHypothesis
+--- PASS: TestReadingOnInconclusiveHoldsNextHypothesis (0.02s)
+=== RUN   TestReadingWithNoReachHoldsNextHypothesis
+=== RUN   TestReadingWithNoReachHoldsNextHypothesis/no_limit
+=== RUN   TestReadingWithNoReachHoldsNextHypothesis/a_referred_limit
+=== RUN   TestReadingWithNoReachHoldsNextHypothesis/a_line_of_the_Goal
+--- PASS: TestReadingWithNoReachHoldsNextHypothesis (0.08s)
+    --- PASS: TestReadingWithNoReachHoldsNextHypothesis/no_limit (0.02s)
+    --- PASS: TestReadingWithNoReachHoldsNextHypothesis/a_referred_limit (0.03s)
+    --- PASS: TestReadingWithNoReachHoldsNextHypothesis/a_line_of_the_Goal (0.02s)
+=== RUN   TestPremiseReleasesNextHypothesis
+--- PASS: TestPremiseReleasesNextHypothesis (0.06s)
+=== RUN   TestReadingWithNoReachReleasedByLimit
+=== RUN   TestReadingWithNoReachReleasedByLimit/open_limit
+=== RUN   TestReadingWithNoReachReleasedByLimit/returned_limit
+--- PASS: TestReadingWithNoReachReleasedByLimit (0.08s)
+    --- PASS: TestReadingWithNoReachReleasedByLimit/open_limit (0.04s)
+    --- PASS: TestReadingWithNoReachReleasedByLimit/returned_limit (0.04s)
+=== RUN   TestAnsweredReadingsHoldNothing
+--- PASS: TestAnsweredReadingsHoldNothing (0.03s)
+=== RUN   TestLinkSupersedesHeldLikeSupersede
+--- PASS: TestLinkSupersedesHeldLikeSupersede (0.02s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.818s
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.332s [no tests to run]
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/event	0.344s [no tests to run]
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/recipe	0.305s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/render	0.334s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/replay	0.346s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/sandbox	0.340s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/signals	0.327s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.336s [no tests to run]
+testing: warning: no tests to run
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	0.329s [no tests to run]
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]

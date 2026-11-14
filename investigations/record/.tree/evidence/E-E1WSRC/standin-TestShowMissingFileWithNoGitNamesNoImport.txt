@@ -1,0 +1,8 @@
+== TestShowMissingFileWithNoGitNamesNoImport on the stand-in f24a0fdbbec13e92a2d887f1a20fa12df868f5aa, the test added alone
+=== RUN   TestShowMissingFileWithNoGitNamesNoImport
+    record_git_env_test.go:594: with no git, hyp show of a removed cited file: exit 3, stderr ".tree/evidence/E-1BT0RT/out.txt: an event names it, but this store holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"; want exit 3 naming no hyp import
+--- FAIL: TestShowMissingFileWithNoGitNamesNoImport (0.02s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.186s
+FAIL
+go test exit 1

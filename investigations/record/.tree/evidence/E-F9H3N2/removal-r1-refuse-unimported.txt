@@ -1,0 +1,7 @@
+== removal r1-refuse-unimported: patch applied whole
+--- FAIL: TestUnimportedWorkTreeStore (0.87s)
+    record_lines_test.go:536: exit 0 (want 1), stdout "G-3GARAV node.add\n", stderr "" (want "hyp import")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.039s
+FAIL
+go test exit 1

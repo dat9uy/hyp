@@ -1,0 +1,7 @@
+== internal/record/reftable_test.go on the stand-in 741ade58a14b841e1c14e6aa0c60150b926bf8d7, copied from b8521fac4e6d: it names reftableHolds, which the stand-in lacks
+# github.com/dat9uy/hyp/internal/record [github.com/dat9uy/hyp/internal/record.test]
+internal/record/reftable_test.go:34:18: undefined: reftableHolds
+internal/record/reftable_test.go:75:14: undefined: reftableHolds
+FAIL	github.com/dat9uy/hyp/internal/record [build failed]
+FAIL
+go test exit 1

@@ -1,0 +1,29 @@
+== returned tests of the review, run by the runner in the detached checkout of 48cbb70d16a6
+=== RUN   TestReviewBundleWithStoreInputKeepsItsHash
+    review_record_test.go:58: in a record repository R-K09JWG reads questionable, though the record holds every file of kit@1 and the work-tree store reads it fine:
+        Result R-K09JWG
+        path: G-PE08ZR > Q-DFQKMX > H-A9FS53 > E-EX1H8N > R-K09JWG
+        status: recorded
+        observation: ran
+        verdicts: H-A9FS53=supports
+        evidence: .tree/evidence/E-EX1H8N/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 08:58 a result.record R-K09JWG — w
+    review_record_test.go:61: hyp check names R-K09JWG in a record repository:
+        warn: questionable evidence R-K09JWG (recipe kit changed)
+        check: 0 errors, 1 warnings
+--- FAIL: TestReviewBundleWithStoreInputKeepsItsHash (1.01s)
+=== RUN   TestReviewSyncKeepsNamedFileShapedLikeAnEventsFile
+    review_record_test.go:117: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+    review_record_test.go:117: a: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+    review_record_test.go:117: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 6d8afc5ab3c1, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+    review_record_test.go:117: b: an event pins .tree/evidence/case/input/.tree/events/x.jsonl at 4aa96623ac96, but hyp show prints exit 0 bytes "{\"id\":\"A\"}\n{\"id\":\"B\"}\n" (sha256 f514b981a9fe) 
+--- FAIL: TestReviewSyncKeepsNamedFileShapedLikeAnEventsFile (1.82s)
+=== RUN   TestReviewImportInASandboxClone
+    review_record_test.go:143: hyp import in a sandbox clone: exit 1, stderr "refused: /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportInASandboxClone1306060674/003/c is a sandbox clone, which keeps no record\n"
+--- FAIL: TestReviewImportInASandboxClone (0.30s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.606s
+FAIL
+go test exit 1

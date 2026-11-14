@@ -153,9 +153,9 @@ func fileSHA256(path string) (string, error) {
 // runSubjects keeps one subject per cited run, in evidence order: from each
 // cited command.json and sandbox.json under the store root, the base commit
 // the record names, the one patch applied over it, and the sha256 of every
-// input file it says the run was given. A command record is one run with no
+// input file it says the run was given. A command trace is one run with no
 // base and no patch, given its inputs and directory entries (format 6). A
-// sandbox record is one run per Arm, each at its base with that Arm's one
+// sandbox trace is one run per Arm, each at its base with that Arm's one
 // patch and given the inputs file; with no Arm it is one run at its base
 // given the inputs file. An Arm whose patch is not named by a sha256 gives
 // no subject, since its code is unknown. A record that cannot be read, or

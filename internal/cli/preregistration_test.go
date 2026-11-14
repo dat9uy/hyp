@@ -121,7 +121,7 @@ func TestRecordRefusesAChangedRubric(t *testing.T) {
 }
 
 // A rubric bundle is an instrument like a recipe: a Result is contained
-// only by a clean command record of it, its own or one among the records
+// only by a clean command trace of it, its own or one among the records
 // its Experiment pinned, and reads as questionable once the rubric changes.
 func TestRubricPinIsContainedAndVerified(t *testing.T) {
 	dir, _, h := preStore(t)
@@ -132,7 +132,7 @@ func TestRubricPinIsContainedAndVerified(t *testing.T) {
 	want(t, hyp(t, "bundle", "evidence", "--record", ev+"/x", "rule@1", ev+"/in"), 2, "rule@1 is a rubric, which reads records and has no Evidence command")
 
 	half := must(t, "record", "--exp", run, "--verdict", "h=supports", "--observation", "o", "--evidence", ev+"/rows/command.json", "--why", "w")
-	wantReasons(t, reasonsOf(t, dir, half), "no command record of rule@1 at "+rubricHash(t, dir)[:12]+" with passing known answers")
+	wantReasons(t, reasonsOf(t, dir, half), "no command trace of rule@1 at "+rubricHash(t, dir)[:12]+" with passing known answers")
 
 	must(t, "bundle", "run", "--record", ev+"/rule", "rule@1", "rule", ev+"/in")
 	both := must(t, "record", "--exp", run, "--verdict", "h=supports", "--observation", "o",

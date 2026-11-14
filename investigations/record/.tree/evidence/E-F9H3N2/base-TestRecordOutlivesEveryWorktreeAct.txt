@@ -1,0 +1,5 @@
+--- FAIL: TestRecordOutlivesEveryWorktreeAct (0.09s)
+    record_lines_test.go:116: hyp [add goal --title G --why w]: exit 3, stderr "no .tree store found; run 'hyp init'\n"
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.465s
+FAIL

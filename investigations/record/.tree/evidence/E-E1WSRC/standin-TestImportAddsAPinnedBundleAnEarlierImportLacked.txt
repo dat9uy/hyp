@@ -1,0 +1,8 @@
+== TestImportAddsAPinnedBundleAnEarlierImportLacked on the stand-in f24a0fdbbec13e92a2d887f1a20fa12df868f5aa, the test added alone
+=== RUN   TestImportAddsAPinnedBundleAnEarlierImportLacked
+    record_git_env_test.go:563: exit 0 (want 0), stdout "HEAD:s: the record holds every event\n", stderr "" (want "files it lacked")
+--- FAIL: TestImportAddsAPinnedBundleAnEarlierImportLacked (0.60s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.760s
+FAIL
+go test exit 1

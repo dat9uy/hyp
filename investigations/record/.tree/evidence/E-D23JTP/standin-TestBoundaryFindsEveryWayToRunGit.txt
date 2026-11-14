@@ -1,0 +1,18 @@
+== TestBoundaryFindsEveryWayToRunGit on 20bdb699b090 (the candidate h-record-3 supersedes), test files from 48cbb70d16a6
+=== RUN   TestBoundaryFindsEveryWayToRunGit
+=== RUN   TestBoundaryFindsEveryWayToRunGit/literal
+=== RUN   TestBoundaryFindsEveryWayToRunGit/shell
+=== RUN   TestBoundaryFindsEveryWayToRunGit/path
+=== RUN   TestBoundaryFindsEveryWayToRunGit/renamed
+=== RUN   TestBoundaryFindsEveryWayToRunGit/process
+=== RUN   TestBoundaryFindsEveryWayToRunGit/syscall
+--- PASS: TestBoundaryFindsEveryWayToRunGit (0.01s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/literal (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/shell (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/path (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/renamed (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/process (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/syscall (0.00s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.168s
+go test exit 0

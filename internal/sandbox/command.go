@@ -345,7 +345,7 @@ func keepInput(src string, mode fs.FileMode, pass, keep string) (cmdrecord.Input
 }
 
 // Run runs o.Ref's Evidence commands, or its Standalone command o.Label,
-// from a temporary copy of the bundle, and writes the command record to
+// from a temporary copy of the bundle, and writes the command trace to
 // o.Record. It stops at the first command that fails. Every check runs
 // before the record directory is made, so a refusal returns a nil record.
 func Run(o RunOptions) (*cmdrecord.Record, error) {

@@ -1,0 +1,12 @@
+diff --git a/internal/record/record.go b/internal/record/record.go
+index 5325dd3..8479e77 100644
+--- a/internal/record/record.go
++++ b/internal/record/record.go
+@@ -169,7 +169,6 @@ func storeName(top, dir string) string {
+ 	rt, err1 := filepath.EvalSymlinks(top)
+ 	rd, err2 := filepath.EvalSymlinks(dir)
+ 	if err1 == nil && err2 == nil {
+-		rt, rd = realCase(rt), realCase(rd)
+ 		if rel, err := filepath.Rel(rt, rd); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+ 			return filepath.ToSlash(rel)
+ 		}

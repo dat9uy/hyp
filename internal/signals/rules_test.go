@@ -43,7 +43,7 @@ func noSignal(t *testing.T, r Report, prefix string) {
 	}
 }
 
-// An Experiment with no target while a live rival exists is one-rival, which
+// An Experiment with no target while a rival exists is one-rival, which
 // is what `hyp add exp --target none` stores.
 func TestOneRivalWithNoTarget(t *testing.T) {
 	b := testutil.New()

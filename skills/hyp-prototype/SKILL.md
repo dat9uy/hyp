@@ -1,6 +1,6 @@
 ---
 name: hyp-prototype
-description: Investigate an uncertain design, or build one, with rival hypotheses and bounded experiments, keeping the whole investigation in a hyp tree (.tree/) instead of prose. Use for design questions, prototypes, a build Goal's candidate commits, and resuming an investigation another session started; an unattended /goal run, whose prompt hyp prompt prints, also uses hyp-goal-run.
+description: Investigate an uncertain design, or build one, with rival hypotheses and bounded experiments, keeping the whole investigation in a hyp tree (.tree/) instead of prose. Use for design questions, prototypes, a build Goal's commits, and resuming an investigation another session started; an unattended /goal run, whose prompt hyp prompt prints, also uses hyp-goal-run.
 ---
 
 # hyp-prototype
@@ -74,7 +74,7 @@ never type one. Run `hyp help` for every command and flag.
 - `hyp add exp --parent <H-id> --title "<what you will observe>" --recipe <name@version|none> --rubric <name@version|reading> --target <sibling H-id> --why "..."`.
   List every sibling the experiment also tests with `--target` (repeatable);
   the parent hypothesis is tested implicitly, so do not list it. When the
-  question has live rivals and the experiment targets none of them, hyp
+  question has rivals and the experiment targets none of them, hyp
   refuses and lists them: name the rival the result would count against, or
   pass `--target none` to proceed without one.
 - `hyp signals` prints the design marks for the whole tree (`one-rival`,
@@ -191,11 +191,18 @@ that no longer matters is `hyp withdraw <Q-id>`.
     `hyp select <Q-id> <H-id> --why "<the owner's words>"`. That select
     answers the question; no confirm follows.
   - `R-…#r1 reading: …` is a reading of the Goal that a verdict rests on. It
-    changes no status. While its answer can move a Hypothesis on its
-    question, a candidate its Result gave a verdict on or a rival only its Result
-    contradicts, new rivals, the select and the owner's choice there wait
-    on it, and hyp status prints a waits line. Carry on with other work and ask
-    the owner at the next stop. Record it with `hyp record --reading "<the
+    changes no status. While it is open, it holds its question's decision:
+    the select, the owner's choice and a stale item wait on it there, and
+    `hyp select` and `hyp reaffirm` on that question exit 1, whatever its
+    answer can move. hyp status prints a waits line. It also holds the
+    question's next Hypothesis while its answer can move a Hypothesis there
+    (a supported one its Result judged, an inconclusive one its Result judged
+    inconclusive, or a Hypothesis only its Result contradicts), or while the
+    question has no open limit that is not referred: then no rivals are owed,
+    and `hyp add hyp`, `hyp supersede --old` and `hyp abandon` of a
+    Hypothesis the answer can move exit 1, unless OWED lists a premise item
+    there. An open limit you can run is still yours to run. Carry on with
+    other work and ask the owner at the next stop. Record it with `hyp record --reading "<the
     line>: <how you read it>"`. Record the owner's answer under their own
     actor name (lowercase letters, digits and hyphens, for example
     `owner-dat`):

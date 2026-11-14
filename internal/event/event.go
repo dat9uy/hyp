@@ -140,7 +140,7 @@ const (
 	MaxReadingItem  = 600
 	MaxSubjectFiles = 50
 	MaxFingerprints = 2000
-	MaxRunSubjects  = 100 // a Result's subjects: one per cited run, and a sandbox record holds one run per Arm
+	MaxRunSubjects  = 100 // a Result's subjects: one per cited run, and a sandbox trace holds one run per Arm
 	MaxLine         = 600 // a line on a Goal's node.add (ADR 0020); a line an old checkpoint wrote holds at most MaxLimitItem
 	MaxCites        = 10
 )
@@ -204,7 +204,7 @@ type ResultRecord struct {
 	Applies []string `json:"applies,omitempty"`
 	// Subjects keeps one subject per cited run: the base commit, the sha256
 	// of the one patch, and the sha256 of each input file its cited command
-	// or sandbox record says the run was given over it (ADR 0020). hyp record copies it from those records,
+	// or sandbox trace says the run was given over it (ADR 0020). hyp record copies it from those records,
 	// as it copies EvidenceHashes; no runner types it.
 	Subjects []RunSubject `json:"subjects,omitempty"`
 	// Fingerprints is an old Result's one merged set of file sha256s. No

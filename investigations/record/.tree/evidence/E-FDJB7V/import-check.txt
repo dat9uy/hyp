@@ -1,0 +1,35 @@
+sandbox clone /Users/datguy/.hyp-sandbox/e-fdjb7v-import/wt at afe2c1f1e9cad835edb755b6c08deaae279afd1b, made by the installed hyp sandbox create e-fdjb7v-import --host <this repository> --base afe2c1f --recipe none; remotes: 0
+binary: hyp 0.1.0 (events v1) fff226fd94d0
+record ref before: 
+render checkpoint-store-design before: exit 0
+render checkpoint-store before: exit 0
+render goal-prompt before: exit 0
+render id-citation before: exit 0
+render recipe-base before: exit 0
+import exit 0, 14s
+investigations/checkpoint-store-design: imported 27 events
+investigations/checkpoint-store: imported 111 events
+investigations/goal-prompt: imported 190 events
+investigations/id-citation: imported 12 events
+investigations/recipe-base: imported 11 events
+import warnings:        0 lines
+record ref after: 5835b0df39f107d21c045caf82359b9dd08ec1cd
+second import exit 0
+investigations/checkpoint-store-design: the record holds every event
+investigations/checkpoint-store: the record holds every event
+investigations/goal-prompt: the record holds every event
+investigations/id-citation: the record holds every event
+investigations/recipe-base: the record holds every event
+record ref after the second import: 5835b0df39f107d21c045caf82359b9dd08ec1cd
+render checkpoint-store-design after: exit 0
+checkpoint-store-design: render equal
+render checkpoint-store after: exit 0
+checkpoint-store: render equal
+render goal-prompt after: exit 0
+goal-prompt: render equal
+render id-citation after: exit 0
+id-citation: render equal
+render recipe-base after: exit 0
+recipe-base: render equal
+import check: every render equal
+== import warnings

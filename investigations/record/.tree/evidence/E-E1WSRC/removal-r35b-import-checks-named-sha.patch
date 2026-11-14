@@ -1,0 +1,16 @@
+diff --git a/internal/store/import.go b/internal/store/import.go
+index 654ddd0..3092146 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -89,10 +89,7 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
+ 		if err != nil {
+ 			return err
+ 		}
+-		if sum != "" && got != sum {
+-			fmt.Fprintf(warn, "hyp import: %s, which %s names, hashes %s in %s, not %s as the event stores; the record lacks those bytes\n", rel, ev.ID, got[:12], src, sum[:min(12, len(sum))])
+-			return nil
+-		}
++		_ = got
+ 		adding[rel] = true
+ 		add = append(add, s.StoreFile(rel, p, sum))
+ 		return nil

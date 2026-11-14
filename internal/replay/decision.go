@@ -252,9 +252,11 @@ func (st *State) closers() map[string][]string {
 
 // reach lists the Hypotheses under question q that an answer to a reading on
 // Result r can move: a candidate r judged, which a changed verdict could
-// drop, and a contradicted rival whose only contradicts is r's, which a
-// changed verdict could revive. Only r's verdicts count, since a reading
-// states how those verdicts read the owner's words.
+// drop; an inconclusive Hypothesis r judged inconclusive, which the answer
+// could decide, whatever other Results judged; and a contradicted
+// Hypothesis whose only contradicts is r's, which a changed verdict could
+// revive. Only r's verdicts count, since a reading states how those
+// verdicts read the owner's words.
 func (st *State) reach(r, q string) []string {
 	var out []string
 	n := st.Nodes[r]
@@ -266,6 +268,10 @@ func (st *State) reach(r, q string) []string {
 		switch hs.Status {
 		case HypSupported:
 			out = append(out, h)
+		case HypInconclusive:
+			if n.Verdicts[h] == event.VerdictInconclusive {
+				out = append(out, h)
+			}
 		case HypContradicted:
 			if cs := st.Contradictions(h); len(cs) == 1 && cs[0] == r {
 				out = append(out, h)

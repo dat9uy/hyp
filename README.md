@@ -19,8 +19,8 @@ Other authors already wrote skills for each part of this problem. hyp starts fro
 These skills work well, and hyp keeps their rules. But each skill solves one part alone. hyp adds what the work needs when the parts must connect, across many sessions and without the owner: one tree for the two phases, with one set of rules:
 
 - **The requirements become the lines of a Goal.** The owner writes the lines one time. Each line is a case that each candidate must meet.
-- **In the design phase, a candidate is a claim.** Rival Hypotheses answer each design question, and Experiments separate the rivals.
-- **In the build phase, a candidate is a commit.** Each commit is a Hypothesis. An Experiment shows a test that fails on the base and passes on the commit.
+- **In the design phase, the Hypotheses are claims.** Rival Hypotheses answer each design question, and Experiments separate the rivals.
+- **In the build phase, the Hypotheses are commits.** An Experiment shows a test that fails on the base and passes on the commit.
 - **One ledger controls the two phases.** hyp calculates what is owed and who owes it, and it accepts a decision only when the decision is owed. A build Goal can cite the decisions of a discovery Goal (the Goal of a design phase) in the same store.
 
 Layers 1, 2 and 5 below each name the idea that hyp took, the gap that stays for this purpose, and the rule that hyp adds. Layers 3 and 4 close gaps that hyp found in its own use.
@@ -112,11 +112,11 @@ A recorded verdict does not show when a question is complete. An earlier hyp use
 
 ### 4. A build is also a Goal
 
-The build phase uses the same tree as the design phase. The events, the refusals and the ledger are the same. Only the type of candidate is different, and it sets the type of Goal:
+The build phase uses the same tree as the design phase. The events, the refusals and the ledger are the same. Only the type of Hypothesis is different, and it sets the type of Goal:
 
 | | Discovery Goal | Build Goal |
 |---|---|---|
-| **The candidate** | A claim: what to build, or why a thing operates as it does. | A commit. |
+| **A Hypothesis** | A claim: what to build, or why a thing operates as it does. | A commit. |
 | **Rivals** | Hypotheses that answer a DesignQuestion. They run against each other. | Each commit is a Hypothesis. A fix supersedes it. |
 | **A line** | A case that a check can run on each candidate. | One property of the commit. Its tests or one pinned instrument decide it. |
 | **An Experiment** | It separates the rivals, frequently with a pinned recipe and rubric. | It shows red on the base and green on the commit. |
@@ -150,6 +150,8 @@ The flow has three skills. They run in Claude Code, whose `/goal` command keeps 
 2. **`/goal <that prompt>`** runs the Goal with the `hyp-goal-run` skill. The run does only the items that OWED shows for it. It tests before it asks. It stops with a report that the owner can read in `hyp status`.
 3. **`/hyp-owner-answer`** shows the owner each item that the stopped run left under AWAITING OWNER. It explains each item and records only the answers of the owner. The next `/goal` run starts from there, with a new prompt from `hyp prompt`. The prompt does not hold the answers, because OWED shows the answers that the run must apply.
 
+The [owner guide](docs/owner-guide.md) tells the owner what hyp asks of them, when a run stops for them, and which command traces each answer.
+
 ## Who does what: what is owed
 
 hyp works from one concept: **owed**. From the log, hyp calculates each item of open work on each question, and the party that owes the item: the runner or the owner. Nobody writes an owed item, and an owed item does not change a status. A party acts on a question when it owes an item there. When nobody owes an item, the question is complete.
@@ -164,7 +166,7 @@ Each item stays owed until an event settles it:
 
 | Item | Owed by | Owed when | An event that settles it |
 |---|---|---|---|
-| `rivals` | runner | The question has no live rival that is not contradicted. | A new Hypothesis. |
+| `rivals` | runner | The question has no rival. | A new Hypothesis. |
 | `untested` | runner | A Hypothesis has no Experiment that tests it. | An Experiment. |
 | `undecided` | runner | A Hypothesis is inconclusive, and no planned Experiment tests it. | A planned Experiment, then its Result. |
 | `planned` | runner | An Experiment has no Result. | Its Result. |
@@ -225,7 +227,7 @@ The tree was recorded with an earlier hyp, and its log keeps what that hyp wrote
 
 ### A build Goal
 
-`investigations/checkpoint-store-design` recorded the design of the shared store as a discovery Goal, four DesignQuestions the owner settled in a session. `investigations/checkpoint-store` then built it as a build Goal, G-D1CH1R, whose candidate is a hyp commit. Its owner wrote nine lines, eight of them marked `[P]` or `[N]`. `hyp status` there (lines shortened):
+`investigations/checkpoint-store-design` recorded the design of the shared store as a discovery Goal, four DesignQuestions the owner settled in a session. `investigations/checkpoint-store` then built it as a build Goal, G-D1CH1R, whose Hypotheses are hyp commits. Its owner wrote nine lines, eight of them marked `[P]` or `[N]`. `hyp status` there (lines shortened):
 
 ```text
 GOAL G-D1CH1R hyp implements the shared store: one store holds many Goals — complete (answered 1, ...)

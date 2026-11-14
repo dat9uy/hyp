@@ -1,0 +1,4 @@
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.383s

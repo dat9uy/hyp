@@ -1,0 +1,18 @@
+== returned tests of the review, run by the runner in the detached checkout of b8521fac4e6da1c4a792ac348f34b8c33d0e9071
+=== RUN   TestReftableHoldsDoesNotPanicOnHugeVarints
+=== RUN   TestReftableHoldsDoesNotPanicOnHugeVarints/prefix_length_past_int
+    reftable_review_test.go:55: reftableHolds panicked: runtime error: slice bounds out of range [::9223372036854775808] with capacity 0
+=== RUN   TestReftableHoldsDoesNotPanicOnHugeVarints/symref_target_length_past_int
+    reftable_review_test.go:55: reftableHolds panicked: runtime error: slice bounds out of range [-958:]
+--- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints (0.00s)
+    --- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints/prefix_length_past_int (0.00s)
+    --- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints/symref_target_length_past_int (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.345s
+FAIL
+go test exit 1
+== panic-no-git.sh with the candidate binary 8ff1d35936f5 (hyp 0.1.0 (events v1) b8521fac4e6d)
+exit: 2
+panic: runtime error: slice bounds out of range [-958:]
+
+goroutine 1 [running]:

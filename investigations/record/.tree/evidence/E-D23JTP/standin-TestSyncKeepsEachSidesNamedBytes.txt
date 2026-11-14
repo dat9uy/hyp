@@ -1,0 +1,8 @@
+== TestSyncKeepsEachSidesNamedBytes on 20bdb699b090 (the candidate h-record-3 supersedes), test files from 48cbb70d16a6
+=== RUN   TestSyncKeepsEachSidesNamedBytes
+    record_sync_bytes_test.go:102: a: hyp show .tree/evidence/shared/in.txt@1bd6945d3971: exit 2 .tree/evidence/shared/in.txt@1bd6945d3971 is no file an event of this store names
+--- FAIL: TestSyncKeepsEachSidesNamedBytes (1.77s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.133s
+FAIL
+go test exit 1

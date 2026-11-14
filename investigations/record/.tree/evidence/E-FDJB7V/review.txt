@@ -1,0 +1,153 @@
+## Review of candidate fff226fd94d0 (feat/record, over cca1c2e9aa5c)
+
+**Checkout:** a detached worktree at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/9a83d6a6-df31-4643-90e2-0acf464912f4/scratchpad/review2-fff226. I removed it when I finished. I wrote nothing in the clone, on its branches, on origin or in ~/.local/bin/hyp. Every hyp run went through `go test` in temp dirs.
+
+**Baseline on the unmodified candidate:** `go vet ./...` is clean. `go test ./... -count=1` passes in every package: check, cli 88.3s, cmdrecord, event, recipe, record, render, replay, sandbox 90.6s, signals, skillcheck, store.
+
+**What the commit changes:**
+- **`realCase`/`listedName`:** in `internal/record/record.go`, a store folder typed with other letter case now gets the name its directory lists.
+- **`store.Import`:** a checkout file whose sha256 differs from the one its event stores is now left out and printed.
+- **Write-time check:** I checked the gap between hashing the file and writing it. `commit.go:176` hashes the bytes again under the lock and refuses a mismatch, so there is no race there.
+
+I found two defects. I could run both as tests.
+
+---
+
+### Finding 1 — G-SZCBXZ#1: a store folder reached through a different Unicode normalization becomes a second store
+
+`realCase` only matches names that differ in letter case, using `strings.EqualFold`. APFS also treats the composed é (U+00E9) and the decomposed e + U+0301 as the same name. If a store folder holds such a character and is entered through the other spelling, `listedName` keeps the name as typed. That gives a second store name:
+- `hyp status` there does not see the store's events: exit 2, "unknown node".
+- A write from there succeeds and starts a second store in the record.
+
+This is the same kind of case the commit fixes for letter case. Line 1 needs `hyp show`/`hyp status` run in the store's folder to print the event.
+
+### Finding 2 — G-SZCBXZ#8: once an event is imported without its file's bytes, no later import adds them, even from a REF that holds them
+
+The new skip in `store.Import` drops a checkout file whose bytes hash differently from what the event stores, and the event is still added. Each later run skips every event the record already holds (`have[ev.ID]`), so its named files are never looked at again. The sequence:
+1. `hyp import .`, with a cited file edited after its Result, adds the event without the bytes.
+2. `hyp import HEAD:.` from a commit that holds exactly those bytes reports "the record holds every event".
+3. The record still lacks the bytes, and stays that way.
+
+The same happens when the file was simply missing at the first import and is restored later.
+
+A second problem shows up here. `hyp show <ptr>` then exits 3 (meant for environment problems) with a raw `open .../.git/hyp/snap/.../out.txt: no such file or directory`. It is not a rule refusal, and it does not say the record lacks the file.
+
+Owner answer R-EK3R0H#r1 makes content out-of-Goal only where events name one path with other bytes. Here one event names one file, and a source holding its exact bytes cannot add them. That falls under line 8's "with the bytes of each file those events name".
+
+---
+
+### Test file (added as internal/cli/review2_test.go in the checkout)
+
+In the file on disk, the two string literals hold the literal characters. Below they are written as the equivalent Go escapes so the difference can be seen.
+
+```go
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Line 1 (store folder spelled another way): on a filesystem that is
+// insensitive to Unicode normalization (APFS), the folder "café" typed
+// with a decomposed é (NFD) is the same folder as the composed one (NFC)
+// it was made with. hyp status from there must print what the folder
+// prints, and a write from there must go to the same store.
+func TestReviewStoreFolderEnteredWithOtherNormalization(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	nfc := "café"
+	nfd := "café"
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, nfc, "README.md"), "a store\n")
+	if _, err := os.Stat(filepath.Join(repo, nfd)); err != nil {
+		t.Skip("the filesystem does not fold Unicode normalization")
+	}
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, nfc))
+	must(t, "init")
+	g, r, ptr := chain(t, "the bytes\n")
+	views0 := views(t, g, r, ptr)
+	t.Chdir(filepath.Join(repo, nfd))
+	if res := hyp(t, "status", g); res.code != 0 || res.stdout != views0[0] {
+		t.Errorf("hyp status %s from the NFD spelling: exit %d, stdout %q, stderr %q; want what the NFC folder prints", g, res.code, res.stdout, res.stderr)
+	}
+	res := hyp(t, "add", "goal", "--title", "from NFD", "--why", "w")
+	t.Logf("hyp add goal from the NFD spelling: exit %d, stdout %q, stderr %q", res.code, res.stdout, res.stderr)
+	ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record")
+	stores := map[string]bool{}
+	for _, l := range strings.Split(ls, "\n") {
+		if i := strings.Index(l, "/.tree/events/"); i >= 0 {
+			stores[l[:i]] = true
+		}
+	}
+	if len(stores) != 1 {
+		t.Errorf("the record holds %d stores for one folder: %v", len(stores), stores)
+	}
+}
+
+// Line 8: hyp import adds each event with the bytes of each file it names.
+// When the checkout's copy of a cited file changed, the import from the
+// checkout leaves the bytes out (as the candidate means it to). Importing
+// then from a commit that holds the right bytes must add them, but the
+// event is already in the record, so the import adds nothing and the
+// record never gets the bytes that the commit holds.
+func TestReviewImportFromRefAfterCheckoutImportAddsTheBytes(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(top, "s"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(top, "s"))
+	must(t, "init")
+	_, _, ptr := chain(t, "the bytes the Result cited\n")
+	gitIn(t, top, "init", "-q")
+	gitIn(t, top, "add", "-A")
+	gitIn(t, top, "commit", "-qm", "store")
+	writeFile(t, ptr, "changed after the Result\n")
+	res := hyp(t, "import", ".")
+	t.Logf("hyp import .: exit %d, stdout %q, stderr %q", res.code, res.stdout, res.stderr)
+	res = hyp(t, "import", "HEAD:.")
+	t.Logf("hyp import HEAD:.: exit %d, stdout %q, stderr %q", res.code, res.stdout, res.stderr)
+	res = hyp(t, "show", ptr)
+	if res.code != 0 || !strings.Contains(res.stdout, "the bytes the Result cited") {
+		t.Errorf("hyp show %s after both imports: exit %d, stdout %q, stderr %q; want the cited bytes, which HEAD:. holds", ptr, res.code, res.stdout, res.stderr)
+	}
+}
+```
+
+### Output (`go test ./internal/cli -run 'TestReview' -count=1 -v`, go1.27.3 darwin/arm64, APFS)
+
+```
+=== RUN   TestReviewStoreFolderEnteredWithOtherNormalization
+    review2_test.go:36: hyp status G-N6K8AT from the NFD spelling: exit 2, stdout "", stderr "unknown node G-N6K8AT\n"; want what the NFC folder prints
+    review2_test.go:39: hyp add goal from the NFD spelling: exit 0, stdout "G-6H9Y0M node.add\n", stderr ""
+    review2_test.go:48: the record holds 2 stores for one folder: map["caf\303\251:true "cafe\314\201:true]
+--- FAIL: TestReviewStoreFolderEnteredWithOtherNormalization (1.71s)
+=== RUN   TestReviewImportFromRefAfterCheckoutImportAddsTheBytes
+    review2_test.go:75: hyp import .: exit 0, stdout ".: imported 5 events\n", stderr "hyp import: .tree/evidence/E-X0Y6CA/out.txt, which 01M7D6NGDSFTGNVT4PWTHV0GFY names, hashes b9db52b996a1 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportFromRefAfterCheckoutImportAddsTheBytes322051159/002/s, not a74a65b40a11 as the event stores; the record lacks those bytes\n"
+    review2_test.go:77: hyp import HEAD:.: exit 0, stdout "HEAD:.: the record holds every event\n", stderr ""
+    review2_test.go:80: hyp show .tree/evidence/E-X0Y6CA/out.txt after both imports: exit 3, stdout "", stderr ".tree/evidence/E-X0Y6CA/out.txt: open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewImportFromRefAfterCheckoutImportAddsTheBytes322051159/002/.git/hyp/snap/6b0e4a712f8f4e82fef838721e4a7236cbc3882d-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-X0Y6CA/out.txt: no such file or directory\n"; want the cited bytes, which HEAD:. holds
+--- FAIL: TestReviewImportFromRefAfterCheckoutImportAddsTheBytes (0.66s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.516s
+FAIL
+```
+
+The first run of the second test used `HEAD:s` by mistake. From cwd `s`, that resolves to `s/s` and exits 2 "holds no store", which is correct behaviour for that argument. I fixed it to `HEAD:.`, and the output above is from the fixed run.
+
+### Not run as tests
+- **Cost:** `realCase` reads every ancestor directory from `/` on every `storeName` call, and `Locate` calls it once per directory it walks up. That is O(depth²) `ReadDir` calls per command, a cost question and not a case of any line.
+- **Lines with no new finding:** this commit does not touch the code for lines 2–7, 9 and 10, and I added no tests for them. The existing suite passes for them.
+
+Status: DONE_WITH_CONCERNS
+Summary: Two failing tests against fff226fd94d0. G-SZCBXZ#1: a store folder entered through the other Unicode normalization on APFS becomes a second store. G-SZCBXZ#8: an event imported without its file's bytes can never get them, even from a REF that holds them, and `hyp show` then exits 3 with a raw open error.

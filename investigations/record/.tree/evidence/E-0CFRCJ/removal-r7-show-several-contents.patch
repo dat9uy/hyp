@@ -1,0 +1,17 @@
+diff --git a/internal/cli/read.go b/internal/cli/read.go
+index 3b413bd..4c0c9df 100644
+--- a/internal/cli/read.go
++++ b/internal/cli/read.go
+@@ -256,12 +256,6 @@ func showFile(r *reader, arg string, stdout io.Writer) error {
+ 		if sum == "" {
+ 			return usageErr("%s: no event names %s with a sha256 that starts %s", arg, clean, pick)
+ 		}
+-	case len(sums) > 1:
+-		var picks []string
+-		for _, s := range sums {
+-			picks = append(picks, clean+"@"+s[:12])
+-		}
+-		return usageErr("events name %s with %d different contents; show one: %s", clean, len(sums), strings.Join(picks, ", "))
+ 	case len(sums) == 1:
+ 		sum = sums[0]
+ 	}

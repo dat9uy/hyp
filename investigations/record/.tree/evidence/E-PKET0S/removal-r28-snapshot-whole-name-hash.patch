@@ -1,0 +1,13 @@
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index fd74f78..d3f5e61 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -91,7 +91,7 @@ func storeOf(p string) (owner, rest string, ok bool) {
+ // so the repository root of every path in it is the snapshot's root.
+ func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, error) {
+ 	nh := sha256.Sum256([]byte(name))
+-	key := tip + "-" + hex.EncodeToString(nh[:])
++	key := tip + "-" + hex.EncodeToString(nh[:4])
+ 	dir := r.hypDir("snap", key)
+ 	if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
+ 		now := time.Now()

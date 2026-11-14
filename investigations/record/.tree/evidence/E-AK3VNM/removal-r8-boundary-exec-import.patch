@@ -1,0 +1,14 @@
+diff --git a/internal/cli/boundary_test.go b/internal/cli/boundary_test.go
+index bfb714b..3a1a9b9 100644
+--- a/internal/cli/boundary_test.go
++++ b/internal/cli/boundary_test.go
+@@ -110,9 +110,6 @@ func boundaryFindings(t *testing.T, root string) []string {
+ 		local := map[string]string{}
+ 		for _, imp := range f.Imports {
+ 			p, _ := strconv.Unquote(imp.Path.Value)
+-			if p == "os/exec" {
+-				bad = append(bad, rel+" imports os/exec")
+-			}
+ 			name := path.Base(p)
+ 			if imp.Name != nil {
+ 				name = imp.Name.Name

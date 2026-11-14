@@ -93,7 +93,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				w("  %s", r.limitLine(l))
 			}
 		}
-		// Live rivals no Result tells apart: each pair may be one claim, or
+		// Rivals no Result tells apart: each pair may be one claim, or
 		// a case that would separate them was never run on both.
 		if pairs := p.Unseparated(id); len(pairs) > 0 {
 			w("not separated:")

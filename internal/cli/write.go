@@ -415,6 +415,11 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 				return draft{}, err
 			}
 		}
+		if kind == event.KindHypothesis {
+			if _, err = admitted(w.p.AdmitAddHyp(p.Parent)); err != nil {
+				return draft{}, err
+			}
+		}
 		return draft{event.TypeNodeAdd, "", p}, nil
 	})
 	if err == nil && kind == event.KindGoal {
@@ -754,9 +759,28 @@ func cmdOnNode(name, typ string) func([]string, io.Writer, io.Writer) error {
 		}
 		return w.run(func() (draft, error) {
 			id, err := w.ref(pos[0])
+			if err != nil {
+				return draft{}, err
+			}
+			_, err = admitted(admitOnNode(w.p, typ, id))
 			return draft{typ, id, event.Empty{}}, err
 		})
 	}
+}
+
+// admitOnNode is the write-time rule of an event on one node: an open
+// reading holds the reaffirm of its question or of a Hypothesis there, and
+// the abandon of a Hypothesis its answer can move (spec §5.1).
+func admitOnNode(p replay.Projection, typ, id string) []replay.Finding {
+	switch typ {
+	case event.TypeReaffirm:
+		return p.AdmitReaffirm(id)
+	case event.TypeHypothesisAbandon:
+		if n := p.Nodes[id]; n != nil && n.Kind == event.KindHypothesis {
+			return p.AdmitRetire("abandon", id)
+		}
+	}
+	return nil
 }
 
 // cmdWithdraw writes experiment.withdraw for an Experiment and dq.withdraw
@@ -793,7 +817,15 @@ func cmdSupersede(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		to, err := w.ref(*old)
-		return draft{event.TypeEdgeAdd, from, event.Edge{Type: event.EdgeSupersedes, To: to}}, err
+		if err != nil {
+			return draft{}, err
+		}
+		if n := w.p.Nodes[to]; n != nil && n.Kind == event.KindHypothesis {
+			if _, err := admitted(w.p.AdmitRetire("supersede", to)); err != nil {
+				return draft{}, err
+			}
+		}
+		return draft{event.TypeEdgeAdd, from, event.Edge{Type: event.EdgeSupersedes, To: to}}, nil
 	})
 }
 
@@ -819,6 +851,12 @@ func cmdLink(name, typ string) func([]string, io.Writer, io.Writer) error {
 		pos, err := w.begin(args, 3)
 		if err != nil {
 			return err
+		}
+		// hyp supersede is the one command that writes a supersedes edge, so
+		// its write-time refusals live in one place. hyp unlink still
+		// removes one, which reopens the superseded node.
+		if typ == event.TypeEdgeAdd && pos[1] == event.EdgeSupersedes {
+			return usageErr("hyp link does not write supersedes: use hyp supersede %s --old %s", pos[0], pos[2])
 		}
 		return w.run(func() (draft, error) {
 			from, err := w.ref(pos[0])

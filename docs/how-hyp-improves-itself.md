@@ -20,17 +20,18 @@ So the loop is guarded during the run, by mechanisms that cost nothing when
 the run goes well:
 
 - **Write-time refusals.** The binary refuses events that would corrupt the
-  tree or skip a step, for example an experiment that ignores live rivals
-  without saying so, or a select the ledger does not owe. The list is
+  tree or skip a step, for example an experiment that ignores rivals without
+  saying so, or a select the ledger does not owe. The list is
   owned by [replay-spec.md](replay-spec.md) §5.
 - **The ledger.** `hyp status` lists under OWED what the tree owes and who
   owes it, and marks an item an Experiment aimed at and did not settle
   ([replay-spec.md](replay-spec.md) §8.1). It is the one account of progress
   ([ADR 0017](adr/0017-the-ledger-is-the-stall-guard.md)). A run's cap is
   stated by the `/goal` prompt or the recipe, not by hyp.
-- **Design marks.** `hyp signals` lists the Experiments set up against no live
-  rival (one-rival) or against a dead one (D1). A Result that leaves a
-  target without a verdict is refused, not marked (ADR 0018).
+- **Design marks.** `hyp signals` lists the Experiments set up against no
+  rival (one-rival) or against a Hypothesis that is not a rival (D1). A
+  Result that leaves a target without a verdict is refused, not marked
+  (ADR 0018).
 - **The select is the gate.** `hyp select` is admitted only when the ledger
   owes it, and the owner decides trade-offs
   ([ADR 0015](adr/0015-the-select-is-the-gate.md)). What the owner decides,

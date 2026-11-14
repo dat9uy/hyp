@@ -1,0 +1,13 @@
+== TestImportAddsNamedBytesAnEarlierImportLacked on the stand-in fff226fd94d087ea1da4edab23d94496a45b9276, the test added alone
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked/changed
+    record_git_env_test.go:491: exit 3 (want 3), stdout "", stderr ".tree/evidence/E-G52E0S/out.txt: open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportAddsNamedBytesAnEarlierImportLackedchanged3518114557/002/.git/hyp/snap/773fbbb0d2682b834901ecbd8016152eddcc73c1-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-G52E0S/out.txt: no such file or directory\n" (want "hyp import")
+=== RUN   TestImportAddsNamedBytesAnEarlierImportLacked/removed
+    record_git_env_test.go:491: exit 3 (want 3), stdout "", stderr ".tree/evidence/E-JHCS00/out.txt: open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportAddsNamedBytesAnEarlierImportLackedremoved3165453114/002/.git/hyp/snap/12f5a4ffca9f1c09a2cd4eae8daf41753f5ddc98-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-JHCS00/out.txt: no such file or directory\n" (want "hyp import")
+--- FAIL: TestImportAddsNamedBytesAnEarlierImportLacked (0.60s)
+    --- FAIL: TestImportAddsNamedBytesAnEarlierImportLacked/changed (0.32s)
+    --- FAIL: TestImportAddsNamedBytesAnEarlierImportLacked/removed (0.28s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.764s
+FAIL
+go test exit 1

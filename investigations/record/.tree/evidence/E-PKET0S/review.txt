@@ -1,0 +1,166 @@
+# Review of candidate cca1c2e9aa5c5605faa13fdd18b598153d6f1cc2 (feat/record) for G-SZCBXZ
+
+I tested in my own detached worktree of cca1c2e at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/9a83d6a6-df31-4643-90e2-0acf464912f4/scratchpad/review-cca1c2e`, and removed it when I was done with `git worktree remove`. The clone's `git status` was clean afterwards. Every hyp run happened in a `t.TempDir()` repository. I wrote no refs, records or stores in the clone or on origin, and did not touch `~/.local/bin/hyp`.
+
+On the candidate, `go vet ./...` is clean and `go test ./... -count=1` passes in every package. I read the diff from the merge base 9d3f875 (60 files; record, store, cli, check, recipe, contain, sandbox, skills, docs) against the Goal body and lines #1 to #10. I found two failures that I ran as tests and one race I could not run as a test.
+
+## Finding 1, G-SZCBXZ#1: a store folder entered with other letter case is a different store
+
+On a case-insensitive filesystem, `s` and `S` are the same folder. macOS uses one by default, and this host does.
+- **Base:** discovery uses `os.Stat(".tree/events")`, so it finds the same store from either spelling.
+- **Candidate:** `record.storeName` (`internal/record/record.go`) takes the store's name from the path as typed. `filepath.EvalSymlinks` does not fold case. As a result:
+  - Run from `S`, discovery does not find the record's store `s`. It falls back to the empty work-tree `.tree/`, so `hyp status G` exits 2 with "unknown node".
+  - A write from `S` exits 0 and makes a second store `S/.tree/events/a.jsonl` in the record.
+  - `hyp show <that id>` run in `s` then exits 2. An event a write exited 0 on is not printed in its store's folder.
+- **Fix:** name the store by the folder's canonical path, the real case, not by the path as typed. One way is to compare directories with `os.SameFile` while walking up.
+
+## Finding 2, G-SZCBXZ#8: `hyp import` keeps changed bytes that no event names, and warns of nothing
+
+- **Cause:** `store.Import` (`internal/store/import.go`) builds every file with `s.StoreFile(rel, p, "")`, so it passes no sha256. Every other write passes the sha256 the event stores. That is how `Append` refuses bytes that hash differently ("changed while hyp wrote it").
+- **Effect:** suppose a work-tree store's Result stores `evidence_sha256` X for a file, or an Experiment's `--records` pins one, and the file later changes on disk to Y. Import then records Y under the path, exits 0 and prints nothing to stderr. `hyp show PATH` prints Y, which is bytes no event names.
+- **Why it matters for the owner's import:** the frozen stores' `--records` pins have carried a sha256 since before this Goal. Any changed record file in them would be imported silently with the wrong bytes.
+- **Possible overlap with an owner answer:** R-EK3R0H#r1 put out of Goal the case where events name one path with other bytes because the file was pinned again. Here no second event names Y. If the owner reads that answer as covering every content question on line 8, this finding is out-of-Goal instead.
+
+## Finding 3, G-SZCBXZ#1: a snapshot can be pruned while a read uses it (not run)
+
+- **Mechanism:** `Repo.snapshot` (`internal/record/snapshot.go`) returns an existing snapshot after `Stat` and then `Chtimes`. `Repo.prune`, which runs after another process creates a snapshot for a different key, removes any snapshot whose mtime is older than one hour. Suppose process B reads the mtime (`d.Info()`) before process A's `Chtimes`. B's `RemoveAll` then deletes a snapshot that A is reading. A sees missing or partial events files, so `hyp status` can print an unknown node or an empty store.
+- **When it happens:** after an hour with no reads, when two reads of different stores, or of different tips, start at the same moment.
+- **Why no test:** the window is a few system calls wide. A test would need a hook inside `snapshot` or `prune` to force the order, and the package has none for this.
+
+## Test file (added in my checkout as `internal/cli/review_findings_test.go`; it uses the helpers of `record_lines_test.go`, `write_test.go`, `sandbox_test.go` and `recipe_test.go`)
+
+```go
+package cli
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// caseInsensitive reports whether the filesystem holding dir folds case.
+func caseInsensitive(t *testing.T, dir string) bool {
+	t.Helper()
+	p := filepath.Join(dir, "probe-lower")
+	writeFile(t, p, "x")
+	defer os.Remove(p)
+	_, err := os.Stat(filepath.Join(dir, "PROBE-LOWER"))
+	return err == nil
+}
+
+// G-SZCBXZ#1: in a record repository, an event a write exited 0 on is
+// printed by hyp status and hyp show run in its store's folder. On a
+// case-insensitive filesystem (macOS by default) the folder s can be
+// entered as S: it is the same folder, and on the base hyp finds the same
+// store there. The candidate names the store by the path as typed, so from
+// S it finds no record store, falls back to the empty work-tree .tree/,
+// and a write from S starts a second store "S" in the record that s never
+// shows.
+func TestReviewStoreFolderEnteredWithOtherCase(t *testing.T) {
+	repo := recordRepo(t)
+	if !caseInsensitive(t, repo) {
+		t.Skip("filesystem is case-sensitive")
+	}
+	g, r, ptr := chain(t, "the bytes\n")
+	want := views(t, g, r, ptr)
+
+	t.Chdir(filepath.Join(repo, "S"))
+	res := hyp(t, "status", g)
+	if res.code != 0 || res.stdout != want[0] {
+		t.Errorf("hyp status %s from S (the folder s): exit %d, stdout %q, stderr %q; want what s prints:\n%s", g, res.code, res.stdout, res.stderr, want[0])
+	}
+	g2 := hyp(t, "add", "goal", "--title", "from S", "--why", "w")
+	if g2.code != 0 {
+		t.Fatalf("hyp add goal from S: exit %d, stderr %q", g2.code, g2.stderr)
+	}
+	id := strings.TrimSpace(strings.Fields(g2.stdout)[0])
+
+	t.Chdir(filepath.Join(repo, "s"))
+	if res := hyp(t, "show", id); res.code != 0 {
+		t.Errorf("a write from S exited 0 with %s, but hyp show %s in s: exit %d, stderr %q", id, id, res.code, res.stderr)
+	}
+	ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record")
+	if strings.Contains(ls, "S/.tree/events/") {
+		t.Errorf("the record now holds two stores for one folder:\n%s", ls)
+	}
+}
+
+// G-SZCBXZ#8: hyp import adds every event "with the bytes of each file
+// those events name". A Result written in a work-tree store stores its
+// evidence file's sha256; when that file changed on disk after the
+// Result, the candidate's import keeps the changed bytes under the path
+// with no warning (hyp import passes no sha256 to the write, unlike every
+// other write, which refuses bytes that do not hash as the event stores),
+// and hyp show PATH then prints bytes no event names.
+func TestReviewImportKeepsBytesNoEventNames(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The store is made before the folder is a git repository, so it is a
+	// work-tree store, as a store made by an older hyp or in a plain folder.
+	if err := os.MkdirAll(filepath.Join(top, "s"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(top, "s"))
+	must(t, "init")
+	_, _, ptr := chain(t, "the bytes the Result cited\n")
+	gitIn(t, top, "init", "-q")
+	gitIn(t, top, "add", "-A")
+	gitIn(t, top, "commit", "-qm", "store")
+	writeFile(t, ptr, "changed after the Result\n")
+
+	res := hyp(t, "import", ".")
+	if res.code != 0 {
+		t.Fatalf("hyp import .: exit %d, stderr %q", res.code, res.stderr)
+	}
+	if strings.Contains(res.stderr, ptr) {
+		return // the import says it could not keep the cited bytes
+	}
+	show := hyp(t, "show", ptr)
+	h := sha256.Sum256([]byte(show.stdout))
+	got := hex.EncodeToString(h[:])
+	w := sha256.Sum256([]byte("the bytes the Result cited\n"))
+	if want := hex.EncodeToString(w[:]); got != want {
+		t.Errorf("after hyp import, hyp show %s prints %q (sha256 %s), not the bytes the Result names (sha256 %s), and the import warned of nothing: stderr %q", ptr, show.stdout, got[:12], want[:12], res.stderr)
+	}
+}
+```
+
+## Output (`go test ./internal/cli -run TestReview -count=1 -v`, in the checkout at HEAD cca1c2e9aa5c5605faa13fdd18b598153d6f1cc2, macOS, go1.27.3)
+
+```
+=== RUN   TestReviewStoreFolderEnteredWithOtherCase
+    review_findings_test.go:41: hyp status G-DBQ47Q from S (the folder s): exit 2, stdout "", stderr "unknown node G-DBQ47Q\n"; want what s prints:
+        GOAL G-DBQ47Q G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-7MN4WC open/supported_unselected Q
+            candidates (1): H-VHKBJ1
+            H-VHKBJ1 supported H
+        STALE
+        OWED
+          runner: Q-7MN4WC select H-VHKBJ1, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 14:09 a result.record R-N44VZF — w
+        CHECKPOINT none
+    review_findings_test.go:51: a write from S exited 0 with G-E20EKY, but hyp show G-E20EKY in s: exit 2, stderr "unknown node G-E20EKY\n"
+    review_findings_test.go:55: the record now holds two stores for one folder:
+        S/.tree/events/a.jsonl
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-A185K6/out.txt
+--- FAIL: TestReviewStoreFolderEnteredWithOtherCase (1.34s)
+=== RUN   TestReviewImportKeepsBytesNoEventNames
+    review_findings_test.go:97: after hyp import, hyp show .tree/evidence/E-3V3Y7D/out.txt prints "changed after the Result\n" (sha256 b9db52b996a1), not the bytes the Result names (sha256 a74a65b40a11), and the import warned of nothing: stderr ""
+--- FAIL: TestReviewImportKeepsBytesNoEventNames (0.31s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.815s
+FAIL
+```
+
+Status: DONE_WITH_CONCERNS
+Summary: The candidate passes its own `go test ./...`, but two review tests fail on it: a store folder entered with other letter case on macOS reads and writes a different store (G-SZCBXZ#1), and `hyp import` silently keeps changed bytes that no event names (G-SZCBXZ#8, unless the owner counts it under R-EK3R0H#r1). A third finding, a snapshot pruned while a read uses it (G-SZCBXZ#1), could not be run as a test.

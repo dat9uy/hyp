@@ -1,0 +1,14 @@
+diff --git a/internal/record/source.go b/internal/record/source.go
+index 9188d4e..a20d1a2 100644
+--- a/internal/record/source.go
++++ b/internal/record/source.go
+@@ -108,9 +108,6 @@ func OpenRecord(dir string) (*Repo, error) {
+ 	if !ok || repo.Common == "" {
+ 		return nil, herr.Refused("no git repository holds %s, so it can hold no record", dir)
+ 	}
+-	if _, err := os.Stat(filepath.Join(repo.Common, sandboxMark)); err == nil {
+-		return nil, herr.Refused("%s is a sandbox clone, which keeps no record", repo.Top)
+-	}
+ 	if err := repo.ensureRecord(); err != nil {
+ 		return nil, err
+ 	}

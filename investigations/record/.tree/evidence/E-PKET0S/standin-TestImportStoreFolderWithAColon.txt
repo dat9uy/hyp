@@ -1,0 +1,8 @@
+== TestImportStoreFolderWithAColon on the stand-in 6e298332bcb4c4b0d958b1432e5974bdae50e9a7, the test added alone
+=== RUN   TestImportStoreFolderWithAColon
+    record_git_env_test.go:323: exit 2 (want 0), stdout "", stderr "a names no commit or tree in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportStoreFolderWithAColon114608018/002\n" (want "imported")
+--- FAIL: TestImportStoreFolderWithAColon (0.23s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.615s
+FAIL
+go test exit 1

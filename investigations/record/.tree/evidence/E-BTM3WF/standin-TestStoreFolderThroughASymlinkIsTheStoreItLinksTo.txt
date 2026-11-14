@@ -1,0 +1,8 @@
+== TestStoreFolderThroughASymlinkIsTheStoreItLinksTo on the stand-in 32d707c23b7cbd247b72eeb7b7f9e0b862ca890f, the test files copied from 6e298332bcb4
+=== RUN   TestStoreFolderThroughASymlinkIsTheStoreItLinksTo
+    record_git_env_test.go:297: exit 2 (want 0), stdout "", stderr "unknown node G-RF98E8\n" (want "the goal")
+--- FAIL: TestStoreFolderThroughASymlinkIsTheStoreItLinksTo (0.29s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.439s
+FAIL
+go test exit 1

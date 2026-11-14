@@ -128,7 +128,7 @@ func (st *State) AdmitExp(p event.NodeAdd, f, rb RecipeFacts, noTarget bool) []F
 // say how its measures become verdicts (ADR 0018).
 const NoRubric = "an Experiment under a Hypothesis pins a rubric: --rubric NAME@VERSION for a rubric bundle, or --rubric reading when its body decides the verdicts by reading"
 
-// oneRival is the one-rival rule: rivals, the live rivals of an
+// oneRival is the one-rival rule: rivals, the rivals of an
 // Experiment's parent at its add, are not empty and targets names none.
 func oneRival(rivals, targets []string) bool {
 	for _, t := range targets {
@@ -151,12 +151,12 @@ func (st *State) oneRivalRefusal(hyp string, targets []string) string {
 	for _, id := range rivals {
 		live = append(live, fmt.Sprintf("  %s %s", event.DisplayID(event.KindHypothesis, id), st.hypWord(id)))
 	}
-	return fmt.Sprintf("live rivals of %s under %s are not targeted:\n%s\npass --target <H-id> for the rival this result would count against, or --target none to proceed without one",
+	return fmt.Sprintf("rivals of %s under %s are not targeted:\n%s\npass --target <H-id> for the rival this result would count against, or --target none to proceed without one",
 		event.DisplayID(event.KindHypothesis, hyp), event.DisplayID(st.Nodes[q].Kind, q), strings.Join(live, "\n"))
 }
 
 // notRivalWarnings names each of an Experiment's parent and targets that is
-// not a live rival (NotRivals, the rule D1 reads) and how to fix it.
+// not a rival (NotRivals, the rule D1 reads) and how to fix it.
 func (st *State) notRivalWarnings(parent string, targets []string) []string {
 	hid := func(id string) string { return event.DisplayID(event.KindHypothesis, id) }
 	var out []string
@@ -307,7 +307,7 @@ func (p Projection) SelectBlock(q string) string {
 		case WaitRunner:
 			return fmt.Sprintf("%s owes the runner first: %s", p.label(q), p.owedText(w.Item))
 		case WaitReading:
-			return fmt.Sprintf("open reading %s waits for the owner; its answer can move %s", p.keyLabel(w.Key), p.labels(w.Reach))
+			return p.readingWait(q, w.Key, w.Reach)
 		case WaitReferred:
 			return fmt.Sprintf("referred limit %s waits for the owner: an accept releases the select, a return sends its case to run", p.keyLabel(w.Key))
 		case WaitPremise:
@@ -329,6 +329,70 @@ func (p Projection) SelectBlock(q string) string {
 		return fmt.Sprintf("%s has no candidate (%s)", p.label(q), state)
 	}
 	return fmt.Sprintf("%s owes no select (%s)", p.label(q), state)
+}
+
+// readingWait names open reading k on question q for a refusal: the
+// Hypotheses its answer can move, or, with none, that it holds q's decision.
+func (p Projection) readingWait(q, k string, reach []string) string {
+	if len(reach) == 0 {
+		return fmt.Sprintf("open reading %s waits for the owner; it holds %s's decision", p.keyLabel(k), p.label(q))
+	}
+	return fmt.Sprintf("open reading %s waits for the owner; its answer can move %s", p.keyLabel(k), p.labels(reach))
+}
+
+// AdmitReaffirm refuses a reaffirm of node id while an open reading holds
+// the decision of its question: id itself when it is a question, else its
+// parent. The refusal names the first thing that question's turn waits
+// on. Replay still applies a reaffirm in a merged log.
+func (p Projection) AdmitReaffirm(id string) []Finding {
+	n := p.Nodes[id]
+	if n == nil {
+		return nil
+	}
+	q := id
+	if n.Kind == event.KindHypothesis {
+		q = n.Parent
+	}
+	if qs := p.Questions[q]; qs == nil || !qs.State.Open() || len(p.openReadings(q)) == 0 {
+		return nil
+	}
+	return []Finding{{FindRefuse, fmt.Sprintf("%s cannot be reaffirmed: %s", p.label(id), p.SelectBlock(q))}}
+}
+
+// AdmitAddHyp refuses a new Hypothesis under question q while an open
+// reading holds q's next Hypothesis (NextHold), unless the ledger owes a
+// premise item on q, which a new Hypothesis can settle. Replay still
+// applies such an add in a merged log.
+func (p Projection) AdmitAddHyp(q string) []Finding {
+	l, ok := p.NextHold(q)
+	if !ok || p.owesPremise(q, "") {
+		return nil
+	}
+	why := "no open limit that a Result on " + p.label(q) + " recorded is unreferred"
+	if len(l.Reach) > 0 {
+		why = "its answer can move " + p.labels(l.Reach)
+	}
+	return []Finding{{FindRefuse, fmt.Sprintf("open reading %s holds the next Hypothesis of %s for the owner: %s", p.keyLabel(l.Key), p.label(q), why)}}
+}
+
+// AdmitRetire refuses to supersede or abandon (verb) Hypothesis h while an
+// open reading's answer can move it, unless h is the candidate a premise
+// item on its question names. Replay still applies such an event in a
+// merged log.
+func (p Projection) AdmitRetire(verb, h string) []Finding {
+	l, ok := p.MovingReading(h)
+	if !ok || p.owesPremise(p.Nodes[h].Parent, h) {
+		return nil
+	}
+	return []Finding{{FindRefuse, fmt.Sprintf("cannot %s %s: open reading %s waits for the owner, and its answer can move %s", verb, p.label(h), p.keyLabel(l.Key), p.label(h))}}
+}
+
+// owesPremise reports whether the ledger owes a premise item on question
+// q, naming candidate h when h is not "".
+func (p Projection) owesPremise(q, h string) bool {
+	return slices.ContainsFunc(p.Owed(), func(o Owed) bool {
+		return o.Question == q && o.Kind == OwedPremise && (h == "" || o.Key == h)
+	})
 }
 
 // owedText names one owed item for a refusal.

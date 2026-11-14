@@ -29,7 +29,7 @@ type Round struct {
 	Targets    []string   `json:"targets"`
 	Question   string     `json:"question"`
 	QuestionID string     `json:"question_id"`
-	AtAdd      [][]string `json:"at_add"` // [H, status] for the parent, then each live rival
+	AtAdd      [][]string `json:"at_add"` // [H, status] for the parent, then each rival
 	OneRival   bool       `json:"one_rival"`
 	D1         [][]string `json:"d1"`
 	Results    []Result   `json:"results"`

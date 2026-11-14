@@ -1,0 +1,150 @@
+## Review of candidate 2b03fa3c4d3e (feat/record, over 3a3220f33263)
+
+**Bottom line:** I found one defect, a case of G-SZCBXZ#9. A git repository in the reftable ref format with no record ref, run with no git on PATH, now exits 3 instead of using the work-tree `.tree/` as the base does. The error message is also false: it says the repository "holds the record ref", and it does not. Two control tests show the commit's intended fix works. The full candidate suite passes.
+
+I built and tested only in a detached temp worktree of 2b03fa3c4d3e, with go 1.27.3 and git 2.54.0. To show the defect is new in this commit, I ran the probe file on a second temp worktree at the commit's parent, 3a3220f33263 (not at main e10d985). I removed both worktrees afterwards. Nothing in the clone was written, committed or pushed, and `git status` there is clean. Every hyp run was in-process under `t.TempDir()` repositories.
+
+- **Baseline:** `go vet ./...` is clean and `go test ./... -count=1` passes in every package on the candidate.
+
+### Finding 1: G-SZCBXZ#9
+
+A git repository with no record ref, created with `git init --ref-format=reftable`, run with no git on PATH, gives exit 3 on `hyp status`. Line 9 says such a repository reads and writes the work-tree `.tree/` as on the base, and the base needed no git.
+
+**Cause:** in `internal/record/git.go`, `refOnDisk` returns true whenever `<common>/reftable` exists. Every reftable repository has that folder, whether or not it holds `refs/hyp/record`. `openRepo` then returns `herr.Env`.
+
+```go
+	if _, err := os.Stat(filepath.Join(common, "reftable")); err == nil {
+		return true
+	}
+```
+
+The changed `docs/replay-spec.md` text states this rule ("no reftable"), so the spec and the code agree, but both conflict with line 9. The same exit 3 follows when the git on PATH is too old to open a reftable repository.
+
+- On the candidate the first test fails.
+- On 3a3220f33263 the same test passes, so this commit introduces the defect.
+
+### Controls (not findings), lines G-SZCBXZ#1 and #9
+
+1. **A reftable record repository works with git.** `hyp init` and `hyp add goal` write `refs/hyp/record`, and `hyp status` prints the Goal. With no git on PATH it gives exit 3 "cannot read the record". This passes on the candidate.
+2. **A linked worktree with packed refs and no git exits 3.** In a linked worktree of a record repository after `git pack-refs --all`, with no git on PATH, both `hyp status` and a write give exit 3 "cannot read the record". This passes on the candidate.
+
+Both controls fail on 3a3220f33263, which confirms the commit's fix. On the parent, control 1 printed the empty work-tree status with exit 0. Control 2 exited 3 for a different reason: "no .tree store found; run 'hyp init'".
+
+### Test file `internal/cli/review_probe_test.go`, full text
+
+```go
+package cli
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+// A git repository with no record ref, in the reftable ref format, with no
+// git on PATH: line 9 says hyp reads and writes the work-tree .tree/ as on
+// the base, where hyp needed no git at all.
+func TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q", "--ref-format=reftable")
+	other := t.TempDir()
+	t.Chdir(other)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "work tree", "--why", "w")
+	dst := filepath.Join(repo, "w")
+	if err := os.CopyFS(dst, os.DirFS(other)); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dst)
+	t.Setenv("PATH", t.TempDir())
+	want(t, hyp(t, "status"), 0, g)
+	g2 := must(t, "add", "goal", "--title", "written with no git", "--why", "w")
+	want(t, hyp(t, "show", g2), 0, "written with no git")
+}
+
+// Control: a record repository in the reftable format works with git on
+// PATH (line 1), and with no git on PATH every command exits 3.
+func TestProbeReftableRecordRepo(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q", "--ref-format=reftable")
+	writeFile(t, filepath.Join(repo, "s", "README.md"), "a store\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "in the record", "--why", "w")
+	gitIn(t, repo, "rev-parse", "--verify", "refs/hyp/record")
+	want(t, hyp(t, "status"), 0, g)
+	t.Setenv("PATH", t.TempDir())
+	want(t, hyp(t, "status"), 3, "cannot read the record")
+}
+
+// Control: in a linked worktree of a record repository whose refs are
+// packed, no git on PATH gives exit 3, not the work-tree store.
+func TestProbeLinkedWorktreePackedRefsNoGit(t *testing.T) {
+	repo := recordRepo(t)
+	g := must(t, "add", "goal", "--title", "in the record", "--why", "w")
+	gitIn(t, repo, "pack-refs", "--all")
+	if _, err := os.Stat(filepath.Join(repo, ".git", "refs", "hyp", "record")); err == nil {
+		t.Fatal("ref still loose")
+	}
+	wt := filepath.Join(t.TempDir(), "wt")
+	gitIn(t, repo, "worktree", "add", "-q", "--detach", wt)
+	if err := os.MkdirAll(filepath.Join(wt, "s"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(wt, "s"))
+	want(t, hyp(t, "status"), 0, g)
+	t.Setenv("PATH", t.TempDir())
+	want(t, hyp(t, "status"), 3, "cannot read the record")
+	want(t, hyp(t, "add", "goal", "--title", "x", "--why", "w"), 3, "cannot read the record")
+}
+```
+
+### Output on 2b03fa3c4d3e (`go test . -run TestProbe -count=1 -v`)
+
+```
+=== RUN   TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree
+    review_probe_test.go:29: exit 3 (want 0), stdout "", stderr "/private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree3523478112/002 holds the record ref refs/hyp/record, and git is not on PATH, so hyp cannot read the record; install git\n" (want "G-K8TRPT")
+--- FAIL: TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree (0.04s)
+=== RUN   TestProbeReftableRecordRepo
+--- PASS: TestProbeReftableRecordRepo (0.39s)
+=== RUN   TestProbeLinkedWorktreePackedRefsNoGit
+--- PASS: TestProbeLinkedWorktreePackedRefsNoGit (0.34s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.133s
+FAIL
+```
+
+### Output on the parent 3a3220f33263, same file
+
+```
+=== RUN   TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree
+--- PASS: TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree (0.04s)
+=== RUN   TestProbeReftableRecordRepo
+    review_probe_test.go:52: exit 0 (want 3), stdout "GOAL none (hyp add goal --title T --why W)\n", stderr "" (want "cannot read the record")
+--- FAIL: TestProbeReftableRecordRepo (0.34s)
+=== RUN   TestProbeLinkedWorktreePackedRefsNoGit
+    review_probe_test.go:72: exit 3 (want 3), stdout "", stderr "no .tree store found; run 'hyp init'\n" (want "cannot read the record")
+--- FAIL: TestProbeLinkedWorktreePackedRefsNoGit (0.33s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.071s
+FAIL
+```
+
+### Checked by reading only, no test (no finding)
+
+- **`--literal-pathspecs` in `gitRaw`:** I listed every `gitOut`/`gitRaw` call in `internal/record`. None depends on glob or magic pathspecs. `ls-files -- .tree/evidence` still matches by directory prefix, and `rm --cached -- <files>` names exact files. `internal/sandbox` runs its own git and is not affected.
+- **The `hyp show FILE@SHA` sha256 check in `internal/cli/read.go`:** it is correct for a pick. The candidate's own `TestShowPickPrintsOnlyBytesOfThatSha` is weak, because it passes even when both picks are refused. Which bytes a pick can print after a cited file was pinned again is content, out of Goal for lines 4 and 8 under R-BHDBGK#r1 and R-EK3R0H#r1, so I wrote no finding for it.
+- **G-SZCBXZ#10:** the commit adds no `.tree` or `.git` string outside package `record`, and the existing source test passes.
+
+Status: DONE
+Summary: One defect, a case of G-SZCBXZ#9: in a reftable git repository with no record ref and no git on PATH, `refOnDisk` treats the `reftable/` folder as "holds the record ref", so hyp exits 3 instead of using the work tree. The test fails on 2b03fa3 and passes on its parent 3a3220f; the two controls show the commit's no-git exit 3 works for real record repositories.

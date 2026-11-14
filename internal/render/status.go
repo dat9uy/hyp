@@ -146,7 +146,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 	add(kKeep, "FRONTIER")
 	// FRONTIER is the tree pruned to open work. The walk visits every question
 	// once. A node prints only beneath its parent, and a sub-question prints only
-	// from an open or reopened question and through a live rival. An open question
+	// from an open or reopened question and through a rival. An open question
 	// that does not print is counted, so the Goal line's counts stay accounted for.
 	unprinted := 0
 	edges := p.LiveEdges()
@@ -206,7 +206,11 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 			for _, w := range t.Waits {
 				switch w.Kind {
 				case replay.WaitReading:
-					add(kKeep, "%s  waits on open reading %s for the owner; its answer can move %s", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.named(w.Reach))
+					if len(w.Reach) == 0 {
+						add(kKeep, "%s  waits on open reading %s for the owner; it holds %s's decision", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.id(dq))
+					} else {
+						add(kKeep, "%s  waits on open reading %s for the owner; its answer can move %s", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.named(w.Reach))
+					}
 				case replay.WaitReferred:
 					if len(ns.Candidates) > 0 {
 						add(kKeep, "%s  waits on referred limit %s for the owner; an accept releases the select, a return sends its case to run", indent, r.limitLabel(event.KeyResult(w.Key), w.Key))
@@ -465,7 +469,7 @@ func (r renderer) marked(h string) bool {
 }
 
 // marks names what Experiment e's round left untested: "one-rival" when its
-// parent had live rivals at its add and it targeted none. A target left
+// parent had rivals at its add and it targeted none. A target left
 // without a verdict is refused at record (ADR 0018), so no mark names it.
 func (r renderer) marks(e string) []string {
 	var m []string

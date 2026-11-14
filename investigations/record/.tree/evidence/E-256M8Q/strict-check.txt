@@ -1,0 +1,9 @@
+== strict check TestReviewShowBundleEvidenceAfterSync of E-AK3VNM (the other meaning of R-CYBPRP#1's case, out-of-Goal for line 1 by answer R-V2CMZQ#r1), run at the candidate; it sets no verdict
+=== RUN   TestReviewShowBundleEvidenceAfterSync
+    zz_strict_test.go:59: after sync, hyp show recipes/kit@1/run.sh in clone a (whose Result R-NBDRH9 cites it) exits 2 and prints "", not the bytes R-NBDRH9 named (echo a); stderr "events name recipes/kit@1/run.sh with 2 different contents; show one: recipes/kit@1/run.sh@96d68d5048de, recipes/kit@1/run.sh@e169a592383d\n"
+    zz_strict_test.go:59: after sync, hyp show recipes/kit@1/run.sh in clone b (whose Result R-728FRC cites it) exits 2 and prints "", not the bytes R-728FRC named (echo b); stderr "events name recipes/kit@1/run.sh with 2 different contents; show one: recipes/kit@1/run.sh@96d68d5048de, recipes/kit@1/run.sh@e169a592383d\n"
+--- FAIL: TestReviewShowBundleEvidenceAfterSync (3.12s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.493s
+FAIL
+go test exit 1
