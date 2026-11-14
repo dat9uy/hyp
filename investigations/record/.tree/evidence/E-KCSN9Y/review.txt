@@ -1,0 +1,256 @@
+## Review of f296bc11b479 (feat/record) against G-SZCBXZ
+
+I found three failing findings: one on line 4, one on line 7 (which also touches line 5), and one on the Goal body's "a write is durable once it exits 0". I found nothing failing on lines 1, 2, 3, 6, 8, 9 or 10.
+
+I worked only in my own detached worktree at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/02e6a287-7bd4-4a4c-b1a0-6000a27ba7b2/scratchpad/rev2`, built hyp to a temp path, and removed the worktree when done. The clone still has no `refs/hyp/*`, its status is clean, and `~/.local/bin/hyp` was not touched. A copy of the test file is kept at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/02e6a287-7bd4-4a4c-b1a0-6000a27ba7b2/scratchpad/review_record_test.go.keep`.
+
+### Checks that passed
+- **Whole suite:** `go test ./... -count=1` passes on the candidate (cli 62s, sandbox 78s, record, store and the rest all ok).
+- **Line 10:** a grep finds `.tree` and `.git` only in `internal/record/*.go`, and nothing outside `record` and `sandbox` runs git. The candidate's AST boundary test also covers this.
+- **Line 8, on this repository's real stores:** I made a `git clone --no-local` of main 8943e33 into a temp dir and removed its origin. Then:
+  - `hyp import` of all six stores under `investigations/` added 27, 111, 190, 12, 11 and 26 events, with no warnings.
+  - `hyp status --max-lines 0` and `hyp check` gave the same output, byte for byte, before the import (work-tree mode) and after it (record mode), for every store.
+  - A second import added nothing.
+  - Importing the tag `g-akjjf8/record:investigations/<store>` (the owner's step after merge) added 30 events to checkpoint-store. Every status matched the union of the two event sets (two stores differed only because my no-git comparison copy had no `recipes/`; their record status equals the work-tree status).
+  - A write followed by a status took about 0.15 s.
+
+### Finding 1: G-SZCBXZ#4
+Two worktrees each run one Experiment and each keep their run log at the same evidence path with different bytes. When both record a Result at once, the second write is refused with exit 1. A work-tree store accepts both Results. The cause is `record.(*Store).Append`, which refuses a path the record holds with other bytes ("a file an event names never changes"). It does this even though the event stores the sha256 and `hyp sync` already keeps such bytes under `.tree/kept/<sha256>`. The candidate's own test `TestRecordOutlivesEveryWorktreeAct` asserts this refusal, so it is a design choice of the run, not one the owner made.
+
+### Finding 2: G-SZCBXZ#7 (also #5)
+Two clones each create and pin a bundle `kit@1` with their own bytes; neither Result reads questionable before sync. After `hyp sync` (a, then b, then a), one clone's bundle is kept only under `kept/`, and no bundle lookup reads there. That clone's Result then reads "questionable: recipe changed since this Result" from both clones. The record no longer keeps, where reads look, a bundle an event pins.
+
+### Finding 3: label "none" (the Goal body's "a write is durable once it exits 0"; also #1 and #3 after an unclean shutdown)
+On the base, a write fsyncs the events file before it exits. A record write instead runs `hash-object -w`, `write-tree`, `commit-tree` and `update-ref`, and none of them sets `core.fsync`. Git's default (`committed,-loose-object`, without `reference`) does not harden loose objects or refs, and on macOS `core.fsyncMethod` defaults to `writeout-only`.
+
+So after a power loss, a write that exited 0 can be lost. Worse, the ref can survive while the commit's objects do not, which leaves the record unreadable. The snapshot blob cache (`<common>/hyp/blobs`) is also written with no fsync and is never checked against its object id. I could not test a power loss, so this test checks the mechanism instead: a fake `git` on PATH logs each call's config.
+
+### Test file (internal/cli/review_record_test.go, run in the candidate checkout)
+```go
+package cli
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"sync"
+	"testing"
+)
+
+// G-SZCBXZ#4: two writes run at once from two worktrees of one record
+// repository both apply. Here one Experiment ran once in each worktree and
+// each run kept its log at the Experiment's evidence path, with its own
+// bytes, as two branches could before the record. Each Result names the
+// bytes it cites by sha256, so the record could keep both (as hyp sync does
+// under kept/). The control shows that two Results of one Experiment,
+// citing one path with other bytes, both apply in a work-tree store.
+func TestReviewTwoWorktreesCiteOnePathAtOnce(t *testing.T) {
+	repo := recordRepo(t)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	wt := filepath.Join(t.TempDir(), "w")
+	gitIn(t, repo, "worktree", "add", "-q", "-b", "work", wt)
+	ptr := ".tree/evidence/" + e + "/run.log"
+	dirs := []string{filepath.Join(repo, "s"), filepath.Join(wt, "s")}
+	for i, d := range dirs {
+		writeFile(t, filepath.Join(d, ptr), "run from worktree "+string(rune('a'+i))+"\n")
+	}
+	var wg sync.WaitGroup
+	outs := make([]string, 2)
+	errs := make([]error, 2)
+	for i := range dirs {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			cmd := exec.Command(os.Args[0], "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+			cmd.Dir = dirs[i]
+			cmd.Env = append(os.Environ(), "HYP_TEST_AS_HYP=1", "HYP_ACTOR=a")
+			out, err := cmd.CombinedOutput()
+			outs[i], errs[i] = string(out), err
+		}()
+	}
+	wg.Wait()
+	for i := range dirs {
+		if errs[i] != nil {
+			t.Errorf("write from %s: %v\n%s", dirs[i], errs[i], outs[i])
+		}
+	}
+
+	// Control: a work-tree store (no git) takes both Results.
+	plain := t.TempDir()
+	t.Chdir(plain)
+	must(t, "init")
+	g = must(t, "add", "goal", "--title", "G", "--why", "w")
+	q = must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h = must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e = must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	ptr = ".tree/evidence/" + e + "/run.log"
+	for _, tag := range []string{"a", "b"} {
+		writeFile(t, ptr, "run "+tag+"\n")
+		must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+	}
+}
+
+// G-SZCBXZ#7 (and #5): the record keeps each bundle an event pins, so a
+// Result's questionable flag is the same from every checkout. Two clones
+// each made and pinned a bundle kit@1, each with its own bytes; neither
+// Result is questionable before hyp sync. After sync joins the records,
+// one clone's bundle survives only under kept/, where no bundle lookup
+// reads, so that clone's Result turns questionable on both sides.
+func TestReviewSyncKeepsEachSidesPinnedBundle(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(top, "remote.git")
+	gitIn(t, top, "init", "-q", "--bare", remote)
+	a := filepath.Join(top, "a")
+	gitIn(t, top, "clone", "-q", remote, a)
+	writeFile(t, filepath.Join(a, "s", "README.md"), "a store\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "push", "-q", "origin", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+	b := filepath.Join(top, "b")
+	gitIn(t, top, "clone", "-q", remote, b)
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	pinAndRecord := func(clone, tag string) string {
+		t.Chdir(filepath.Join(clone, "s"))
+		bundleIn(t, filepath.Join(clone, "s"), "kit", "", map[string]string{"run.sh": "#!/bin/sh\necho " + tag + "\n"})
+		q := must(t, "add", "dq", "--parent", g, "--title", "Q "+tag, "--why", "w")
+		h := must(t, "add", "hyp", "--parent", q, "--title", "H "+tag, "--why", "w")
+		e := must(t, "add", "exp", "--parent", h, "--title", "E "+tag, "--recipe", "kit@1", "--rubric", "reading", "--why", "w")
+		ptr := ".tree/evidence/" + e + "/out.txt"
+		writeFile(t, ptr, "ran "+tag+"\n")
+		return must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+	}
+	ra := pinAndRecord(a, "a")
+	rb := pinAndRecord(b, "b")
+	for _, c := range []struct{ clone, r string }{{a, ra}, {b, rb}} {
+		t.Chdir(filepath.Join(c.clone, "s"))
+		if out := hyp(t, "show", c.r).stdout; strings.Contains(out, "questionable") {
+			t.Fatalf("before sync, %s reads questionable in its own clone:\n%s", c.r, out)
+		}
+	}
+	for _, clone := range []string{a, b, a} {
+		t.Chdir(filepath.Join(clone, "s"))
+		want(t, hyp(t, "sync"), 0, "synced")
+	}
+	for _, clone := range []string{a, b} {
+		t.Chdir(filepath.Join(clone, "s"))
+		for _, r := range []string{ra, rb} {
+			if out := hyp(t, "show", r).stdout; strings.Contains(out, "questionable") {
+				t.Errorf("after sync, %s reads questionable from clone %s:\n%s", r, filepath.Base(clone), out)
+			}
+		}
+	}
+}
+
+// none (the Goal body's decision "a write is durable once it exits 0"; also
+// G-SZCBXZ#1 and #3 under an unclean shutdown): the base fsyncs the events
+// file before a write exits. A record write instead adds loose objects and
+// moves a ref, which git by default does not harden (core.fsync defaults to
+// committed,-loose-object, and reference is not in it). This test logs every
+// git run of one record write and asks that each one that writes an object
+// or the ref ran with core.fsync naming loose objects and refs.
+func TestReviewRecordWriteHardensObjectsAndRef(t *testing.T) {
+	recordRepo(t)
+	real, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git not on PATH")
+	}
+	bin := t.TempDir()
+	log := filepath.Join(t.TempDir(), "git.log")
+	script := "#!/bin/sh\nprintf '%s|%s|%s=%s|%s\\n' \"$GIT_CONFIG_PARAMETERS\" \"$GIT_CONFIG_COUNT\" \"$GIT_CONFIG_KEY_0\" \"$GIT_CONFIG_VALUE_0\" \"$*\" >> " + log + "\nexec " + real + " \"$@\"\n"
+	writeFile(t, filepath.Join(bin, "git"), script)
+	if err := os.Chmod(filepath.Join(bin, "git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	must(t, "add", "goal", "--title", "durable", "--why", "w")
+	data, err := os.ReadFile(log)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, _ := exec.Command(real, "config", "--get", "core.fsync").Output()
+	hardened := func(line string) bool {
+		v := strings.ToLower(line + " " + string(cfg))
+		if !strings.Contains(v, "core.fsync") && len(cfg) == 0 {
+			return false
+		}
+		return strings.Contains(v, "all") || (strings.Contains(v, "loose-object") || strings.Contains(v, "objects") || strings.Contains(v, "committed")) && strings.Contains(v, "reference")
+	}
+	writers := 0
+	for _, l := range strings.Split(strings.TrimSpace(string(data)), "\n") {
+		args := l[strings.LastIndex(l, "|")+1:]
+		if !strings.Contains(args, "hash-object -w") && !strings.Contains(args, "write-tree") && !strings.Contains(args, "commit-tree") && !strings.Contains(args, "update-ref") {
+			continue
+		}
+		writers++
+		if !hardened(l) {
+			t.Errorf("git %s ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown", args)
+		}
+	}
+	if writers == 0 {
+		t.Fatalf("no git run wrote an object or the ref; log:\n%s", data)
+	}
+}
+```
+
+### Output
+From `go test ./internal/cli -run TestReview -count=1 -v`; `go vet` is clean, and temp paths are shortened to `$TMP`.
+```
+=== RUN   TestReviewTwoWorktreesCiteOnePathAtOnce
+    review_record_test.go:49: write from $TMP/TestReviewTwoWorktreesCiteOnePathAtOnce4077341811/003/w/s: exit status 1
+        refused: s/.tree/evidence/E-MJRGG2/run.log differs from the copy the record holds; a file an event names never changes, so write it under a new path
+--- FAIL: TestReviewTwoWorktreesCiteOnePathAtOnce (0.90s)
+=== RUN   TestReviewSyncKeepsEachSidesPinnedBundle
+    review_record_test.go:123: after sync, R-PM5CM1 reads questionable from clone a:
+        Result R-PM5CM1
+        path: G-BRM1TC > Q-TQVYFZ > H-RJ77RE > E-B0GBFF > R-PM5CM1
+        status: recorded
+        observation: ran
+        verdicts: H-RJ77RE=supports
+        evidence: .tree/evidence/E-B0GBFF/out.txt sha256 11e552e25b0cc1caf61ba77c1ccca04eb352280dc4bec6fc0462d914c3ed6258
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 09:17 a result.record R-PM5CM1 — w
+    review_record_test.go:123: after sync, R-PM5CM1 reads questionable from clone b:
+        Result R-PM5CM1
+        path: G-BRM1TC > Q-TQVYFZ > H-RJ77RE > E-B0GBFF > R-PM5CM1
+        status: recorded
+        observation: ran
+        verdicts: H-RJ77RE=supports
+        evidence: .tree/evidence/E-B0GBFF/out.txt sha256 11e552e25b0cc1caf61ba77c1ccca04eb352280dc4bec6fc0462d914c3ed6258
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 09:17 a result.record R-PM5CM1 — w
+--- FAIL: TestReviewSyncKeepsEachSidesPinnedBundle (2.57s)
+=== RUN   TestReviewRecordWriteHardensObjectsAndRef
+    review_record_test.go:171: git -C $TMP/TestReviewRecordWriteHardensObjectsAndRef717041458/002 hash-object -w --stdin ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    review_record_test.go:171: git -C $TMP/TestReviewRecordWriteHardensObjectsAndRef717041458/002 write-tree ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    review_record_test.go:171: git -C $TMP/TestReviewRecordWriteHardensObjectsAndRef717041458/002 commit-tree 9d67b322625d89f7e49b7f02d0605dc3e1c25cfb -p 3468cdfc003f3773b0181bcc8b499b3df2ba3a31 -m hyp: a ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+    review_record_test.go:171: git -C $TMP/TestReviewRecordWriteHardensObjectsAndRef717041458/002 update-ref refs/hyp/record 62045af79a2fe59d4241899dd72beeefa5af7aa4 3468cdfc003f3773b0181bcc8b499b3df2ba3a31 ran with no core.fsync for loose objects and refs; a write that exits 0 may be lost on an unclean shutdown
+--- FAIL: TestReviewRecordWriteHardensObjectsAndRef (0.59s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	4.211s
+FAIL
+```
+The first test's control half (a work-tree store taking both Results) passed: execution reached it and it did not fail.
+
+### Findings I could not run
+- **Power loss (Finding 3):** I could not reproduce an unclean shutdown in a test, so the test checks the git configuration instead.
+- **Snapshot prune race (line 3, "no command reads part of a write"):** I did not run this one. `snapshot()` touches a snapshot directory that already exists and returns it, while another process's `prune` may have already chosen that directory (unused for over an hour) and be deleting it. The reader would then read a half-removed snapshot. I found no way to make the timing deterministic in a test.
+- **A note on the Goal body:** it says each rubric "runs hyp import in a sandbox clone". A clone made by `hyp sandbox create` is marked a sandbox clone, and `hyp import` refuses there by design (exit 1). The rubric therefore needs a plain temp `git clone`, as I used.
+
+Status: DONE_WITH_CONCERNS
+Summary: Three failing findings, on G-SZCBXZ#4 (two worktrees citing one path with different bytes: the second write is refused), #7/#5 (a pinned bundle lost after sync turns a Result questionable) and the body's durability decision (no fsync on record writes). Lines 1–3, 5, 6 and 8–10 otherwise hold, including a byte-identical import of this repository's real stores and the g-akjjf8/record tag in a temp clone.
