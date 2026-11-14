@@ -57,7 +57,7 @@ Each write is an event in a log. hyp reads the full log each time, calculates ea
 ```mermaid
 flowchart LR
   W["writes<br/>hyp add, record, select, answer"]
-  L[(".tree/events/*.jsonl<br/>append-only, committed in git")]
+  L[("events, per store<br/>append-only, kept in git on a hidden ref")]
   D["calculated on each read<br/>statuses, OWED, AWAITING OWNER,<br/>line coverage"]
   P["hyp status<br/>read by the runner and the owner"]
 
@@ -78,7 +78,7 @@ hyp keeps the append-only log and the supersede rule. But a row has no parent, s
 |---|---|
 | Each row stands alone. | **Rivals are siblings.** A design question has one Hypothesis whose rival is the base, or rivals that a scenario separates on a line. A refinement is a new sibling that supersedes the old Hypothesis, so the lineage stays visible. |
 | A row states its result in words. | **hyp calculates each status.** hyp calculates `supported`, `contradicted`, `stale` and `answered` from the events. No command can set a status. |
-| The log is local, and you commit it only when a reviewer needs it. | **The log is the source of truth.** Each write adds an event to an append-only log under `.tree/`. You commit the log with the work. |
+| The log is local, and you commit it only when a reviewer needs it. | **The log is the source of truth.** Each write adds an event to an append-only log, which hyp keeps in git on a hidden ref that no branch holds, and `hyp sync` shares. |
 | A new session reads the rows to find the current state. | **`hyp status` shows the current state.** A new session does not need a summary. |
 
 ### 2. Experiments that you can repeat

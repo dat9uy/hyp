@@ -165,10 +165,11 @@ func newFirst(cwd, target string, rubric bool, stdout io.Writer) error {
 	if _, err := recipe.FirstRef(target); err != nil {
 		return err
 	}
-	root, err := store.FindRoot(cwd)
+	st, err := store.Open(cwd)
 	if err != nil {
 		return err
 	}
+	root := st.Dir
 	write := recipe.NewFirst
 	if rubric {
 		write = recipe.NewFirstRubric

@@ -14,6 +14,7 @@ import (
 	"github.com/dat9uy/hyp/internal/cmdrecord"
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 )
 
@@ -62,23 +63,25 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 
 	// A script cited outside a versioned bundle runs where hyp never sees it.
 	for _, ptr := range r.Evidence {
-		if m.script(ptr) {
+		if m.script(ptr, r.EvidenceSHA256[ptr]) {
 			why = append(why, "script outside recipes/: "+path.Clean(ptr))
 		}
 	}
 
 	pins := distinct(p.Results[id].Pins)
-	records := m.records(r.Evidence)
+	records := m.records(r.Evidence, r.EvidenceSHA256)
 	// A command record among the Experiment's pinned records counts as
 	// cited for reason 2: a reassessment is contained by the runs it read.
 	// Reason 3 asks only the records this Result cites itself.
 	var pinned []string
+	pinnedSums := map[string]string{}
 	if exp := p.Nodes[r.Parent]; exp != nil {
 		for _, f := range exp.Records {
 			pinned = append(pinned, f.Path)
+			pinnedSums[f.Path] = f.SHA256
 		}
 	}
-	ran := append(slices.Clone(records), m.records(pinned)...)
+	ran := append(slices.Clone(records), m.records(pinned, pinnedSums)...)
 
 	// A pinned bundle with commands needs a record of them run at that hash,
 	// every command exiting 0 after its known answers passed; the
@@ -135,11 +138,11 @@ var sources = []string{".go", ".js", ".ts", ".rb", ".pl", ".rs"}
 // execute bit, starts with #!, or ends in one of sources. A file the bundle
 // hash skips (a dot-entry or __pycache__) is outside: no pin covers it. URLs
 // and missing files are not scripts.
-func (m *marker) script(ptr string) bool {
+func (m *marker) script(ptr, sum string) bool {
 	if isURL(ptr) || pinned(ptr) {
 		return false
 	}
-	file := filepath.Join(m.root, ptr)
+	file := record.NamedPath(m.root, path.Clean(ptr), sum)
 	if recipe.IsScript(file) {
 		return true
 	}
@@ -147,15 +150,16 @@ func (m *marker) script(ptr string) bool {
 	return err == nil && fi.Mode().IsRegular() && slices.Contains(sources, filepath.Ext(file))
 }
 
-// records parses each cited command.json, in citation order, skipping URLs.
-// One that cannot be read or parsed is kept with ok false.
-func (m *marker) records(evidence []string) []cited {
+// records parses each cited command.json, in citation order, skipping URLs,
+// reading the bytes with the sha256 sums holds for its pointer when the
+// record keeps them. One that cannot be read or parsed is kept with ok false.
+func (m *marker) records(evidence []string, sums map[string]string) []cited {
 	var out []cited
 	for _, ptr := range evidence {
 		if isURL(ptr) || path.Base(ptr) != "command.json" {
 			continue
 		}
-		rec, err := cmdrecord.Read(filepath.Join(m.root, ptr))
+		rec, err := cmdrecord.Read(record.NamedPath(m.root, path.Clean(ptr), sums[ptr]))
 		out = append(out, cited{ptr: ptr, rec: rec, ok: err == nil})
 	}
 	return out

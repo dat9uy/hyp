@@ -75,6 +75,9 @@ func TestUnionMergeKeepsBothBranches(t *testing.T) {
 	if err := Init(repo); err != nil {
 		t.Fatal(err)
 	}
+	// A repository with no record keeps its store in the work tree, where
+	// branches merge it.
+	gitRun(t, repo, "update-ref", "-d", "refs/hyp/record")
 	ga, err := os.ReadFile(filepath.Join(repo, ".tree", ".gitattributes"))
 	if err != nil || string(ga) != "events/*.jsonl merge=union\n" {
 		t.Fatalf(".tree/.gitattributes = %q (%v), want exactly the line events/*.jsonl merge=union", ga, err)

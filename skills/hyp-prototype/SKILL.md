@@ -216,7 +216,10 @@ that no longer matters is `hyp withdraw <Q-id>`.
 1. `hyp checkpoint --goal <G-id> --summary "<what is next, at most 2000 characters>" --why "end of session"`.
 2. `hyp check` must print `check: 0 errors`. Fix any rejected event by
    recording a correct one; never edit the log.
-3. Commit `.tree/events/` and `.tree/evidence/` with the code they describe.
+3. In a git repository hyp keeps the events and every file they name in
+   its record, a hidden ref no branch holds: run `hyp sync` so the remote
+   holds them too. Outside a git repository, commit `.tree/events/` and the
+   cited files under `.tree/evidence/` with the code they describe.
 
 ## Never
 

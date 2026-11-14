@@ -8,23 +8,27 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 )
 
 // recordFiles reads the --records arguments of hyp add exp: each path,
 // relative to the store root like an --evidence pointer, names a file or a
-// directory under .tree/evidence/, and a directory stands for each regular
+// directory under replay.EvidenceDir, and a directory stands for each regular
 // file under it. It returns each file once, by its slash path under the root
 // and its sha256, in the order given (ADR 0018). The new Experiment has no
-// run yet, so every file found is an earlier record.
-func recordFiles(root string, paths []string) ([]event.SubjectFile, error) {
+// run yet, so every file found is an earlier record. rootOf names, for a
+// path relative to the store root, the directory to read it below: the
+// work tree, or the record's copy of a file only the record holds.
+func recordFiles(root string, rootOf func(rel string) string, paths []string) ([]event.SubjectFile, error) {
 	var out []event.SubjectFile
+	var base string
 	add := func(rel string) error {
 		rel = filepath.ToSlash(rel)
 		if slices.ContainsFunc(out, func(f event.SubjectFile) bool { return f.Path == rel }) {
 			return nil
 		}
-		sum, err := fileSHA256(filepath.Join(root, rel))
+		sum, err := fileSHA256(filepath.Join(base, rel))
 		if err != nil {
 			return usageErr("--records %s: %v", rel, err)
 		}
@@ -41,10 +45,11 @@ func recordFiles(root string, paths []string) ([]event.SubjectFile, error) {
 			rel = r
 		}
 		rel = filepath.ToSlash(filepath.Clean(rel))
+		base = rootOf(rel)
 		if !strings.HasPrefix(rel+"/", replay.EvidenceDir) || rel+"/" == replay.EvidenceDir {
 			return nil, usageErr("--records %s is not under %s; a record is a file an earlier run kept there", p, replay.EvidenceDir)
 		}
-		abs := filepath.Join(root, filepath.FromSlash(rel))
+		abs := filepath.Join(base, filepath.FromSlash(rel))
 		fi, err := os.Lstat(abs)
 		if err != nil {
 			return nil, usageErr("--records %s not found", p)
@@ -62,7 +67,7 @@ func recordFiles(root string, paths []string) ([]event.SubjectFile, error) {
 			if err != nil || !d.Type().IsRegular() {
 				return err
 			}
-			r, err := filepath.Rel(root, q)
+			r, err := filepath.Rel(base, q)
 			if err != nil {
 				return err
 			}
@@ -83,7 +88,7 @@ func recordFiles(root string, paths []string) ([]event.SubjectFile, error) {
 func changedRecords(root string, records []event.SubjectFile) []string {
 	var out []string
 	for _, f := range records {
-		sum, err := fileSHA256(filepath.Join(root, filepath.FromSlash(f.Path)))
+		sum, err := fileSHA256(record.NamedPath(root, f.Path, f.SHA256))
 		if err != nil || sum != f.SHA256 {
 			out = append(out, f.Path)
 		}

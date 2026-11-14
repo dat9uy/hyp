@@ -11,6 +11,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/sandbox"
 	"github.com/dat9uy/hyp/internal/store"
 )
@@ -56,8 +57,12 @@ Every write command needs --why and an actor (--actor or $HYP_ACTOR).
 Statuses are derived from events; no command can set one.
 
 setup:
-  init                                   create .tree in the current directory
+  init                                   create a store in the current directory; in a git repository, start its record
   version                                print the hyp version
+
+record (in a git repository, every store's events and the files they name, kept on a hidden ref no branch holds):
+  sync [REMOTE]                          join the record with REMOTE's (origin by default) and push the join
+  import [REF:]PATH...                   add each work-tree store's events the record lacks, from the checkout or commit REF
 
 write:
   add goal --title T [--body B] [--alias A] [--line L]... [--cite N=KEY]...
@@ -77,7 +82,7 @@ write:
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals
-  show REF|R-id#n|G-id#n [--as-of REF|TIME]  one node, or one limit or line, in full, with its history
+  show REF|R-id#n|G-id#n|FILE[@SHA256] [--as-of REF|TIME]  one node, or one limit or line, in full, with its history; or the bytes of a FILE an event names, picked by a sha256 prefix when events name it with other bytes
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated
   check                                       rejected events, bad lines, warnings
@@ -88,7 +93,7 @@ read (REF/TIME: an event id, a node ref, or an RFC3339 time):
 bundle (a recipe in recipes/ or a rubric in rubrics/; a name lives in one library):
   bundle hash DIR [--json]               the bundle hash add exp --recipe or --rubric records for DIR
   bundle check                           every pin to a versioned bundle, in every tree under the repo root, still matches it
-  bundle new NAME@1 [--rubric]           write a first recipe, or with --rubric a first rubric, beside the nearest .tree/ from hyp's template; fill every hyp:placeholder
+  bundle new NAME@1 [--rubric]           write a first recipe, or with --rubric a first rubric, beside the nearest store from hyp's template; fill every hyp:placeholder
   bundle new NAME@N --from NAME@M        copy bundle NAME@M to the next version NAME@N in its library, writing from:
   bundle run --record DIR REF NAME [ARGS...]   run one Standalone command with no sandbox; exits with its exit code
   bundle evidence --record DIR REF OUT_DIR     run recipe REF's Evidence commands on remove's OUT_DIR; exits with the failing one's code
@@ -132,6 +137,8 @@ var commands = map[string]command{
 	"prompt":     cmdPrompt,
 	"sandbox":    cmdSandbox,
 	"bundle":     cmdBundle,
+	"sync":       cmdSync,
+	"import":     cmdImport,
 }
 
 // aliases maps an older command name to the one that replaced it. An alias
@@ -215,6 +222,6 @@ func cmdInit(args []string, stdout, stderr io.Writer) error {
 		}
 		return herr.Env("%v", err)
 	}
-	fmt.Fprintf(stdout, "initialised .tree in %s\n", cwd)
+	fmt.Fprintf(stdout, "initialised %s in %s\n", record.TreeDir, cwd)
 	return nil
 }

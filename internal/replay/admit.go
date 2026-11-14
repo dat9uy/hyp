@@ -2,6 +2,7 @@ package replay
 
 import (
 	"fmt"
+	"github.com/dat9uy/hyp/internal/record"
 	"path"
 	"slices"
 	"strings"
@@ -187,7 +188,7 @@ func (st *State) notRivalWarnings(parent string, targets []string) []string {
 }
 
 // AdmitResult lists what admitting Result p would break: a closed
-// Experiment; evidence under .tree/evidence/ outside its Experiment's own
+// Experiment; evidence under EvidenceDir outside its Experiment's own
 // run and pinned records; a pinned record that no longer hashes as pinned;
 // then the recipe pin and the rubric pin, each refused when its bundle no
 // longer loads or hashes differently (ADR 0018). f is what the CLI loaded;
@@ -247,11 +248,11 @@ func (st *State) AdmitResult(p event.ResultRecord, f ResultFacts, refHash map[st
 
 // EvidenceDir is the directory, relative to the store root, that holds the
 // files of every run.
-const EvidenceDir = ".tree/evidence/"
+const EvidenceDir = record.EvidenceDir
 
 // outsideRun reports whether evidence pointer ptr names a file under
-// .tree/evidence/ that is neither in the run of the Experiment shown as
-// display, .tree/evidence/<display>/, nor one of its pinned records.
+// EvidenceDir that is neither in the run of the Experiment shown as
+// display, EvidenceDir<display>/, nor one of its pinned records.
 func outsideRun(ptr, display string, records []event.SubjectFile) bool {
 	clean := path.Clean(ptr)
 	if !strings.HasPrefix(clean, EvidenceDir) || strings.HasPrefix(clean, EvidenceDir+display+"/") {

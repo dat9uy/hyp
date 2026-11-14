@@ -123,6 +123,7 @@ type Node struct {
 	Observation        string
 	Evidence           []string
 	EvidenceHashes     map[string]string
+	EvidenceSHA256     map[string]string // a Result's: each file pointer's sha256 when it was recorded
 	Limits, Closes     []string
 	Readings           []event.ReadingItem
 	Aims, Applies      []string

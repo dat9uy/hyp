@@ -45,7 +45,7 @@ func TestInitRefusesExistingStore(t *testing.T) {
 		t.Fatal("second init succeeded")
 	}
 	gi, _ := os.ReadFile(filepath.Join(root, ".tree", ".gitignore"))
-	if string(gi) != "index.sqlite\nindex.sqlite-*\n" {
+	if string(gi) != "index.sqlite\nindex.sqlite-*\nevidence/\n" {
 		t.Fatalf(".gitignore = %q", gi)
 	}
 	sub := filepath.Join(root, "a", "b")

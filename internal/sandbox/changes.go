@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dat9uy/hyp/internal/record"
 	"io"
 	"io/fs"
 	"os"
@@ -46,8 +47,8 @@ type Change struct {
 	Copied *bool  `json:"copied,omitempty"`
 }
 
-// manifest lists every path under wt but wt/.git and index.sqlite* under
-// wt/.tree, which older hyp binaries write (ADR 0006), sorted by path.
+// manifest lists every path under wt but git's folder and index.sqlite*
+// under wt's store folder, which older hyp binaries write (ADR 0006), sorted by path.
 // Directories are not listed.
 // A file that vanishes while it is listed (a process still writing in wt/)
 // is left out rather than failing the whole list.
@@ -65,10 +66,10 @@ func manifest(wt string) ([]entry, error) {
 			return err
 		}
 		rel = filepath.ToSlash(rel)
-		if rel == ".git" && d.IsDir() {
+		if record.IsGitName(rel) && d.IsDir() {
 			return fs.SkipDir
 		}
-		if strings.HasPrefix(rel, ".tree/") && strings.HasPrefix(d.Name(), "index.sqlite") {
+		if record.UnderStoreDir(rel) && strings.HasPrefix(d.Name(), "index.sqlite") {
 			if d.IsDir() {
 				return fs.SkipDir
 			}

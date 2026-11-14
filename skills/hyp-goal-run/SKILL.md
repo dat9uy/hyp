@@ -120,7 +120,7 @@ Stop on the clauses the `/goal` prompt names. Stopping is not success.
    hyp checkpoint --goal <goal-id> --summary "Stopped: <stop clause>. Candidates not reviewed: <each by Hypothesis id and commit, or none>. Waiting for the owner: <the keys under AWAITING OWNER>. Review findings with no run: <each as one short phrase, or none>. Out-of-Goal findings: <each as one short phrase and its destination: fixed in <commit>, issue <id>, new issue, or dropped, or none>" --why "<why>"
    ```
 
-   Name each out-of-Goal finding in the checkpoint so it lives in the log, not only in chat.
+   Name each out-of-Goal finding in the checkpoint so it lives in the log, not only in chat. Then run `hyp sync`, so the remote's record holds every event of the run, at every stop; if it exits non-zero, say so in your last message.
 
 2. Your last message repeats the checkpoint, and lists each line under LINES by its key, with the Results that ran it, and names each question where OWED still owes a line. A run that ends with lines owed is a normal result.
 

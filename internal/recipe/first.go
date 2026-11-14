@@ -38,7 +38,7 @@ var rubricTemplate embed.FS
 
 // NewFirst writes the first version target (NAME@1) of a new recipe from
 // the embedded template into root/recipes/, root being the store's
-// directory (the one holding .tree/), and returns its directory. A version
+// directory (the one holding its store folder), and returns its directory. A version
 // other than 1 is a bad argument, since a next version is copied with
 // --from; any NAME@N in a library the lookup searches from root is refused.
 func NewFirst(root, target string) (string, error) { return newFirstIn(root, Recipes, target) }

@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
+	"path/filepath"
 	"regexp"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/dat9uy/hyp/internal/check"
@@ -14,6 +18,7 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/replay"
 	"github.com/dat9uy/hyp/internal/signals"
@@ -23,7 +28,9 @@ import (
 // reader is one read command: it replays the whole log and can replay again
 // up to an --as-of point. hyp keeps no index; every read replays (ADR 0006).
 type reader struct {
-	root     string
+	store    *record.Store
+	dir      string // the store's work-tree folder
+	root     string // the directory every read reads below (record.Store.Root)
 	evs      []event.Event
 	lineErrs []store.LineError
 	hashes   map[string]string
@@ -48,7 +55,11 @@ func openEvents() (*reader, error) {
 		return nil, err
 	}
 	r := &reader{}
-	if r.root, err = store.FindRoot(cwd); err != nil {
+	if r.store, err = store.Open(cwd); err != nil {
+		return nil, err
+	}
+	r.dir = r.store.Dir
+	if r.root, err = r.store.Root(); err != nil {
 		return nil, err
 	}
 	if r.evs, r.lineErrs, err = store.Events(r.root); err != nil {
@@ -166,11 +177,14 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if len(pos) != 1 {
-		return usageErr("usage: hyp show REF|R-id#n|G-id#n [--as-of REF|TIME]")
+		return usageErr("usage: hyp show REF|R-id#n|G-id#n|FILE[@SHA256] [--as-of REF|TIME]")
 	}
 	r, err := openReader()
 	if err != nil {
 		return err
+	}
+	if strings.Contains(pos[0], "/") {
+		return showFile(r, pos[0], stdout)
 	}
 	p, err := r.at(*asOf)
 	if err != nil {
@@ -195,6 +209,90 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 	}
 	fmt.Fprint(stdout, render.Show(p, id, ancestors(p, id)))
 	return nil
+}
+
+// showFile prints the bytes of a file an applied event names, a path
+// relative to the store's folder as the event holds it: in a record
+// repository the record's copy, which no later change to the work tree
+// reaches. When events name the path with other bytes, which hyp sync of
+// two clones can join, PATH@SHA256 picks one by a prefix of its sha256.
+func showFile(r *reader, arg string, stdout io.Writer) error {
+	clean := path.Clean(filepath.ToSlash(arg))
+	pick := ""
+	if at := strings.LastIndex(clean, "@"); at > 0 && isHexPrefix(clean[at+1:]) {
+		clean, pick = clean[:at], clean[at+1:]
+	}
+	named := false
+	var sums []string
+	for _, ev := range r.full.Applied {
+		n := store.NamesOf(ev)
+		if slices.Contains(n.Files, clean) {
+			named = true
+			if sum := n.Sums[clean]; sum != "" && !slices.Contains(sums, sum) {
+				sums = append(sums, sum)
+			}
+			continue
+		}
+		if ev.Type == event.TypeResultRecord {
+			if r.full.Nodes[ev.ID] != nil && slices.ContainsFunc(r.full.Nodes[ev.ID].Evidence, func(e string) bool { return path.Clean(e) == clean }) {
+				named = true
+			}
+		}
+	}
+	if !named {
+		return usageErr("%s is no file an event of this store names", arg)
+	}
+	sum := ""
+	switch {
+	case pick != "":
+		for _, s := range sums {
+			if strings.HasPrefix(s, pick) {
+				if sum != "" {
+					return usageErr("%s: the prefix %s fits more than one sha256 the events name", arg, pick)
+				}
+				sum = s
+			}
+		}
+		if sum == "" {
+			return usageErr("%s: no event names %s with a sha256 that starts %s", arg, clean, pick)
+		}
+	case len(sums) > 1:
+		var picks []string
+		for _, s := range sums {
+			picks = append(picks, clean+"@"+s[:12])
+		}
+		return usageErr("events name %s with %d different contents; show one: %s", clean, len(sums), strings.Join(picks, ", "))
+	case len(sums) == 1:
+		sum = sums[0]
+	}
+	file := record.NamedPath(r.root, clean, sum)
+	if ref, ok := event.EvidenceRef(clean); ok {
+		b, err := recipe.Load(r.root, ref.String())
+		if err != nil {
+			return err
+		}
+		_, rest, _ := strings.Cut(strings.TrimPrefix(clean, "recipes/"), "/")
+		file = filepath.Join(b.Path, filepath.FromSlash(rest))
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return herr.Env("%s: %v", arg, err)
+	}
+	_, err = stdout.Write(data)
+	return err
+}
+
+// isHexPrefix reports whether s is 4 to 64 lower-case hex digits.
+func isHexPrefix(s string) bool {
+	if len(s) < 4 || len(s) > 64 {
+		return false
+	}
+	for _, c := range s {
+		if !('0' <= c && c <= '9' || 'a' <= c && c <= 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 func cmdDiff(args []string, stdout, stderr io.Writer) error {
@@ -250,11 +348,11 @@ func cmdCheck(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	root, err := store.FindRoot(cwd)
+	s, err := store.Open(cwd)
 	if err != nil {
 		return err
 	}
-	report, errs := check.Run(root)
+	report, errs := check.RunStore(s)
 	for _, l := range report {
 		fmt.Fprintln(stdout, l)
 	}
@@ -290,8 +388,8 @@ func cmdSignals(args []string, stdout, stderr io.Writer) error {
 }
 
 // cmdEvents prints the applied events in merge order, as stored, and the
-// rejected ones apart, for scripts that would otherwise read .tree/events
-// (ADR 0006). A shape change bumps format.
+// rejected ones apart, for scripts that would otherwise read the events
+// files (ADR 0006). A shape change bumps format.
 func cmdEvents(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("events", stderr)
 	asJSON := fs.Bool("json", false, "print as JSON (required; the only form)")

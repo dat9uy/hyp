@@ -18,6 +18,7 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/replay"
 	"github.com/dat9uy/hyp/internal/sandbox"
@@ -71,7 +72,9 @@ type writer struct {
 	noWhy  bool // the event has no why: an answer (ADR 0020)
 	actor  *string
 	stdout io.Writer
-	root   string
+	store  *record.Store
+	root   string // the store's work-tree folder, where a write's new files are
+	read   string // the directory every read of the store reads below (record.Store.Root)
 	st     *replay.State
 	p      replay.Projection
 	last   event.Event // the event run appended
@@ -118,10 +121,32 @@ func (w *writer) findRoot() error {
 	if err != nil {
 		return err
 	}
-	if w.root, err = store.FindRoot(cwd); err != nil {
+	if w.store, err = store.Open(cwd); err != nil {
 		return err
 	}
-	return nil
+	w.root = w.store.Dir
+	w.read, err = w.store.Root()
+	return err
+}
+
+// roots lists the directories a file a write names is looked up below:
+// the work tree, then the record's copy.
+func (w *writer) roots() []string {
+	if w.read == w.root {
+		return []string{w.root}
+	}
+	return []string{w.root, w.read}
+}
+
+// rootOf is the first of roots below which the slash path rel exists, the
+// work tree when none holds it.
+func (w *writer) rootOf(rel string) string {
+	for _, r := range w.roots() {
+		if _, err := os.Lstat(filepath.Join(r, filepath.FromSlash(filepath.ToSlash(filepath.Clean(rel))))); err == nil {
+			return r
+		}
+	}
+	return w.root
 }
 
 func (w *writer) ref(r string) (string, error) {
@@ -142,7 +167,7 @@ type draft struct {
 // against the locked state, and prints "<display id> <event type>". It
 // refuses text flags that cite an id that is no node (checkCites).
 func (w *writer) run(build func() (draft, error)) error {
-	ev, err := store.AppendWith(w.root, *w.actor, func(st *replay.State, p replay.Projection) (event.Event, error) {
+	ev, err := store.AppendTo(w.store, *w.actor, func(st *replay.State, p replay.Projection) (event.Event, error) {
 		w.st, w.p = st, p
 		d, err := build()
 		if err != nil {
@@ -270,7 +295,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		w.fs.Var(&targets, "target", "sibling Hypothesis this Experiment also tests (repeatable), or none")
 		rubricRef = w.fs.String("rubric", "", "NAME@VERSION of a rubric bundle, or reading: how measures become verdicts (required under a Hypothesis, refused under a DesignQuestion)")
 		decidedBy = w.fs.String("decided-by", "", "reading: the older spelling of --rubric reading")
-		w.fs.Var(&records, "records", "file or directory under .tree/evidence/ that an earlier run kept and this Experiment reads; hyp pins each file's sha256 (repeatable)")
+		w.fs.Var(&records, "records", "file or directory under "+replay.EvidenceDir+" that an earlier run kept and this Experiment reads; hyp pins each file's sha256 (repeatable)")
 		w.fs.Var(&aims, "aims", "R-id#n of a limit, or R-id#rn of an answered reading, this Experiment means to settle (repeatable)")
 	}
 	if _, err := w.begin(args[1:], 0); err != nil {
@@ -341,7 +366,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		}
 		if len(records) > 0 {
 			var err error
-			if p.Records, err = recordFiles(w.root, records); err != nil {
+			if p.Records, err = recordFiles(w.root, w.rootOf, records); err != nil {
 				return err
 			}
 		}
@@ -455,7 +480,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	observation := w.fs.String("observation", "", fmt.Sprintf("what was observed (required, at most %d runes)", event.MaxText))
 	var verdicts, evidence, limits, closes, readings, readingsOf, applies multi
 	w.fs.Var(&verdicts, "verdict", "REF=supports|contradicts|inconclusive, one per target of the Experiment and none under a measuring one (repeatable)")
-	w.fs.Var(&evidence, "evidence", fmt.Sprintf("URL, or path under .tree/evidence or recipes; recipes/NAME@VERSION/FILE is looked up like --recipe (repeatable, at most %d, each at most %d runes)", event.MaxEvidence, event.MaxEvidenceItem))
+	w.fs.Var(&evidence, "evidence", fmt.Sprintf("URL, or path under %s or recipes; recipes/NAME@VERSION/FILE is looked up like --recipe (repeatable, at most %d, each at most %d runes)", strings.TrimSuffix(replay.EvidenceDir, "/"), event.MaxEvidence, event.MaxEvidenceItem))
 	w.fs.Var(&limits, "limit", fmt.Sprintf("an open limit of the tested design (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxLimitItem))
 	w.fs.Var(&closes, "closes", "R-id#n of a limit this Result closes (repeatable)")
 	w.fs.Var(&readings, "reading", fmt.Sprintf("how you read a Goal line a verdict rests on (repeatable, at most %d, each at most %d runes)", event.MaxLimits, event.MaxReadingItem))
@@ -479,10 +504,18 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 	// pointer's hash, so an edit made meanwhile cannot split the pin.
 	var hashes map[string]string
 	refHash := map[string]string{}
+	var sums map[string]string
 	for _, e := range evidence {
-		h, err := checkEvidence(w.root, e)
+		root := w.rootOf(e)
+		h, err := checkEvidence(root, e)
 		if err != nil {
 			return err
+		}
+		if sum, ok := evidenceSHA256(root, e); ok {
+			if sums == nil {
+				sums = map[string]string{}
+			}
+			sums[e] = sum
 		}
 		if h == "" {
 			continue
@@ -498,7 +531,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 		}
 		hashes[e] = h
 	}
-	runs := runSubjects(w.root, evidence)
+	runs := runSubjects(w.rootOf, evidence)
 	if recordHashed != nil {
 		recordHashed()
 	}
@@ -510,7 +543,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		p := event.ResultRecord{Parent: expID, Verdicts: map[string]string{}, Observation: *observation, Evidence: evidence,
-			EvidenceHashes: hashes, Limits: limits, Subjects: runs}
+			EvidenceHashes: hashes, EvidenceSHA256: sums, Limits: limits, Subjects: runs}
 		for _, t := range readings {
 			p.Readings = append(p.Readings, event.ReadingItem{Text: t})
 		}
@@ -554,7 +587,7 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 		for _, l := range warns {
 			fmt.Fprintln(stderr, l)
 		}
-		warnResult(w.root, w.last.Node, stderr)
+		warnResult(w.store.Dir, w.last.Node, stderr)
 	}
 	return err
 }
@@ -562,7 +595,15 @@ func cmdRecord(args []string, stdout, stderr io.Writer) error {
 // warnResult prints the reasons Result id is uncontained (spec §7.6) and
 // where its text disagrees with the files it cites (spec §7.6). The event
 // is already appended, so nothing here changes the exit code.
-func warnResult(root, id string, stderr io.Writer) {
+func warnResult(dir, id string, stderr io.Writer) {
+	s, err := record.At(dir)
+	if err != nil {
+		return
+	}
+	root, err := s.Root()
+	if err != nil {
+		return
+	}
 	evs, _, err := store.Events(root)
 	if err != nil {
 		fmt.Fprintf(stderr, "warn: uncontained check skipped: %v\n", err)
@@ -587,6 +628,9 @@ func (w *writer) resultFacts(expID string) replay.ResultFacts {
 	}
 	pin := func(load func(root, ref string) (*recipe.Recipe, error), ref string) replay.RecipeFacts {
 		r, err := load(w.root, ref)
+		if err != nil && w.read != w.root {
+			r, err = load(w.read, ref)
+		}
 		if err != nil {
 			return replay.RecipeFacts{Err: err}
 		}
@@ -599,12 +643,12 @@ func (w *writer) resultFacts(expID string) replay.ResultFacts {
 	if exp.RubricHash != "" {
 		f.Rubric = pin(recipe.LoadRubric, exp.Rubric)
 	}
-	f.Changed = changedRecords(w.root, exp.Records)
+	f.Changed = changedRecords(w.read, exp.Records)
 	return f
 }
 
 // checkEvidence accepts a URL, or an existing file relative to the store root
-// under .tree/evidence/ or recipes/. A path recipes/<name>@<version>/<file>
+// under the store's evidence folder or recipes/. A path recipes/<name>@<version>/<file>
 // names a file in that recipe wherever recipe.Load finds it: beside the store
 // or in a parent library, every copy hashing the same; its bundle hash is
 // returned so the Result can pin it. Replay never reads files, so this is
@@ -613,12 +657,12 @@ func checkEvidence(root, e string) (hash string, err error) {
 	if strings.HasPrefix(e, "http://") || strings.HasPrefix(e, "https://") {
 		return "", nil
 	}
-	bad := usageErr("evidence %s not found under .tree/evidence or recipes", e)
+	bad := usageErr("evidence %s not found under %s or recipes", e, strings.TrimSuffix(replay.EvidenceDir, "/"))
 	if filepath.IsAbs(e) {
 		return "", bad
 	}
 	clean := filepath.ToSlash(filepath.Clean(e))
-	if !strings.HasPrefix(clean, ".tree/evidence/") && !strings.HasPrefix(clean, "recipes/") {
+	if !strings.HasPrefix(clean, replay.EvidenceDir) && !strings.HasPrefix(clean, "recipes/") {
 		return "", bad
 	}
 	if err := event.BadEvidenceRef(clean); err != nil {
@@ -644,6 +688,21 @@ func checkEvidence(root, e string) (hash string, err error) {
 		return "", bad
 	}
 	return "", notDir(e, fi)
+}
+
+// evidenceSHA256 is the sha256 of the file evidence pointer e names below
+// root; ok is false for a URL or a pointer into a versioned recipe, whose
+// bundle hash pins it.
+func evidenceSHA256(root, e string) (string, bool) {
+	if strings.HasPrefix(e, "http://") || strings.HasPrefix(e, "https://") {
+		return "", false
+	}
+	clean := filepath.ToSlash(filepath.Clean(e))
+	if _, ok := event.EvidenceRef(clean); ok {
+		return "", false
+	}
+	sum, err := fileSHA256(filepath.Join(root, filepath.FromSlash(clean)))
+	return sum, err == nil
 }
 
 // notDir refuses a directory as evidence: a pointer names one file, so what
@@ -830,7 +889,7 @@ func suggest(w *writer, ref string) error {
 	if err := w.findRoot(); err != nil {
 		return err
 	}
-	p, _, err := store.Load(w.root)
+	p, _, err := store.Load(w.read)
 	if err != nil {
 		return err
 	}
