@@ -1,0 +1,67 @@
+== returned tests of the review, run by the runner in the detached checkout of 32d707c23b7cbd247b72eeb7b7f9e0b862ca890f
+=== RUN   TestReviewSnapshotKeyCollision
+    zz_review_findings_test.go:45: store s130636: hyp show G-E50T5T exit 2, stdout "", stderr "unknown node G-E50T5T\n"; want its Goal
+    zz_review_findings_test.go:49: store s130636: hyp status G-E50T5T exit 2, stdout "", stderr "unknown node G-E50T5T\n"; want its Goal
+--- FAIL: TestReviewSnapshotKeyCollision (0.62s)
+=== RUN   TestReviewBoundarySkipsBuildablePackages
+    zz_review_findings_test.go:74: internal/check/recipes/probe.go names the store folder and runs git; the boundary test reports nothing for it (findings: [])
+    zz_review_findings_test.go:74: internal/check/rubrics/probe.go names the store folder and runs git; the boundary test reports nothing for it (findings: [])
+    zz_review_findings_test.go:74: internal/check/investigations/probe.go names the store folder and runs git; the boundary test reports nothing for it (findings: [])
+--- FAIL: TestReviewBoundarySkipsBuildablePackages (0.00s)
+=== RUN   TestReviewStoreFolderThroughSymlink
+    zz_review_findings_test.go:93: hyp show G-WQX8CS through the link: exit 2, stdout "", stderr "unknown node G-WQX8CS\n"; want the Goal
+    zz_review_findings_test.go:97: a write through the link started a second store in the record:
+        link/.tree/events/a.jsonl
+        s/.tree/events/a.jsonl
+--- FAIL: TestReviewStoreFolderThroughSymlink (0.44s)
+=== RUN   TestReviewImportStatusDiffersWhenRecordHoldsTheBundle
+    zz_review_findings_test.go:152: store two after import prints
+        GOAL G-M5QC7V G two — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-VPJXGQ open/supported_unselected Q
+            candidates (1): H-04GMD8
+            H-04GMD8 supported H
+        STALE
+        OWED
+          runner: Q-VPJXGQ select H-04GMD8, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 12:51 a result.record R-8ST5DH — w
+        CHECKPOINT none
+        Result R-8ST5DH
+        path: G-M5QC7V > Q-VPJXGQ > H-04GMD8 > E-3B6BH9 > R-8ST5DH
+        status: recorded
+        observation: ran
+        verdicts: H-04GMD8=supports
+        evidence: .tree/evidence/E-3B6BH9/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        history:
+          2026-11-14 12:51 a result.record R-8ST5DH — w
+        
+        its work-tree store replayed to
+        GOAL G-M5QC7V G two — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-VPJXGQ open/supported_unselected Q
+            candidates (1): H-04GMD8
+            H-04GMD8 supported H
+        STALE
+        OWED
+          runner: Q-VPJXGQ select H-04GMD8, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 12:51 a result.record R-8ST5DH — w
+        CHECKPOINT none
+        QUESTIONABLE 1 results
+        Result R-8ST5DH
+        path: G-M5QC7V > Q-VPJXGQ > H-04GMD8 > E-3B6BH9 > R-8ST5DH
+        status: recorded
+        observation: ran
+        verdicts: H-04GMD8=supports
+        evidence: .tree/evidence/E-3B6BH9/out.txt sha256 f4472a14b6160e58b35bfeb710d23d240ab59402cc84bc7b5a579c7373849295
+        questionable: recipe changed since this Result
+        history:
+          2026-11-14 12:51 a result.record R-8ST5DH — w
+--- FAIL: TestReviewImportStatusDiffersWhenRecordHoldsTheBundle (1.03s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.553s
+FAIL
+go test exit 1

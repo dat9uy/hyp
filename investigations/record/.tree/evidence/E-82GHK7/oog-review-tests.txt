@@ -1,0 +1,12 @@
+== out-of-Goal by answer R-EK3R0H#r1: the review tests of E-FWBCRZ for a path named with other bytes, run at the candidate; they set no verdict
+=== RUN   TestReviewShowNeverPrintsOtherBytesForAPickedSha
+    zz_oog_review_test.go:91: hyp show .tree/evidence/E-MWWBXQ/out.txt@2c8b08da5ce6: exit 1, stdout "", stderr "refused: .tree/evidence/E-MWWBXQ/out.txt@2c8b08da5ce6: the bytes kept at .tree/evidence/E-MWWBXQ/out.txt have sha256 27dd8ed44a83, not 2c8b08da5ce6 as an event names it; no copy with that sha256 is kept\n"
+--- PASS: TestReviewShowNeverPrintsOtherBytesForAPickedSha (0.47s)
+=== RUN   TestReviewImportFromRefThenCheckoutAddsTheLaterEvent
+    zz_oog_review_test.go:105: hyp import w after 868add477841:w: exit 1, stdout "", stderr "hyp import w: refused: w/.tree/evidence/E-D5FG48/out.txt differs from the copy the record holds; a file an event names never changes, so write it under a new path\n"
+    zz_oog_review_test.go:106: exit 1 (want 0), stdout "", stderr "hyp import w: refused: w/.tree/evidence/E-D5FG48/out.txt differs from the copy the record holds; a file an event names never changes, so write it under a new path\n" (want "imported 1 events")
+--- FAIL: TestReviewImportFromRefThenCheckoutAddsTheLaterEvent (0.55s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.352s
+FAIL
+go test exit 1

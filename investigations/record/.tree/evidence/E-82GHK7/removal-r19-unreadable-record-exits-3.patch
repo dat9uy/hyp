@@ -1,0 +1,21 @@
+diff --git a/internal/record/git.go b/internal/record/git.go
+index ded2909..db6053d 100644
+--- a/internal/record/git.go
++++ b/internal/record/git.go
+@@ -49,16 +49,10 @@ func MarkSandbox(wt string) error {
+ func openRepo(top string) (*Repo, error) {
+ 	r := &Repo{Top: top}
+ 	if _, err := exec.LookPath("git"); err != nil {
+-		if refOnDisk(top) {
+-			return nil, herr.Env("%s holds the record ref %s, and git is not on PATH, so hyp cannot read the record; install git", top, Ref)
+-		}
+ 		return r, nil
+ 	}
+ 	common, err := gitOut(top, nil, nil, "rev-parse", "--path-format=absolute", "--git-common-dir")
+ 	if err != nil {
+-		if refOnDisk(top) {
+-			return nil, herr.Env("%s holds the record ref %s, and git cannot open the repository, so hyp cannot read the record: %s", top, Ref, herr.Text(err))
+-		}
+ 		return r, nil
+ 	}
+ 	r.Common = common

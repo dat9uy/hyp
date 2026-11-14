@@ -1,0 +1,157 @@
+## Review of candidate b8521fac4e6d (feat/record, over 741ade58a14b)
+
+**Which commit I tested.** The brief names the candidate as b8521fac4e6d, but it asks for output "in your checkout of 2b03fa3c4d3e". 2b03fa3 is the grandparent of the candidate (b8521fa, then 741ade5, then 2b03fa3), and it does not contain `internal/record/reftable.go`, so the finding below cannot even compile there. I ran everything in a detached worktree of the candidate, **b8521fac4e6d**. I built hyp to a temp path; its sha256 is `29f560e93b0a80e0a0936ea360e59eda5941a70ad58f4397250ca7441d86d33d`.
+
+**The candidate's own gate passes.** `go vet ./...` is clean. `go test ./... -count=1` passes in every package. The one failure is the test I added below.
+
+**Other checks that found nothing.** I ran a further probe of `reftableHolds` against stacks written by git 2.54.0. Every case agreed with git, so it is not a finding and I removed the file:
+- `reftable.blockSize=256` and `restartInterval=1`
+- 1000 refs, with names next to `refs/hyp/record`
+- auto-compaction off and 20 uncompacted tables
+- a symbolic `refs/hyp/record`, and its deletion
+- `refOnDisk` called from a linked worktree, through `commondir`
+
+There are no `hyp-record` mark references left in the code. `reftable.go` is in package `record`, so line 10 still holds.
+
+---
+
+### Finding 1: label "none" (closest is G-SZCBXZ#9; the rule broken is replay-spec's exit 3 for an unreadable reftable stack)
+
+When git is not on PATH, or cannot open the repository, `refOnDisk` calls the new `reftableHolds`. A malformed table makes it **panic** instead of returning `ok=false`. hyp then exits 2 with a Go stack trace.
+
+The spec line this commit changes says: "a reftable stack hyp cannot read counts as holding it ... every command exits 3". The function's own comment says "the only error is the one that stops a command". AGENTS.md reserves exit 2 for bad arguments.
+
+The cause is in `reftableRef`. Varint values are converted to `int` with no bound check:
+- A `prefix` of 1<<63 becomes negative, so `int(prefix) > len(key)` is false and `key[:prefix:prefix]` panics.
+- A symref target length near 2^64 makes `p += n + int(l)` negative. The check `p > recEnd` does not catch a negative `p`, and the next `b[p:recEnd]` panics.
+- `reftableVarint` can also overflow without any sign.
+
+The fix is to reject any `prefix`, `suffix` or symref length that is negative after conversion or larger than `recEnd - p`, and to reject a negative `p`.
+
+Test file `internal/record/reftable_review_test.go` (a copy is kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/fc96ab71-fe38-4ca0-b860-aa05bdeb848c/scratchpad/reftable_review_test.go):
+
+```go
+package record
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+// gitVarint encodes v as a reftable varint, as git's put_var_int does.
+func gitVarint(v uint64) []byte {
+	var buf [10]byte
+	i := len(buf) - 1
+	buf[i] = byte(v & 0x7f)
+	for v >>= 7; v != 0; v >>= 7 {
+		v--
+		i--
+		buf[i] = 0x80 | byte(v&0x7f)
+	}
+	return append([]byte(nil), buf[i:]...)
+}
+
+// table builds a version 1 table whose one ref block holds rec.
+func table(rec []byte) []byte {
+	b := []byte("REFT\x01\x00\x00\x00")
+	b = append(b, make([]byte, 16)...) // min and max update index
+	blockLen := 24 + 4 + len(rec) + 3 + 2
+	b = append(b, 'r', byte(blockLen>>16), byte(blockLen>>8), byte(blockLen))
+	b = append(b, rec...)
+	b = append(b, 0, 0, 24) // one restart, at the first record
+	b = append(b, 0, 1)     // restart count
+	return b
+}
+
+// A table hyp cannot read must count as unknown (ok false), so refOnDisk
+// counts it as holding the record and the command exits 3. A ref record
+// whose varints do not fit an int must not panic.
+func TestReftableHoldsDoesNotPanicOnHugeVarints(t *testing.T) {
+	neg := uint64(1) << 63
+	cases := map[string][]byte{
+		"prefix length past int": append(append(gitVarint(neg), gitVarint(1<<3|0)...), append([]byte("a"), gitVarint(0)...)...),
+		"symref target length past int": append(append(append(gitVarint(0), gitVarint(1<<3|3)...), 'a'), append(gitVarint(0), gitVarint(^uint64(0)-999)...)...),
+	}
+	for name, rec := range cases {
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, "tables.list"), []byte("a.ref\n"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, "a.ref"), table(rec), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("reftableHolds panicked: %v", fmt.Sprint(r))
+				}
+			}()
+			holds, ok := reftableHolds(dir, Ref)
+			if ok {
+				t.Fatalf("a malformed table reads as known: holds %v", holds)
+			}
+		})
+	}
+}
+```
+
+Output (`go test ./internal/record -run TestReftableHoldsDoesNotPanic -count=1 -v`):
+
+```
+=== RUN   TestReftableHoldsDoesNotPanicOnHugeVarints
+=== RUN   TestReftableHoldsDoesNotPanicOnHugeVarints/prefix_length_past_int
+    reftable_review_test.go:55: reftableHolds panicked: runtime error: slice bounds out of range [::9223372036854775808] with capacity 0
+=== RUN   TestReftableHoldsDoesNotPanicOnHugeVarints/symref_target_length_past_int
+    reftable_review_test.go:55: reftableHolds panicked: runtime error: slice bounds out of range [-958:]
+--- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints (0.00s)
+    --- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints/prefix_length_past_int (0.00s)
+    --- FAIL: TestReftableHoldsDoesNotPanicOnHugeVarints/symref_target_length_past_int (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.323s
+FAIL
+```
+
+A shell script shows the same failure end to end with the built binary. It creates a temp directory and runs hyp with an empty PATH. Script /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/fc96ab71-fe38-4ca0-b860-aa05bdeb848c/scratchpad/panic-no-git.sh:
+
+```sh
+#!/bin/sh
+# Run a hyp binary with no git on PATH in a temp repository whose reftable
+# stack holds one malformed table: a symref record whose target-length varint
+# wraps past int (2^64-1000). replay-spec: a reftable stack hyp cannot read
+# counts as holding the record, so the command exits 3.
+set -u
+HYP=$1
+T=$(mktemp -d)
+mkdir -p "$T/.git/reftable"
+printf 'a.ref\n' > "$T/.git/reftable/tables.list"
+printf '\122\105\106\124\001\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\162\000\000\057\000\013\141\000\200\376\376\376\376\376\376\376\367\030\000\000\030\000\001' > "$T/.git/reftable/a.ref"
+EMPTY=$(mktemp -d)
+cd "$T" || exit 1
+PATH=$EMPTY "$HYP" status > "$EMPTY.out" 2>&1
+echo "exit: $?"
+head -6 "$EMPTY.out"
+cd / && rm -rf "$T" "$EMPTY" "$EMPTY.out"
+```
+
+Output (`sh panic-no-git.sh <candidate hyp>`):
+
+```
+exit: 2
+panic: runtime error: slice bounds out of range [-958:]
+
+goroutine 1 [running]:
+github.com/dat9uy/hyp/internal/record.reftableRef({0x311e85bf0200, 0x2f, 0x200}, {0x1046765df, 0xf})
+	/private/tmp/claude-501/.../scratchpad/cand/internal/record/reftable.go:80 +0x734
+github.com/dat9uy/hyp/internal/record.reftableHolds({0x311e85b74550, 0x4d}, {0x1046765df, 0xf})
+```
+
+The expected result is exit 3, "cannot read the record".
+
+---
+
+**Cleanup.** I removed my worktree and the temp binary. Nothing in the clone was written, committed or changed. Three other scratchpad worktrees (`candbin`, `gate9`, `standin`) are still registered on this clone; they were not made by me, so I left them.
+
+Status: DONE_WITH_CONCERNS
+Summary: The candidate passes go vet and go test. One finding (label "none", closest G-SZCBXZ#9): with no usable git, a malformed reftable table makes the new parser panic, so hyp exits 2 with a stack trace instead of the exit 3 the spec requires. The concern is that the brief names 2b03fa3 as the checkout to test, which does not contain this code, so I tested b8521fa.

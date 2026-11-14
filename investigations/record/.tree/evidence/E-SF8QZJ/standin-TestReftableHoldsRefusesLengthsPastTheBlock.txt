@@ -1,0 +1,17 @@
+== TestReftableHoldsRefusesLengthsPastTheBlock on the stand-in b8521fac4e6da1c4a792ac348f34b8c33d0e9071, the test file copied from 32d707c23b7c
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/prefix_length_past_int
+    reftable_test.go:220: reading a corrupt table panicked: runtime error: slice bounds out of range [::9223372036854775808] with capacity 0
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/suffix_length_past_int
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_length_past_int
+    reftable_test.go:220: reading a corrupt table panicked: runtime error: slice bounds out of range [-958:]
+=== RUN   TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_past_the_block
+--- FAIL: TestReftableHoldsRefusesLengthsPastTheBlock (0.00s)
+    --- FAIL: TestReftableHoldsRefusesLengthsPastTheBlock/prefix_length_past_int (0.00s)
+    --- PASS: TestReftableHoldsRefusesLengthsPastTheBlock/suffix_length_past_int (0.00s)
+    --- FAIL: TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_length_past_int (0.00s)
+    --- PASS: TestReftableHoldsRefusesLengthsPastTheBlock/symref_target_past_the_block (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.353s
+FAIL
+go test exit 1

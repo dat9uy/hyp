@@ -1,0 +1,93 @@
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+=== RUN   TestBoundaryFindsEveryWayToRunGit
+=== RUN   TestBoundaryFindsEveryWayToRunGit/literal
+=== RUN   TestBoundaryFindsEveryWayToRunGit/shell
+=== RUN   TestBoundaryFindsEveryWayToRunGit/path
+=== RUN   TestBoundaryFindsEveryWayToRunGit/renamed
+=== RUN   TestBoundaryFindsEveryWayToRunGit/process
+=== RUN   TestBoundaryFindsEveryWayToRunGit/syscall
+--- PASS: TestBoundaryFindsEveryWayToRunGit (0.01s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/literal (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/shell (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/path (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/renamed (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/process (0.00s)
+    --- PASS: TestBoundaryFindsEveryWayToRunGit/syscall (0.00s)
+=== RUN   TestSyncKeepsEachSidesPinnedBundle
+--- PASS: TestSyncKeepsEachSidesPinnedBundle (6.26s)
+=== RUN   TestShowBundleEvidenceAfterSync
+--- PASS: TestShowBundleEvidenceAfterSync (3.49s)
+=== RUN   TestPinnedBundleAtTwoLibraryLevels
+--- PASS: TestPinnedBundleAtTwoLibraryLevels (2.78s)
+=== RUN   TestRecordWriteHardensObjectsAndRef
+--- PASS: TestRecordWriteHardensObjectsAndRef (0.60s)
+=== RUN   TestRecordNeedsGitToReadTheRecord
+--- PASS: TestRecordNeedsGitToReadTheRecord (1.04s)
+=== RUN   TestNoGitInARepositoryWithNoRecordUsesTheWorkTree
+--- PASS: TestNoGitInARepositoryWithNoRecordUsesTheWorkTree (0.02s)
+=== RUN   TestImportKeepsCitedFileTrackedBesideAGlobName
+--- PASS: TestImportKeepsCitedFileTrackedBesideAGlobName (0.41s)
+=== RUN   TestShowPickPrintsOnlyBytesOfThatSha
+--- PASS: TestShowPickPrintsOnlyBytesOfThatSha (0.53s)
+=== RUN   TestReftableRepositoryWithNoGit
+--- PASS: TestReftableRepositoryWithNoGit (0.49s)
+=== RUN   TestRecordRefDeletedWithNoGitUsesTheWorkTree
+--- PASS: TestRecordRefDeletedWithNoGitUsesTheWorkTree (0.16s)
+=== RUN   TestSyncedReftableRecordNeedsGit
+--- PASS: TestSyncedReftableRecordNeedsGit (0.57s)
+=== RUN   TestRecordOutlivesEveryWorktreeAct
+--- PASS: TestRecordOutlivesEveryWorktreeAct (2.70s)
+=== RUN   TestSubjectCommitStaysReachable
+--- PASS: TestSubjectCommitStaysReachable (1.33s)
+=== RUN   TestTwoWorktreesWriteAtOnce
+--- PASS: TestTwoWorktreesWriteAtOnce (1.96s)
+=== RUN   TestSyncJoinsTwoRecords
+--- PASS: TestSyncJoinsTwoRecords (5.86s)
+=== RUN   TestRecordHoldsOnlyNamedFiles
+--- PASS: TestRecordHoldsOnlyNamedFiles (1.49s)
+=== RUN   TestFlagsSameFromEveryCheckout
+--- PASS: TestFlagsSameFromEveryCheckout (1.63s)
+=== RUN   TestImportAddsEachMissingEvent
+--- PASS: TestImportAddsEachMissingEvent (1.70s)
+=== RUN   TestUnimportedWorkTreeStore
+--- PASS: TestUnimportedWorkTreeStore (1.01s)
+=== RUN   TestBundleWithStoreInputKeepsItsHash
+--- PASS: TestBundleWithStoreInputKeepsItsHash (1.27s)
+=== RUN   TestSyncKeepsNamedFileShapedLikeAnEventsFile
+--- PASS: TestSyncKeepsNamedFileShapedLikeAnEventsFile (2.28s)
+=== RUN   TestSyncKeepsEachSidesNamedBytes
+--- PASS: TestSyncKeepsEachSidesNamedBytes (3.22s)
+=== RUN   TestRecordRefusesEvidenceChangedDuringTheWrite
+--- PASS: TestRecordRefusesEvidenceChangedDuringTheWrite (0.88s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	42.190s
+go test cli exit 0
+=== RUN   TestAppendRefusesANamedFileNoOneHolds
+--- PASS: TestAppendRefusesANamedFileNoOneHolds (0.67s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	1.031s
+go test store exit 0
+=== RUN   TestStoppedWriteLeavesAllOrNothing
+=== RUN   TestStoppedWriteLeavesAllOrNothing/objects
+=== RUN   TestStoppedWriteLeavesAllOrNothing/tree
+=== RUN   TestStoppedWriteLeavesAllOrNothing/commit
+=== RUN   TestStoppedWriteLeavesAllOrNothing/ref
+--- PASS: TestStoppedWriteLeavesAllOrNothing (1.68s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/objects (0.40s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/tree (0.41s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/commit (0.41s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/ref (0.45s)
+=== RUN   TestReftableHoldsReadsAsGitDoes
+=== RUN   TestReftableHoldsReadsAsGitDoes/sha1
+=== RUN   TestReftableHoldsReadsAsGitDoes/sha256
+--- PASS: TestReftableHoldsReadsAsGitDoes (0.20s)
+    --- PASS: TestReftableHoldsReadsAsGitDoes/sha1 (0.10s)
+    --- PASS: TestReftableHoldsReadsAsGitDoes/sha256 (0.10s)
+=== RUN   TestReftableHoldsRefusesAMalformedTable
+--- PASS: TestReftableHoldsRefusesAMalformedTable (0.00s)
+=== RUN   TestRefOnDiskCountsAnUnreadableReftable
+--- PASS: TestRefOnDiskCountsAnUnreadableReftable (0.00s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/record	2.231s
+go test record exit 0
