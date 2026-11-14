@@ -279,7 +279,7 @@ func TestAddExpRefusesUntargetedLiveRival(t *testing.T) {
 	n := logLines(t, dir)
 	add := []string{"add", "exp", "--parent", "h-definitions", "--title", "e3", "--recipe", "none", "--decided-by", "reading", "--why", "w"}
 	r := hyp(t, add...)
-	want(t, r, 1, "refused: live rivals of ")
+	want(t, r, 1, "refused: rivals of ")
 	want(t, r, 1, "  "+ha+" inconclusive\n  "+hc+" supported\n")
 	want(t, r, 1, "--target none to proceed without one")
 	if got := logLines(t, dir); got != n {
@@ -300,7 +300,7 @@ func TestAddExpDeadSiblingsDoNotRefuse(t *testing.T) {
 
 	must(t, "add", "hyp", "--parent", q, "--title", "C", "--alias", "hc", "--why", "w")
 	want(t, hyp(t, "add", "exp", "--parent", "ha", "--title", "e3", "--recipe", "none", "--decided-by", "reading", "--target", "hb", "--why", "w"),
-		1, "refused: live rivals of ")
+		1, "refused: rivals of ")
 }
 
 func TestAddExpWarnsWhenParentOrTargetIsNotARival(t *testing.T) {

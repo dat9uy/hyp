@@ -525,7 +525,7 @@ Each entry of `recipes`:
 | `name`, `version`, `sha256` | the recipe's name, version and hash (see Hash). The commands run from the sandbox's copy, `~/.hyp-sandbox/ID/recipes/<name>`. Remove and drive reopen it by `ref` and check it against `sha256`; a copy that hashes differently runs nothing: remove records `failed: no Cleanup ran` and warns with both hashes, and drive refuses with exit 1 |
 | `setup` | `passed` (Launch and Doctor passed), `failed` (one failed; the sandbox was kept), or `none` (nothing to run). Written as each recipe's setup ends. Absent until then, so a recipe whose setup hyp was killed during has none, and absent for the ref `none` and for a recipe after the one that failed, which was never launched |
 | `cleanup` | `ok`, or `failed: ` and each command that failed (`failed: ./stop1.sh`); `failed: no Cleanup ran` when the copy or `recipe.log` did not open. Absent when no Cleanup command ran. It is the outcome of the last Cleanup run |
-| `known_answers` | the outcome of the recipe's known answers, run before its commands: `hyp_sha256` (the hyp that ran them) and `cases`, one `{"name", "outcome"}` per case. Absent for a recipe with no Evidence or Standalone command, which is not gated |
+| `known_answers` | the outcome of the recipe's known answers, run before its commands: `hyp_sha256` (the hyp that ran them) and `cases`, one `{"name", "outcome"}` per known-answer run. Absent for a recipe with no Evidence or Standalone command, which is not gated |
 
 `--recipe none` records exactly `"recipes": [{"ref": "none"}]`.
 
@@ -722,8 +722,8 @@ commands ran. A failed case
 refuses the run (exit 1,
 `recipe REF failed its known answers: NAME: OUTCOME; nothing ran`), a
 timed-out case exits 3, and a refused create leaves no sandbox. The
-outcome of each case goes to `known_answers` in `sandbox.json` and
-`command.json`, and each case's stderr to `known-answers.log`, after a
+outcome of each known-answer run goes to `known_answers` in
+`sandbox.json` and `command.json`, and each case's stderr to `known-answers.log`, after a
 `== REF known answer NAME` line: in the sandbox, kept in OUT_DIR on
 remove, and in the command record's directory. A recipe with no Evidence
 or Standalone command is not gated.
@@ -822,8 +822,8 @@ reason is reported once, in this order:
    Experiment's recipe, its Experiment's rubric, or an evidence pin), and
    cites no `command.json`
    that names that ref at that hash, records at least one command, every
-   one of which exited 0, and holds `known_answers` with at least one case,
-   every one `ok`. A record of a failed run is not a run. When a cited
+   one of which exited 0, and holds `known_answers` with at least one
+   known-answer run, every one `ok`. A record of a failed run is not a run. When a cited
    record of that ref and hash ran but is not clean, the reason goes on
    with `; in the cited record, ` and the first command that failed (its
    words and outcome) or `the known answers did not pass`. A

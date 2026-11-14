@@ -127,7 +127,7 @@ func (st *State) AdmitExp(p event.NodeAdd, f, rb RecipeFacts, noTarget bool) []F
 // say how its measures become verdicts (ADR 0018).
 const NoRubric = "an Experiment under a Hypothesis pins a rubric: --rubric NAME@VERSION for a rubric bundle, or --rubric reading when its body decides the verdicts by reading"
 
-// oneRival is the one-rival rule: rivals, the live rivals of an
+// oneRival is the one-rival rule: rivals, the rivals of an
 // Experiment's parent at its add, are not empty and targets names none.
 func oneRival(rivals, targets []string) bool {
 	for _, t := range targets {
@@ -150,12 +150,12 @@ func (st *State) oneRivalRefusal(hyp string, targets []string) string {
 	for _, id := range rivals {
 		live = append(live, fmt.Sprintf("  %s %s", event.DisplayID(event.KindHypothesis, id), st.hypWord(id)))
 	}
-	return fmt.Sprintf("live rivals of %s under %s are not targeted:\n%s\npass --target <H-id> for the rival this result would count against, or --target none to proceed without one",
+	return fmt.Sprintf("rivals of %s under %s are not targeted:\n%s\npass --target <H-id> for the rival this result would count against, or --target none to proceed without one",
 		event.DisplayID(event.KindHypothesis, hyp), event.DisplayID(st.Nodes[q].Kind, q), strings.Join(live, "\n"))
 }
 
 // notRivalWarnings names each of an Experiment's parent and targets that is
-// not a live rival (NotRivals, the rule D1 reads) and how to fix it.
+// not a rival (NotRivals, the rule D1 reads) and how to fix it.
 func (st *State) notRivalWarnings(parent string, targets []string) []string {
 	hid := func(id string) string { return event.DisplayID(event.KindHypothesis, id) }
 	var out []string

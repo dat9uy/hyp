@@ -74,7 +74,7 @@ func TestStatusLiveHidesContradictedRivals(t *testing.T) {
 	want(t, live, 0, h3+" (h-three) contradicted")
 	want(t, live, 0, "    (1 contradicted hidden)")
 	if strings.Contains(live.stdout, "(h-two)") {
-		t.Fatalf("--live printed a contradicted rival:\n%s", live.stdout)
+		t.Fatalf("--live printed a contradicted Hypothesis:\n%s", live.stdout)
 	}
 	if strings.Contains(plain.stdout, "hidden") {
 		t.Fatalf("plain status hid a Hypothesis:\n%s", plain.stdout)

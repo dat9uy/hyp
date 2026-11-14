@@ -654,7 +654,7 @@ func TestStatusSubQuestionPrintsBeneathItsHypothesis(t *testing.T) {
 }
 
 // A sub-question prints only from an open or reopened question and through a
-// live rival. Otherwise it prints nothing, and the count line accounts for it.
+// rival. Otherwise it prints nothing, and the count line accounts for it.
 func TestStatusPrintsOnlyOpenWork(t *testing.T) {
 	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
 	for _, tc := range []struct {
@@ -709,7 +709,7 @@ func TestStatusCountLineAccountsForTheGoalCounts(t *testing.T) {
 	out := Status(p, 0)
 	Q := func(id string) string { return event.DisplayID(event.KindDesignQuestion, id) }
 	if lineOf(out, Q(in)) == "" {
-		t.Fatalf("want the question under the live rival:\n%s", out)
+		t.Fatalf("want the question under the rival:\n%s", out)
 	}
 	for _, id := range []string{dead, deep, gone} {
 		if lineOf(out, Q(id)) != "" {

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// hyp show Q lists each pair of live rivals that no Result gives different
+// hyp show Q lists each pair of rivals that no Result gives different
 // verdicts, and leaves out a pair some Result separates and a rival that is
 // contradicted.
 func TestShowQuestionListsUnseparatedRivals(t *testing.T) {

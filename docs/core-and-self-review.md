@@ -53,7 +53,7 @@ A new tree under `investigations/` that asks about hyp takes its question's scop
 
 `investigations/recipe-base` asks whether hyp should embed recipe bases, so it is core-scope work. Its Result R-H5H95P selected templates only (ADR 0009), so the base candidates it tested were not shipped. `investigations/recipe-base/arms.txt` names the prototype branch they were built on, which stays in the private development history.
 
-`investigations/checkpoint-store-design` and `investigations/checkpoint-store` share one question, hyp's shared store, so both are core-scope work. The first is a discovery Goal, G-73R704, that records the design (ADR 0020); the second is the build Goal that implements it, G-D1CH1R, whose candidate is a hyp commit. Neither pins a recipe.
+`investigations/checkpoint-store-design` and `investigations/checkpoint-store` share one question, hyp's shared store, so both are core-scope work. The first is a discovery Goal, G-73R704, that records the design (ADR 0020); the second is the build Goal that implements it, G-D1CH1R, whose Hypotheses are hyp commits. Neither pins a recipe.
 
 ## Self-review words
 

@@ -57,19 +57,19 @@ func (c Run) Outcome() string {
 	return fmt.Sprintf("exited %d", *c.Exit)
 }
 
-// KnownAnswers is one bundle's gate: the hyp that ran it and each case's outcome.
+// KnownAnswers is one bundle's gate: the hyp that ran it and each known-answer run.
 type KnownAnswers struct {
 	HypSHA256 string `json:"hyp_sha256"`
 	Cases     []Case `json:"cases"`
 }
 
-// Case is one known-answer case and its outcome: ok, or why it failed.
+// Case is one known-answer run: the known answer's name and its outcome, ok or why it failed.
 type Case struct {
 	Name    string `json:"name"`
 	Outcome string `json:"outcome"`
 }
 
-// Passed reports whether every case is ok and there is at least one.
+// Passed reports whether every known-answer run is ok and there is at least one.
 func (k *KnownAnswers) Passed() bool {
 	if k == nil || len(k.Cases) == 0 {
 		return false

@@ -2,7 +2,7 @@ package replay
 
 import "github.com/dat9uy/hyp/internal/event"
 
-// Unseparated lists each pair of live rivals under question dq that no
+// Unseparated lists each pair of rivals under question dq that no
 // non-retracted Result separates: none gives the two different verdicts.
 // Two rivals are separated when some Result judged both and gave them
 // different words (glossary, Rival). A pair is listed in child order.
