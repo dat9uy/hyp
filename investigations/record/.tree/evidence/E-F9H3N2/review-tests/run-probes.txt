@@ -1,0 +1,14 @@
+=== RUN   TestProbeSyncKeepsEachSidesNamedBytes
+    review_probe_test.go:91: b sync stderr: "hyp sync: s/.tree/evidence/shared/in.txt differs between the two records; kept the local copy\n"
+    review_probe_test.go:103: a: an event pins .tree/evidence/shared/in.txt at sha256 52d1ac9ff643, but the record holds bytes "bytes of b\n" (sha256 1bd6945d3971): one side's named file is lost by sync
+    review_probe_test.go:103: b: an event pins .tree/evidence/shared/in.txt at sha256 52d1ac9ff643, but the record holds bytes "bytes of b\n" (sha256 1bd6945d3971): one side's named file is lost by sync
+--- FAIL: TestProbeSyncKeepsEachSidesNamedBytes (1.84s)
+=== RUN   TestProbeEvidenceSHA256MatchesRecordedBytes
+    review_probe_test.go:141: R-CE80XM stores evidence_sha256 62589240579512942bc1f50b5daaa6fe8e4c7a70905b5ad2b0d73ae1f856edc6 for .tree/evidence/E-69ARPY/out.txt, but the record keeps bytes "bytes written meanwhile\n" with sha256 a4b2c982c1739d89e803069f445e5d6d31b5c6ce09de773744a0c67f4b842d8b
+--- FAIL: TestProbeEvidenceSHA256MatchesRecordedBytes (0.92s)
+=== RUN   TestProbeSubjectRetieAfterPatchEdit
+    review_probe_test.go:160: re-tie after editing the patch: exit 1, stderr "refused: s/arms/a.patch differs from the copy the record holds; a file an event names never changes, so write it under a new path"
+--- FAIL: TestProbeSubjectRetieAfterPatchEdit (0.82s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.941s
+FAIL

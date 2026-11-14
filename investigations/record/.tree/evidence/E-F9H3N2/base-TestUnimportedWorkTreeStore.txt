@@ -1,0 +1,5 @@
+--- FAIL: TestUnimportedWorkTreeStore (0.06s)
+    record_lines_test.go:487: hyp init made no record: exit status 1 
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.217s
+FAIL

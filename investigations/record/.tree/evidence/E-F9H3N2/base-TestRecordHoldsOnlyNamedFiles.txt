@@ -1,0 +1,5 @@
+--- FAIL: TestRecordHoldsOnlyNamedFiles (0.08s)
+    record_lines_test.go:340: git [ls-tree -r --name-only refs/hyp/record]: exit status 128: fatal: Not a valid object name refs/hyp/record
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.237s
+FAIL

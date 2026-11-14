@@ -1,0 +1,15 @@
+--- FAIL: TestFlagsSameFromEveryCheckout (0.14s)
+    record_lines_test.go:411: a checkout with no recipes/ and no evidence: view 0 differs:
+        
+        want
+        Result R-WBM937
+        path: G-1PA00K > Q-3EZQDQ > H-A31QTR > E-6Q2T9R > R-WBM937
+        status: recorded
+        observation: built abababababababababababababababababababab
+        verdicts: H-A31QTR=supports
+        evidence: .tree/evidence/E-6Q2T9R/log.txt
+        history:
+          2026-11-14 06:46 a result.record R-WBM937 — w
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.297s
+FAIL

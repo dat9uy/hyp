@@ -1,0 +1,5 @@
+--- FAIL: TestAppendRefusesANamedFileNoOneHolds (0.05s)
+    record_refusal_test.go:47: Append of an Experiment pinning a file no one holds: <nil>, want a refusal
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	0.406s
+FAIL

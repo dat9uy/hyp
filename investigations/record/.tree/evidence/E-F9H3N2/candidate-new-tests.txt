@@ -1,0 +1,36 @@
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+=== RUN   TestRecordOutlivesEveryWorktreeAct
+--- PASS: TestRecordOutlivesEveryWorktreeAct (2.53s)
+=== RUN   TestSubjectCommitStaysReachable
+--- PASS: TestSubjectCommitStaysReachable (1.23s)
+=== RUN   TestTwoWorktreesWriteAtOnce
+--- PASS: TestTwoWorktreesWriteAtOnce (1.65s)
+=== RUN   TestSyncJoinsTwoRecords
+--- PASS: TestSyncJoinsTwoRecords (4.98s)
+=== RUN   TestRecordHoldsOnlyNamedFiles
+--- PASS: TestRecordHoldsOnlyNamedFiles (1.25s)
+=== RUN   TestFlagsSameFromEveryCheckout
+--- PASS: TestFlagsSameFromEveryCheckout (1.35s)
+=== RUN   TestImportAddsEachMissingEvent
+--- PASS: TestImportAddsEachMissingEvent (1.56s)
+=== RUN   TestUnimportedWorkTreeStore
+--- PASS: TestUnimportedWorkTreeStore (0.95s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	15.647s
+=== RUN   TestAppendRefusesANamedFileNoOneHolds
+--- PASS: TestAppendRefusesANamedFileNoOneHolds (0.63s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/store	0.755s
+=== RUN   TestStoppedWriteLeavesAllOrNothing
+=== RUN   TestStoppedWriteLeavesAllOrNothing/objects
+=== RUN   TestStoppedWriteLeavesAllOrNothing/tree
+=== RUN   TestStoppedWriteLeavesAllOrNothing/commit
+=== RUN   TestStoppedWriteLeavesAllOrNothing/ref
+--- PASS: TestStoppedWriteLeavesAllOrNothing (1.50s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/objects (0.37s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/tree (0.36s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/commit (0.37s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/ref (0.40s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/record	1.618s

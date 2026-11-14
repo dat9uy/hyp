@@ -1,0 +1,275 @@
+## Review of 930b3850d138 + 20bdb699b090 (feat/record) against G-SZCBXZ
+
+I tested in my own detached checkout of 20bdb699b090 under the session scratchpad. That checkout, my temporary clones and my binaries are all removed now. Afterwards the main clone has no `refs/hyp/*` ref and `git status` is clean. I did not commit, push or touch any branch. Two other scratch worktrees, `scratchpad/base` and `scratchpad/cand`, already existed when I started. I left them alone.
+
+**Baseline.** `go vet ./...` and `go test ./... -count=1` both pass on the candidate. Every package is ok, including cli (51s), record and sandbox.
+
+**Real-data import, done in a temporary `git clone` of this repository with origin removed, using the candidate hyp built to a temp path:**
+- `hyp import` of the five stores exited 0. It imported 11, 111, 12, 190 and 27 events. Running it again printed "the record holds every event" for each store.
+- `hyp import g-akjjf8/record:<each store>` added 30 events to checkpoint-store and nothing to the other four.
+- I compared `render --markdown` from the record (candidate) with the work tree (base hyp 9d3f875, in a second clone). It is byte-identical for recipe-base, id-citation, goal-prompt and checkpoint-store-design. checkpoint-store differs only by the 30 events from the tag, which is expected.
+- `hyp check` gives the same output for those four stores.
+- Import untracked 5137 evidence files. Only one of them is mentioned in event text: `E-3S24B5/empty-input-correction.txt`, and only in the prose of a confirm event, not as a pointer. So line 8 holds on real data, apart from the tag events.
+
+### Findings
+
+Every probe below was a Go test file at `internal/cli/review_probe_test.go` in my checkout, using the candidate's own test helpers (`recordRepo`, `gitConfig`, `must`, `hyp`, `want`, `gitIn`, `writeFile`). The file is reproduced in full after finding 3.
+
+**Finding 1, G-SZCBXZ#5: sync loses one side's bytes for a named file.** Two clones each write an event naming the same store-relative path with different bytes. `record.Sync`'s `join` keeps one copy for each path, so after sync both records hold only one side's bytes. The other side's event now pins a sha256 whose bytes no record holds. Sync prints "differs between the two records; kept the local copy" and still exits 0. The cause is `sync.go` `join`: any non-events file both sides hold with different bytes is resolved to "local". Within one clone, `Append` refuses this case, but two clones cannot coordinate. Subject patches and `--records` paths are store-relative and are not unique per Experiment.
+
+**Finding 2, label none (the decided key "an evidence pointer stores its file's sha256"): the stored sha256 can disagree with the stored bytes.** `cmdRecord` computes `EvidenceSHA256` before `store.AppendTo` takes the lock. `record.Append` then runs `git hash-object` on the file again. If the file changes in between (the existing `recordHashed` hook simulates this), the event stores the old sha256 while the record keeps the new bytes, and the write exits 0. The same pre-lock hashing applies to `--records` pins and subject files.
+
+**Finding 3, label none: the candidate refuses a subject re-tie that the base accepts.** In a record repository, a later event that names an already-recorded path with new bytes is refused with exit 1. This covers re-tying the same Hypothesis to an edited patch, or a second Hypothesis naming the same edited file. The base accepts it with exit 0, because it names the file by sha256. The Goal does not decide this. It changes `hyp subject`, `add exp --records` and `hyp import` (an incremental import fails whole if a named file changed on disk since the last import). The skills or the owner may need to know.
+
+The Go test file:
+```go
+package cli
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// eventsJSON returns the applied events hyp events --json prints.
+func eventsJSON(t *testing.T) []map[string]any {
+	t.Helper()
+	res := hyp(t, "events", "--json")
+	if res.code != 0 {
+		t.Fatalf("hyp events --json: exit %d, %s", res.code, res.stderr)
+	}
+	var doc map[string]any
+	if err := json.Unmarshal([]byte(res.stdout), &doc); err != nil {
+		t.Fatalf("parse events json: %v\n%s", err, res.stdout)
+	}
+	var out []map[string]any
+	for _, v := range doc["events"].([]any) {
+		out = append(out, v.(map[string]any))
+	}
+	return out
+}
+
+func sum(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
+}
+
+// recordPins lists, for every node.add that pins records, path -> sha256.
+func recordPins(t *testing.T) [][2]string {
+	var pins [][2]string
+	for _, ev := range eventsJSON(t) {
+		p, _ := ev["payload"].(map[string]any)
+		recs, _ := p["records"].([]any)
+		for _, r := range recs {
+			m := r.(map[string]any)
+			pins = append(pins, [2]string{m["path"].(string), m["sha256"].(string)})
+		}
+	}
+	return pins
+}
+
+// Probe for line 5: two clones each write an event naming the same
+// store-relative path with other bytes. After hyp sync each side must hold
+// every named file of both, so each event's pinned sha256 must match the
+// bytes hyp show prints for its path, in both clones.
+func TestProbeSyncKeepsEachSidesNamedBytes(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(top, "remote.git")
+	gitIn(t, top, "init", "-q", "--bare", remote)
+	a := filepath.Join(top, "a")
+	gitIn(t, top, "clone", "-q", remote, a)
+	writeFile(t, filepath.Join(a, "s", "README.md"), "a store\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "push", "-q", "origin", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	b := filepath.Join(top, "b")
+	gitIn(t, top, "clone", "-q", remote, b)
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	shared := ".tree/evidence/shared/in.txt"
+	t.Chdir(filepath.Join(a, "s"))
+	writeFile(t, shared, "bytes of a\n")
+	must(t, "add", "exp", "--parent", h, "--title", "EA", "--recipe", "none", "--rubric", "reading", "--records", shared, "--why", "w")
+	t.Chdir(filepath.Join(b, "s"))
+	writeFile(t, shared, "bytes of b\n")
+	must(t, "add", "exp", "--parent", h, "--title", "EB", "--recipe", "none", "--rubric", "reading", "--records", shared, "--why", "w")
+
+	t.Chdir(filepath.Join(a, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+	t.Chdir(filepath.Join(b, "s"))
+	sb := hyp(t, "sync")
+	t.Logf("b sync stderr: %q", sb.stderr)
+	t.Chdir(filepath.Join(a, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+
+	for _, side := range []string{a, b} {
+		t.Chdir(filepath.Join(side, "s"))
+		shown := hyp(t, "show", shared)
+		if shown.code != 0 {
+			t.Fatalf("%s: hyp show %s: exit %d %s", side, shared, shown.code, shown.stderr)
+		}
+		for _, pin := range recordPins(t) {
+			if pin[0] == shared && pin[1] != sum(shown.stdout) {
+				t.Errorf("%s: an event pins %s at sha256 %s, but the record holds bytes %q (sha256 %s): one side's named file is lost by sync",
+					filepath.Base(side), shared, pin[1][:12], shown.stdout, sum(shown.stdout)[:12])
+			}
+		}
+	}
+}
+
+// Probe for the design key "an evidence pointer stores its file's sha256":
+// the sha256 hyp record stores must be the sha256 of the bytes the record
+// keeps for that pointer. hyp record hashes the evidence before it takes
+// the lock and reads the bytes again in the write.
+func TestProbeEvidenceSHA256MatchesRecordedBytes(t *testing.T) {
+	recordRepo(t)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	ptr := ".tree/evidence/" + e + "/out.txt"
+	writeFile(t, ptr, "hashed bytes\n")
+	recordHashed = func() { writeFile(t, ptr, "bytes written meanwhile\n") }
+	t.Cleanup(func() { recordHashed = nil })
+	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+	recordHashed = nil
+	var stored string
+	for _, ev := range eventsJSON(t) {
+		if ev["type"] != "result.record" {
+			continue
+		}
+		p := ev["payload"].(map[string]any)
+		if m, ok := p["evidence_sha256"].(map[string]any); ok {
+			stored, _ = m[ptr].(string)
+		}
+	}
+	shown := hyp(t, "show", ptr)
+	if shown.code != 0 {
+		t.Fatalf("hyp show %s: exit %d %s", ptr, shown.code, shown.stderr)
+	}
+	if stored != sum(shown.stdout) {
+		t.Fatalf("%s stores evidence_sha256 %s for %s, but the record keeps bytes %q with sha256 %s",
+			r, stored, ptr, shown.stdout, sum(shown.stdout))
+	}
+}
+
+// Probe (no line): re-tying a Hypothesis subject to an edited patch at the
+// same path. The base accepts it (the subject is named by sha256); the
+// candidate refuses it in a record repository.
+func TestProbeSubjectRetieAfterPatchEdit(t *testing.T) {
+	repo := recordRepo(t)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	base := gitIn(t, repo, "rev-parse", "HEAD")
+	writeFile(t, "arms/a.patch", "first\n")
+	must(t, "subject", h, "--base", base, "--patch", "arms/a.patch", "--why", "w")
+	writeFile(t, "arms/a.patch", "second\n")
+	res := hyp(t, "subject", h, "--base", base, "--patch", "arms/a.patch", "--why", "w")
+	if res.code != 0 {
+		t.Fatalf("re-tie after editing the patch: exit %d, stderr %q", res.code, strings.TrimSpace(res.stderr))
+	}
+}
+```
+
+Output of `go test ./internal/cli -run TestProbe -count=1 -v` on 20bdb699b090:
+```
+=== RUN   TestProbeSyncKeepsEachSidesNamedBytes
+    review_probe_test.go:91: b sync stderr: "hyp sync: s/.tree/evidence/shared/in.txt differs between the two records; kept the local copy\n"
+    review_probe_test.go:103: a: an event pins .tree/evidence/shared/in.txt at sha256 52d1ac9ff643, but the record holds bytes "bytes of b\n" (sha256 1bd6945d3971): one side's named file is lost by sync
+    review_probe_test.go:103: b: an event pins .tree/evidence/shared/in.txt at sha256 52d1ac9ff643, but the record holds bytes "bytes of b\n" (sha256 1bd6945d3971): one side's named file is lost by sync
+--- FAIL: TestProbeSyncKeepsEachSidesNamedBytes (1.76s)
+=== RUN   TestProbeEvidenceSHA256MatchesRecordedBytes
+    review_probe_test.go:141: R-MYZWKK stores evidence_sha256 62589240579512942bc1f50b5daaa6fe8e4c7a70905b5ad2b0d73ae1f856edc6 for .tree/evidence/E-BF46M8/out.txt, but the record keeps bytes "bytes written meanwhile\n" with sha256 a4b2c982c1739d89e803069f445e5d6d31b5c6ce09de773744a0c67f4b842d8b
+--- FAIL: TestProbeEvidenceSHA256MatchesRecordedBytes (0.87s)
+=== RUN   TestProbeSubjectRetieAfterPatchEdit
+    review_probe_test.go:160: re-tie after editing the patch: exit 1, stderr "refused: s/arms/a.patch differs from the copy the record holds; a file an event names never changes, so write it under a new path"
+--- FAIL: TestProbeSubjectRetieAfterPatchEdit (0.78s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	3.881s
+FAIL
+```
+
+For finding 3, this shell script (`retie-probe.sh`) runs the same steps against both binaries, each built to a temp path:
+```sh
+#!/bin/sh
+# Re-tie a Hypothesis subject to an edited patch at the same path, with the
+# base hyp and with the candidate hyp, each in a new temporary git repository.
+# usage: retie-probe.sh HYP_BINARY
+set -u
+HYP=$1
+T=$(mktemp -d)
+export GIT_CONFIG_GLOBAL=$T/gitconfig GIT_CONFIG_NOSYSTEM=1 HYP_ACTOR=a
+printf '[user]\n\tname = t\n\temail = t@t\n' > $GIT_CONFIG_GLOBAL
+cd $T && git init -q repo && cd repo && mkdir s && echo x > s/README.md && git add -A && git commit -qm base
+cd s && $HYP init >/dev/null
+g=$($HYP add goal --title G --why w | cut -d' ' -f1)
+q=$($HYP add dq --parent $g --title Q --why w | cut -d' ' -f1)
+h=$($HYP add hyp --parent $q --title H --why w | cut -d' ' -f1)
+mkdir arms && echo first > arms/a.patch
+$HYP subject $h --base HEAD --patch arms/a.patch --why w >/dev/null; echo "first tie: exit $?"
+echo second > arms/a.patch
+$HYP subject $h --base HEAD --patch arms/a.patch --why w; echo "re-tie after edit: exit $?"
+git -C .. for-each-ref refs/hyp
+rm -rf $T
+```
+Output:
+```
+--- base 9d3f875
+first tie: exit 0
+H-ZSXX26 hypothesis.subject
+re-tie after edit: exit 0
+--- candidate 20bdb699b090
+first tie: exit 0
+refused: s/arms/a.patch differs from the copy the record holds; a file an event names never changes, so write it under a new path
+re-tie after edit: exit 1
+af7d6eda0c673ef5bc26bde206e589f36e2eed85 commit	refs/hyp/record
+```
+
+**Finding 4, G-SZCBXZ#10: the boundary test misses git run any other way than by a bare `"git"` literal.** `TestOnlyRecordNamesTheFoldersAndRunsGit` only matches a string literal exactly equal to `"git"`. Code outside packages record and sandbox that runs git through a shell or by its absolute path passes. Line 10 says the test must fail on any other. Today no such file exists in the source. I added this probe file temporarily as `internal/render/zz_boundary_probe.go`:
+```go
+package render
+
+import "os/exec"
+
+// probeRunsGit runs git through a shell, outside packages record and sandbox.
+func probeRunsGit() ([]byte, error) {
+	return exec.Command("sh", "-c", "git rev-parse HEAD").Output()
+}
+
+// probeRunsGitByPath runs git by its absolute path.
+func probeRunsGitByPath() ([]byte, error) {
+	return exec.Command("/usr/bin/git", "rev-parse", "HEAD").Output()
+}
+```
+Output of `go vet ./internal/render && go test ./internal/cli -run TestOnlyRecordNamesTheFoldersAndRunsGit -count=1 -v`. The test should have failed and did not:
+```
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.02s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.392s
+```
+
+### A tension the owner has to decide (not run as a separate test)
+Line 7 says the warnings `hyp check` prints for a Result are the same from every checkout. Line 9 asks `hyp check` to warn about each checked-out bundle whose hash differs from a pin. That warning names the pinning Result ("as R-… pins it"), so its output depends on the checkout. The candidate's own line-7 test drops lines containing "checked-out", so it already accepts this. The owner should say which reading holds.
+
+### Lines I found no case against
+Lines 1, 2, 3, 4, 6, 8 and 9 hold under the candidate's tests and what I read. Line 8 also held on the real data above.
+
+Status: DONE_WITH_CONCERNS
+Summary: The candidate's suite passes, and importing this repository's five stores plus the tag in a temp clone matches the base's work-tree views. Four failing probes found problems: sync keeps one side's bytes when two clones name the same path (#5), the evidence sha256 is computed before the lock (none), editing a named file and naming it again is now refused (none), and the line-10 boundary test does not see git run through a shell or an absolute path (#10).

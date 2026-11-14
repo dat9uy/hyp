@@ -1,0 +1,7 @@
+== removal r3-named-file-no-one-holds: patch applied whole
+--- FAIL: TestAppendRefusesANamedFileNoOneHolds (0.67s)
+    record_refusal_test.go:47: Append of an Experiment pinning a file no one holds: <nil>, want a refusal
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	1.032s
+FAIL
+go test exit 1

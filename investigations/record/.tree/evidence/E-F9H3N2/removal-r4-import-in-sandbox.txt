@@ -1,0 +1,7 @@
+== removal r4-import-in-sandbox: patch applied whole
+--- FAIL: TestSubjectCommitStaysReachable (1.09s)
+    record_lines_test.go:199: exit 0 (want 1), stdout ".: imported 1 events\n", stderr "" (want "sandbox clone")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.261s
+FAIL
+go test exit 1

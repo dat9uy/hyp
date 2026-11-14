@@ -1,0 +1,18 @@
+?   	github.com/dat9uy/hyp/cmd/hyp	[no test files]
+ok  	github.com/dat9uy/hyp/internal/check	1.069s
+?   	github.com/dat9uy/hyp/internal/claim	[no test files]
+ok  	github.com/dat9uy/hyp/internal/cli	50.528s
+ok  	github.com/dat9uy/hyp/internal/cmdrecord	0.348s
+?   	github.com/dat9uy/hyp/internal/contain	[no test files]
+ok  	github.com/dat9uy/hyp/internal/event	0.347s
+?   	github.com/dat9uy/hyp/internal/herr	[no test files]
+ok  	github.com/dat9uy/hyp/internal/recipe	0.609s
+ok  	github.com/dat9uy/hyp/internal/record	2.067s
+ok  	github.com/dat9uy/hyp/internal/render	0.374s
+ok  	github.com/dat9uy/hyp/internal/replay	0.365s
+ok  	github.com/dat9uy/hyp/internal/sandbox	78.993s
+ok  	github.com/dat9uy/hyp/internal/signals	0.324s
+ok  	github.com/dat9uy/hyp/internal/skillcheck	0.327s
+ok  	github.com/dat9uy/hyp/internal/store	1.706s
+?   	github.com/dat9uy/hyp/internal/testutil	[no test files]
+go test exit 0
