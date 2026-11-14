@@ -42,11 +42,11 @@ func Reasons(root string, p replay.Projection, id string) []string {
 // marker caches each ref's loaded bundle, nil when it does not load.
 type marker struct {
 	root    string
-	bundles map[event.Ref]*recipe.Recipe
+	bundles map[string]*recipe.Recipe
 }
 
 func newMarker(root string) *marker {
-	return &marker{root: root, bundles: map[event.Ref]*recipe.Recipe{}}
+	return &marker{root: root, bundles: map[string]*recipe.Recipe{}}
 }
 
 // cited is one cited command.json: its pointer and its record, which is the
@@ -87,7 +87,7 @@ func (m *marker) reasons(p replay.Projection, id string) []string {
 	// every command exiting 0 after its known answers passed; the
 	// Experiment's own recipe included.
 	for _, pin := range pins {
-		if r := m.bundle(pin.Ref); r == nil || !r.IsInstrument() {
+		if r := m.bundle(pin); r == nil || !r.IsInstrument() {
 			continue
 		}
 		if !slices.ContainsFunc(ran, func(c cited) bool { return c.rec.CleanRun(pin.Ref, pin.Hash) }) {
@@ -165,16 +165,14 @@ func (m *marker) records(evidence []string, sums map[string]string) []cited {
 	return out
 }
 
-// bundle loads ref once, or returns nil when it does not load; questionable
-// already reports such a ref.
-func (m *marker) bundle(ref event.Ref) *recipe.Recipe {
-	r, seen := m.bundles[ref]
+// bundle loads the copy of pin's ref with pin's hash once, or returns nil
+// when it does not load; questionable already reports such a pin.
+func (m *marker) bundle(pin replay.Pin) *recipe.Recipe {
+	key := recipe.HeldKey(pin.Ref.String(), pin.Hash)
+	r, seen := m.bundles[key]
 	if !seen {
-		var err error
-		if r, err = recipe.Load(m.root, ref.String()); err != nil {
-			r, _ = recipe.LoadRubric(m.root, ref.String())
-		}
-		m.bundles[ref] = r
+		r, _ = recipe.LoadPinned(m.root, pin.Ref.String(), pin.Hash)
+		m.bundles[key] = r
 	}
 	return r
 }

@@ -1,6 +1,9 @@
 package replay
 
-import "github.com/dat9uy/hyp/internal/event"
+import (
+	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/recipe"
+)
 
 // Res is the derived record of one Result. Replay builds it once per
 // projection, as it builds Exp, and every reader takes a Result's state from
@@ -25,7 +28,7 @@ func (st *State) results() map[string]*Res {
 			r.Status = ResRetracted
 		}
 		for _, pin := range r.Pins {
-			if h, ok := st.recipeHashes[pin.Ref.String()]; !ok || h != pin.Hash {
+			if !recipe.Holds(st.recipeHashes, pin.Ref.String(), pin.Hash) {
 				r.Questionable = true
 			}
 		}

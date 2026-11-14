@@ -22,7 +22,9 @@ import (
 // once per id, in id order; any other file both sides hold with other bytes
 // keeps the local copy at its path and the remote's under its sha256 in
 // the kept folder of its store, so each event still finds the bytes it
-// names, and the conflict is printed to warn. The join
+// names, and the conflict is printed to warn; a bundle both hold with
+// other files keeps the local copy at its path and the remote's whole in
+// the kept folder of its library (KeptDir). The join
 // commit has both records as parents, so every subject commit either side
 // keeps stays reachable. A remote with no record gets the local one; a
 // remote that refuses the ref is an environment problem.
@@ -131,9 +133,34 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 		union[p] = e
 	}
 	kept := map[string]entry{}
+	// A bundle both hold at one path with other files is kept whole on
+	// each side: the local copy at its path, the remote's in the kept
+	// folder of its library, so no file of one joins the other's copy.
+	other := map[string]bool{}
+	ba := bundles(ea)
+	for dir, lb := range bundles(eb) {
+		la, ok := ba[dir]
+		if !ok || sameListing(la, lb) {
+			continue
+		}
+		kd := keptBundleDir(dir, listingKey(lb))
+		for rel, e := range lb {
+			other[dir+"/"+rel] = true
+			if _, held := union[kd+"/"+rel]; !held {
+				kept[kd+"/"+rel] = e
+			}
+		}
+		fmt.Fprintf(warn, "hyp sync: bundle %s differs between the two records; kept the local copy there and the other at %s\n", dir, kd)
+	}
 	for _, p := range paths {
 		x, inA := ea[p]
 		y, inB := eb[p]
+		if other[p] {
+			if !inA {
+				continue
+			}
+			inB = false
+		}
 		e := x
 		switch {
 		case !inA:

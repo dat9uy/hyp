@@ -38,12 +38,13 @@ func keepPath(name, p string) bool {
 // storeOf splits a record path under a store's folder into the store's name
 // and the slash path below its .tree folder. ok is false for a path under
 // no store's folder, and for a file of a bundle, a path that reaches a
-// folder recipes/<name>@<version> or rubrics/<name>@<version> before any
-// .tree folder.
+// folder recipes/<name>@<version> or rubrics/<name>@<version>, or a kept
+// copy of a bundle under recipes/.kept or rubrics/.kept, before any .tree
+// folder.
 func storeOf(p string) (owner, rest string, ok bool) {
 	parts := strings.Split(p, "/")
 	for i, c := range parts {
-		if (c == "recipes" || c == "rubrics") && i+1 < len(parts) && strings.Contains(parts[i+1], "@") {
+		if (c == "recipes" || c == "rubrics") && i+1 < len(parts) && (strings.Contains(parts[i+1], "@") || parts[i+1] == KeptDir) {
 			return "", "", false
 		}
 		if c != TreeDir {

@@ -147,9 +147,14 @@ func dirFiles(s *record.Store, dir string) ([]record.File, error) {
 }
 
 // dirFilesUnder lists every hashed regular file under the bundle at dir,
-// by its path below top.
+// by its path below top, each naming the bundle's folder, so the record
+// keeps a copy whose path it holds with other files whole beside it.
 func dirFilesUnder(top, dir string) ([]record.File, error) {
 	var out []record.File
+	bundle, ok := record.FileUnder(top, dir)
+	if !ok {
+		return nil, nil
+	}
 	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -169,6 +174,7 @@ func dirFilesUnder(top, dir string) ([]record.File, error) {
 		}
 		f, ok := record.FileUnder(top, p)
 		if ok {
+			f.Bundle = bundle.Path
 			out = append(out, f)
 		}
 		return nil

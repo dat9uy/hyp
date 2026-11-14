@@ -488,7 +488,67 @@ func Scan(root string) (hashes map[string]string, problems []string) {
 			hashes[ref] = cs[0].hash
 		}
 	}
+	for _, c := range keptCopies(root) {
+		hashes[HeldKey(c.ref, c.hash)] = c.hash
+	}
 	return hashes, problems
+}
+
+// A kept copy is another copy of a bundle ref that the record keeps beside
+// the copy at the ref's own path, in <lib>/<record.KeptDir>/<key>/<ref>/:
+// two clones each pinned that ref with their own bytes. Only a record's
+// snapshot holds one.
+type keptCopy struct{ ref, hash, dir string }
+
+// keptCopies lists the kept copies in the libraries DirsOf(root, lib)
+// lists, for both libraries. A copy that does not hash is left out.
+func keptCopies(root string) []keptCopy {
+	var out []keptCopy
+	for _, lib := range []string{Recipes, Rubrics} {
+		for _, d := range DirsOf(root, lib) {
+			mds, _ := filepath.Glob(filepath.Join(d, record.KeptDir, "*", "*@*", "recipe.md"))
+			for _, md := range mds {
+				dir := filepath.Dir(md)
+				name, version, hash, err := HashOnly(dir)
+				if err != nil {
+					continue
+				}
+				out = append(out, keptCopy{event.Ref{Name: name, Version: version}.String(), hash, dir})
+			}
+		}
+	}
+	return out
+}
+
+// HeldKey is the key under which Scan maps a kept copy of bundle ref with
+// bundle hash hash to that hash.
+func HeldKey(ref, hash string) string { return ref + " " + hash }
+
+// Holds reports whether hashes, as Scan returns them, hold bundle ref with
+// bundle hash hash: the copy at the ref's path or a kept copy.
+func Holds(hashes map[string]string, ref, hash string) bool {
+	if h, ok := hashes[ref]; ok && h == hash {
+		return true
+	}
+	h, ok := hashes[HeldKey(ref, hash)]
+	return ok && h == hash
+}
+
+// LoadPinned is LoadAny for the copy of ref with bundle hash hash: the copy
+// at the ref's path when it hashes so, a kept copy that does otherwise.
+func LoadPinned(root, ref, hash string) (*Recipe, error) {
+	r, err := LoadAny(root, ref)
+	if err == nil && (hash == "" || r.Hash == hash) {
+		return r, nil
+	}
+	for _, c := range keptCopies(root) {
+		if c.ref == ref && c.hash == hash {
+			if k, kerr := Open(c.dir); kerr == nil {
+				return k, nil
+			}
+		}
+	}
+	return r, err
 }
 
 var (

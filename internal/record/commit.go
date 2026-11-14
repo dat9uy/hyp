@@ -25,6 +25,9 @@ type File struct {
 	Blob string
 	Sum  string
 	Exec bool
+	// Bundle is the record path of the folder of the bundle the file is a
+	// file of, when it is written as one of a pinned bundle's files.
+	Bundle string
 }
 
 // StoreFile is the File of the file at slash path rel relative to the
@@ -151,6 +154,11 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
 		}
 		fmt.Fprintf(&info, "100644 %s\t%s\n", sha, p)
 	}
+	type staged struct {
+		f              File
+		sha, sum, mode string
+	}
+	var add []staged
 	seen := map[string]bool{}
 	for _, f := range files {
 		if seen[f.Path] {
@@ -172,20 +180,46 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
 				return err
 			}
 		}
-		if e, ok := s.entries[f.Path]; ok {
-			if e.sha != sha {
-				if k, ok := s.entries[keptPath(s.entries, f.Path, sum)]; sum != "" && ok && k.sha == sha {
-					continue
-				}
-				return herr.Refused("%s differs from the copy the record holds; a file an event names never changes, so write it under a new path", f.Path)
-			}
-			continue
-		}
 		mode := "100644"
 		if f.Exec {
 			mode = "100755"
 		}
-		fmt.Fprintf(&info, "%s %s\t%s\n", mode, sha, f.Path)
+		add = append(add, staged{f, sha, sum, mode})
+	}
+	// A pinned bundle the record holds at its path with other files is
+	// another copy of that ref: it goes whole to its kept folder.
+	written := map[string]map[string]entry{}
+	for _, a := range add {
+		if a.f.Bundle == "" {
+			continue
+		}
+		if written[a.f.Bundle] == nil {
+			written[a.f.Bundle] = map[string]entry{}
+		}
+		written[a.f.Bundle][strings.TrimPrefix(a.f.Path, a.f.Bundle+"/")] = entry{mode: a.mode, typ: "blob", sha: a.sha}
+	}
+	moved := map[string]string{}
+	held := bundles(s.entries)
+	for dir, l := range written {
+		if h, ok := held[dir]; ok && !sameListing(h, l) {
+			moved[dir] = keptBundleDir(dir, listingKey(l))
+		}
+	}
+	for _, a := range add {
+		p := a.f.Path
+		if kd, ok := moved[a.f.Bundle]; ok && a.f.Bundle != "" {
+			p = kd + "/" + strings.TrimPrefix(p, a.f.Bundle+"/")
+		}
+		if e, ok := s.entries[p]; ok {
+			if e.sha != a.sha {
+				if k, ok := s.entries[keptPath(s.entries, p, a.sum)]; a.sum != "" && ok && k.sha == a.sha {
+					continue
+				}
+				return herr.Refused("%s differs from the copy the record holds; a file an event names never changes, so write it under a new path", p)
+			}
+			continue
+		}
+		fmt.Fprintf(&info, "%s %s\t%s\n", a.mode, a.sha, p)
 	}
 	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "--add", "--index-info"); err != nil {
 		return err

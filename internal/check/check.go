@@ -146,10 +146,10 @@ func run(root string, extra []string) (report []string, errorsFound int) {
 	hashes, problems := recipe.Scan(root)
 	for _, id := range resultIDs(p) {
 		for _, pin := range p.Results[id].Pins {
-			now, ok := hashes[pin.Ref.String()]
-			if ok && now == pin.Hash {
+			if recipe.Holds(hashes, pin.Ref.String(), pin.Hash) {
 				continue
 			}
+			now, ok := hashes[pin.Ref.String()]
 			if pin.Pointer == "" {
 				warns = append(warns, fmt.Sprintf("warn: questionable evidence %s (recipe %s changed)", display(id), pin.Ref.Name))
 				continue
