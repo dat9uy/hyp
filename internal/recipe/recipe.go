@@ -475,8 +475,17 @@ func Scan(root string) (hashes map[string]string, problems []string) {
 		}
 	}
 	hashes = map[string]string{}
+	// A snapshot of the record keeps every copy of a ref an event pinned,
+	// each at its own library level, so a pin is held when any copy hashes
+	// as it pins.
+	snap := record.IsSnapshot(root)
 	for _, ref := range refs {
 		cs, ok := seen[ref], true
+		if snap {
+			for _, c := range cs {
+				hashes[HeldKey(ref, c.hash)] = c.hash
+			}
+		}
 		for _, c := range cs[1:] {
 			if c.hash != cs[0].hash {
 				problems = append(problems, differ(ref, cs[0].path, c.path))
@@ -535,11 +544,22 @@ func Holds(hashes map[string]string, ref, hash string) bool {
 }
 
 // LoadPinned is LoadAny for the copy of ref with bundle hash hash: the copy
-// at the ref's path when it hashes so, a kept copy that does otherwise.
+// LoadAny finds when it hashes so, else the copy at any library level, or
+// a kept copy, that does.
 func LoadPinned(root, ref, hash string) (*Recipe, error) {
 	r, err := LoadAny(root, ref)
 	if err == nil && (hash == "" || r.Hash == hash) {
 		return r, nil
+	}
+	if parsed, perr := parseRef(ref); perr == nil {
+		for _, lib := range []string{Recipes, Rubrics} {
+			for _, d := range DirsOf(root, lib) {
+				if c, cerr := loadIn(d, parsed); cerr == nil && c != nil && c.Hash == hash {
+					c.Lib = lib
+					return c, nil
+				}
+			}
+		}
 	}
 	for _, c := range keptCopies(root) {
 		if c.ref == ref && c.hash == hash {

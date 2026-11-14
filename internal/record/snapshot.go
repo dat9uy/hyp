@@ -19,6 +19,33 @@ import (
 // only. Nothing a worktree does reaches the common directory: a clean, a
 // checkout or a removed worktree leaves every snapshot as it was.
 
+// snapshotMark is the file in a snapshot's git folder that marks the
+// folder as a snapshot of the record.
+const snapshotMark = "hyp-snapshot"
+
+// IsSnapshot reports whether dir lies in a snapshot of the record: the
+// nearest folder at or above dir that holds a git folder is a snapshot's
+// root. A read of a snapshot reads every copy of a bundle ref the record
+// keeps, each at its own library level.
+func IsSnapshot(dir string) bool {
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return false
+	}
+	for d := abs; ; d = filepath.Dir(d) {
+		if fi, err := os.Stat(filepath.Join(d, GitName)); err == nil {
+			if !fi.IsDir() {
+				return false
+			}
+			_, err := os.Stat(filepath.Join(d, GitName, snapshotMark))
+			return err == nil
+		}
+		if filepath.Dir(d) == d {
+			return false
+		}
+	}
+}
+
 // snapshotKeep is how long a snapshot no read made stays on disk.
 const snapshotKeep = time.Hour
 
@@ -123,6 +150,9 @@ func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, err
 	}
 	defer os.RemoveAll(tmp)
 	if err := os.Mkdir(filepath.Join(tmp, GitName), 0o755); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(filepath.Join(tmp, GitName, snapshotMark), nil, 0o644); err != nil {
 		return "", err
 	}
 	for p, e := range entries {

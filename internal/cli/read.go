@@ -242,6 +242,41 @@ func showFile(r *reader, arg string, stdout io.Writer) error {
 	if !named {
 		return usageErr("%s is no file an event of this store names", arg)
 	}
+	// A file of a bundle is named by the bundle hash its Results pin: each
+	// pinned copy the record keeps gives its bytes, so one pointer can name
+	// several contents, as a named file can.
+	copyOf := map[string]string{}
+	ref, inBundle := event.EvidenceRef(clean)
+	if inBundle {
+		_, rest, _ := strings.Cut(strings.TrimPrefix(clean, "recipes/"), "/")
+		var hashes []string
+		for _, ev := range r.full.Applied {
+			res := r.full.Results[ev.ID]
+			if ev.Type != event.TypeResultRecord || res == nil {
+				continue
+			}
+			for _, pin := range res.Pins {
+				if path.Clean(pin.Pointer) == clean && !slices.Contains(hashes, pin.Hash) {
+					hashes = append(hashes, pin.Hash)
+				}
+			}
+		}
+		for _, h := range hashes {
+			b, err := recipe.LoadPinned(r.root, ref.String(), h)
+			if err != nil || b == nil || b.Hash != h {
+				continue
+			}
+			f := filepath.Join(b.Path, filepath.FromSlash(rest))
+			s, err := fileSHA256(f)
+			if err != nil {
+				continue
+			}
+			if _, ok := copyOf[s]; !ok {
+				copyOf[s] = f
+				sums = append(sums, s)
+			}
+		}
+	}
 	sum := ""
 	switch {
 	case pick != "":
@@ -266,7 +301,9 @@ func showFile(r *reader, arg string, stdout io.Writer) error {
 		sum = sums[0]
 	}
 	file := record.NamedPath(r.root, clean, sum)
-	if ref, ok := event.EvidenceRef(clean); ok {
+	if f, ok := copyOf[sum]; ok {
+		file = f
+	} else if inBundle {
 		b, err := recipe.Load(r.root, ref.String())
 		if err != nil {
 			return err
