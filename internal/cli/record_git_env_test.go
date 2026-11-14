@@ -417,3 +417,85 @@ func TestStoreFolderEnteredWithOtherCase(t *testing.T) {
 		t.Fatalf("the record holds two stores for the folder s:\n%s", ls)
 	}
 }
+
+// Line 1: on a filesystem that folds Unicode normalization, the folder
+// café typed with a decomposed é is the same folder as the composed name it
+// was made with, so hyp status there prints what that folder prints, and a
+// write from there goes to the same store.
+func TestStoreFolderEnteredWithOtherNormalization(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	nfc, nfd := "café", "café"
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, nfc, "README.md"), "a store\n")
+	if _, err := os.Stat(filepath.Join(repo, nfd)); err != nil {
+		t.Skip("the filesystem does not fold Unicode normalization")
+	}
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, nfc))
+	must(t, "init")
+	g, r, ptr := chain(t, "the bytes\n")
+	views0 := views(t, g, r, ptr)
+	t.Chdir(filepath.Join(repo, nfd))
+	if res := hyp(t, "status", g); res.code != 0 || res.stdout != views0[0] {
+		t.Fatalf("hyp status %s from the decomposed spelling: exit %d, stdout %q, stderr %q; want what the folder prints:\n%s", g, res.code, res.stdout, res.stderr, views0[0])
+	}
+	id := must(t, "add", "goal", "--title", "from NFD", "--why", "w")
+	t.Chdir(filepath.Join(repo, nfc))
+	want(t, hyp(t, "show", id), 0, "from NFD")
+	stores := map[string]bool{}
+	for _, l := range strings.Split(gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"), "\n") {
+		if i := strings.Index(l, "/.tree/events/"); i >= 0 {
+			stores[l[:i]] = true
+		}
+	}
+	if len(stores) != 1 {
+		t.Fatalf("the record holds %d stores for one folder: %v", len(stores), stores)
+	}
+}
+
+// Line 8: an import that added an event without a named file's bytes,
+// because its source held other bytes or none, is followed by an import
+// from a commit that holds those bytes: it adds them to the event the
+// record holds, and hyp show prints them. Before, hyp show says the store
+// holds no copy and names hyp import.
+func TestImportAddsNamedBytesAnEarlierImportLacked(t *testing.T) {
+	for _, how := range []string{"changed", "removed"} {
+		t.Run(how, func(t *testing.T) {
+			gitConfig(t)
+			top, err := filepath.EvalSymlinks(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.MkdirAll(filepath.Join(top, "s"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			t.Chdir(filepath.Join(top, "s"))
+			must(t, "init")
+			_, _, ptr := chain(t, "the bytes the Result cited\n")
+			gitIn(t, top, "init", "-q")
+			// hyp init makes git ignore the evidence folder, so the commit
+			// holds the cited file only when it is added with -f.
+			gitIn(t, top, "add", "-f", "-A")
+			gitIn(t, top, "commit", "-qm", "store")
+			if how == "changed" {
+				writeFile(t, ptr, "changed after the Result\n")
+			} else if err := os.Remove(ptr); err != nil {
+				t.Fatal(err)
+			}
+			want(t, hyp(t, "import", "."), 0, "imported")
+			want(t, hyp(t, "show", ptr), 3, "hyp import")
+			want(t, hyp(t, "import", "HEAD:."), 0, "added 1 named files")
+			want(t, hyp(t, "show", ptr), 0, "the bytes the Result cited")
+			tip := gitIn(t, top, "rev-parse", "refs/hyp/record")
+			want(t, hyp(t, "import", "HEAD:."), 0, "holds every event\n")
+			if again := gitIn(t, top, "rev-parse", "refs/hyp/record"); again != tip {
+				t.Fatalf("a third import moved the record from %s to %s", tip, again)
+			}
+		})
+	}
+}

@@ -163,7 +163,8 @@ func At(dir string) (*Store, error) {
 // from the repository root top, with symbolic links resolved, so a folder
 // reached through a link inside the repository is the store it links to.
 // Each name is spelled as its folder spells it, so on a filesystem that
-// folds case a folder typed with other letter case is the same store.
+// folds letter case or Unicode normalization a folder typed another way is
+// the same store.
 // A link that leaves the repository keeps the path as given.
 func storeName(top, dir string) string {
 	rt, err1 := filepath.EvalSymlinks(top)
@@ -374,9 +375,9 @@ func keptPath(entries map[string]entry, p, sum string) string {
 }
 
 // realCase spells each name of the absolute path p as its directory lists
-// it. On a filesystem that folds case, a name typed with other letter case
-// names the same file; realCase returns the listed name, which os.SameFile
-// shows is that file. A name it cannot list is kept as given.
+// it. On a filesystem that folds letter case or Unicode normalization, a
+// name typed another way names the same file; realCase returns the listed
+// name. A name it cannot list is kept as given.
 func realCase(p string) string {
 	vol := filepath.VolumeName(p)
 	cur := vol + string(filepath.Separator)
@@ -390,7 +391,8 @@ func realCase(p string) string {
 }
 
 // listedName is the name dir lists for part: part when dir lists it, else
-// the entry that differs from part only in letter case and is the same file.
+// the entry that os.SameFile shows is the same file, which a filesystem
+// that folds letter case or Unicode normalization reaches by either name.
 func listedName(dir, part string) string {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
@@ -406,9 +408,6 @@ func listedName(dir, part string) string {
 		return part
 	}
 	for _, e := range ents {
-		if !strings.EqualFold(e.Name(), part) {
-			continue
-		}
 		if fi, err := os.Stat(filepath.Join(dir, e.Name())); err == nil && os.SameFile(want, fi) {
 			return e.Name()
 		}

@@ -84,13 +84,16 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
 			}
 			src, top = filepath.Join(tmp, filepath.FromSlash(name)), tmp
 		}
-		n, err := store.Import(repo, name, src, top, stderr)
+		n, files, err := store.Import(repo, name, src, top, stderr)
 		if err != nil {
 			return fmt.Errorf("hyp import %s: %w", arg, err)
 		}
-		if n == 0 {
+		switch {
+		case n == 0 && files == 0:
 			fmt.Fprintf(stdout, "%s: the record holds every event\n", arg)
-		} else {
+		case n == 0:
+			fmt.Fprintf(stdout, "%s: the record holds every event; added %d named files it lacked\n", arg, files)
+		default:
 			fmt.Fprintf(stdout, "%s: imported %d events\n", arg, n)
 		}
 		if fi, err := os.Stat(record.Dir(abs)); err != nil || !fi.IsDir() {
