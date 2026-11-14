@@ -1,5 +1,5 @@
-// Package store owns the .tree directory: discovery, init, reading the
-// per-actor JSONL logs and the single append path that validates first.
+// Package store reads a store's per-actor JSONL logs, wherever package
+// record keeps them, and holds the single append path that validates first.
 package store
 
 import (
@@ -16,7 +16,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -25,11 +24,12 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 )
 
-// ErrNoStore means no .tree/events directory was found above the start dir.
-var ErrNoStore = errors.New("no .tree store found; run 'hyp init'")
+// ErrNoStore means store discovery found no store.
+var ErrNoStore = record.ErrNoStore
 
 var actorRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,39}$`)
 
@@ -40,66 +40,36 @@ type LineError struct {
 	Err  error
 }
 
-// Dir returns the .tree directory under root.
-func Dir(root string) string { return filepath.Join(root, ".tree") }
+// Open runs store discovery from start (record.Locate).
+func Open(start string) (*record.Store, error) { return record.Locate(start) }
 
-func eventsDir(root string) string { return filepath.Join(root, ".tree", "events") }
-
-// FindRoot walks up from start to the directory that contains .tree/events.
-// The walk stops at the repository root, the first directory that holds .git
-// (a directory, or a file in a worktree), so a store above the repository is
-// never found. With no .git at or above start it walks to the filesystem
-// root.
+// FindRoot returns the directory every read of the store that discovery
+// finds from start reads below: the record's copy of the store in a record
+// repository, its work-tree folder elsewhere.
 func FindRoot(start string) (string, error) {
-	dir, err := filepath.Abs(start)
+	s, err := Open(start)
 	if err != nil {
 		return "", err
 	}
-	for {
-		if fi, err := os.Stat(eventsDir(dir)); err == nil && fi.IsDir() {
-			return dir, nil
-		}
-		if _, err := os.Lstat(filepath.Join(dir, ".git")); err == nil {
-			return "", ErrNoStore
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", ErrNoStore
-		}
-		dir = parent
-	}
+	return s.Root()
 }
 
-// GitAttributes is the content of .tree/.gitattributes: git merges an events
-// file of two branches by keeping every line of both, and replay orders the
-// lines by id whatever their order in the file.
-const GitAttributes = "events/*.jsonl merge=union\n"
-
-// Init creates .tree/events, .tree/evidence, .tree/.gitignore and
-// .tree/.gitattributes in dir. It refuses, and creates nothing, when store
-// discovery from dir finds a store, at dir or above it, since a command run
-// there would then read that store and never the new one. The .gitignore
-// names index.sqlite because older hyp binaries write one (ADR 0006).
+// Init creates the store in dir (record.Init). It refuses, and creates
+// nothing, when store discovery from dir finds a store, at dir or above
+// it, since a command run there would then read that store and never the
+// new one.
 func Init(dir string) error {
-	root, err := FindRoot(dir)
+	s, err := Open(dir)
 	if err == nil {
-		return herr.Refused("store discovery from %s finds the store at %s; run hyp init where it finds none", dir, root)
+		return herr.Refused("store discovery from %s finds the store at %s; run hyp init where it finds none", dir, s.Dir)
 	}
 	if !errors.Is(err, ErrNoStore) {
 		return err
 	}
-	for _, sub := range []string{"events", "evidence"} {
-		if err := os.MkdirAll(filepath.Join(Dir(dir), sub), 0o755); err != nil {
-			return err
-		}
-	}
-	if err := os.WriteFile(filepath.Join(Dir(dir), ".gitattributes"), []byte(GitAttributes), 0o644); err != nil {
-		return err
-	}
-	return os.WriteFile(filepath.Join(Dir(dir), ".gitignore"), []byte("index.sqlite\nindex.sqlite-*\n"), 0o644)
+	return record.Init(dir)
 }
 
-// ReadAll parses every .tree/events/*.jsonl file, keyed by actor (the base
+// ReadAll parses every events file of the store read at root, keyed by actor (the base
 // name without .jsonl). Unparseable lines are returned as LineErrors.
 func ReadAll(root string) (map[string][]event.Event, []LineError, error) {
 	out, _, lineErrs, err := readLines(root)
@@ -109,7 +79,7 @@ func ReadAll(root string) (map[string][]event.Event, []LineError, error) {
 // readLines is ReadAll that also returns each parsed event's line, trimmed,
 // at the same actor and index.
 func readLines(root string) (map[string][]event.Event, map[string][][]byte, []LineError, error) {
-	files, err := filepath.Glob(filepath.Join(eventsDir(root), "*.jsonl"))
+	files, err := filepath.Glob(filepath.Join(record.EventsDir(root), "*.jsonl"))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -127,6 +97,19 @@ func readLines(root string) (map[string][]event.Event, map[string][][]byte, []Li
 		lineErrs = append(lineErrs, errs...)
 	}
 	return out, raw, lineErrs, nil
+}
+
+// ParseEventLine returns the id of one event line.
+func ParseEventLine(line []byte) (string, error) {
+	ev, err := event.ParseLine(bytes.TrimSpace(line))
+	return ev.ID, err
+}
+
+// ParseEvents parses one actor's events file, leaving out each line that
+// does not parse.
+func ParseEvents(actor string, data []byte) []event.Event {
+	evs, _, _ := parseFile(actor+".jsonl", data)
+	return evs
 }
 
 func parseFile(name string, data []byte) ([]event.Event, [][]byte, []LineError) {
@@ -233,10 +216,11 @@ func idAfter(t time.Time, last string) string {
 	return ""
 }
 
-// Append validates ev against the current log and, when it is allowed, writes
-// it as one line to .tree/events/<actor>.jsonl and fsyncs. V, ID, TS and
-// Actor are filled in here; for node.add and result.record Node is set to the
-// new id. A refused event is never written.
+// Append validates ev against the current log and, when it is allowed,
+// writes it as one line of the actor's events file, where package record
+// keeps it. V, ID, TS and Actor are filled in here; for node.add and
+// result.record Node is set to the new id. A refused event is never written.
+// root is the store's work-tree folder.
 func Append(root, actor string, ev event.Event) (event.Event, error) {
 	return AppendWith(root, actor, func(*replay.State, replay.Projection) (event.Event, error) { return ev, nil })
 }
@@ -246,24 +230,42 @@ func Append(root, actor string, ev event.Event) (event.Event, error) {
 // write holds, so references are resolved against exactly the state the
 // event is validated against. An error from build is returned unchanged.
 func AppendWith(root, actor string, build func(*replay.State, replay.Projection) (event.Event, error)) (event.Event, error) {
+	s, err := record.At(root)
+	if err != nil {
+		return event.Event{}, err
+	}
+	return AppendTo(s, actor, build)
+}
+
+// AppendTo is AppendWith on a store discovery found. In a record repository
+// the write also adds each file the event names and keeps each commit its
+// subject names, and it is refused when the store's work-tree folder holds
+// an event the record lacks, since that event would then be lost to every
+// reader of the record: hyp import adds it.
+func AppendTo(s *record.Store, actor string, build func(*replay.State, replay.Projection) (event.Event, error)) (event.Event, error) {
 	if !ValidActor(actor) {
 		return event.Event{}, fmt.Errorf("invalid actor %q (want %s)", actor, actorRe)
 	}
-	// Lock the events directory, not one actor file, so that every writer
-	// validates against a log that already holds all other writers' events.
-	dir, err := os.Open(eventsDir(root))
+	// One lock for every writer, so that each validates against a log
+	// that already holds all other writers' events.
+	release, err := s.Lock()
 	if err != nil {
 		return event.Event{}, err
 	}
-	defer dir.Close()
-	if err := syscall.Flock(int(dir.Fd()), syscall.LOCK_EX); err != nil {
+	defer release()
+
+	root, err := s.Root()
+	if err != nil {
 		return event.Event{}, err
 	}
-	defer syscall.Flock(int(dir.Fd()), syscall.LOCK_UN)
-
 	evs, _, err := Events(root)
 	if err != nil {
 		return event.Event{}, err
+	}
+	if s.RecordMode() {
+		if err := refuseUnimported(s, evs); err != nil {
+			return event.Event{}, err
+		}
 	}
 	st, p := replay.Build(evs, recipe.Hashes(root), "")
 	ev, err := build(st, p)
@@ -297,16 +299,40 @@ func AppendWith(root, actor string, build func(*replay.State, replay.Projection)
 	if err != nil {
 		return ev, err
 	}
-	// Open only after validation, so a refused event leaves no file behind.
-	f, err := os.OpenFile(filepath.Join(eventsDir(root), actor+".jsonl"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
-	if err != nil {
-		return ev, err
+	var files []record.File
+	var commits []string
+	if s.RecordMode() {
+		if files, commits, err = Named(s, s.Dir, ev); err != nil {
+			return ev, err
+		}
 	}
-	defer f.Close()
-	if _, err := f.Write(append(line, '\n')); err != nil {
-		return ev, err
+	return ev, s.Append(map[string][][]byte{actor: {line}}, files, commits)
+}
+
+// refuseUnimported refuses a write in a record repository when the store's
+// work-tree folder holds an event whose id the record lacks.
+func refuseUnimported(s *record.Store, evs []event.Event) error {
+	wt, err := s.WorkTreeEventFiles()
+	if err != nil || len(wt) == 0 {
+		return err
 	}
-	return ev, f.Sync()
+	// evs are the record's only when the record holds the store; else
+	// they are the work tree's own, and the record lacks every one.
+	have := map[string]bool{}
+	if s.InRecord {
+		for _, ev := range evs {
+			have[ev.ID] = true
+		}
+	}
+	for actor, data := range wt {
+		got, _, _ := parseFile(actor+".jsonl", data)
+		for _, ev := range got {
+			if !have[ev.ID] {
+				return herr.Refused("the work-tree store at %s holds event %s, which the record lacks; run hyp import %s first", s.Dir, ev.ID, s.Dir)
+			}
+		}
+	}
+	return nil
 }
 
 // ValidActor reports whether actor matches ^[a-z0-9][a-z0-9-]{0,39}$.

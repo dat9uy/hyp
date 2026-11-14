@@ -345,6 +345,20 @@ func (f *Facts) validateResult(ev event.Event) error {
 			return fmt.Errorf("invalid evidence_hashes value for %s: %q", e, h)
 		}
 	}
+	for _, e := range slices.Sorted(maps.Keys(p.EvidenceSHA256)) {
+		if !contains(p.Evidence, e) {
+			return fmt.Errorf("bad evidence_sha256: %s is not in evidence", e)
+		}
+		if strings.HasPrefix(e, "http://") || strings.HasPrefix(e, "https://") {
+			return fmt.Errorf("bad evidence_sha256: %s is a URL, which names no file", e)
+		}
+		if _, ok := event.EvidenceRef(e); ok {
+			return fmt.Errorf("bad evidence_sha256: %s is in a versioned recipe, which evidence_hashes pins", e)
+		}
+		if !event.IsSHA256(p.EvidenceSHA256[e]) {
+			return fmt.Errorf("invalid evidence_sha256 value for %s: %q", e, p.EvidenceSHA256[e])
+		}
+	}
 	if len(p.Limits) > event.MaxLimits {
 		return fmt.Errorf("over limit: limits has %d items (max %d)", len(p.Limits), event.MaxLimits)
 	}

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 )
 
@@ -24,6 +25,7 @@ var ErrNoEvent = errors.New("no such event")
 // the source.
 type Cut struct {
 	Src, At string
+	root    string // the directory the store is read below (record.Store.Root)
 	Events  int
 	lines   map[string][][]byte // kept lines per actor (events file without .jsonl), in merge order, so by id
 	exps    map[string]bool     // evidence folders (E-<last 6 of the id>) of kept Experiments
@@ -33,10 +35,15 @@ type Cut struct {
 // before the event at. A line that does not parse is refused, since it has no
 // place in the merge order.
 func CutAt(src, at string) (*Cut, error) {
-	if fi, err := os.Stat(eventsDir(src)); err != nil || !fi.IsDir() {
+	s, err := record.At(src)
+	if err != nil {
 		return nil, fmt.Errorf("%s: %w", src, ErrNoStore)
 	}
-	files, err := filepath.Glob(filepath.Join(eventsDir(src), "*.jsonl"))
+	root, err := s.Root()
+	if err != nil {
+		return nil, err
+	}
+	files, err := filepath.Glob(filepath.Join(record.EventsDir(root), "*.jsonl"))
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +76,7 @@ func CutAt(src, at string) (*Cut, error) {
 			raw[actor] = append(raw[actor], bytes.Clone(line))
 		}
 	}
-	c := &Cut{Src: src, At: at, lines: map[string][][]byte{}, exps: map[string]bool{}}
+	c := &Cut{Src: src, At: at, root: root, lines: map[string][][]byte{}, exps: map[string]bool{}}
 	// Ties break on the trimmed line, as replay's do (byLine), then on the
 	// line as written, so the cut's bytes never depend on the line order.
 	tie := func(a, b replay.At) int {
@@ -97,17 +104,17 @@ func CutAt(src, at string) (*Cut, error) {
 	return nil, fmt.Errorf("%w %s in %s", ErrNoEvent, at, src)
 }
 
-// Write makes dest/.tree/events with one file per actor that has a kept
+// Write makes the events folder of the store at dest with one file per actor that has a kept
 // event, each kept line as read and the lines in merge order, so a store
-// whose files hold the same lines in another order writes the same bytes; and dest/.tree/evidence without the
+// whose files hold the same lines in another order writes the same bytes; and its evidence folder without the
 // E-* folders of Experiments added after the cut, which would leak the
-// future into a replay. A symlink under the evidence is refused. dest/.tree must not exist. The index is not
+// future into a replay. A symlink under the evidence is refused. The store folder at dest must not exist. The index is not
 // written; hyp rebuilds it.
 func (c *Cut) Write(dest string) error {
-	if _, err := os.Lstat(Dir(dest)); err == nil {
-		return fmt.Errorf("%s exists", Dir(dest))
+	if _, err := os.Lstat(record.Dir(dest)); err == nil {
+		return fmt.Errorf("%s exists", record.Dir(dest))
 	}
-	if err := os.MkdirAll(eventsDir(dest), 0o755); err != nil {
+	if err := os.MkdirAll(record.EventsDir(dest), 0o755); err != nil {
 		return err
 	}
 	for actor, lines := range c.lines {
@@ -116,15 +123,15 @@ func (c *Cut) Write(dest string) error {
 			b.Write(l)
 			b.WriteByte('\n')
 		}
-		if err := os.WriteFile(filepath.Join(eventsDir(dest), actor+".jsonl"), b.Bytes(), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(record.EventsDir(dest), actor+".jsonl"), b.Bytes(), 0o644); err != nil {
 			return err
 		}
 	}
-	ev := filepath.Join(Dir(c.Src), "evidence")
+	ev := record.EvidenceRoot(c.root)
 	if fi, err := os.Stat(ev); err != nil || !fi.IsDir() {
 		return nil
 	}
-	out := filepath.Join(Dir(dest), "evidence")
+	out := record.EvidenceRoot(dest)
 	return filepath.WalkDir(ev, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

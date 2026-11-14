@@ -10,6 +10,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 	"github.com/dat9uy/hyp/internal/sandbox"
 	"github.com/dat9uy/hyp/internal/store"
@@ -19,10 +20,10 @@ import (
 var ErrNoRepo = errors.New("not inside a git repository")
 
 // findStores lists the store roots under top, sorted: each directory holding
-// .tree. It skips .git, any directory below top that holds its own .git (a
+// a store folder. It skips git's folder, any directory below top that holds its own (a
 // nested repository or a worktree checkout) and a bundle's known-answers/
 // (case inputs are fixtures hashed into the bundle, not trees), and does not
-// descend .tree.
+// descend a store folder.
 func findStores(top string) ([]string, error) {
 	var stores []string
 	err := filepath.WalkDir(top, func(p string, d fs.DirEntry, err error) error {
@@ -33,10 +34,10 @@ func findStores(top string) ([]string, error) {
 			return nil
 		}
 		if p != top {
-			if d.Name() == ".git" {
+			if record.IsGitName(d.Name()) {
 				return filepath.SkipDir
 			}
-			if _, err := os.Lstat(filepath.Join(p, ".git")); err == nil {
+			if _, err := os.Lstat(filepath.Join(p, record.GitName)); err == nil {
 				return filepath.SkipDir
 			}
 			if d.Name() == "known-answers" {
@@ -45,7 +46,7 @@ func findStores(top string) ([]string, error) {
 				}
 			}
 		}
-		if d.Name() == ".tree" {
+		if record.IsStoreDirName(d.Name()) {
 			stores = append(stores, filepath.Dir(p))
 			return filepath.SkipDir
 		}
@@ -97,7 +98,13 @@ func Recipes(start string) (report []string, failures, hinted int, err error) {
 		}
 		rel, _ := filepath.Rel(top, root)
 		rel = filepath.ToSlash(rel)
-		p, _, err := store.Load(root)
+		// The pins are the record's when it holds the store; the bundles
+		// are the ones checked out.
+		read, err := store.FindRoot(root)
+		if err != nil {
+			read = root
+		}
+		p, _, err := store.Load(read)
 		if err != nil {
 			report = append(report, fmt.Sprintf("error: %s: %v", rel, err))
 			failures++

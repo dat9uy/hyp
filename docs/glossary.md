@@ -11,11 +11,19 @@ One investigation: a Goal and the DesignQuestions, Hypotheses, Experiments and R
 _Avoid_: graph, log (the log is its events), project
 
 **Store**:
-The `.tree/` directory of a repository: one events file per actor and the evidence files Results point at ([spec §1](replay-spec.md#1-names-and-locations)). hyp finds it by walking up from the current directory to the repository root, the first directory that holds `.git`, and never above it; `hyp init` is refused where it finds one. In code: package `store`.
+The `.tree/` directory of a repository: one events file per actor and the evidence files Results point at ([spec §1](replay-spec.md#1-names-and-locations)). hyp finds it by walking up from the current directory to the repository root, the first directory that holds `.git`, and never above it; `hyp init` is refused where it finds one. Its name is its folder's path from the repository root. In a record repository the Record holds it. In code: package `store` reads and appends; package `record` owns where it lives.
 _Avoid_: database, index (hyp keeps none, ADR 0006)
 
+**Record**:
+Every event of every store of one git repository, the bytes of every file an event names, the files of each bundle an event pins and every commit a Hypothesis subject names, kept by hyp as commits on the hidden ref `refs/hyp/record`, which no branch holds ([spec §1.1](replay-spec.md#11-the-record-adr-0024), ADR 0024). `hyp sync` joins it with a remote's; `hyp import` adds a work-tree store's events to it. In code: package `record`. A sandbox record (`sandbox.json`) and a command record (`command.json`) are files a run keeps, not the Record.
+_Avoid_: record branch, log branch (the ref is not a branch)
+
+**Record repository**:
+A git repository that holds `refs/hyp/record`. `hyp init` and `hyp import` make a git repository one; a sandbox clone never is ([spec §1.1](replay-spec.md#11-the-record-adr-0024)).
+_Avoid_: record repo
+
 **Event**:
-One line of `.tree/events/<actor>.jsonl`: an id, a time, an actor, a type from a closed set and its payload ([spec §3](replay-spec.md#3-event-envelope), [spec §4](replay-spec.md#4-event-types-closed-set)). Events are only appended, and every status is derived from them. In code: `event.Event`.
+One line of a store's events file, `.tree/events/<actor>.jsonl`: an id, a time, an actor, a type from a closed set and its payload ([spec §3](replay-spec.md#3-event-envelope), [spec §4](replay-spec.md#4-event-types-closed-set)). Events are only appended, and every status is derived from them. In code: `event.Event`.
 _Avoid_: entry, record (a record is what hyp writes for a sandbox or a command)
 
 **Actor**:

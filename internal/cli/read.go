@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
+	"path/filepath"
 	"regexp"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/dat9uy/hyp/internal/check"
@@ -14,6 +18,7 @@ import (
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/replay"
 	"github.com/dat9uy/hyp/internal/signals"
@@ -23,7 +28,9 @@ import (
 // reader is one read command: it replays the whole log and can replay again
 // up to an --as-of point. hyp keeps no index; every read replays (ADR 0006).
 type reader struct {
-	root     string
+	store    *record.Store
+	dir      string // the store's work-tree folder
+	root     string // the directory every read reads below (record.Store.Root)
 	evs      []event.Event
 	lineErrs []store.LineError
 	hashes   map[string]string
@@ -48,7 +55,11 @@ func openEvents() (*reader, error) {
 		return nil, err
 	}
 	r := &reader{}
-	if r.root, err = store.FindRoot(cwd); err != nil {
+	if r.store, err = store.Open(cwd); err != nil {
+		return nil, err
+	}
+	r.dir = r.store.Dir
+	if r.root, err = r.store.Root(); err != nil {
 		return nil, err
 	}
 	if r.evs, r.lineErrs, err = store.Events(r.root); err != nil {
@@ -166,11 +177,14 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 		return err
 	}
 	if len(pos) != 1 {
-		return usageErr("usage: hyp show REF|R-id#n|G-id#n [--as-of REF|TIME]")
+		return usageErr("usage: hyp show REF|R-id#n|G-id#n|FILE [--as-of REF|TIME]")
 	}
 	r, err := openReader()
 	if err != nil {
 		return err
+	}
+	if strings.Contains(pos[0], "/") {
+		return showFile(r, pos[0], stdout)
 	}
 	p, err := r.at(*asOf)
 	if err != nil {
@@ -195,6 +209,46 @@ func cmdShow(args []string, stdout, stderr io.Writer) error {
 	}
 	fmt.Fprint(stdout, render.Show(p, id, ancestors(p, id)))
 	return nil
+}
+
+// showFile prints the bytes of a file an applied event names, a path
+// relative to the store's folder as the event holds it: in a record
+// repository the record's copy, which no later change to the work tree
+// reaches.
+func showFile(r *reader, arg string, stdout io.Writer) error {
+	clean := path.Clean(filepath.ToSlash(arg))
+	named := false
+	for _, ev := range r.full.Applied {
+		n := store.NamesOf(ev)
+		if slices.Contains(n.Files, clean) {
+			named = true
+			break
+		}
+		if ev.Type == event.TypeResultRecord {
+			if r.full.Nodes[ev.ID] != nil && slices.ContainsFunc(r.full.Nodes[ev.ID].Evidence, func(e string) bool { return path.Clean(e) == clean }) {
+				named = true
+				break
+			}
+		}
+	}
+	if !named {
+		return usageErr("%s is no file an event of this store names", arg)
+	}
+	file := filepath.Join(r.root, filepath.FromSlash(clean))
+	if ref, ok := event.EvidenceRef(clean); ok {
+		b, err := recipe.Load(r.root, ref.String())
+		if err != nil {
+			return err
+		}
+		_, rest, _ := strings.Cut(strings.TrimPrefix(clean, "recipes/"), "/")
+		file = filepath.Join(b.Path, filepath.FromSlash(rest))
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return herr.Env("%s: %v", arg, err)
+	}
+	_, err = stdout.Write(data)
+	return err
 }
 
 func cmdDiff(args []string, stdout, stderr io.Writer) error {
@@ -250,11 +304,11 @@ func cmdCheck(args []string, stdout, stderr io.Writer) error {
 	if err != nil {
 		return err
 	}
-	root, err := store.FindRoot(cwd)
+	s, err := store.Open(cwd)
 	if err != nil {
 		return err
 	}
-	report, errs := check.Run(root)
+	report, errs := check.RunStore(s)
 	for _, l := range report {
 		fmt.Fprintln(stdout, l)
 	}
@@ -290,8 +344,8 @@ func cmdSignals(args []string, stdout, stderr io.Writer) error {
 }
 
 // cmdEvents prints the applied events in merge order, as stored, and the
-// rejected ones apart, for scripts that would otherwise read .tree/events
-// (ADR 0006). A shape change bumps format.
+// rejected ones apart, for scripts that would otherwise read the events
+// files (ADR 0006). A shape change bumps format.
 func cmdEvents(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("events", stderr)
 	asJSON := fs.Bool("json", false, "print as JSON (required; the only form)")

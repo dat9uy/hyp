@@ -450,6 +450,10 @@ A replay starts from a hyp store as it was at one event.
   under SRC's evidence is refused (exit 3, and the sandbox is removed).
 - The cut replaces any `.tree` the base commit holds at its root: `wt/.tree`
   holds the cut and no other file of the base's `.tree`.
+- When the record, the hidden ref where hyp keeps a git repository's
+  stores, holds SRC, the cut reads the record's copy of SRC. The clone is
+  marked a sandbox clone: hyp there keeps no record and reads and writes
+  `wt/.tree`.
 - `--store` and `--cut` go together. An `EVENT` that SRC does not hold and a
   SRC with no `.tree/events` are refused with exit 2 before anything is
   made. An events line that does

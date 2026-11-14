@@ -17,7 +17,7 @@ import (
 
 const Version = 1
 
-// Event is one line of a .tree/events/<actor>.jsonl file.
+// Event is one line of a store's events file, <actor>.jsonl.
 type Event struct {
 	V       int             `json:"v"`
 	ID      string          `json:"id"`
@@ -190,6 +190,10 @@ type ResultRecord struct {
 	// EvidenceHashes maps an evidence pointer into a versioned recipe to the
 	// bundle hash recorded for that recipe when the Result was written.
 	EvidenceHashes map[string]string `json:"evidence_hashes,omitempty"`
+	// EvidenceSHA256 maps each evidence pointer to a file, outside a
+	// versioned recipe, to that file's sha256 when the Result was written,
+	// so a reader can tell the file the Result cited from any later copy.
+	EvidenceSHA256 map[string]string `json:"evidence_sha256,omitempty"`
 	Limits         []string          `json:"limits,omitempty"`
 	Closes         []string          `json:"closes,omitempty"`
 	// Readings states how the run read owner words a verdict rests on: a line

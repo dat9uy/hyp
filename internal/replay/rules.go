@@ -80,7 +80,7 @@ var rules = map[string]rule{
 			_ = event.DecodePayload(ev, &p)
 			st.addNode(&Node{ID: ev.ID, Kind: event.KindResult, Parent: p.Parent, Actor: ev.Actor,
 				AddedBy: ev.ID, Verdicts: p.Verdicts, VerdictOrder: event.VerdictOrder(ev.Payload), Observation: p.Observation, Evidence: p.Evidence,
-				EvidenceHashes: p.EvidenceHashes, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
+				EvidenceHashes: p.EvidenceHashes, EvidenceSHA256: p.EvidenceSHA256, Limits: p.Limits, Closes: p.Closes, Readings: p.Readings, Applies: p.Applies,
 				Subjects: runSubjects(p)})
 			for h := range p.Verdicts {
 				st.ResultsByHyp[h] = append(st.ResultsByHyp[h], ev.ID)

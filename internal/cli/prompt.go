@@ -3,13 +3,13 @@ package cli
 import (
 	"fmt"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"unicode"
 
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/store"
 )
 
@@ -82,21 +82,6 @@ func blockWarning(body string) string {
 	return "warn: hyp prompt will refuse this Goal: " + strings.Join(problems, "; ")
 }
 
-// repoRoot is the nearest directory at or above dir that holds .git; ok is
-// false when none does.
-func repoRoot(dir string) (root string, ok bool) {
-	for d := dir; ; {
-		if _, err := os.Stat(filepath.Join(d, ".git")); err == nil {
-			return d, true
-		}
-		up := filepath.Dir(d)
-		if up == d {
-			return "", false
-		}
-		d = up
-	}
-}
-
 // cmdPrompt prints the /goal prompt for a Goal, derived from the log: the
 // store's path, the actor, the Goal, the hyp-goal-run skill, the stop clauses
 // and the Goal body's constraints block. It reads no owner answer, so the
@@ -148,11 +133,11 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	}
 	// The working directory may reach the store through a symbolic link;
 	// the store's place in its repository is read from its real path.
-	storeDir, err := filepath.EvalSymlinks(r.root)
+	storeDir, err := filepath.EvalSymlinks(r.dir)
 	if err != nil {
 		return herr.Env("%v", err)
 	}
-	repo, ok := repoRoot(storeDir)
+	repo, ok := record.FindTop(storeDir)
 	if !ok {
 		return herr.Env("hyp prompt %s: no repository holds the store %s, so its path relative to the repository root is not known", g, storeDir)
 	}

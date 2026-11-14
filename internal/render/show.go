@@ -133,6 +133,10 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		w("observation: %s", n.Observation)
 		w("verdicts: %s", r.verdicts(n.Verdicts))
 		for _, e := range n.Evidence {
+			if sum := n.EvidenceSHA256[e]; sum != "" {
+				w("evidence: %s sha256 %s", e, sum)
+				continue
+			}
 			w("evidence: %s", e)
 		}
 		for i, l := range n.Limits {

@@ -40,14 +40,20 @@ copy the skills again, so the binary and the skills stay the same version.
 In the repository you investigate:
 
 ```bash
-hyp init                         # creates .tree/events, .tree/evidence, .tree/.gitignore, .tree/.gitattributes
-git add .tree/.gitignore .tree/.gitattributes .tree/events
+hyp init                         # creates .tree/events, .tree/evidence, .tree/.gitignore, .tree/.gitattributes, and the record
+git add .tree/.gitignore .tree/.gitattributes
 hyp bundle new NAME@1            # optional: a first versioned procedure, in recipes/ beside .tree/
 ```
 
-Commit `.tree/events/` and `.tree/evidence/` with the work they describe.
+In a git repository hyp keeps every event and each file an event names in
+the record: commits on the hidden ref `refs/hyp/record`, which no branch
+holds, so no branch act or `git clean` loses them. Run `hyp sync` to share
+the record with `origin`, and `hyp sync` in a fresh clone to read it. A
+store that older hyp binaries kept in the work tree enters the record with
+`hyp import PATH`. Outside a git repository, commit `.tree/events/` and the
+cited files under `.tree/evidence/` with the work they describe.
 hyp keeps no index (ADR 0006); the `.tree/.gitignore` still ignores the
-`index.sqlite` that older hyp binaries write.
+`index.sqlite` that older hyp binaries write, and ignores `evidence/`.
 Each agent session sets its own actor, for example
 `export HYP_ACTOR=claude-<topic>-1`.
 

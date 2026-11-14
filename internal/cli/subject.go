@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"github.com/dat9uy/hyp/internal/cmdrecord"
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/record"
 )
 
 // cmdSubject writes hypothesis.subject: what embodies a Hypothesis's claim,
@@ -71,13 +71,12 @@ func cmdSubject(args []string, stdout, stderr io.Writer) error {
 // resolveCommit names rev as a full commit id of the git repository that
 // holds the store root.
 func resolveCommit(root, rev string) (string, error) {
-	out, err := exec.Command("git", "-C", root, "rev-parse", "--verify", "--quiet", rev+"^{commit}").Output()
-	if errors.Is(err, exec.ErrNotFound) {
-		return "", herr.Env("--base %s: git is not on PATH", rev)
-	}
-	id := strings.TrimSpace(string(out))
-	if err != nil || !event.IsCommit(id) {
+	id, err := record.ResolveCommit(root, rev)
+	if errors.Is(err, record.ErrNotCommit) || (err == nil && !event.IsCommit(id)) {
 		return "", usageErr("--base %s is not a commit in the repository at %s", rev, root)
+	}
+	if err != nil {
+		return "", herr.Env("--base %s: %s", rev, herr.Text(err))
 	}
 	return id, nil
 }
@@ -162,7 +161,7 @@ func fileSHA256(path string) (string, error) {
 // no subject, since its code is unknown. A record that cannot be read, or
 // names nothing, gives no subject; hyp check reports a record it cannot read. A subject
 // equal to an earlier one is kept once (ADR 0020).
-func runSubjects(root string, evidence []string) []event.RunSubject {
+func runSubjects(rootOf func(rel string) string, evidence []string) []event.RunSubject {
 	var out []event.RunSubject
 	add := func(base, patch string, files []string) {
 		files = slices.DeleteFunc(files, func(h string) bool { return !event.IsSHA256(h) })
@@ -181,7 +180,7 @@ func runSubjects(root string, evidence []string) []event.RunSubject {
 		out = append(out, run)
 	}
 	for _, e := range evidence {
-		path := filepath.Join(root, filepath.FromSlash(filepath.ToSlash(filepath.Clean(e))))
+		path := filepath.Join(rootOf(e), filepath.FromSlash(filepath.ToSlash(filepath.Clean(e))))
 		switch filepath.Base(e) {
 		case "command.json":
 			if r, err := cmdrecord.Read(path); err == nil {

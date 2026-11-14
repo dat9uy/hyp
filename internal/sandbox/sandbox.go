@@ -3,8 +3,9 @@
 // Create makes ~/.hyp-sandbox/ID with:
 //
 //	wt/           a clone of the host detached at the base commit, origin removed;
-//	              with a store cut, wt/.tree is that store as it was at the cut event,
-//	              in place of any .tree the base holds
+//	              with a store cut, the store folder at wt/ is that store as it was at
+//	              the cut event, in place of any the base holds; marked a sandbox
+//	              clone, so hyp there keeps no record
 //	tmp/          scratch, holding an empty tmp/<name>/ for each recipe
 //	recipes/      the sandbox's copy of each recipe (recipes/<name>/), unless it is none;
 //	              outside wt/, so the agent working there does not find it; a copy is opened by
@@ -18,7 +19,7 @@
 //	sandbox.json  the Record, written only by hyp
 //	sandbox.lock  held by the one hyp command changing the sandbox
 //
-// With Store and Cut, create writes wt/.tree from the store as replay sees it
+// With Store and Cut, create writes wt/'s store folder from the store as replay sees it
 // as of the cut event (store.CutAt), so hyp status in wt/ equals hyp status
 // --as-of CUT in the store, before any recipe runs.
 //
@@ -43,7 +44,7 @@
 // stops the groups of commands a killed hyp left unfinished, then runs every
 // recipe's Cleanup commands, last recipe first, every command even after one
 // fails, each under its own deadline. It then copies
-// wt/.tree (without index.sqlite*, which older hyp binaries write; ADR 0006),
+// wt/'s store folder (without index.sqlite*, which older hyp binaries write; ADR 0006),
 // recipe.log, each kept file and the record (with removed), the inputs copy, patches/, and changes.json with changes/ (every path
 // in wt/ that changed since create finished) to OUT_DIR, and deletes the
 // sandbox. With Discard it deletes without writing a
@@ -107,6 +108,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/dat9uy/hyp/internal/record"
 	"io"
 	"io/fs"
 	"os"
@@ -131,7 +133,7 @@ import (
 // copy and each recipe copy are derived from the sandbox directory, which is
 // the sandbox root and the id. Host is the host repository's directory name.
 // Recipes lists the sandbox's recipes in stack order; --recipe none is the
-// one entry {"ref": "none"}. Store and Cut name the store wt/.tree was cut
+// one entry {"ref": "none"}. Store and Cut name the store wt/'s store folder was cut
 // from, as <host>/REL when it is inside the host, and the cut event, when
 // create made one. Commands lists every command hyp ran in the sandbox, in
 // order. Extra holds every other field of a record read from disk (an older
@@ -348,7 +350,7 @@ type CreateOptions struct {
 	// ref none, and is required; Recipes is the directory that holds recipes/.
 	Refs    []string
 	Recipes string
-	// Store and Cut, both or neither: write wt/.tree from the store at
+	// Store and Cut, both or neither: write wt/'s store folder from the store at
 	// Store as it was at the event Cut.
 	Store, Cut string
 	// Inputs is a file of this run's inputs, or "": the sandbox keeps a
@@ -702,7 +704,7 @@ func Create(o CreateOptions) (*Record, error) {
 	if o.Store != "" {
 		if cut, err = store.CutAt(o.Store, o.Cut); err != nil {
 			if errors.Is(err, store.ErrNoStore) {
-				return nil, herr.BadArgs("--store %s holds no .tree/events", o.Store)
+				return nil, herr.BadArgs("--store %s holds no %s", o.Store, record.EventsDirRel)
 			}
 			if errors.Is(err, store.ErrNoEvent) {
 				return nil, herr.BadArgs("--cut: %v", err)
@@ -1091,7 +1093,7 @@ func hypVersion(bin string) (string, error) {
 }
 
 // build makes the sandbox's contents and record, writing cut, when there is
-// one, to wt/.tree. For each recipe it also returns the recipe opened from
+// one, to wt/'s store folder. For each recipe it also returns the recipe opened from
 // its copy in <box>/recipes, whose commands point there, in stack order.
 func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*cmdrecord.KnownAnswers, cut *store.Cut) (*Record, []*recipe.Recipe, error) {
 	wt, tmp, bin := filepath.Join(box, "wt"), filepath.Join(box, "tmp"), filepath.Join(box, "bin")
@@ -1103,6 +1105,9 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		if _, err := git(args...); err != nil {
 			return nil, nil, err
 		}
+	}
+	if err := record.MarkSandbox(wt); err != nil {
+		return nil, nil, err
 	}
 	for _, d := range []string{tmp, bin} {
 		if err := os.Mkdir(d, 0o755); err != nil {
@@ -1119,9 +1124,9 @@ func build(o CreateOptions, box, version string, rcps []*recipe.Recipe, kas []*c
 		if src, err = filepath.Abs(cut.Src); err != nil {
 			return nil, nil, err
 		}
-		// The cut replaces every file of the base's own .tree, so the clone's
-		// store is the cut and nothing else.
-		if err := os.RemoveAll(filepath.Join(wt, ".tree")); err != nil {
+		// The cut replaces every file of the base's own store folder, so the
+		// clone's store is the cut and nothing else.
+		if err := os.RemoveAll(record.Dir(wt)); err != nil {
 			return nil, nil, err
 		}
 		if err := cut.Write(wt); err != nil {
@@ -1538,7 +1543,7 @@ func saveRecord(o RemoveOptions, dir string, rec *Record, wt, box string, keep [
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	tree := filepath.Join(wt, ".tree")
+	tree := record.Dir(wt)
 	if fi, err := os.Stat(tree); err == nil && fi.IsDir() {
 		if err := copyTree(tree, filepath.Join(dir, keptTree)); err != nil {
 			return err

@@ -10,13 +10,88 @@ import (
 	"github.com/dat9uy/hyp/internal/claim"
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/recipe"
+	"github.com/dat9uy/hyp/internal/record"
 	"github.com/dat9uy/hyp/internal/replay"
 	"github.com/dat9uy/hyp/internal/store"
 )
 
 // Run checks the store at root. Errors are unparseable lines and rejected
 // events; everything else is a warning. The last line is the summary.
-func Run(root string) (report []string, errorsFound int) {
+func Run(root string) (report []string, errorsFound int) { return run(root, nil) }
+
+// RunStore checks the store discovery found. In a record repository it
+// checks the record's copy and also warns when the store's work-tree folder
+// holds an event the record lacks, which hyp import adds, and for each
+// checked-out bundle whose hash differs from a pin of the same ref.
+func RunStore(s *record.Store) (report []string, errorsFound int) {
+	root, err := s.Root()
+	if err != nil {
+		return []string{"error: " + err.Error(), "check: 1 errors, 0 warnings"}, 1
+	}
+	if !s.RecordMode() {
+		return run(root, nil)
+	}
+	var extra []string
+	if evs, _, err := store.Events(root); err == nil {
+		have := map[string]bool{}
+		for _, ev := range evs {
+			have[ev.ID] = s.InRecord
+		}
+		if wt, err := s.WorkTreeEventFiles(); err == nil && len(wt) > 0 {
+			lacks := 0
+			for actor, data := range wt {
+				for _, ev := range store.ParseEvents(actor, data) {
+					if !have[ev.ID] {
+						lacks++
+					}
+				}
+			}
+			if lacks > 0 {
+				extra = append(extra, fmt.Sprintf("warn: the work-tree store at %s holds %d events the record lacks; run hyp import %s", s.Dir, lacks, s.Dir))
+			}
+		}
+	}
+	if p, _, err := store.Load(root); err == nil {
+		checkedOut, problems := recipe.Scan(s.Dir)
+		seen := map[string]bool{}
+		drift := func(by, ref, pinned string) {
+			now, ok := checkedOut[ref]
+			if !ok || pinned == "" || now == pinned || seen[ref+" "+now] {
+				return
+			}
+			seen[ref+" "+now] = true
+			extra = append(extra, fmt.Sprintf("warn: checked-out bundle %s hashes %s, not %s as %s pins it", ref, now, pinned, by))
+		}
+		for _, ev := range p.Applied {
+			n := p.Nodes[ev.ID]
+			if n == nil {
+				continue
+			}
+			switch n.Kind {
+			case event.KindExperiment:
+				by := event.DisplayID(n.Kind, n.ID)
+				if n.Recipe != event.RecipeNone {
+					drift(by, n.Recipe, n.RecipeHash)
+				}
+				if n.Rubric != "" && n.Rubric != event.RubricReading {
+					drift(by, n.Rubric, n.RubricHash)
+				}
+			case event.KindResult:
+				for _, pin := range p.Results[n.ID].Pins {
+					if pin.Pointer != "" {
+						drift(event.DisplayID(n.Kind, n.ID), pin.Ref.String(), pin.Hash)
+					}
+				}
+			}
+		}
+		for _, pr := range problems {
+			extra = append(extra, "warn: checked-out "+pr)
+		}
+	}
+	return run(root, extra)
+}
+
+func run(root string, extra []string) (report []string, errorsFound int) {
 	evs, lineErrs, err := store.Events(root)
 	if err != nil {
 		return []string{"error: " + err.Error(), "check: 1 errors, 0 warnings"}, 1
@@ -117,6 +192,7 @@ func Run(root string) (report []string, errorsFound int) {
 	for _, pr := range problems {
 		warns = append(warns, "warn: "+pr)
 	}
+	warns = append(warns, extra...)
 	report = append(report, warns...)
 	report = append(report, fmt.Sprintf("check: %d errors, %d warnings", errorsFound, len(warns)))
 	return report, errorsFound

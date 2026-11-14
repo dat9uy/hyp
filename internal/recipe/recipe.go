@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/dat9uy/hyp/internal/record"
 	"io"
 	"io/fs"
 	"os"
@@ -80,22 +81,8 @@ type Recipe struct {
 // (ADR 0002).
 const Format = "1"
 
-// RepoRoot returns the repository root at or above start: the first
-// directory that holds .git (a directory, or a file in a worktree).
-func RepoRoot(start string) (string, bool) {
-	abs, err := filepath.Abs(start)
-	if err != nil {
-		return "", false
-	}
-	for d := abs; ; d = filepath.Dir(d) {
-		if _, err := os.Lstat(filepath.Join(d, ".git")); err == nil {
-			return d, true
-		}
-		if filepath.Dir(d) == d {
-			return "", false
-		}
-	}
-}
+// RepoRoot returns the repository root at or above start (record.FindTop).
+func RepoRoot(start string) (string, bool) { return record.FindTop(start) }
 
 // GoFileWarnings returns one warning per .go file in the bundle at dir, by
 // its bundle-relative path, when the repository root above dir holds go.mod:
@@ -703,7 +690,7 @@ func scriptInside(root, cmd string) (string, error) {
 // the hash skips: a name starting with "." or a __pycache__ directory. A
 // known answer's input (known-answers/NAME/input/...) is hashed whole, dot
 // entries and __pycache__ included, since a case input is often a store
-// holding .tree/; only its first three components are checked.
+// holding a store folder; only its first three components are checked.
 func Unhashed(rel string) bool {
 	parts := strings.Split(rel, "/")
 	if len(parts) > 3 && parts[0] == "known-answers" && parts[2] == "input" {
