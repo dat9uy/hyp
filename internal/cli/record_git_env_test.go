@@ -2,6 +2,7 @@ package cli
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -133,8 +134,12 @@ func TestShowPickPrintsOnlyBytesOfThatSha(t *testing.T) {
 	gitIn(t, repo, "commit", "-qm", "work-tree store")
 	t.Chdir(dst)
 	want(t, hyp(t, "import", "."), 0, "imported")
+	printed := 0
 	for _, data := range []string{"one\n", "two\n"} {
 		r := hyp(t, "show", ptr+"@"+sha256Hex(data)[:12])
+		if r.code == 0 {
+			printed++
+		}
 		if r.code == 0 && r.stdout != data {
 			t.Fatalf("hyp show %s@%s printed %q, not %q", ptr, sha256Hex(data)[:12], r.stdout, data)
 		}
@@ -142,4 +147,56 @@ func TestShowPickPrintsOnlyBytesOfThatSha(t *testing.T) {
 			t.Fatalf("hyp show %s@%s: exit %d, stderr %q", ptr, sha256Hex(data)[:12], r.code, r.stderr)
 		}
 	}
+	if printed == 0 {
+		t.Fatal("hyp show refused both picks; the record keeps one of the two contents")
+	}
+}
+
+// reftableRepo makes a git repository in the reftable ref format, or skips
+// when the git on PATH cannot.
+func reftableRepo(t *testing.T) string {
+	t.Helper()
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err := exec.Command("git", "-C", repo, "init", "-q", "--ref-format=reftable").CombinedOutput(); err != nil {
+		t.Skipf("git cannot make a reftable repository: %v %s", err, out)
+	}
+	return repo
+}
+
+// A reftable repository with no record ref and no git on PATH reads and
+// writes the work-tree store as before the record; a reftable record
+// repository with no git on PATH exits 3.
+func TestReftableRepositoryWithNoGit(t *testing.T) {
+	repo := reftableRepo(t)
+	other := t.TempDir()
+	t.Chdir(other)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "work tree", "--why", "w")
+	dst := filepath.Join(repo, "w")
+	if err := os.CopyFS(dst, os.DirFS(other)); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dst)
+	path := os.Getenv("PATH")
+	t.Setenv("PATH", t.TempDir())
+	want(t, hyp(t, "status"), 0, g)
+	g2 := must(t, "add", "goal", "--title", "written with no git", "--why", "w")
+	want(t, hyp(t, "show", g2), 0, "written with no git")
+	t.Setenv("PATH", path)
+
+	rec := reftableRepo(t)
+	writeFile(t, filepath.Join(rec, "s", "README.md"), "a store\n")
+	gitIn(t, rec, "add", "-A")
+	gitIn(t, rec, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(rec, "s"))
+	must(t, "init")
+	g3 := must(t, "add", "goal", "--title", "in the record", "--why", "w")
+	want(t, hyp(t, "status"), 0, g3)
+	t.Setenv("PATH", t.TempDir())
+	want(t, hyp(t, "status"), 3, "cannot read the record")
+	want(t, hyp(t, "add", "goal", "--title", "x", "--why", "w"), 3, "cannot read the record")
 }

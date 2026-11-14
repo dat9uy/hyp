@@ -70,7 +70,19 @@ func openRepo(top string) (*Repo, error) {
 		return nil, err
 	}
 	r.Record = tip != ""
+	if r.Record {
+		r.markRecord()
+	}
 	return r, nil
+}
+
+// markRecord writes the record mark when it is missing. A mark it cannot
+// write only loses the exit 3 with no git where the refs are a reftable.
+func (r *Repo) markRecord() {
+	m := filepath.Join(r.Common, recordMark)
+	if _, err := os.Stat(m); err != nil {
+		_ = os.WriteFile(m, nil, 0o644)
+	}
 }
 
 // OpenRepo opens the repository whose work tree holds start, or returns
@@ -84,10 +96,15 @@ func OpenRepo(start string) (repo *Repo, ok bool, err error) {
 	return repo, err == nil, err
 }
 
-// refOnDisk reports whether the files of the repository at top may hold
-// Ref, read without git: a loose ref, a line of packed-refs, or a reftable,
-// which only git can read and so counts as holding it. A sandbox clone's
-// mark counts as no record.
+// recordMark is the file in a record repository's common git directory
+// that hyp writes whenever it sees the record with git, so that without git
+// hyp can tell a record repository whose refs only git can read, such as a
+// reftable, from one with no record.
+const recordMark = "hyp-record"
+
+// refOnDisk reports whether the files of the repository at top hold Ref,
+// read without git: the record mark, a loose ref or a line of packed-refs.
+// A sandbox clone's mark counts as no record.
 func refOnDisk(top string) bool {
 	gitdir := filepath.Join(top, GitName)
 	if fi, err := os.Stat(gitdir); err != nil {
@@ -119,7 +136,7 @@ func refOnDisk(top string) bool {
 	if _, err := os.Stat(filepath.Join(common, filepath.FromSlash(Ref))); err == nil {
 		return true
 	}
-	if _, err := os.Stat(filepath.Join(common, "reftable")); err == nil {
+	if _, err := os.Stat(filepath.Join(common, recordMark)); err == nil {
 		return true
 	}
 	b, err := os.ReadFile(filepath.Join(common, "packed-refs"))
@@ -164,6 +181,7 @@ func (r *Repo) ensureRecord() error {
 		return err
 	}
 	r.Record = true
+	r.markRecord()
 	return nil
 }
 
