@@ -390,6 +390,11 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 				return draft{}, err
 			}
 		}
+		if kind == event.KindHypothesis {
+			if _, err = admitted(w.p.AdmitAddHyp(p.Parent)); err != nil {
+				return draft{}, err
+			}
+		}
 		return draft{event.TypeNodeAdd, "", p}, nil
 	})
 	if err == nil && kind == event.KindGoal {
@@ -695,9 +700,28 @@ func cmdOnNode(name, typ string) func([]string, io.Writer, io.Writer) error {
 		}
 		return w.run(func() (draft, error) {
 			id, err := w.ref(pos[0])
+			if err != nil {
+				return draft{}, err
+			}
+			_, err = admitted(admitOnNode(w.p, typ, id))
 			return draft{typ, id, event.Empty{}}, err
 		})
 	}
+}
+
+// admitOnNode is the write-time rule of an event on one node: an open
+// reading holds the reaffirm of its question or of a Hypothesis there, and
+// the abandon of a Hypothesis its answer can move (spec §5.1).
+func admitOnNode(p replay.Projection, typ, id string) []replay.Finding {
+	switch typ {
+	case event.TypeReaffirm:
+		return p.AdmitReaffirm(id)
+	case event.TypeHypothesisAbandon:
+		if n := p.Nodes[id]; n != nil && n.Kind == event.KindHypothesis {
+			return p.AdmitRetire("abandon", id)
+		}
+	}
+	return nil
 }
 
 // cmdWithdraw writes experiment.withdraw for an Experiment and dq.withdraw
@@ -734,7 +758,13 @@ func cmdSupersede(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		to, err := w.ref(*old)
-		return draft{event.TypeEdgeAdd, from, event.Edge{Type: event.EdgeSupersedes, To: to}}, err
+		if err != nil {
+			return draft{}, err
+		}
+		if err := admitSupersede(w.p, to); err != nil {
+			return draft{}, err
+		}
+		return draft{event.TypeEdgeAdd, from, event.Edge{Type: event.EdgeSupersedes, To: to}}, nil
 	})
 }
 
@@ -772,9 +802,26 @@ func cmdLink(name, typ string) func([]string, io.Writer, io.Writer) error {
 					return draft{}, err
 				}
 			}
+			if typ == event.TypeEdgeAdd && pos[1] == event.EdgeSupersedes {
+				if err := admitSupersede(w.p, to); err != nil {
+					return draft{}, err
+				}
+			}
 			return draft{typ, from, event.Edge{Type: pos[1], To: to}}, nil
 		})
 	}
+}
+
+// admitSupersede holds every command that writes a supersedes edge to a
+// Hypothesis, hyp supersede and hyp link alike, while an open reading's
+// answer can move it.
+func admitSupersede(p replay.Projection, to string) error {
+	if n := p.Nodes[to]; n != nil && n.Kind == event.KindHypothesis {
+		if _, err := admitted(p.AdmitRetire("supersede", to)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func cmdSelect(args []string, stdout, stderr io.Writer) error {

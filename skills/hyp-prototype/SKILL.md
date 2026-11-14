@@ -191,11 +191,18 @@ that no longer matters is `hyp withdraw <Q-id>`.
     `hyp select <Q-id> <H-id> --why "<the owner's words>"`. That select
     answers the question; no confirm follows.
   - `R-…#r1 reading: …` is a reading of the Goal that a verdict rests on. It
-    changes no status. While its answer can move a Hypothesis on its
-    question, a candidate its Result gave a verdict on or a Hypothesis only its Result
-    contradicts, new rivals, the select and the owner's choice there wait
-    on it, and hyp status prints a waits line. Carry on with other work and ask
-    the owner at the next stop. Record it with `hyp record --reading "<the
+    changes no status. While it is open, it holds its question's decision:
+    the select, the owner's choice and a stale item wait on it there, and
+    `hyp select` and `hyp reaffirm` on that question exit 1, whatever its
+    answer can move. hyp status prints a waits line. It also holds the
+    question's next Hypothesis while its answer can move a Hypothesis there
+    (a supported one its Result judged, an inconclusive one its Result judged
+    inconclusive, or a Hypothesis only its Result contradicts), or while the
+    question has no open limit that is not referred: then no rivals are owed,
+    and `hyp add hyp`, `hyp supersede --old`, `hyp link ... supersedes` and
+    `hyp abandon` of a Hypothesis the answer can move exit 1, unless OWED lists a premise item
+    there. An open limit you can run is still yours to run. Carry on with
+    other work and ask the owner at the next stop. Record it with `hyp record --reading "<the
     line>: <how you read it>"`. Record the owner's answer under their own
     actor name (lowercase letters, digits and hyphens, for example
     `owner-dat`):

@@ -1,0 +1,6 @@
+=== RUN   TestLinkSupersedesHeldLikeSupersede
+    reading_hold_test.go:276: exit 0 (want 1), stdout "H-G0AFGV edge.add\n", stderr "" (want "open reading R-P6H8YC#r1")
+--- FAIL: TestLinkSupersedesHeldLikeSupersede (0.04s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.439s
+FAIL

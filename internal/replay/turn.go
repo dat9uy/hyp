@@ -1,6 +1,10 @@
 package replay
 
-import "slices"
+import (
+	"slices"
+
+	"github.com/dat9uy/hyp/internal/event"
+)
 
 // TurnKind is where a question's decision stands (spec §8.1): the one value
 // the ledger, a refused select and hyp status read, never stored.
@@ -20,7 +24,7 @@ type WaitKind string
 // The values of WaitKind, in the order a Turn lists them.
 const (
 	WaitRunner      WaitKind = "runner"      // the runner owes an item on the question
-	WaitReading     WaitKind = "reading"     // an open reading whose answer can move a Hypothesis there
+	WaitReading     WaitKind = "reading"     // an open reading on the question: it holds the decision, whatever its reach
 	WaitReferred    WaitKind = "referred"    // a limit the runner referred, not yet accepted or returned
 	WaitPremise     WaitKind = "premise"     // a candidate assumes a Hypothesis whose question is open
 	WaitSubquestion WaitKind = "subquestion" // the selected or lone candidate has a sub-question not answered
@@ -33,7 +37,7 @@ type Wait struct {
 	Kind    WaitKind
 	Key     string
 	Item    Owed     // WaitRunner: the first item the runner owes
-	Reach   []string // WaitReading: the Hypotheses its answer can move
+	Reach   []string // WaitReading: the Hypotheses its answer can move, maybe none
 	Premise Premise  // WaitPremise
 }
 
@@ -107,15 +111,56 @@ func (p Projection) subquestionWait(dq string) string {
 	return ""
 }
 
-// openReadings lists the open readings on question dq whose answer can move
-// a Hypothesis there: each makes the select and choice wait, and stops new
-// rivals being owed, since the answer may revive one.
+// openReadings lists the open readings on question dq, in creation order.
+// Each holds dq's decision whatever its reach: the select, the choice and a
+// reaffirm wait for the owner's answer (spec §4 readings).
 func (p Projection) openReadings(dq string) []Reading {
 	var out []Reading
 	for _, l := range p.Readings {
-		if l.Question == dq && l.Open() && len(l.Reach) > 0 {
+		if l.Question == dq && l.Open() {
 			out = append(out, l)
 		}
 	}
 	return out
+}
+
+// NextHold returns the open reading on open or reopened question dq that
+// holds dq's next Hypothesis, or false. A reading holds it while its answer
+// can move a live Hypothesis there; else the first open reading holds it
+// while no open limit that a Result on dq recorded is unreferred, because
+// then the runner has no case of its own to build on. A line of the Goal
+// is not such a limit.
+func (p Projection) NextHold(dq string) (Reading, bool) {
+	q := p.Questions[dq]
+	if q == nil || !q.State.Open() {
+		return Reading{}, false
+	}
+	open := p.openReadings(dq)
+	for _, l := range open {
+		if len(l.Reach) > 0 {
+			return l, true
+		}
+	}
+	if len(open) == 0 || slices.ContainsFunc(p.LimitsOf(dq), func(l Limit) bool { return l.Open() && !l.Referred() }) {
+		return Reading{}, false
+	}
+	return open[0], true
+}
+
+// MovingReading returns the first open reading on h's question whose answer
+// can move Hypothesis h, or false.
+func (p Projection) MovingReading(h string) (Reading, bool) {
+	n := p.Nodes[h]
+	if n == nil || n.Kind != event.KindHypothesis {
+		return Reading{}, false
+	}
+	if q := p.Questions[n.Parent]; q == nil || !q.State.Open() {
+		return Reading{}, false
+	}
+	for _, l := range p.openReadings(n.Parent) {
+		if slices.Contains(l.Reach, h) {
+			return l, true
+		}
+	}
+	return Reading{}, false
 }

@@ -20,7 +20,7 @@ type OwedKind string
 
 // The values of OwedKind.
 const (
-	OwedRivals    OwedKind = "rivals"    // an open question has no rival and no open reading that can revive one
+	OwedRivals    OwedKind = "rivals"    // an open question has no rival and no open reading holds its next Hypothesis
 	OwedUntested  OwedKind = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
 	OwedUndecided OwedKind = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
 	OwedPlanned   OwedKind = "planned"   // a planned Experiment has no Result
@@ -28,7 +28,7 @@ const (
 	OwedReading   OwedKind = "reading"   // a closed reading no Result applies
 	OwedReferred  OwedKind = "referred"  // a limit referred to the owner, not yet accepted
 	OwedPremise   OwedKind = "premise"   // a candidate assumes a Hypothesis its question did not select
-	OwedStale     OwedKind = "stale"     // a reopened question's select is stale and nothing else owed renews it
+	OwedStale     OwedKind = "stale"     // a reopened question's select is stale, nothing else owed renews it and no open reading holds it
 	OwedSelect    OwedKind = "select"    // a lone candidate with nothing else owed on its question
 	OwedChoose    OwedKind = "choose"    // the owner chooses between two or more candidates
 )
@@ -102,9 +102,10 @@ func (p Projection) Owed() []Owed {
 		var mine []Owed
 		add := func(o Owed) { o.Question = dq; mine = append(mine, o) }
 
-		// An open reading makes the question wait only while its answer can
-		// move a Hypothesis there (its Reach).
-		waiting := len(p.openReadings(dq)) > 0
+		// An open reading holds the question's next Hypothesis (NextHold),
+		// and its decision whatever its reach (turn.go).
+		_, holdNext := p.NextHold(dq)
+		reading := len(p.openReadings(dq)) > 0
 		if open {
 			var live []string
 			for _, h := range n.Children {
@@ -113,16 +114,16 @@ func (p Projection) Owed() []Owed {
 				}
 			}
 			// With no rival, new rivals are owed, unless an open reading
-			// whose answer may revive one waits for the owner.
+			// holds the next Hypothesis for the owner.
 			rivals := slices.ContainsFunc(live, func(h string) bool { return RivalStatus(p.Hyps[h].Status) })
-			if !rivals && !waiting {
+			if !rivals && !holdNext {
 				add(Owed{Who: OwedRunner, Kind: OwedRivals, Key: dq})
 			}
 			for _, h := range live {
 				switch {
 				case p.Hyps[h].Status == HypProposed && !p.hasLiveExp(h):
 					add(Owed{Who: OwedRunner, Kind: OwedUntested, Key: h})
-				case p.Hyps[h].Status == HypInconclusive && !p.hasPlannedExp(h):
+				case p.Hyps[h].Status == HypInconclusive && !p.hasPlannedExp(h) && !p.movedBy(h):
 					add(Owed{Who: OwedRunner, Kind: OwedUndecided, Key: h})
 				}
 				for _, e := range p.Nodes[h].Children {
@@ -177,7 +178,7 @@ func (p Projection) Owed() []Owed {
 		// no other runner item and no premise's open question accounts for
 		// it, the runner reaffirms the stale node or re-runs what it rests
 		// on; a select of the same Hypothesis is never owed again.
-		if open && q.Reason == ReasonSelectedStale && !RunnerOwes(mine) && p.OpenPremise(dq) == nil {
+		if open && q.Reason == ReasonSelectedStale && !RunnerOwes(mine) && p.OpenPremise(dq) == nil && !reading {
 			add(Owed{Who: OwedRunner, Kind: OwedStale, Key: p.staleNode(dq)})
 		}
 		// A select or a choice is owed only when the question's turn is
@@ -261,6 +262,14 @@ func (p Projection) OpenPremise(dq string) *Premise {
 		}
 	}
 	return nil
+}
+
+// movedBy reports whether an open reading's answer can move inconclusive
+// Hypothesis h: its Result judged h inconclusive, so the answer decides h
+// and no undecided item is owed on it.
+func (p Projection) movedBy(h string) bool {
+	_, ok := p.MovingReading(h)
+	return ok
 }
 
 // RunnerOwes reports whether the ledger holds an item the runner owes.

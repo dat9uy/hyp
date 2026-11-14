@@ -13,14 +13,21 @@ import (
 func TestSameAskReadingsPrintAndCloseAsOne(t *testing.T) {
 	_, g, q1 := setup(t)
 	q2 := must(t, "add", "dq", "--parent", g, "--title", "Q2", "--why", "ask")
-	rec := func(q, text string) string {
+	// Every Hypothesis comes before the readings: an open reading whose
+	// answer can move a Hypothesis holds the question's next one.
+	exp := func(q string) (string, string) {
 		h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "b", "--why", "w")
-		e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+		return h, must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+	}
+	rec := func(h, e, text string) string {
 		return must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--reading", text, "--why", "w")
 	}
-	r1 := rec(q1, "must a reader have a stored record?")
-	r2 := rec(q2, " must a reader have a stored record? ")
-	r3 := rec(q2, "another question")
+	h1, e1 := exp(q1)
+	h2, e2 := exp(q2)
+	h3, e3 := exp(q2)
+	r1 := rec(h1, e1, "must a reader have a stored record?")
+	r2 := rec(h2, e2, " must a reader have a stored record? ")
+	r3 := rec(h3, e3, "another question")
 	k1, k2, k3 := r1+"#r1", r2+"#r1", r3+"#r1"
 
 	out := hyp(t, "status")

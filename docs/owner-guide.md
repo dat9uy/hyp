@@ -52,19 +52,20 @@ runner owes nothing: stop and report to the owner
 
 Three things can stop the runner and give the next step to you:
 
-- **An open reading whose answer can move a Hypothesis.** A reading records how a run read your words, when a line can mean two things. While it is open, hyp holds back the `rivals`, `select` and `choose` items on its question. The reason is that your answer can change which Hypotheses stay in the race: a new Hypothesis written before your answer can be built on the wrong meaning.
+- **An open reading.** A reading records how a run read your words, when a line can mean two things. While it is open, its question waits for your answer before any decision: hyp holds back the `select`, `choose` and `stale` items on that question, and the runner cannot select or reaffirm there. This is true whatever the answer can change. The reason is that a decision made before your answer can rest on the wrong meaning.
 - **A referred limit.** The runner says that no test in the Goal can run a case, or that the case does not apply to any candidate. The question waits for your accept or your return.
 - **Two or more candidates.** hyp cannot choose between designs that both meet every line. You choose.
 
-A reading that no answer can change holds nothing back. It still prints under AWAITING OWNER, and the runner continues to work.
+A reading holds the decision, not all the work. It also holds the question's next Hypothesis in two cases: when your answer can move a Hypothesis there (keep it, drop it or revive it), or when the question has no open limit that the runner can run. In those cases hyp owes no `rivals` item, and the runner cannot add a Hypothesis there, or supersede or abandon a Hypothesis your answer can move. When the runner has an open limit to run and your answer can move no Hypothesis, the runner continues with that limit while the reading waits. A Hypothesis that the reading's Result judged inconclusive waits for your answer too: hyp does not ask the runner to decide it.
 
 ```mermaid
 flowchart LR
-  R[Result contradicts the last rival] --> Q{Open reading that<br/>can move it?}
-  Q -- no --> W[runner owes rivals:<br/>it adds a new Hypothesis]
+  R[Result with an open reading] --> Q{Answer can move a Hypothesis,<br/>or no open limit to run?}
+  Q -- no --> W[runner runs the open limit;<br/>no select yet]
   Q -- yes --> S[runner owes nothing:<br/>the run stops]
   S --> A[you answer the reading]
-  A --> W
+  W --> A
+  A --> N[runner applies your answer]
 ```
 
 ## What you answer, and how
