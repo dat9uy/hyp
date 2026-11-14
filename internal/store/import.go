@@ -24,8 +24,10 @@ import (
 // with other bytes than the sha256 its event stores, or a bundle src holds
 // with another hash than its pin, is left out and printed to warn; a later
 // import from a src that holds the file's bytes, or the bundle with its
-// pinned hash, adds them to the event the record holds. It returns how many
-// events and files it added; run again, it adds none.
+// pinned hash, adds them to the event the record holds, as it adds a
+// subject commit the repository holds now and the record does not reach.
+// It returns how many events, and how many files and commits for events
+// the record held, it added; run again, it adds none.
 func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int, error) {
 	if fi, err := os.Stat(record.EventsDir(src)); err != nil || !fi.IsDir() {
 		return 0, 0, herr.BadArgs("%s holds no store", src)
@@ -118,6 +120,7 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
 		return recipe.Holds(recordHashes, b.Ref, b.Hash), nil
 	}
 	adoptedBundle := map[Pin]bool{}
+	var lacked []string
 	// pinnedBundle adds the files of bundle b that ev pins from src when src
 	// holds it with the pinned hash, and else prints that the record lacks
 	// it. For an event the record holds, a bundle the record keeps already
@@ -161,9 +164,15 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
 				lines[actor] = append(lines[actor], raw[actor][i])
 				added++
 				commits = append(commits, n.Commits...)
+			} else {
+				for _, c := range n.Commits {
+					if !slices.Contains(lacked, c) && s.LacksCommit(c) {
+						lacked = append(lacked, c)
+					}
+				}
 			}
-			// An event the record holds gets each named file and pinned
-			// bundle an earlier import could not add.
+			// An event the record holds gets each named file, pinned bundle
+			// and subject commit an earlier import could not add.
 			for _, rel := range n.Files {
 				if err := namedFile(ev, n, rel); err != nil {
 					return 0, 0, err
@@ -176,13 +185,13 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
 			}
 		}
 	}
-	if added == 0 && len(add) == 0 {
+	if added == 0 && len(add) == 0 && len(lacked) == 0 {
 		return 0, 0, nil
 	}
 	for actor := range lines {
 		slices.SortStableFunc(lines[actor], func(a, b []byte) int { return compareLineID(a, b) })
 	}
-	return added, len(add), s.Append(lines, add, commits)
+	return added, len(add) + len(lacked), s.Append(lines, add, append(commits, lacked...))
 }
 
 // compareLineID orders two event lines by their id, then by their bytes.

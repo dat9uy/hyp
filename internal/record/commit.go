@@ -253,6 +253,16 @@ func (s *Store) Append(lines map[string][][]byte, files []File, commits []string
 	return s.readTip()
 }
 
+// LacksCommit reports whether c names a commit the repository holds that
+// the record does not reach: a subject commit a write can add.
+func (s *Store) LacksCommit(c string) bool {
+	if !s.RecordMode() {
+		return false
+	}
+	id, ok := s.Repo.IsCommit(c)
+	return ok && (s.tip == "" || !s.Repo.isAncestor(id, s.tip))
+}
+
 // appendWorkTree appends each actor's lines to its work-tree events file
 // and syncs it.
 func (s *Store) appendWorkTree(lines map[string][][]byte) error {

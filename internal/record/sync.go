@@ -165,6 +165,23 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 		switch {
 		case !inA:
 			e = y
+		case inB && x.typ != y.typ:
+			// One record names a file at p, the other files below a folder
+			// p: the folder stays, and the file is kept by its sha256.
+			f := x
+			if f.typ != "blob" {
+				f = y
+			}
+			sum, err := r.blobSum(f.sha)
+			if err != nil {
+				return "", err
+			}
+			k := keptPath(union, p, sum)
+			if _, held := union[k]; !held {
+				kept[k] = f
+			}
+			fmt.Fprintf(warn, "hyp sync: %s is a file in one record and a folder in the other; kept the folder there and the file at %s\n", p, k)
+			continue
 		case inB && x.typ == "blob" && y.typ == "blob" && x.sha != y.sha:
 			if isEventsFile(p) {
 				data, err := r.joinLines(x.sha, y.sha)
@@ -177,12 +194,8 @@ func (r *Repo) join(a, b string, warn io.Writer) (string, error) {
 				}
 				e = entry{mode: "100644", typ: "blob", sha: sha}
 			} else {
-				var sum string
-				if err := r.readBlobs([]string{y.sha}, func(_ string, data []byte) error {
-					h := sha256.Sum256(data)
-					sum = hex.EncodeToString(h[:])
-					return nil
-				}); err != nil {
+				sum, err := r.blobSum(y.sha)
+				if err != nil {
 					return "", err
 				}
 				k := keptPath(union, p, sum)
@@ -279,4 +292,15 @@ func (r *Repo) joinLines(a, b string) ([]byte, error) {
 		out.WriteByte('\n')
 	}
 	return out.Bytes(), nil
+}
+
+// blobSum is the hex sha256 of the bytes of the blob sha.
+func (r *Repo) blobSum(sha string) (string, error) {
+	var sum string
+	err := r.readBlobs([]string{sha}, func(_ string, data []byte) error {
+		h := sha256.Sum256(data)
+		sum = hex.EncodeToString(h[:])
+		return nil
+	})
+	return sum, err
 }

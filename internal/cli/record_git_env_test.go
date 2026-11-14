@@ -489,7 +489,7 @@ func TestImportAddsNamedBytesAnEarlierImportLacked(t *testing.T) {
 			}
 			want(t, hyp(t, "import", "."), 0, "imported")
 			want(t, hyp(t, "show", ptr), 3, "hyp import")
-			want(t, hyp(t, "import", "HEAD:."), 0, "added 1 files it lacked")
+			want(t, hyp(t, "import", "HEAD:."), 0, "added 1 it lacked")
 			want(t, hyp(t, "show", ptr), 0, "the bytes the Result cited")
 			tip := gitIn(t, top, "rev-parse", "refs/hyp/record")
 			want(t, hyp(t, "import", "HEAD:."), 0, "holds every event\n")
@@ -560,7 +560,7 @@ func TestImportAddsAPinnedBundleAnEarlierImportLacked(t *testing.T) {
 	}
 	t.Chdir(repo)
 	want(t, hyp(t, "import", "s"), 0, "the record lacks it")
-	want(t, hyp(t, "import", "HEAD:s"), 0, "files it lacked")
+	want(t, hyp(t, "import", "HEAD:s"), 0, "it lacked:")
 	if ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"); !strings.Contains(ls, "s/recipes/kit@1/recipe.md") {
 		t.Fatalf("after an import from a commit that holds kit@1 with its pinned hash, the record lacks it:\n%s", ls)
 	}
@@ -592,5 +592,111 @@ func TestShowMissingFileWithNoGitNamesNoImport(t *testing.T) {
 	res := hyp(t, "show", ptr)
 	if res.code != 3 || strings.Contains(res.stderr, "hyp import") {
 		t.Fatalf("with no git, hyp show of a removed cited file: exit %d, stderr %q; want exit 3 naming no hyp import", res.code, res.stderr)
+	}
+}
+
+// Lines 8 and 2: a clone that lacks a subject's commit imports the event
+// first; once the commit is fetched, an import run again adds it to the
+// record, so it stays reachable after its branch goes and git gc runs, and
+// one more import adds nothing.
+func TestImportAddsASubjectCommitAnEarlierImportLacked(t *testing.T) {
+	gitConfig(t)
+	a, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, a, "init", "-q")
+	writeFile(t, filepath.Join(a, "s", "README.md"), "r\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "checkout", "-q", "-b", "feat")
+	writeFile(t, filepath.Join(a, "feat.txt"), "only on feat\n")
+	gitIn(t, a, "add", "feat.txt")
+	gitIn(t, a, "commit", "-qm", "feat")
+	c := gitIn(t, a, "rev-parse", "HEAD")
+	gitIn(t, a, "checkout", "-q", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	dropRecord(t, a)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	must(t, "subject", h, "--base", c, "--why", "w")
+	gitIn(t, a, "add", "-f", "-A")
+	gitIn(t, a, "commit", "-qm", "store")
+	b := filepath.Join(t.TempDir(), "b")
+	if out, err := exec.Command("git", "clone", "-q", "--no-local", "--single-branch", "--branch", "main", a, b).CombinedOutput(); err != nil {
+		t.Fatalf("git clone: %v %s", err, out)
+	}
+	if exec.Command("git", "-C", b, "cat-file", "-e", c+"^{commit}").Run() == nil {
+		t.Fatalf("setup: the clone already holds %s", c)
+	}
+	t.Chdir(b)
+	want(t, hyp(t, "import", "s"), 0, "imported")
+	gitIn(t, b, "fetch", "-q", "origin", "feat:refs/remotes/origin/feat")
+	want(t, hyp(t, "import", "s"), 0, "added 1 it lacked")
+	if exec.Command("git", "-C", b, "merge-base", "--is-ancestor", c, "refs/hyp/record").Run() != nil {
+		t.Fatalf("after an import run again with %s present, the record does not reach it", c[:12])
+	}
+	tip := gitIn(t, b, "rev-parse", "refs/hyp/record")
+	want(t, hyp(t, "import", "s"), 0, "holds every event\n")
+	if again := gitIn(t, b, "rev-parse", "refs/hyp/record"); again != tip {
+		t.Fatalf("one more import moved the record from %s to %s", tip, again)
+	}
+	gitIn(t, b, "update-ref", "-d", "refs/remotes/origin/feat")
+	gitIn(t, b, "reflog", "expire", "--expire=now", "--all")
+	gitIn(t, b, "gc", "-q", "--prune=now")
+	if exec.Command("git", "-C", b, "cat-file", "-e", c+"^{commit}").Run() != nil {
+		t.Fatalf("after its branch is deleted and gc, the subject commit %s is gone", c[:12])
+	}
+}
+
+// Line 5: two clones share an Experiment E. Clone a's Result cites the
+// file E/run; clone b's cites E/run/log.txt, below a folder of that name.
+// After hyp sync both records hold both events and both files, and hyp show
+// prints each Result's bytes in each clone.
+func TestSyncJoinsAFileAndAFolderAtOnePath(t *testing.T) {
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(top, "remote.git")
+	gitIn(t, top, "init", "-q", "--bare", remote)
+	a := filepath.Join(top, "a")
+	gitIn(t, top, "clone", "-q", remote, a)
+	writeFile(t, filepath.Join(a, "s", "README.md"), "a store\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "push", "-q", "origin", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+	b := filepath.Join(top, "b")
+	gitIn(t, top, "clone", "-q", remote, b)
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync", "origin"), 0, "synced")
+	t.Chdir(filepath.Join(a, "s"))
+	pa := ".tree/evidence/" + e + "/run"
+	writeFile(t, pa, "a's run\n")
+	ra := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "a ran", "--evidence", pa, "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+	t.Chdir(filepath.Join(b, "s"))
+	pb := ".tree/evidence/" + e + "/run/log.txt"
+	writeFile(t, pb, "b's run\n")
+	rb := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "b ran", "--evidence", pb, "--why", "w")
+	want(t, hyp(t, "sync"), 0, "a file in one record and a folder in the other")
+	t.Chdir(filepath.Join(a, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+	for _, clone := range []string{a, b} {
+		t.Chdir(filepath.Join(clone, "s"))
+		want(t, hyp(t, "show", ra), 0, "a ran")
+		want(t, hyp(t, "show", rb), 0, "b ran")
+		want(t, hyp(t, "show", pa), 0, "a's run")
+		want(t, hyp(t, "show", pb), 0, "b's run")
 	}
 }
