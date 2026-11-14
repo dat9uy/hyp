@@ -64,14 +64,21 @@ func recordRepo(t *testing.T) string {
 // pointer.
 func chain(t *testing.T, data string) (g, r, ptr string) {
 	t.Helper()
+	g, _, r, ptr = chainH(t, data)
+	return g, r, ptr
+}
+
+// chainH is chain that also returns the Hypothesis.
+func chainH(t *testing.T, data string) (g, h, r, ptr string) {
+	t.Helper()
 	g = must(t, "add", "goal", "--title", "G", "--why", "w")
 	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
-	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	h = must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
 	ptr = ".tree/evidence/" + e + "/out.txt"
 	writeFile(t, ptr, data)
 	r = must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
-	return g, r, ptr
+	return g, h, r, ptr
 }
 
 // views is what hyp prints for the chain from the working directory.
@@ -106,13 +113,20 @@ func TestRecordOutlivesEveryWorktreeAct(t *testing.T) {
 	wt := filepath.Join(t.TempDir(), "w")
 	gitIn(t, repo, "worktree", "add", "-q", "-b", "work", wt)
 	t.Chdir(filepath.Join(wt, "s"))
-	g, r, ptr := chain(t, "the bytes\n")
+	g, h, r, ptr := chainH(t, "the bytes\n")
 	want := views(t, g, r, ptr)
 	if !strings.Contains(want[3], "the bytes") {
 		t.Fatalf("hyp show %s printed %q, want the file's bytes", ptr, want[3])
 	}
 	writeFile(t, ptr, "changed later\n")
 	sameViews(t, "after the work-tree file changed", views(t, g, r, ptr), want)
+	// A later event that names the file with its new bytes is refused, so
+	// the bytes the first event named stay.
+	res := hyp(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--rubric", "reading", "--records", ptr, "--why", "w")
+	if res.code != 1 || !strings.Contains(res.stderr, "differs from the copy the record holds") {
+		t.Fatalf("an Experiment pinning the changed file: exit %d, stderr %q, want exit 1 naming the record's copy", res.code, res.stderr)
+	}
+	sameViews(t, "after a later event named the changed file", views(t, g, r, ptr), want)
 	if err := os.Remove(ptr); err != nil {
 		t.Fatal(err)
 	}
@@ -169,6 +183,22 @@ func TestSubjectCommitStaysReachable(t *testing.T) {
 		t.Fatal(err)
 	}
 	want(t, hyp(t, "sandbox", "create", "at-subject", "--host", repo, "--base", c, "--hyp", stub, "--recipe", "none"), 0, "")
+	// A sandbox clone keeps no record: hyp init there writes none, and
+	// hyp import and hyp sync are refused.
+	box := filepath.Join(os.Getenv("HOME"), ".hyp-sandbox", "at-subject", "wt")
+	writeFile(t, filepath.Join(box, "x", "README.md"), "x\n")
+	t.Chdir(filepath.Join(box, "x"))
+	must(t, "init")
+	if out, err := exec.Command("git", "-C", box, "rev-parse", "--verify", "-q", "refs/hyp/record").CombinedOutput(); err == nil {
+		t.Fatalf("hyp init in a sandbox clone wrote a record: %s", out)
+	}
+	must(t, "add", "goal", "--title", "in the box", "--why", "w")
+	if data, err := os.ReadFile(filepath.Join(box, "x", ".tree", "events", "a.jsonl")); err != nil || !strings.Contains(string(data), "in the box") {
+		t.Fatalf("a write in a sandbox clone did not reach its work-tree store: %v", err)
+	}
+	want(t, hyp(t, "import", "."), 1, "sandbox clone")
+	want(t, hyp(t, "sync"), 1, "sandbox clone")
+	t.Chdir(repo)
 	want(t, hyp(t, "sandbox", "remove", "at-subject", "--discard"), 0, "")
 }
 
