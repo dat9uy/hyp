@@ -1,0 +1,40 @@
+===== removal-r1-refuse-unimported.txt (patch removal-r1-refuse-unimported.patch)
+== removal r1-refuse-unimported: patch applied whole
+--- FAIL: TestUnimportedWorkTreeStore (0.87s)
+    record_lines_test.go:536: exit 0 (want 1), stdout "G-3GARAV node.add\n", stderr "" (want "hyp import")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.039s
+FAIL
+go test exit 1
+===== removal-r2-record-copy-differs.txt (patch removal-r2-record-copy-differs.patch)
+== removal r2-record-copy-differs: patch applied whole
+--- FAIL: TestRecordOutlivesEveryWorktreeAct (1.56s)
+    record_lines_test.go:127: an Experiment pinning the changed file: exit 0, stderr "", want exit 1 naming the record's copy
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.936s
+FAIL
+go test exit 1
+===== removal-r3-named-file-no-one-holds.txt (patch removal-r3-named-file-no-one-holds.patch)
+== removal r3-named-file-no-one-holds: patch applied whole
+--- FAIL: TestAppendRefusesANamedFileNoOneHolds (0.67s)
+    record_refusal_test.go:47: Append of an Experiment pinning a file no one holds: <nil>, want a refusal
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/store	1.032s
+FAIL
+go test exit 1
+===== removal-r4-import-in-sandbox.txt (patch removal-r4-import-in-sandbox.patch)
+== removal r4-import-in-sandbox: patch applied whole
+--- FAIL: TestSubjectCommitStaysReachable (1.09s)
+    record_lines_test.go:199: exit 0 (want 1), stdout ".: imported 1 events\n", stderr "" (want "sandbox clone")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.261s
+FAIL
+go test exit 1
+===== removal-r5-sync-in-sandbox.txt (patch removal-r5-sync-in-sandbox.patch)
+== removal r5-sync-in-sandbox: patch applied whole
+--- FAIL: TestSubjectCommitStaysReachable (1.11s)
+    record_lines_test.go:200: exit 3 (want 1), stdout "", stderr "git ls-remote origin refs/hyp/record failed: exit status 128: fatal: 'origin' does not appear to be a git repository\nfatal: Could not read from remote repository.\n\nPlease make sure you have the correct access rights\nand the repository exists.\n" (want "sandbox clone")
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.483s
+FAIL
+go test exit 1

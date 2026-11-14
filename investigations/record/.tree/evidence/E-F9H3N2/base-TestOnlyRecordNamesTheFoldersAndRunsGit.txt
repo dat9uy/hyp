@@ -1,0 +1,25 @@
+--- FAIL: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+    boundary_test.go:71: outside package record:
+        internal/check/recipes.go holds .tree
+        internal/check/recipes.go holds .git
+        internal/cli/cli.go holds .tree
+        internal/cli/prompt.go holds .git
+        internal/cli/read.go holds .tree
+        internal/cli/records.go holds .tree
+        internal/cli/sandbox.go holds .tree
+        internal/cli/subject.go runs git
+        internal/cli/write.go holds .tree
+        internal/event/event.go holds .tree
+        internal/recipe/first.go holds .tree
+        internal/recipe/recipe.go holds .tree
+        internal/recipe/recipe.go holds .git
+        internal/replay/admit.go holds .tree
+        internal/sandbox/changes.go holds .tree
+        internal/sandbox/changes.go holds .git
+        internal/sandbox/sandbox.go holds .tree
+        internal/store/cut.go holds .tree
+        internal/store/store.go holds .tree
+        internal/store/store.go holds .git
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.173s
+FAIL

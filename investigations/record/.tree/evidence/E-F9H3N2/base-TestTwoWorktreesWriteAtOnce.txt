@@ -1,0 +1,6 @@
+--- FAIL: TestTwoWorktreesWriteAtOnce (0.10s)
+    record_lines_test.go:202: write 1 from /var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestTwoWorktreesWriteAtOnce1684698581/003/w/s failed: no .tree store found; run 'hyp init'
+        exit status 3
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.254s
+FAIL

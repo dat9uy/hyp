@@ -1,0 +1,7 @@
+== removal r2-record-copy-differs: patch applied whole
+--- FAIL: TestRecordOutlivesEveryWorktreeAct (1.56s)
+    record_lines_test.go:127: an Experiment pinning the changed file: exit 0, stderr "", want exit 1 naming the record's copy
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.936s
+FAIL
+go test exit 1

@@ -1,0 +1,9 @@
+--- base /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/b1672de1-8647-4923-9c7c-bc1eb9a3fab2/scratchpad/hyp-base
+first tie: exit 0
+H-QXDWRG hypothesis.subject
+re-tie after edit: exit 0
+--- candidate /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/b1672de1-8647-4923-9c7c-bc1eb9a3fab2/scratchpad/hyp-cand
+first tie: exit 0
+refused: s/arms/a.patch differs from the copy the record holds; a file an event names never changes, so write it under a new path
+re-tie after edit: exit 1
+8f2b87ac2dc6896106a7945983dd0e750097b42c commit	refs/hyp/record

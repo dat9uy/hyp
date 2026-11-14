@@ -1,0 +1,5 @@
+--- FAIL: TestSubjectCommitStaysReachable (0.21s)
+    record_lines_test.go:175: commit c3933adaef485813b9556aac4dacfff60f67c179 is gone after its branch was deleted and gc ran: exit status 128 fatal: Not a valid object name c3933adaef485813b9556aac4dacfff60f67c179^{commit}
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.363s
+FAIL
