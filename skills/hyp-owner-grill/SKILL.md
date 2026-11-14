@@ -23,7 +23,7 @@ Work in rounds. A round asks every question whose prerequisites are settled, num
 
 Every question opens with what exists today and the problem it settles, then gives one small worked example of each option and the principle behind it. A choice without its basis is not a question the owner can answer. Name why each mechanism is in the question; if you cannot, drop it.
 
-Run the mistakes checklist below on each round before you send it, and again before Confirm the routing. Before round 1, also run the checks in "Before round 1, and before Confirm the routing".
+Run the mistakes checklist below on each round before you send it, and again before Confirm the routing.
 
 ## Mistakes checklist
 
