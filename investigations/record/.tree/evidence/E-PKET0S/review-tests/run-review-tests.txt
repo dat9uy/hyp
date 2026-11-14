@@ -1,0 +1,28 @@
+== returned tests of the review, run by the runner in the detached checkout of cca1c2e9aa5c5605faa13fdd18b598153d6f1cc2
+=== RUN   TestReviewStoreFolderEnteredWithOtherCase
+    zz_review_e_pket0s_test.go:41: hyp status G-72HRQM from S (the folder s): exit 2, stdout "", stderr "unknown node G-72HRQM\n"; want what s prints:
+        GOAL G-72HRQM G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        FRONTIER
+          Q-ZYR4KT open/supported_unselected Q
+            candidates (1): H-1T7D5M
+            H-1T7D5M supported H
+        STALE
+        OWED
+          runner: Q-ZYR4KT select H-1T7D5M, the only candidate
+        AWAITING OWNER
+        RECENT
+          2026-11-14 14:11 a result.record R-EFNHCZ — w
+        CHECKPOINT none
+    zz_review_e_pket0s_test.go:51: a write from S exited 0 with G-97FZ7H, but hyp show G-97FZ7H in s: exit 2, stderr "unknown node G-97FZ7H\n"
+    zz_review_e_pket0s_test.go:55: the record now holds two stores for one folder:
+        S/.tree/events/a.jsonl
+        s/.tree/events/a.jsonl
+        s/.tree/evidence/E-VDKKPY/out.txt
+--- FAIL: TestReviewStoreFolderEnteredWithOtherCase (1.27s)
+=== RUN   TestReviewImportKeepsBytesNoEventNames
+    zz_review_e_pket0s_test.go:97: after hyp import, hyp show .tree/evidence/E-HD17H2/out.txt prints "changed after the Result\n" (sha256 b9db52b996a1), not the bytes the Result names (sha256 a74a65b40a11), and the import warned of nothing: stderr ""
+--- FAIL: TestReviewImportKeepsBytesNoEventNames (0.32s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	2.035s
+FAIL
+go test exit 1

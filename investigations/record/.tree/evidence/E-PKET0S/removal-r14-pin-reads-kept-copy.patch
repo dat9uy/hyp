@@ -1,0 +1,14 @@
+diff --git a/internal/recipe/recipe.go b/internal/recipe/recipe.go
+index f7f7028..bc1f116 100644
+--- a/internal/recipe/recipe.go
++++ b/internal/recipe/recipe.go
+@@ -530,8 +530,7 @@ func Holds(hashes map[string]string, ref, hash string) bool {
+ 	if h, ok := hashes[ref]; ok && h == hash {
+ 		return true
+ 	}
+-	h, ok := hashes[HeldKey(ref, hash)]
+-	return ok && h == hash
++	return false
+ }
+ 
+ // LoadPinned is LoadAny for the copy of ref with bundle hash hash: the copy
