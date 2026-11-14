@@ -161,8 +161,16 @@ A limit that the owner records on the Goal: a case that every candidate must mee
 _Avoid_: met line, acceptance criterion, requirement, rule change (a change is a reading, an accept, a return or a new Goal)
 
 **Reading**:
-A keyed item, `<result-id>#r<n>`, that records how a run read owner words that a verdict rests on. The words are a line of the Goal, or an owner's answer to an earlier reading. It stays open until an owner answer closes it, and a closed one is owed until a Result applies it ([spec §4](replay-spec.md#4-event-types-closed-set), readings). A reading asks what the owner's words mean; a trade-off asks which candidate to choose.
+A keyed item, `<result-id>#r<n>`, that records how a run read owner words that a verdict rests on. The words are a line of the Goal, or an owner's answer to an earlier reading. It stays open until an owner answer closes it, and a closed one is owed until a Result applies it ([spec §4](replay-spec.md#4-event-types-closed-set), readings). A reading asks what the owner's words mean; a trade-off asks which candidate to choose. An open reading **holds the decision, not the work**: its question owes no select, choice or stale item, and refuses a select or a reaffirm, whatever the answer can move. It also holds the question's next Hypothesis while its answer can move a Hypothesis there, or while no open limit on the question is unreferred, so the runner never builds on a guess ([spec §4](replay-spec.md#4-event-types-closed-set), readings).
 _Avoid_: reopen, re-answer, amend (for a change of an answer)
+
+**Reach**:
+The live Hypotheses under a reading's question that the owner's answer can move, read from the reading's own Result: one it judged that is supported now, one it judged inconclusive that is still inconclusive, and a contradicted one whose only contradiction is that Result. A reading with a reach holds the question's next Hypothesis; one with an empty reach still holds the decision. In code: `replay.Reading.Reach`.
+_Avoid_: scope (a Goal's), impact
+
+**Reaffirm**:
+The runner's act that renews a stale node's basis: `hyp reaffirm` of a Hypothesis or a DesignQuestion takes a new snapshot of its `depends_on` targets ([spec §7.3](replay-spec.md#73-stale-snapshot-rule-the-minimal-form-of-truth-maintenance)). It settles a `stale` item. It is refused while an open reading on the question holds that question's decision ([spec §5.1](replay-spec.md#51-write-time-refusals)), because the answer may change what the select rests on.
+_Avoid_: confirm (retired), reselect
 
 **Aim**:
 A limit or an answered reading that an Experiment is planned to settle, named with `hyp add exp --aims`. An aim is intent and settles nothing: only a Result's `--closes` or `--applies` settles the item ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)).
@@ -186,15 +194,15 @@ _Avoid_: task, ticket (an item is derived, never written)
 
 | Item | Who owes it | Owed while | _Avoid_ |
 |---|---|---|---|
-| `rivals` | runner | an open question has no rival, and no open reading can revive one | |
+| `rivals` | runner | an open question has no rival, and no open reading on it holds its next Hypothesis | |
 | `untested` | runner | a proposed Hypothesis has no planned or run Experiment as parent or target | undecided (an inconclusive Hypothesis) |
-| `undecided` | runner | a live Hypothesis is inconclusive, and no planned Experiment has it as parent or target | untested (a proposed Hypothesis with no Experiment) |
+| `undecided` | runner | a live Hypothesis is inconclusive, no planned Experiment has it as parent or target, and no open reading's answer can move it because the reading's Result judged it inconclusive | untested (a proposed Hypothesis with no Experiment) |
 | `planned` | runner | a planned Experiment has no Result | |
 | `limit` | runner | an open limit that is not referred sits under a question with a candidate, or a line is uncovered on a live top-level question | |
 | `referred` | owner | an open limit's latest hand is a refer; `hyp status` prints `limit referred, accept or return` | |
 | `reading` | runner | no Result applies the answer in force of a closed reading; `hyp status` prints `apply answer` | |
 | `premise` | runner | a candidate's `depends_on` target is under another question, whose select names another Hypothesis | assumption (prose), sub-question (an obligation, not a premise) |
-| `stale` | runner | a question reopened `selected_stale`, owes no other runner item, and does not wait on a premise | |
+| `stale` | runner | a question reopened `selected_stale`, owes no other runner item, does not wait on a premise, and has no open reading | |
 | `select` | runner | the question's turn is owed, and it has one candidate | |
 | `choose` | owner | the question's turn is owed, and it has two or more candidates | pick |
 

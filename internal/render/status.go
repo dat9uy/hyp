@@ -206,7 +206,11 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 			for _, w := range t.Waits {
 				switch w.Kind {
 				case replay.WaitReading:
-					add(kKeep, "%s  waits on open reading %s for the owner; its answer can move %s", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.named(w.Reach))
+					if len(w.Reach) == 0 {
+						add(kKeep, "%s  waits on open reading %s for the owner; it holds %s's decision", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.id(dq))
+					} else {
+						add(kKeep, "%s  waits on open reading %s for the owner; its answer can move %s", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.named(w.Reach))
+					}
 				case replay.WaitReferred:
 					if len(ns.Candidates) > 0 {
 						add(kKeep, "%s  waits on referred limit %s for the owner; an accept releases the select, a return sends its case to run", indent, r.limitLabel(event.KeyResult(w.Key), w.Key))

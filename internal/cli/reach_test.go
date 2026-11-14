@@ -9,20 +9,22 @@ import (
 // Hypothesis there, read from its own Result's verdicts (spec §8.1).
 
 // A reading on a Result whose candidate another Result later contradicted
-// can revive nothing, so the question owes rivals again, and the rivals line
-// names what ruled each one out.
-func TestReadingOnDeadRivalHoldsNothing(t *testing.T) {
+// can move nothing, yet it holds the question's decision and its next
+// Hypothesis while no open limit on the question is unreferred: no rivals
+// are owed, and the waits line says it holds the decision.
+func TestReadingOnDeadRivalHoldsNextHypothesis(t *testing.T) {
 	_, _, q := setup(t)
 	h := must(t, "add", "hyp", "--parent", q, "--alias", "h-one", "--title", "H", "--body", "b", "--why", "w")
 	e1 := must(t, "add", "exp", "--parent", h, "--title", "E1", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
 	e2 := must(t, "add", "exp", "--parent", h, "--title", "E2", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
-	must(t, "record", "--exp", e1, "--verdict", h+"=supports", "--observation", "o", "--reading", "a line", "--why", "w")
-	r2 := must(t, "record", "--exp", e2, "--verdict", h+"=contradicts", "--observation", "o", "--why", "w")
+	r1 := must(t, "record", "--exp", e1, "--verdict", h+"=supports", "--observation", "o", "--reading", "a line", "--why", "w")
+	must(t, "record", "--exp", e2, "--verdict", h+"=contradicts", "--observation", "o", "--why", "w")
 
 	out := hyp(t, "status")
-	want(t, out, 0, "runner: "+q+" add rival Hypotheses; ruled out: h-one by "+r2)
-	if strings.Contains(out.stdout, "held:") {
-		t.Fatalf("a reading that can move nothing holds the question:\n%s", out.stdout)
+	want(t, out, 0, "    waits on open reading "+r1+"#r1 for the owner; it holds "+q+"'s decision")
+	want(t, out, 0, "runner owes nothing")
+	if strings.Contains(out.stdout, "add rival Hypotheses") {
+		t.Fatalf("rivals owed while a reading holds the next Hypothesis:\n%s", out.stdout)
 	}
 }
 
