@@ -200,3 +200,58 @@ func TestReftableRepositoryWithNoGit(t *testing.T) {
 	want(t, hyp(t, "status"), 3, "cannot read the record")
 	want(t, hyp(t, "add", "goal", "--title", "x", "--why", "w"), 3, "cannot read the record")
 }
+
+// After the record ref is deleted, the repository is a git repository with
+// no record ref: with no git on PATH hyp reads and writes the work-tree
+// store, as it does with git.
+func TestRecordRefDeletedWithNoGitUsesTheWorkTree(t *testing.T) {
+	repo := recordRepo(t)
+	other := t.TempDir()
+	t.Chdir(other)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "work tree", "--why", "w")
+	dst := filepath.Join(repo, "w")
+	if err := os.CopyFS(dst, os.DirFS(other)); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "update-ref", "-d", "refs/hyp/record")
+	t.Chdir(dst)
+	want(t, hyp(t, "status"), 0, g)
+	t.Setenv("PATH", t.TempDir())
+	want(t, hyp(t, "status"), 0, g)
+	g2 := must(t, "add", "goal", "--title", "written with no git", "--why", "w")
+	want(t, hyp(t, "show", g2), 0, "written with no git")
+}
+
+// A reftable clone whose record came by hyp sync, or by a plain git fetch,
+// is a record repository: with no git on PATH hyp status, hyp init and a
+// write exit 3, and no event reaches only the work tree.
+func TestSyncedReftableRecordNeedsGit(t *testing.T) {
+	origin := recordRepo(t)
+	must(t, "add", "goal", "--title", "in the record", "--why", "w")
+	base, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, how := range []string{"hyp sync", "git fetch"} {
+		clone := filepath.Join(base, strings.ReplaceAll(how, " ", "-"))
+		if out, err := exec.Command("git", "clone", "-q", "--ref-format=reftable", origin, clone).CombinedOutput(); err != nil {
+			t.Skipf("git cannot make a reftable clone: %v %s", err, out)
+		}
+		t.Chdir(filepath.Join(clone, "s"))
+		if how == "hyp sync" {
+			want(t, hyp(t, "sync", "origin"), 0, "synced")
+		} else {
+			gitIn(t, clone, "fetch", "-q", "origin", "refs/hyp/record:refs/hyp/record")
+		}
+		path := os.Getenv("PATH")
+		t.Setenv("PATH", t.TempDir())
+		want(t, hyp(t, "status"), 3, "cannot read the record")
+		want(t, hyp(t, "init"), 3, "cannot read the record")
+		want(t, hyp(t, "add", "goal", "--title", "written with no git", "--why", "w"), 3, "cannot read the record")
+		t.Setenv("PATH", path)
+		if out := hyp(t, "status").stdout; !strings.Contains(out, "in the record") || strings.Contains(out, "written with no git") {
+			t.Fatalf("%s: with git back hyp status prints:\n%s", how, out)
+		}
+	}
+}
