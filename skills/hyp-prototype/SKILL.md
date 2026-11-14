@@ -1,6 +1,6 @@
 ---
 name: hyp-prototype
-description: Investigate an uncertain design, or build one, with rival hypotheses and bounded experiments, keeping the whole investigation in a hyp tree (.tree/) instead of prose. Use for design questions, prototypes, a build Goal's candidate commits, and resuming an investigation another session started; an unattended /goal run, whose prompt hyp prompt prints, also uses hyp-goal-run.
+description: Investigate an uncertain design, or build one, with rival hypotheses and bounded experiments, keeping the whole investigation in a hyp tree (.tree/) instead of prose. Use for design questions, prototypes, a build Goal's commits, and resuming an investigation another session started; an unattended /goal run, whose prompt hyp prompt prints, also uses hyp-goal-run.
 ---
 
 # hyp-prototype
@@ -74,7 +74,7 @@ never type one. Run `hyp help` for every command and flag.
 - `hyp add exp --parent <H-id> --title "<what you will observe>" --recipe <name@version|none> --rubric <name@version|reading> --target <sibling H-id> --why "..."`.
   List every sibling the experiment also tests with `--target` (repeatable);
   the parent hypothesis is tested implicitly, so do not list it. When the
-  question has live rivals and the experiment targets none of them, hyp
+  question has rivals and the experiment targets none of them, hyp
   refuses and lists them: name the rival the result would count against, or
   pass `--target none` to proceed without one.
 - `hyp signals` prints the design marks for the whole tree (`one-rival`,
@@ -192,7 +192,7 @@ that no longer matters is `hyp withdraw <Q-id>`.
     answers the question; no confirm follows.
   - `R-…#r1 reading: …` is a reading of the Goal that a verdict rests on. It
     changes no status. While its answer can move a Hypothesis on its
-    question, a candidate its Result gave a verdict on or a rival only its Result
+    question, a candidate its Result gave a verdict on or a Hypothesis only its Result
     contradicts, new rivals, the select and the owner's choice there wait
     on it, and hyp status prints a waits line. Carry on with other work and ask
     the owner at the next stop. Record it with `hyp record --reading "<the

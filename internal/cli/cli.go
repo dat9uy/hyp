@@ -76,7 +76,7 @@ write:
   answer [--answer R#rN=TEXT]... [--accept K=TEXT]... [--returns K=TEXT]...   the owner's act; no --why
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
-  status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted rivals
+  status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted Hypotheses
   show REF|R-id#n|G-id#n [--as-of REF|TIME]  one node, or one limit or line, in full, with its history
   diff --since REF|TIME                       status changes and events since a point
   render --markdown [--as-of REF|TIME]        the whole tree as Markdown, untruncated

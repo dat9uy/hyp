@@ -120,7 +120,7 @@ func cmdStatus(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("status", stderr)
 	asOf := fs.String("as-of", "", "event id, node ref or RFC3339 time")
 	maxLines := fs.Int("max-lines", render.DefaultMaxLines, "line budget (0 for unlimited)")
-	live := fs.Bool("live", false, "leave out of FRONTIER each contradicted Hypothesis with no marked Experiment, counted under its question; for the owner, since a runner needs the contradicted rivals")
+	live := fs.Bool("live", false, "leave out of FRONTIER each contradicted Hypothesis with no marked Experiment, counted under its question; for the owner, since a runner needs the contradicted Hypotheses")
 	pos, err := parse(fs, args)
 	if err != nil {
 		return err

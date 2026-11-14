@@ -912,7 +912,7 @@ func TestLiveRivalsSkipDeadHypotheses(t *testing.T) {
 		t.Fatalf("LiveRivals = %v, want %v", got, want)
 	}
 	if !LiveHypStatus(HypContradicted) || RivalStatus(HypContradicted) {
-		t.Fatal("a contradicted Hypothesis must be a live node and not a live rival")
+		t.Fatal("a contradicted Hypothesis must be a live node and not a rival")
 	}
 }
 

@@ -194,12 +194,12 @@ func (f *Facts) dependsOn(n string) []string {
 // still live.
 func LiveHypStatus(s HypStatus) bool { return s != HypSuperseded && s != HypAbandoned }
 
-// RivalStatus reports whether a Hypothesis with derived status s is a live
+// RivalStatus reports whether a Hypothesis with derived status s is a
 // rival (spec §7.1): live and not contradicted.
 func RivalStatus(s HypStatus) bool { return LiveHypStatus(s) && s != HypContradicted }
 
 // NotRivals lists the Hypotheses in ids, once each in first-seen order,
-// whose current derived status is not a live rival. The D1 signal and the
+// whose current derived status is not a rival. The D1 signal and the
 // hyp add exp warning both read it, so they cannot disagree.
 func (st *State) NotRivals(ids []string) []string {
 	var out, seen []string
@@ -239,7 +239,7 @@ func (st *State) Superseders(h string) []string {
 }
 
 // LiveRivals lists the child Hypotheses of DesignQuestion q, other than
-// except, whose current derived status is a live rival, in creation order.
+// except, whose current derived status is a rival, in creation order.
 // The untargeted-rival refusal and the one-rival signal read it.
 func (st *State) LiveRivals(q, except string) []string {
 	var out []string

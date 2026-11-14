@@ -20,7 +20,7 @@ type OwedKind string
 
 // The values of OwedKind.
 const (
-	OwedRivals    OwedKind = "rivals"    // an open question has no live rival and no open reading that can revive one
+	OwedRivals    OwedKind = "rivals"    // an open question has no rival and no open reading that can revive one
 	OwedUntested  OwedKind = "untested"  // a live Hypothesis has no Result and no Experiment that would give one
 	OwedUndecided OwedKind = "undecided" // a live Hypothesis is inconclusive and no planned Experiment would decide it
 	OwedPlanned   OwedKind = "planned"   // a planned Experiment has no Result
@@ -112,7 +112,7 @@ func (p Projection) Owed() []Owed {
 					live = append(live, h)
 				}
 			}
-			// With no live rival, new rivals are owed, unless an open reading
+			// With no rival, new rivals are owed, unless an open reading
 			// whose answer may revive one waits for the owner.
 			rivals := slices.ContainsFunc(live, func(h string) bool { return RivalStatus(p.Hyps[h].Status) })
 			if !rivals && !waiting {

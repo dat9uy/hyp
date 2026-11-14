@@ -49,7 +49,7 @@ func (e External) Stated() bool { return e.Line && e.Text != "" && e.Text != Ext
 const ExternalTODO = "TODO"
 
 // Step names a recipe section whose commands hyp runs. Its value is the
-// lowercase section heading, as command records and expect.json write it.
+// lowercase section heading, as command traces and expect.json write it.
 type Step string
 
 // The steps, in the order a sandbox runs them, and Standalone, which runs

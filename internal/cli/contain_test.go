@@ -144,7 +144,7 @@ func TestContainPinWithoutCommandRecord(t *testing.T) {
 	measured(t,
 		func(s cstore) []string { return []string{evPy(s)} },
 		func(s cstore) []string {
-			return []string{"no command record of ana@1 at " + s.h12 + " with passing known answers"}
+			return []string{"no command trace of ana@1 at " + s.h12 + " with passing known answers"}
 		})
 }
 
@@ -152,7 +152,7 @@ func TestContainCommandRecordMatchesNoPin(t *testing.T) {
 	measured(t,
 		func(s cstore) []string { return []string{s.r0} },
 		func(s cstore) []string {
-			return []string{"command record of ana@1 at " + s.h12 + " matches no pin of this Result"}
+			return []string{"command trace of ana@1 at " + s.h12 + " matches no pin of this Result"}
 		})
 }
 
@@ -174,7 +174,7 @@ func TestContainBundleFilesGiveEachReasonOnce(t *testing.T) {
 	s := containStore(t)
 	e := must(t, "add", "exp", "--parent", s.hf, "--title", "own", "--recipe", "ana@1", "--rubric", "reading", "--target", s.ht, "--why", "w")
 	r := s.record(t, e, []string{evPy(s), "recipes/ana@1/recipe.md"})
-	wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers")
+	wantReasons(t, reasonsOf(t, s.dir, r), "no command trace of ana@1 at "+s.h12+" with passing known answers")
 }
 
 func TestContainSymlinkedScript(t *testing.T) {
@@ -200,8 +200,8 @@ func TestContainUnreadableCommandRecord(t *testing.T) {
 	empty := s.file(t, "command.json", 0o644, "{}\n")
 	r := s.record(t, s.em, []string{bad, empty})
 	wantReasons(t, reasonsOf(t, s.dir, r),
-		"command record "+bad+" names no recipe run",
-		"command record "+empty+" names no recipe run")
+		"command trace "+bad+" names no recipe run",
+		"command trace "+empty+" names no recipe run")
 }
 
 func TestContainUnversionedRecipesScript(t *testing.T) {
@@ -224,7 +224,7 @@ func TestContainRepeatedCitationGivesReasonOnce(t *testing.T) {
 	r := s.record(t, s.em, []string{c, "./" + c, s.r0, r1})
 	wantReasons(t, reasonsOf(t, s.dir, r),
 		"script outside recipes/: "+c,
-		"command record of ana@1 at "+s.h12+" matches no pin of this Result")
+		"command trace of ana@1 at "+s.h12+" matches no pin of this Result")
 }
 
 func TestContainDriveRecordIsNoRun(t *testing.T) {
@@ -234,7 +234,7 @@ func TestContainDriveRecordIsNoRun(t *testing.T) {
 	}
 	d := s.file(t, "d/command.json", 0o644, `{"ref":"ana@1","sha256":"`+s.hash+`","step":"drive"}`)
 	r := s.record(t, s.em, []string{evPy(s), d})
-	wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers")
+	wantReasons(t, reasonsOf(t, s.dir, r), "no command trace of ana@1 at "+s.h12+" with passing known answers")
 }
 
 // Mark shares its caches across Results; each Result's marks must equal
@@ -282,12 +282,12 @@ func TestContainFailedRunIsNoRun(t *testing.T) {
 			}
 			f := s.file(t, "f/command.json", 0o644, `{"ref":"ana@1","sha256":"`+s.hash+`","step":"evidence","commands":`+c.commands+`,`+passingKA+`}`)
 			r := s.record(t, s.em, []string{evPy(s), f})
-			wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers"+c.why)
+			wantReasons(t, reasonsOf(t, s.dir, r), "no command trace of ana@1 at "+s.h12+" with passing known answers"+c.why)
 		})
 	}
 }
 
-// passingKA is the known_answers of a command record whose one case passed.
+// passingKA is the known_answers of a command trace whose one case passed.
 const passingKA = `"known_answers":{"hyp_sha256":"x","cases":[{"name":"a","outcome":"ok"}]}`
 
 // A clean run record counts only with known answers that ran and passed.
@@ -310,7 +310,7 @@ func TestContainRecordKnownAnswers(t *testing.T) {
 				wantReasons(t, reasonsOf(t, s.dir, r))
 				return
 			}
-			wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers; in the cited record, the known answers did not pass")
+			wantReasons(t, reasonsOf(t, s.dir, r), "no command trace of ana@1 at "+s.h12+" with passing known answers; in the cited record, the known answers did not pass")
 		})
 	}
 }
@@ -363,7 +363,7 @@ func TestContainOwnRunnableRecipeNeedsRecord(t *testing.T) {
 	out := ".tree/evidence/" + e + "/out.txt"
 	writeFile(t, filepath.Join(s.dir, out), "x\n")
 	r := s.record(t, e, []string{out})
-	wantReasons(t, reasonsOf(t, s.dir, r), "no command record of ana@1 at "+s.h12+" with passing known answers")
+	wantReasons(t, reasonsOf(t, s.dir, r), "no command trace of ana@1 at "+s.h12+" with passing known answers")
 }
 
 // readers runs every read command that shows the mark, for Result r of

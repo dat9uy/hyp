@@ -12,7 +12,7 @@ import (
 
 // rule is one event type's definition. validate is its replay rule: it takes
 // Facts, so reading derived status from it does not compile (spec §5.1). apply
-// changes stored state only, and takes State because node.add stores the live
+// changes stored state only, and takes State because node.add stores the
 // rivals at the add; every derived field is left to recompute. basis lists the
 // nodes the applied event is a basis event for (spec §7.3), and is nil for a
 // type that is never one. Admission stays out of this table, because its rules

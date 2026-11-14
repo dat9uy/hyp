@@ -95,7 +95,7 @@ func TestAdmitExpOneRival(t *testing.T) {
 	reading := event.NodeAdd{Recipe: event.RecipeNone, Rubric: event.RubricReading, Parent: h1}
 
 	got := st.AdmitExp(reading, RecipeFacts{}, RecipeFacts{}, false)
-	if len(got) != 1 || got[0].Kind != FindRefuse || !strings.HasPrefix(got[0].Text, "live rivals of "+event.DisplayID(event.KindHypothesis, h1)+" under ") {
+	if len(got) != 1 || got[0].Kind != FindRefuse || !strings.HasPrefix(got[0].Text, "rivals of "+event.DisplayID(event.KindHypothesis, h1)+" under ") {
 		t.Fatalf("no target while %s is live: %+v, want the one-rival refusal", h2, got)
 	}
 	if got := st.AdmitExp(reading, RecipeFacts{}, RecipeFacts{}, true); got != nil {
@@ -103,7 +103,7 @@ func TestAdmitExpOneRival(t *testing.T) {
 	}
 	reading.Targets = []string{h2}
 	if got := st.AdmitExp(reading, RecipeFacts{}, RecipeFacts{}, false); got != nil {
-		t.Fatalf("targets the live rival: %+v, want nothing", got)
+		t.Fatalf("targets the rival: %+v, want nothing", got)
 	}
 
 	// The refusal and the record read one rule: an Experiment added with

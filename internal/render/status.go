@@ -146,7 +146,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 	add(kKeep, "FRONTIER")
 	// FRONTIER is the tree pruned to open work. The walk visits every question
 	// once. A node prints only beneath its parent, and a sub-question prints only
-	// from an open or reopened question and through a live rival. An open question
+	// from an open or reopened question and through a rival. An open question
 	// that does not print is counted, so the Goal line's counts stay accounted for.
 	unprinted := 0
 	edges := p.LiveEdges()
@@ -465,7 +465,7 @@ func (r renderer) marked(h string) bool {
 }
 
 // marks names what Experiment e's round left untested: "one-rival" when its
-// parent had live rivals at its add and it targeted none. A target left
+// parent had rivals at its add and it targeted none. A target left
 // without a verdict is refused at record (ADR 0018), so no mark names it.
 func (r renderer) marks(e string) []string {
 	var m []string

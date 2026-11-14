@@ -245,7 +245,7 @@ func TestPatchedRunWithInputsNeverCoversBareBase(t *testing.T) {
 	want(t, hyp(t, "show", keys[0]), 0, "ran in "+res+": ran on "+h+": supports; ran on "+patched+"\n")
 }
 
-// A sandbox record holds one run per Arm, so it keeps one subject per Arm,
+// A sandbox trace holds one run per Arm, so it keeps one subject per Arm,
 // each at its base and given that Arm's one patch: a Hypothesis tied to B
 // and Arm a's patch is covered, and bare B is not.
 func TestSandboxKeepsOneSubjectPerArm(t *testing.T) {

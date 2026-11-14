@@ -252,7 +252,7 @@ func (st *State) closers() map[string][]string {
 
 // reach lists the Hypotheses under question q that an answer to a reading on
 // Result r can move: a candidate r judged, which a changed verdict could
-// drop, and a contradicted rival whose only contradicts is r's, which a
+// drop, and a contradicted Hypothesis whose only contradicts is r's, which a
 // changed verdict could revive. Only r's verdicts count, since a reading
 // states how those verdicts read the owner's words.
 func (st *State) reach(r, q string) []string {

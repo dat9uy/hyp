@@ -15,7 +15,7 @@ type Projection struct {
 	Rejections     []Rejection
 	Applied        []event.Event                      // events that applied, in merge order
 	LastCheckpoint map[string]*event.Event            // Goal → its latest runner checkpoint; an old owner checkpoint is not one
-	RivalsAtAdd    map[string][]string                // Experiment → live rivals of its parent just before its add
+	RivalsAtAdd    map[string][]string                // Experiment → rivals of its parent just before its add
 	Exps           map[string]*Exp                    // Experiment → its derived record (experiment.go)
 	Results        map[string]*Res                    // Result → its derived record (result.go)
 	Edges          []Edge                             // every edge in apply order; Live is false once removed
@@ -240,7 +240,7 @@ type Reading struct {
 	Applied           string // the Result that applied the answer in force, or ""
 	// Reach lists the live Hypotheses under Question whose standing the
 	// answer can move, read from the Result's own verdicts: a candidate it
-	// judged, or a contradicted rival whose only contradicts is its own. An
+	// judged, or a contradicted Hypothesis whose only contradicts is its own. An
 	// open reading makes its question wait only while Reach is not empty.
 	Reach []string
 }
@@ -355,7 +355,7 @@ type State struct {
 	Questions   map[string]*Question
 	goals       map[string]GoalState // Goal → its derived state
 	Applied     []event.Event
-	RivalsAtAdd map[string][]string // Experiment → live rivals of its parent just before its add
+	RivalsAtAdd map[string][]string // Experiment → rivals of its parent just before its add
 	// LineCites holds each Goal's lines' cites with what each meant at the
 	// Goal's add: derived from Facts there and kept, as RivalsAtAdd is, so
 	// no replay rule reads it.

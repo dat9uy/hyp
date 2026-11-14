@@ -116,7 +116,7 @@ Run `hyp check` and `hyp bundle check` after the Results. Add no new structure o
 
 If no reading is open, show each open Question with the candidates left, by alias.
 
-- **None.** Say so. Each rival failed, or has no Result yet.
+- **None.** Say so. Each Hypothesis failed, or has no Result yet.
 - **One.** It is the suggested select. Show each `limit` line under OWED for it. Run a test within the Goal's lines that can close one, if the owner asks you to reassess. Show each referred limit under AWAITING OWNER as "Show each referred limit" says.
 - **Several.** `hyp status` prints `Q-… choose: …` under AWAITING OWNER only when the runner owes nothing on that Question. Until then, apply what the runner owes first.
    The owner can choose one by their own reasons, in their own words; record it with `hyp select <Q-id> <H-id> --why "<their words>"` under this session's runner actor. Or they can ask for a test or a question that rules more out. Name the test that would separate them, if one exists. If that test is under no Goal line, show the fork below.

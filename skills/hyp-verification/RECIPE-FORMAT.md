@@ -489,7 +489,7 @@ harness recipe last. A stack is whole bundles, not one-job recipes.
   order, and the Result's evidence points at `OUT_DIR/sandbox.json`. A new
   version of an environment recipe never flags a Result questionable.
 
-## The sandbox record
+## The sandbox trace
 
 `hyp sandbox create` writes `~/.hyp-sandbox/ID/sandbox.json`, and
 `hyp sandbox remove ID OUT_DIR` copies it to `OUT_DIR/sandbox.json` with
@@ -525,16 +525,16 @@ Each entry of `recipes`:
 | `name`, `version`, `sha256` | the recipe's name, version and hash (see Hash). The commands run from the sandbox's copy, `~/.hyp-sandbox/ID/recipes/<name>`. Remove and drive reopen it by `ref` and check it against `sha256`; a copy that hashes differently runs nothing: remove records `failed: no Cleanup ran` and warns with both hashes, and drive refuses with exit 1 |
 | `setup` | `passed` (Launch and Doctor passed), `failed` (one failed; the sandbox was kept), or `none` (nothing to run). Written as each recipe's setup ends. Absent until then, so a recipe whose setup hyp was killed during has none, and absent for the ref `none` and for a recipe after the one that failed, which was never launched |
 | `cleanup` | `ok`, or `failed: ` and each command that failed (`failed: ./stop1.sh`); `failed: no Cleanup ran` when the copy or `recipe.log` did not open. Absent when no Cleanup command ran. It is the outcome of the last Cleanup run |
-| `known_answers` | the outcome of the recipe's known answers, run before its commands: `hyp_sha256` (the hyp that ran them) and `cases`, one `{"name", "outcome"}` per case. Absent for a recipe with no Evidence or Standalone command, which is not gated |
+| `known_answers` | the outcome of the recipe's known answers, run before its commands: `hyp_sha256` (the hyp that ran them) and `cases`, one `{"name", "outcome"}` per known-answer run. Absent for a recipe with no Evidence or Standalone command, which is not gated |
 
 `--recipe none` records exactly `"recipes": [{"ref": "none"}]`.
 
-Each entry of `commands` (a command record's rows have the same fields):
+Each entry of `commands` (a command trace's rows have the same fields):
 
 | Field | Value |
 |---|---|
 | `ref` | the recipe's ref |
-| `step` | `launch`, `doctor`, `drive` or `cleanup`; in a command record `evidence` or `standalone` |
+| `step` | `launch`, `doctor`, `drive` or `cleanup`; in a command trace `evidence` or `standalone` |
 | `label` | a Standalone command's name; absent otherwise |
 | `args` | the command as run: its script as `./PATH` inside the bundle, then every word |
 | `exit` | the script's exit code; absent when it has none |
@@ -551,7 +551,7 @@ one entry of `recipes`, its Cleanup runs from the `path` it names (inside
 `wt/recipes/` for those records), and every field hyp does not know, `port`
 included, is kept in OUT_DIR as it was read.
 
-## The command record
+## The command trace
 
 `hyp bundle evidence` and `hyp bundle run` make the new directory that
 `--record DIR` names, holding `command.json`, `command.log` (each
@@ -582,8 +582,8 @@ rename, before each command starts and after it ends.
 | `step` | `evidence` or `standalone` |
 | `cwd` | the caller's working directory, as `<repo>/REL`, where the recipe lookup and a relative `--record` start; each command ran in an empty directory of its own |
 | `created` | UTC time, RFC 3339 |
-| `commands` | one entry per command, with the fields of the sandbox record's `commands` |
-| `known_answers` | as in the sandbox record's `recipes` |
+| `commands` | one entry per command, with the fields of the sandbox trace's `commands` |
+| `known_answers` | as in the sandbox trace's `recipes` |
 | `inputs` | one entry per file argument, in ARGS order: `arg` (its place in ARGS, from 1), `path` (`inputs/<arg>/<base name>`, beside `command.json`), `sha256` and `size` (of the copy the script got) and `kept` (`false` over 1 MB, when no copy is at `path`). A row shows `path` in the argument's place, and a directory argument as `<repo>/REL`, or as given outside the repository, which hyp warns about. Absent when no argument names a file |
 | `dirs` | one entry per directory argument, in ARGS order: `arg` (its place in ARGS, from 1), `path` (as the row shows it), `sha256` (of its tree just before the first command ran: each entry's slash path and kind, a file's sha256 and a symlink's target, dot-entries included, in lexical order) `files` (its regular files) and `entries` (each regular file's slash path under the directory and its sha256, absent when it holds more than 200). hyp passes the directory in place and keeps no copy. Absent when no argument names a directory |
 
@@ -722,10 +722,10 @@ commands ran. A failed case
 refuses the run (exit 1,
 `recipe REF failed its known answers: NAME: OUTCOME; nothing ran`), a
 timed-out case exits 3, and a refused create leaves no sandbox. The
-outcome of each case goes to `known_answers` in `sandbox.json` and
-`command.json`, and each case's stderr to `known-answers.log`, after a
+outcome of each known-answer run goes to `known_answers` in
+`sandbox.json` and `command.json`, and each case's stderr to `known-answers.log`, after a
 `== REF known answer NAME` line: in the sandbox, kept in OUT_DIR on
-remove, and in the command record's directory. A recipe with no Evidence
+remove, and in the command trace's directory. A recipe with no Evidence
 or Standalone command is not gated.
 
 The gate proves that a bundle reproduces its own expected outputs, not
@@ -817,22 +817,22 @@ reason is reported once, in this order:
    `recipes/` in no versioned bundle counts: hyp neither pins nor runs it.
    So does a file inside a bundle that its hash skips (a dot-entry or
    `__pycache__`): no pin covers it.
-2. `no command record of <ref> at <h12> with passing known answers`: the
+2. `no command trace of <ref> at <h12> with passing known answers`: the
    Result pins a bundle with an Evidence or Standalone command (its
    Experiment's recipe, its Experiment's rubric, or an evidence pin), and
    cites no `command.json`
    that names that ref at that hash, records at least one command, every
-   one of which exited 0, and holds `known_answers` with at least one case,
-   every one `ok`. A record of a failed run is not a run. When a cited
+   one of which exited 0, and holds `known_answers` with at least one
+   known-answer run, every one `ok`. A record of a failed run is not a run. When a cited
    record of that ref and hash ran but is not clean, the reason goes on
    with `; in the cited record, ` and the first command that failed (its
    words and outcome) or `the known answers did not pass`. A
    `command.json` among the Experiment's pinned records counts too, so a
    reassessment is held by the runs it read.
-3. `command record of <ref> at <h12> matches no pin of this Result`: a cited
+3. `command trace of <ref> at <h12> matches no pin of this Result`: a cited
    `command.json` names a ref and hash that match none of its pins. One that
    hyp cannot read, or that names no ref or hash, gives
-   `command record <pointer> names no recipe run`.
+   `command trace <pointer> names no recipe run`.
 
 A pin to a bundle without an Evidence or Standalone command, such as a
 known-answer fixture, is held by its hash alone. hyp derives the mark from
@@ -845,7 +845,7 @@ record clears the mark.
 Limits:
 
 1. A script named only in prose, whose output a Result cites, is not seen.
-2. A hand-made output file cited beside a real command record is not seen.
+2. A hand-made output file cited beside a real command trace is not seen.
 3. A script with none of the marks in reason 1 is not seen.
 4. A hand-written `command.json` that claims a clean run with passing
    known answers satisfies reason 2. A reader checks the record's

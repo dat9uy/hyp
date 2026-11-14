@@ -44,7 +44,7 @@ the result means; that is the `hyp record` verdict.
   and `hyp bundle run --record DIR REF NAME ARGS` runs a Standalone
   command. When the sandbox ran them, Launch and Doctor are already done.
   Never run a bundle's script yourself, so the known-answer gate and its
-  command record cover every run, and never run a check on a candidate
+  command trace cover every run, and never run a check on a candidate
   before the Experiment that tests it pins its rubric.
   When a candidate shows a check is wrong, write the case that shows it in
   a new version first, and name the case in the Experiment body.
