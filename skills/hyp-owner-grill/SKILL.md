@@ -104,7 +104,7 @@ The grill ends in these writes, in this order. Show each owner write as the exac
 |---|---|---|
 | a new store, if Start step 1 found none | `hyp init` in the directory Start step 1 names | runner |
 | the Goal, its purpose and its lines | `hyp add goal --title "…" --body "…" --line "…" --cite N=KEY --why "…"` | owner |
-| a contested question | `hyp add dq --parent <G-id> --body "<one difference sentence per rival pair, or the scenario that separates the one Hypothesis from the base>" …`, then one `hyp add hyp --parent <Q-id> …` per Hypothesis | runner |
+| a contested question | `hyp add dq --parent <G-id> --body "<one difference sentence per rival pair, or the scenario that separates the one Hypothesis from the base>" …`, then one `hyp add hyp --parent <Q-id> …` per Hypothesis; in a build Goal the run adds the Hypotheses, one per commit, so the grill adds none | runner |
 | a question with rivals the owner settled in the session | the DesignQuestion and each rival as above; then under the chosen rival `hyp add exp --recipe none --rubric reading --target <each other rival>` whose body states the scenarios as its rubric, `hyp record` with a verdict per rival citing a scenarios file under `.tree/evidence/<E-id>/`, then the select OWED owes (a runner write, not the owner's) | runner |
 | a link to another Goal or an issue | `hyp link <id> external_ref …` | runner |
 | the end | `hyp checkpoint --goal <G-id> --summary "…" --why "end of grill"` | runner |
