@@ -92,7 +92,7 @@ func cmdImport(args []string, stdout, stderr io.Writer) error {
 		case n == 0 && files == 0:
 			fmt.Fprintf(stdout, "%s: the record holds every event\n", arg)
 		case n == 0:
-			fmt.Fprintf(stdout, "%s: the record holds every event; added %d named files it lacked\n", arg, files)
+			fmt.Fprintf(stdout, "%s: the record holds every event; added %d files it lacked\n", arg, files)
 		default:
 			fmt.Fprintf(stdout, "%s: imported %d events\n", arg, n)
 		}

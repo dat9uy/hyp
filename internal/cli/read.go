@@ -316,8 +316,8 @@ func showFile(r *reader, arg string, stdout io.Writer) error {
 		file = filepath.Join(b.Path, filepath.FromSlash(rest))
 	}
 	data, err := os.ReadFile(file)
-	if errors.Is(err, fs.ErrNotExist) {
-		return herr.Env("%s: an event names it, but this store holds no copy of its bytes; hyp import from a commit or folder that holds them adds them", arg)
+	if errors.Is(err, fs.ErrNotExist) && r.store.InRecord {
+		return herr.Env("%s: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them", arg)
 	}
 	if err != nil {
 		return herr.Env("%s: %v", arg, err)

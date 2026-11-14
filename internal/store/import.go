@@ -23,9 +23,9 @@ import (
 // work tree, or a copy of a commit's tree. A named file src lacks or holds
 // with other bytes than the sha256 its event stores, or a bundle src holds
 // with another hash than its pin, is left out and printed to warn; a later
-// import from a src that holds the file's bytes adds them to the event the
-// record holds. It returns how many events and named files it added; run
-// again, it adds none.
+// import from a src that holds the file's bytes, or the bundle with its
+// pinned hash, adds them to the event the record holds. It returns how many
+// events and files it added; run again, it adds none.
 func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int, error) {
 	if fi, err := os.Stat(record.EventsDir(src)); err != nil || !fi.IsDir() {
 		return 0, 0, herr.BadArgs("%s holds no store", src)
@@ -97,47 +97,83 @@ func Import(repo *record.Repo, name, src, top string, warn io.Writer) (int, int,
 		add = append(add, s.StoreFile(rel, p, sum))
 		return nil
 	}
+	// recordHolds reports whether the record keeps a copy of bundle b with
+	// its pinned hash, read once from the record's store.
+	var recordHashes map[string]string
+	recordHolds := func(b Pin) (bool, error) {
+		if !s.InRecord {
+			return false, nil
+		}
+		if recordHashes == nil {
+			root, err := s.Root()
+			if err != nil {
+				return false, err
+			}
+			recordHashes = recipe.Hashes(root)
+		}
+		if b.Hash == "" {
+			_, ok := recordHashes[b.Ref]
+			return ok, nil
+		}
+		return recipe.Holds(recordHashes, b.Ref, b.Hash), nil
+	}
+	adoptedBundle := map[Pin]bool{}
+	// pinnedBundle adds the files of bundle b that ev pins from src when src
+	// holds it with the pinned hash, and else prints that the record lacks
+	// it. For an event the record holds, a bundle the record keeps already
+	// is left as it is.
+	pinnedBundle := func(ev event.Event, b Pin, isHeld bool) error {
+		if adoptedBundle[b] {
+			return nil
+		}
+		if isHeld {
+			ok, err := recordHolds(b)
+			if err != nil || ok {
+				return err
+			}
+		}
+		load := recipe.Load
+		if b.Rubric {
+			load = recipe.LoadRubric
+		}
+		r, err := load(src, b.Ref)
+		if err != nil || (b.Hash != "" && r.Hash != b.Hash) {
+			fmt.Fprintf(warn, "hyp import: bundle %s that %s pins is not in %s with its hash; the record lacks it\n", b.Ref, ev.ID, src)
+			return nil
+		}
+		bf, err := dirFilesUnder(top, r.Path)
+		if err != nil {
+			return err
+		}
+		adoptedBundle[b] = true
+		add = append(add, bf...)
+		return nil
+	}
 	for _, actor := range actors {
 		for i, ev := range files[actor] {
 			n := NamesOf(ev)
-			if held[ev.ID] {
-				// The record holds the event; it gets each named file an
-				// earlier import could not add.
-				for _, rel := range n.Files {
-					if err := namedFile(ev, n, rel); err != nil {
-						return 0, 0, err
-					}
+			isHeld := held[ev.ID]
+			if !isHeld {
+				if have[ev.ID] {
+					continue
 				}
-				continue
+				have[ev.ID] = true
+				lines[actor] = append(lines[actor], raw[actor][i])
+				added++
+				commits = append(commits, n.Commits...)
 			}
-			if have[ev.ID] {
-				continue
-			}
-			have[ev.ID] = true
-			lines[actor] = append(lines[actor], raw[actor][i])
-			added++
+			// An event the record holds gets each named file and pinned
+			// bundle an earlier import could not add.
 			for _, rel := range n.Files {
 				if err := namedFile(ev, n, rel); err != nil {
 					return 0, 0, err
 				}
 			}
 			for _, b := range n.Bundles {
-				load := recipe.Load
-				if b.Rubric {
-					load = recipe.LoadRubric
-				}
-				r, err := load(src, b.Ref)
-				if err != nil || (b.Hash != "" && r.Hash != b.Hash) {
-					fmt.Fprintf(warn, "hyp import: bundle %s that %s pins is not in %s with its hash; the record lacks it\n", b.Ref, ev.ID, src)
-					continue
-				}
-				bf, err := dirFilesUnder(top, r.Path)
-				if err != nil {
+				if err := pinnedBundle(ev, b, isHeld); err != nil {
 					return 0, 0, err
 				}
-				add = append(add, bf...)
 			}
-			commits = append(commits, n.Commits...)
 		}
 	}
 	if added == 0 && len(add) == 0 {

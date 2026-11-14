@@ -393,6 +393,7 @@ func realCase(p string) string {
 // listedName is the name dir lists for part: part when dir lists it, else
 // the entry that os.SameFile shows is the same file, which a filesystem
 // that folds letter case or Unicode normalization reaches by either name.
+// Neither side follows a link, so a link to the folder is never its name.
 func listedName(dir, part string) string {
 	ents, err := os.ReadDir(dir)
 	if err != nil {
@@ -403,12 +404,12 @@ func listedName(dir, part string) string {
 			return part
 		}
 	}
-	want, err := os.Stat(filepath.Join(dir, part))
+	want, err := os.Lstat(filepath.Join(dir, part))
 	if err != nil {
 		return part
 	}
 	for _, e := range ents {
-		if fi, err := os.Stat(filepath.Join(dir, e.Name())); err == nil && os.SameFile(want, fi) {
+		if fi, err := os.Lstat(filepath.Join(dir, e.Name())); err == nil && os.SameFile(want, fi) {
 			return e.Name()
 		}
 	}

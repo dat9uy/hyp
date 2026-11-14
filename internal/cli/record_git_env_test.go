@@ -489,7 +489,7 @@ func TestImportAddsNamedBytesAnEarlierImportLacked(t *testing.T) {
 			}
 			want(t, hyp(t, "import", "."), 0, "imported")
 			want(t, hyp(t, "show", ptr), 3, "hyp import")
-			want(t, hyp(t, "import", "HEAD:."), 0, "added 1 named files")
+			want(t, hyp(t, "import", "HEAD:."), 0, "added 1 files it lacked")
 			want(t, hyp(t, "show", ptr), 0, "the bytes the Result cited")
 			tip := gitIn(t, top, "rev-parse", "refs/hyp/record")
 			want(t, hyp(t, "import", "HEAD:."), 0, "holds every event\n")
@@ -497,5 +497,100 @@ func TestImportAddsNamedBytesAnEarlierImportLacked(t *testing.T) {
 				t.Fatalf("a third import moved the record from %s to %s", tip, again)
 			}
 		})
+	}
+}
+
+// Line 1: on a filesystem that folds case, the folder s typed as S is the
+// store s, also when the repository holds a link a to s, whose name sorts
+// before s: a link to the folder is never its name.
+func TestStoreFolderOtherCaseBesideALink(t *testing.T) {
+	repo := recordRepo(t)
+	probe := filepath.Join(repo, "probe-lower")
+	writeFile(t, probe, "x")
+	_, err := os.Stat(filepath.Join(repo, "PROBE-LOWER"))
+	os.Remove(probe)
+	if err != nil {
+		t.Skip("the filesystem does not fold case")
+	}
+	if err := os.Symlink("s", filepath.Join(repo, "a")); err != nil {
+		t.Fatal(err)
+	}
+	g, r, ptr := chain(t, "the bytes\n")
+	views0 := views(t, g, r, ptr)
+	t.Chdir(filepath.Join(repo, "S"))
+	if res := hyp(t, "status", g); res.code != 0 || res.stdout != views0[0] {
+		t.Fatalf("hyp status %s from S: exit %d, stdout %q, stderr %q; want what s prints:\n%s", g, res.code, res.stdout, res.stderr, views0[0])
+	}
+	id := must(t, "add", "goal", "--title", "from S", "--why", "w")
+	t.Chdir(filepath.Join(repo, "s"))
+	want(t, hyp(t, "show", id), 0, "from S")
+	if ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"); strings.Contains(ls, "a/.tree/") || strings.Contains(ls, "S/.tree/") {
+		t.Fatalf("the record holds a second store for the folder s:\n%s", ls)
+	}
+}
+
+// Line 7: an import that added an event without the bundle it pins, because
+// its source lacked the bundle, is followed by an import from a commit that
+// holds the bundle with the pinned hash: it adds the bundle, so the Result
+// reads as the work-tree store read it from a checkout with or without the
+// bundle; one more import adds nothing.
+func TestImportAddsAPinnedBundleAnEarlierImportLacked(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	writeFile(t, filepath.Join(repo, "s", "README.md"), "r\n")
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	t.Chdir(filepath.Join(repo, "s"))
+	must(t, "init")
+	dropRecord(t, repo)
+	bundleIn(t, filepath.Join(repo, "s"), "kit", "", nil)
+	_, r := recipeChain(t)
+	control := hyp(t, "show", r).stdout
+	if strings.Contains(control, "questionable") {
+		t.Fatalf("control: the work-tree store reads %s questionable:\n%s", r, control)
+	}
+	gitIn(t, repo, "add", "-f", "-A")
+	gitIn(t, repo, "commit", "-qm", "store")
+	if err := os.RemoveAll(filepath.Join(repo, "s", "recipes")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repo)
+	want(t, hyp(t, "import", "s"), 0, "the record lacks it")
+	want(t, hyp(t, "import", "HEAD:s"), 0, "files it lacked")
+	if ls := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"); !strings.Contains(ls, "s/recipes/kit@1/recipe.md") {
+		t.Fatalf("after an import from a commit that holds kit@1 with its pinned hash, the record lacks it:\n%s", ls)
+	}
+	tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+	want(t, hyp(t, "import", "HEAD:s"), 0, "holds every event\n")
+	if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again != tip {
+		t.Fatalf("one more import moved the record from %s to %s", tip, again)
+	}
+	t.Chdir(filepath.Join(repo, "s"))
+	without := hyp(t, "show", r).stdout
+	gitIn(t, repo, "checkout", "--", "s/recipes")
+	with := hyp(t, "show", r).stdout
+	if strings.Contains(without, "questionable") || strings.Contains(with, "questionable") {
+		t.Fatalf("%s reads questionable in the record, though the work-tree store read it fine:\nwithout the bundle:\n%s\nwith it:\n%s", r, without, with)
+	}
+}
+
+// Where no git repository holds the current directory, hyp show of a cited
+// file removed from the work tree reports it as on the base and names no
+// hyp import, which only a record repository can use.
+func TestShowMissingFileWithNoGitNamesNoImport(t *testing.T) {
+	gitConfig(t)
+	t.Chdir(t.TempDir())
+	must(t, "init")
+	_, _, ptr := chain(t, "bytes\n")
+	if err := os.Remove(ptr); err != nil {
+		t.Fatal(err)
+	}
+	res := hyp(t, "show", ptr)
+	if res.code != 3 || strings.Contains(res.stderr, "hyp import") {
+		t.Fatalf("with no git, hyp show of a removed cited file: exit %d, stderr %q; want exit 3 naming no hyp import", res.code, res.stderr)
 	}
 }
