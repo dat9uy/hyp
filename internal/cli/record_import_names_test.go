@@ -256,6 +256,18 @@ func TestStoreFolderNameIsPlain(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// A part named as git's folder: discovery takes the folder above it as
+	// the repository root, and the name below that root starts with it.
+	gitPart := filepath.Join(repo, "g", ".git", "x")
+	if err := os.MkdirAll(gitPart, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(gitPart)
+	refused(t, hyp(t, "init"), "store folder")
+	if _, err := os.Stat(filepath.Join(gitPart, ".tree")); err == nil {
+		t.Fatal("a refused hyp init below a folder named as git's wrote a store folder")
+	}
+	noRecord(t, repo, "after a refused hyp init below a folder named as git's")
 	// Two names that differ only in case, on a filesystem that keeps both.
 	if err := os.Mkdir(filepath.Join(repo, "Data"), 0o755); err != nil {
 		t.Fatal(err)
