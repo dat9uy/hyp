@@ -78,7 +78,7 @@ func boundaryFindings(t *testing.T, root string) []string {
 			return err
 		}
 		if d.IsDir() {
-			if d.Name() == "testdata" || (strings.HasPrefix(d.Name(), ".") && p != root) || d.Name() == "investigations" || d.Name() == "recipes" || d.Name() == "rubrics" {
+			if d.Name() == "testdata" || (strings.HasPrefix(d.Name(), ".") && p != root) || (filepath.Dir(p) == root && (d.Name() == "investigations" || d.Name() == "recipes" || d.Name() == "rubrics")) {
 				return filepath.SkipDir
 			}
 			return nil
@@ -138,4 +138,25 @@ func boundaryFindings(t *testing.T, root string) []string {
 		t.Fatal(err)
 	}
 	return bad
+}
+
+// The boundary scan skips investigations, recipes and rubrics only at the
+// module root: a package folder of that name below it is Go source.
+func TestBoundaryScansPackageFoldersNamedLikeStoreFolders(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "go.mod"), "module m\n")
+	src := "package p\n\nimport \"os/exec\"\n\nvar s = \"x/." + "tree/events\"\n\nfunc f() { exec.Command(\"git\", \"status\").Run() }\n"
+	for _, d := range []string{"recipes", "rubrics", "investigations"} {
+		writeFile(t, filepath.Join(root, d, "skip.go"), src)
+		writeFile(t, filepath.Join(root, "internal", "check", d, "probe.go"), src)
+	}
+	bad := strings.Join(boundaryFindings(t, root), "\n")
+	for _, d := range []string{"recipes", "rubrics", "investigations"} {
+		if !strings.Contains(bad, "internal/check/"+d+"/probe.go") {
+			t.Errorf("the boundary scan reports nothing for internal/check/%s/probe.go:\n%s", d, bad)
+		}
+		if strings.Contains(bad, d+"/skip.go") && !strings.Contains(bad, "internal/check/"+d+"/skip.go") {
+			t.Errorf("the boundary scan reads %s/ at the module root:\n%s", d, bad)
+		}
+	}
 }

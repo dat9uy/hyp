@@ -255,3 +255,50 @@ func TestSyncedReftableRecordNeedsGit(t *testing.T) {
 		}
 	}
 }
+
+// Two stores whose names share a prefix of their sha256 each read their own
+// events: s2330 and s130636 share the first 4 bytes.
+func TestStoresWithACommonNameHashPrefixReadTheirOwnEvents(t *testing.T) {
+	gitConfig(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, repo, "init", "-q")
+	names := []string{"s2330", "s130636"}
+	for _, n := range names {
+		writeFile(t, filepath.Join(repo, n, "README.md"), n+"\n")
+	}
+	gitIn(t, repo, "add", "-A")
+	gitIn(t, repo, "commit", "-qm", "base")
+	goals := map[string]string{}
+	for _, n := range names {
+		t.Chdir(filepath.Join(repo, n))
+		must(t, "init")
+		goals[n] = must(t, "add", "goal", "--title", "goal of "+n, "--why", "w")
+	}
+	for _, n := range names {
+		t.Chdir(filepath.Join(repo, n))
+		want(t, hyp(t, "show", goals[n]), 0, "goal of "+n)
+		want(t, hyp(t, "status", goals[n]), 0, "goal of "+n)
+	}
+}
+
+// A store folder reached through a symbolic link inside the repository is
+// the store it links to: hyp show prints its events, and a write adds to it,
+// not to a second store.
+func TestStoreFolderThroughASymlinkIsTheStoreItLinksTo(t *testing.T) {
+	repo := recordRepo(t)
+	g := must(t, "add", "goal", "--title", "the goal", "--why", "w")
+	if err := os.Symlink("s", filepath.Join(repo, "link")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(repo, "link"))
+	want(t, hyp(t, "show", g), 0, "the goal")
+	g2 := must(t, "add", "goal", "--title", "second", "--why", "w")
+	if names := gitIn(t, repo, "ls-tree", "-r", "--name-only", "refs/hyp/record"); strings.Contains(names, "link/") {
+		t.Fatalf("a write through the link started a second store in the record:\n%s", names)
+	}
+	t.Chdir(filepath.Join(repo, "s"))
+	want(t, hyp(t, "show", g2), 0, "second")
+}

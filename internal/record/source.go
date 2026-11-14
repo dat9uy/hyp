@@ -64,7 +64,7 @@ func (r *Repo) Name(dir string) (string, bool) {
 	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return "", false
 	}
-	return filepath.ToSlash(rel), true
+	return storeName(r.Top, abs), true
 }
 
 // TrackedEvidence lists the files git tracks under the evidence folder of

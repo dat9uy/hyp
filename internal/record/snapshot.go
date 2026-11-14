@@ -91,7 +91,7 @@ func storeOf(p string) (owner, rest string, ok bool) {
 // so the repository root of every path in it is the snapshot's root.
 func (r *Repo) snapshot(tip, name string, entries map[string]entry) (string, error) {
 	nh := sha256.Sum256([]byte(name))
-	key := tip + "-" + hex.EncodeToString(nh[:4])
+	key := tip + "-" + hex.EncodeToString(nh[:])
 	dir := r.hypDir("snap", key)
 	if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
 		now := time.Now()

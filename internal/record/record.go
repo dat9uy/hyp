@@ -125,7 +125,7 @@ func Locate(start string) (*Store, error) {
 	for dir := abs; ; dir = filepath.Dir(dir) {
 		name := ""
 		if inRepo {
-			name = slashRel(top, dir)
+			name = storeName(top, dir)
 		}
 		if s.entries != nil && s.hasStore(name) {
 			s.Dir, s.Name, s.InRecord = dir, name, true
@@ -157,6 +157,21 @@ func At(dir string) (*Store, error) {
 		return nil, ErrNoStore
 	}
 	return s, nil
+}
+
+// storeName is the name of the store whose folder is dir: its slash path
+// from the repository root top, with symbolic links resolved, so a folder
+// reached through a link inside the repository is the store it links to.
+// A link that leaves the repository keeps the path as given.
+func storeName(top, dir string) string {
+	rt, err1 := filepath.EvalSymlinks(top)
+	rd, err2 := filepath.EvalSymlinks(dir)
+	if err1 == nil && err2 == nil {
+		if rel, err := filepath.Rel(rt, rd); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return filepath.ToSlash(rel)
+		}
+	}
+	return slashRel(top, dir)
 }
 
 func slashRel(top, dir string) string {
