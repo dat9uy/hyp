@@ -535,3 +535,58 @@ func TestStoreBelowAFolderGitsIndexTakesAsGits(t *testing.T) {
 		})
 	}
 }
+
+// pathsGitCannotHold are parts below which git's index drops a path and
+// still exits 0: git's folder name in any letter case, with a trailing dot
+// or space, and its short name on a filesystem that keeps 8.3 names.
+var pathsGitCannotHold = []string{".git", ".GIT", ".git.", ".git ", "git~1"}
+
+// Lines 1 and 3: a write that names a file at a path git cannot hold exits
+// 1 and writes nothing, since the record could not keep the file's bytes.
+func TestWriteOfAFileAtAPathGitCannotHold(t *testing.T) {
+	for _, part := range pathsGitCannotHold {
+		t.Run(part, func(t *testing.T) {
+			repo := recordRepo(t)
+			g := must(t, "add", "goal", "--title", "G", "--why", "w")
+			q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+			h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+			e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+			ptr := ".tree/evidence/" + e + "/" + part + "/out.txt"
+			writeFile(t, ptr, "the bytes\n")
+			tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+			refused(t, hyp(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w"), "git cannot hold")
+			if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again != tip {
+				t.Fatalf("a refused write moved the record from %s to %s", tip, again)
+			}
+		})
+	}
+}
+
+// Line 8: hyp import exits 1 and adds nothing when an event of the store
+// names a file at a path git cannot hold.
+func TestImportOfAFileAtAPathGitCannotHold(t *testing.T) {
+	for _, part := range pathsGitCannotHold {
+		t.Run(part, func(t *testing.T) {
+			repo := recordRepo(t)
+			other := t.TempDir()
+			t.Chdir(other)
+			must(t, "init")
+			g := must(t, "add", "goal", "--title", "G", "--why", "w")
+			q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+			h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+			e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+			ptr := ".tree/evidence/" + e + "/" + part + "/out.txt"
+			writeFile(t, ptr, "the bytes\n")
+			must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+			if err := os.CopyFS(filepath.Join(repo, "w"), os.DirFS(other)); err != nil {
+				t.Fatal(err)
+			}
+			t.Chdir(repo)
+			tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+			refused(t, hyp(t, "import", "w"), "git cannot hold")
+			if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again != tip {
+				t.Fatalf("a refused import moved the record from %s to %s", tip, again)
+			}
+		})
+	}
+}

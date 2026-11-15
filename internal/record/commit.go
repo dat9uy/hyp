@@ -239,7 +239,7 @@ func (s *Store) AppendStores(lines map[string]map[string][][]byte, files []File,
 		}
 		fmt.Fprintf(&info, "%s %s\t%s\x00", a.mode, a.sha, p)
 	}
-	if _, err := gitOut(r.Top, env, info.Bytes(), "update-index", "-z", "--add", "--index-info"); err != nil {
+	if err := r.stage(env, info.Bytes()); err != nil {
 		return err
 	}
 	afterStep("objects")
@@ -269,6 +269,32 @@ func (s *Store) AppendStores(lines map[string]map[string][][]byte, files []File,
 	}
 	afterStep("ref")
 	return s.readTip()
+}
+
+// stage adds the index lines info, each "<mode> <sha>\t<path>" ended by a
+// NUL, to the index that env names, and refuses when the index then lacks
+// a path a line names. git's index drops a path it cannot hold, such as one
+// below a part it takes as its own folder, and still exits 0; a record
+// written from that index would lack the file's bytes, so the write exits 1
+// and the record stays as it was.
+func (r *Repo) stage(env []string, info []byte) error {
+	if _, err := gitOut(r.Top, env, info, "update-index", "-z", "--add", "--index-info"); err != nil {
+		return err
+	}
+	out, err := gitRaw(r.Top, env, nil, "ls-files", "-z")
+	if err != nil {
+		return err
+	}
+	held := map[string]bool{}
+	for _, p := range bytes.Split(out, []byte{0}) {
+		held[string(p)] = true
+	}
+	for _, l := range bytes.Split(info, []byte{0}) {
+		if _, p, ok := bytes.Cut(l, []byte{'\t'}); ok && !held[string(p)] {
+			return herr.Refused("%q is a path git cannot hold, so the record cannot keep the bytes of the file there; name the file at another path", p)
+		}
+	}
+	return nil
 }
 
 // LacksCommit reports whether c names a commit the repository holds that
