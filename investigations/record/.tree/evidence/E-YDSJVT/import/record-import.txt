@@ -1,0 +1,2 @@
+investigations/record: imported 134 events
+exit 0
