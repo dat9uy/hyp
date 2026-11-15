@@ -1,0 +1,28 @@
+removal r8: a part that differs only in case from a sibling is refused
+candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+test ./internal/cli/ -run 'TestStoreFolderNameIsPlain' with TMPDIR on a case-sensitive volume
+applied in internal/record/name.go (1x): 'if e.Name() != part && strings.EqualFold(e.Name(), part) {' -> 'if false && e.Name() != part && strings.EqualFold(e.Name(), part) {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 377630f..fb94f1c 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -77,7 +77,7 @@ func CheckPlain(top, dir string) error {
+ 		}
+ 		if ents, err := os.ReadDir(cur); err == nil {
+ 			for _, e := range ents {
+-				if e.Name() != part && strings.EqualFold(e.Name(), part) {
++				if false && e.Name() != part && strings.EqualFold(e.Name(), part) {
+ 					return herr.Refused("the store folder %q has the part %q, and its folder also holds %q; each part of a store folder's name differs from every other name in its folder by more than letter case", name, part, e.Name())
+ 				}
+ 			}
+
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:298: exit 0, stderr ""; want a refusal, exit 1, naming "Data"
+--- FAIL: TestStoreFolderNameIsPlain (0.44s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.807s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

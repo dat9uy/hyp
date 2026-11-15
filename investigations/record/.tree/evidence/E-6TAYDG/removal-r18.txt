@@ -1,0 +1,29 @@
+removal r18: sandbox create keeps a refusal of --store at exit 1
+candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+test ./internal/cli/ -run 'TestSandboxStoreOutsideTheRepository'
+applied in internal/sandbox/sandbox.go (1x): '\t\t\tif herr.KindOf(err) == herr.Refusal {\n\t\t\t\treturn nil, herr.Refused("--store %s: %s; nothing created", o.Store, herr.Text(err))\n\t\t\t}\n' -> ''
+diff:
+diff --git a/internal/sandbox/sandbox.go b/internal/sandbox/sandbox.go
+index 32d8afe..cb8cdb6 100644
+--- a/internal/sandbox/sandbox.go
++++ b/internal/sandbox/sandbox.go
+@@ -709,9 +709,6 @@ func Create(o CreateOptions) (*Record, error) {
+ 			if errors.Is(err, store.ErrNoEvent) {
+ 				return nil, herr.BadArgs("--cut: %v", err)
+ 			}
+-			if herr.KindOf(err) == herr.Refusal {
+-				return nil, herr.Refused("--store %s: %s; nothing created", o.Store, herr.Text(err))
+-			}
+ 			return nil, herr.Env("--cut: %v; nothing created", err)
+ 		}
+ 	}
+
+=== RUN   TestSandboxStoreOutsideTheRepository
+    record_import_names_test.go:505: exit 3, stderr "--cut: refused: the store folder /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository3751035960/003/ln is /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository3751035960/004, outside the repository at /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestSandboxStoreOutsideTheRepository3751035960/003; a repository's stores are below its root; nothing created\n"; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestSandboxStoreOutsideTheRepository (0.20s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.545s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

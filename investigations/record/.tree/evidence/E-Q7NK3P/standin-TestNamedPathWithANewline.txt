@@ -1,0 +1,9 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestNamedPathWithANewline in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestNamedPathWithANewline
+    record_import_names_test.go:374: hyp [record --exp E-AYGWA8 --verdict H-NQQGDY=supports --observation ran --evidence .tree/evidence/E-AYGWA8/a
+        b.txt --why w]: exit 3, stderr "git update-index --add --index-info failed: exit status 128: fatal: malformed index info b.txt\n"
+--- FAIL: TestNamedPathWithANewline (1.69s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.842s
+FAIL
+exit 1

@@ -1,0 +1,44 @@
+clone of /Users/datguy/codingProjects/tree-based-agent-memory at d5867434fdcde98cdca1024ba5a07b9113437d52
+hyp /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/hyp-7500a76960bd84660cd3d3508a2a41331a477e37
+bdd33c8d812be742f864d2befed729512697bb12b24e923180902f5df338c523  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/hyp-7500a76960bd84660cd3d3508a2a41331a477e37
+7ccc7fce6144805da2c1bec52bd1e65f3e15f859 commit	refs/hyp/record
+checkpoint-store-design: exit 0, prints as before; a second import adds nothing
+checkpoint-store: exit 0, prints as before; a second import adds nothing
+goal-prompt: exit 0, prints as before; a second import adds nothing
+id-citation: exit 0, prints as before; a second import adds nothing
+reading-hold: exit 0, prints as before; a second import adds nothing
+recipe-base: exit 0, prints as before; a second import adds nothing
+record: exit 1, record unchanged: hyp import: refused: f05165acc15408808f59c84396ba7f09b04a7b24, the subject commit that 01M7D11MC9W80QMG0DZG1EQV23 names, is not in /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent
+##### import/checkpoint-store-design-import-again.txt
+investigations/checkpoint-store-design: the record holds every event
+##### import/checkpoint-store-design-import.txt
+investigations/checkpoint-store-design: imported 27 events
+exit 0
+##### import/checkpoint-store-import-again.txt
+investigations/checkpoint-store: the record holds every event
+##### import/checkpoint-store-import.txt
+investigations/checkpoint-store: imported 111 events
+exit 0
+##### import/goal-prompt-import-again.txt
+investigations/goal-prompt: the record holds every event
+##### import/goal-prompt-import.txt
+investigations/goal-prompt: imported 190 events
+exit 0
+##### import/id-citation-import-again.txt
+investigations/id-citation: the record holds every event
+##### import/id-citation-import.txt
+investigations/id-citation: imported 12 events
+exit 0
+##### import/reading-hold-import-again.txt
+investigations/reading-hold: the record holds every event
+##### import/reading-hold-import.txt
+investigations/reading-hold: imported 21 events
+exit 0
+##### import/recipe-base-import-again.txt
+investigations/recipe-base: the record holds every event
+##### import/recipe-base-import.txt
+investigations/recipe-base: imported 11 events
+exit 0
+##### import/record-import.txt
+hyp import: refused: f05165acc15408808f59c84396ba7f09b04a7b24, the subject commit that 01M7D11MC9W80QMG0DZG1EQV23 names, is not in /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/importclone; fetch it, then run hyp import again, which adds nothing until then
+exit 1

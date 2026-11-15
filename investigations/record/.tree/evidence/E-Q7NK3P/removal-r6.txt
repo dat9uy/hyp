@@ -1,0 +1,28 @@
+removal r6: a name character outside the plain set is refused
+candidate 7500a76960bd84660cd3d3508a2a41331a477e37
+test ./internal/cli/ -run 'TestStoreFolderNameIsPlain'
+applied in internal/record/name.go (1x): '\t\t\tif !plainRune(c) {' -> '\t\t\tif false && !plainRune(c) {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 3f296d8..5491419 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -70,7 +70,7 @@ func CheckPlain(top, dir string) error {
+ 			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part %s, . or ..", name, part, GitName)
+ 		}
+ 		for _, c := range part {
+-			if !plainRune(c) {
++			if false && !plainRune(c) {
+ 				return herr.Refused("the store folder %q holds %q; a store folder's name holds only ASCII letters, digits, '.', '_', '-', '@' and '/'", name, string(c))
+ 			}
+ 		}
+
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:266: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreFolderNameIsPlain (0.12s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.491s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

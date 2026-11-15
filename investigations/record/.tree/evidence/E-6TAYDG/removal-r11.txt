@@ -1,0 +1,28 @@
+removal r11: a new id sorts after every store's ids
+candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+test ./internal/cli/ -run 'TestNewIDSortsAfterEveryStoresID'
+applied in internal/store/store.go (1x): '\tfor _, ids := range all {\n\t\tfor _, id := range ids {' -> '\tfor _, ids := range all {\n\t\tfor _, id := range ids[:0] {'
+diff:
+diff --git a/internal/store/store.go b/internal/store/store.go
+index 029d7b5..49977b9 100644
+--- a/internal/store/store.go
++++ b/internal/store/store.go
+@@ -288,7 +288,7 @@ func AppendTo(s *record.Store, actor string, build func(*replay.State, replay.Pr
+ 		return event.Event{}, err
+ 	}
+ 	for _, ids := range all {
+-		for _, id := range ids {
++		for _, id := range ids[:0] {
+ 			if id > last && replay.ValidID(id) {
+ 				last = id
+ 			}
+
+=== RUN   TestNewIDSortsAfterEveryStoresID
+    record_import_names_test.go:228: the new id 01M7DGQQ5PBRQDXC53RR6H8120 sorts before 01M7JNH4XP0W3GE1R70W3GE1R7, the newest id the record holds (store w)
+--- FAIL: TestNewIDSortsAfterEveryStoresID (0.70s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.079s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

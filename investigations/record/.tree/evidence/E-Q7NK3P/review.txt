@@ -1,0 +1,133 @@
+I reviewed candidate 7500a76 (`git diff 8e3454d 7500a76`) against the G-BPWZ24 lines and found two cases where it does not meet them: one of Line 6 (with a Line 1 consequence) and one of Line 9. Both tests are red at 7500a76.
+
+At 7500a76, `CGO_ENABLED=0 go build ./...`, `go vet ./...` and `go test ./... -count=1` all pass. I ran the full suite before adding my test file.
+
+The checkout was a detached worktree at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/review-1/rev. I have removed it with `git worktree remove --force` and `git worktree prune`. A copy of the test file is kept at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/55d8dd85-ee7f-47ed-9ca9-1d64f08971d0/scratchpad/review-1/record_review_test.go.kept. All tests use t.TempDir repositories only.
+
+## Finding 1, label: Line 6 (with a consequence for Line 1)
+
+`hyp init` below a folder named `.GIT` exits 0 on a filesystem that folds letter case, which is the default macOS volume.
+- **The name check misses it.** The new `record.CheckPlain` uses `IsGitName(part)`, which is `name == ".git"`, so the part `.GIT` is accepted.
+- **Discovery treats it as git's folder.** On that filesystem, `FindTop`'s `os.Lstat(d/".git")` finds `g/.GIT`, so discovery takes `g` as the repository root.
+- **Git ignores the folder.** It does not track or read anything below `.GIT`.
+- **Consequence for Line 1.** A later `hyp add goal` there exits 0 in a record repository. The event is not printed by `hyp show` in the same store folder of another worktree of the clone: it exits 3 with "no .tree store found". A debug run I did not keep showed that `git ls-tree -r refs/hyp/record` lists no file after that write. So the event never reached the record, although the test's check that the record ref moved did not fire, which I did not explain.
+- **Not tested.** Case-insensitive names other than `.GIT`.
+
+## Finding 2, label: Line 9
+
+`hyp sandbox create --store` naming a store folder outside the repository exits 2, not 1. Line 9 requires every command naming such a folder to exit 1.
+- **Cause.** `store.CutAt` (internal/store/cut.go) turns every error from `record.At(src)` into `ErrNoStore`. That includes the new exit-1 refusal "the store folder ... is ..., outside the repository".
+- **Result.** `sandbox.Create` (internal/sandbox/sandbox.go, around line 705) maps `ErrNoStore` to `herr.BadArgs("--store %s holds no %s")`. The message "holds no .tree/events" is also wrong: the folder, through the link, does hold a store.
+
+## Test file (internal/cli/record_review_test.go), full content
+
+```go
+package cli
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Line 6: on a filesystem that folds letter case, a folder named .GIT is
+// git's folder: os.Lstat of g/.git finds it, so discovery takes g as the
+// repository root, and git neither tracks nor reads below it. hyp init
+// below it must exit 1 and write nothing.
+func TestReviewStoreBelowAFolderNamedAsGitsInOtherCase(t *testing.T) {
+	repo := recordRepo(t)
+	dir := filepath.Join(repo, "g", ".GIT", "x")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(repo, "g", ".git")); err != nil {
+		t.Skip("this filesystem keeps letter case apart")
+	}
+	tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+	t.Chdir(dir)
+	r := hyp(t, "init")
+	if r.code == 1 {
+		if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again != tip {
+			t.Fatalf("a refused hyp init moved the record")
+		}
+		return
+	}
+	_, statErr := os.Stat(filepath.Join(dir, ".tree"))
+	t.Errorf("hyp init below g/.GIT: exit %d, want 1; store folder written: %v", r.code, statErr == nil)
+	// Line 1 follows: a write there exits 0 in a record repository, but
+	// the record does not get the event, and another worktree cannot print it.
+	w := hyp(t, "add", "goal", "--title", "x", "--why", "w")
+	if w.code != 0 {
+		t.Fatalf("the write below g/.GIT: exit %d %s", w.code, w.stderr)
+	}
+	g := strings.Fields(w.stdout)[0]
+	if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again == tip {
+		t.Errorf("Line 1: the write of %s exited 0 in a record repository and the record ref did not move", g)
+	}
+	wt := filepath.Join(t.TempDir(), "wt2")
+	gitIn(t, repo, "worktree", "add", "-q", "--detach", wt)
+	dir2 := filepath.Join(wt, "g", ".GIT", "x")
+	if err := os.MkdirAll(dir2, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir2)
+	if s := hyp(t, "show", g); s.code != 0 {
+		t.Errorf("Line 1: hyp show %s in the same store folder of another worktree: exit %d, stderr %q", g, s.code, s.stderr)
+	}
+}
+
+// Line 9: each command naming a store folder outside the repository exits
+// 1. hyp sandbox create --store names, through a link inside the host
+// repository, a store folder outside it.
+func TestReviewSandboxStoreOutsideTheRepository(t *testing.T) {
+	if _, err := exec.LookPath("lsof"); err != nil {
+		t.Skip("lsof not on PATH")
+	}
+	t.Setenv("HOME", t.TempDir())
+	repo := recordRepo(t)
+	outside, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(outside)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "outside", "--why", "w")
+	if err := os.Symlink(outside, filepath.Join(repo, "ln")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repo)
+	t.Setenv("PWD", repo)
+	r := hyp(t, "sandbox", "create", "sb1", "--host", repo, "--base", "HEAD", "--recipe", "none", "--store", filepath.Join(repo, "ln"), "--cut", g)
+	if r.code != 1 {
+		t.Fatalf("hyp sandbox create --store %s (a link to %s, outside the repository): exit %d, want 1; stdout %q stderr %q", filepath.Join(repo, "ln"), outside, r.code, r.stdout, r.stderr)
+	}
+}
+```
+
+## Output of `go test ./internal/cli -count=1 -v -run 'TestReview'` at 7500a76 (red)
+
+```
+=== RUN   TestReviewStoreBelowAFolderNamedAsGitsInOtherCase
+    record_review_test.go:34: hyp init below g/.GIT: exit 0, want 1; store folder written: true
+    record_review_test.go:53: Line 1: hyp show G-KK6F7W in the same store folder of another worktree: exit 3, stderr "no .tree store found; run 'hyp init'\n"
+--- FAIL: TestReviewStoreBelowAFolderNamedAsGitsInOtherCase (0.37s)
+=== RUN   TestReviewSandboxStoreOutsideTheRepository
+    record_review_test.go:80: hyp sandbox create --store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSandboxStoreOutsideTheRepository3193328622/003/ln (a link to /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSandboxStoreOutsideTheRepository3193328622/004, outside the repository): exit 2, want 1; stdout "" stderr "--store /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestReviewSandboxStoreOutsideTheRepository3193328622/003/ln holds no .tree/events\n"
+--- FAIL: TestReviewSandboxStoreOutsideTheRepository (0.16s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.695s
+FAIL
+```
+
+## Suspicions I checked and dropped
+- **Bundle folder behind a symbolic link (Lines 7 and 8).** I suspected `dirFilesUnder`'s `WalkDir` would add a linked bundle with no files. It does not happen: `hyp add exp --recipe` already refuses "recipe bundle ...: is a symlink, not a regular directory". I deleted those tests.
+- **Read during a snapshot prune (Line 3).** The shared/exclusive lock is taken before the snapshot's existence check, and prune skips a held key. I found no gap.
+- **Several stores in one import (Lines 3 and 8).** Every argument is read before anything is written, then one commit adds all the stores. A refusal leaves the ref unwritten, because `OpenRecord` no longer writes the record. I found no gap.
+
+## Minor point, label: none (not tested)
+`hypDir("snaplock")/<key>` lock files are never removed, so one file builds up for each tip and store that is ever read.
+
+Status: DONE_WITH_CONCERNS
+Summary: Two red findings at 7500a76: `hyp init` below a `.GIT` folder on a case-folding filesystem exits 0, and the event a later write there makes cannot be printed from another worktree (Line 6, with a Line 1 consequence); `hyp sandbox create --store` naming a store outside the repository through a link exits 2 instead of 1 (Line 9). The build, vet and full test suite are green.

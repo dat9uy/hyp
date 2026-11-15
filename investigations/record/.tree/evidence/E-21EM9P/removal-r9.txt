@@ -1,0 +1,29 @@
+removal r9: discovery refuses a store folder outside the repository
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderOutsideTheRepository'
+applied in internal/record/record.go (1x): '\t\t\tif !inside {\n\t\t\t\treturn nil, outside(dir, top)\n\t\t\t}\n' -> ''
+diff:
+diff --git a/internal/record/record.go b/internal/record/record.go
+index 219611f..d91813c 100644
+--- a/internal/record/record.go
++++ b/internal/record/record.go
+@@ -132,9 +132,6 @@ func Locate(start string) (*Store, error) {
+ 			return s, nil
+ 		}
+ 		if fi, err := os.Stat(EventsDir(dir)); err == nil && fi.IsDir() {
+-			if !inside {
+-				return nil, outside(dir, top)
+-			}
+ 			if gitPart(name) {
+ 				return nil, belowGit(dir, name)
+ 			}
+
+=== RUN   TestStoreFolderOutsideTheRepository
+    record_import_names_test.go:336: exit 0, stderr ""; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestStoreFolderOutsideTheRepository (0.20s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.548s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

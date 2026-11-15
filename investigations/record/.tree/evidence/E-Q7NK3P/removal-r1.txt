@@ -1,0 +1,40 @@
+removal r1: missing named file is refused
+candidate 7500a76960bd84660cd3d3508a2a41331a477e37
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsBytes/removed'
+applied in internal/store/import.go (1x): 'return record.File{}, herr.Refused("%s, which %s names, is not in %s; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, src.Src)' -> 'return record.File{}, nil'
+applied in internal/store/import.go (1x): 'if key := src.Name + "\\x00" + rel; !adding[key] {' -> 'if key := src.Name + "\\x00" + rel; f.Path != "" && !adding[key] {'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..f81c01d 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -103,7 +103,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 					if err != nil {
+ 						return nil, err
+ 					}
+-					if key := src.Name + "\x00" + rel; !adding[key] {
++					if key := src.Name + "\x00" + rel; f.Path != "" && !adding[key] {
+ 						adding[key] = true
+ 						add = append(add, f)
+ 					}
+@@ -149,7 +149,7 @@ func namedFile(view *record.Store, src Source, ev event.Event, n Names, rel stri
+ 	p := filepath.Join(src.Src, filepath.FromSlash(rel))
+ 	fi, err := os.Stat(p)
+ 	if err != nil || !fi.Mode().IsRegular() {
+-		return record.File{}, herr.Refused("%s, which %s names, is not in %s; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, src.Src)
++		return record.File{}, nil
+ 	}
+ 	sum := n.Sums[rel]
+ 	got, err := fileSHA256(p)
+
+=== RUN   TestImportRefusesAnEventWithoutItsBytes
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/removed
+    record_import_names_test.go:68: exit 0, stderr ""; want a refusal, exit 1, naming ".tree/evidence/E-B5D9QR/out.txt"
+--- FAIL: TestImportRefusesAnEventWithoutItsBytes (0.26s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/removed (0.26s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.713s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

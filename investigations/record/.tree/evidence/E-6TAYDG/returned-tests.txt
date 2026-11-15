@@ -1,0 +1,20 @@
+returned tests at 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+=== RUN   TestTwoPrunesRemoveASnapshotAReadHolds
+    record_review_test.go:101: a prune removed the snapshot a running read holds: the read gets "", open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestTwoPrunesRemoveASnapshotAReadHolds2776335072/002/.git/hyp/snap/6e2a3e93baa3c4ea342cc408f975395708279b8c-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-second.txt: no such file or directory
+--- FAIL: TestTwoPrunesRemoveASnapshotAReadHolds (0.50s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	1.684s
+FAIL
+exit 1
+=== RUN   TestStoreBelowAFolderGitReadsAsItsOwn
+=== RUN   TestStoreBelowAFolderGitReadsAsItsOwn/.git.
+    record_review_test.go:44: hyp add goal exited 0 with G-YGCW43 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStoreBelowAFolderGitReadsAsItsOwn703184811/002/a/.git./x; after its work-tree .tree is removed, hyp show G-YGCW43: exit 3, stdout "", stderr "no .tree store found; run 'hyp init'\n"
+=== RUN   TestStoreBelowAFolderGitReadsAsItsOwn/.git..
+    record_review_test.go:44: hyp add goal exited 0 with G-A6R229 in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestStoreBelowAFolderGitReadsAsItsOwn703184811/002/a/.git../x; after its work-tree .tree is removed, hyp show G-A6R229: exit 3, stdout "", stderr "no .tree store found; run 'hyp init'\n"
+--- FAIL: TestStoreBelowAFolderGitReadsAsItsOwn (0.61s)
+    --- FAIL: TestStoreBelowAFolderGitReadsAsItsOwn/.git. (0.23s)
+    --- FAIL: TestStoreBelowAFolderGitReadsAsItsOwn/.git.. (0.23s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.976s
+FAIL
+exit 1

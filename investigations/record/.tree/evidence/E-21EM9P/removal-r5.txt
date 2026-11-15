@@ -1,0 +1,28 @@
+removal r5: id another store holds is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestImportRefusesAnIDAnotherStoreHolds'
+applied in internal/store/import.go (1x): 'return nil, herr.Refused("event %s of the store %s is also an event of the store %s; an id is one event of one store, so hyp import adds nothing", ev.ID, src.Name, o)' -> 'continue'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..c2b8846 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -94,7 +94,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 					if o == src.Name {
+ 						continue
+ 					}
+-					return nil, herr.Refused("event %s of the store %s is also an event of the store %s; an id is one event of one store, so hyp import adds nothing", ev.ID, src.Name, o)
++					continue
+ 				}
+ 				owner[ev.ID] = src.Name
+ 				n := NamesOf(ev)
+
+=== RUN   TestImportRefusesAnIDAnotherStoreHolds
+    record_import_names_test.go:192: exit 0, stderr ""; want a refusal, exit 1, naming "store s"
+--- FAIL: TestImportRefusesAnIDAnotherStoreHolds (1.37s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.836s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

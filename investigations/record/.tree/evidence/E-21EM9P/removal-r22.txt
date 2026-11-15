@@ -1,0 +1,36 @@
+removal r22: a part git's index takes as its folder, with trailing dots, is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreBelowAFolderGitsIndexTakesAsGits'
+applied in internal/record/name.go (1x): 'strings.EqualFold(strings.TrimRight(part, "."), GitName)' -> 'strings.EqualFold(part, GitName)'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..d391a14 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -98,7 +98,7 @@ func plainRune(c rune) bool {
+ // repository root.
+ func gitPart(name string) bool {
+ 	for _, part := range strings.Split(name, "/") {
+-		if strings.EqualFold(strings.TrimRight(part, "."), GitName) {
++		if strings.EqualFold(part, GitName) {
+ 			return true
+ 		}
+ 	}
+
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.git.
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.git..
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+=== RUN   TestStoreBelowAFolderGitsIndexTakesAsGits/.GIT.
+    record_import_names_test.go:526: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits (0.33s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.git. (0.06s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.git.. (0.07s)
+    --- FAIL: TestStoreBelowAFolderGitsIndexTakesAsGits/.GIT. (0.07s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.696s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

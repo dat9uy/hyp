@@ -1,0 +1,2 @@
+investigations/checkpoint-store: imported 111 events
+exit 0

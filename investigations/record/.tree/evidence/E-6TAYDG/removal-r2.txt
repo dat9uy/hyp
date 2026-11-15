@@ -1,0 +1,43 @@
+removal r2: named file with other bytes is refused
+candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+test ./internal/cli/ -run 'TestImportRefusesAnEventWithoutItsBytes/changed|TestImportRefusesAPathTwoEventsNameWithOtherBytes'
+applied in internal/store/import.go (1x): 'return record.File{}, herr.Refused("%s, which %s names, hashes %s in %s, not %s as the event stores; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, got[:12], src.Src, sum[:min(12, len(sum))])' -> 'return record.File{}, nil'
+applied in internal/store/import.go (1x): 'if key := src.Name + "\\x00" + rel; !adding[key] {' -> 'if key := src.Name + "\\x00" + rel; f.Path != "" && !adding[key] {'
+diff:
+diff --git a/internal/store/import.go b/internal/store/import.go
+index e6f7649..5646d5b 100644
+--- a/internal/store/import.go
++++ b/internal/store/import.go
+@@ -103,7 +103,7 @@ func Import(repo *record.Repo, srcs []Source, warn io.Writer) ([]int, error) {
+ 					if err != nil {
+ 						return nil, err
+ 					}
+-					if key := src.Name + "\x00" + rel; !adding[key] {
++					if key := src.Name + "\x00" + rel; f.Path != "" && !adding[key] {
+ 						adding[key] = true
+ 						add = append(add, f)
+ 					}
+@@ -157,7 +157,7 @@ func namedFile(view *record.Store, src Source, ev event.Event, n Names, rel stri
+ 		return record.File{}, err
+ 	}
+ 	if sum != "" && got != sum {
+-		return record.File{}, herr.Refused("%s, which %s names, hashes %s in %s, not %s as the event stores; hyp import adds an event with the bytes it names or not at all, so it adds nothing", rel, ev.ID, got[:12], src.Src, sum[:min(12, len(sum))])
++		return record.File{}, nil
+ 	}
+ 	return view.StoreFile(rel, p, sum), nil
+ }
+
+=== RUN   TestImportRefusesAPathTwoEventsNameWithOtherBytes
+    record_git_env_test.go:136: hyp import: exit 0, stderr ""; want exit 1 naming .tree/evidence/E-08WZBQ/out.txt
+--- FAIL: TestImportRefusesAPathTwoEventsNameWithOtherBytes (0.39s)
+=== RUN   TestImportRefusesAnEventWithoutItsBytes
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/changed
+    record_import_names_test.go:68: exit 0, stderr ""; want a refusal, exit 1, naming ".tree/evidence/E-GMXGSP/out.txt"
+--- FAIL: TestImportRefusesAnEventWithoutItsBytes (0.23s)
+    --- FAIL: TestImportRefusesAnEventWithoutItsBytes/changed (0.23s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.992s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

@@ -1,0 +1,82 @@
+package cli
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// Line 6: on a filesystem that folds letter case, a folder named .GIT is
+// git's folder: os.Lstat of g/.git finds it, so discovery takes g as the
+// repository root, and git neither tracks nor reads below it. hyp init
+// below it must exit 1 and write nothing.
+func TestReviewStoreBelowAFolderNamedAsGitsInOtherCase(t *testing.T) {
+	repo := recordRepo(t)
+	dir := filepath.Join(repo, "g", ".GIT", "x")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(filepath.Join(repo, "g", ".git")); err != nil {
+		t.Skip("this filesystem keeps letter case apart")
+	}
+	tip := gitIn(t, repo, "rev-parse", "refs/hyp/record")
+	t.Chdir(dir)
+	r := hyp(t, "init")
+	if r.code == 1 {
+		if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again != tip {
+			t.Fatalf("a refused hyp init moved the record")
+		}
+		return
+	}
+	_, statErr := os.Stat(filepath.Join(dir, ".tree"))
+	t.Errorf("hyp init below g/.GIT: exit %d, want 1; store folder written: %v", r.code, statErr == nil)
+	// Line 1 follows: a write there exits 0 in a record repository, but
+	// the record does not get the event, and another worktree cannot print it.
+	w := hyp(t, "add", "goal", "--title", "x", "--why", "w")
+	if w.code != 0 {
+		t.Fatalf("the write below g/.GIT: exit %d %s", w.code, w.stderr)
+	}
+	g := strings.Fields(w.stdout)[0]
+	if again := gitIn(t, repo, "rev-parse", "refs/hyp/record"); again == tip {
+		t.Errorf("Line 1: the write of %s exited 0 in a record repository and the record ref did not move", g)
+	}
+	wt := filepath.Join(t.TempDir(), "wt2")
+	gitIn(t, repo, "worktree", "add", "-q", "--detach", wt)
+	dir2 := filepath.Join(wt, "g", ".GIT", "x")
+	if err := os.MkdirAll(dir2, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir2)
+	if s := hyp(t, "show", g); s.code != 0 {
+		t.Errorf("Line 1: hyp show %s in the same store folder of another worktree: exit %d, stderr %q", g, s.code, s.stderr)
+	}
+}
+
+// Line 9: each command naming a store folder outside the repository exits
+// 1. hyp sandbox create --store names, through a link inside the host
+// repository, a store folder outside it.
+func TestReviewSandboxStoreOutsideTheRepository(t *testing.T) {
+	if _, err := exec.LookPath("lsof"); err != nil {
+		t.Skip("lsof not on PATH")
+	}
+	t.Setenv("HOME", t.TempDir())
+	repo := recordRepo(t)
+	outside, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(outside)
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "outside", "--why", "w")
+	if err := os.Symlink(outside, filepath.Join(repo, "ln")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(repo)
+	t.Setenv("PWD", repo)
+	r := hyp(t, "sandbox", "create", "sb1", "--host", repo, "--base", "HEAD", "--recipe", "none", "--store", filepath.Join(repo, "ln"), "--cut", g)
+	if r.code != 1 {
+		t.Fatalf("hyp sandbox create --store %s (a link to %s, outside the repository): exit %d, want 1; stdout %q stderr %q", filepath.Join(repo, "ln"), outside, r.code, r.stdout, r.stderr)
+	}
+}

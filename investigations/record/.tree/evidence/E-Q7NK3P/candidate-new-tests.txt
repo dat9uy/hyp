@@ -1,0 +1,150 @@
+== TestImportRefusesAnEventWithoutItsBytes (./internal/cli/)
+=== RUN   TestImportRefusesAnEventWithoutItsBytes
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/changed
+=== RUN   TestImportRefusesAnEventWithoutItsBytes/removed
+--- PASS: TestImportRefusesAnEventWithoutItsBytes (0.97s)
+    --- PASS: TestImportRefusesAnEventWithoutItsBytes/changed (0.51s)
+    --- PASS: TestImportRefusesAnEventWithoutItsBytes/removed (0.46s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.426s
+exit 0
+== TestImportOfTwoStoresAddsNothingWhenOneIsRefused (./internal/cli/)
+=== RUN   TestImportOfTwoStoresAddsNothingWhenOneIsRefused
+--- PASS: TestImportOfTwoStoresAddsNothingWhenOneIsRefused (0.34s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.509s
+exit 0
+== TestImportRefusesAnEventWithoutItsBundle (./internal/cli/)
+=== RUN   TestImportRefusesAnEventWithoutItsBundle
+--- PASS: TestImportRefusesAnEventWithoutItsBundle (0.58s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.746s
+exit 0
+== TestImportRefusesAnEventWithoutItsSubjectCommit (./internal/cli/)
+=== RUN   TestImportRefusesAnEventWithoutItsSubjectCommit
+--- PASS: TestImportRefusesAnEventWithoutItsSubjectCommit (0.71s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.877s
+exit 0
+== TestImportRefusesAnIDAnotherStoreHolds (./internal/cli/)
+=== RUN   TestImportRefusesAnIDAnotherStoreHolds
+--- PASS: TestImportRefusesAnIDAnotherStoreHolds (1.17s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.449s
+exit 0
+== TestNewIDSortsAfterEveryStoresID (./internal/cli/)
+=== RUN   TestNewIDSortsAfterEveryStoresID
+--- PASS: TestNewIDSortsAfterEveryStoresID (0.69s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.848s
+exit 0
+== TestStoreFolderNameIsPlain (./internal/cli/)
+=== RUN   TestStoreFolderNameIsPlain
+--- PASS: TestStoreFolderNameIsPlain (0.59s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.751s
+exit 0
+== TestStoreFolderNameIsPlain (./internal/cli/), TMPDIR on a case-sensitive APFS volume
+=== RUN   TestStoreFolderNameIsPlain
+--- PASS: TestStoreFolderNameIsPlain (0.61s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.774s
+exit 0
+== TestStoreFolderOutsideTheRepository (./internal/cli/)
+=== RUN   TestStoreFolderOutsideTheRepository
+--- PASS: TestStoreFolderOutsideTheRepository (0.27s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.431s
+exit 0
+== TestNamedPathWithANewline (./internal/cli/)
+=== RUN   TestNamedPathWithANewline
+--- PASS: TestNamedPathWithANewline (5.07s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	5.235s
+exit 0
+== TestImportRefusesAPathTwoEventsNameWithOtherBytes (./internal/cli/)
+=== RUN   TestImportRefusesAPathTwoEventsNameWithOtherBytes
+--- PASS: TestImportRefusesAPathTwoEventsNameWithOtherBytes (0.22s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.385s
+exit 0
+== TestPromptOutsideARepository (./internal/cli/)
+=== RUN   TestPromptOutsideARepository
+--- PASS: TestPromptOutsideARepository (0.04s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.208s
+exit 0
+== TestImportAddsEachMissingEvent (./internal/cli/)
+=== RUN   TestImportAddsEachMissingEvent
+--- PASS: TestImportAddsEachMissingEvent (1.35s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.514s
+exit 0
+== TestPruneLeavesASnapshotAReadHolds (./internal/record/)
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+--- PASS: TestPruneLeavesASnapshotAReadHolds (0.76s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/record	1.103s
+exit 0
+== TestRecordOutlivesEveryWorktreeAct (./internal/cli/)
+=== RUN   TestRecordOutlivesEveryWorktreeAct
+--- PASS: TestRecordOutlivesEveryWorktreeAct (2.62s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	2.782s
+exit 0
+== TestSubjectCommitStaysReachable (./internal/cli/)
+=== RUN   TestSubjectCommitStaysReachable
+--- PASS: TestSubjectCommitStaysReachable (1.51s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.669s
+exit 0
+== TestTwoWorktreesWriteAtOnce (./internal/cli/)
+=== RUN   TestTwoWorktreesWriteAtOnce
+--- PASS: TestTwoWorktreesWriteAtOnce (1.85s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	2.006s
+exit 0
+== TestSyncJoinsTwoRecords (./internal/cli/)
+=== RUN   TestSyncJoinsTwoRecords
+--- PASS: TestSyncJoinsTwoRecords (5.41s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	5.571s
+exit 0
+== TestRecordHoldsOnlyNamedFiles (./internal/cli/)
+=== RUN   TestRecordHoldsOnlyNamedFiles
+--- PASS: TestRecordHoldsOnlyNamedFiles (1.45s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.607s
+exit 0
+== TestFlagsSameFromEveryCheckout (./internal/cli/)
+=== RUN   TestFlagsSameFromEveryCheckout
+--- PASS: TestFlagsSameFromEveryCheckout (1.49s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.633s
+exit 0
+== TestUnimportedWorkTreeStore (./internal/cli/)
+=== RUN   TestUnimportedWorkTreeStore
+--- PASS: TestUnimportedWorkTreeStore (1.11s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	1.262s
+exit 0
+== TestStoppedWriteLeavesAllOrNothing (./internal/record/)
+=== RUN   TestStoppedWriteLeavesAllOrNothing
+=== RUN   TestStoppedWriteLeavesAllOrNothing/objects
+=== RUN   TestStoppedWriteLeavesAllOrNothing/tree
+=== RUN   TestStoppedWriteLeavesAllOrNothing/commit
+=== RUN   TestStoppedWriteLeavesAllOrNothing/ref
+--- PASS: TestStoppedWriteLeavesAllOrNothing (1.70s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/objects (0.39s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/tree (0.42s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/commit (0.43s)
+    --- PASS: TestStoppedWriteLeavesAllOrNothing/ref (0.45s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/record	1.833s
+exit 0
+== TestOnlyRecordNamesTheFoldersAndRunsGit (./internal/cli/)
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+--- PASS: TestOnlyRecordNamesTheFoldersAndRunsGit (0.02s)
+PASS
+ok  	github.com/dat9uy/hyp/internal/cli	0.179s
+exit 0

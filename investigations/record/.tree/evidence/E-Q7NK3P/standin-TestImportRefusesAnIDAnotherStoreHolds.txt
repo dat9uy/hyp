@@ -1,0 +1,8 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestImportRefusesAnIDAnotherStoreHolds in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestImportRefusesAnIDAnotherStoreHolds
+    record_import_names_test.go:192: exit 0, stderr "hyp import: .tree/evidence/E-3W7E39/out.txt, which 01M7DF6BCDREZWWC6MG3C85B34 names, is not in /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestImportRefusesAnIDAnotherStoreHolds2076222253/002/w; the record lacks it\n"; want a refusal, exit 1, naming "store s"
+--- FAIL: TestImportRefusesAnIDAnotherStoreHolds (1.19s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.341s
+FAIL
+exit 1

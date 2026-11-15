@@ -1,0 +1,220 @@
+### hyp status G-4N85GM
+GOAL G-4N85GM Record where hyp keeps the record off every code branch — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+FRONTIER
+STALE
+OWED
+  runner owes nothing: stop and report to the owner
+AWAITING OWNER
+RECENT
+  2026-11-14 06:12 claude-g181-grill edge.add G-4N85GM — The issue whose design question this record settles.
+  2026-11-14 06:11 claude-g181-grill dq.select Q-9WV3D7 — Owed select, the only candidate; the owner's decision in the grill of 2026-11-1…
+  2026-11-14 06:11 claude-g181-grill result.record R-YK6G15 — The owner's session decision, recorded as the Experiment's Result.
+CHECKPOINT 2026-11-14 06:12 claude-g181-grill: Grill of #181 done: Q-9WV3D7 (where the record lives) settled by argument in session, h-ref (a hidden ref written by git plumbing) selected over h-record-worktree on the crash scenario of R-YK6G15. The build Goal G-SZCBXZ in this store builds it; its line 1 cites H-WQ2Q24. Nothing awaits the owner.
+exit 0
+### hyp status G-BPWZ24
+GOAL G-BPWZ24 hyp keeps the record apart from every code branch: one hist… — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+LINES
+  G-BPWZ24#1 no candidate — [P] In a record repository, an event a write exited 0 on is printed by `hyp show` and `hyp status` run in its store's folder in every…
+  G-BPWZ24#2 no candidate — [P] In a record repository, every commit that the base of a Hypothesis subject or of a Result's run subject names stays reachable fro…
+  G-BPWZ24#3 no candidate — [N] No command reads part of a write, an import or a sync: one stopped after any of its steps and before it exits leaves the record h…
+  G-BPWZ24#4 no candidate — [P] Two writes run at once from two worktrees of one record repository both apply, and each new id sorts after every id the record he…
+  G-BPWZ24#5 no candidate — [P] After `hyp sync REMOTE`, the local record and REMOTE's record each hold the union of both, every event, named file and subject co…
+  G-BPWZ24#6 no candidate — [N] The record holds no file but its events, those an event names, the files of each bundle an event pins and the copies sync keeps; …
+  G-BPWZ24#7 no candidate — [P] A Result's `questionable` and `uncontained` flags, and the warnings `hyp check` prints about it, are the same from every checkout…
+  G-BPWZ24#8 no candidate — [P] `hyp import [REF:]PATH...` adds to the record each event of each named work-tree store, from the checkout or from REF, whose id t…
+  G-BPWZ24#9 no candidate — [N] In a record repository, a write in a store whose work-tree `.tree/` holds an event the record lacks exits 1 naming `hyp import`, …
+  G-BPWZ24#10 no candidate — [N] No non-test Go file outside package `record` holds a string literal that contains `.tree` or `.git`, and none outside packages `…
+FRONTIER
+  Q-RDPEBJ open/no_candidates Which hyp commit implements the record?
+STALE
+OWED
+  runner: Q-RDPEBJ add rival Hypotheses
+AWAITING OWNER
+RECENT
+  2026-11-14 16:23 claude-g181-grill2 edge.add G-BPWZ24 — The Goal builds #181 (part of #180, order 2).
+CHECKPOINT 2026-11-14 16:23 claude-g181-grill2: Second grill of #181: Goal G-BPWZ24 with lines 1-10 and build question Q-RDPEBJ; base c5b34da (h-record-16 of G-SZCBXZ); the run continues on feat/record and PR #187 with aliases h-rec2-.
+exit 0
+### hyp status G-SZCBXZ
+GOAL G-SZCBXZ hyp keeps the record apart from every code branch, owned by… — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+LINES
+  G-SZCBXZ#1 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#2 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#3 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#4 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#5 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#6 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#7 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#8 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#9 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R…
+  G-SZCBXZ#10 ran in R-8ZKFQV, R-95Q2T7, R-BHDBGK, R-CYBPRP, R-EK3R0H, R-J906AP, R-F2YZJJ, R-V2CMZQ, R-29MR4B, R-WX9YBH, R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, …
+FRONTIER
+  Q-9YVG0C open/all_contradicted Which hyp commit implements the record?
+    H-AXX1QE (h-record-16) contradicted (supersedes H-R98N86) feat/record c5b34da6e8ee: the record on refs/hyp/record, a …
+STALE
+OWED
+  runner: Q-9YVG0C add rival Hypotheses; ruled out: h-record-16 by R-JPRJWS
+AWAITING OWNER
+OPEN LIMITS
+  Q-9YVG0C R-JPRJWS#1 — A record write, or a hyp sync join, whose named file path holds a newline, such…
+RECENT
+  2026-11-14 15:00 claude-g181-5 result.record R-JPRJWS — The gate of h-record-16 holds; a returned test that is a case of line 1 is red.
+  2026-11-14 14:48 claude-g181-5 hypothesis.subject H-AXX1QE — The candidate is this commit; its tests and the Experiments run at it.
+  2026-11-14 14:48 claude-g181-5 edge.add H-AXX1QE — h-record-16 is h-record-15 with a fix for each of its limits.
+  2026-11-14 14:46 claude-g181-5 result.record R-8PBBK5 — The gate of h-record-15 holds; returned tests that are cases of lines 8 and 5 a…
+  2026-11-14 14:32 claude-g181-5 hypothesis.subject H-R98N86 — The candidate is this commit; its tests and the Experiments run at it.
+  2026-11-14 14:32 claude-g181-5 edge.add H-R98N86 — h-record-15 is h-record-14 with a fix for each of its limits.
+  2026-11-14 14:30 claude-g181-5 result.record R-FGV9X0 — The gate of h-record-14 holds; returned tests that are cases of lines 1 and 7 a…
+  2026-11-14 14:22 claude-g181-5 hypothesis.subject H-1WSRNQ — The candidate is this commit; its tests and the Experiments run at it.
+  2026-11-14 14:22 claude-g181-5 edge.add H-1WSRNQ — h-record-14 is h-record-13 with a fix for each of its limits.
+  2026-11-14 14:20 claude-g181-5 result.record R-TS6APT — The gate of h-record-13 holds; returned tests that are cases of lines 1 and 8 a…
+CHECKPOINT 2026-11-14 15:00 claude-g181-5: Stopped: 5 Results recorded under claude-g181-5 (R-23MYJ9, R-TS6APT, R-FGV9X0, R-8PBBK5, R-JPRJWS). h-record-12 (cca1c2e9aa5c) to h-record-16 (c5b34da6e8ee) are each contradicted by a red returned test; limit R-JPRJWS#1 (a named file path that holds a newline, line 1) is owed on a successor. Answer R-V2CMZQ#r1 applied in R-23MYJ9. Candidates not reviewed: none. Waiting for the owner: merge of this run's record PR. Review findings with no run: a snapshot pruned while a read uses it (E-PKET0S); realCase reads every ancestor folder on each lookup (E-FDJB7V); an old event with no stored sha256 takes any bytes at a later import (E-256M8Q). Out-of-Goal findings: hyp show of a named file with no copy exited 3 with a raw open error (fixed in f24a0fdbbec1 and 926319e7d0b2); a record write naming a file whose name holds a newline exits 3 with git's raw message where a work-tree store takes it (fix in the successor of h-record-16, with the fix of R-JPRJWS#1); E-FDJB7V's returned test committed no evidence, since hyp init ignores it (dropped: a test premise, not a defect).
+exit 0
+### hyp render --markdown
+# G-4N85GM Record where hyp keeps the record off every code branch — complete
+
+Part of #181, order 1 of #180. A design record: its one question was settled by argument in the grill of 2026-11-14, with the session as evidence, so it has no lines; its cases go to the lines of the build Goal that follows it in this store. A settled shape, not a question: the ref is hidden (refs/hyp/record), not a branch, so no GitHub button deletes, merges or checks it out, and a plain git fetch does not bring it; hyp sync does.
+
+## Q-9WV3D7 Where does the record live, off every code branch? — answered
+
+On a crash after an event's line is in the record worktree's file and before its commit, h-ref meets the build Goal's line 3 (no command reads part of a write) and h-record-worktree does not, because a reader of that worktree sees an event that git clean or git checkout there can still lose, while under h-ref a reader sees the event only once update-ref has landed. If h-record-worktree read only commits, it would be h-ref plus a checkout that adds nothing.
+
+Selected: H-WQ2Q24
+Design: hyp writes each event, and the bytes of each file it names, as git objects, then moves refs/hyp/record to a new commit with update-ref; an event exists for every reader of the clone only once the ref has moved, and no worktree holds the record's files.
+
+- H-WQ2Q24 The record is commits on a hidden ref, written by git plumbing and never checked out — supported
+  - E-DETSNS Settled in the grill: the crash between a record worktree's file line and its commit — run (recipe none, rule by reading)
+    - R-YK6G15 recorded H-WQ2Q24=supports H-P8A9N7=contradicts: Settled by argument in the grill of 2026-11-14 with the owner: on a crash between a record worktree's file line and its commit, h-record-worktree lets a reader see an event a later git act on the worktree loses; h-ref shows an event only once update-ref lands.
+- H-P8A9N7 The record is a branch holding only .tree/, checked out in its own worktree — contradicted
+
+# G-SZCBXZ hyp keeps the record apart from every code branch, owned by one module: the log, the files it names and the commits it cites — in_progress
+
+Part of #180 (order 1); builds #181. Covers #179, #152, #177's landing step and part of #151; it decides the record for #168, whose filters (status --all, cites across stores, alias scope) are a later Goal. The candidate is a hyp commit; go test on its base and on the candidate is the instrument.
+
+The record: every event of every store of one git repository, the bytes of every file an event names (evidence, an Experiment's records, a subject's patch and files, also of retracted Results), each bundle an event pins, and every commit a Hypothesis subject names, kept by hyp as commits on the hidden ref refs/hyp/record, which no branch holds. A record repository is a git repository that holds that ref.
+
+Decided in the grill of 2026-11-14 (design record record-design in this store, h-ref selected): a write is durable once it exits 0; one record per repository, and a store keeps its name, its folder's path from the repository root; hyp sync [REMOTE] fetches the remote's record, joins the two logs as a set by id and pushes, and the hyp-goal-run skill runs it at every stop; the record keeps only cited files, and git ignores every other file under .tree/evidence/ (#152); an evidence pointer stores its file's sha256; a sandbox clone, a git repository with no record ref and a directory with no git use the work-tree .tree/ as today; hyp import [REF:]PATH... names its stores and may run again. After this Goal merges, the owner imports this repository's five stores and tag g-akjjf8/record; old .tree/ folders stay as frozen copies, cited files tracked. Accepted: a hyp built before this change reads only those copies, sees no later event, and rejects an event that stores an evidence sha256. Reopens ADR 0022 and 0023 (unmerged); a new ADR records it; the glossary gains Record and Record repository.
+
+Each Experiment's rubric also runs hyp import in a sandbox clone of this repository and compares each Goal's node statuses with its work-tree store's.
+
+Line 3 and the last sentence of line 9 hold on the base.
+
+May change: hyp in this repository (cmd/, internal/, docs/), as commits on one local branch pushed as a PR the run never merges
+May change: any text in skills/, README.md or AGENTS.md the change makes wrong
+May change: this Goal's store, investigations/record, written with the installed hyp on a branch cut from main that holds only .tree/ changes, in its own worktree, pushed as a record PR the owner merges at every stop
+Read only: the events and evidence of every other store under investigations/; every frozen recipe version under recipes/ and investigations/*/recipes/; the tags g-akjjf8/record, g-akjjf8/candidates and goal-prompt/subject-*
+Never: run a candidate's hyp so that it writes a ref, a record or a store in this clone or on origin; its tests and Experiments use fixtures, temporary repositories and sandbox clones
+Never: replace the installed hyp binary at ~/.local/bin/hyp
+Never: edit or remove a line of any events file
+Never: merge a PR
+
+## Q-9YVG0C Which hyp commit implements the record? — open/all_contradicted
+
+The build question of G-SZCBXZ. The run adds one Hypothesis per candidate commit, with its subject the base plus that commit; a fix is a new Hypothesis that supersedes the one it fixes. The base is the Hypothesis 'nothing changes': each Experiment's rubric asks for red on base and green on the candidate, except the base guards the Goal body names (line 3, the last sentence of line 9).
+
+Limits:
+
+- R-8ZKFQV#1 closed by R-95Q2T7 (H-BA06KW (h-record-3) contradicts) — Two clones each write an event that names the same store-relative path with different bytes, then each runs hyp sync: each record holds the bytes of both events for that path.
+- R-8ZKFQV#2 closed by R-95Q2T7 (H-BA06KW (h-record-3) contradicts) — A non-test Go file outside packages record and sandbox runs git through a shell (sh -c "git ...") or by an absolute path such as /usr/bin/git: the go test over the source fails on it.
+- R-95Q2T7#1 closed by R-BHDBGK (H-CQJPM0 (h-record-4) contradicts) — An Experiment pins a bundle whose files hold a store folder, such as recipes/kit@1/known-answers/ok/input/.tree/events/a.jsonl: in a record repository its Result reads as it does in a work-tree store, not questionable.
+- R-95Q2T7#2 closed by R-BHDBGK (H-CQJPM0 (h-record-4) contradicts) — Two clones each name one evidence path shaped like an events file, such as .tree/evidence/case/input/.tree/events/x.jsonl, with different bytes, then each runs hyp sync: each record holds the bytes of both events for that path.
+- R-95Q2T7#3 closed by R-BHDBGK (H-CQJPM0 (h-record-4) contradicts) — The program-start check of the line-10 test (os.StartProcess, syscall.Exec, syscall.ForkExec, syscall.StartProcess) is removed: a test fails on the assertion, not on a build error.
+- R-BHDBGK#1 closed by R-CYBPRP (H-RQ1BV8 (h-record-5b) contradicts) — Two clones each make and pin a bundle at one ref, such as kit@1, with different bytes, then each runs hyp sync: each clone's Result on its bundle reads as it did before the sync, not questionable.
+- R-CYBPRP#1 closed by R-EK3R0H (H-8E92SJ (h-record-6) contradicts) — Two clones each pin kit@1 with their own bytes and each Result cites a file of it, such as recipes/kit@1/run.sh, as evidence; then each runs hyp sync, and hyp show prints that pointer in each clone.
+- R-CYBPRP#2 closed by R-EK3R0H (H-8E92SJ (h-record-6) contradicts) — Two worktrees of one record repository each pin one bundle ref with other bytes from another library level, such as s/recipes/kit@1 and recipes/kit@1, and each records a Result on it; hyp show prints each Result from both worktrees.
+- R-CYBPRP#3 closed by R-EK3R0H (H-8E92SJ (h-record-6) contradicts) — After hyp sync leaves the other clone's copy of kit@1 at its path, a clone adds a new Experiment that pins its own kit@1 and records a Result on it.
+- R-EK3R0H#1 closed by R-J906AP (H-7EQ3WC (h-record-7) contradicts) — hyp import of a store whose evidence folder holds an uncited file whose name is a glob that matches a cited file, such as ou[t].txt beside a cited out.txt.
+- R-EK3R0H#2 closed by R-J906AP (H-7EQ3WC (h-record-7) contradicts) — A record repository where git is not on PATH, or where git rev-parse fails, runs hyp status, hyp show and a write.
+- R-J906AP#1 closed by R-F2YZJJ (H-AHN77X (h-record-8) contradicts) — A git repository in the reftable ref format that holds no record ref, run with no git on PATH: hyp status, hyp show and a write.
+- R-F2YZJJ#1 closed by R-V2CMZQ (H-6G6485 (h-record-9) supports) — A git repository whose record ref was deleted after hyp saw it with git, run with no git on PATH: hyp status and a write.
+- R-F2YZJJ#2 closed by R-V2CMZQ (H-6G6485 (h-record-9) supports) — A reftable record repository whose record ref came by hyp sync, by git fetch or from a hyp built before the change, run with no git on PATH: hyp status, hyp init and a write, then hyp status in another worktree.
+- R-29MR4B#1 closed by R-WX9YBH (H-KBKFDD (h-record-11) contradicts) — Two stores of one record whose names share the first 4 bytes of their sha256, such as s2330 and s130636: hyp show and hyp status of each store's Goal in its own folder at one record tip.
+- R-29MR4B#2 closed by R-WX9YBH (H-KBKFDD (h-record-11) contradicts) — A non-test Go file in a package folder named recipes, rubrics or investigations below the module root, such as internal/check/recipes, that names the store folder and runs git: the boundary test.
+- R-29MR4B#3 closed by R-WX9YBH (H-KBKFDD (h-record-11) contradicts) — A store folder reached through a symbolic link inside the repository: hyp show of its Goal, and a write, through the link.
+- R-WX9YBH#1 closed by R-23MYJ9 (H-BTXXVQ (h-record-12) contradicts) — hyp import of a work-tree store whose folder name holds a colon, such as a:b, named as a:b, ./a:b or by its absolute path.
+- R-WX9YBH#2 closed by R-23MYJ9 (H-BTXXVQ (h-record-12) contradicts) — hyp import of a store whose evidence folder holds a tracked file no event names, with staged bytes that differ from both HEAD and the work tree: the untrack step, run twice.
+- R-WX9YBH#3 closed by R-23MYJ9 (H-BTXXVQ (h-record-12) contradicts) — A non-test Go file outside packages record and sandbox that starts a program through a dot import of os, a raw execve system call or golang.org/x/sys/unix.Exec: the boundary test.
+- R-23MYJ9#1 closed by R-TS6APT (H-GXSZ49 (h-record-13) contradicts) — On a case-insensitive filesystem, a store folder entered with other letter case, such as S for s: hyp status and hyp show there, and a write from there, read and write the store s.
+- R-23MYJ9#2 closed by R-TS6APT (H-GXSZ49 (h-record-13) contradicts) — hyp import of a work-tree store whose event names a file whose bytes on disk changed after the event and no longer hash as the event stores.
+- R-TS6APT#1 closed by R-FGV9X0 (H-1WSRNQ (h-record-14) contradicts) — On a filesystem that folds Unicode normalization, a store folder entered by another normalization of its name, such as NFD cafe plus U+0301 for NFC caf U+00E9: hyp status and hyp show there, and a write from there.
+- R-TS6APT#2 closed by R-FGV9X0 (H-1WSRNQ (h-record-14) contradicts) — hyp import from a source that holds the exact bytes of a named file, after an earlier import added the file's event without those bytes because its source lacked them or held other bytes.
+- R-FGV9X0#1 closed by R-8PBBK5 (H-R98N86 (h-record-15) contradicts) — On a filesystem that folds case, a store folder typed with other letter case, such as S for s, in a repository that also holds a symbolic link to that folder whose name sorts before it, such as a pointing to s.
+- R-FGV9X0#2 closed by R-8PBBK5 (H-R98N86 (h-record-15) contradicts) — hyp import from a source that holds a bundle with the hash an event pins, after an earlier import added that event without the bundle because its source lacked it.
+- R-8PBBK5#1 closed by R-JPRJWS (H-AXX1QE (h-record-16) contradicts) — hyp import run again after the subject commit of an event the record holds arrives in the clone, when an earlier import added that event while the clone lacked the commit.
+- R-8PBBK5#2 closed by R-JPRJWS (H-AXX1QE (h-record-16) contradicts) — hyp sync of two records where one names a file at a path and the other names a file below a folder of that same path, such as E/run and E/run/log.txt.
+- R-JPRJWS#1 open — A record write, or a hyp sync join, whose named file path holds a newline, such as an evidence path that ends in a newline and an index line naming the store's events file: every earlier event stays printed.
+
+- H-RXV34M feat/record 930b3850d138: the record on refs/hyp/record, owned by package record — superseded
+- H-QJK0JR feat/record 20bdb699b090: the record on refs/hyp/record, with a test for each refusal — superseded
+  - E-F9H3N2 Gate of h-record-2: new tests red on base and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-8ZKFQV recorded H-QJK0JR=contradicts: Gate of 20bdb699b090: the 10 new line tests are red on base; all 11 are green on the candidate. Removals r1-r5 each fail their named test. go vet and go test ./... pass. In sandbox g181-import, importing the five stores gives byte-equal render --markdown, and a second import adds nothing. Review: TestProbeSyncKeepsEachSidesNamedBytes (#5) is red; the line-10 boundary test passes with a probe file that runs git through sh and by /usr/bin/git. TestProbeEvidenceSHA256MatchesRecordedBytes and TestProbeSubjectRetieAfterPatchEdit are red, labelled none.
+- H-BA06KW feat/record 48cbb70d16a6: the record on refs/hyp/record, keeping both contents of a path that sync joins — superseded
+  - E-D23JTP Gate of h-record-3: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-95Q2T7 recorded H-BA06KW=contradicts: Gate of 48cbb70d16a6: the sync and changed-evidence tests are red on 20bdb699b090 and green here; with the probe file the line-10 test passes on 20bdb699b090 and fails here; the 11 line tests stay green. Removals r1-r8, r10 fail their test; r9 did not build. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Line 7 read as answer R-8ZKFQV#r1. Review: TestReviewBundleWithStoreInputKeepsItsHash (#7) and TestReviewSyncKeepsNamedFileShapedLikeAnEventsFile (#5) are red; TestReviewImportInASandboxClone is red, labelled none.
+- H-CQJPM0 feat/record f296bc11b479: the record on refs/hyp/record, telling a bundle's store-shaped files from a store's own — superseded
+  - E-KCSN9Y Gate of h-record-4: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-BHDBGK recorded H-CQJPM0=contradicts: Gate of f296bc11b479: TestBundleWithStoreInputKeepsItsHash and TestSyncKeepsNamedFileShapedLikeAnEventsFile are red on 48cbb70d16a6 and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r8, r9b, r10-r12 apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewSyncKeepsEachSidesPinnedBundle (#7) is red; TestReviewTwoWorktreesCiteOnePathAtOnce (#4) is red; TestReviewRecordWriteHardensObjectsAndRef is red, labelled none.
+- H-F6TXKA feat/record 9f3434b8: the record on refs/hyp/record, keeping each copy of a bundle ref two clones pinned — abandoned
+- H-RQ1BV8 feat/record 9f3434b6b19b: the record on refs/hyp/record, keeping each copy of a bundle ref two clones pinned — superseded
+  - E-AK3VNM Gate of h-record-5b: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-CYBPRP recorded H-RQ1BV8=contradicts: Gate of 9f3434b6b19b: TestSyncKeepsEachSidesPinnedBundle and TestRecordWriteHardensObjectsAndRef are red on f296bc11b479 and green here; earlier new and line tests stay green; the line-10 test fails with the probe. Removals r1-r14, r16 fail their test on an assertion; r15 applies whole but its test passes, a failed removal. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewShowBundleEvidenceAfterSync (#1) and TestReviewPinnedBundleAtTwoLibraryLevels (#7) are red.
+- H-8E92SJ feat/record 3a3220f33263: the record on refs/hyp/record, reading every pinned copy of a bundle it keeps — superseded
+  - E-FWBCRZ Gate of h-record-6: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-EK3R0H recorded H-8E92SJ=contradicts: Gate of 3a3220f33263: TestShowBundleEvidenceAfterSync and TestPinnedBundleAtTwoLibraryLevels are red on 9f3434b6b19b and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r18 apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Strict check red. Review: TestReviewImportKeepsCitedFileTrackedBesideAGlobName (#6) and TestReviewNoGitOnPathInARecordRepository (#1) are red; two red tests wait for a reading of #8.
+- H-7EQ3WC feat/record 2b03fa3c4d3e: the record on refs/hyp/record, refusing to read past a record git cannot read — superseded
+  - E-82GHK7 Gate of h-record-7: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-J906AP recorded H-7EQ3WC=contradicts: Gate of 2b03fa3c4d3e: TestRecordNeedsGitToReadTheRecord, TestImportKeepsCitedFileTrackedBesideAGlobName and TestShowPickPrintsOnlyBytesOfThatSha are red on 3a3220f33263 and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r22 apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Out-of-Goal and strict checks set no verdict. Review: TestProbeReftableRepoWithNoRecordAndNoGitUsesTheWorkTree (#9) is red.
+- H-AHN77X feat/record 741ade58a14b: the record on refs/hyp/record, known without git by a mark hyp writes — superseded
+  - E-0CFRCJ Gate of h-record-8: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-F2YZJJ recorded H-AHN77X=contradicts: Gate of 741ade58a14b: TestReftableRepositoryWithNoGit is red on 2b03fa3c4d3e and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removal r22 did not apply whole, a failed removal; r1-r21 and r23 apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewStaleRecordMarkAfterRefDeleted (#9) and TestReviewSyncedReftableRecordHasNoMark (#1) are red.
+- H-6G6485 feat/record b8521fac4e6d: the record on refs/hyp/record, its ref read from the reftable stack without git — superseded
+  - E-4YM17J Gate of h-record-9: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-V2CMZQ recorded H-6G6485=supports: Gate of b8521fac4e6d, run again in a fresh checkout after the reviewer wrote into the first one (run1-shared-checkout): TestRecordRefDeletedWithNoGitUsesTheWorkTree and TestSyncedReftableRecordNeedsGit are red on 741ade58a14b and green here, the reftable unit tests green; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r26 as named apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Strict check red. Review: one red test, a case of no line.
+- H-EGXQHF feat/record f05165acc154: the record on refs/hyp/record, reading a corrupt reftable as unknown — abandoned
+- H-B8532W feat/record 32d707c23b7c: the record on refs/hyp/record, reading a corrupt reftable as unknown — superseded
+  - E-SF8QZJ Gate of h-record-10b: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-29MR4B recorded H-B8532W=contradicts: Gate of 32d707c23b7c: TestReftableHoldsRefusesLengthsPastTheBlock is red on b8521fac4e6d and green here, the corruption sweep green on both; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r27 apply whole and fail their test on an assertion. TestAddGoalRefusesATruncatedHash passes 20 of 20. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewSnapshotKeyCollision (#1), TestReviewBoundarySkipsBuildablePackages (#10) and TestReviewStoreFolderThroughSymlink (#1) are red.
+- H-KBKFDD feat/record 6e298332bcb4: the record on refs/hyp/record, one snapshot and one name for each store — superseded
+  - E-BTM3WF Gate of h-record-11: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-WX9YBH recorded H-KBKFDD=contradicts: Gate of 6e298332bcb4: the three new tests (name hash, symlinked store folder, boundary package folders) are red on 32d707c23b7c and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r30 apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewImportStoreFolderWithAColon (#8), TestReviewImportUntracksAnUnnamedFileWithStagedChanges (#6) and TestReviewBoundaryFindsEveryProgramStart (#10) are red.
+- H-BTXXVQ feat/record cca1c2e9aa5c: the record on refs/hyp/record, a colon folder imported by PATH, a forced untrack and every program start found — superseded
+  - E-PKET0S Gate of h-record-12: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-23MYJ9 recorded H-BTXXVQ=contradicts: Gate of cca1c2e9aa5c: the three new tests (colon store folder, staged unnamed file, every program start) are red on 6e298332bcb4 and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r33 (r8b for r8) apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewStoreFolderEnteredWithOtherCase (#1) and TestReviewImportKeepsBytesNoEventNames (#8) are red.
+- H-GXSZ49 feat/record fff226fd94d0: the record on refs/hyp/record, a store folder named as its directory spells it, and import of only the bytes an event names — superseded
+  - E-FDJB7V Gate of h-record-13: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-TS6APT recorded H-GXSZ49=contradicts: Gate of fff226fd94d0: the two new tests (store folder typed with other letter case, import of changed named bytes) are red on cca1c2e9aa5c and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r35 apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing, no warning. Review: TestReviewStoreFolderEnteredWithOtherNormalization (#1) and TestReviewImportFromRefAfterCheckoutImportAddsTheBytes (#8) are red.
+- H-1WSRNQ feat/record f24a0fdbbec1: the record on refs/hyp/record, a store folder found by any name that reaches it, and a later import that adds lacking named bytes — superseded
+  - E-256M8Q Gate of h-record-14: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-FGV9X0 recorded H-1WSRNQ=contradicts: Gate of f24a0fdbbec1: the two new tests (store folder by another Unicode normalization, a later import adds lacking named bytes) are red on fff226fd94d0 and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r37 (r35b for r35) apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewStoreFolderOtherCaseBesideALink (#1), TestReviewLaterImportAddsAPinnedBundleAnEarlierImportLacked (#7), TestReviewShowMissingFileWithNoGitNamesNoImport are red.
+- H-R98N86 feat/record 926319e7d0b2: the record on refs/hyp/record, a store folder never named by a link, and a later import that adds a lacking pinned bundle — superseded
+  - E-E1WSRC Gate of h-record-15: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-8PBBK5 recorded H-R98N86=contradicts: Gate of 926319e7d0b2: the three new tests (case-typed folder beside a link, a later import adds a lacking bundle, show with no git) are red on f24a0fdbbec1 and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r39 (r35b, r36b, r37b) apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewImportAddsASubjectCommitAnEarlierImportLacked (#8) and TestReviewSyncJoinsAFileAndAFolderAtOnePath (#5) are red.
+- H-AXX1QE feat/record c5b34da6e8ee: the record on refs/hyp/record, a later import that adds a lacking subject commit, and a sync that keeps a file at a folder's path — contradicted
+  - E-ZD2WGF Gate of h-record-16: new tests red on the stand-in and green, removal checks, go test, import check, review — run (recipe none, rule by reading)
+    - R-JPRJWS recorded H-AXX1QE=contradicts: Gate of c5b34da6e8ee: the two new tests (a later import adds a lacking subject commit, sync keeps a file at a folder's path) are red on 926319e7d0b2 and green here; every earlier new and line test stays green; the line-10 test fails with the probe. Removals r1-r41 (r35b, r36b, r37c) apply whole and fail their test on an assertion. go vet and go test ./... pass. Import check: renders equal, second import adds nothing. Review: TestReviewEvidencePathWithANewlineRewritesTheEventsFile (#1) and TestReviewEvidenceNameWithANewlineExitsThree (none) are red.
+
+# G-BPWZ24 hyp keeps the record apart from every code branch: one history of every store, by name and id — in_progress
+
+Part of #180 (order 2); builds #181. It replaces build Goal G-SZCBXZ in this store, whose lines 1, 5, 8 and 9 left their range open, so each review in runs 4 and 5 found a new case. G-SZCBXZ stays in_progress, and no run acts on it.
+
+The record is that of G-SZCBXZ's body and design record G-4N85GM (h-ref selected): every event of every store of one git repository, the bytes of every file an event names, each bundle an event pins, and every commit a subject names, kept as commits on the hidden ref refs/hyp/record. A record repository is a git repository that holds that ref. The record is the one history of #168: every event once, by an id unique across the repository. Its filters, the owner's overview and the relations between Goals, are a later Goal.
+
+The owner decided in this grill on 2026-11-14: a store's name is its folder's resolved path, and a store folder's name is plain; every file path keeps any path git can hold; hyp import adds each event once, by id, with its bytes or not at all; a read during hyp's own snapshot prune is covered.
+
+The base is commit c5b34da6e8eea5b507bed00d624b46afddbe4a44 (h-record-16 of G-SZCBXZ) on feat/record. Its tests that a later import adds what an earlier import lacked go with the first candidate. Lines 5 and 7 hold on the base. Line 1 covers that an event's files survive in one clone, not how two contents at one path show after a sync. A store folder moved or renamed after its events are in the record is not a case. Line 8 does not cover other bytes at the path of a file an event names, and a store with a named file, bundle or subject commit missing from every source is not a case. The run continues on feat/record and PR #187, merges main into it, from 7237c49 with #174's hold rule on, and never rebases it, and gives each Hypothesis an alias that starts with h-rec2-.
+
+Each Experiment's rubric also runs hyp import in a temporary clone of this repository and compares each Goal's node statuses with its work-tree store's.
+
+May change: hyp in this repository (cmd/, internal/, docs/), as commits on the local branch feat/record pushed to PR #187, which the run never merges
+May change: any text in skills/, README.md or AGENTS.md the change makes wrong
+May change: this Goal's store, investigations/record, written with the installed hyp on a branch cut from main that holds only .tree/ changes, in its own worktree, pushed as a record PR the owner merges at every stop
+Read only: the events and evidence of every other store under investigations/; every frozen recipe version under recipes/ and investigations/*/recipes/; the tags g-akjjf8/record, g-akjjf8/candidates and goal-prompt/subject-*
+Never: run a candidate's hyp so that it writes a ref, a record or a store in this clone or on origin; its tests and Experiments use fixtures, temporary repositories and sandbox clones
+Never: replace the installed hyp binary at ~/.local/bin/hyp
+Never: edit or remove a line of any events file
+Never: merge a PR
+
+## Q-RDPEBJ Which hyp commit implements the record? — open/no_candidates
+
+The build question of G-BPWZ24. The run adds one Hypothesis per candidate commit on feat/record, with its subject the base plus that commit; a fix is a new Hypothesis that supersedes the one it fixes. The base is commit c5b34da (h-record-16 of G-SZCBXZ) and is the Hypothesis 'nothing changes': each Experiment's rubric asks for red on base and green on the candidate, except the lines the Goal body says hold on the base (lines 5 and 7), which are green on both. On the base, an import that lacks a named file, bundle or subject commit adds the event anyway and a store folder name with a character outside the plain set is accepted, so lines 6 and 8 separate a candidate from the base.
+
+exit 0

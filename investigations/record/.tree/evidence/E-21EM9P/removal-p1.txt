@@ -1,0 +1,20 @@
+removal p1: line 10: a store-folder literal outside package record
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestOnlyRecordNamesTheFoldersAndRunsGit'
+wrote internal/render/probe.go:
+package render
+
+var probe = "a/.tree/b"
+
+diff:
+
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+    boundary_test.go:32: outside package record:
+        internal/render/probe.go holds .tree
+--- FAIL: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.354s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

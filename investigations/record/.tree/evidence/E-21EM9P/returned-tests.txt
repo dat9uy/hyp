@@ -1,0 +1,25 @@
+returned tests at 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.git
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-JRPE72/.git/out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-JRPE72/.git/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.GIT
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-93QPD1/.GIT/out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-93QPD1/.GIT/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.git.
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-0X2Q0M/.git./out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-0X2Q0M/.git./out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/.git_
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-4JKQTG/.git /out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-4JKQTG/.git /out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+=== RUN   TestNamedFileBelowAPartGitsIndexTakesAsGits/git~1
+    record_review_test.go:37: hyp record exited 0 naming .tree/evidence/E-M66GF3/git~1/out.txt, but hyp show of it after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-M66GF3/git~1/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+--- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits (5.28s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.git (1.08s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.GIT (1.05s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.git. (1.06s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/.git_ (1.05s)
+    --- FAIL: TestNamedFileBelowAPartGitsIndexTakesAsGits/git~1 (1.04s)
+=== RUN   TestImportOfANamedFileBelowAPartGitsIndexTakesAsGits
+    record_review_test.go:80: hyp import exited 0 ("w: imported 5 events\n"), but hyp show .tree/evidence/E-AEB5JY/.git./out.txt after the work-tree copy is gone: exit 3, stdout "", stderr ".tree/evidence/E-AEB5JY/.git./out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n"
+--- FAIL: TestImportOfANamedFileBelowAPartGitsIndexTakesAsGits (0.38s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	6.042s
+FAIL
+exit 1

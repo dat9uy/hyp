@@ -1,0 +1,29 @@
+removal r21: a prune skips a snapshot whose lock file is no longer at the lock's path
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/record/ -run 'TestTwoPrunesLeaveASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\tif !lockedAt(f, r.snapLock(key)) {\n\t\treturn\n\t}\n' -> ''
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index a398387..3ad426f 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -229,9 +229,6 @@ func (r *Repo) pruneOpen(f *os.File, key string) {
+ 		return
+ 	}
+ 	defer syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+-	if !lockedAt(f, r.snapLock(key)) {
+-		return
+-	}
+ 	// The lock file goes with its snapshot. A read waiting on it finds the
+ 	// file gone once it holds the lock, and takes a new one.
+ 	if os.RemoveAll(filepath.Join(r.hypDir("snap"), key)) == nil {
+
+=== RUN   TestTwoPrunesLeaveASnapshotAReadHolds
+    record_test.go:317: a prune removed the snapshot a running read holds: the read gets "", open /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestTwoPrunesLeaveASnapshotAReadHolds682550309/002/.git/hyp/snap/6afc38a6c2fa54b8268788af885191f810850677-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-second.txt: no such file or directory
+--- FAIL: TestTwoPrunesLeaveASnapshotAReadHolds (0.54s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.858s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

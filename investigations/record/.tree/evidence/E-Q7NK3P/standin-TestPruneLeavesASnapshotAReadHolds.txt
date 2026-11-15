@@ -1,0 +1,8 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestPruneLeavesASnapshotAReadHolds in ./internal/record/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:198: a prune removed the snapshot this read holds: stat /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds3164025884/002/.git/hyp/snap/92f2d3cf1ec6b7e626356d3d71d119079324f2c5-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89/s/.tree/evidence/E-1/out-first.txt: no such file or directory
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.51s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	0.618s
+FAIL
+exit 1

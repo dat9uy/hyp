@@ -1,0 +1,28 @@
+removal r7: a part named as git's folder is refused
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestStoreFolderNameIsPlain'
+applied in internal/record/name.go (1x): 'if part == "" || part == "." || part == ".." || gitPart(part) {' -> 'if part == "" || part == "." || part == ".." {'
+diff:
+diff --git a/internal/record/name.go b/internal/record/name.go
+index 2698bb2..6df6e2f 100644
+--- a/internal/record/name.go
++++ b/internal/record/name.go
+@@ -66,7 +66,7 @@ func CheckPlain(top, dir string) error {
+ 	}
+ 	cur := realCase(rt)
+ 	for _, part := range strings.Split(name, "/") {
+-		if part == "" || part == "." || part == ".." || gitPart(part) {
++		if part == "" || part == "." || part == ".." {
+ 			return herr.Refused("the store folder %q has the part %q; a store folder's name has no part . or .., and none that is %s in any letter case with or without trailing dots", name, part, GitName)
+ 		}
+ 		for _, c := range part {
+
+=== RUN   TestStoreFolderNameIsPlain
+    record_import_names_test.go:287: exit 0, stderr ""; want a refusal, exit 1, naming "store folder"
+--- FAIL: TestStoreFolderNameIsPlain (0.45s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.818s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

@@ -1,0 +1,8 @@
+stand-in 7500a76960bd84660cd3d3508a2a41331a477e37, test TestPruneLeavesASnapshotAReadHolds in ./internal/record/, test files from 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:221: the lock file of the pruned snapshot /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds1611134081/002/.git/hyp/snap/9bf6a237651e36d388f8527adcd304c0e1d36881-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89 stays
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.74s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	1.110s
+FAIL
+exit 1

@@ -1,0 +1,27 @@
+removal r20: a prune removes a pruned snapshot's lock file
+candidate 5900a1d810b5ffdca465b7dbf91d47d76cc542e5
+test ./internal/record/ -run 'TestPruneLeavesASnapshotAReadHolds'
+applied in internal/record/snapshot.go (1x): '\t\t\t\t_ = os.Remove(r.snapLock(d.Name()))\n' -> ''
+diff:
+diff --git a/internal/record/snapshot.go b/internal/record/snapshot.go
+index c249230..b839855 100644
+--- a/internal/record/snapshot.go
++++ b/internal/record/snapshot.go
+@@ -219,7 +219,6 @@ func (r *Repo) prune(keep string) {
+ 			// The lock file goes with its snapshot. A read waiting on it
+ 			// finds the file gone once it holds the lock, and takes a new one.
+ 			if os.RemoveAll(filepath.Join(r.hypDir("snap"), d.Name())) == nil {
+-				_ = os.Remove(r.snapLock(d.Name()))
+ 			}
+ 			syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
+ 		}
+
+=== RUN   TestPruneLeavesASnapshotAReadHolds
+    record_test.go:221: the lock file of the pruned snapshot /private/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/TestPruneLeavesASnapshotAReadHolds2577372494/002/.git/hyp/snap/71a3f90f9262787ebace68a440318578d11602a5-043a718774c572bd8a25adbeb1bfcd5c0256ae11cecf9f9c3f925d0e52beaf89 stays
+--- FAIL: TestPruneLeavesASnapshotAReadHolds (0.75s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/record	1.076s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion

@@ -1,0 +1,8 @@
+stand-in c5b34da6e8eea5b507bed00d624b46afddbe4a44, test TestStoreFolderOutsideTheRepository in ./internal/cli/, test files from 7500a76960bd84660cd3d3508a2a41331a477e37
+=== RUN   TestStoreFolderOutsideTheRepository
+    record_import_names_test.go:336: exit 0, stderr ""; want a refusal, exit 1, naming "outside the repository"
+--- FAIL: TestStoreFolderOutsideTheRepository (0.17s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.319s
+FAIL
+exit 1

@@ -1,0 +1,23 @@
+removal p2: line 10: exec.Command with the literal git outside record and sandbox
+candidate 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d
+test ./internal/cli/ -run 'TestOnlyRecordNamesTheFoldersAndRunsGit'
+wrote internal/render/probe.go:
+package render
+
+import "os/exec"
+
+func probe() { _ = exec.Command("git", "status") }
+
+diff:
+
+=== RUN   TestOnlyRecordNamesTheFoldersAndRunsGit
+    boundary_test.go:32: outside package record:
+        internal/render/probe.go imports os/exec
+        internal/render/probe.go runs git
+--- FAIL: TestOnlyRecordNamesTheFoldersAndRunsGit (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.358s
+FAIL
+
+exit 1
+removal ok: the test fails on an assertion
