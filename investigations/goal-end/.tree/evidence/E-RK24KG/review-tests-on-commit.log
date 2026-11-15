@@ -1,0 +1,12 @@
+# commit 0ebffbc5fe63117a046b28253fca3351b27b59ec, the review's tests run by the runner
+--- PASS: TestReviewOtherWritesUnderAnEndedGoalRefused (0.04s)
+    review_goalend_test.go:56: hyp status of an ended Goal still asks the owner to accept or return a line:
+--- FAIL: TestReviewEndedGoalReferredLineStillAsksTheOwner (0.02s)
+    review_goalend_test.go:70: hyp show of a line of the ended Goal does not say its Goal has since ended:
+--- FAIL: TestReviewOwnLineOfAnEndedGoalPrintsTheEnd (0.01s)
+--- PASS: TestReviewEndOfAKeyIsAnError (0.01s)
+--- PASS: TestReviewAsOfBeforeTheEnd (0.01s)
+--- PASS: TestReviewMergedAnswerAfterEndAppliesWithAWarning (0.02s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.551s
+FAIL

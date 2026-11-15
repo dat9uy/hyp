@@ -1,0 +1,14 @@
+# commit 0ebffbc5fe63117a046b28253fca3351b27b59ec
+--- PASS: TestEndOfAGoalInProgress (0.02s)
+--- PASS: TestEndOfACompleteGoal (0.04s)
+--- PASS: TestEndByAnotherActorRefusedWrite (0.02s)
+--- PASS: TestEndByAnotherActorRejectedReplay (0.01s)
+--- PASS: TestSecondOrMixedEndRefusedWrite (0.02s)
+--- PASS: TestSecondOrMixedEndRejectedReplay (0.02s)
+--- PASS: TestEndedGoalShowsNothingThatWaits (0.06s)
+--- PASS: TestWriteUnderAnEndedGoalRefused (0.05s)
+--- PASS: TestWriteUnderAnEndedGoalAppliesOnReplayWithAWarning (0.01s)
+--- PASS: TestPromptForAnEndedGoalRefused (0.01s)
+--- PASS: TestEndedGoalIsCited (0.03s)
+--- PASS: TestGoalNotEndedRefusedAsACite (0.01s)
+ok  	github.com/dat9uy/hyp/internal/cli	0.391s
