@@ -1,0 +1,181 @@
+# Review of 0ebffbc (feat: the owner's end of a Goal), Goal G-K0AXM0
+
+I reviewed this in a detached checkout of 0ebffbc at /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/4b914215-f2b1-484d-ba7a-c44cc8b480f9/scratchpad/review. I made no commits and did not touch the installed binary.
+
+## Gate on the commit as shipped (before I added my test file)
+- `go vet ./...`: clean, no output.
+- `go test ./... -count=1`: every package `ok` (check, cli 22.756s, cmdrecord, event, recipe, render, replay, sandbox 65.834s, signals, skillcheck, store), exit 0.
+- After I added review_goalend_test.go: vet is still clean. `go test` fails in internal/cli, on exactly the two failing review tests below. Every other test passes.
+
+## Findings
+
+### Finding 1: G-K0AXM0#4. An ended Goal's referred line still asks the owner to act, under LINES
+After the end, `hyp status G` still prints `referred: the owner accepts or returns it` on the LINES row of a Goal line the runner referred. OWED and AWAITING OWNER are empty, as the line requires. But the line opens with "An ended Goal shows nothing that waits", and this row is still an item addressed to the owner. Its accept or return is now refused at write, so the owner cannot act on it.
+
+Cause: `lineState`/`handWord` in internal/render/show.go do not check `p.Ended`. goalBlock in internal/render/status.go prunes FRONTIER and STALE for an ended Goal but not LINES.
+
+This kind is at the edge of the line. Line 4's list after its colon names only OWED, AWAITING OWNER, the question waits and the GOALS row. If the builder reads it as uncovered, it is a reading at the stop. Test: TestReviewEndedGoalReferredLineStillAsksTheOwner (FAIL). Output on 0ebffbc:
+```
+review_goalend_test.go:56: hyp status of an ended Goal still asks the owner to accept or return a line:
+    GOAL G-5RG5X7 G — ended (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+    ENDED 2026-11-15 11:35 o: outgrown
+    LINES
+      G-5RG5X7#1 referred: the owner accepts or returns it; uncovered on Q-8D3RSY: H-1447P3 — one tenant per row
+    FRONTIER
+    STALE
+    OWED
+      runner owes nothing: stop and report to the owner
+    AWAITING OWNER
+    RECENT
+      2026-11-15 11:35 o answer ends G-5RG5X7
+      2026-11-15 11:35 a result.record R-GEGR4Y — w
+    CHECKPOINT 2026-11-15 11:35 a:
+--- FAIL: TestReviewEndedGoalReferredLineStillAsksTheOwner (0.03s)
+```
+
+### Finding 2: G-K0AXM0#7. Which Goal "its Goal" means; `hyp show` of the ended Goal's own line says nothing of the end
+Line 7 says "A line written before the end prints that its Goal has since ended." The code reads "its Goal" as the cited Goal. `citeEnd` in internal/render/showlimit.go adds "has since ended" beside a cite in a line of another Goal, and the builder's test TestEndedGoalIsCited covers that reading. I ran the other reading: "its Goal" is the line's own Goal. `hyp show G-…#1` of a line of the ended Goal prints the line, its question and its history, with no word that its Goal has since ended. The Goal does not settle which reading holds, so this is a reading at the stop. Test: TestReviewOwnLineOfAnEndedGoalPrintsTheEnd (FAIL). Output on 0ebffbc:
+```
+review_goalend_test.go:70: hyp show of a line of the ended Goal does not say its Goal has since ended:
+    Line G-EXBK8B#1
+    text: one tenant per row
+    question Q-TAZKJ9: candidates none
+    history:
+      2026-11-15 11:35 o node.add — writes it
+--- FAIL: TestReviewOwnLineOfAnEndedGoalPrintsTheEnd (0.01s)
+```
+
+### Checks that passed (no finding)
+- **G-K0AXM0#5:** writes not in the builder's list are refused with exit 1 and the end's words: abandon, reaffirm, amend, unselect, unlink, withdraw of an Experiment, and supersede from a node of the Goal. They are refused because writer.run checks `EndedGoals` on ev.Node. Test: TestReviewOtherWritesUnderAnEndedGoalRefused, PASS.
+- **G-K0AXM0#5, replay half for an answer item:** a merged answer of an ended Goal's reading, placed after the end, is applied and `hyp check` warns about it. Test: TestReviewMergedAnswerAfterEndAppliesWithAWarning, PASS.
+- **G-K0AXM0#1 with `--as-of`:** status at a point before the end reads in_progress, and at the end event it reads ended. Test: TestReviewAsOfBeforeTheEnd, PASS.
+- **none (robustness):** `--end` on a line key, a missing key and an unknown ref exits non-zero with no panic, and the Goal stays in_progress. Test: TestReviewEndOfAKeyIsAnError, PASS.
+- **Run on the last two tests and the merged-answer test:** `go test ./internal/cli/ -run 'TestReview' -v` printed `--- PASS` for each.
+- **G-K0AXM0#8, checked by grep on skills/hyp-owner-answer/SKILL.md:** it holds `hyp answer --end` (2 times), the four ways out ("Leave it open", "A test", "Show me" only on the owner's words, "End the Goal"), "Only an answer session types `--end`", and "If this turn ended the Goal, write no runner checkpoint". It holds.
+- **G-K0AXM0#9, checked by grep on skills/hyp-owner-grill/SKILL.md:** "Check each kind only against what the grill settled and against the code" is present (1). "rerun raises no kind" is gone (0). "does not go to the owner as a placement" is present (1). It holds.
+- **Stale sentences:** I searched skills/, docs/, README.md and AGENTS.md for sentences the change makes false (the prompt "reads no answer", "accepts and returns" with no ends, the cite list with no ended Goal, the Goal state lists) and found none left.
+
+### What I could not test
+- **Line 7's ordering of a line against its end:** `citeEnd` decides whether a line came before or after an end by comparing the line's Goal-add id with the end's event id as strings (`l.Result < e.Event`). That is right for ULIDs in merge order. I did not build a merged log where a Goal added on another branch, citing a key of G settled before the end, gets an id that sorts after the end. Making that log needs hand-made ids, and I left it as a gap.
+- **A live Goal whose premises point into an ended Goal:** a question of a live Goal can rest on a Hypothesis of an ended Goal through a depends_on premise. The ledger might then owe an item whose settling write is now refused. I did not build this case, and no Goal line places it.
+
+## Full text of the test file I ran
+Path: /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/4b914215-f2b1-484d-ba7a-c44cc8b480f9/scratchpad/review/internal/cli/review_goalend_test.go
+```go
+package cli
+
+import (
+	"strings"
+	"testing"
+)
+
+// Review probes of the end of a Goal (G-K0AXM0). Each test states the Goal
+// line it is a case of.
+
+// G-K0AXM0#5: every write whose node leads to an ended Goal is refused with
+// exit 1, naming the end. The builder's test covers the listed verbs; these
+// are the other writes on a node of the Goal: abandon, reaffirm, amend,
+// unselect, unlink, withdraw of an Experiment, and supersede from a node of
+// the Goal.
+func TestReviewOtherWritesUnderAnEndedGoalRefused(t *testing.T) {
+	g, q, _ := endStore(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	h2 := must(t, "add", "hyp", "--parent", q, "--title", "H2", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--target", "none", "--why", "w")
+	must(t, "link", h, "depends_on", h2, "--why", "w")
+	qs := must(t, "add", "dq", "--parent", g, "--title", "QS", "--why", "ask")
+	hs := supported(t, qs, "HS")
+	must(t, "select", qs, hs, "--why", "w")
+	must(t, "answer", "--end", g+"=outgrown", "--actor", "o")
+	for _, args := range [][]string{
+		{"abandon", h2, "--why", "w"},
+		{"reaffirm", h, "--why", "w"},
+		{"amend", h, "--body", "b", "--why", "w"},
+		{"unselect", qs, "--why", "w"},
+		{"unlink", h, "depends_on", h2, "--why", "w"},
+		{"withdraw", e, "--why", "w"},
+		{"supersede", h2, "--old", h, "--why", "w"},
+	} {
+		r := hyp(t, args...)
+		if r.code != 1 || !strings.Contains(r.stderr, "is ended") || !strings.Contains(r.stderr, "outgrown") {
+			t.Errorf("hyp %v under an ended Goal: exit %d, stderr %q; want exit 1 naming the end", args, r.code, r.stderr)
+		}
+	}
+}
+
+// G-K0AXM0#4: an ended Goal shows nothing that waits. A Goal line the
+// runner referred to the owner is listed under LINES of hyp status; after
+// the end it must not still say that the owner accepts or returns it.
+func TestReviewEndedGoalReferredLineStillAsksTheOwner(t *testing.T) {
+	g, q, keys := endStore(t, "one tenant per row")
+	supported(t, q, "H")
+	must(t, "checkpoint", "--goal", g, "--refers", keys[0]+"=no test bed", "--why", "w")
+	before := hyp(t, "status", g).stdout
+	if !strings.Contains(before, "referred: the owner accepts or returns it") {
+		t.Fatalf("the store does not set up a referred line before the end:\n%s", before)
+	}
+	must(t, "answer", "--end", g+"=outgrown", "--actor", "o")
+	st := hyp(t, "status", g).stdout
+	if strings.Contains(st, "the owner accepts or returns it") {
+		t.Fatalf("hyp status of an ended Goal still asks the owner to accept or return a line:\n%s", st)
+	}
+}
+
+// G-K0AXM0#7 (its sentence "A line written before the end prints that its
+// Goal has since ended", read as the line's own Goal): hyp show of a line of
+// the ended Goal itself, written before the end, prints that the Goal has
+// since ended.
+func TestReviewOwnLineOfAnEndedGoalPrintsTheEnd(t *testing.T) {
+	g, _, keys := endStore(t, "one tenant per row")
+	must(t, "answer", "--end", g+"=outgrown", "--actor", "o")
+	sh := hyp(t, "show", keys[0])
+	want(t, sh, 0, "Line ")
+	if !strings.Contains(sh.stdout, "ended") || !strings.Contains(sh.stdout, "outgrown") {
+		t.Fatalf("hyp show of a line of the ended Goal does not say its Goal has since ended:\n%s", sh.stdout)
+	}
+}
+
+// none: --end with a ref that resolves to a key, not a node, must exit with
+// a usage or rule error and never panic.
+func TestReviewEndOfAKeyIsAnError(t *testing.T) {
+	g, _, keys := endStore(t, "one tenant per row")
+	for _, ref := range []string{keys[0], g + "#9", "nosuch"} {
+		r := hyp(t, "answer", "--end", ref+"=x", "--actor", "o")
+		if r.code == 0 {
+			t.Errorf("hyp answer --end %s=x: exit 0", ref)
+		}
+	}
+	want(t, hyp(t, "status", g), 0, "— in_progress (")
+}
+
+// G-K0AXM0#1 with --as-of: hyp status at a point before the end reads the
+// Goal in progress, and at the end reads it ended.
+func TestReviewAsOfBeforeTheEnd(t *testing.T) {
+	g, q, _ := endStore(t)
+	want(t, hyp(t, "status", g, "--as-of", q), 0, "— in_progress (")
+	r := hyp(t, "answer", "--end", g+"=outgrown", "--actor", "o")
+	want(t, r, 0, " answer\n")
+	want(t, hyp(t, "status", g, "--as-of", q), 0, "— in_progress (")
+	end := strings.Fields(r.stdout)[0]
+	want(t, hyp(t, "status", g, "--as-of", end), 0, "— ended (")
+}
+
+// G-K0AXM0#5, the replay half for an answer item: an answer of a reading of
+// an ended Goal that a merged log holds after the end applies, and hyp
+// check warns about it.
+func TestReviewMergedAnswerAfterEndAppliesWithAWarning(t *testing.T) {
+	g, q, _ := endStore(t)
+	k := fullKey(t, openReading(t, q))
+	rawEnd(t, "o", g, "outgrown", nil)
+	late := rawEvent(t, "o", typeAnswer, "", map[string]any{"answers": []map[string]string{{"key": k, "text": "code only"}}}, "")
+	r := hyp(t, "check")
+	if strings.Contains(r.stdout, "rejected "+late) || !strings.Contains(r.stdout, "warn: "+late) {
+		t.Fatalf("a merged answer under an ended Goal is not applied with a warning:\n%s", r.stdout)
+	}
+}
+```
+
+Output of `go test ./internal/cli/ -run TestReview -count=1 -v` on 0ebffbc: TestReviewOtherWritesUnderAnEndedGoalRefused PASS (0.04s), TestReviewEndedGoalReferredLineStillAsksTheOwner FAIL (output above), TestReviewOwnLineOfAnEndedGoalPrintsTheEnd FAIL (output above), TestReviewEndOfAKeyIsAnError PASS (0.01s), TestReviewAsOfBeforeTheEnd PASS (0.01s), TestReviewMergedAnswerAfterEndAppliesWithAWarning PASS (0.03s). The package result is `FAIL github.com/dat9uy/hyp/internal/cli`.
+
+Status: DONE_WITH_CONCERNS
+Summary: The commit passes vet and its own tests, and I found no break of a Goal line in the plain reading of each. Two cases at the edge of the lines fail and need the owner's reading: an ended Goal's referred line still tells the owner to accept or return it under LINES (G-K0AXM0#4), and `hyp show` of the ended Goal's own line says nothing of the end (G-K0AXM0#7, "its Goal" read as the line's own Goal).

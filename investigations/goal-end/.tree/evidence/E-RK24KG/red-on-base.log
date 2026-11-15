@@ -1,0 +1,38 @@
+=== RUN   TestEndOfAGoalInProgress
+    goal_end_test.go:43: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -end\n" (want " answer\n")
+--- FAIL: TestEndOfAGoalInProgress (0.01s)
+=== RUN   TestEndOfACompleteGoal
+    goal_end_test.go:61: exit 2 (want 0), stdout "", stderr "flag provided but not defined: -end\n" (want " answer\n")
+--- FAIL: TestEndOfACompleteGoal (0.02s)
+=== RUN   TestEndByAnotherActorRefusedWrite
+    goal_end_test.go:74: exit 2 (want 1), stdout "", stderr "flag provided but not defined: -end\n" (want "only the actor that added a Goal ends it")
+--- FAIL: TestEndByAnotherActorRefusedWrite (0.01s)
+=== RUN   TestEndByAnotherActorRejectedReplay
+    goal_end_test.go:86: replay does not reject 01M7FFJZ2ZCVEC8TG788AZQ6J3 with "only the actor that added a Goal ends it":
+--- FAIL: TestEndByAnotherActorRejectedReplay (0.01s)
+=== RUN   TestSecondOrMixedEndRefusedWrite
+    goal_end_test.go:95: exit 2 (want 1), stdout "", stderr "flag provided but not defined: -end\n" (want "bad end: one answer ends")
+--- FAIL: TestSecondOrMixedEndRefusedWrite (0.02s)
+=== RUN   TestSecondOrMixedEndRejectedReplay
+    goal_end_test.go:108: replay does not reject 01M7FFJZ452RXXC4G2NSF7Y2BB with "bad end: one answer ends":
+--- FAIL: TestSecondOrMixedEndRejectedReplay (0.02s)
+=== RUN   TestEndedGoalShowsNothingThatWaits
+    goal_end_test.go:145: hyp [answer --end G-Q4Z7HW=outgrown --actor o]: exit 2, stderr "flag provided but not defined: -end\n"
+--- FAIL: TestEndedGoalShowsNothingThatWaits (0.05s)
+=== RUN   TestWriteUnderAnEndedGoalRefused
+    goal_end_test.go:191: hyp [answer --end G-ASEVS5=outgrown --actor o]: exit 2, stderr "flag provided but not defined: -end\n"
+--- FAIL: TestWriteUnderAnEndedGoalRefused (0.03s)
+=== RUN   TestWriteUnderAnEndedGoalAppliesOnReplayWithAWarning
+    goal_end_test.go:227: a merged event under an ended Goal is not applied with a warning:
+--- FAIL: TestWriteUnderAnEndedGoalAppliesOnReplayWithAWarning (0.01s)
+=== RUN   TestPromptForAnEndedGoalRefused
+    goal_end_test.go:238: hyp [answer --end G-GER8GT=outgrown --actor o]: exit 2, stderr "flag provided but not defined: -end\n"
+--- FAIL: TestPromptForAnEndedGoalRefused (0.01s)
+=== RUN   TestEndedGoalIsCited
+    goal_end_test.go:257: hyp [answer --end G-QHJA1F=outgrown --actor o]: exit 2, stderr "flag provided but not defined: -end\n"
+--- FAIL: TestEndedGoalIsCited (0.03s)
+=== RUN   TestGoalNotEndedRefusedAsACite
+--- PASS: TestGoalNotEndedRefusedAsACite (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.592s
+FAIL

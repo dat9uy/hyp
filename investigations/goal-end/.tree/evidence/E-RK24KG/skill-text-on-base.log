@@ -1,0 +1,6 @@
+## base 8cd0c6e skill text, read for lines 8 and 9
+### grep -n -- '--end' skills/hyp-owner-answer/SKILL.md
+(no match)
+### grep -n 'rerun raises no kind\|Only a kind the grill never settled goes to the owner' skills/hyp-owner-grill/SKILL.md
+104:Only a kind the grill never settled goes to the owner
+104:The read-back is done when a rerun raises no kind that the words leave unplaced

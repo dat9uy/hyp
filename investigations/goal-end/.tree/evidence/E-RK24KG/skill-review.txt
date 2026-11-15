@@ -1,0 +1,94 @@
+Review record: skill prose of commit 0ebffbc (feat: the owner's end of a Goal), reviewed with ak-skill-creator's update, audit and optimize flow. This was a review only: no file was edited and nothing was committed.
+
+Checkout: /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/4b914215-f2b1-484d-ba7a-c44cc8b480f9/scratchpad/skillreview at 0ebffbc5fe63117a046b28253fca3351b27b59ec. `git show --stat 0ebffbc -- skills/` lists three changed skills:
+- skills/hyp-owner-answer/SKILL.md (+19/-4)
+- skills/hyp-owner-grill/SKILL.md (4 lines changed)
+- skills/hyp-prototype/SKILL.md (+2/-1)
+
+## Flow steps run on each skill
+- **Update check.** Each file was diffed against its parent (`git show 0ebffbc^:<path>`). I checked that behavior already accepted is kept, and checked the new words against the code in the same commit: internal/replay/end.go, internal/cli/write.go and internal/cli/prompt.go.
+- **Audit.**
+  - Structure: `quick_validate.py`.
+  - Lint: `lint_cruft.py --routing`.
+  - Past use: `session_usage.py`. Local transcripts hold hyp-owner-answer 23 times in 13 sessions, hyp-owner-grill 47 times in 40 sessions, and hyp-prototype 115 times. All of these are runs of the parent text, so no session evidence exists yet for the new end text.
+  - Semantic review against the keep list.
+- **Optimize.** I propose changes only where I found a Medium or Low issue. Nothing was applied.
+- **Rule checks.** No changed skill line cites an ADR or a file under docs/. The one docs/ string, hyp-owner-grill line 34, is older text, and it names a `May change:` directory, not a citation. The skills name no new command: `hyp answer --end` exists as a flag in internal/cli/write.go.
+
+## skills/hyp-owner-answer/SKILL.md
+
+### Validator and lint
+- WARNING SKILL.md:1 description-trigger: "Description and when_to_use state no activation condition". The description was already there before the commit, and the frontmatter has `disable-model-invocation: true`, so nothing routes on it. Label: none. No action.
+- Lint: high=0, medium=0, low=0.
+
+### Semantic findings
+1. Lines 24 and 70-78 add the end as an owner move, with its own section. The words agree with the code:
+   - "Only the actor that added the Goal ends it" matches end.go:53: "only the actor that added a Goal ends it".
+   - "An end is an answer of its own: it names no other key of the same Goal" matches end.go:58: "one answer ends %s and moves its key %s; an end is an answer of its own".
+   - "`hyp prompt` refuses it" matches prompt.go: "an ended Goal has no run".
+   - "hyp refuses every write under it" matches write.go EndedGoals/EndedRefusal.
+   - "a line of it cites the ended Goal's id, or any of its keys" matches the `--cite` help in write.go.
+   Label: G-K0AXM0#8. The clause holds.
+2. Line 26: "The Goal's lines and the end are the owner's two moves that no item asks for." Line 50 also offers the end as way 4 in reply to an open reading. These do not contradict each other, since no item owes an end, but a reader can stumble on the two. Optimize, Low: "…two moves that no item owes; the end can also come up while the owner answers a reading." Label: G-K0AXM0#8.
+3. Line 49, "Show me": "add it as a sub-question under the Hypothesis the reading's answer can move, for the next run to show." It names no command and no actor. hyp-prototype line 35 gives `hyp add dq --parent <goal-or-hyp>`, and the grill's write table puts DesignQuestions under the runner actor. This skill says elsewhere "Show the owner each write under their actor", so it leaves open which actor the sub-question goes under. Optimize, Medium: name `hyp add dq --parent <H-id> … --actor <runner-actor>`, or say the owner's actor if that is what was decided. The clause itself holds. Label: G-K0AXM0#8.
+4. Line 72: "a `/goal` run never ends a Goal". This rule lives only in hyp-owner-answer, and a /goal runner loads hyp-goal-run and hyp-prototype, not this skill. hyp-prototype lines 217-218 mention `hyp answer --end` with no answer-session limit. The binary allows the Goal's adder to end it, including a runner actor that added the Goal. So the rule reaches only answer sessions, which is what line 8 asks for, but no runner text repeats it. Low, a flag for the author. Label: G-K0AXM0#8.
+5. Line 160: "If it exits 1, the Goal is ended, so it has no next run, or its body has no valid constraints block: tell the owner, who adds a new Goal." This is accurate. Optimize, Low: split the sentence so that "who adds a new Goal" is not read as the fix for an ended Goal too. Label: none.
+
+### G-K0AXM0#8, clause by clause: all hold
+- **Names `hyp answer --end` as an owner move.** Holds. Line 24: "- An end says the Goal is wrong or outgrown: `hyp answer --end`, once, in the owner's words." Line 75 gives the command: `hyp answer --end "<G-id>=<their words>" --actor <the actor that added the Goal>`.
+- **The four ways out for "I don't know".** Holds. Line 46: "Show the owner the four ways out, and do what their words choose:"
+  - **Leave it open.** Holds. Line 47: "1. **Leave it open.** While it is open, the select and the owner's choice on its question wait on it…"
+  - **A test.** Holds. Line 48: "2. **A test.** Propose a test that can give the owner the facts, and name the Goal line it runs under…"
+  - **"Show me" as a sub-question, only on the owner's words.** Holds. Line 49: "3. **\"Show me\".** Only when the owner's words ask to see the case, add it as a sub-question under the Hypothesis the reading's answer can move, for the next run to show. Never add one on your own reading of their words."
+  - **End the Goal.** Holds. Line 50: "4. **End the Goal.** If the owner now sees that the Goal is wrong or outgrown, do as \"End the Goal\" says."
+- **Only an answer session types `--end`.** Holds. Line 72: "Only an answer session types `--end`: a `/goal` run never ends a Goal."
+- **A turn that ends a Goal writes no runner checkpoint on it.** Holds. Line 150: "If this turn ended the Goal, write no runner checkpoint on it: hyp refuses every write under an ended Goal."
+
+## skills/hyp-owner-grill/SKILL.md
+
+### Validator and lint
+- Validator: "Skill is valid!"
+- MEDIUM numeric-cap SKILL.md:62: "At most 10 lines". This line was already there before the commit. It is a real cap in the binary, so it stays under the keep list. Label: none.
+
+### Semantic findings
+1. Line 104, the read-back sort, is rewritten. Details are in the clause table below. Label: G-K0AXM0#9. It holds.
+2. Line 10, older text: the grill leaves "nothing the run must come back to ask." Line 104 now leaves each kind the grill never settled "unplaced … so the run raises it as a reading". The run may now come back with a reading on such a kind, which pulls against the purpose sentence on line 10. Optimize, Medium: qualify line 10, for example "nothing the run must come back to ask about what the grill settled". Label: G-K0AXM0#9, a consistency gap. It does not break the clause.
+3. Line 117 renames the checkpoint row from "the end" to "the grill's last report". Line 104 refers to that name ("name it in the grill's last report"), and the rename keeps the grill's checkpoint from being confused with the new Goal end. Good. A note: a run reads `hyp status`, which prints only the last checkpoint. hyp-goal-run line 12 does tell the runner to read all checkpoints with `hyp show`, so the report can reach the run. Label: G-K0AXM0#9. No action.
+4. Line 65, the cite list: "or an ended Goal's id or any key of it. An end settles every key of its Goal, so a Goal that follows an ended one cites it." This matches the `--cite` help in write.go and the CiteEnded comment in end.go. Label: none, as this belongs to the end feature and not to line 9.
+5. Line 139: "If `hyp prompt` refuses (exit 1), the Goal is ended or its body has no valid constraints block. An ended Goal has no run." This matches prompt.go `herr.Refused`. Label: none.
+6. Line 104 is one paragraph of about 230 words with nine rules in it. Optimize, Low: split it into the sort (settled kinds; code claims; kinds never settled) and the done test. This is for readability only. Label: none.
+
+### G-K0AXM0#9, clause by clause: all hold
+- **Checks the dry-written text only against what the grill settled and against the code.** Holds. Line 104: "Check each kind only against what the grill settled and against the code." Also: "A claim the text makes about the code that the code does not hold is a wrong word: change it."
+- **No rule that a rerun must raise no unplaced kind of case.** Holds.
+  - The parent sentence "The read-back is done when a rerun raises no kind that the words leave unplaced." is removed.
+  - The new done test reads: "The read-back is done when the reader places every kind the grill settled as the grill settled it, and the text agrees with the code."
+  - "unplaced" appears nowhere else in the file. The only other "rerun", on line 90, is about the mistakes checklist.
+- **Sends no kind the grill never settled to the owner as a placement.** Holds. Line 104: "A kind the grill never settled does not go to the owner as a placement, and the read-back adds no rule for it". The parent's "Only a kind the grill never settled goes to the owner, who places it by the three choices" is removed.
+- **Such a kind is left unplaced, for the run to raise as a reading.** Holds. Line 104: "leave it unplaced, and name it in the grill's last report, so the run raises it as a reading when a finding reaches it."
+
+Line 62 still has the owner place each edge kind by three choices during the grill. That is the grill settling a kind, not the read-back, so it does not conflict with line 9.
+
+## skills/hyp-prototype/SKILL.md
+
+### Validator and lint
+- Validator: "Skill is valid!"
+- LOW migration-phrasing SKILL.md:149: "no longer". The line was already there before the commit, and the words mean "a question that no longer matters", not a change history. Label: none. No action.
+
+### Semantic findings
+1. Lines 217-218: "A Goal its adder ended with `hyp answer --end` reads ended instead, and hyp refuses every write under it." This is correct against end.go.
+   - Optimize, Low: line 218 runs to about 110 characters, because "Complete does not mean every line is covered: `hyp status`" was left joined to the new line. The paragraph around it is wrapped at about 72 characters. Wrap it again.
+   - Optimize, Low: as finding 4 under hyp-owner-answer says, this is the one place a runner reads `--end`. Adding "an owner act, typed only in an answer session" here would carry the line-8 rule to runners.
+   - Label: none. The second point relates to G-K0AXM0#8.
+
+## Verdict
+- G-K0AXM0#8: every clause holds in the text of 0ebffbc.
+- G-K0AXM0#9: every clause holds in the text of 0ebffbc.
+- No finding breaks a Goal line. The open items are optimize proposals, none applied:
+  - Medium: owner-answer line 49 does not say the sub-question's command or actor.
+  - Medium: grill line 10 ("nothing the run must come back to ask") pulls against the new rule on line 104.
+  - Low: owner-answer lines 26, 72 (the rule does not reach runners) and 160; grill line 104 paragraph length; prototype line 218 wrap.
+- No repository rule is broken: no ADR or docs/ citation in skill text, and every command named exists.
+
+Status: DONE
+Summary: Every clause of G-K0AXM0#8 and #9 holds in the skill text of commit 0ebffbc, the words agree with the commit's code, and the changed text cites no ADR or docs/ file. The flow found two Medium optimize items (grill line 10 pulls against the new read-back rule on line 104; owner-answer line 49 does not say the "Show me" sub-question's command or actor) and four Low items, all only proposed.
