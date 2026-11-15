@@ -49,8 +49,8 @@ func TestReadingHoldsLoneCandidateSelect(t *testing.T) {
 	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
 	r := must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "o", "--reading", "a line", "--why", "w")
 
-	want(t, hyp(t, "select", q), 0, "suggested: none (open reading "+r+"#r1 waits for the owner; its answer can move "+h+")")
-	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "open reading "+r+"#r1 waits for the owner")
+	want(t, hyp(t, "select", q), 0, "suggested: none ("+q+" waits on open reading "+r+"#r1 for the owner; its answer can move "+h+")")
+	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "waits on open reading "+r+"#r1 for the owner")
 	if out := hyp(t, "status"); strings.Contains(out.stdout, "select "+h) {
 		t.Fatalf("select owed while a reading can drop the candidate:\n%s", out.stdout)
 	}

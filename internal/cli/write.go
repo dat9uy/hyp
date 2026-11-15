@@ -221,14 +221,14 @@ func printKeys(out io.Writer, ev event.Event) {
 	_ = json.Unmarshal(ev.Payload, &p)
 	id := event.DisplayID(event.KindResult, ev.Node)
 	for i, l := range p.Limits {
-		fmt.Fprintf(out, "  limit %s#%d: %s\n", id, i+1, render.Cut(l, 80))
+		fmt.Fprintf(out, "  limit %s#%d: %s\n", id, i+1, render.Text(l))
 	}
 	for i, l := range p.Readings {
 		of := ""
 		if l.Of != "" {
 			of = " of " + event.DisplayID(event.KindResult, event.KeyResult(l.Of)) + l.Of[len(event.KeyResult(l.Of)):]
 		}
-		fmt.Fprintf(out, "  reading %s#r%d%s: %s\n", id, i+1, of, render.Cut(l.Text, 80))
+		fmt.Fprintf(out, "  reading %s#r%d%s: %s\n", id, i+1, of, render.Text(l.Text))
 	}
 }
 
@@ -398,7 +398,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			}
 		}
 		if kind == event.KindHypothesis {
-			if _, err = admitted(w.p.AdmitAddHyp(p.Parent)); err != nil {
+			if _, err = admitted(refusal(w.p, w.p.AddHypRefusal(p.Parent))); err != nil {
 				return draft{}, err
 			}
 		}
@@ -443,6 +443,15 @@ func truncatedHex(n int, text string) error {
 // admitted maps admission findings to the CLI: the first refusal (exit 1)
 // or bad-args finding (exit 2) is the error, and each warning becomes a
 // "warn: " line to print once the event is written.
+// refusal is a refusal replay decided from the ledger as a finding, in the
+// words package render gives it; nil when the write is admitted.
+func refusal(p replay.Projection, r *replay.Refusal) []replay.Finding {
+	if r == nil {
+		return nil
+	}
+	return []replay.Finding{{Kind: replay.FindRefuse, Text: render.RefusalText(p, r)}}
+}
+
 func admitted(fs []replay.Finding) (warns []string, err error) {
 	for _, f := range fs {
 		switch f.Kind {
@@ -722,10 +731,10 @@ func cmdOnNode(name, typ string) func([]string, io.Writer, io.Writer) error {
 func admitOnNode(p replay.Projection, typ, id string) []replay.Finding {
 	switch typ {
 	case event.TypeReaffirm:
-		return p.AdmitReaffirm(id)
+		return refusal(p, p.ReaffirmRefusal(id))
 	case event.TypeHypothesisAbandon:
 		if n := p.Nodes[id]; n != nil && n.Kind == event.KindHypothesis {
-			return p.AdmitRetire("abandon", id)
+			return refusal(p, p.RetireRefusal("abandon", id))
 		}
 	}
 	return nil
@@ -769,7 +778,7 @@ func cmdSupersede(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		if n := w.p.Nodes[to]; n != nil && n.Kind == event.KindHypothesis {
-			if _, err := admitted(w.p.AdmitRetire("supersede", to)); err != nil {
+			if _, err := admitted(refusal(w.p, w.p.RetireRefusal("supersede", to))); err != nil {
 				return draft{}, err
 			}
 		}
@@ -858,7 +867,7 @@ func cmdSelect(args []string, stdout, stderr io.Writer) error {
 		if n := w.p.Nodes[h]; w.p.Questions[dq] == nil || n.Kind != event.KindHypothesis || n.Parent != dq || !replay.LiveHypStatus(w.p.Hyps[h].Status) {
 			return d, nil
 		}
-		warns, err = admitted(w.p.AdmitSelect(dq, h))
+		warns, err = admitted(refusal(w.p, w.p.SelectRefusal(dq, h)))
 		return d, err
 	})
 	if err == nil {
@@ -900,7 +909,7 @@ func suggest(w *writer, ref string) error {
 	case len(ids) == 1:
 		fmt.Fprintf(w.stdout, "suggested: %s\n", ids[0])
 	default:
-		fmt.Fprintf(w.stdout, "suggested: none (%s)\n", p.SelectBlock(dq))
+		fmt.Fprintf(w.stdout, "suggested: none (%s)\n", render.SelectBlock(p, dq))
 	}
 	return nil
 }

@@ -259,18 +259,10 @@ func TestShowPrintsFullWhy(t *testing.T) {
 			t.Fatalf("show lacks full why %q:\n%s", want, show)
 		}
 	}
-	status := Status(p, 0)
-	if strings.Contains(status, "END-OF-EDGE-WHY") {
-		t.Fatalf("status no longer cuts the why:\n%s", status)
-	}
-	var cut bool
-	for _, line := range strings.Split(status, "\n") {
-		if strings.Contains(line, "edge.add") && strings.HasSuffix(line, "…") {
-			cut = true
-		}
-	}
-	if !cut {
-		t.Fatalf("status RECENT lacks a cut edge.add line:\n%s", status)
+	// Status prints a stored text whole too, so RECENT names the why as
+	// hyp show does, under the one text policy.
+	if status := Status(p, 0); !strings.Contains(status, edgeWhy) {
+		t.Fatalf("status cuts the why:\n%s", status)
 	}
 }
 

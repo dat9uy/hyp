@@ -10,6 +10,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/event"
 	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/store"
 )
 
@@ -170,7 +171,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 
 	var b strings.Builder
 	fmt.Fprintf(&b, "/goal Run the hyp tree in %s with the hyp-goal-run skill, as HYP_ACTOR=%s. Its Goal is %s: read it with hyp show %s, read hyp status %s, and name --goal %s on every hyp checkpoint.\n", rel, *actor, g, g, g, g)
-	fmt.Fprintf(&b, "Done when the latest printed hyp status %s shows \"runner owes nothing: stop and report to the owner\" under OWED, or %d Results have been recorded under %s, or you cannot take the next step honestly and say why.\n", g, *experiments, *actor)
+	fmt.Fprintf(&b, "Done when the latest printed hyp status %s shows %q under OWED, or %d Results have been recorded under %s, or you cannot take the next step honestly and say why.\n", g, render.StopLine, *experiments, *actor)
 	for _, l := range block {
 		b.WriteString(l)
 		b.WriteString("\n")

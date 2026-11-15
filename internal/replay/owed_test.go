@@ -27,17 +27,36 @@ func wantOwed(t *testing.T, p Projection, q string, want ...string) {
 	}
 }
 
-func wantAdmitted(t *testing.T, fs []Finding) {
-	t.Helper()
-	if slices.ContainsFunc(fs, func(f Finding) bool { return f.Kind != FindWarn }) {
-		t.Fatalf("findings = %+v, want the select admitted", fs)
+// refusalFacts names a refusal by its facts, not its words: "admitted",
+// "select H", "choose", the turn's kind, or "waits <kind> <key>" for the
+// first thing the turn waits on. Package render owns the words.
+func refusalFacts(r *Refusal) string {
+	switch {
+	case r == nil:
+		return "admitted"
+	case r.Kind != RefuseSelect:
+		return string(r.Kind)
+	case len(r.Owed) == 1:
+		return "select " + r.Owed[0]
+	case r.Choose:
+		return "choose"
+	case r.Turn.Kind != TurnWaits:
+		return string(r.Turn.Kind)
+	}
+	switch w := r.Turn.Waits[0]; w.Kind {
+	case WaitRunner:
+		return "waits runner " + string(w.Item.Kind) + " " + w.Item.Key
+	case WaitPremise:
+		return "waits premise " + w.Premise.From + ">" + w.Premise.To
+	default:
+		return "waits " + string(w.Kind) + " " + w.Key
 	}
 }
 
-func wantRefused(t *testing.T, fs []Finding, want string) {
+func wantRefusal(t *testing.T, r *Refusal, want string) {
 	t.Helper()
-	if len(fs) != 1 || fs[0].Kind != FindRefuse || !strings.Contains(fs[0].Text, want) {
-		t.Fatalf("findings = %+v, want a refusal with %q", fs, want)
+	if got := refusalFacts(r); !strings.HasPrefix(got, want) {
+		t.Fatalf("refusal = %q (%+v), want %q", got, r, want)
 	}
 }
 
@@ -54,15 +73,15 @@ func TestUndecidedRivalHoldsTheSelect(t *testing.T) {
 	b.Result(b.Exp(h2, event.RecipeNone), map[string]string{h2: inc})
 	p := replayB(b)
 	wantOwed(t, p, q, "runner undecided "+h2)
-	wantRefused(t, p.AdmitSelect(q, h1), dq(q)+" owes the runner first: undecided "+hid(h2))
+	wantRefusal(t, p.SelectRefusal(q, h1), "waits runner undecided "+h2)
 
 	e := b.Exp(h2, event.RecipeNone)
 	wantOwed(t, replayB(b), q, "runner planned "+e)
 	b.Result(e, map[string]string{h2: con})
 	p = replayB(b)
 	wantOwed(t, p, q, "runner select "+h1)
-	wantAdmitted(t, p.AdmitSelect(q, h1))
-	wantRefused(t, p.AdmitSelect(q, h2), "owes a select of "+hid(h1)+", the only candidate, not "+hid(h2))
+	wantRefusal(t, p.SelectRefusal(q, h1), "admitted")
+	wantRefusal(t, p.SelectRefusal(q, h2), "select "+h1)
 }
 
 // A choice is admitted for any candidate and refused for a Hypothesis that is
@@ -78,15 +97,15 @@ func TestAdmitSelectOnATradeoff(t *testing.T) {
 	c3 := b.Result(e3, map[string]string{h3: con})
 	p := replayB(b)
 	wantOwed(t, p, q, "owner choose "+q)
-	wantAdmitted(t, p.AdmitSelect(q, h1))
-	wantAdmitted(t, p.AdmitSelect(q, h2))
-	wantRefused(t, p.AdmitSelect(q, h3), hid(h3)+" is not a candidate of "+dq(q))
+	wantRefusal(t, p.SelectRefusal(q, h1), "admitted")
+	wantRefusal(t, p.SelectRefusal(q, h2), "admitted")
+	wantRefusal(t, p.SelectRefusal(q, h3), "choose")
 
 	sel := b.As("a").Select(q, h2, "", false)
 	p = replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
 	wantOwed(t, p, q)
-	wantRefused(t, p.AdmitSelect(q, h1), dq(q)+" is answered; hyp unselect it first")
+	wantRefusal(t, p.SelectRefusal(q, h1), "closed")
 
 	// A new candidate reopens it, owes the choice again, and a select admits.
 	b.Retract(c3)
@@ -94,7 +113,7 @@ func TestAdmitSelectOnATradeoff(t *testing.T) {
 	p = replayB(b)
 	wantStatus(t, p, q, DQReopened, ReasonNewCandidate)
 	wantOwed(t, p, q, "owner choose "+q)
-	wantAdmitted(t, p.AdmitSelect(q, h3))
+	wantRefusal(t, p.SelectRefusal(q, h3), "admitted")
 	b.Select(q, h3, sel, false)
 	wantStatus(t, replayB(b), q, DQAnswered, "")
 }
@@ -118,20 +137,20 @@ func TestOpenPremiseAndPremiseItem(t *testing.T) {
 	if pr := p.OpenPremise(q1); pr == nil || pr.From != h || pr.To != t1 {
 		t.Fatalf("open premise = %+v, want %s on %s", pr, h, t1)
 	}
-	wantRefused(t, p.AdmitSelect(q1, h), hid(h)+" assumes "+hid(t1)+", in "+dq(q2)+" open; decide "+dq(q2)+" first")
+	wantRefusal(t, p.SelectRefusal(q1, h), "waits premise "+h+">"+t1)
 
 	b.As("a").Select(q2, t2, "", false)
 	p = replayB(b)
 	wantStatus(t, p, q2, DQAnswered, "")
 	wantOwed(t, p, q1, "runner premise "+h)
-	wantRefused(t, p.AdmitSelect(q1, h), "premise "+hid(h)+" assumes "+hid(t1)+", but "+dq(q2)+" selected "+hid(t2))
+	wantRefusal(t, p.SelectRefusal(q1, h), "waits runner premise "+h)
 
 	b.Unedge(h, event.EdgeDependsOn, t1)
 	b.Edge(h, event.EdgeDependsOn, t2)
 	b.Reaffirm(h)
 	p = replayB(b)
 	wantOwed(t, p, q1, "runner select "+h)
-	wantAdmitted(t, p.AdmitSelect(q1, h))
+	wantRefusal(t, p.SelectRefusal(q1, h), "admitted")
 }
 
 // A premise item is owed on an answered question too, so a premise that loses
@@ -187,22 +206,16 @@ func TestLimitOwedWhileQuestionHasCandidate(t *testing.T) {
 	k := event.LimitKey(dead, 1)
 	p := replayB(b)
 	wantOwed(t, p, q, "runner limit "+k)
-	if fs := p.AdmitSelect(q, h1); len(fs) != 1 || fs[0].Kind != FindRefuse || !strings.Contains(fs[0].Text, "limit "+event.DisplayID(event.KindResult, dead)+"#1") {
-		t.Fatalf("findings = %+v, want a refusal naming the rival's limit", fs)
-	}
+	wantRefusal(t, p.SelectRefusal(q, h1), "waits runner limit "+k)
 	b.Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "no test within the Goal", Refers: []event.KeyText{{Key: k}}})
 	p = replayB(b)
 	// The select waits on a referred limit until the owner accepts or returns it.
 	wantOwed(t, p, q, "owner referred "+k)
-	if fs := p.AdmitSelect(q, h1); len(fs) != 1 || !strings.Contains(fs[0].Text, "referred limit "+event.DisplayID(event.KindResult, dead)+"#1 waits for the owner") {
-		t.Fatalf("findings = %+v, want a refusal naming the referred limit", fs)
-	}
+	wantRefusal(t, p.SelectRefusal(q, h1), "waits referred "+k)
 	b.As("o").Emit(event.TypeCheckpoint, g, event.Checkpoint{Summary: "accept", Role: event.RoleOwner, Accepts: []string{k}})
 	p = replayB(b)
 	wantOwed(t, p, q, "runner select "+h1)
-	if fs := p.AdmitSelect(q, h1); len(fs) != 0 {
-		t.Fatalf("findings = %+v, want none once the limit is accepted", fs)
-	}
+	wantRefusal(t, p.SelectRefusal(q, h1), "admitted")
 
 	b.As("a").Select(q, h1, "", false)
 	r := limitResult(b, h1, []string{"one host"}, nil)

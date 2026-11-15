@@ -60,7 +60,7 @@ func TestOpenReadingWithNoReachHoldsSelect(t *testing.T) {
 	if strings.Contains(out.stdout, k+" for the owner; its answer can move") {
 		t.Fatalf("the waits line names a Hypothesis the answer can move:\n%s", out.stdout)
 	}
-	refusal := "open reading " + k + " waits for the owner; it holds " + q + "'s decision"
+	refusal := q + " waits on open reading " + k + " for the owner; it holds " + q + "'s decision"
 	want(t, hyp(t, "select", q), 0, "suggested: none ("+refusal+")")
 	want(t, hyp(t, "select", q, h2, "--why", "w"), 1, refusal)
 
@@ -85,7 +85,7 @@ func TestOpenReadingWithNoReachHoldsChoice(t *testing.T) {
 	if strings.Contains(out.stdout, q+" choose") {
 		t.Fatalf("a choice is owed while reading %s is open:\n%s", k, out.stdout)
 	}
-	want(t, hyp(t, "select", q, h2, "--why", "w"), 1, "open reading "+k+" waits for the owner")
+	want(t, hyp(t, "select", q, h2, "--why", "w"), 1, "waits on open reading "+k+" for the owner")
 }
 
 // Line 1: a reading on a Result whose Experiment has no targets holds the
@@ -97,7 +97,7 @@ func TestOpenReadingOnNoTargetResultHoldsSelect(t *testing.T) {
 	k := must(t, "record", "--exp", e, "--observation", "stored rows 4", "--reading", "a line", "--why", "w") + "#r1"
 
 	noOwed(t, hyp(t, "status"), "select "+h)
-	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "open reading "+k+" waits for the owner; it holds "+q+"'s decision")
+	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "waits on open reading "+k+" for the owner; it holds "+q+"'s decision")
 }
 
 // Line 1: a reopened question whose select is stale owes no stale item
@@ -120,8 +120,8 @@ func TestOpenReadingHoldsStaleAndReaffirm(t *testing.T) {
 	out := hyp(t, "status")
 	want(t, out, 0, "selected_stale")
 	noOwed(t, out, q+" stale ")
-	want(t, hyp(t, "reaffirm", h, "--why", "w"), 1, "open reading "+k+" waits for the owner")
-	want(t, hyp(t, "reaffirm", q, "--why", "w"), 1, "open reading "+k+" waits for the owner")
+	want(t, hyp(t, "reaffirm", h, "--why", "w"), 1, "waits on open reading "+k+" for the owner")
+	want(t, hyp(t, "reaffirm", q, "--why", "w"), 1, "waits on open reading "+k+" for the owner")
 }
 
 // Line 2: an inconclusive Hypothesis that a Result with an open reading

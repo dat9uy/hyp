@@ -16,6 +16,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/dat9uy/hyp/internal/event"
+	"github.com/dat9uy/hyp/internal/render"
 	"github.com/dat9uy/hyp/internal/store"
 )
 
@@ -176,17 +177,17 @@ func writeCase(t *testing.T, dir, g, q, h string, c textCase) (ev event.Event, g
 	switch c.field {
 	case "experiment-body":
 		args = []string{"add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--body", c.draft, "--why", "w"}
-		line = "body: " + c.draft
+		line = "body: " + render.Text(c.draft)
 	case "checkpoint-summary":
 		args = []string{"checkpoint", "--goal", g, "--summary", c.draft, "--why", "w"}
-		line = "    summary: " + c.draft
+		line = "    summary: " + render.Text(c.draft)
 		show = g
 	case "goal-body":
 		args = []string{"add", "goal", "--title", "G2", "--body", c.draft, "--why", "w"}
-		line = "body: " + c.draft
+		line = "body: " + render.Text(c.draft)
 	case "question-title":
 		args = []string{"add", "dq", "--parent", g, "--title", c.draft, "--why", "w"}
-		line = "title: " + c.draft
+		line = "title: " + render.Text(c.draft)
 	default:
 		t.Fatalf("unknown field %q in CASES", c.field)
 	}
@@ -259,7 +260,8 @@ func TestTextCapDraftKeptWholeInItsEvent(t *testing.T) {
 }
 
 // hyp show of the node a CASES row writes, or of the Goal for a checkpoint,
-// prints the draft whole on the field's own line.
+// prints the draft whole on the field's own line, its line breaks as spaces
+// under the one text policy (render.Text).
 func TestTextCapShowPrintsTheDraftWhole(t *testing.T) {
 	for _, c := range textCases(t) {
 		t.Run(c.file, func(t *testing.T) {

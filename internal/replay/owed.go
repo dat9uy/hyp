@@ -31,6 +31,7 @@ const (
 	OwedStale     OwedKind = "stale"     // a reopened question's select is stale, nothing else owed renews it and no open reading holds it
 	OwedSelect    OwedKind = "select"    // a lone candidate with nothing else owed on its question
 	OwedChoose    OwedKind = "choose"    // the owner chooses between two or more candidates
+	OwedAnswer    OwedKind = "answer"    // the owner answers an open reading
 )
 
 // How far an aimable item (a limit or a reading) has got.
@@ -56,9 +57,10 @@ type Owed struct {
 // Owed derives the ledger in question creation order. An open or reopened
 // question owes every kind of item; an answered one owes only the limit,
 // reading, referred and premise items, so evidence that lands after the
-// answer is owed and not only listed. An open reading is owed by the owner
-// too; hyp status prints it under AWAITING OWNER from its own record, so it
-// is not repeated here. A question of an ended Goal owes nothing.
+// answer is owed and not only listed. An open reading is the owner's answer
+// item on its Result's question, whatever that question's state: hyp status
+// prints it under AWAITING OWNER from this item. A question of an ended Goal
+// owes nothing.
 func (p Projection) Owed() []Owed {
 	aimers := map[string][]string{}
 	for _, ev := range p.Applied {
@@ -96,12 +98,16 @@ func (p Projection) Owed() []Owed {
 			// Nothing of an ended Goal is owed (ADR 0023).
 			continue
 		}
-		open := q.State.Open()
-		if !open && q.State != DQAnswered {
-			continue
-		}
 		var mine []Owed
 		add := func(o Owed) { o.Question = dq; mine = append(mine, o) }
+		for _, l := range p.openReadings(dq) {
+			add(Owed{Who: OwedOwner, Kind: OwedAnswer, Key: l.Key})
+		}
+		open := q.State.Open()
+		if !open && q.State != DQAnswered {
+			out = append(out, mine...)
+			continue
+		}
 
 		// An open reading holds the question's next Hypothesis (NextHold),
 		// and its decision whatever its reach (turn.go).

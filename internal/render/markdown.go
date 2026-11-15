@@ -39,7 +39,7 @@ func markdownGoal(p replay.Projection, gs replay.GoalStatus) string {
 		if n.Body != "" {
 			fmt.Fprintf(&b, "\n%s\n", n.Body)
 		}
-		hyp := SelectedHyp(p, id)
+		hyp := p.SelectedHyp(id)
 		if hyp != "" {
 			fmt.Fprintf(&b, "\nSelected: %s\n", r.id(hyp))
 			if body := p.Nodes[hyp].Body; body != "" {

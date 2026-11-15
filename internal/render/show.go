@@ -23,10 +23,10 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		w("alias: %s", n.Alias)
 	}
 	if n.Title != "" {
-		w("title: %s", n.Title)
+		w("title: %s", Text(n.Title))
 	}
 	if n.Body != "" {
-		w("body: %s", n.Body)
+		w("body: %s", Text(n.Body))
 	}
 	if n.Kind == event.KindGoal {
 		for _, l := range p.LinesOf(id) {
@@ -57,7 +57,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	}
 	w("status: %s", status)
 	if e, ok := p.EndOf(id); ok {
-		w("ended: %s %s — %s", Minute(e.TS), e.Actor, e.Text)
+		w("ended: %s %s — %s", Minute(e.TS), e.Actor, Text(e.Text))
 	}
 	if ns.Stale != nil {
 		w("stale: %s", r.chain(ns.Stale))
@@ -82,12 +82,12 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		rec, ok := p.CurrentSelect(id)
 		if ok {
 			kind := ""
-			if k := SelectKind(p, id, rec); k != "" {
-				kind = " (" + k + ")"
+			if p.TradeOff(id, rec.Hyp) {
+				kind = " (trade-off)"
 			}
-			w("selected: %s%s — %s", r.id(rec.Hyp), kind, rec.Why)
+			w("selected: %s%s — %s", r.id(rec.Hyp), kind, Text(rec.Why))
 			if body := p.Nodes[rec.Hyp].Body; body != "" {
-				w("design: %s", body)
+				w("design: %s", Text(body))
 			}
 		}
 		if ls := p.LimitsOf(id); len(ls) > 0 {
@@ -133,13 +133,13 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		}
 	}
 	if n.Kind == event.KindResult {
-		w("observation: %s", n.Observation)
+		w("observation: %s", Text(n.Observation))
 		w("verdicts: %s", r.verdicts(n.Verdicts))
 		for _, e := range n.Evidence {
 			w("evidence: %s", e)
 		}
 		for i, l := range n.Limits {
-			w("limit #%d: %s", i+1, l)
+			w("limit #%d: %s", i+1, Text(l))
 		}
 		for _, k := range n.Closes {
 			w("closes: %s", r.limitLabel(event.KeyResult(k), k))
@@ -181,7 +181,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 					line += " UNCONTAINED"
 				}
 			} else {
-				line += " " + Cut(cn.Title, 60)
+				line += " " + Text(cn.Title)
 			}
 			w("%s", line)
 		}
@@ -189,18 +189,13 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 	if n.Kind == event.KindHypothesis {
 		// A Hypothesis may be judged as another Experiment's target, so its
 		// children do not list every Result that judged it.
-		judged := false
-		for _, res := range p.LiveResults() {
+		judged := p.JudgedBy(id)
+		if len(judged) > 0 {
+			w("judged by:")
+		}
+		for _, res := range judged {
 			rn := p.Nodes[res]
-			verdict, ok := rn.Verdicts[id]
-			if !ok {
-				continue
-			}
-			if !judged {
-				w("judged by:")
-				judged = true
-			}
-			w("  %s (%s) %s — %s", r.id(res), r.id(rn.Parent), verdict, rn.Observation)
+			w("  %s (%s) %s — %s", r.id(res), r.id(rn.Parent), rn.Verdicts[id], Text(rn.Observation))
 			for _, l := range p.Readings {
 				if l.Result == res {
 					for _, line := range readingLines(r, l) {
@@ -209,31 +204,14 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 				}
 			}
 		}
-		var preds []string
-		seen := map[string]bool{id: true}
-		edges := p.LiveEdges()
-		for queue := []string{id}; len(queue) > 0; queue = queue[1:] {
-			for _, e := range edges {
-				if e.From == queue[0] && e.Type == event.EdgeSupersedes && !seen[e.To] {
-					seen[e.To] = true
-					preds = append(preds, e.To)
-					queue = append(queue, e.To)
-				}
-			}
-		}
 		var lines []string
-		for _, res := range p.LiveResults() {
+		for _, res := range p.PredecessorResults(id) {
 			rn := p.Nodes[res]
-			for _, pr := range preds {
-				if _, ok := rn.Verdicts[pr]; ok {
-					line := fmt.Sprintf("  %s (%s) %s", r.id(res), r.id(rn.Parent), r.verdicts(rn.Verdicts))
-					if _, own := rn.Verdicts[id]; own {
-						line += " (also counted for this hypothesis)"
-					}
-					lines = append(lines, line)
-					break
-				}
+			line := fmt.Sprintf("  %s (%s) %s", r.id(res), r.id(rn.Parent), r.verdicts(rn.Verdicts))
+			if _, own := rn.Verdicts[id]; own {
+				line += " (also counted for this hypothesis)"
 			}
+			lines = append(lines, line)
 		}
 		if len(lines) > 0 {
 			w("predecessor evidence (not counted):")
@@ -257,11 +235,11 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 			continue
 		}
 		if touches(ev, id) {
-			w("  %s", r.eventLine(ev, event.MaxWhy))
+			w("  %s", r.eventLine(ev))
 			if ev.Type == event.TypeCheckpoint {
 				var s event.Checkpoint
 				_ = json.Unmarshal(ev.Payload, &s)
-				w("    summary: %s", OneLine(s.Summary))
+				w("    summary: %s", Text(s.Summary))
 				for _, k := range s.Closes {
 					w("    closes: %s", r.limitLabel(event.KeyResult(k), k))
 				}
@@ -272,7 +250,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 					w("    accepts: %s", r.limitLabel(event.KeyResult(k), k))
 				}
 				for _, k := range s.Refers {
-					w("    refers: %s%s", r.limitLabel(event.KeyResult(k.Key), k.Key), itemText(k))
+					w("    refers: %s%s", r.limitLabel(event.KeyResult(k.Key), k.Key), keyText(k))
 				}
 				for _, k := range s.Returns {
 					w("    returns: %s", r.limitLabel(event.KeyResult(k), k))
@@ -283,7 +261,7 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 					Body string `json:"body"`
 				}
 				_ = json.Unmarshal(ev.Payload, &rev)
-				w("    body: %s", rev.Body)
+				w("    body: %s", Text(rev.Body))
 			}
 		}
 	}
@@ -303,7 +281,7 @@ func (r renderer) answerHistory(w func(string, ...any), ev event.Event, id strin
 	}{{a.Answers, "answers"}, {a.Accepts, "accepts"}, {a.Returns, "returns"}, {a.Ends, "ends"}} {
 		for _, it := range f.items {
 			if n := event.KeyResult(it.Key); n == id || r.p.GoalOf(n) == id {
-				items = append(items, fmt.Sprintf("    %s: %s%s", f.verb, r.limitLabel(n, it.Key), itemText(it)))
+				items = append(items, fmt.Sprintf("    %s: %s%s", f.verb, r.limitLabel(n, it.Key), keyText(it)))
 			}
 		}
 	}
@@ -316,13 +294,13 @@ func (r renderer) answerHistory(w func(string, ...any), ev event.Event, id strin
 	}
 }
 
-// itemText is " — <text>" for a keyed item with text, and "" for an old
+// keyText is " — <text>" for a keyed item with text, and "" for an old
 // bare key.
-func itemText(k event.KeyText) string {
+func keyText(k event.KeyText) string {
 	if k.Text == "" {
 		return ""
 	}
-	return " — " + Cut(k.Text, event.MaxText)
+	return " — " + Text(k.Text)
 }
 
 // answerBy names the event that gave answer a: an owner answer, or an old
@@ -345,7 +323,7 @@ func readingLines(r renderer, l replay.Reading) []string {
 		}
 		state = fmt.Sprintf("closed by %s%s, answer: %q", answerBy(l.Answers[0]), revised, l.Answer)
 	}
-	out := []string{fmt.Sprintf("reading %s%s %s — %s", r.limitLabel(l.Result, l.Key), r.of(l), state, l.Text)}
+	out := []string{fmt.Sprintf("reading %s%s %s — %s", r.limitLabel(l.Result, l.Key), r.of(l), state, Text(l.Text))}
 	for _, a := range l.Answers[:max(len(l.Answers)-1, 0)] {
 		applied := ", not applied"
 		if a.Applied != "" {
@@ -416,7 +394,7 @@ func Diff(before, after replay.Projection) string {
 	}
 	b.WriteString("EVENTS\n")
 	for _, ev := range after.Applied[min(len(before.Applied), len(after.Applied)):] {
-		fmt.Fprintf(&b, "  %s\n", r.eventLine(ev, 80))
+		fmt.Fprintf(&b, "  %s\n", r.eventLine(ev))
 	}
 	return b.String()
 }
@@ -466,7 +444,7 @@ func (r renderer) closers(ids []string) string {
 // lineLine is one line of the Goal as hyp show and hyp status print it:
 // G-…#n, its facts, and its text.
 func (r renderer) lineLine(l replay.Limit) string {
-	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), r.lineState(l), l.Text)
+	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), r.lineState(l), Text(l.Text))
 }
 
 // lineState prints a line's facts, each only when it has one, joined by
@@ -548,7 +526,7 @@ func (r renderer) ranOn(res string, hyps []string) string {
 // limitLine is one limit as hyp show and render --markdown print it:
 // R-…#n, its state, and its text.
 func (r renderer) limitLine(l replay.Limit) string {
-	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), r.limitState(l), l.Text)
+	return fmt.Sprintf("%s %s — %s", r.limitLabel(l.Result, l.Key), r.limitState(l), Text(l.Text))
 }
 
 // experiments lists every Experiment under question q, grouped by parent

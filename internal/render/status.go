@@ -57,12 +57,12 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 		g = p.Goals[0].GoalID
 	}
 	r := renderer{p: p}
-	allOwed := p.Owed()
-	out, awaitingOwner := r.goalBlock(g, allOwed, live)
+	owed := p.OwedOf(g)
+	out, awaitingOwner := r.goalBlock(g, owed, live)
 	add := func(kind int, format string, a ...any) { out = append(out, line{kind, fmt.Sprintf(format, a...)}) }
 
 	add(kKeep, "AWAITING OWNER")
-	for _, s := range r.ownerLines(g, allOwed, awaitingOwner) {
+	for _, s := range r.ownerLines(g, owed, awaitingOwner) {
 		add(kKeep, "%s", s)
 	}
 
@@ -75,7 +75,7 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 		}
 		for _, l := range p.LimitsOf(ev.ID) {
 			if l.Open() {
-				open = append(open, fmt.Sprintf("  %s %s — %s", r.id(ev.ID), r.limitLabel(l.Result, l.Key), Cut(l.Text, 80)))
+				open = append(open, fmt.Sprintf("  %s %s — %s", r.id(ev.ID), r.limitLabel(l.Result, l.Key), Text(l.Text)))
 			}
 		}
 	}
@@ -93,22 +93,22 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 		if ev.Type == event.TypeNodeAdd || ev.Type == event.TypeCheckpoint || !p.EventOf(ev, g) {
 			continue
 		}
-		add(kRecent, "  %s", r.eventLine(ev, 80))
+		add(kRecent, "  %s", r.eventLine(ev))
 		shown++
 	}
 
 	if cp := p.LastCheckpoint[g]; cp != nil {
 		var s event.Checkpoint
 		_ = json.Unmarshal(cp.Payload, &s)
-		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, OneLine(s.Summary))
+		add(kKeep, "CHECKPOINT %s %s: %s", Minute(cp.TS), cp.Actor, Text(s.Summary))
 	} else {
 		add(kKeep, "CHECKPOINT none")
 	}
-	if q := questionable(p, g); q > 0 {
-		add(kKeep, "QUESTIONABLE %d results", q)
+	if q := p.Questionable(g); len(q) > 0 {
+		add(kKeep, "QUESTIONABLE %d results", len(q))
 	}
-	if n := uncontained(p, g); n > 0 {
-		add(kKeep, "UNCONTAINED %d results", n)
+	if n := p.Uncontained(g); len(n) > 0 {
+		add(kKeep, "UNCONTAINED %d results", len(n))
 	}
 	if len(p.Rejections) > 0 {
 		add(kKeep, "REJECTED %d events (run hyp check)", len(p.Rejections))
@@ -118,22 +118,22 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 
 // goalBlock renders Goal g's GOAL, LINES, FRONTIER, STALE and OWED, from the
 // nodes whose parents lead to it, and returns with them the owner's choose
-// lines its FRONTIER walk found.
-func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out []line, awaitingOwner []string) {
+// lines its FRONTIER walk found. owed is the Goal's ledger (OwedOf).
+func (r renderer) goalBlock(gid string, owed []replay.Owed, live bool) (out []line, awaitingOwner []string) {
 	p := r.p
 	add := func(kind int, format string, a ...any) { out = append(out, line{kind, fmt.Sprintf(format, a...)}) }
 	gs := p.GoalStatusOf(gid)
 	g := p.Nodes[gs.GoalID]
 	c := gs.Counts
 	add(kKeep, "GOAL %s %s — %s (answered %d, open %d, reopened %d, deferred %d, withdrawn %d, stale %d)",
-		r.id(g.ID), Cut(g.Title, 60), gs.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
+		r.id(g.ID), Text(g.Title), gs.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
 		c[string(replay.DQReopened)], c[string(replay.DQDeferred)], c[string(replay.DQWithdrawn)], c[replay.StaleReasonStale])
 	// An ended Goal prints its end, and nothing of it waits: no question is
 	// open work, no node is a stale chain to recheck and no item is owed
 	// (ADR 0023). hyp show still prints all it holds.
 	end, ended := p.EndOf(g.ID)
 	if ended {
-		add(kKeep, "ENDED %s %s: %s", Minute(end.TS), end.Actor, OneLine(end.Text))
+		add(kKeep, "ENDED %s %s: %s", Minute(end.TS), end.Actor, Text(end.Text))
 	}
 
 	// LINES are the Goal's lines: whose turn each is, the Results that ran
@@ -142,21 +142,19 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 	if lines := p.LinesOf(g.ID); len(lines) > 0 {
 		add(kKeep, "LINES")
 		for _, l := range lines {
-			add(kKeep, "  %s", Cut(r.lineLine(l), 160))
+			add(kKeep, "  %s", Text(r.lineLine(l)))
 			if sel := p.NotTogether(l); len(sel) > 0 && !l.Accepted() {
 				add(kKeep, "    (no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
 			}
 		}
 	}
 
-	owed := slices.DeleteFunc(slices.Clone(allOwed), func(o replay.Owed) bool { return p.GoalOf(o.Question) != g.ID })
 	add(kKeep, "FRONTIER")
 	// FRONTIER is the tree pruned to open work. The walk visits every question
 	// once. A node prints only beneath its parent, and a sub-question prints only
 	// from an open or reopened question and through a rival. An open question
 	// that does not print is counted, so the Goal line's counts stay accounted for.
 	unprinted := 0
-	edges := p.LiveEdges()
 	onFrontier := func(dq string) bool {
 		s := p.Questions[dq].State
 		return s.Open()
@@ -168,7 +166,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 	}
 	printQuestion := func(dq, indent string) {
 		ns := p.Questions[dq]
-		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.State, ns.Reason, Cut(p.Nodes[dq].Title, 60))
+		add(kKeep, "%s%s %s/%s %s", indent, r.id(dq), ns.State, ns.Reason, Text(p.Nodes[dq].Title))
 		// The candidates line says whether one or several are left; with none,
 		// the question's reason already says so.
 		// Two or more candidates are a trade-off, a state named where it is
@@ -182,7 +180,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 			add(kKeep, "%s  candidates (%d): %s%s", indent, len(ns.Candidates), r.named(ns.Candidates), state)
 			// A premise a candidate rests on prints beside it, so the reader
 			// sees which other answer the choice assumes.
-			for _, pr := range premises(p, ns.Candidates) {
+			for _, pr := range premiseGroups(p.Premises(dq)) {
 				by := ""
 				switch {
 				case len(pr.by) < len(ns.Candidates):
@@ -190,18 +188,23 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 				case len(ns.Candidates) >= 2:
 					by = " — by every candidate"
 				}
-				where := ""
-				if q := p.Nodes[pr.to].Parent; q != dq && p.Questions[q] != nil {
-					where = fmt.Sprintf(", in %s %s", r.id(q), p.Questions[q].State)
-				}
+				q := p.Nodes[pr.to].Parent
+				where := fmt.Sprintf(", in %s %s", r.id(q), p.Questions[q].State)
 				add(kKeep, "%s  assumes %s %s%s%s", indent, r.withAlias(pr.to), p.Hyps[pr.to].Status, where, by)
 			}
 		}
 		switch {
 		case slices.ContainsFunc(owed, func(o replay.Owed) bool { return o.Kind == replay.OwedChoose && o.Key == dq }):
 			mark := ""
-			if !resultSeparates(p, ns.Candidates) {
+			n := len(ns.Candidates)
+			if pairs := p.UnseparatedCandidates(dq); len(pairs) == n*(n-1)/2 {
 				mark = " (no Result separates them)"
+			} else if len(pairs) > 0 {
+				var names []string
+				for _, pr := range pairs {
+					names = append(names, r.id(pr[0])+" and "+r.id(pr[1]))
+				}
+				mark = " (no Result separates " + strings.Join(names, "; ") + ")"
 			}
 			awaitingOwner = append(awaitingOwner, fmt.Sprintf("  %s choose: %s%s", r.id(dq), r.named(ns.Candidates), mark))
 		}
@@ -212,22 +215,16 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 		if t := p.Turn(dq); t.Kind == replay.TurnWaits && t.Waits[0].Kind != replay.WaitRunner {
 			for _, w := range t.Waits {
 				switch w.Kind {
-				case replay.WaitReading:
-					if len(w.Reach) == 0 {
-						add(kKeep, "%s  waits on open reading %s for the owner; it holds %s's decision", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.id(dq))
-					} else {
-						add(kKeep, "%s  waits on open reading %s for the owner; its answer can move %s", indent, r.limitLabel(event.KeyResult(w.Key), w.Key), r.named(w.Reach))
-					}
+				case replay.WaitReading, replay.WaitSubquestion:
+					add(kKeep, "%s  %s", indent, r.waitText(dq, w))
 				case replay.WaitReferred:
 					if len(ns.Candidates) > 0 {
-						add(kKeep, "%s  waits on referred limit %s for the owner; an accept releases the select, a return sends its case to run", indent, r.limitLabel(event.KeyResult(w.Key), w.Key))
+						add(kKeep, "%s  %s", indent, r.waitText(dq, w))
 					}
-				case replay.WaitSubquestion:
-					add(kKeep, "%s  waits on a sub-question of %s not answered", indent, r.withAlias(w.Key))
 				}
 			}
 		}
-		if chosen := chosenCandidate(p, dq); chosen != "" {
+		if chosen := p.ChosenCandidate(dq); chosen != "" {
 			var rivals []string
 			for _, h := range ns.Candidates {
 				if h != chosen {
@@ -244,15 +241,13 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 			stale = " STALE"
 		}
 		sup := ""
-		for _, e := range edges {
-			if e.From == h && e.Type == event.EdgeSupersedes {
-				sup += " (supersedes " + r.id(e.To) + ")"
-			}
+		for _, old := range p.Supersedes(h) {
+			sup += " (supersedes " + r.id(old) + ")"
 		}
-		add(kind, "%s  %s %s%s%s %s", indent, r.withAlias(h), hs.Status, stale, sup, Cut(p.Nodes[h].Title, 60))
+		add(kind, "%s  %s %s%s%s %s", indent, r.withAlias(h), hs.Status, stale, sup, Text(p.Nodes[h].Title))
 		for _, e := range p.Nodes[h].Children {
 			if p.Nodes[e].Kind == event.KindExperiment && p.Exps[e].Status == replay.ExpPlanned && len(r.marks(e)) == 0 {
-				add(kExp, "%s    %s planned %s", indent, r.id(e), Cut(p.Nodes[e].Title, 60))
+				add(kExp, "%s    %s planned %s", indent, r.id(e), Text(p.Nodes[e].Title))
 			}
 		}
 		// A marked Experiment is dropped with its Hypothesis, not before it.
@@ -265,7 +260,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 			if m := r.marks(e); len(m) > 0 && !p.Exps[e].Closed() {
 				title := ""
 				if p.Exps[e].Status == replay.ExpPlanned {
-					title = " " + Cut(p.Nodes[e].Title, 60)
+					title = " " + Text(p.Nodes[e].Title)
 				}
 				add(kHyp, "%s    %s %s [%s]%s", indent, r.id(e), p.Exps[e].Status, strings.Join(m, "; "), title)
 			}
@@ -287,7 +282,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 				// A measuring Experiment under the question prints while
 				// it is planned, as one under a Hypothesis does.
 				if prints && p.Exps[h].Status == replay.ExpPlanned {
-					add(kExp, "%s  %s planned (%s) %s", indent, r.id(h), replay.ShapeMeasure, Cut(p.Nodes[h].Title, 60))
+					add(kExp, "%s  %s planned (%s) %s", indent, r.id(h), replay.ShapeMeasure, Text(p.Nodes[h].Title))
 				}
 				continue
 			}
@@ -314,7 +309,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 			}
 			for _, sub := range subs {
 				if listed && blocker(h, sub) {
-					add(kKeep, "%s    %s %s %s", indent, r.id(sub), p.Questions[sub].State, Cut(p.Nodes[sub].Title, 60))
+					add(kKeep, "%s    %s %s %s", indent, r.id(sub), p.Questions[sub].State, Text(p.Nodes[sub].Title))
 				}
 				walk(sub, depth+2, subInPlay)
 			}
@@ -367,7 +362,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 		n++
 	}
 	if !replay.RunnerOwes(owed) {
-		add(kKeep, "  runner owes nothing: stop and report to the owner")
+		add(kKeep, "  %s", StopLine)
 	}
 
 	return out, awaitingOwner
@@ -435,17 +430,12 @@ func (r renderer) ruledOut(dq string) string {
 		if hs := r.p.Hyps[h]; hs == nil || hs.Status != replay.HypContradicted {
 			continue
 		}
-		var by []string
-		for _, res := range r.p.LiveResults() {
-			if r.p.Nodes[res].Verdicts[h] == event.VerdictContradicts {
-				by = append(by, r.id(res))
-			}
-		}
+		by := r.p.ContradictedBy(h)
 		name := r.p.Nodes[h].Alias
 		if name == "" {
 			name = r.id(h)
 		}
-		parts = append(parts, name+" by "+strings.Join(by, ", "))
+		parts = append(parts, name+" by "+r.ids(by))
 	}
 	return strings.Join(parts, "; ")
 }
@@ -527,94 +517,48 @@ func (r renderer) chain(c *replay.StaleCause) string {
 	return strings.Join(parts, " ← ")
 }
 
-func (r renderer) eventLine(ev event.Event, width int) string {
+func (r renderer) eventLine(ev event.Event) string {
 	if ev.Type == event.TypeAnswer {
-		return fmt.Sprintf("%s %s %s %s", Minute(ev.TS), ev.Actor, ev.Type, Cut(r.answerKeys(ev), width))
+		return fmt.Sprintf("%s %s %s %s", Minute(ev.TS), ev.Actor, ev.Type, r.answerKeys(ev))
 	}
-	return fmt.Sprintf("%s %s %s %s — %s", Minute(ev.TS), ev.Actor, ev.Type, r.id(ev.Node), Cut(ev.Why, width))
+	return fmt.Sprintf("%s %s %s %s — %s", Minute(ev.TS), ev.Actor, ev.Type, r.id(ev.Node), Text(ev.Why))
 }
 
-// SelectedHyp returns the Hypothesis of the DQ's current selection ("" when
-// none).
-func SelectedHyp(p replay.Projection, dq string) string {
-	rec, _ := p.CurrentSelect(dq)
-	return rec.Hyp
-}
-
-// SelectKind names what a select needs the owner for: "trade-off" when its
-// Hypothesis is one of two or more candidates, or "" for a plain select.
-func SelectKind(p replay.Projection, dq string, rec replay.SelectRec) string {
-	var kinds []string
-	if cands := p.Questions[dq].Candidates; len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
-		kinds = append(kinds, "trade-off")
-	}
-	return strings.Join(kinds, ", ")
-}
-
-// chosenCandidate returns the Hypothesis of the DQ's current select when that
-// select records the owner's choice: its Hypothesis is one of two or more
-// candidates ("" otherwise).
-func chosenCandidate(p replay.Projection, dq string) string {
-	cands := p.Questions[dq].Candidates
-	if rec, ok := p.CurrentSelect(dq); ok && len(cands) >= 2 && slices.Contains(cands, rec.Hyp) {
-		return rec.Hyp
-	}
-	return ""
-}
-
-// questionable counts Goal g's Results with questionable evidence.
-func questionable(p replay.Projection, g string) int {
-	n := 0
-	for id, res := range p.Results {
-		if res.Questionable && p.GoalOf(id) == g {
-			n++
-		}
-	}
-	return n
-}
-
-// uncontained counts Goal g's Results with uncontained evidence.
-func uncontained(p replay.Projection, g string) int {
-	n := 0
-	for id, res := range p.Results {
-		if len(res.Uncontained) > 0 && p.GoalOf(id) == g {
-			n++
-		}
-	}
-	return n
-}
-
-// ownerLines are the lines AWAITING OWNER prints for Goal g: the choose
-// lines its FRONTIER walk found, each other item the ledger owes the owner
-// on g's questions, and each open reading of g's Results; none for an ended
-// Goal.
-func (r renderer) ownerLines(g string, allOwed []replay.Owed, awaiting []string) []string {
+// ownerLines are the lines AWAITING OWNER prints for Goal g from its
+// ledger (OwedOf): the choose lines its FRONTIER walk found, then each other
+// item the owner owes, with the open readings that ask the same question on
+// one line; none for an ended Goal, whose ledger is empty.
+func (r renderer) ownerLines(g string, owed []replay.Owed, awaiting []string) []string {
 	p := r.p
-	if p.Ended(g) {
-		return nil // nothing of an ended Goal waits for the owner (ADR 0023)
-	}
 	out := slices.Clone(awaiting)
-	for _, o := range allOwed {
+	for _, o := range owed {
 		// A choose item prints with its question, from the walk.
-		if o.Who == replay.OwedOwner && o.Kind != replay.OwedChoose && p.GoalOf(o.Question) == g {
+		if o.Who == replay.OwedOwner && o.Kind != replay.OwedChoose && o.Kind != replay.OwedAnswer {
 			out = append(out, "  "+r.owedLine(o))
 		}
 	}
 	// Open readings that ask the same question print as one line, each key
 	// with the question it holds, so the owner answers them once.
+	answers := map[string]bool{}
+	for _, o := range owed {
+		if o.Kind == replay.OwedAnswer {
+			answers[o.Key] = true
+		}
+	}
 	printed := map[string]bool{}
-	for _, l := range p.Readings {
-		if !l.Open() || printed[l.Key] || p.GoalOf(l.Question) != g {
+	for _, o := range owed {
+		if o.Kind != replay.OwedAnswer || printed[o.Key] {
 			continue
 		}
+		l, _ := p.Reading(o.Key)
 		var open []string
-		for _, k := range p.SameAsk(l.Key) {
-			if m, _ := p.Reading(k); m.Open() && p.GoalOf(m.Question) == g {
+		for _, k := range p.SameAsk(o.Key) {
+			if answers[k] {
 				open = append(open, k)
 			}
 		}
-		if len(open) == 1 {
-			out = append(out, fmt.Sprintf("  %s%s reading: %s", r.limitLabel(l.Result, l.Key), r.of(l), l.Text))
+		if len(open) <= 1 {
+			out = append(out, fmt.Sprintf("  %s%s reading: %s", r.limitLabel(l.Result, l.Key), r.of(l), Text(l.Text)))
 			continue
 		}
 		labels := make([]string, len(open))
@@ -623,7 +567,7 @@ func (r renderer) ownerLines(g string, allOwed []replay.Owed, awaiting []string)
 			m, _ := p.Reading(k)
 			labels[i] = fmt.Sprintf("%s (%s)", r.limitLabel(m.Result, k), r.id(m.Question))
 		}
-		out = append(out, fmt.Sprintf("  %s%s reading: %s", strings.Join(labels, ", "), r.of(l), l.Text))
+		out = append(out, fmt.Sprintf("  %s%s reading: %s", strings.Join(labels, ", "), r.of(l), Text(l.Text)))
 		// Each copy holds its own Result's question: name what the answer
 		// can touch there, from stored verdicts and derived candidates.
 		for _, k := range open {
@@ -642,15 +586,15 @@ func goalsTable(p replay.Projection) []line {
 	r := renderer{p: p}
 	var out []line
 	add := func(format string, a ...any) { out = append(out, line{kKeep, fmt.Sprintf(format, a...)}) }
-	allOwed := p.Owed()
 	add("GOALS (hyp status G-… prints one Goal)")
 	awaiting := map[string][]string{}
 	for _, gs := range p.Goals {
 		g := gs.GoalID
 		c := gs.Counts
+		owed := p.OwedOf(g)
 		runner := 0
-		for _, o := range allOwed {
-			if o.Who == replay.OwedRunner && p.GoalOf(o.Question) == g {
+		for _, o := range owed {
+			if o.Who == replay.OwedRunner {
 				runner++
 			}
 		}
@@ -663,17 +607,17 @@ func goalsTable(p replay.Projection) []line {
 			cp = fmt.Sprintf("checkpoint %s %s", Minute(ev.TS), ev.Actor)
 		}
 		add("  %s %s — %s (answered %d, open %d, reopened %d, deferred %d, withdrawn %d, stale %d); %s; %s",
-			r.id(g), Cut(p.Nodes[g].Title, 60), gs.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
+			r.id(g), Text(p.Nodes[g].Title), gs.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
 			c[string(replay.DQReopened)], c[string(replay.DQDeferred)], c[string(replay.DQWithdrawn)], c[replay.StaleReasonStale], owes, cp)
-		_, choose := r.goalBlock(g, allOwed, false)
-		awaiting[g] = r.ownerLines(g, allOwed, choose)
+		_, choose := r.goalBlock(g, owed, false)
+		awaiting[g] = r.ownerLines(g, owed, choose)
 	}
 	add("AWAITING OWNER")
 	for _, gs := range p.Goals {
 		if len(awaiting[gs.GoalID]) == 0 {
 			continue
 		}
-		add("  %s %s", r.id(gs.GoalID), Cut(p.Nodes[gs.GoalID].Title, 60))
+		add("  %s %s", r.id(gs.GoalID), Text(p.Nodes[gs.GoalID].Title))
 		for _, s := range awaiting[gs.GoalID] {
 			add("  %s", s)
 		}
@@ -684,24 +628,17 @@ func goalsTable(p replay.Projection) []line {
 	return out
 }
 
-// OneLine prints s whole on one line: each line break becomes a space, so a
-// summary's own lines never read as a section or a field of the view. A line
-// break is CR LF, or one of LF, CR, VT, FF, NEL, LS and PS.
-func OneLine(s string) string {
+// Text is the one text policy of every view hyp prints: a stored text
+// prints whole, on one line. Each line break becomes a space, so a text's
+// own lines never read as a section or a field of the view, and no text is
+// cut, so a view never shows less of a title, a body or a limit than the
+// state holds. A line break is CR LF, or one of LF, CR, VT, FF, NEL, LS and
+// PS.
+func Text(s string) string {
 	return lineBreaks.Replace(s)
 }
 
 var lineBreaks = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\v", " ", "\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ")
-
-// Cut shortens s to at most n runes, ending in … when it was cut.
-func Cut(s string, n int) string {
-	s = strings.Join(strings.Fields(s), " ")
-	r := []rune(s)
-	if len(r) <= n {
-		return s
-	}
-	return string(r[:n-1]) + "…"
-}
 
 // Minute formats an RFC3339 timestamp as "YYYY-MM-DD HH:MM" in UTC.
 func Minute(ts string) string {
@@ -710,104 +647,6 @@ func Minute(ts string) string {
 		return ts
 	}
 	return t.UTC().Format("2006-01-02 15:04")
-}
-
-// resultSeparates reports whether a non-retracted Result supports one candidate
-// and gives another candidate a different verdict.
-// owedLine is one ledger item as hyp status prints it.
-func (r renderer) owedLine(o replay.Owed) string {
-	q := r.id(o.Question)
-	switch o.Kind {
-	case replay.OwedRivals:
-		if out := r.ruledOut(o.Question); out != "" {
-			return q + " add rival Hypotheses; ruled out: " + out
-		}
-		return q + " add rival Hypotheses"
-	case replay.OwedUntested:
-		return q + " test " + r.withAlias(o.Key)
-	case replay.OwedUndecided:
-		return q + " decide " + r.withAlias(o.Key) + ", inconclusive with no planned Experiment"
-	case replay.OwedPremise:
-		t := r.p.Nodes[o.To].Parent
-		return q + " premise " + r.id(o.Key) + " assumes " + r.id(o.To) + ", but " + r.id(t) + " selected " + r.id(SelectedHyp(r.p, t))
-	case replay.OwedPlanned:
-		return q + " run " + r.id(o.Key) + " " + Cut(r.p.Nodes[o.Key].Title, 60)
-	case replay.OwedLimit, replay.OwedReading, replay.OwedReferred:
-		res := event.KeyResult(o.Key)
-		text := ""
-		if l, ok := r.p.Limit(o.Key); ok {
-			text = l.Text
-		}
-		for _, l := range r.p.Readings {
-			if l.Key == o.Key {
-				text = l.Answer
-			}
-		}
-		what := map[replay.OwedKind]string{replay.OwedLimit: "limit", replay.OwedReading: "apply answer", replay.OwedReferred: "limit referred, accept or return"}[o.Kind]
-		state := ""
-		if o.Kind != replay.OwedReferred {
-			state = " [" + o.State
-			if len(o.AimedBy) > 0 {
-				state += " by " + r.ids(o.AimedBy)
-			}
-			state += "]"
-		}
-		return fmt.Sprintf("%s %s %s%s — %s", q, what, r.limitLabel(res, o.Key), state, Cut(text, 80))
-	case replay.OwedChoose:
-		return q + " choose: " + r.named(r.p.Questions[o.Question].Candidates)
-	case replay.OwedSelect:
-		return q + " select " + r.withAlias(o.Key) + ", the only candidate"
-	case replay.OwedStale:
-		return q + " stale " + r.withAlias(o.Key) + ": reaffirm it, or re-run what its select rests on"
-	}
-	return q + " " + string(o.Kind)
-}
-
-func resultSeparates(p replay.Projection, candidates []string) bool {
-	for _, res := range p.LiveResults() {
-		verdicts := p.Nodes[res].Verdicts
-		supports, other := false, false
-		for _, h := range candidates {
-			switch v, ok := verdicts[h]; {
-			case ok && v == event.VerdictSupports:
-				supports = true
-			case ok:
-				other = true
-			}
-		}
-		if supports && other {
-			return true
-		}
-	}
-	return false
-}
-
-// premise is a Hypothesis that candidates rest on through depends_on.
-type premise struct {
-	to string
-	by []string
-}
-
-// premises lists the live depends_on targets of the candidates, in the order
-// the candidates and their edges give, each with the candidates that assume it.
-func premises(p replay.Projection, candidates []string) []premise {
-	var out []premise
-	for _, h := range candidates {
-		for _, e := range p.Edges {
-			if !e.Live || e.Type != event.EdgeDependsOn || e.From != h {
-				continue
-			}
-			i := slices.IndexFunc(out, func(pr premise) bool { return pr.to == e.To })
-			if i < 0 {
-				out = append(out, premise{to: e.To})
-				i = len(out) - 1
-			}
-			if !slices.Contains(out[i].by, h) {
-				out[i].by = append(out[i].by, h)
-			}
-		}
-	}
-	return out
 }
 
 // answerKeys lists the keys an answer settles, by field: "answers R-…#r1;

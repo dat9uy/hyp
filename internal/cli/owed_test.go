@@ -123,7 +123,7 @@ func TestOwedReferredLimitWaitsForOwner(t *testing.T) {
 	want(t, hyp(t, "status"), 0, "\n  "+q+" limit referred, accept or return "+key+" — needs prod data\n")
 	notIn(t, "runner: "+q+" select")
 	want(t, hyp(t, "status"), 0, "waits on referred limit "+key+" for the owner")
-	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: referred limit "+key+" waits for the owner")
+	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "waits on referred limit "+key+" for the owner")
 
 	want(t, hyp(t, "answer", "--answer", key+"=s", "--actor", "owner-dat"), 2, "--answer \""+key+"\": want <R-id>#r<n>")
 	want(t, hyp(t, "checkpoint", "--summary", "s", "--accept", key, "--why", "w"), 2, "--accept was retired")
@@ -241,5 +241,5 @@ func TestCheckWarnsOnPremiseCycle(t *testing.T) {
 	want(t, hyp(t, "check"), 0, "check: 0 errors, 0 warnings")
 	must(t, "link", c1, "depends_on", a2, "--why", "w")
 	want(t, hyp(t, "check"), 0, "warn: premise cycle between "+q1+" and "+q2+"; remove a depends_on edge to break it")
-	want(t, hyp(t, "select", q1), 0, "suggested: none ("+a1+" assumes "+c2+", in "+q2+" open; decide "+q2+" first)")
+	want(t, hyp(t, "select", q1), 0, "suggested: none ("+q1+" waits on premise "+a1+": it assumes "+c2+", in "+q2+" open; decide "+q2+" first)")
 }

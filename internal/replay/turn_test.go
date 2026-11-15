@@ -75,11 +75,11 @@ func TestTurnWaitsOnPremiseAndSubquestion(t *testing.T) {
 	b.Supports(sh)
 	p := replayB(b)
 	wantTurn(t, p, q, TurnWaits, WaitPremise, WaitSubquestion)
-	wantRefused(t, p.AdmitSelect(q, h), "decide "+dq(q2)+" first")
+	wantRefusal(t, p.SelectRefusal(q, h), "waits premise "+h+">"+dep)
 	b.Answer(q2, dep, "")
 	p = replayB(b)
 	wantTurn(t, p, q, TurnWaits, WaitSubquestion)
-	wantRefused(t, p.AdmitSelect(q, h), "has a sub-question not answered")
+	wantRefusal(t, p.SelectRefusal(q, h), "waits subquestion "+h)
 	b.Answer(sub, sh, "")
 	wantTurn(t, replayB(b), q, TurnOwed)
 }
@@ -107,7 +107,7 @@ func TestStaleSelectOwesTheRunner(t *testing.T) {
 	wantStatus(t, p, q2, DQAnswered, "")
 	wantOwed(t, p, q, "runner stale "+h)
 	wantTurn(t, p, q, TurnWaits, WaitRunner)
-	wantRefused(t, p.AdmitSelect(q, h), "owes the runner first: stale "+hid(h))
+	wantRefusal(t, p.SelectRefusal(q, h), "waits runner stale "+h)
 	b.Reaffirm(h)
 	p = replayB(b)
 	wantStatus(t, p, q, DQAnswered, "")
@@ -153,7 +153,7 @@ func TestReopenedChoiceWaitsOnTheSelectedSubquestion(t *testing.T) {
 	if k := p.Turn(q).Waits[0].Key; k != h1 {
 		t.Fatalf("waits on a sub-question of %s, want %s", k, h1)
 	}
-	wantRefused(t, p.AdmitSelect(q, h2), hid(h1)+" has a sub-question not answered")
+	wantRefusal(t, p.SelectRefusal(q, h2), "waits subquestion "+h1)
 	sh := b.Hyp(sub, "sh")
 	b.Supports(sh)
 	b.Answer(sub, sh, "")
@@ -177,7 +177,7 @@ func TestSelectNoLongerSupportedIsNotOwedAgain(t *testing.T) {
 	wantStatus(t, p, q, DQReopened, ReasonSelectedNotSupport)
 	wantOwed(t, p, q, "runner select "+h2)
 	wantTurn(t, p, q, TurnOwed)
-	wantRefused(t, p.AdmitSelect(q, h1), "owes a select of "+hid(h2)+", the only candidate, not "+hid(h1))
+	wantRefusal(t, p.SelectRefusal(q, h1), "select "+h2)
 
 	b2 := testutil.New()
 	q2 := b2.DQ(b2.Goal("g"), "q")
@@ -191,7 +191,7 @@ func TestSelectNoLongerSupportedIsNotOwedAgain(t *testing.T) {
 	if it := p.Turn(q2).Waits[0].Item; it.Kind != OwedPlanned {
 		t.Fatalf("waits on %+v, want the planned Experiment", it)
 	}
-	wantRefused(t, p.AdmitSelect(q2, h), "owes the runner first: planned ")
+	wantRefusal(t, p.SelectRefusal(q2, h), "waits runner planned ")
 }
 
 // A DesignQuestion's hold is the latest of defer, withdraw and resume, and

@@ -37,7 +37,7 @@ An event in which the runner reports on one Goal: a summary, refers that hand li
 _Avoid_: owner checkpoint (history; see Answer), report
 
 **Select**:
-An event, `dq.select`, that records one Hypothesis as the answer of a DesignQuestion. The select is the gate: `hyp select` admits it only when the ledger owes it ([spec §5.1](replay-spec.md#51-write-time-refusals), ADR 0015). The ledger owes a `select` of that Hypothesis, or the owner's `choose` on the question. Whoever runs the tree writes it, never in the owner's role. In code: the question's `replay.Decision` and `replay.Projection.AdmitSelect`.
+An event, `dq.select`, that records one Hypothesis as the answer of a DesignQuestion. The select is the gate: `hyp select` admits it only when the ledger owes it ([spec §5.1](replay-spec.md#51-write-time-refusals), ADR 0015). The ledger owes a `select` of that Hypothesis, or the owner's `choose` on the question. Whoever runs the tree writes it, never in the owner's role. In code: the question's `replay.Decision` and `replay.Projection.SelectRefusal`, phrased by `render.RefusalText`.
 _Avoid_: pick, choose (the owner chooses; the select records it), accept, decide (alone)
 
 **Goal**:
@@ -245,7 +245,7 @@ An edge from a node to something outside the tree, such as `gh:976` or a URL ([s
 _Avoid_: link (alone), reference
 
 **Admission**:
-The write-time rules that the CLI checks before it appends an Experiment, a Result or a select ([spec §5.1](replay-spec.md#51-write-time-refusals)). Each finding is a refusal (exit 1), bad arguments (exit 2) or a warning. Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult`, `replay.Projection.AdmitSelect` and `replay.Finding`.
+The write-time rules that the CLI checks before it appends an Experiment, a Result or a select ([spec §5.1](replay-spec.md#51-write-time-refusals)). Each finding is a refusal (exit 1), bad arguments (exit 2) or a warning. Replay does not repeat them, so a merged log can hold an event they would refuse. In code: `replay.State.AdmitExp`, `replay.State.AdmitResult`, `replay.Finding`, and `replay.Projection.SelectRefusal` with the other `replay.Refusal` rules that read the ledger.
 _Avoid_: validation (that is `replay.Validate`, which replay also runs on every event)
 
 **Refusal**:

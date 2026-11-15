@@ -268,30 +268,6 @@ func outsideRun(ptr, display string, records []event.SubjectFile) bool {
 	return !slices.ContainsFunc(records, func(r event.SubjectFile) bool { return r.Path == clean })
 }
 
-// AdmitSelect lists what admitting a select of Hypothesis h on question q
-// would break, then its warnings. The select is admitted only when the ledger
-// owes it: a select of h, or a choice on q with h a candidate. A refusal
-// names what is owed instead (SelectBlock). h must be a resolved id.
-// It reads derived state, so Validate does not repeat it: replay still
-// applies a select in a merged log.
-func (p Projection) AdmitSelect(q, h string) []Finding {
-	if e := p.admitEnded(q); e != nil {
-		return e
-	}
-	owed, choose := p.SelectOwed(q)
-	if !slices.Contains(owed, h) {
-		text := p.SelectBlock(q)
-		switch {
-		case len(owed) == 1:
-			text = fmt.Sprintf("%s owes a select of %s, the only candidate, not %s", p.label(q), p.label(owed[0]), p.label(h))
-		case choose:
-			text = fmt.Sprintf("%s is not a candidate of %s; the owner chooses between %s", p.label(h), p.label(q), p.labels(owed))
-		}
-		return []Finding{{FindRefuse, text}}
-	}
-	return nil
-}
-
 // SelectOwed returns the Hypotheses a select of question q may name now:
 // the lone candidate when the ledger owes its select, or every candidate,
 // with choose true, when it owes the owner's choice. It is empty when the
@@ -309,143 +285,12 @@ func (p Projection) SelectOwed(q string) (hyps []string, choose bool) {
 	return nil, false
 }
 
-// SelectBlock names why question q owes no select or choice: the first thing
-// its turn waits on, or else q's state.
-func (p Projection) SelectBlock(q string) string {
-	if t := p.Turn(q); t.Kind == TurnWaits {
-		switch w := t.Waits[0]; w.Kind {
-		case WaitRunner:
-			return fmt.Sprintf("%s owes the runner first: %s", p.label(q), p.owedText(w.Item))
-		case WaitReading:
-			return p.readingWait(q, w.Key, w.Reach)
-		case WaitReferred:
-			return fmt.Sprintf("referred limit %s waits for the owner: an accept releases the select, a return sends its case to run", p.keyLabel(w.Key))
-		case WaitPremise:
-			t := p.Nodes[w.Premise.To].Parent
-			return fmt.Sprintf("%s assumes %s, in %s %s; decide %s first", p.label(w.Premise.From), p.label(w.Premise.To), p.label(t), p.Questions[t].State, p.label(t))
-		case WaitSubquestion:
-			return fmt.Sprintf("%s: %s has a sub-question not answered", ReasonAwaitingSubquestions, p.label(w.Key))
-		}
-	}
-	qs := p.Questions[q]
-	state := string(qs.State)
-	if qs.Reason != "" {
-		state += "/" + qs.Reason
-	}
-	switch {
-	case qs.State == DQAnswered:
-		return fmt.Sprintf("%s is answered; hyp unselect it first to change the choice", p.label(q))
-	case len(qs.Candidates) == 0:
-		return fmt.Sprintf("%s has no candidate (%s)", p.label(q), state)
-	}
-	return fmt.Sprintf("%s owes no select (%s)", p.label(q), state)
-}
-
-// readingWait names open reading k on question q for a refusal: the
-// Hypotheses its answer can move, or, with none, that it holds q's decision.
-func (p Projection) readingWait(q, k string, reach []string) string {
-	if len(reach) == 0 {
-		return fmt.Sprintf("open reading %s waits for the owner; it holds %s's decision", p.keyLabel(k), p.label(q))
-	}
-	return fmt.Sprintf("open reading %s waits for the owner; its answer can move %s", p.keyLabel(k), p.labels(reach))
-}
-
-// AdmitReaffirm refuses a reaffirm of node id while an open reading holds
-// the decision of its question: id itself when it is a question, else its
-// parent. The refusal names the first thing that question's turn waits
-// on. Replay still applies a reaffirm in a merged log.
-func (p Projection) AdmitReaffirm(id string) []Finding {
-	n := p.Nodes[id]
-	if n == nil {
-		return nil
-	}
-	if e := p.admitEnded(id); e != nil {
-		return e
-	}
-	q := id
-	if n.Kind == event.KindHypothesis {
-		q = n.Parent
-	}
-	if qs := p.Questions[q]; qs == nil || !qs.State.Open() || len(p.openReadings(q)) == 0 {
-		return nil
-	}
-	return []Finding{{FindRefuse, fmt.Sprintf("%s cannot be reaffirmed: %s", p.label(id), p.SelectBlock(q))}}
-}
-
-// AdmitAddHyp refuses a new Hypothesis under question q while an open
-// reading holds q's next Hypothesis (NextHold), unless the ledger owes a
-// premise item on q, which a new Hypothesis can settle. Replay still
-// applies such an add in a merged log.
-func (p Projection) AdmitAddHyp(q string) []Finding {
-	if e := p.admitEnded(q); e != nil {
-		return e
-	}
-	l, ok := p.NextHold(q)
-	if !ok || p.owesPremise(q, "") {
-		return nil
-	}
-	why := "no open limit that a Result on " + p.label(q) + " recorded is unreferred"
-	if len(l.Reach) > 0 {
-		why = "its answer can move " + p.labels(l.Reach)
-	}
-	return []Finding{{FindRefuse, fmt.Sprintf("open reading %s holds the next Hypothesis of %s for the owner: %s", p.keyLabel(l.Key), p.label(q), why)}}
-}
-
-// AdmitRetire refuses to supersede or abandon (verb) Hypothesis h while an
-// open reading's answer can move it, unless h is the candidate a premise
-// item on its question names. Replay still applies such an event in a
-// merged log.
-func (p Projection) AdmitRetire(verb, h string) []Finding {
-	if e := p.admitEnded(h); e != nil {
-		return e
-	}
-	l, ok := p.MovingReading(h)
-	if !ok || p.owesPremise(p.Nodes[h].Parent, h) {
-		return nil
-	}
-	return []Finding{{FindRefuse, fmt.Sprintf("cannot %s %s: open reading %s waits for the owner, and its answer can move %s", verb, p.label(h), p.keyLabel(l.Key), p.label(h))}}
-}
-
 // owesPremise reports whether the ledger owes a premise item on question
 // q, naming candidate h when h is not "".
 func (p Projection) owesPremise(q, h string) bool {
 	return slices.ContainsFunc(p.Owed(), func(o Owed) bool {
 		return o.Question == q && o.Kind == OwedPremise && (h == "" || o.Key == h)
 	})
-}
-
-// owedText names one owed item for a refusal.
-func (p Projection) owedText(o Owed) string {
-	switch o.Kind {
-	case OwedLimit, OwedReading:
-		return string(o.Kind) + " " + p.keyLabel(o.Key)
-	case OwedPremise:
-		t := p.Nodes[o.To].Parent
-		rec, _ := p.CurrentSelect(t)
-		return fmt.Sprintf("premise %s assumes %s, but %s selected %s", p.label(o.Key), p.label(o.To), p.label(t), p.label(rec.Hyp))
-	}
-	return string(o.Kind) + " " + p.label(o.Key)
-}
-
-// label is a node's display id, with its alias in parentheses when it has one.
-func (p Projection) label(id string) string {
-	n := p.Nodes[id]
-	if n == nil {
-		return id
-	}
-	s := event.DisplayID(n.Kind, id)
-	if n.Alias != "" {
-		s += " (" + n.Alias + ")"
-	}
-	return s
-}
-
-func (p Projection) labels(ids []string) string {
-	var out []string
-	for _, id := range ids {
-		out = append(out, p.label(id))
-	}
-	return strings.Join(out, ", ")
 }
 
 // keyLabel is a limit or reading key as R-…#n or R-…#rn, or a line as G-…#n.

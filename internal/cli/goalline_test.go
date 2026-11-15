@@ -62,7 +62,7 @@ func TestOwnerAnswersARefusedLine(t *testing.T) {
 		"bad accepts: "+keys[0]+" is not referred; only a referred limit is accepted, so the runner refers it first")
 	must(t, "checkpoint", "--summary", "no region in the test bed", "--refers", keys[0], "--why", "w")
 	want(t, hyp(t, "status"), 0, "  "+q+" limit referred, accept or return "+keys[0]+" — survives a region outage\n")
-	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "refused: referred limit "+keys[0]+" waits for the owner")
+	want(t, hyp(t, "select", q, h, "--why", "w"), 1, "waits on referred limit "+keys[0]+" for the owner")
 	want(t, hyp(t, "answer", "--accept", keys[0]+"=s"), 1,
 		"separation of duties: a referred the limit it accepts")
 	must(t, "answer", "--accept", keys[0]+"=not this Goal", "--actor", "o")

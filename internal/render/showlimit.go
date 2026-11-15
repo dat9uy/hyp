@@ -28,7 +28,7 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 	}
 
 	w("Limit %s", label)
-	w("text: %s", l.Text)
+	w("text: %s", Text(l.Text))
 	w("result: %s under %s", r.id(l.Result), r.withAlias(p.Nodes[l.Result].Parent))
 	w("question: %s", r.id(l.Question))
 	state := r.limitState(l)
@@ -57,22 +57,14 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 		w("candidates: %s", r.named(cands))
 	}
 	if l.Closed() {
-		var unjudged []string
-		for _, c := range cands {
-			if !slices.ContainsFunc(l.Closers, func(id string) bool { _, ok := p.Nodes[id].Verdicts[c]; return ok }) {
-				unjudged = append(unjudged, c)
-			}
-		}
-		if len(unjudged) > 0 {
+		if unjudged := p.NotJudgedByCloser(l); len(unjudged) > 0 {
 			w("not judged by a closer: %s", r.named(unjudged))
 		}
 	}
 
 	var aimed []string
-	for _, ev := range p.Applied {
-		if ev.Type == event.TypeNodeAdd && slices.Contains(p.Nodes[ev.Node].Aims, l.Key) {
-			aimed = append(aimed, r.id(ev.Node)+" "+string(p.Exps[ev.Node].Status))
-		}
+	for _, e := range p.AimedBy(l.Key) {
+		aimed = append(aimed, r.id(e)+" "+string(p.Exps[e].Status))
 	}
 	if len(aimed) > 0 {
 		w("aimed by: %s", strings.Join(aimed, ", "))
@@ -89,7 +81,7 @@ func ShowLimit(p replay.Projection, l replay.Limit) string {
 func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) {
 	p := r.p
 	w("Line %s", label)
-	w("text: %s", l.Text)
+	w("text: %s", Text(l.Text))
 	if h := r.handWord(l); h != "" {
 		w("hand: %s", h)
 	}
@@ -125,10 +117,8 @@ func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) 
 		w("(no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
 	}
 	var aimed []string
-	for _, ev := range p.Applied {
-		if ev.Type == event.TypeNodeAdd && slices.Contains(p.Nodes[ev.Node].Aims, l.Key) {
-			aimed = append(aimed, r.id(ev.Node)+" "+string(p.Exps[ev.Node].Status))
-		}
+	for _, e := range p.AimedBy(l.Key) {
+		aimed = append(aimed, r.id(e)+" "+string(p.Exps[e].Status))
 	}
 	if len(aimed) > 0 {
 		w("aimed by: %s", strings.Join(aimed, ", "))
@@ -148,9 +138,9 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 			_ = event.DecodePayload(ev, &c)
 			for _, it := range c.Refers {
 				if it.Key == l.Key {
-					what = "refers: " + OneLine(c.Summary)
+					what = "refers: " + Text(c.Summary)
 					if it.Text != "" {
-						what = "refers: " + Cut(it.Text, event.MaxText)
+						what = "refers: " + Text(it.Text)
 					}
 				}
 			}
@@ -159,7 +149,7 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 				verb string
 			}{{c.Returns, "returns"}, {c.Accepts, "accepts"}} {
 				if slices.Contains(f.keys, l.Key) {
-					what = f.verb + ": " + Cut(c.Summary, event.MaxText)
+					what = f.verb + ": " + Text(c.Summary)
 				}
 			}
 			if l.IsLine() && len(c.Lines) > 0 && ev.Node == l.Result {
@@ -174,7 +164,7 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 			}{{a.Returns, "returns"}, {a.Accepts, "accepts"}} {
 				for _, it := range f.items {
 					if it.Key == l.Key {
-						what = f.verb + ": " + Cut(it.Text, event.MaxText)
+						what = f.verb + ": " + Text(it.Text)
 					}
 				}
 			}
@@ -188,7 +178,7 @@ func (r renderer) limitHistory(w func(string, ...any), l replay.Limit) {
 			var c event.Confirm
 			_ = event.DecodePayload(ev, &c)
 			if slices.Contains(c.Accepts, l.Key) {
-				what = "accepts: " + Cut(ev.Why, event.MaxText)
+				what = "accepts: " + Text(ev.Why)
 			}
 		case event.TypeResultRecord:
 			if ev.ID == l.Result {
@@ -223,7 +213,7 @@ func (r renderer) citeEnd(l replay.Limit, c replay.Cite) string {
 	// A line comes with its Goal's add, so the add's id orders it against
 	// the end in merge order.
 	if l.Result < e.Event {
-		return fmt.Sprintf(" — %s has since ended: %s", r.id(g), e.Text)
+		return fmt.Sprintf(" — %s has since ended: %s", r.id(g), Text(e.Text))
 	}
-	return fmt.Sprintf(" — %s ended: %s", r.id(g), e.Text)
+	return fmt.Sprintf(" — %s ended: %s", r.id(g), Text(e.Text))
 }
