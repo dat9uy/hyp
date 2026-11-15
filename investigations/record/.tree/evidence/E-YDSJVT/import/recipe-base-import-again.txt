@@ -1,0 +1,1 @@
+investigations/recipe-base: the record holds every event

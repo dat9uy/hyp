@@ -1,0 +1,46 @@
+===== standin-TestImportOfAFileAtAPathGitCannotHold.txt
+stand-in 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d, test TestImportOfAFileAtAPathGitCannotHold in ./internal/cli/, test files from 255dc2740c1b43a4cab132c2bbeb663501891908
+=== RUN   TestImportOfAFileAtAPathGitCannotHold
+=== RUN   TestImportOfAFileAtAPathGitCannotHold/.git
+    record_import_names_test.go:586: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestImportOfAFileAtAPathGitCannotHold/.GIT
+    record_import_names_test.go:586: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestImportOfAFileAtAPathGitCannotHold/.git.
+    record_import_names_test.go:586: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestImportOfAFileAtAPathGitCannotHold/.git_
+    record_import_names_test.go:586: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestImportOfAFileAtAPathGitCannotHold/git~1
+    record_import_names_test.go:586: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+--- FAIL: TestImportOfAFileAtAPathGitCannotHold (1.77s)
+    --- FAIL: TestImportOfAFileAtAPathGitCannotHold/.git (0.38s)
+    --- FAIL: TestImportOfAFileAtAPathGitCannotHold/.GIT (0.36s)
+    --- FAIL: TestImportOfAFileAtAPathGitCannotHold/.git. (0.35s)
+    --- FAIL: TestImportOfAFileAtAPathGitCannotHold/.git_ (0.35s)
+    --- FAIL: TestImportOfAFileAtAPathGitCannotHold/git~1 (0.34s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	1.909s
+FAIL
+exit 1
+===== standin-TestWriteOfAFileAtAPathGitCannotHold.txt
+stand-in 8b042a7cb60e226a53f8c62ef3e8c99f9e24a03d, test TestWriteOfAFileAtAPathGitCannotHold in ./internal/cli/, test files from 255dc2740c1b43a4cab132c2bbeb663501891908
+=== RUN   TestWriteOfAFileAtAPathGitCannotHold
+=== RUN   TestWriteOfAFileAtAPathGitCannotHold/.git
+    record_import_names_test.go:557: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestWriteOfAFileAtAPathGitCannotHold/.GIT
+    record_import_names_test.go:557: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestWriteOfAFileAtAPathGitCannotHold/.git.
+    record_import_names_test.go:557: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestWriteOfAFileAtAPathGitCannotHold/.git_
+    record_import_names_test.go:557: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+=== RUN   TestWriteOfAFileAtAPathGitCannotHold/git~1
+    record_import_names_test.go:557: exit 0, stderr ""; want a refusal, exit 1, naming "git cannot hold"
+--- FAIL: TestWriteOfAFileAtAPathGitCannotHold (5.39s)
+    --- FAIL: TestWriteOfAFileAtAPathGitCannotHold/.git (1.11s)
+    --- FAIL: TestWriteOfAFileAtAPathGitCannotHold/.GIT (1.07s)
+    --- FAIL: TestWriteOfAFileAtAPathGitCannotHold/.git. (1.06s)
+    --- FAIL: TestWriteOfAFileAtAPathGitCannotHold/.git_ (1.08s)
+    --- FAIL: TestWriteOfAFileAtAPathGitCannotHold/git~1 (1.07s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	5.831s
+FAIL
+exit 1

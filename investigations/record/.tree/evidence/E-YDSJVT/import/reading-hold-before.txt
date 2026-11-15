@@ -1,0 +1,67 @@
+### hyp status G-5W1F5S
+GOAL G-5W1F5S An open reading holds its question's decision, and the next… — complete (answered 1, open 0, reopened 0, deferred 0, withdrawn 0, stale 0)
+LINES
+  G-5W1F5S#1 covered on Q-F0E223; ran in R-99GH9F, R-M6Q1TY — [N] On an open or reopened DesignQuestion Q with an open reading on Q, whatever Hypotheses its Resu…
+  G-5W1F5S#2 covered on Q-F0E223; ran in R-99GH9F, R-M6Q1TY — [P] On an open or reopened DesignQuestion Q, a live Hypothesis whose parent is Q, whose status is i…
+  G-5W1F5S#3 covered on Q-F0E223; ran in R-99GH9F, R-M6Q1TY — [N] On an open or reopened DesignQuestion Q with one or more open readings on Q, while the answer o…
+  G-5W1F5S#4 covered on Q-F0E223; ran in R-99GH9F, R-M6Q1TY — [P] When every open reading on an open or reopened DesignQuestion Q has an answer that can move no …
+  G-5W1F5S#5 covered on Q-F0E223; ran in R-99GH9F, R-M6Q1TY — [P] When the owner has answered every reading on Q, lines 1 to 4 hold nothing on Q, and hyp status …
+  G-5W1F5S#6 covered on Q-F0E223; ran in R-99GH9F, R-M6Q1TY — [P] When the first thing Q's turn waits on is an open reading whose answer can move no Hypothesis t…
+FRONTIER
+STALE
+OWED
+  runner owes nothing: stop and report to the owner
+AWAITING OWNER
+RECENT
+  2026-11-14 16:09 claude-g174-2 dq.select Q-F0E223 — OWED owes the select: h-hold-2 is the only candidate, passed its gate and revie…
+  2026-11-14 16:09 claude-g174-2 result.record R-KCMQ57 — Fix the uncited warning on R-M6Q1TY: cite the file that holds 33f18e0.
+  2026-11-14 16:08 claude-g174-2 result.record R-M6Q1TY — Gate and review of h-hold-2 ran.
+  2026-11-14 16:05 claude-g174-2 hypothesis.subject H-MEHPH5 — Tie h-hold-2 to its commit before the gate.
+  2026-11-14 16:05 claude-g174-2 edge.add H-MEHPH5 — h-hold-2 fixes the case R-KKRB2S#1 found in h-hold-1.
+  2026-11-14 16:02 claude-g174-2 result.record R-KKRB2S — Apply the owner's answer to h-hold-1.
+  2026-11-14 16:01 owner-dat answer answers R-99GH9F#r1
+  2026-11-14 15:55 claude-g174-1 result.record R-99GH9F — Gate and review of h-hold-1 ran; the only red finding is a case whose line cove…
+  2026-11-14 15:45 claude-g174-1 hypothesis.subject H-3SPQG6 — Tie h-hold-1 to its commit before the gate.
+  2026-11-14 15:29 claude-g174-grill edge.add G-5W1F5S — The issue this Goal builds.
+CHECKPOINT 2026-11-14 16:09 claude-g174-2: Stopped: hyp status G-5W1F5S shows runner owes nothing. R-KKRB2S applied answer R-99GH9F#r1 and contradicted h-hold-1 (33f18e0) with limit R-KKRB2S#1. h-hold-2 (H-MEHPH5, 29f27cb) adds admitSupersede to hyp supersede and hyp link supersedes; gate and review R-M6Q1TY (cite fix R-KCMQ57) support it, closing lines #1-#6 and R-KKRB2S#1; Q-F0E223 selects it. Candidates not reviewed: none. Waiting for the owner: none. Review findings with no run: replay of a held link event from a merged log. Out-of-Goal findings: hyp help lists link FROM depends_on|external_ref TO but link also writes supersedes (internal/cli/cli.go:72): new issue.
+UNCONTAINED 3 results
+exit 0
+### hyp render --markdown
+# G-5W1F5S An open reading holds its question's decision, and the next Hypothesis while the work rests on it — complete
+
+The owner's rule for #174 (2026-11-14): a reading holds the decision, not the work. An open reading holds its question's select, choose and reaffirm, whatever its reach. It holds the question's next Hypothesis while its answer can move a live Hypothesis there, or while no open limit that a Result on the question recorded is unreferred, and it holds the undecided item of a Hypothesis its Result judged inconclusive. Holding the decision does not mean the runner builds on a guess while a line is unclear. Replay derives every hold from the log; nothing new is stored.
+
+Event: in run 4 of record:G-SZCBXZ, record:R-V2CMZQ supported h-record-9 and recorded reading record:R-V2CMZQ#r1. The runner then added h-record-10b while OWED owed it nothing. The supersede left the reading with an empty reach, so it held nothing.
+
+Words: Q is a DesignQuestion. A Result on Q is a non-retracted Result whose Experiment's nearest question is Q, and a reading on Q is a reading of a Result on Q. A Hypothesis a reading's answer can move is a live one whose parent is Q, that the reading's Result judged, and that is supported now, inconclusive now when that Result's verdict on it was inconclusive, whatever other Results judged (line 2), or contradicted with that Result as its only contradiction.
+
+The Goal does not ask about an answered question: an open reading changes no question's state and no Goal's state. It does not ask about hyp retract: a retracted Result's readings hold nothing. Lines 4 and 5 hold on the base, commit afe2c1f1e9cad835edb755b6c08deaae279afd1b.
+
+The same PR updates docs/replay-spec.md (section 4 readings, 5, 5.1, 7.3 and 8.1), docs/glossary.md (the rivals, undecided and stale rows, and a new entry for reaffirm), docs/owner-guide.md, skills/hyp-prototype and skills/hyp-goal-run, which no longer copies a reading onto a later Result by hand.
+
+May change: this repository, by commits on one local branch feat/reading-hold and a PR the run never merges
+May change: internal/, cmd/, docs/ and skills/
+Read only: every other store under investigations/
+Never: replace the installed hyp binary
+
+## Q-F0E223 Which hyp commit implements the hold rule? — answered
+
+Each Hypothesis is one commit on feat/reading-hold. Its rival is the base afe2c1f1e9cad835edb755b6c08deaae279afd1b: each new test of lines 1, 2, 3 and 6 is red on the base and green on the candidate, and the tests of lines 4 and 5 are green on both.
+
+Selected: H-MEHPH5
+Design: Successor of h-hold-1 (33f18e0). Commit 29f27cb adds admitSupersede in internal/cli/write.go, called by cmdSupersede and by cmdLink for a supersedes edge.add, so every command that writes the same supersedes edge exits 1 while an open reading's answer can move H (answer R-99GH9F#r1, limit R-KKRB2S#1). It adds TestLinkSupersedesHeldLikeSupersede and updates docs/replay-spec.md §4 readings and §5.1 and both skills.
+
+Limits:
+
+- R-KKRB2S#1 closed by R-M6Q1TY (H-MEHPH5 (h-hold-2) supports) — hyp link NEW supersedes H while an open reading on H's question can move H (line G-5W1F5S#3, answer R-99GH9F#r1)
+
+- H-3SPQG6 feat/reading-hold 33f18e0: open reading holds decision and next Hypothesis — superseded
+  - E-Z4TQ38 Gate and review of h-hold-1 (33f18e0) — run (recipe none, rule by reading)
+    - R-99GH9F recorded H-3SPQG6=inconclusive: Gate of 33f18e0: go vet and go test ./... pass; the 13 new tests are green on the commit, 9 red and 4 green on base afe2c1f as the rubric states; all 7 removal checks apply whole and their tests fail. Review: one finding, run red on the commit: hyp link NEW supersedes H writes the supersedes edge and exits 0 while an open reading can move H. Its line is in doubt (reading r1), and it is the only failure, so h-hold-1 is inconclusive. — uncontained
+  - E-44MWWZ Apply answer R-99GH9F#r1 to h-hold-1 (33f18e0) — run (recipe none, reassess from kept records)
+    - R-KKRB2S recorded H-3SPQG6=contradicts: Under the owner's answer to R-99GH9F#r1, line G-5W1F5S#3 holds hyp link NEW supersedes H too. The kept run of TestLinkSupersedesHeldLikeSupersede on 33f18e0 is red: hyp link exits 0 and H is superseded while an open reading can move H. So h-hold-1 does not meet line 3 completely. — uncontained
+- H-MEHPH5 feat/reading-hold 29f27cb: hyp link NEW supersedes H is held like hyp supersede — supported
+  - E-TJEWAQ Gate and review of h-hold-2 (29f27cb) — run (recipe none, reassess from kept records)
+    - R-M6Q1TY recorded H-MEHPH5=supports: Gate of 29f27cb: go vet and go test ./... pass; all 14 rubric tests are green on the commit; TestLinkSupersedesHeldLikeSupersede is red on 33f18e0; all 8 removal checks apply whole and their tests fail. Review: no defect; its two returned tests, labelled none, are green on the commit. — uncontained
+    - R-KCMQ57 recorded H-MEHPH5=supports: Same gate and review as R-M6Q1TY, citing the superseded commit: TestLinkSupersedesHeldLikeSupersede is red on 33f18e0 (pred-commit.txt, new-test-pred.log) and green on 29f27cb (gate-commit.txt, new-tests-commit.log). The review found no defect.
+exit 0

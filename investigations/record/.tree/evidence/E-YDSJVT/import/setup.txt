@@ -1,0 +1,4 @@
+clone of /Users/datguy/codingProjects/tree-based-agent-memory at 6cdb214681f0ca03486ccff8d95317b12778387e
+hyp /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/2c0a3071-3274-4ce5-9617-33c71f98f575/scratchpad/hyp-255dc2740c1b43a4cab132c2bbeb663501891908
+5c3e9c78a0887711d25c4b3795281449da70c990cb6b34918a51a71dcabb0713  /private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/2c0a3071-3274-4ce5-9617-33c71f98f575/scratchpad/hyp-255dc2740c1b43a4cab132c2bbeb663501891908
+4c2581f304c4c1d7582c0b8957e5bd46d1a6781e commit	refs/hyp/record

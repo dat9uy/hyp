@@ -1,0 +1,178 @@
+# Review of commit 255dc2740c1b: refuse a write or import that names a file at a path git cannot hold
+
+**Summary:** the fix does what it says for a single clone. I found two problems, both in syncing a record between macOS and Linux:
+- **Finding 1 (line 5)** comes from this commit's new check in `sync.go`. Before the commit, that sync silently dropped the file's bytes. Now it exits 1.
+- **Finding 2 (lines 1 and 4)** was already there before this commit. The commit does not fix it.
+
+## What the commit does
+`Repo.stage` (`internal/record/commit.go`) runs `git update-index --index-info`. It then lists the index with `ls-files -z`. If a path it staged is missing from the index, it refuses with exit 1 and leaves the record ref where it was. Both places that build an index call it: `AppendStores` (used by writes and by import) and `join` in `internal/record/sync.go`.
+
+The commit's own tests pass on commit 255dc2740c1b:
+- `TestWriteOfAFileAtAPathGitCannotHold`: all 5 parts (`.git`, `.GIT`, `.git.`, `.git `, `git~1`).
+- `TestImportOfAFileAtAPathGitCannotHold`: all 5 parts.
+
+The check works for any path git drops, not only the 5 listed. A path that git does hold, spelled in decomposed Unicode (`café`), is not refused by mistake: my `TestReview5DecomposedPathIsHeld` passes.
+
+## Findings
+Both findings depend on a git setting that differs by platform. git on Linux has `core.protectHFS` off by default, so it holds `.git‌/...` (".git" with a zero-width non-joiner). git on macOS has it on, so it drops that path from its index. The tests simulate a Linux clone by setting `core.protectHFS=false` in clone b, on macOS with git 2.54.0 (Apple Git-157).
+
+### Finding 1: G-BPWZ24#5
+Clone b writes a Result whose evidence is below `.git‌/` and syncs. That write is valid on Linux. Clone a holds an event b lacks and runs `hyp sync`. Because each side holds something the other lacks, the join goes through the index. The new `stage` check refuses, and the sync exits 1, so the union line 5 asks for never happens.
+
+- **Before this commit** (record package from 255dc2740c1b~1): the sync exited 0 and silently dropped the bytes. `hyp show` of that pointer then exits 3 with "the record holds no copy of its bytes".
+- **Now:** the loss is gone, and nothing partial is written (line 3 holds). Line 5 is still unmet.
+- **Message:** the refusal ends with "name the file at another path". That advice does not fit a sync, because the event belongs to the remote and the user cannot rename its file. `stage` gives the same advice whether a write or a sync calls it.
+
+### Finding 2: G-BPWZ24#1 and G-BPWZ24#4 (already there before this commit)
+After a fast-forward sync brings b's record to the macOS clone a, every later write in a fails with exit 3. The cause is `AppendStores`: it runs `git read-tree <tip>`, and that fails with "invalid path" for a path this git cannot hold. So one event in the record from a Linux clone blocks all writes in a macOS clone. `hyp show` of that pointer still prints the bytes. I got the same result with the record package from 255dc2740c1b~1, so this commit did not cause it, but it is the same family of path problem.
+
+## Test file
+Copy kept at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/2c0a3071-3274-4ce5-9617-33c71f98f575/scratchpad/review-5/review5_test.go`. Package `internal/cli`; it uses the existing helpers `gitConfig`, `gitIn`, `must`, `want`, `hyp`, `writeFile` and `recordRepo`.
+
+```go
+package cli
+
+import (
+	"path/filepath"
+	"testing"
+)
+
+// review5Clones makes a bare remote and two clones a and b of it that share
+// one record holding a store s with a Goal, a question and a Hypothesis. It
+// returns a, b and the Hypothesis.
+func review5Clones(t *testing.T) (a, b, h string) {
+	t.Helper()
+	gitConfig(t)
+	top, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := filepath.Join(top, "remote.git")
+	gitIn(t, top, "init", "-q", "--bare", remote)
+	a = filepath.Join(top, "a")
+	gitIn(t, top, "clone", "-q", remote, a)
+	writeFile(t, filepath.Join(a, "s", "README.md"), "a store\n")
+	gitIn(t, a, "add", "-A")
+	gitIn(t, a, "commit", "-qm", "base")
+	gitIn(t, a, "push", "-q", "origin", "main")
+	t.Chdir(filepath.Join(a, "s"))
+	must(t, "init")
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h = must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	want(t, hyp(t, "sync"), 0, "synced")
+	b = filepath.Join(top, "b")
+	gitIn(t, top, "clone", "-q", remote, b)
+	t.Chdir(filepath.Join(b, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+	return a, b, h
+}
+
+// hfsPath is a path that git on Linux holds by default (core.protectHFS is
+// off there) and git on macOS drops from its index (core.protectHFS is on):
+// ".git" with a zero-width non-joiner, which HFS+ ignores.
+const hfsPart = ".git‌"
+
+// recordInB writes, in clone b with core.protectHFS off as on Linux, a Result
+// whose evidence lies below hfsPart. It returns the evidence pointer.
+func recordInB(t *testing.T, b, h string) string {
+	t.Helper()
+	gitIn(t, b, "config", "core.protectHFS", "false")
+	t.Chdir(filepath.Join(b, "s"))
+	e := must(t, "add", "exp", "--parent", h, "--title", "Eb", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	ptr := ".tree/evidence/" + e + "/" + hfsPart + "/out.txt"
+	writeFile(t, ptr, "bytes of b\n")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+	want(t, hyp(t, "show", ptr), 0, "bytes of b")
+	want(t, hyp(t, "sync"), 0, "synced")
+	return ptr
+}
+
+// Line 5: a record written where git holds a path (Linux) joins with a clone
+// where git drops it (macOS). Each side holds events the other lacks, so
+// the join is a merge commit built through the index: hyp sync must still
+// give both records the union.
+func TestReview5SyncJoinOfAPathOneSidesGitDrops(t *testing.T) {
+	a, b, h := review5Clones(t)
+	t.Chdir(filepath.Join(a, "s"))
+	ea := must(t, "add", "exp", "--parent", h, "--title", "Ea", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	ptr := recordInB(t, b, h)
+	t.Chdir(filepath.Join(a, "s"))
+	r := hyp(t, "sync")
+	if r.code != 0 {
+		t.Fatalf("hyp sync in a, which holds %s that b lacks, while b's record holds %s: exit %d, stderr %q; want the union", ea, ptr, r.code, r.stderr)
+	}
+	want(t, hyp(t, "show", ptr), 0, "bytes of b")
+}
+
+// Lines 1 and 4: after a fast-forward sync brings that record to the macOS
+// clone, a later write there (one that names no such path) must still apply.
+func TestReview5WriteAfterFastForwardOfAPathLocalGitDrops(t *testing.T) {
+	a, b, h := review5Clones(t)
+	ptr := recordInB(t, b, h)
+	t.Chdir(filepath.Join(a, "s"))
+	want(t, hyp(t, "sync"), 0, "synced")
+	want(t, hyp(t, "show", ptr), 0, "bytes of b")
+	r := hyp(t, "add", "exp", "--parent", h, "--title", "Ea", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	if r.code != 0 {
+		t.Fatalf("a write in a after its record took b's %s: exit %d, stderr %q; want exit 0", ptr, r.code, r.stderr)
+	}
+	want(t, hyp(t, "show", ptr), 0, "bytes of b")
+}
+
+// Line 1: a path git can hold, spelled in decomposed Unicode (as a macOS
+// tool may spell it), is not refused as a path git cannot hold.
+func TestReview5DecomposedPathIsHeld(t *testing.T) {
+	recordRepo(t)
+	g := must(t, "add", "goal", "--title", "G", "--why", "w")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "w")
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--rubric", "reading", "--why", "w")
+	ptr := ".tree/evidence/" + e + "/café/out.txt"
+	writeFile(t, ptr, "the bytes\n")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "ran", "--evidence", ptr, "--why", "w")
+	want(t, hyp(t, "show", ptr), 0, "the bytes")
+}
+```
+
+## Output on commit 255dc2740c1b
+Run as `go test ./internal/cli -run 'TestReview5|TestWriteOfAFileAtAPathGitCannotHold|TestImportOfAFileAtAPathGitCannotHold' -count=1 -v`, in a detached worktree of that commit.
+
+```
+--- PASS: TestWriteOfAFileAtAPathGitCannotHold (6.05s)
+    --- PASS: TestWriteOfAFileAtAPathGitCannotHold/.git (1.24s)
+    --- PASS: TestWriteOfAFileAtAPathGitCannotHold/.GIT (1.32s)
+    --- PASS: TestWriteOfAFileAtAPathGitCannotHold/.git. (1.04s)
+    --- PASS: TestWriteOfAFileAtAPathGitCannotHold/.git_ (1.25s)
+    --- PASS: TestWriteOfAFileAtAPathGitCannotHold/git~1 (1.19s)
+--- PASS: TestImportOfAFileAtAPathGitCannotHold (1.59s)
+    --- PASS: TestImportOfAFileAtAPathGitCannotHold/.git (0.39s)
+    --- PASS: TestImportOfAFileAtAPathGitCannotHold/.GIT (0.27s)
+    --- PASS: TestImportOfAFileAtAPathGitCannotHold/.git. (0.26s)
+    --- PASS: TestImportOfAFileAtAPathGitCannotHold/.git_ (0.29s)
+    --- PASS: TestImportOfAFileAtAPathGitCannotHold/git~1 (0.39s)
+    review5_test.go:71: hyp sync in a, which holds E-Y5T8ZD that b lacks, while b's record holds .tree/evidence/E-RQ2QEP/.git‌/out.txt: exit 1, stderr "refused: \"s/.tree/evidence/E-RQ2QEP/.git\\u200c/out.txt\" is a path git cannot hold, so the record cannot keep the bytes of the file there; name the file at another path\n"; want the union
+--- FAIL: TestReview5SyncJoinOfAPathOneSidesGitDrops (2.48s)
+    review5_test.go:86: a write in a after its record took b's .tree/evidence/E-RAJG2M/.git‌/out.txt: exit 3, stderr "git read-tree d594a8fd09df15dcb458c9551117617b0b157920 failed: exit status 128: error: invalid path 's/.tree/evidence/E-RAJG2M/.git‌/out.txt'\n"; want exit 0
+--- FAIL: TestReview5WriteAfterFastForwardOfAPathLocalGitDrops (2.32s)
+--- PASS: TestReview5DecomposedPathIsHeld (1.46s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	14.164s
+FAIL
+```
+
+## Output with the parent commit's record package
+To compare, I ran the same two tests with `internal/record` taken from 255dc2740c1b~1.
+
+```
+--- FAIL: TestReview5SyncJoinOfAPathOneSidesGitDrops (2.53s)
+    review5_test.go:73: exit 3 (want 0), stdout "", stderr ".tree/evidence/E-FJW2Q4/.git‌/out.txt: an event names it, but the record holds no copy of its bytes; hyp import from a commit or folder that holds them adds them\n" (want "bytes of b")
+--- FAIL: TestReview5WriteAfterFastForwardOfAPathLocalGitDrops (2.32s)
+    review5_test.go:86: a write in a after its record took b's .tree/evidence/E-G1S7CG/.git‌/out.txt: exit 3, stderr "git read-tree b07196de7e5cfb9b665b380360a6c04dad4c015d failed: exit status 128: error: invalid path 's/.tree/evidence/E-G1S7CG/.git‌/out.txt'\n"; want exit 0
+```
+
+## Not run as a test
+None. All tests ran only in temporary repositories. Nothing was written to this repository, its worktrees or origin. I removed my temporary worktree at `/private/tmp/claude-501/-Users-datguy-codingProjects-tree-based-agent-memory/2c0a3071-3274-4ce5-9617-33c71f98f575/scratchpad/review-5/wt`.
+
+Status: DONE_WITH_CONCERNS
+Summary: The commit's refusal works for writes and imports, and its own tests pass. Two findings remain: a sync join that meets a path this clone's git drops now exits 1 instead of keeping the union (G-BPWZ24#5, from this commit), and after a fast-forward of such a record every later write fails with exit 3 at `read-tree` (G-BPWZ24#1/#4, already there before this commit).
