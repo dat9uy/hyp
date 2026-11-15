@@ -9,8 +9,6 @@ The owner's input: $ARGUMENTS
 
 This skill turns a conversation with the owner into a hyp tree that an unattended `/goal` run can finish: a Goal with its lines, the contested questions under it with their rivals, and nothing the run must come back to ask. It ends where the hyp-goal-run skill starts. Use it with the hyp-prototype skill for the commands that add nodes.
 
-The grill is not done when the owner and you agree. It is done when every question is in its place in the tree, the owner approved each owner write, and nothing is left that only the owner can answer.
-
 ## Start
 
 1. Find the store. Trees live where the repository's agent instructions (AGENTS.md, CLAUDE.md) say, such as `investigations/<topic>/`. The Goal goes **in the store there that holds the Goal of the issue's parent issue**, when one does: one store holds many Goals. Run `hyp status` in that store. When no store there holds the parent's Goal, or the installed hyp refuses a second Goal in one log, the Goal gets a new store in a new directory there. Use the repository root only when the instructions name no directory for trees.
@@ -19,7 +17,7 @@ The grill is not done when the owner and you agree. It is done when every questi
 
 ## Rounds
 
-Work in rounds. A round asks every question whose prerequisites are settled, numbered, each with your recommendation. Wait for the answers, then compute the next round.
+Work in rounds. A round asks every question whose prerequisites are settled, numbered. Wait for the answers, then compute the next round.
 
 Every question opens with what exists today and the problem it settles, then gives one small worked example of each option and the principle behind it. A choice without its basis is not a question the owner can answer. Name why each mechanism is in the question; if you cannot, drop it.
 
@@ -45,9 +43,9 @@ Each item is a mistake earlier grills made. Check the round or the table against
 | how the tree is run (process, review, order, cadence) | the Goal body, an Experiment's body, or the `/goal` prompt; never a line | only where it is a preference |
 | a purpose outside this Goal | a separate Goal, added by the owner | name it; the owner decides |
 
-A testable option set is never put to the owner as a choice. If the owner settles such a question in the session anyway, it is still a DesignQuestion with its rivals, recorded as decided with the session as evidence (see Writes), so the tree says it was argued, not tested. A question becomes a DesignQuestion only when you can name the scenario a run would execute to separate its rivals, or its one Hypothesis from the base, such as two Goals in one store, or a base that moves mid-run. A decision with alternatives but no such scenario, such as a preferred shape, bound or word, is the owner's: it is a line or body text, never a question recorded as decided. One DesignQuestion holds one question, and every rival under it answers that question; two grill questions are two DesignQuestions.
+A testable option set is never put to the owner as a choice. If the owner argues such a question in the session anyway, it stays open: a DesignQuestion with the leading Hypothesis and the base beside it, for a run to test. A question is never recorded as decided by argument. A question becomes a DesignQuestion only when you can name the scenario a run would execute to separate its rivals, or its one Hypothesis from the base, such as two Goals in one store, or a base that moves mid-run. A decision with alternatives but no such scenario, such as a preferred shape, bound or word, is the owner's: it is a line or body text, never a question recorded as decided. One DesignQuestion holds one question, and every rival under it answers that question; two grill questions are two DesignQuestions.
 
-**The difference test.** Two options are rivals only when, for each pair, you can write one sentence: "On <scenario>, <A> meets line <n> and <B> does not, because <mechanism>." In a Goal with no lines (a design record), the scenario's outcome stands in for the line: "On <scenario>, <A> gives <outcome> and <B> does not, because <mechanism>." Put each sentence in the DesignQuestion's body. Options that can both be applied in one candidate are not rivals. When no such sentence exists, the question gets one Hypothesis, and the base is its rival: in a build Goal, the commit the build starts from, shown red on base; in a discovery Goal, the claim that nothing changes, whose outcome the Experiment's rubric states. When a run later shows the Hypothesis misses a line, its fix is a new Hypothesis that supersedes it, not a rival. Each rival costs its own runs on every line, so a rival no line separates is paid for and decides nothing.
+**The difference test.** Two options are rivals only when, for each pair, you can write one sentence: "On <scenario>, <A> meets line <n> and <B> does not, because <mechanism>." Put each sentence in the DesignQuestion's body. Options that can both be applied in one candidate are not rivals. When no such sentence exists, the question gets one Hypothesis, and the base is its rival: in a build Goal, the commit the build starts from, shown red on base; in a discovery Goal, the claim that nothing changes, whose outcome the Experiment's rubric states. When a run later shows the Hypothesis misses a line, its fix is a new Hypothesis that supersedes it, not a rival. Each rival costs its own runs on every line, so a rival no line separates is paid for and decides nothing.
 
 ## The derivation guard
 
@@ -79,11 +77,9 @@ A line is trial-scored when its verdict counts trials: repeats of an agent run w
 
 **For a discovery Goal** (its Hypotheses are claims, measured by a recipe and a rubric), a line names a case every candidate must meet that a check can run on every candidate. A trial-scored line also needs the base record question 6 asks for.
 
-**A Goal whose questions are all settled by argument in the session** (a design record) gets no lines: no run checks its candidates, so a line there is owed forever. Its cases go to the lines of the Goal that builds the design.
-
 ## Split purposes into Goals
 
-hyp owes every line on every top-level question that has a candidate. So draw a grid: lines down the side, top-level questions across, and in each cell ask "could one run cover every candidate of this question for this line?" A cell no run could ever fill means the question and the line serve different purposes: put them in separate Goals. A quick proxy: group the top-level questions by what their Hypotheses are (claims argued with stand-ins, commits in repository X, commits in repository Y). Each group is one Goal. A design record and the build of that design are two Goals.
+hyp owes every line on every top-level question that has a candidate. So draw a grid: lines down the side, top-level questions across, and in each cell ask "could one run cover every candidate of this question for this line?" A cell no run could ever fill means the question and the line serve different purposes: put them in separate Goals. A quick proxy: group the top-level questions by what their Hypotheses are (claims argued with stand-ins, commits in repository X, commits in repository Y). Each group is one Goal.
 
 ## Before round 1, and before Confirm the routing
 
@@ -112,7 +108,6 @@ The grill ends in these writes, in this order. Show each owner write as the exac
 | a new store, if Start step 1 found none | `hyp init` in the directory Start step 1 names | runner |
 | the Goal, its purpose and its lines | `hyp add goal --title "…" --body "…" --line "…" --cite N=KEY --why "…"` | owner |
 | a contested question | `hyp add dq --parent <G-id> --body "<one difference sentence per rival pair, or the scenario that separates the one Hypothesis from the base>" …`, then one `hyp add hyp --parent <Q-id> …` per Hypothesis; in a build Goal the run adds the Hypotheses, one per commit, so the grill adds none | runner |
-| a question with rivals the owner settled in the session | the DesignQuestion and each rival as above; then under the chosen rival `hyp add exp --recipe none --rubric reading --target <each other rival>` whose body states the scenarios as its rubric, `hyp record` with a verdict per rival citing a scenarios file under `.tree/evidence/<E-id>/`, then the select OWED owes (a runner write, not the owner's) | runner |
 | a link to another Goal or an issue | `hyp link <id> external_ref …` | runner |
 | the end | `hyp checkpoint --goal <G-id> --summary "…" --why "end of grill"` | runner |
 
