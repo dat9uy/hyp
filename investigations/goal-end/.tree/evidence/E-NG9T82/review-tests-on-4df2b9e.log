@@ -1,0 +1,54 @@
+=== RUN   TestReviewEndTextPrintsOneWayInStatusAndPrompt
+    review_channel_test.go:17: status:
+        GOAL G-QVTWA4 G — ended (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)
+        ENDED 2026-11-15 16:26 o: first line second "quoted" line
+        FRONTIER
+        STALE
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+        RECENT
+          2026-11-15 16:26 o answer ends G-QVTWA4
+        CHECKPOINT none
+        
+        prompt stderr: refused: hyp prompt G-QVTWA4: the Goal is ended, by o in answer 01M7G0G7MF1Q799VG4GS4X673F: "first line\nsecond \"quoted\" line"; an ended Goal has no run
+    review_channel_test.go:22: hyp prompt prints the end text another way than status: "refused: hyp prompt G-QVTWA4: the Goal is ended, by o in answer 01M7G0G7MF1Q799VG4GS4X673F: \"first line\\nsecond \\\"quoted\\\" line\"; an ended Goal has no run\n"
+--- FAIL: TestReviewEndTextPrintsOneWayInStatusAndPrompt (0.02s)
+=== RUN   TestReviewShowReadingAnswerPrintsLikeText
+    review_channel_test.go:34: show:
+        Result R-6FR385
+        path: G-JPHPH3 > Q-FR97ZH > H-2CC51F > E-PMQNMM > R-6FR385
+        status: recorded
+        observation: o
+        verdicts: H-2CC51F=supports
+        reading R-6FR385#r1 closed by owner answer 01M7G0G7N49MZR93TJXWFVQE5S, answer: "line one\nline two" — a line
+        history:
+          2026-11-15 16:26 a result.record R-6FR385 — w
+          2026-11-15 16:26 owner-dat answer
+            answers: R-6FR385#r1 — line one line two
+    review_channel_test.go:37: show's reading line prints the answer by another policy than render.Text (quoted/escaped): reading R-6FR385#r1 closed by owner answer 01M7G0G7N49MZR93TJXWFVQE5S, answer: "line one\nline two" — a line
+--- FAIL: TestReviewShowReadingAnswerPrintsLikeText (0.02s)
+=== RUN   TestReviewMarkdownPrintsTitleOnOneLine
+    review_channel_test.go:50: markdown:
+        # G-1W4Y6X G — in_progress
+        
+        ## Q-0CSH1J Q — open/supported_unselected
+        
+        - H-KMNZP3 H — supported
+          - E-66HWTA E — run (recipe none, rule by reading)
+            - R-64AKFG recorded H-KMNZP3=supports: obs one
+        ## FAKE HEADING
+    review_channel_test.go:53: markdown prints an observation's line as a heading
+--- FAIL: TestReviewMarkdownPrintsTitleOnOneLine (0.01s)
+=== RUN   TestReviewAddGoalEchoesLinesByText
+    review_channel_test.go:65: stdout:
+        G-P6X4SG node.add
+          line G-P6X4SG#1: [P] first
+        second
+        
+        stderr:
+    review_channel_test.go:70: add goal echoes a line with a raw line break
+--- FAIL: TestReviewAddGoalEchoesLinesByText (0.00s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.415s
+FAIL
