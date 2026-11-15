@@ -73,7 +73,7 @@ write:
   select DQ [HYP]                        admitted only when hyp status owes it (no HYP: print the suggestion only)
   unselect DQ | defer DQ | withdraw DQ|EXP | resume DQ
   checkpoint [--summary S] [--goal G] [--refers K[=TEXT]]...   the runner's report: a summary, refers, or both
-  answer [--answer R#rN=TEXT]... [--accept K=TEXT]... [--returns K=TEXT]...   the owner's act; no --why
+  answer [--answer R#rN=TEXT]... [--accept K=TEXT]... [--returns K=TEXT]... [--end G=TEXT]...   the owner's act; no --why; --end ends a Goal, by its adder only
 
 read (REF/TIME: an event id, a node ref, or an RFC3339 time):
   status [--as-of REF|TIME] [--max-lines N] [--live]   orientation screen, 60 lines by default; --live hides contradicted Hypotheses

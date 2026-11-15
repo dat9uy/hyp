@@ -300,6 +300,7 @@ var rules = map[string]rule{
 			_ = event.DecodePayload(ev, &p)
 			st.applyAnswers(ev, p.Answers)
 			st.applyLimitMoves(ev, nil, event.Keys(p.Returns), event.Keys(p.Accepts))
+			st.applyEnds(ev, p.Ends)
 		},
 	},
 	event.TypeEdgeAdd: {
@@ -389,13 +390,15 @@ var runnerFields = []string{"summary", "refers", "role", "closes", "revises", "l
 
 // validateAnswer is the replay rule of answer, the owner's act (ADR 0020).
 // It has no node and no why, holds at least one key, and every item's text
-// is the owner's words for that key.
+// is the owner's words for that key. An end is made only by the actor that
+// added its Goal, once, in an answer that moves no other key of that Goal
+// (ADR 0023).
 func (f *Facts) validateAnswer(ev event.Event) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(bytes.TrimSpace(ev.Payload), &raw); err == nil {
 		for _, k := range runnerFields {
 			if _, ok := raw[k]; ok {
-				return fmt.Errorf("bad answer: owner and runner fields never mix in one event: %s is the runner's; an answer holds only answers, accepts and returns", k)
+				return fmt.Errorf("bad answer: owner and runner fields never mix in one event: %s is the runner's; an answer holds only answers, accepts, returns and ends", k)
 			}
 		}
 	}
@@ -409,15 +412,18 @@ func (f *Facts) validateAnswer(ev event.Event) error {
 	if err := decode(ev, &p); err != nil {
 		return err
 	}
-	if len(p.Answers)+len(p.Accepts)+len(p.Returns) == 0 {
+	if len(p.Answers)+len(p.Accepts)+len(p.Returns)+len(p.Ends) == 0 {
 		return errors.New("bad answer: empty; an answer settles at least one key")
 	}
-	for _, items := range [][]event.KeyText{p.Answers, p.Accepts, p.Returns} {
+	for _, items := range append(p.Items(), p.Ends) {
 		for _, it := range items {
 			if err := textLimit("text of "+it.Key, it.Text, 1, event.MaxText); err != nil {
 				return err
 			}
 		}
+	}
+	if err := f.checkEnds(ev.Actor, p.Ends, p.Items()); err != nil {
+		return err
 	}
 	if err := f.checkAnswers(ev.Actor, p.Answers); err != nil {
 		return err

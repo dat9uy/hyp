@@ -95,6 +95,7 @@ func (st *State) Projection() Projection {
 		Readings:    st.readings(st.Applied),
 		Lines:       st.lines(),
 		Subjects:    st.Subjects,
+		Ends:        st.Ended,
 	}
 }
 
@@ -511,12 +512,16 @@ func (d *derivation) dqState(id string) *Question {
 	return q
 }
 
-// goalState follows spec §7.5, with one addition: a Goal needs at least one
-// answered live top-level DQ to be complete, so a new Goal is in_progress.
+// goalState follows spec §7.5, with two additions: a Goal needs at least one
+// answered live top-level DQ to be complete, so a new Goal is in_progress;
+// and a Goal its adder ended is ended, whatever its questions (ADR 0023).
 func (st *State) goalState(d *derivation, id string) GoalState {
 	g := st.Nodes[id]
 	if g == nil {
 		return ""
+	}
+	if _, ok := st.Ended[id]; ok {
+		return GoalEnded
 	}
 	answered := 0
 	for _, c := range g.Children {

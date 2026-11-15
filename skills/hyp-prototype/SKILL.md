@@ -214,7 +214,8 @@ that no longer matters is `hyp withdraw <Q-id>`.
     `hyp answer --accept "<key>=<their words>"` or
     `hyp answer --returns "<key>=<their words>"`, under their actor name.
 - The Goal completes when it has at least one top-level question and every
-  one is answered. Complete does not mean every line is covered: `hyp status`
+  one is answered. A Goal its adder ended with `hyp answer --end` reads
+  ended instead, and hyp refuses every write under it. Complete does not mean every line is covered: `hyp status`
   lists the Goal's lines under LINES, and a line still owed under OWED means
   the owner's purpose is not yet reached.
 

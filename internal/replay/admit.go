@@ -63,6 +63,11 @@ type Finding struct {
 // caller can refuse before it loads the store; p.Parent and p.Targets must
 // be resolved ids otherwise.
 func (st *State) AdmitExp(p event.NodeAdd, f, rb RecipeFacts, noTarget bool) []Finding {
+	if st != nil {
+		if e := admitEnded(&st.Facts, p.Parent); e != nil {
+			return e
+		}
+	}
 	var out []Finding
 	placeholder := func(kind, ref string, files []string) {
 		if len(files) > 0 {
@@ -194,6 +199,9 @@ func (st *State) notRivalWarnings(parent string, targets []string) []string {
 // refHash maps each bundle ref an evidence pointer names to the hash it
 // pinned.
 func (st *State) AdmitResult(p event.ResultRecord, f ResultFacts, refHash map[string]string) []Finding {
+	if e := admitEnded(&st.Facts, p.Parent); e != nil {
+		return e
+	}
 	exp := st.Nodes[p.Parent]
 	if exp == nil || exp.Kind != event.KindExperiment {
 		return nil
@@ -267,6 +275,9 @@ func outsideRun(ptr, display string, records []event.SubjectFile) bool {
 // It reads derived state, so Validate does not repeat it: replay still
 // applies a select in a merged log.
 func (p Projection) AdmitSelect(q, h string) []Finding {
+	if e := p.admitEnded(q); e != nil {
+		return e
+	}
 	owed, choose := p.SelectOwed(q)
 	if !slices.Contains(owed, h) {
 		text := p.SelectBlock(q)
@@ -348,6 +359,9 @@ func (p Projection) AdmitReaffirm(id string) []Finding {
 	if n == nil {
 		return nil
 	}
+	if e := p.admitEnded(id); e != nil {
+		return e
+	}
 	q := id
 	if n.Kind == event.KindHypothesis {
 		q = n.Parent
@@ -363,6 +377,9 @@ func (p Projection) AdmitReaffirm(id string) []Finding {
 // premise item on q, which a new Hypothesis can settle. Replay still
 // applies such an add in a merged log.
 func (p Projection) AdmitAddHyp(q string) []Finding {
+	if e := p.admitEnded(q); e != nil {
+		return e
+	}
 	l, ok := p.NextHold(q)
 	if !ok || p.owesPremise(q, "") {
 		return nil
@@ -379,6 +396,9 @@ func (p Projection) AdmitAddHyp(q string) []Finding {
 // item on its question names. Replay still applies such an event in a
 // merged log.
 func (p Projection) AdmitRetire(verb, h string) []Finding {
+	if e := p.admitEnded(h); e != nil {
+		return e
+	}
 	l, ok := p.MovingReading(h)
 	if !ok || p.owesPremise(p.Nodes[h].Parent, h) {
 		return nil

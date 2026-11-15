@@ -34,7 +34,8 @@ In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **buildin
   - a line;
   - an accepted or closed limit;
   - an answered reading;
-  - a selected or contradicted Hypothesis.
+  - a selected or contradicted Hypothesis;
+  - an ended Goal, or any key of it ([ADR 0023](0023-the-end-is-the-owners-one-terminal-act.md)).
 
   Anything else is refused with exit 1. A cite carries no relation label. Its meaning is derived from the key's state at the line's position in the log:
 
@@ -44,6 +45,7 @@ In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **buildin
   | a closed limit, or a contradicted Hypothesis | forbidden |
   | an answered reading | applied |
   | a selected Hypothesis | realised |
+  | an ended Goal's id, or a key or Hypothesis of an ended Goal not settled otherwise | ended ([ADR 0023](0023-the-end-is-the-owners-one-terminal-act.md)) |
 
   A Goal's origin is the Goals its cited keys belong to. When a cited key's state later differs, `hyp check` warns and `hyp show` prints both states; no status changes.
 - **The owner's acts are their own event type, `answer`.** It holds `answers`, `accepts` and `returns`, each `[{key, text}]`, with at least one key. It has no `node`, no `summary`, no envelope `why` and no `role`. The owner's reason is in each item's text (Q-R21S8R, Q-H8PJ20).

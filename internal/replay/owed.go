@@ -58,7 +58,7 @@ type Owed struct {
 // reading, referred and premise items, so evidence that lands after the
 // answer is owed and not only listed. An open reading is owed by the owner
 // too; hyp status prints it under AWAITING OWNER from its own record, so it
-// is not repeated here.
+// is not repeated here. A question of an ended Goal owes nothing.
 func (p Projection) Owed() []Owed {
 	aimers := map[string][]string{}
 	for _, ev := range p.Applied {
@@ -92,7 +92,8 @@ func (p Projection) Owed() []Owed {
 			continue
 		}
 		q := p.Questions[dq]
-		if q == nil {
+		if q == nil || p.Ended(dq) {
+			// Nothing of an ended Goal is owed (ADR 0023).
 			continue
 		}
 		open := q.State.Open()

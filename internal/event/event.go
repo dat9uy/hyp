@@ -174,7 +174,8 @@ type NodeAdd struct {
 
 // GoalLine is one line of a Goal. Cites are plain keys, each settled when
 // the line is written: a line, an accepted or closed limit, an answered
-// reading, or a selected or contradicted Hypothesis. What a cite means is
+// reading, a selected or contradicted Hypothesis, or an ended Goal or any
+// key of it (ADR 0023). What a cite means is
 // derived from the key's state at the line's place in the log, never stored.
 type GoalLine struct {
 	Text  string   `json:"text"`
@@ -392,11 +393,18 @@ type Checkpoint struct {
 // text. Answers settles an open reading or replaces an earlier answer of an
 // answered one; Accepts accepts a referred limit, so this Goal does not run
 // its case; Returns hands a referred or accepted limit back to the runner.
+// Ends ends a Goal, keyed by its id, in the words of the actor that added
+// it: the one terminal act on a Goal (ADR 0023).
 type Answer struct {
 	Answers []KeyText `json:"answers,omitempty"`
 	Accepts []KeyText `json:"accepts,omitempty"`
 	Returns []KeyText `json:"returns,omitempty"`
+	Ends    []KeyText `json:"ends,omitempty"`
 }
+
+// Items lists every keyed item of an answer that moves a key, by field:
+// its answers, accepts and returns. An end moves no key: it ends a Goal.
+func (a Answer) Items() [][]KeyText { return [][]KeyText{a.Answers, a.Accepts, a.Returns} }
 
 // KeyText is one keyed item of an answer or a refer: the key it moves and
 // the writer's words for it. A bare string decodes as a key with no text,

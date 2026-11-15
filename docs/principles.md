@@ -22,7 +22,9 @@ them.** `supported`, `contradicted`, `stale`, `answered`, the ledger, coverage
 and a limit's category are all derived; no command can set one, and no stored
 field copies a derived state. A command appends an event: `hypothesis.abandon`
 or `dq.withdraw` is a fact a status rule reads, not the status word, and a
-later event can move the status again. While it derives, replay keeps working
+later event can move the status again. The one exception is the owner's end
+of a Goal: no event moves an ended Goal again
+([ADR 0023](adr/0023-the-end-is-the-owners-one-terminal-act.md)). While it derives, replay keeps working
 facts such as whether a question was ever answered; it rebuilds them from the
 log every time and never writes them to it. A changed mind is a new event, so the earlier one
 stays in history. See [replay-spec.md](replay-spec.md) §7 and §8,
@@ -82,18 +84,23 @@ rules:
 2. **The owner is asked only on real choices, and only when the runner owes
    nothing on the question.** The ledger routes each one to AWAITING OWNER: a
    reading, a referred limit, a choice between candidates.
-3. **Every owner move but the lines answers what the ledger hands them.** A
-   reading answer sets what a line or an answer means. An accept says this tree
-   does not run a case, and a return sends it back to run. A choice selects one
-   of the candidates that meet every line, for the owner's own reasons. Each
-   move turns one item toward the Goal, or the owner starts a new Goal.
+3. **Every owner move but the lines and the end answers what the ledger hands
+   them.** A reading answer sets what a line or an answer means. An accept says
+   this tree does not run a case, and a return sends it back to run. A choice
+   selects one of the candidates that meet every line, for the owner's own
+   reasons. Each move turns one item toward the Goal, or the owner starts a new
+   Goal. The end answers nothing the ledger hands the owner: the actor that
+   added a Goal says once, in their own words, that it is wrong or outgrown
+   ([ADR 0023](adr/0023-the-end-is-the-owners-one-terminal-act.md)).
 4. **An owner move is one typed event, an answer, and hyp reads the move,
    never the prose.** An answer may move items of several Goals, and it never
    holds a runner field. The owner's words are kept and shown back, and no status
    reads them.
-5. **An owner move changes no status.** Statuses move by verdicts: an answer
-   takes effect when a Result applies it, a return when a Result runs the case,
-   a choice when the select the ledger owes is recorded.
+5. **An owner move changes no status, except the end.** Statuses move by
+   verdicts: an answer takes effect when a Result applies it, a return when a
+   Result runs the case, a choice when the select the ledger owes is recorded.
+   The end sets its Goal's state to `ended` with no Result, and after it
+   nothing of the Goal is owed or waits.
 6. **The owner produces no evidence.** They never run a case, type a verdict,
    record or close a limit, tie a subject or write a fingerprint.
 7. **hyp does not authenticate the owner.** Separation of duties compares actor

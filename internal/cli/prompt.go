@@ -99,8 +99,10 @@ func repoRoot(dir string) (root string, ok bool) {
 
 // cmdPrompt prints the /goal prompt for a Goal, derived from the log: the
 // store's path, the actor, the Goal, the hyp-goal-run skill, the stop clauses
-// and the Goal body's constraints block. It reads no owner answer, so the
-// same Goal node and flags give the same bytes in any store.
+// and the Goal body's constraints block. It reads no owner answer and only
+// one fact beyond the Goal's node, its end: an ended Goal is refused, and
+// the same Goal node and flags give the same bytes in any store where the
+// Goal is not ended.
 func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	fs := readFlags("prompt", stderr)
 	actor := fs.String("actor", "", "the runner's actor name (required; $HYP_ACTOR is not read)")
@@ -142,6 +144,10 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 		return usageErr("hyp prompt takes a Goal: %s is a %s", pos[0], n.Kind)
 	}
 	g := event.DisplayID(event.KindGoal, id)
+	// An ended Goal has no run: its adder ended it (ADR 0023).
+	if e, ended := r.full.EndOf(id); ended {
+		return herr.Refused("hyp prompt %s: the Goal is ended, by %s in answer %s: %q; an ended Goal has no run", g, e.Actor, e.Event, e.Text)
+	}
 	block, problems, _ := constraintsBlock(n.Body)
 	if len(problems) > 0 {
 		return herr.Refused("hyp prompt %s: %s", g, strings.Join(problems, "; "))

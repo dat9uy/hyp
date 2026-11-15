@@ -62,13 +62,13 @@ func (p Projection) Turn(dq string) Turn {
 }
 
 // turnOf is the turn rule, first match wins: closed unless the question is
-// open or reopened; waits when anything below holds; no candidate; owed.
+// open or reopened and its Goal is not ended; waits when anything below holds; no candidate; owed.
 // items are the ledger's items on dq other than its select or choice. A
 // select stands exactly when the question is answered, so a reopened
 // question with a select never owes a select of it again: it waits.
 func (p Projection) turnOf(dq string, items []Owed) Turn {
 	q := p.Questions[dq]
-	if q == nil || !q.State.Open() {
+	if q == nil || !q.State.Open() || p.Ended(dq) {
 		return Turn{Kind: TurnClosed}
 	}
 	var ws []Wait
