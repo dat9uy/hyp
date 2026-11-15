@@ -54,11 +54,7 @@ _Avoid_: closed, abandoned, cancelled
 
 **Discovery Goal**:
 A Goal whose Hypotheses are claims: what to build, or why something behaves as it does. Rivals answer each DesignQuestion, and Experiments separate them. hyp stores no Goal kind: the same events, rules and ledger serve each kind (ADR 0020).
-_Avoid_: investigation Goal, research Goal; discovery kind (hyp stores none)
-
-**Design record**:
-A discovery Goal whose questions the owner settles by argument in a session, with no lines. The session is its evidence. No run checks its candidates, so its cases go to the lines of the build Goal that follows it ([hyp-owner-grill](../skills/hyp-owner-grill/SKILL.md#derive-the-lines)).
-_Avoid_: design Goal, decision log
+_Avoid_: investigation Goal, research Goal; discovery kind (hyp stores none); design record (retired: a question argued in a session stays open)
 
 **Build Goal**:
 A Goal whose Hypotheses are commits. Each commit is a Hypothesis whose subject is that commit, and a fix is a new Hypothesis that supersedes it. A change to a skill is a build Goal, except a prose-only change, which ships as a plain PR (ADR 0021). A run works it as [hyp-goal-run, "Build Goals"](../skills/hyp-goal-run/SKILL.md#build-goals) says.
