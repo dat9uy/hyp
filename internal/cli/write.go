@@ -155,7 +155,14 @@ func (w *writer) run(build func() (draft, error)) error {
 		if err != nil {
 			return event.Event{}, err
 		}
-		return event.Event{Type: d.typ, Node: d.node, Payload: raw, Why: *w.why}, nil
+		ev := event.Event{Type: d.typ, Node: d.node, Payload: raw, Why: *w.why}
+		// Nothing more is written under an ended Goal (ADR 0023). Replay
+		// applies such an event when a merged log holds it, and hyp check
+		// warns, so the refusal is the binary's, at write.
+		if g := p.EndedGoals(ev); len(g) > 0 {
+			return event.Event{}, refusedErr("%s", p.EndedRefusal(g[0]))
+		}
+		return ev, nil
 	})
 	if err != nil {
 		return err
@@ -260,7 +267,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 		parent = w.fs.String("parent", "", "parent node (required)")
 	} else {
 		w.fs.Var(&lineTexts, "line", fmt.Sprintf("a line of the Goal: a case every candidate must meet, keyed G-id#n; a Goal's lines come with its add and no later event adds one (repeatable, at most %d, each 1–%d runes)", event.MaxLimits, event.MaxLine))
-		w.fs.Var(&cites, "cite", fmt.Sprintf("N=KEY: line N cites KEY, a line, an accepted or closed limit, an answered reading, or a selected or contradicted Hypothesis, settled now (repeatable, at most %d per line)", event.MaxCites))
+		w.fs.Var(&cites, "cite", fmt.Sprintf("N=KEY: line N cites KEY, a line, an accepted or closed limit, an answered reading, a selected or contradicted Hypothesis, or an ended Goal or any key of it, settled now (repeatable, at most %d per line)", event.MaxCites))
 	}
 	if kind == event.KindHypothesis {
 		w.fs.Var(&subject, "subject", "a file or directory that embodies the claim; hyp ties the Hypothesis to each file's sha256 (repeatable)")
@@ -974,8 +981,9 @@ func cmdCheckpoint(args []string, stdout, stderr io.Writer) error {
 
 // cmdAnswer writes the owner's act, an answer (ADR 0020): answers to
 // readings, accepts and returns of limits, each KEY=TEXT with the owner's
-// words. It has no node, no summary and no why. One answer may settle keys
-// of several Goals.
+// words, and ends of Goals, each G=TEXT in the words of the actor that added
+// the Goal (ADR 0023). It has no node, no summary and no why. One answer may
+// settle keys of several Goals.
 func cmdAnswer(args []string, stdout, stderr io.Writer) error {
 	w := newWriter("answer", stdout, stderr)
 	w.noWhy = true
@@ -983,6 +991,8 @@ func cmdAnswer(args []string, stdout, stderr io.Writer) error {
 	w.fs.Var(&answers, "answer", "R-id#rN=TEXT: the owner's answer to a reading, a first answer while it is open and a new one once answered (repeatable)")
 	w.fs.Var(&accepts, "accept", "K=TEXT: R-id#n or G-id#n of a referred limit the owner accepts, so this Goal does not run its case (repeatable)")
 	w.fs.Var(&returns, "returns", "K=TEXT: R-id#n or G-id#n of a referred or accepted limit whose case the Goal covers, handed back to the runner (repeatable)")
+	var ends multi
+	w.fs.Var(&ends, "end", "G=TEXT: end Goal G, in the words of the actor that added it; the one terminal act on a Goal, after which nothing of it is owed or waits (repeatable)")
 	if _, err := w.begin(args, 0); err != nil {
 		return err
 	}
@@ -997,6 +1007,9 @@ func cmdAnswer(args []string, stdout, stderr io.Writer) error {
 			return draft{}, err
 		}
 		if p.Returns, err = w.keyTexts("--returns", returns, true, event.KeyLimit); err != nil {
+			return draft{}, err
+		}
+		if p.Ends, err = w.goalTexts("--end", ends); err != nil {
 			return draft{}, err
 		}
 		var closes, revises []string
@@ -1052,6 +1065,26 @@ func (w *writer) keyTexts(flag string, args []string, needText bool, kinds ...ev
 			return nil, err
 		}
 		out = append(out, event.KeyText{Key: keys[0], Text: text})
+	}
+	return out, nil
+}
+
+// goalTexts resolves G=TEXT arguments to items keyed by the Goal's full id.
+func (w *writer) goalTexts(flag string, args []string) ([]event.KeyText, error) {
+	var out []event.KeyText
+	for _, a := range args {
+		ref, text, found := strings.Cut(a, "=")
+		if text = strings.TrimSpace(text); !found || text == "" {
+			return nil, usageErr("%s %q: want G=TEXT, the words that end Goal G", flag, a)
+		}
+		id, err := w.ref(strings.TrimSpace(ref))
+		if err != nil {
+			return nil, err
+		}
+		if n := w.p.Nodes[id]; n.Kind != event.KindGoal {
+			return nil, usageErr("%s %q: %s is a %s; an end names a Goal", flag, a, strings.TrimSpace(ref), n.Kind)
+		}
+		out = append(out, event.KeyText{Key: id, Text: text})
 	}
 	return out, nil
 }

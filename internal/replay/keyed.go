@@ -282,7 +282,7 @@ func (f *Facts) checkGoalLines(lines []event.GoalLine) error {
 				return fmt.Errorf("bad cite: line %d names %s twice", i+1, c)
 			}
 			if m, why := f.citeMeaning(c); m == "" {
-				return fmt.Errorf("bad cite: line %d cites %s, which is not settled: %s; a cite is a line, an accepted or closed limit, an answered reading, or a selected or contradicted Hypothesis", i+1, f.citeDisplay(c), why)
+				return fmt.Errorf("bad cite: line %d cites %s, which is not settled: %s; a cite is a line, an accepted or closed limit, an answered reading, a selected or contradicted Hypothesis, or an ended Goal or any key of it", i+1, f.citeDisplay(c), why)
 			}
 		}
 	}
@@ -303,9 +303,43 @@ const (
 // citeMeaning returns what citing c means now, or "" and why c is not
 // settled: a line or an accepted limit is carried, a closed limit or a
 // contradicted Hypothesis is forbidden, an answered reading is applied, and a
-// selected Hypothesis is realised.
+// selected Hypothesis is realised. An end settles every key of its Goal: an
+// ended Goal's id, and any key or Hypothesis of it not settled otherwise,
+// is ended (ADR 0023).
 func (f *Facts) citeMeaning(c string) (meaning, why string) {
+	m, why := f.settledMeaning(c)
+	if m != "" {
+		return m, ""
+	}
+	if _, ok := f.Ended[f.citedGoal(c)]; ok {
+		return CiteEnded, ""
+	}
+	return "", why
+}
+
+// citedGoal is the Goal that cite c names or leads to: a Goal's own id, a
+// Hypothesis's Goal, or the Goal of a key that names an item; "" for any
+// other cite.
+func (f *Facts) citedGoal(c string) string {
 	if n := f.Nodes[c]; n != nil {
+		if n.Kind == event.KindGoal || n.Kind == event.KindHypothesis {
+			return goalOf(f.Nodes, c)
+		}
+		return ""
+	}
+	if k, ok := event.ParseKey(c); ok && f.checkKey(c, k.Kind, "") == nil {
+		return f.keyGoal(c)
+	}
+	return ""
+}
+
+// settledMeaning is citeMeaning before any end: what c means from the
+// state of its own key.
+func (f *Facts) settledMeaning(c string) (meaning, why string) {
+	if n := f.Nodes[c]; n != nil {
+		if n.Kind == event.KindGoal {
+			return "", "a Goal is cited by its id only once it is ended"
+		}
 		if n.Kind != event.KindHypothesis {
 			return "", fmt.Sprintf("a %s is cited by a key or, for a Hypothesis, its id", n.Kind)
 		}

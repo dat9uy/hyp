@@ -23,6 +23,7 @@ type Projection struct {
 	Readings       []Reading                          // readings of non-retracted Results, in creation order
 	Lines          []Limit                            // every Goal's lines, by Goal in creation order, then in order (spec §8.2)
 	Subjects       map[string]event.HypothesisSubject // Hypothesis → its subject, the latest tie
+	Ends           map[string]End                     // Goal → its end, for each ended Goal (end.go)
 }
 
 // HypStatus, QuestionState, ExpStatus, ResStatus and GoalState are the status
@@ -331,6 +332,8 @@ type Facts struct {
 	LinesBy map[string]string
 	// Subjects holds each Hypothesis's subject, the latest tie.
 	Subjects map[string]event.HypothesisSubject
+	// Ended holds each ended Goal's end, the first in merge order (end.go).
+	Ended map[string]End
 
 	// Lookup indexes over the stored state, maintained by apply so that a
 	// full recompute per event stays fast.
@@ -377,6 +380,7 @@ func NewState() *State {
 			Answers:      map[string][]Answer{},
 			LimitHand:    map[string]Hand{},
 			Subjects:     map[string]event.HypothesisSubject{},
+			Ended:        map[string]End{},
 			Lines:        map[string][]string{},
 			LinesBy:      map[string]string{},
 			ResultsByHyp: map[string][]string{},
@@ -467,7 +471,7 @@ func (p Projection) EventOf(ev event.Event, g string) bool {
 	if ev.Type != event.TypeAnswer || event.DecodePayload(ev, &a) != nil {
 		return false
 	}
-	for _, items := range [][]event.KeyText{a.Answers, a.Accepts, a.Returns} {
+	for _, items := range append(a.Items(), a.Ends) {
 		for _, it := range items {
 			if p.KeyGoal(it.Key) == g {
 				return true

@@ -70,7 +70,7 @@ func StatusOf(p replay.Projection, g string, maxLines int, live bool) string {
 	// Goal, whatever the state of its question or whether FRONTIER prints it.
 	var open []string
 	for _, ev := range p.Applied {
-		if ev.Type != event.TypeNodeAdd || p.Nodes[ev.ID].Kind != event.KindDesignQuestion || p.GoalOf(ev.ID) != g {
+		if ev.Type != event.TypeNodeAdd || p.Nodes[ev.ID].Kind != event.KindDesignQuestion || p.GoalOf(ev.ID) != g || p.Ended(g) {
 			continue
 		}
 		for _, l := range p.LimitsOf(ev.ID) {
@@ -128,6 +128,13 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 	add(kKeep, "GOAL %s %s — %s (answered %d, open %d, reopened %d, deferred %d, withdrawn %d, stale %d)",
 		r.id(g.ID), Cut(g.Title, 60), gs.Status, c[string(replay.DQAnswered)], c[string(replay.DQOpen)],
 		c[string(replay.DQReopened)], c[string(replay.DQDeferred)], c[string(replay.DQWithdrawn)], c[replay.StaleReasonStale])
+	// An ended Goal prints its end, and nothing of it waits: no question is
+	// open work, no node is a stale chain to recheck and no item is owed
+	// (ADR 0023). hyp show still prints all it holds.
+	end, ended := p.EndOf(g.ID)
+	if ended {
+		add(kKeep, "ENDED %s %s: %s", Minute(end.TS), end.Actor, OneLine(end.Text))
+	}
 
 	// LINES are the Goal's lines: whose turn each is, the Results that ran
 	// its case, and a mark when no one closer ran the selected Hypotheses
@@ -317,7 +324,9 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 		}
 	}
 	for _, dq := range g.Children {
-		walk(dq, 0, true)
+		if !ended {
+			walk(dq, 0, true)
+		}
 	}
 	if unprinted == 1 {
 		add(kKeep, "  (1 open question out of play; hyp render --markdown lists every question)")
@@ -328,7 +337,7 @@ func (r renderer) goalBlock(gid string, allOwed []replay.Owed, live bool) (out [
 	add(kKeep, "STALE")
 	n := 0
 	for _, ev := range p.Applied {
-		if ev.Type != event.TypeNodeAdd || p.GoalOf(ev.ID) != g.ID {
+		if ev.Type != event.TypeNodeAdd || p.GoalOf(ev.ID) != g.ID || ended {
 			continue
 		}
 		shown, _ := p.Display(ev.ID)
@@ -577,9 +586,13 @@ func uncontained(p replay.Projection, g string) int {
 
 // ownerLines are the lines AWAITING OWNER prints for Goal g: the choose
 // lines its FRONTIER walk found, each other item the ledger owes the owner
-// on g's questions, and each open reading of g's Results.
+// on g's questions, and each open reading of g's Results; none for an ended
+// Goal.
 func (r renderer) ownerLines(g string, allOwed []replay.Owed, awaiting []string) []string {
 	p := r.p
+	if p.Ended(g) {
+		return nil // nothing of an ended Goal waits for the owner (ADR 0023)
+	}
 	out := slices.Clone(awaiting)
 	for _, o := range allOwed {
 		// A choose item prints with its question, from the walk.
@@ -806,7 +819,7 @@ func (r renderer) answerKeys(ev event.Event) string {
 	for _, f := range []struct {
 		items []event.KeyText
 		verb  string
-	}{{a.Answers, "answers"}, {a.Accepts, "accepts"}, {a.Returns, "returns"}} {
+	}{{a.Answers, "answers"}, {a.Accepts, "accepts"}, {a.Returns, "returns"}, {a.Ends, "ends"}} {
 		var keys []string
 		for _, it := range f.items {
 			keys = append(keys, r.limitLabel(event.KeyResult(it.Key), it.Key))

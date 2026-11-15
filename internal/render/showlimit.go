@@ -119,7 +119,7 @@ func showLine(r renderer, w func(string, ...any), l replay.Limit, label string) 
 		if c.Now != c.Meaning {
 			now = ", now " + c.Now
 		}
-		w("cites %s: %s%s", r.citeLabel(c.Key), c.Meaning, now)
+		w("cites %s: %s%s%s", r.citeLabel(c.Key), c.Meaning, now, r.citeEnd(l, c))
 	}
 	if sel := p.NotTogether(l); len(sel) > 0 {
 		w("(no one closer covers %s together)", strings.ReplaceAll(r.ids(sel), ", ", " and "))
@@ -209,4 +209,21 @@ func (r renderer) citeLabel(c string) string {
 		return r.withAlias(c)
 	}
 	return r.limitLabel(event.KeyResult(c), c)
+}
+
+// citeEnd is what a cite of an ended Goal's id or key adds to its line: the
+// end's words, and, for a line written before the end, that the Goal has
+// since ended (ADR 0023). It is "" when the cited Goal is not ended.
+func (r renderer) citeEnd(l replay.Limit, c replay.Cite) string {
+	g := r.p.CitedGoal(c.Key)
+	e, ok := r.p.EndOf(g)
+	if !ok {
+		return ""
+	}
+	// A line comes with its Goal's add, so the add's id orders it against
+	// the end in merge order.
+	if l.Result < e.Event {
+		return fmt.Sprintf(" — %s has since ended: %s", r.id(g), e.Text)
+	}
+	return fmt.Sprintf(" — %s ended: %s", r.id(g), e.Text)
 }

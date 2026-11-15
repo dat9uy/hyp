@@ -84,6 +84,16 @@ Run each command in the store's directory, under your own actor name.
 - **To change an answer, answer the reading again.** The new words apply from then on. The earlier answer stays in the history, and no earlier verdict changes.
 - **An accept takes the case out of this Goal only.** A later Goal can take the case: one of its lines cites the accepted key.
 
+## When a Goal is wrong or outgrown
+
+A run can teach you that a Goal is wrong or outgrown. Then end it, once, in your own words:
+
+```text
+hyp answer --end "G-…=<your words>" --actor <you>
+```
+
+Only the actor that added the Goal ends it; a Goal a runner actor added ends only under that runner's name. An end is an answer of its own: it names no other key of the same Goal. After it, the Goal reads `ended`, and nothing of it is owed or waits for you. hyp refuses every write under it, and `hyp prompt` refuses it. `hyp show` still prints its lines, readings, limits and Results. A later Goal can point at your end: one of its lines cites the ended Goal's id, or any of its keys. An end is never taken back.
+
 ## After you answer
 
 Your answer creates work for the runner, and the next run does it:
@@ -92,4 +102,4 @@ Your answer creates work for the runner, and the next run does it:
 - A returned limit becomes the runner's `limit` item again. A Result runs the case and closes the limit.
 - When no rival is left, the runner adds a new Hypothesis. Its Experiment runs the open limits and applies your answers.
 
-The Goal is complete when every live question under it has an answer. Your Goal is met when it is complete and OWED shows no line of it.
+The Goal is complete when every live question under it has an answer. Your Goal is met when it is complete and OWED shows no line of it. A Goal you ended reads `ended` instead.

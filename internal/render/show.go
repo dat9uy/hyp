@@ -56,6 +56,9 @@ func Show(p replay.Projection, id string, ancestors []string) string {
 		status += " (replaced by " + r.ids(x.ReplacedBy) + ")"
 	}
 	w("status: %s", status)
+	if e, ok := p.EndOf(id); ok {
+		w("ended: %s %s — %s", Minute(e.TS), e.Actor, e.Text)
+	}
 	if ns.Stale != nil {
 		w("stale: %s", r.chain(ns.Stale))
 	}
@@ -297,7 +300,7 @@ func (r renderer) answerHistory(w func(string, ...any), ev event.Event, id strin
 	for _, f := range []struct {
 		items []event.KeyText
 		verb  string
-	}{{a.Answers, "answers"}, {a.Accepts, "accepts"}, {a.Returns, "returns"}} {
+	}{{a.Answers, "answers"}, {a.Accepts, "accepts"}, {a.Returns, "returns"}, {a.Ends, "ends"}} {
 		for _, it := range f.items {
 			if n := event.KeyResult(it.Key); n == id || r.p.GoalOf(n) == id {
 				items = append(items, fmt.Sprintf("    %s: %s%s", f.verb, r.limitLabel(n, it.Key), itemText(it)))

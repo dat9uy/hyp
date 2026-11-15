@@ -21,8 +21,9 @@ Each owner move turns the direction of an item so that it serves the Goal, or st
 - An accept says this tree does not run a case. A return sends the case back to run.
 - A choose selects one of the candidates that meet every line, for the owner's own reasons. The runner records the select in the owner's words.
 - A new Goal is a new tree, for a purpose this Goal does not hold.
+- An end says the Goal is wrong or outgrown: `hyp answer --end`, once, in the owner's words. After it nothing of the Goal is owed or waits (see "End the Goal").
 
-The Goal's lines are the owner's one move that no item asks for. Each other move answers what the ledger hands the owner under AWAITING OWNER.
+The Goal's lines and the end are the owner's two moves that no item asks for. Each other move answers what the ledger hands the owner under AWAITING OWNER.
 
 The owner never runs a case, never gives a verdict and never edits a recorded event. The Goal's lines are written once, so this tree never gets a new line. A recipe check is not a line: it counts toward a verdict only through a line or an owner answer, and the runner maps checks to a line when it closes it.
 
@@ -42,7 +43,11 @@ Do not ask the owner to decide what a test can decide. Do not recommend a meanin
 ## Do what the owner's words ask
 
 - **A question.** Explain from the tree and the recipe. Write nothing to the tree. The reading stays open.
-- **"I don't know", or no decision.** Leave the reading open. Do not close it, because a closed reading sets the meaning of the line. While it is open, the select and the owner's choice on its question wait on it (`hyp status` prints a `waits on open reading` line); tell the owner so. Propose a test that can give the owner the facts, and name the Goal line it runs under.
+- **"I don't know", or no decision.** Do not close the reading, because a closed reading sets the meaning of the line. Show the owner the four ways out, and do what their words choose:
+  1. **Leave it open.** While it is open, the select and the owner's choice on its question wait on it (`hyp status` prints a `waits on open reading` line); tell the owner so.
+  2. **A test.** Propose a test that can give the owner the facts, and name the Goal line it runs under, as "A test" below says.
+  3. **"Show me".** Only when the owner's words ask to see the case, add it as a sub-question under the Hypothesis the reading's answer can move, for the next run to show. Never add one on your own reading of their words.
+  4. **End the Goal.** If the owner now sees that the Goal is wrong or outgrown, do as "End the Goal" says.
 - **A test.** If the test fits the Goal's lines, run it as in "Apply the answers". If no line holds it, it cannot decide here: show the owner the fork in "A test outside the Goal's lines". The reading stays open until the owner answers it.
 - **An answer.** Answer the reading with their exact words, under the actor of their earlier owner acts. When `hyp status` prints several keys on one reading line, they ask the same question: name every key in the same answer, with the same words. A `warn: … asks the same as …` line means a copy was left behind; answer it with the same words:
 
@@ -61,6 +66,16 @@ Do not ask the owner to decide what a test can decide. Do not recommend a meanin
   A revision changes no earlier event or verdict. The earlier answer stays in history, and the runner owes the reading again as `apply answer` under OWED.
 
 The owner names the reading: "Answer <key>: …" answers a reading that waits under AWAITING OWNER, or gives new words for one already answered. If the owner gives words that answer a reading but do not name it, ask which reading they answer before you write; an answer must name its key. If you are not sure that the words are an answer, ask. Show the owner each write under their actor before you run it.
+
+## End the Goal
+
+When the owner says the Goal is wrong or outgrown, ask them to say so in their own words, once. Only an answer session types `--end`: a `/goal` run never ends a Goal. Only the actor that added the Goal ends it, so run it under that actor, and a Goal a runner actor added ends only under that runner's name. An end is an answer of its own: it names no other key of the same Goal.
+
+```text
+hyp answer --end "<G-id>=<their words>" --actor <the actor that added the Goal>
+```
+
+An end is never taken back. After it the Goal reads `ended`: nothing of it is owed or waits for the owner, hyp refuses every write under it, and `hyp prompt` refuses it. `hyp show` still prints all it holds. A later Goal can point at the end: a line of it cites the ended Goal's id, or any of its keys.
 
 ## Show each referred limit
 
@@ -132,7 +147,7 @@ Ask one question in the owner's words: would they reject a design that fails thi
 
 ## End each turn
 
-If this turn recorded a Result, changed what a reading does to the candidates, or left a question for the owner, record a runner checkpoint before you end, under the runner's actor, not the owner's:
+If this turn ended the Goal, write no runner checkpoint on it: hyp refuses every write under an ended Goal. Otherwise, if this turn recorded a Result, changed what a reading does to the candidates, or left a question for the owner, record a runner checkpoint before you end, under the runner's actor, not the owner's:
 
 ```text
 hyp checkpoint --goal <G-id> --summary "Stopped: <what waits>. Waiting for the owner: <the keys under AWAITING OWNER>" --why "<why>"
@@ -142,4 +157,4 @@ The owner reads `hyp status`, which prints the last checkpoint, so the fork must
 
 State what changed in the tree, what is still open, and the next question for the owner. Print `hyp status`.
 
-When the owner's answers leave work for the runner, the next run starts from a fresh `/goal` prompt. Print it with `hyp prompt <goal> --actor <new runner actor> [--branch <branch>] [--pr <N>]` and give the owner its output as it is. Do not add the owner's answers to it: OWED lists each answer and each returned limit that the next run applies. Run it on the log the next run starts from, with the answers merged or on the branch the prompt names. If it exits 1, the Goal body has no valid constraints block: tell the owner, who adds a new Goal. Exit 2 is a bad argument; exit 3 means no repository holds the store.
+When the owner's answers leave work for the runner, the next run starts from a fresh `/goal` prompt. Print it with `hyp prompt <goal> --actor <new runner actor> [--branch <branch>] [--pr <N>]` and give the owner its output as it is. Do not add the owner's answers to it: OWED lists each answer and each returned limit that the next run applies. Run it on the log the next run starts from, with the answers merged or on the branch the prompt names. If it exits 1, the Goal is ended, so it has no next run, or its body has no valid constraints block: tell the owner, who adds a new Goal. Exit 2 is a bad argument; exit 3 means no repository holds the store.

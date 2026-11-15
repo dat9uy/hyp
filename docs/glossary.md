@@ -29,7 +29,7 @@ One line of `.tree/events/<actor>.jsonl`: an id, a time, an actor, a type from a
 _Avoid_: entry, trace (a trace is what hyp writes about a run of commands)
 
 **Answer**:
-An event that records the owner's act: it answers readings, or accepts or returns referred limits ([spec §4](replay-spec.md#4-event-types-closed-set), ADR 0020). Each key carries the owner's words. It has no node and no why, and owner fields and runner fields never mix in one event ([spec §5](replay-spec.md#5-refusals) rule 30). `hyp answer` writes it. In code: `event.Answer`.
+An event that records the owner's act: it answers readings, accepts or returns referred limits, or ends a Goal ([spec §4](replay-spec.md#4-event-types-closed-set), ADR 0020). Each key carries the owner's words. It has no node and no why, and owner fields and runner fields never mix in one event ([spec §5](replay-spec.md#5-refusals) rule 30). `hyp answer` writes it. In code: `event.Answer`.
 _Avoid_: owner checkpoint (history), approval, confirm (retired)
 
 **Checkpoint**:
@@ -43,6 +43,14 @@ _Avoid_: pick, choose (the owner chooses; the select records it), accept, decide
 **Goal**:
 A node, `G-`, with no parent, that states what an investigation is for. Its lines come with its add, and no one changes it after that. A new purpose is a new Goal, which can be in the same store (ADR 0020). A Goal is complete when every live top-level question is answered ([spec §7.5](replay-spec.md#75-goal)). The owner reads "met" as a complete Goal with no line under OWED, and hyp stores no word for it.
 _Avoid_: objective, epic, done, met (as a status word)
+
+**End**:
+The owner's one terminal act on a Goal: an item of an answer, keyed by the Goal's id, in which the actor that added the Goal says once, in their own words, that the Goal is wrong or outgrown. `hyp answer --end G=TEXT` writes it, and a Goal ends once (ADR 0023). After it nothing more is written under the Goal, and a later Goal may cite it.
+_Avoid_: close, abandon (a Hypothesis's event), withdraw (a question's event), archive
+
+**Ended**:
+The state of a Goal its adder ended, in place of in progress or complete ([spec §7.5](replay-spec.md#75-goal)). Derived from the end, never stored. Nothing of an ended Goal is owed or waits for the owner, `hyp show` still prints all it holds, and its id and every key of it not settled before the end are settled, reading "ended" as a cite.
+_Avoid_: closed, abandoned, cancelled
 
 **Discovery Goal**:
 A Goal whose Hypotheses are claims: what to build, or why something behaves as it does. Rivals answer each DesignQuestion, and Experiments separate them. hyp stores no Goal kind: the same events, rules and ledger serve each kind (ADR 0020).

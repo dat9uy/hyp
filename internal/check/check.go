@@ -113,6 +113,12 @@ func Run(root string) (report []string, errorsFound int) {
 			}
 		}
 	}
+	// A write the binary refuses on an ended Goal, which a merged log holds:
+	// replay applies it, and this warning names it (ADR 0023).
+	for _, a := range p.AfterEnd() {
+		warns = append(warns, fmt.Sprintf("warn: %s %s on %s applied after %s ended it; nothing is written under an ended Goal",
+			a.Event.ID, a.Event.Type, display(a.Goal), a.End))
+	}
 	// A recipe left out of the hashes makes its Results questionable; say why.
 	for _, pr := range problems {
 		warns = append(warns, "warn: "+pr)
