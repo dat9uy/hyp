@@ -1,1 +1,0 @@
-investigations/record: the record holds every event

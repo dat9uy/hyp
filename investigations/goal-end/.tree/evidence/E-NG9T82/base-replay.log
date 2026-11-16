@@ -1,9 +1,0 @@
-# github.com/dat9uy/hyp/internal/replay [github.com/dat9uy/hyp/internal/replay.test]
-internal/replay/facts_test.go:25:14: p.OwedOf undefined (type Projection has no field or method OwedOf)
-internal/replay/facts_test.go:25:57: undefined: OwedAnswer
-internal/replay/facts_test.go:28:2: undefined: wantRefusal
-internal/replay/facts_test.go:28:19: p.SelectRefusal undefined (type Projection has no field or method SelectRefusal)
-internal/replay/facts_test.go:54:11: p.UnseparatedCandidates undefined (type Projection has no field or method UnseparatedCandidates)
-internal/replay/facts_test.go:71:14: p.Premises undefined (type Projection has no field or method Premises)
-FAIL	github.com/dat9uy/hyp/internal/replay [build failed]
-FAIL

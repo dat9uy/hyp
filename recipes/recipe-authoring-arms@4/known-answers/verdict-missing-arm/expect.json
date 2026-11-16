@@ -1,1 +1,0 @@
-{"step": "standalone", "command": "verdict", "args": ["$CASE/input/s0.tsv", "$CASE/input/s1.tsv"], "exit": 2, "stdout": ""}

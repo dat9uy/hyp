@@ -1,4 +1,0 @@
-arm=base
-trial=1
-
-A brief.
