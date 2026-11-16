@@ -409,7 +409,7 @@ func cmdAdd(args []string, stdout, stderr io.Writer) error {
 			fmt.Fprintln(stderr, w)
 		}
 		for i, l := range p.Lines {
-			fmt.Fprintf(stdout, "  line %s: %s\n", event.DisplayKey(event.KindGoal, event.LimitKey(w.last.ID, i+1)), l.Text)
+			fmt.Fprintf(stdout, "  line %s: %s\n", event.DisplayKey(event.KindGoal, event.LimitKey(w.last.ID, i+1)), render.Text(l.Text))
 		}
 	}
 	if err == nil && len(files) > 0 {

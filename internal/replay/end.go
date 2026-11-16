@@ -169,8 +169,8 @@ func (p Projection) endedSoFar(ev event.Event, ended map[string]string) []string
 func (p Projection) EndedRefusal(g string) string { return endedText(g, p.Ends[g]) }
 
 func endedText(g string, e End) string {
-	return fmt.Sprintf("%s is ended, by %s in answer %s: %q; nothing more is written under an ended Goal, and a new Goal may cite it",
-		event.DisplayID(event.KindGoal, g), e.Actor, e.Event, e.Text)
+	return fmt.Sprintf("%s is ended, by %s in answer %s: \"%s\"; nothing more is written under an ended Goal, and a new Goal may cite it",
+		event.DisplayID(event.KindGoal, g), e.Actor, e.Event, event.OneLine(e.Text))
 }
 
 // admitEnded is the first rule of every admission: a write whose node id

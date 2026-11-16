@@ -28,22 +28,22 @@ func markdownGoal(p replay.Projection, gs replay.GoalStatus) string {
 	r := renderer{p: p}
 	var b strings.Builder
 	g := p.Nodes[gs.GoalID]
-	fmt.Fprintf(&b, "# %s %s — %s\n", r.id(g.ID), g.Title, gs.Status)
+	fmt.Fprintf(&b, "# %s %s — %s\n", r.id(g.ID), Text(g.Title), gs.Status)
 	if g.Body != "" {
-		fmt.Fprintf(&b, "\n%s\n", g.Body)
+		fmt.Fprintf(&b, "\n%s\n", Text(g.Body))
 	}
 	var dq func(id string, level int)
 	dq = func(id string, level int) {
 		n := p.Nodes[id]
-		fmt.Fprintf(&b, "\n%s %s %s — %s\n", strings.Repeat("#", min(level, 6)), r.id(id), n.Title, statusText(r, p, id, false))
+		fmt.Fprintf(&b, "\n%s %s %s — %s\n", strings.Repeat("#", min(level, 6)), r.id(id), Text(n.Title), statusText(r, p, id, false))
 		if n.Body != "" {
-			fmt.Fprintf(&b, "\n%s\n", n.Body)
+			fmt.Fprintf(&b, "\n%s\n", Text(n.Body))
 		}
 		hyp := p.SelectedHyp(id)
 		if hyp != "" {
 			fmt.Fprintf(&b, "\nSelected: %s\n", r.id(hyp))
 			if body := p.Nodes[hyp].Body; body != "" {
-				fmt.Fprintf(&b, "Design: %s\n", body)
+				fmt.Fprintf(&b, "Design: %s\n", Text(body))
 			}
 		}
 		if ls := p.LimitsOf(id); len(ls) > 0 {
@@ -58,7 +58,7 @@ func markdownGoal(p replay.Projection, gs replay.GoalStatus) string {
 		// one sits under the question and gives no verdict (ADR 0018).
 		exp := func(c, indent string) {
 			cn := p.Nodes[c]
-			fmt.Fprintf(&b, "%s- %s %s — %s (recipe %s, %s)\n", indent, r.id(c), cn.Title, p.Exps[c].Status, cn.Recipe, p.Exps[c].Shape)
+			fmt.Fprintf(&b, "%s- %s %s — %s (recipe %s, %s)\n", indent, r.id(c), Text(cn.Title), p.Exps[c].Status, cn.Recipe, p.Exps[c].Shape)
 			for _, res := range cn.Children {
 				rr := resOf(p, res)
 				flag := ""
@@ -72,7 +72,7 @@ func markdownGoal(p replay.Projection, gs replay.GoalStatus) string {
 				if verdicts != "" {
 					verdicts += ":"
 				}
-				fmt.Fprintf(&b, "%s  - %s %s %s %s%s\n", indent, r.id(res), rr.Status, verdicts, p.Nodes[res].Observation, flag)
+				fmt.Fprintf(&b, "%s  - %s %s %s %s%s\n", indent, r.id(res), rr.Status, verdicts, Text(p.Nodes[res].Observation), flag)
 			}
 		}
 		for _, h := range n.Children {

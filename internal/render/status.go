@@ -632,13 +632,9 @@ func goalsTable(p replay.Projection) []line {
 // prints whole, on one line. Each line break becomes a space, so a text's
 // own lines never read as a section or a field of the view, and no text is
 // cut, so a view never shows less of a title, a body or a limit than the
-// state holds. A line break is CR LF, or one of LF, CR, VT, FF, NEL, LS and
-// PS.
-func Text(s string) string {
-	return lineBreaks.Replace(s)
-}
-
-var lineBreaks = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\v", " ", "\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ")
+// state holds. The rule itself is event.OneLine, so a refusal replay writes
+// prints a stored text by the same rule.
+func Text(s string) string { return event.OneLine(s) }
 
 // Minute formats an RFC3339 timestamp as "YYYY-MM-DD HH:MM" in UTC.
 func Minute(ts string) string {

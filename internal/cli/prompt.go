@@ -147,7 +147,7 @@ func cmdPrompt(args []string, stdout, stderr io.Writer) error {
 	g := event.DisplayID(event.KindGoal, id)
 	// An ended Goal has no run: its adder ended it (ADR 0023).
 	if e, ended := r.full.EndOf(id); ended {
-		return herr.Refused("hyp prompt %s: the Goal is ended, by %s in answer %s: %q; an ended Goal has no run", g, e.Actor, e.Event, e.Text)
+		return herr.Refused("hyp prompt %s: the Goal is ended, by %s in answer %s: \"%s\"; an ended Goal has no run", g, e.Actor, e.Event, render.Text(e.Text))
 	}
 	block, problems, _ := constraintsBlock(n.Body)
 	if len(problems) > 0 {

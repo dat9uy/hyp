@@ -137,3 +137,58 @@ func TestStopSentenceIsWrittenOnce(t *testing.T) {
 		t.Fatalf("prompt quotes %q (exit %d), want the sentence status prints", m, prompt.code)
 	}
 }
+
+// An ended Goal's text prints in one form wherever hyp prints it: status,
+// the prompt refusal, and the refusal of a write under the Goal.
+func TestEndTextPrintsOneWay(t *testing.T) {
+	promptStore(t)
+	g := goalWithBody(t, "o", "Builds.\n"+promptBlock+"\n")
+	q := must(t, "add", "dq", "--parent", g, "--title", "Q", "--why", "ask")
+	must(t, "answer", "--end", g+"=first line\nsecond \"quoted\" line", "--actor", "o")
+	text := `first line second "quoted" line`
+	want(t, hyp(t, "status", g), 0, ": "+text+"\n")
+	want(t, hyp(t, "prompt", g, "--actor", "r"), 1, `: "`+text+`"; an ended Goal has no run`)
+	want(t, hyp(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w"), 1, `: "`+text+`"; nothing more is written`)
+}
+
+// hyp show prints a reading's answer, and an earlier answer, whole on one
+// line, as its history line prints the same answer.
+func TestShowPrintsReadingAnswerOnOneLine(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--why", "w")
+	r := judge(t, h, "supports", "--reading", "a line")
+	must(t, "answer", "--answer", r+"#r1=line one\nline two", "--actor", "o")
+	must(t, "answer", "--answer", r+"#r1=line three\nline four", "--actor", "o")
+	out := hyp(t, "show", r)
+	want(t, out, 0, `answer: "line three line four" — a line`+"\n")
+	want(t, out, 0, `  earlier answer: "line one line two" (`)
+	if strings.Contains(out.stdout, `\n`) {
+		t.Fatalf("show prints an escaped line break:\n%s", out.stdout)
+	}
+}
+
+// hyp render --markdown prints a stored text on one line too, so a line of
+// an observation never reads as a heading.
+func TestMarkdownPrintsStoredTextOnOneLine(t *testing.T) {
+	_, _, q := setup(t)
+	h := must(t, "add", "hyp", "--parent", q, "--title", "H", "--body", "a body\n## BODY HEADING", "--why", "w")
+	e := must(t, "add", "exp", "--parent", h, "--title", "E", "--recipe", "none", "--decided-by", "reading", "--target", "none", "--why", "w")
+	must(t, "record", "--exp", e, "--verdict", h+"=supports", "--observation", "obs one\n## FAKE HEADING", "--why", "w")
+	out := hyp(t, "render", "--markdown")
+	want(t, out, 0, "obs one ## FAKE HEADING")
+	for _, l := range strings.Split(out.stdout, "\n") {
+		if l == "## FAKE HEADING" || l == "## BODY HEADING" {
+			t.Fatalf("markdown prints a stored text's line as a heading:\n%s", out.stdout)
+		}
+	}
+}
+
+// hyp add goal echoes each line on one line of its output.
+func TestAddGoalEchoesALineOnOneLine(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	t.Setenv("HYP_ACTOR", "a")
+	must(t, "init")
+	out := hyp(t, "add", "goal", "--title", "G", "--why", "w", "--line", "[P] first\nsecond")
+	want(t, out, 0, "#1: [P] first second\n")
+}

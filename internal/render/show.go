@@ -321,7 +321,7 @@ func readingLines(r renderer, l replay.Reading) []string {
 		if n := len(l.Answers); n > 1 {
 			revised = ", revised by " + answerBy(l.Answers[n-1])
 		}
-		state = fmt.Sprintf("closed by %s%s, answer: %q", answerBy(l.Answers[0]), revised, l.Answer)
+		state = fmt.Sprintf("closed by %s%s, answer: \"%s\"", answerBy(l.Answers[0]), revised, Text(l.Answer))
 	}
 	out := []string{fmt.Sprintf("reading %s%s %s — %s", r.limitLabel(l.Result, l.Key), r.of(l), state, Text(l.Text))}
 	for _, a := range l.Answers[:max(len(l.Answers)-1, 0)] {
@@ -329,7 +329,7 @@ func readingLines(r renderer, l replay.Reading) []string {
 		if a.Applied != "" {
 			applied = ", applied by " + r.id(a.Applied)
 		}
-		out = append(out, fmt.Sprintf("  earlier answer: %q (%s%s)", a.Text, answerBy(a), applied))
+		out = append(out, fmt.Sprintf("  earlier answer: \"%s\" (%s%s)", Text(a.Text), answerBy(a), applied))
 	}
 	return out
 }

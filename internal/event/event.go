@@ -630,3 +630,11 @@ func (r *ReadingItem) UnmarshalJSON(b []byte) error {
 	*r = ReadingItem(p)
 	return nil
 }
+
+// OneLine is a stored text whole on one line: each line break becomes a
+// space. A line break is CR LF, or one of LF, CR, VT, FF, NEL, LS and PS.
+// It is the rule of render.Text, the one text policy of every view, and a
+// refusal that prints a stored text reads it too.
+func OneLine(s string) string { return lineBreaks.Replace(s) }
+
+var lineBreaks = strings.NewReplacer("\r\n", " ", "\n", " ", "\r", " ", "\v", " ", "\f", " ", "\u0085", " ", "\u2028", " ", "\u2029", " ")
