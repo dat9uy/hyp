@@ -1,0 +1,44 @@
+=== RUN   TestStatusAndShowAgreeOnSeparation
+    ledger_view_test.go:32: exit 0 (want 0), stdout "GOAL G-1A5N95 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\n  Q-026T9J open/supported_unselected Q\n    candidates (3): H-S29GRQ, H-XQCZ1B, H-E212MR (trade-off)\n    H-S29GRQ supported A\n      E-TC6W50 run [one-rival]\n    H-XQCZ1B supported B\n      E-MS7664 run [one-rival]\n    H-E212MR supported C\n      E-BRQJJJ run [one-rival]\nSTALE\nOWED\n  runner owes nothing: stop and report to the owner\nAWAITING OWNER\n  Q-026T9J choose: H-S29GRQ, H-XQCZ1B, H-E212MR\nRECENT\n  2026-11-15 16:23 a result.record R-8TA6V0 — w\n  2026-11-15 16:23 a result.record R-Y1438J — w\n  2026-11-15 16:23 a result.record R-JRNMS1 — w\n  2026-11-15 16:23 a result.record R-N9NYGT — w\nCHECKPOINT none\n", stderr "" (want "  Q-026T9J choose: H-S29GRQ, H-XQCZ1B, H-E212MR (no Result separates H-S29GRQ and H-E212MR; H-XQCZ1B and H-E212MR)\n")
+--- FAIL: TestStatusAndShowAgreeOnSeparation (0.06s)
+=== RUN   TestStatusAssumesOnlyAPremise
+    ledger_view_test.go:48: status prints a premise the ledger does not hold:
+        GOAL G-F1Q6FM G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 1)
+        FRONTIER
+          Q-TF11EM open/supported_unselected Q
+            candidates (2): H-EV19HD, H-ZDBAE2 (trade-off)
+            assumes H-ZDBAE2 supported — by H-EV19HD
+            H-EV19HD supported STALE A
+              E-TM49A2 run [one-rival]
+            H-ZDBAE2 supported B
+              E-1PQKVG run [one-rival]
+        STALE
+          H-EV19HD stale ← H-ZDBAE2 changed_since_basis
+        OWED
+          runner owes nothing: stop and report to the owner
+        AWAITING OWNER
+          Q-TF11EM choose: H-EV19HD, H-ZDBAE2 (no Result separates them)
+        RECENT
+          2026-11-15 16:23 a result.record R-EHB2S7 — w
+          2026-11-15 16:23 a result.record R-QHAG9M — w
+          2026-11-15 16:23 a edge.add H-EV19HD — w
+        CHECKPOINT none
+--- FAIL: TestStatusAssumesOnlyAPremise (0.02s)
+=== RUN   TestRefusalNamesTheItemAsOwedDoes
+    ledger_view_test.go:62: exit 1 (want 1), stdout "", stderr "refused: Q-8AKSVZ owes the runner first: undecided H-NE71VW\n" (want "refused: Q-8AKSVZ owes the runner first: decide H-NE71VW, inconclusive with no planned Experiment\n")
+--- FAIL: TestRefusalNamesTheItemAsOwedDoes (0.02s)
+=== RUN   TestRefusalNamesTheWaitAsStatusDoes
+    ledger_view_test.go:76: exit 1 (want 1), stdout "", stderr "refused: open reading R-SE1AKY#r1 waits for the owner; it holds Q-HYJFC3's decision\n" (want "refused: Q-HYJFC3 waits on open reading R-SE1AKY#r1 for the owner; it holds Q-HYJFC3's decision\n")
+--- FAIL: TestRefusalNamesTheWaitAsStatusDoes (0.02s)
+=== RUN   TestStatusPrintsTitleWhole
+    ledger_view_test.go:85: exit 0 (want 0), stdout "GOAL G-HD49B9 G — in_progress (answered 0, open 1, reopened 0, deferred 0, withdrawn 0, stale 0)\nFRONTIER\n  Q-GFACC8 open/untested Q\n    H-1ZK7N3 proposed abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghi…\nSTALE\nOWED\n  runner: Q-GFACC8 test H-1ZK7N3\nAWAITING OWNER\nRECENT\nCHECKPOINT none\n", stderr "" (want " abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij END-OF-TITLE\n")
+--- FAIL: TestStatusPrintsTitleWhole (0.01s)
+=== RUN   TestShowPrintsBodyOnOneLine
+    ledger_view_test.go:94: exit 0 (want 0), stdout "Hypothesis H-7ADA84\ntitle: H\nbody: the design\nstatus: complete\npath: G-MCWZBH > Q-M79Y5E > H-7ADA84\nstatus: proposed\nhistory:\n  2026-11-15 16:23 a node.add H-7ADA84 — w\n", stderr "" (want "body: the design status: complete\n")
+--- FAIL: TestShowPrintsBodyOnOneLine (0.01s)
+=== RUN   TestStopSentenceIsWrittenOnce
+    ledger_view_test.go:125: the stop sentence is spelled in 2 Go files, want 1: [internal/cli/prompt.go internal/render/status.go]
+--- FAIL: TestStopSentenceIsWrittenOnce (0.01s)
+FAIL
+FAIL	github.com/dat9uy/hyp/internal/cli	0.483s
+FAIL
