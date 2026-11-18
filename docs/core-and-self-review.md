@@ -34,16 +34,7 @@ The self-review recipes kept before the public release (session-replay, scratch-
 
 When a question needs an instrument, it is a recipe with known answers that measures, and a rubric in `rubrics/` that turns its measures into verdicts, both pinned by the Experiments that use them (ADR 0018). A new self-review recipe gets a row here, with its visibility.
 
-| Item | Why it is self-review | Visibility |
-|---|---|---|
-| `recipes/id-citation-arms@1` | a recipe this repository keeps to test hyp: it runs the id-citation rule prototypes on a frozen fixture store for `investigations/id-citation`; it is no replay instrument | public |
-| `recipes/id-citation-arms@2` | a recipe this repository keeps to test hyp: version 1's cases and verdict, with every Arm built in Launch from the sandbox base or the base plus one patch from `investigations/id-citation/arms/`, and the fixture carried in the bundle; it is no replay instrument | public |
-| `investigations/id-citation/arms/` | an input only self-review recipes use: the id-citation Arms as patches over a main commit (`today`, `text-warn`, `cite`; `text-refuse` is the base), which `id-citation-arms@2` takes as `--patch` | public |
-| `recipes/authoring-stops@2` | a recipe this repository keeps to test hyp: it probes whether each stop an author meets while turning a method into an instrument is still live; the tree that pinned it is not published | public |
-| `recipes/recipe-authoring-arms@4` | a recipe this repository keeps to test hyp: a sonnet runner turns the id-citation method into an instrument on two hyp arms; it runs live runners, it does not replay a session; the tree that pinned it is not published | public |
-| `recipes/recipe-base-arms@1` | a recipe this repository keeps to test hyp: a sonnet runner builds a held-out instrument from the skill-text gate method in its bundle on three hyp arms (template only, a coarse base, fine bases), for `investigations/recipe-base`; copied by hand from a version of `recipe-authoring-arms` (its `recipe.md` names it by hash), because `--from` copies the same name only: the one bootstrap exception to starting from a base, had a base shipped (ADR 0009) | public |
-| `investigations/goal-prompt/recipes/hyp-owner-grill-eval@1` | a recipe this repository keeps to test hyp: it replays the hyp-owner-grill skill on two pinned fixture issues with a Sonnet stand-in owner, scores each trial's Goal and cost for `investigations/goal-prompt`, and grades the rest with ak-skill-creator's eval_skill.py and a blind reviewer; its Drive let the grill read the eval, so version 2 replaced it | public |
-| `investigations/goal-prompt/recipes/hyp-owner-grill-eval@2` | a recipe this repository keeps to test hyp: version 1 with the grill denied reads of the sandbox's recipe copy, inputs and session transcripts | public |
+The self-review recipes and trees of hyp 0.1.0 are kept on the `v1` branch, not on `main`: `recipes/id-citation-arms@1` and `@2` with `investigations/id-citation`, `recipes/authoring-stops@2`, `recipes/recipe-authoring-arms@4`, `recipes/recipe-base-arms@1` with `investigations/recipe-base`, and `investigations/goal-prompt` with its `hyp-owner-grill-eval@1` and `@2`. This file on that branch maps each one to its scope and visibility.
 
 ## Core
 
@@ -51,9 +42,9 @@ Every item is core: `cmd/`, `internal/`, `go.mod`, `go.sum`, the skills, and the
 
 A new tree under `investigations/` that asks about hyp takes its question's scope, as the test above says. A tree that asks about a self-review recipe itself is the special case under rule 3, and its reason is instrument trust.
 
-`investigations/recipe-base` asks whether hyp should embed recipe bases, so it is core-scope work. Its Result R-H5H95P selected templates only (ADR 0009), so the base candidates it tested were not shipped. `investigations/recipe-base/arms.txt` names the prototype branch they were built on, which stays in the private development history.
+`investigations/recipe-base`, on the `v1` branch, asks whether hyp should embed recipe bases, so it is core-scope work. Its Result R-H5H95P selected templates only (ADR 0009), so the base candidates it tested were not shipped. `investigations/recipe-base/arms.txt` names the prototype branch they were built on, which stays in the private development history.
 
-`investigations/checkpoint-store-design` and `investigations/checkpoint-store` share one question, hyp's shared store, so both are core-scope work. The first is a discovery Goal, G-73R704, that records the design (ADR 0020); the second is the build Goal that implements it, G-D1CH1R, whose Hypotheses are hyp commits. Neither pins a recipe.
+`investigations/checkpoint-store-design` and `investigations/checkpoint-store`, on the `v1` branch, share one question, hyp's shared store, so both are core-scope work. The first is a discovery Goal, G-73R704, that records the design (ADR 0020); the second is the build Goal that implements it, G-D1CH1R, whose Hypotheses are hyp commits. Neither pins a recipe.
 
 ## Self-review words
 

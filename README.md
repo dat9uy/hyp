@@ -182,7 +182,7 @@ Each item stays owed until an event settles it:
 
 ## Examples
 
-hyp's own design is decided and built this way. Both trees below are in this repository; run `hyp status` in their directory to see the same output.
+hyp's own design is decided and built this way. Both trees below were recorded with hyp 0.1.0 and are kept on the `v1` branch; check out that branch and run `hyp status` in their directory to see the same output.
 
 ### A discovery Goal
 
@@ -295,11 +295,11 @@ To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-h
 
 ## What is in this repository
 
-What you install is **core**: the binary (`cmd/`, `internal/`), the skills (`skills/`) and the docs (`docs/`). The **self-review** recipes this repository keeps to test hyp, and the trees in which parts of hyp's own design were decided and built, are kept under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
+What you install is **core**: the binary (`cmd/`, `internal/`), the skills (`skills/`) and the docs (`docs/`). The **self-review** recipes that tested hyp 0.1.0, and the trees in which parts of hyp's own design were decided and built, are kept on the `v1` branch, under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
 
 ## Status
 
-hyp is experimental (version 0.1.0, event format v1). One author builds and tests it. Claude Code is the only harness it has been verified on; Codex and pi are untested. The evidence that it works is the trees under `investigations/`, each a recorded investigation with its verdicts and owner choices. Records made before the public release stay in the private development history. hyp itself changes only when a real investigation shows a failure. A change to the binary or the skills is then a build Goal like any other.
+hyp is experimental (version 0.1.0, event format v1). One author builds and tests it. Claude Code is the only harness it has been verified on; Codex and pi are untested. The evidence that it works is the trees under `investigations/` on the `v1` branch, each a recorded investigation with its verdicts and owner choices. Records made before the public release stay in the private development history. hyp itself changes only when a real investigation shows a failure. A change to the binary or the skills is then a build Goal like any other.
 
 ## Contributing
 

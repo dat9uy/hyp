@@ -1,7 +1,0 @@
-checkpoint-store-design: exit 0, prints as before; a second import adds nothing
-checkpoint-store: exit 0, prints as before; a second import adds nothing
-goal-prompt: exit 0, prints as before; a second import adds nothing
-id-citation: exit 0, prints as before; a second import adds nothing
-reading-hold: exit 0, prints as before; a second import adds nothing
-recipe-base: exit 0, prints as before; a second import adds nothing
-record: exit 0, prints as before; a second import adds nothing
