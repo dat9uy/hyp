@@ -23,7 +23,9 @@ with the common `tree` utility and shell aliases.
 
 ### Copy the skills into the project
 
-From your project's root, with a clone (or download) of hyp at `<hyp>`:
+The skills of hyp 0.1.0 are kept on the `v1` branch; `main` has none while hyp
+moves to events v2. From your project's root, with a checkout of the `v1`
+branch at `<hyp>`:
 
 ```bash
 mkdir -p .claude/skills
@@ -68,7 +70,8 @@ commit it was built from; a `go install` build does not.
 
 ### Link the skills globally
 
-Run from this repository's root. Claude Code:
+Run from the root of a checkout of the `v1` branch, which keeps the skills of
+hyp 0.1.0. Claude Code:
 
 ```bash
 mkdir -p ~/.claude/skills

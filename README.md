@@ -144,7 +144,7 @@ hyp keeps the rounds, the frontier, the recommended answers and the split betwee
 | The session is done when the user and the agent agree. | **Done when the tree is complete.** Each question has its place in the tree, and nothing stays that only the owner can answer. |
 | The same session acts on the result. | **A separate run, then the owner's answers.** `hyp prompt` prints the `/goal` prompt for a new session. A stopped run leaves its questions under AWAITING OWNER for the owner. |
 
-The flow has three skills. They run in Claude Code, whose `/goal` command keeps a session in operation until its condition is true.
+The flow has three skills, kept on the `v1` branch. They run in Claude Code, whose `/goal` command keeps a session in operation until its condition is true.
 
 1. **`/hyp-owner-grill`** asks the owner about the purpose until it is a Goal that a run can complete. It ends with the `/goal` prompt that `hyp prompt <G-id> --actor <runner>` prints from the Goal: the tree, the actor, the stop clauses and the constraints block at the end of the Goal body.
 2. **`/goal <that prompt>`** runs the Goal with the `hyp-goal-run` skill. The run does only the items that OWED shows for it. It tests before it asks. It stops with a report that the owner can read in `hyp status`.
@@ -253,7 +253,7 @@ go install github.com/dat9uy/hyp/cmd/hyp@latest
 hyp version
 ```
 
-**2. Copy the skills into your project** and commit them, so every session in the project loads them. From your project's root, with a clone (or download) of hyp at `<hyp>`:
+**2. Copy the skills into your project** and commit them, so every session in the project loads them. The skills of hyp 0.1.0 are kept on the `v1` branch. From your project's root, with a checkout of that branch at `<hyp>`:
 
 ```bash
 mkdir -p .claude/skills
@@ -287,7 +287,7 @@ hyp add goal --title "<the outcome>" --actor <your-name> --why "<who needs it>" 
 
 Your answers later are `hyp answer` events under the same name, for example `hyp answer --answer "R-…#r1=<your words>"`.
 
-From there the [hyp-prototype skill](skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. When `hyp status` lists something under AWAITING OWNER, it is yours to answer. [example.sh](skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
+From there the [hyp-prototype skill](https://github.com/dat9uy/hyp/blob/v1/skills/hyp-prototype/SKILL.md) guides the next rounds: experiments, verdicts, selects and checks. When `hyp status` lists something under AWAITING OWNER, it is yours to answer. [example.sh](https://github.com/dat9uy/hyp/blob/v1/skills/hyp-prototype/example.sh) runs a complete investigation in a throwaway directory.
 
 To run a Goal unattended, use the owner flow (refer to "An owner flow for unattended runs" above).
 
@@ -295,7 +295,7 @@ To work on hyp itself, see [install.md, "Develop hyp"](docs/install.md#develop-h
 
 ## What is in this repository
 
-What you install is **core**: the binary (`cmd/`, `internal/`), the skills (`skills/`) and the docs (`docs/`). The **self-review** recipes that tested hyp 0.1.0, and the trees in which parts of hyp's own design were decided and built, are kept on the `v1` branch, under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
+What you install is **core**: the binary (`cmd/`, `internal/`), the skills and the docs (`docs/`). The skills of hyp 0.1.0 are kept on the `v1` branch, under `skills/`. The **self-review** recipes that tested hyp 0.1.0, and the trees in which parts of hyp's own design were decided and built, are kept on the `v1` branch, under `recipes/` and `investigations/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps every item to its scope.
 
 ## Status
 
