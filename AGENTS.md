@@ -5,11 +5,11 @@ This file is for any agent or person who changes hyp. It says how the repository
 ## What this repository holds
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores an investigation as append-only events under `.tree/` and derives every status from them.
-- **Five skills**: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses), `skills/hyp-verification` (run one Experiment from a recipe), and the owner flow: `skills/hyp-owner-grill` (grill the owner into a Goal), `skills/hyp-goal-run` (run a Goal as an unattended `/goal`, whose prompt `hyp prompt` prints) and `skills/hyp-owner-answer` (answer what a stopped run left for the owner).
+- **No skills on `main`** while hyp moves to events v2. The five skills of hyp 0.1.0 are kept on the `v1` branch: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses), `skills/hyp-verification` (run one Experiment from a recipe), and the owner flow: `skills/hyp-owner-grill` (grill the owner into a Goal), `skills/hyp-goal-run` (run a Goal as an unattended `/goal`, whose prompt `hyp prompt` prints) and `skills/hyp-owner-answer` (answer what a stopped run left for the owner).
 - **Docs** in `docs/`: the rules in [replay-spec.md](docs/replay-spec.md) and [sandbox-spec.md](docs/sandbox-spec.md), the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), the loop's guards in [how-hyp-improves-itself.md](docs/how-hyp-improves-itself.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
 - **Test data** under `internal/*/testdata`, such as the synthetic store in `internal/testutil/testdata/synth`. The recipes and trees that tested hyp 0.1.0, and the trees that decided and built its shared store (ADR 0020), are kept on the `v1` branch, not on `main`. Records made before the public release stay in the private development history.
 
-Install the binary and link the skills as [install.md](docs/install.md) describes.
+Install the binary as [install.md](docs/install.md) describes. To use the skills of hyp 0.1.0, link them from a checkout of the `v1` branch.
 
 ## Two scopes, and why
 
@@ -39,8 +39,8 @@ hyp is changed the way it asks its users to decide things: with a tree of rival 
 
 1. **A real event points at hyp.** In a real run the ledger shows an item that does not settle, a refusal or warning fires, `hyp signals` reports a design mark (one-rival or D1), or the owner flags a round. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
-3. **A tree holds the question.** A new Goal goes in the store that holds the Goal it continues; otherwise run `hyp init` in a new `investigations/<topic>/`. Add the goal, the design question and its Hypotheses (two rivals only when a scenario separates them on a line; otherwise one, with the base as its rival), and pre-register each Experiment's rubric before running it: a pinned rubric bundle, or prose in its body. The [hyp-prototype skill](skills/hyp-prototype/SKILL.md) describes each step.
-4. **Experiments run from a pinned, versioned recipe.** The [hyp-verification skill](skills/hyp-verification/SKILL.md) and [RECIPE-FORMAT.md](skills/hyp-verification/RECIPE-FORMAT.md) describe Launch, Doctor, Drive, Evidence and Cleanup. hyp admits a select only when the ledger owes it; the owner decides trade-offs.
+3. **A tree holds the question.** A new Goal goes in the store that holds the Goal it continues; otherwise run `hyp init` in a new `investigations/<topic>/`. Add the goal, the design question and its Hypotheses (two rivals only when a scenario separates them on a line; otherwise one, with the base as its rival), and pre-register each Experiment's rubric before running it: a pinned rubric bundle, or prose in its body. The [hyp-prototype skill](https://github.com/dat9uy/hyp/blob/v1/skills/hyp-prototype/SKILL.md), on the `v1` branch, describes each step.
+4. **Experiments run from a pinned, versioned recipe.** The [hyp-verification skill](https://github.com/dat9uy/hyp/blob/v1/skills/hyp-verification/SKILL.md) and [RECIPE-FORMAT.md](https://github.com/dat9uy/hyp/blob/v1/skills/hyp-verification/RECIPE-FORMAT.md), on the `v1` branch, describe Launch, Doctor, Drive, Evidence and Cleanup. hyp admits a select only when the ledger owes it; the owner decides trade-offs.
 5. **The change passes its gate.**
    - A failure that can be detected from the tree goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.
    - A change to `skills/`, a new skill included, is a build Goal like any code change: its lines, its own test or an instrument the Goal builds, red on base, and the select. How a skill is tested is that Goal's choice.
@@ -74,4 +74,4 @@ go vet ./...
 go test ./... -count=1
 ```
 
-There is no CI; these commands are the only gate. `go test` includes skillcheck, which fails when a file under `skills/` names a `hyp` command that does not exist. Core tests read only the synthetic data under `internal/*/testdata`; [core-and-self-review.md](docs/core-and-self-review.md), section "Where the scopes touch", lists them.
+There is no CI; these commands are the only gate. `go test` includes skillcheck, which fails when a file under `skills/` names a `hyp` command that does not exist. It skips while `skills/` is empty. Core tests read only the synthetic data under `internal/*/testdata`; [core-and-self-review.md](docs/core-and-self-review.md), section "Where the scopes touch", lists them.

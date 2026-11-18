@@ -38,7 +38,7 @@ The self-review recipes and trees of hyp 0.1.0 are kept on the `v1` branch, not 
 
 ## Core
 
-Every item is core: `cmd/`, `internal/`, `go.mod`, `go.sum`, the skills, and the docs in this directory, the specs [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md) among them. The test data under `internal/*/testdata` is core too: synthetic stores and bundles written by hyp for its own tests, such as the store in `internal/testutil/testdata/synth` and its `generate.sh` (that store is history from before ADR 0015, which a current hyp still replays).
+Every item is core: `cmd/`, `internal/`, `go.mod`, `go.sum`, the skills (kept on the `v1` branch while hyp moves to events v2), and the docs in this directory, the specs [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md) among them. The test data under `internal/*/testdata` is core too: synthetic stores and bundles written by hyp for its own tests, such as the store in `internal/testutil/testdata/synth` and its `generate.sh` (that store is history from before ADR 0015, which a current hyp still replays).
 
 A new tree under `investigations/` that asks about hyp takes its question's scope, as the test above says. A tree that asks about a self-review recipe itself is the special case under rule 3, and its reason is instrument trust.
 
@@ -63,7 +63,7 @@ A word a self-review recipe uses is a name for core concepts. A new self-review 
 
 **Self-review text inside core docs.** The core part of each passage is the general rule; the self-review part is session-replay's versions and history.
 
-- `skills/hyp-verification/RECIPE-FORMAT.md`: the examples that name scratch-pg teach core rules with a recipe this repository no longer keeps, which is a choice of example rather than a split. The stacking example names a generic `harness@1`.
+- `skills/hyp-verification/RECIPE-FORMAT.md`, on the `v1` branch: the examples that name scratch-pg teach core rules with a recipe this repository no longer keeps, which is a choice of example rather than a split. The stacking example names a generic `harness@1`.
 - [sandbox-spec.md](sandbox-spec.md) §5.2 records choices made in design trees that are core-scope, so that is ordinary provenance.
 - [how-hyp-improves-itself.md](how-hyp-improves-itself.md), "Guard the loop while it runs, not before", describes the tripwire that stops a run; the session-replay recipe whose `tripwire.py` built it stays in the private development history.
 
