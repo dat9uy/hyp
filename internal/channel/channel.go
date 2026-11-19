@@ -78,6 +78,13 @@ commands:
                                          goals/G/LINE/EXAMPLE on a line of Goal G
   run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
                                          Goal G on COMMIT and record the Result
+  try G LINE/EXAMPLE [--worktree]        run the example folder goals/G/LINE/EXAMPLE
+                                         as it is on disk, on H0, or with
+                                         --worktree on this checkout's files
+                                         with what is not committed, and print
+                                         its output, stderr, exit code and
+                                         verdict as place and run would record
+                                         them; records nothing and uses no run
   select G TREE [--why TEXT]             select the candidate row TREE of Goal G;
                                          the report is the PR body
   status [G] [--role ROLE]               print the state of every Goal, or of G:
@@ -96,7 +103,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "place", "prune", "run", "select", "show", "status", "version"}
+var commands = []string{"add", "help", "place", "prune", "run", "select", "show", "status", "try", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -190,6 +197,8 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return selectCmd(c, args[1:], stdout, stderr)
 	case "status":
 		return statusCmd(c, args[1:], stdout)
+	case "try":
+		return tryCmd(c, args[1:], stdout, stderr)
 	case "show":
 		return showCmd(c, args[1:], stdout)
 	case "prune":
@@ -438,6 +447,28 @@ func statusCmd(c *call, args []string, stdout io.Writer) error {
 	}
 	fmt.Fprint(stdout, block)
 	return nil
+}
+
+// tryCmd runs one example as place and run would, and records nothing. It
+// is a read: it needs an actor, whose trace it leaves, checks no guard, and
+// prints its report and the Goal's state block.
+func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("try", flag.ContinueOnError)
+	var o acts.TryOpts
+	fs.BoolVar(&o.Worktree, "worktree", false, "")
+	positional, role, err := readFlagsWith(c, "try", args, fs)
+	if err != nil {
+		return err
+	}
+	if len(positional) != 2 {
+		return fault.BadArg(codeTryArgs, len(positional))
+	}
+	o.Goal, o.Key, o.Dir = positional[0], positional[1], c.dir
+	rep, err := acts.Try(o)
+	if err != nil {
+		return finishWith(stdout, stderr, c.dir, BlockOpts{Goal: o.Goal, Role: role}, "", err)
+	}
+	return finishWith(stdout, stderr, c.dir, BlockOpts{Goal: rep.Goal, Role: role}, tryText(rep), nil)
 }
 
 func showCmd(c *call, args []string, stdout io.Writer) error {

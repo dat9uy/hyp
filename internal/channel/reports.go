@@ -48,15 +48,37 @@ func runText(rep acts.RunReport) string {
 	return b.String()
 }
 
+// tryText is the report of try: where the example ran, that nothing was
+// recorded, the example folder as it is on disk, then its verdict, exit code,
+// output and stderr as the cell place or run would record holds them, each
+// output under the name it would have in .tree/outputs.
+func tryText(rep acts.TryReport) string {
+	var b strings.Builder
+	on := "H0 " + rep.Commit
+	if rep.Worktree {
+		on = "this checkout's files: HEAD " + rep.Commit + " and every change not committed"
+	}
+	fmt.Fprintf(&b, "tried %s %s on %s\n", rep.ID, rep.Key, on)
+	b.WriteString("nothing is recorded: no event, no output file, no run of the budget\n")
+	fmt.Fprintf(&b, "example: %s as it is on disk, hash %s, probe %s\n", rep.Folder, rep.Hash, or(rep.ProbeHash, "(none)"))
+	fmt.Fprintf(&b, "words: %s\n", rep.Words)
+	fmt.Fprintf(&b, "verdict: %s, exit %d\n", rep.Verdict, rep.Out.Exit)
+	writeBlock(&b, "output "+rep.OutHash, rep.Out.Stdout, int64(len(rep.Out.Stdout)))
+	writeBlock(&b, "stderr "+rep.ErrHash, rep.Out.Stderr, int64(len(rep.Out.Stderr)))
+	return b.String()
+}
+
+// or is v, or placeholder when v is empty.
+func or(v, placeholder string) string {
+	if v == "" {
+		return placeholder
+	}
+	return v
+}
+
 // readyText is an allowed act as the command line its role runs. A key hyp
 // cannot know prints as a placeholder in angle brackets.
 func readyText(r acts.Ready) string {
-	or := func(v, placeholder string) string {
-		if v == "" {
-			return placeholder
-		}
-		return v
-	}
 	switch r.Act {
 	case acts.ActAddGoal:
 		return "hyp add goal " + r.Goal + " --base <commit> --words <words> --line <kind>:<text>"

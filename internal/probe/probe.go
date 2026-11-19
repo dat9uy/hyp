@@ -23,11 +23,17 @@ import (
 const DefaultTimeout = 10 * time.Minute
 
 // Opts says what to run: the Probe of the example folder ExampleHash on the
-// subject of Commit, both read from the repository at Repo.
+// subject of Commit, both read from the repository at Repo. hyp try reads
+// either from disk instead: with ExampleDir set, the example folder is that
+// folder as it is on disk; with Worktree set, the subject is the files of
+// the checkout at Repo as a commit of every change would hold them
+// (gitread.CopyWorktree).
 type Opts struct {
 	Repo        string
 	Commit      string
 	ExampleHash string
+	ExampleDir  string
+	Worktree    bool
 	Timeout     time.Duration // zero means DefaultTimeout
 }
 
@@ -41,8 +47,9 @@ type Out struct {
 
 var exitLineRe = regexp.MustCompile(`^exit (0|[1-9][0-9]*)$`)
 
-// Run extracts the subject of o.Commit and the example folder o.ExampleHash
-// into a fresh temporary folder, runs the example's probe/run in the subject
+// Run extracts the subject of o.Commit (or copies the checkout's files) and
+// the example folder o.ExampleHash (or copies o.ExampleDir) into a fresh
+// temporary folder, runs the example's probe/run in the subject
 // with empty stdin and only PATH, HOME, the example's external names and the
 // HYP_ variables in its environment, and splits the last line "exit N" from
 // what it printed. A Probe that cannot start, exits non-zero itself, times
@@ -53,27 +60,42 @@ func Run(o Opts) (Out, error) {
 	if timeout <= 0 {
 		timeout = DefaultTimeout
 	}
+	// name is the example in a failure: its hash, or its folder on disk
+	name := o.ExampleHash
+	if o.ExampleDir != "" {
+		name = o.ExampleDir
+	}
 	tmp, err := os.MkdirTemp("", "hyp-probe-")
 	if err != nil {
-		return Out{}, fault.EnvFault(fault.ProbeTemp, o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeTemp, name, err)
 	}
 	defer os.RemoveAll(tmp)
 	subject, exampleDir := filepath.Join(tmp, "subject"), filepath.Join(tmp, "example")
 
-	if err := gitread.ExtractTree(o.Repo, o.Commit, subject); err != nil {
+	if o.Worktree {
+		err = gitread.CopyWorktree(o.Repo, subject, "goals", ".tree")
+	} else {
+		err = gitread.ExtractTree(o.Repo, o.Commit, subject)
+	}
+	if err != nil {
 		return Out{}, err
 	}
 	for _, p := range []string{"goals", ".tree"} {
 		if err := os.RemoveAll(filepath.Join(subject, p)); err != nil {
-			return Out{}, fault.EnvFault(fault.ProbeTemp, o.ExampleHash, err)
+			return Out{}, fault.EnvFault(fault.ProbeTemp, name, err)
 		}
 	}
-	if err := gitread.ExtractTree(o.Repo, o.ExampleHash, exampleDir); err != nil {
+	if o.ExampleDir != "" {
+		err = gitread.CopyDir(o.ExampleDir, exampleDir)
+	} else {
+		err = gitread.ExtractTree(o.Repo, o.ExampleHash, exampleDir)
+	}
+	if err != nil {
 		return Out{}, err
 	}
 	data, err := os.ReadFile(filepath.Join(exampleDir, "example.txtar"))
 	if err != nil {
-		return Out{}, fault.EnvFault(fault.ProbeTxtar, o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeTxtar, name, err)
 	}
 	ex, err := example.Parse(data)
 	if err != nil {
@@ -84,24 +106,24 @@ func Run(o Opts) (Out, error) {
 	for _, in := range ex.Inputs {
 		path := filepath.Join(exampleDir, "input", filepath.FromSlash(in.Path))
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			return Out{}, fault.EnvFault(fault.ProbeInput, o.ExampleHash, in.Path, err)
+			return Out{}, fault.EnvFault(fault.ProbeInput, name, in.Path, err)
 		}
 		if err := os.WriteFile(path, []byte(in.Body), 0o644); err != nil {
-			return Out{}, fault.EnvFault(fault.ProbeInput, o.ExampleHash, in.Path, err)
+			return Out{}, fault.EnvFault(fault.ProbeInput, name, in.Path, err)
 		}
 	}
 
 	env := []string{"PATH=" + os.Getenv("PATH"), "HOME=" + os.Getenv("HOME")}
-	for _, name := range ex.ExternalNames() {
-		if v, ok := os.LookupEnv(name); ok {
-			env = append(env, name+"="+v)
+	for _, ext := range ex.ExternalNames() {
+		if v, ok := os.LookupEnv(ext); ok {
+			env = append(env, ext+"="+v)
 		}
 	}
 	env = append(env, "HYP_SUBJECT="+subject, "HYP_EXAMPLE="+exampleDir, "HYP_RUN="+ex.Run)
 
 	script := filepath.Join(exampleDir, "probe", "run")
 	if fi, err := os.Stat(script); err != nil || !fi.Mode().IsRegular() {
-		return Out{}, fault.EnvFault(fault.ProbeMissing, o.ExampleHash)
+		return Out{}, fault.EnvFault(fault.ProbeMissing, name)
 	}
 	cmd := exec.Command(script)
 	cmd.Dir, cmd.Env = subject, env
@@ -111,7 +133,7 @@ func Run(o Opts) (Out, error) {
 	// A grandchild that outlives the kill must not hold the pipes open.
 	cmd.WaitDelay = 2 * time.Second
 	if err := cmd.Start(); err != nil {
-		return Out{}, fault.EnvFault(fault.ProbeStart, o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeStart, name, err)
 	}
 	pgid := cmd.Process.Pid
 	// Whatever the Probe left running dies with its process group.
@@ -125,19 +147,19 @@ func Run(o Opts) (Out, error) {
 	case <-timer.C:
 		syscall.Kill(-pgid, syscall.SIGKILL) //nolint:errcheck
 		<-done
-		return Out{}, fault.EnvFault(fault.ProbeTimeout, o.ExampleHash, timeout)
+		return Out{}, fault.EnvFault(fault.ProbeTimeout, name, timeout)
 	}
 	if err != nil {
 		var ee *exec.ExitError
 		if errors.As(err, &ee) {
-			return Out{}, fault.EnvFault(fault.ProbeExit, o.ExampleHash, ee.ExitCode(), strings.TrimSpace(stderr.String()))
+			return Out{}, fault.EnvFault(fault.ProbeExit, name, ee.ExitCode(), strings.TrimSpace(stderr.String()))
 		}
-		return Out{}, fault.EnvFault(fault.ProbeWait, o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeWait, name, err)
 	}
 
 	body, code, ok := splitExitLine(stdout.Bytes())
 	if !ok {
-		return Out{}, fault.EnvFault(fault.ProbeNoExitLine, o.ExampleHash)
+		return Out{}, fault.EnvFault(fault.ProbeNoExitLine, name)
 	}
 	return Out{Stdout: body, Stderr: stderr.Bytes(), Exit: code}, nil
 }
