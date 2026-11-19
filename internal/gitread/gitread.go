@@ -81,7 +81,7 @@ func allowed(args []string) error {
 func permits(cmd string, rest []string) bool {
 	switch cmd {
 	case "rev-parse":
-		pos, ok := split(rest, "--verify", "--show-toplevel", "--show-object-format")
+		pos, ok := split(rest, "--verify", "--show-toplevel", "--show-object-format", "--path-format=absolute", "--git-common-dir")
 		return ok && len(rest) > 0 && noDash(pos)
 	case "cat-file":
 		if len(rest) == 1 && rest[0] == "--batch" {

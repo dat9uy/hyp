@@ -1,0 +1,34 @@
+---
+title: "hyp G-3FDQC0: the trace is not the log"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: rest
+    lg1: act
+    lg2: trace
+  }
+  class lg0 teal
+  class lg1 orange
+  class lg2 purple
+  s0: No command running
+  s1: Command ended, output held back
+  s2: Act: Probes running
+  s3: Act: outputs hashed, guards checked again
+  s4: Trace recorded outside the repository
+  s5: Act: outputs written, event not yet
+  [*] --> s0
+  s0 --> s1: an agent reads, is refused, or gives a bad argument
+  s0 --> s2: an agent runs an act that runs Probes
+  s1 --> s4: hyp records what it will print, in the clone's trace folder
+  s2 --> s3: the Probes end#59; hyp hashes their outputs
+  s3 --> s1: a guard checked again refuses#59; nothing is written
+  s3 --> s5: every guard holds#59; hyp writes the outputs
+  s4 --> s0: hyp prints to the agent
+  s5 --> s1: hyp appends the act's event
+  s5 --> s0: hyp crashes before the event
+  class s0 teal
+  class s1 purple
+  class s2 orange
+  class s3 orange
+  class s4 purple
+  class s5 orange

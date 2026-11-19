@@ -63,6 +63,7 @@ func TestGitAllowsEveryReadForm(t *testing.T) {
 	for _, args := range [][]string{
 		{"rev-parse", "--show-toplevel"},
 		{"rev-parse", "--show-object-format"},
+		{"rev-parse", "--path-format=absolute", "--git-common-dir"},
 		{"rev-parse", "--verify", "HEAD^{commit}"},
 		{"rev-parse", "HEAD:goals/G/line-1"},
 		{"cat-file", "-e", "abc^{commit}"},

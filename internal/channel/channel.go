@@ -445,7 +445,11 @@ func showCmd(c *call, args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(stdout, showText(root, actor, t.Reads[actor]))
+	reads, err := readsOf(root, actor, t)
+	if err != nil {
+		return err
+	}
+	fmt.Fprint(stdout, showText(root, actor, reads))
 	return nil
 }
 

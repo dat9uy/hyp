@@ -1,15 +1,17 @@
 package channel
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"flag"
+	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -301,51 +303,71 @@ func TestRefusalEndsWithStateBlock(t *testing.T) {
 	}
 }
 
-// TestStatusWritesOnlyItsTrace: a read leaves a trace, the read event of its
-// actor and the bytes it printed, and changes nothing else: no Goal, no other
-// file of the store, no git state.
-func TestStatusWritesOnlyItsTrace(t *testing.T) {
+// TestStatusLeavesTheRepositoryUnchanged: a read changes no file of the
+// repository, the store included, and no git state. Its trace, the read event
+// of its actor and the bytes it printed, is in the clone's trace folder.
+func TestStatusLeavesTheRepositoryUnchanged(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
 	code, first, _ := run(t, "status")
 	if code != 0 || !strings.Contains(first, f.goal) {
 		t.Fatalf("status did not print the Goal: code %d, stdout %q", code, first)
 	}
-	evs, _, err := logstore.Events(f.r.Dir)
-	if err != nil {
-		t.Fatal(err)
-	}
+	files := worktreeFiles(t, f.r.Dir)
 	gitState := testutil.Snapshot(t, f.r.Dir)
+	traced := len(reads(t, f.r.Dir, os.Getenv("HYP_ACTOR")))
 	_, again, _ := run(t, "status")
 	_, one, _ := run(t, "status", f.goal)
-	after, _, err := logstore.Events(f.r.Dir)
-	if err != nil {
-		t.Fatal(err)
+	if worktreeFiles(t, f.r.Dir) != files {
+		t.Fatal("status changed a file of the repository")
 	}
-	if len(after) != len(evs)+2 {
-		t.Fatalf("%d events after two reads, want %d", len(after), len(evs)+2)
+	if testutil.Snapshot(t, f.r.Dir) != gitState {
+		t.Fatal("status changed the repository's git state")
 	}
-	for i, ev := range after {
-		if i < len(evs) {
-			if ev.ID != evs[i].ID {
-				t.Fatalf("event %d changed: %s, was %s", i, ev.ID, evs[i].ID)
-			}
-			continue
-		}
-		var p events.Read
-		if actor := os.Getenv("HYP_ACTOR"); ev.Type != events.TypeRead || ev.Actor != actor || events.Decode(ev, &p) != nil || p.Exit != 0 {
-			t.Fatalf("a read wrote %+v, want one read event of %s", ev, actor)
-		}
-		want := []string{again, one}[i-len(evs)]
-		if data, err := os.ReadFile(logstore.OutputPath(f.r.Dir, p.Stdout)); err != nil || string(data) != want {
-			t.Fatalf("the trace holds %q, the read printed %q (%v)", data, want, err)
+	got := reads(t, f.r.Dir, os.Getenv("HYP_ACTOR"))
+	if len(got) != traced+2 {
+		t.Fatalf("%d reads after two reads, want %d", len(got), traced+2)
+	}
+	for i, want := range []string{again, one} {
+		r := got[traced+i]
+		if r.Exit != 0 || stored(t, f.r.Dir, r.Stdout) != want {
+			t.Fatalf("the trace holds %q, the read printed %q", stored(t, f.r.Dir, r.Stdout), want)
 		}
 	}
 	if again != first {
 		t.Fatal("the trace of a read changed what the next read printed")
 	}
-	if testutil.Snapshot(t, f.r.Dir) != gitState {
-		t.Fatal("status changed the repository's git state")
+}
+
+// worktreeFiles hashes every path, mode and content of the worktree outside
+// .git, so a test sees any file a command wrote, changed or removed.
+func worktreeFiles(t *testing.T, dir string) string {
+	t.Helper()
+	h := sha256.New()
+	err := filepath.WalkDir(dir, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() && d.Name() == ".git" {
+			return filepath.SkipDir
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(h, "%s\x00%o\x00", p, info.Mode())
+		if info.Mode().IsRegular() {
+			b, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			h.Write(b)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func TestStatusWithoutStoreExit1(t *testing.T) {

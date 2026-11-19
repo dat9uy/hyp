@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -481,5 +482,27 @@ func TestRunWithoutStoreIsRefusal(t *testing.T) {
 	_, err := Run(RunOpts{Dir: r.Dir, Actor: "runner-1", Role: "runner", Commit: "HEAD", Line: "G-ABCDEF/line-1"})
 	if fault.KindOf(err) != fault.Refusal || fault.CodeOf(err) != fault.NoStore {
 		t.Fatalf("err = %v, want a refusal naming no store", err)
+	}
+}
+
+// TestRunRefusedAfterTheProbesStoresNoOutput: a run refused by the second
+// check, after its Probes ran, leaves no output of its own in the store.
+func TestRunRefusedAfterTheProbesStoresNoOutput(t *testing.T) {
+	e := newRunEnv(t)
+	const printed = "only this run prints me"
+	c := e.leaf(t, e.base, printed)
+	o := e.opts(c)
+	o.afterProbe = func() {
+		e.write(t, "line-1/a", counterEx+"-- ceiling --\nnever\n", markProbe)
+		e.commit(t)
+		if _, err := e.place("line-1/a"); err != nil {
+			t.Errorf("the placement that lands between the checks failed: %v", err)
+		}
+	}
+	_, err := Run(o)
+	refusedBy(t, err, "Open")
+	own := logstore.Hash([]byte(printed))
+	if slices.Contains(outputFiles(t, e.root), own) {
+		t.Fatalf("a refused run stored its output %s", own)
 	}
 }
