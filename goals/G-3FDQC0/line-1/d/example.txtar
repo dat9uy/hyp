@@ -1,0 +1,42 @@
+-- words --
+On a committed store, the owner replaces the Goal, the grill places an example and runner-1 runs it on H0; each act is recorded, and afterwards the only changes git sees are each act's own event and the outputs those events name.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+repo=$(mktemp -d) && cd "$repo" && git init -q && git commit -q --allow-empty -m base || exit 91
+g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Say hello.' --line 'gap:hyp says hello.' | sed -n 's/^recorded //p') && [ -n "$g" ] || exit 92
+mkdir -p "goals/$g/line-1/a/probe" || exit 93
+printf '%s\n' '-- words --' 'hyp says hello.' '-- run --' 'echo hi' '-- floor: contains --' 'hello' >"goals/$g/line-1/a/example.txtar" || exit 93
+printf '%s\n' '#!/bin/sh' 'out=$(sh -c "$HYP_RUN"); code=$?' 'printf "%s\n" "$out"' 'echo "exit $code"' >"goals/$g/line-1/a/probe/run" && chmod +x "goals/$g/line-1/a/probe/run" || exit 93
+git add -A && git commit -q -m 'record the Goal and an example' || exit 93
+h=$(git rev-parse HEAD)
+hy() { a=$1 r=$2; shift 2; out=$(HYP_ACTOR=$a HYP_ROLE=$r "$bin/hyp" "$@" 2>"$bin/err"); c=$?; case "$out" in *"$g"*) n=yes ;; *) n=no ;; esac; if [ -s "$bin/err" ]; then w=yes; else w=no; fi; echo "$a: hyp $(echo "$*" | sed "s/$g/G/g"): exit $c, names the Goal: $n, stderr: $w"; }
+hy owner owner add goal "$g" --base HEAD --words 'Say hello.' --line 'gap:hyp says hello.' --line 'gap:hyp says hello again.'
+hy grill grill place "$g" line-1/a
+hy runner-1 runner run HEAD "$g/line-1"
+echo 'lines added to the log:'
+: >"$bin/added"
+for f in $(git status --porcelain --untracked-files=all -- .tree/events | sed 's/^...//' | sort); do
+  git show "HEAD:$f" 2>/dev/null | sort >"$bin/old"; sort "$f" >"$bin/new"; comm -13 "$bin/old" "$bin/new" >"$bin/add"; cat "$bin/add" >>"$bin/added"
+  while IFS= read -r l; do t=$(printf '%s\n' "$l" | sed -n 's/^{"v":2,"id":"[^"]*","ts":"[^"]*","actor":"[^"]*","type":"\([^"]*\)".*/\1/p'); echo "$f ${t:-unparsed}"; done <"$bin/add"
+done
+echo 'new outputs that no added line names:'
+n=0; for o in $(git status --porcelain --untracked-files=all -- .tree/outputs | sed 's/^...//'); do grep -qF "${o##*/}" "$bin/added" || { echo "$o"; n=1; }; done; if [ $n = 0 ]; then echo none; fi
+echo 'other changes:'
+oc=$(git status --porcelain --untracked-files=all | sed 's/^...//' | grep -v '^\.tree/events/' | grep -v '^\.tree/outputs/'); if [ -n "$oc" ]; then printf '%s\n' "$oc"; else echo none; fi
+if [ "$(git rev-parse HEAD)" = "$h" ]; then echo 'HEAD moved: no'; else echo 'HEAD moved: yes'; fi
+echo "files git is told to skip: $(git ls-files -v | grep -c '^[a-zS]')"
+-- floor: equals --
+owner: hyp add goal G --base HEAD --words Say hello. --line gap:hyp says hello. --line gap:hyp says hello again.: exit 0, names the Goal: yes, stderr: no
+grill: hyp place G line-1/a: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp run HEAD G/line-1: exit 0, names the Goal: yes, stderr: no
+lines added to the log:
+.tree/events/grill.jsonl example.place
+.tree/events/owner.jsonl goal.add
+.tree/events/runner-1.jsonl result.record
+new outputs that no added line names:
+none
+other changes:
+none
+HEAD moved: no
+files git is told to skip: 0

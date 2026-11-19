@@ -1,0 +1,22 @@
+-- words --
+After runner reads hyp status and stops, and the owner then changes the log, the owner runs hyp show runner and reads the exact bytes that runner read, never a fresh status.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+repo=$(mktemp -d) && cd "$repo" && git init -q && git commit -q --allow-empty -m base || exit 91
+g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Say hello.' --line 'gap:hyp says hello.' | sed -n 's/^recorded //p') && [ -n "$g" ] || exit 92
+git add -A && git commit -q -m 'record the Goal' || exit 93
+HYP_ACTOR=runner HYP_ROLE=runner "$bin/hyp" status >"$bin/read" 2>"$bin/read.err"; rc=$?
+HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal "$g" --base HEAD --words 'Say hello twice.' --line 'gap:hyp says hello.' --line 'gap:hyp says hello again.' >/dev/null 2>&1 || exit 94
+HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Say goodbye.' --line 'gap:hyp says goodbye.' >/dev/null 2>&1 || exit 95
+HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" show runner >"$bin/view" 2>&1; vc=$?
+read=$(cat "$bin/read"); view=$(cat "$bin/view")
+case "$read" in *"$g"*) n=yes ;; *) n=no ;; esac
+echo "runner: hyp status: exit $rc, names the Goal: $n"
+echo "owner: hyp show runner: exit $vc"
+if [ -n "$read" ]; then case "$view" in *"$read"*) h=yes ;; *) h=no ;; esac; else h='no, the read is empty'; fi
+echo "the owner's view holds the runner's read byte for byte: $h"
+-- floor: equals --
+runner: hyp status: exit 0, names the Goal: yes
+owner: hyp show runner: exit 0
+the owner's view holds the runner's read byte for byte: yes

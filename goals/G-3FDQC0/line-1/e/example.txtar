@@ -1,0 +1,49 @@
+-- words --
+A store that hyp at H0 wrote and the repository committed, holding Goal G-9V74J9 and the owner's read of add goal: the owner runs hyp status and runner-1 runs hyp status G-9V74J9; each prints the Goal, and afterwards git status shows no change.
+-- input/store/.tree/.gitattributes --
+events/*.jsonl merge=union
+
+-- input/store/.tree/events/owner.jsonl --
+{"v":2,"id":"01M7SEZM8TTKSDBJ4NEF9V74J9","ts":"2026-11-19T08:32:45.338427Z","actor":"owner","type":"goal.add","node":"01M7SEZM8TTKSDBJ4NEF9V74J9","payload":{"role":"owner","words":"Say hello.","base":"d728bd66c6e7d78d69e928ad21388b2f22ebfab4","base_tree":"4b825dc642cb6eb9a060e54bf8d69288fbee4904","budget":3,"from":"","lines":[{"key":"line-1","text":"hyp says hello.","kind":"gap"}]},"why":""}
+{"v":2,"id":"01M7SEZMANBSRCTD7P31KBT469","ts":"2026-11-19T08:32:45.39778Z","actor":"owner","type":"read","node":"01M7SEZMANBSRCTD7P31KBT469","payload":{"role":"owner","command":["add","goal","--base","HEAD","--words","Say hello.","--line","gap:hyp says hello."],"exit":0,"stdout":"b325e315945c0f195c7aaa915a003f2b638ff7bfbb886386545078579a6ec217","stderr":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},"why":""}
+
+-- input/store/.tree/outputs/b325e315945c0f195c7aaa915a003f2b638ff7bfbb886386545078579a6ec217 --
+recorded G-9V74J9
+words: Say hello.
+H0: d728bd66c6e7d78d69e928ad21388b2f22ebfab4
+line-1 gap: hyp says hello.
+G-9V74J9  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-9V74J9 --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G-9V74J9 line-1/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+-- input/store/.tree/outputs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 --
+
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+repo=$(mktemp -d) && cd "$repo" && git init -q && GIT_AUTHOR_DATE=2026-11-19T00:00:00Z GIT_COMMITTER_DATE=2026-11-19T00:00:00Z git commit -q --allow-empty -m base || exit 91
+[ "$(git rev-parse HEAD)" = d728bd66c6e7d78d69e928ad21388b2f22ebfab4 ] || exit 92
+cp -R "$HYP_EXAMPLE/input/store/." . && git add -A && git commit -q -m 'the store hyp wrote before this change' || exit 93
+g=G-9V74J9
+h=$(git rev-parse HEAD)
+hy() { a=$1 r=$2; shift 2; out=$(HYP_ACTOR=$a HYP_ROLE=$r "$bin/hyp" "$@" 2>"$bin/err"); c=$?; case "$out" in *"$g"*) n=yes ;; *) n=no ;; esac; if [ -s "$bin/err" ]; then w=yes; else w=no; fi; echo "$a: hyp $*: exit $c, names the Goal: $n, stderr: $w"; }
+hy owner owner status
+hy runner-1 runner status "$g"
+ch=$(git status --porcelain --untracked-files=all); echo 'changes git sees:'; if [ -n "$ch" ]; then printf '%s\n' "$ch"; else echo none; fi
+if [ "$(git rev-parse HEAD)" = "$h" ]; then echo 'HEAD moved: no'; else echo 'HEAD moved: yes'; fi
+echo "files git is told to skip: $(git ls-files -v | grep -c '^[a-zS]')"
+-- floor: equals --
+owner: hyp status: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp status G-9V74J9: exit 0, names the Goal: yes, stderr: no
+changes git sees:
+none
+HEAD moved: no
+files git is told to skip: 0
