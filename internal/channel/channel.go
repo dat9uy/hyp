@@ -65,8 +65,9 @@ const usage = `usage: hyp <command> [flags]
 
 Every command but help and version needs an actor (--actor or $HYP_ACTOR).
 An act that writes also needs a role (--role or $HYP_ROLE): owner, grill,
-probe-writer or runner. hyp records what it prints to each actor; hyp show
-prints it.
+probe-writer or runner. hyp records what it prints to each actor in the trace,
+one folder per clone under ~/.hyp/traces; hyp show prints it. hyp writes
+nothing under ~/.local and does not read $XDG_STATE_HOME.
 
 commands:
   add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
@@ -84,6 +85,9 @@ commands:
                                          acts as ready command lines
   show ACTOR                             print every output hyp printed to
                                          ACTOR, byte for byte, oldest first
+  prune [--remove]                       list the traces under ~/.hyp/traces of
+                                         repositories that no longer exist;
+                                         with --remove, remove those traces
   help                                   print this text
   version                                print the hyp version
 
@@ -92,7 +96,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "place", "run", "select", "show", "status", "version"}
+var commands = []string{"add", "help", "place", "prune", "run", "select", "show", "status", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -188,6 +192,8 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return statusCmd(c, args[1:], stdout)
 	case "show":
 		return showCmd(c, args[1:], stdout)
+	case "prune":
+		return pruneCmd(c, args[1:], stdout)
 	case "add":
 		if len(args) > 1 && args[1] == "goal" {
 			return addGoal(c, args[2:], stdout, stderr)
@@ -383,7 +389,12 @@ func selectCmd(c *call, args []string, stdout, stderr io.Writer) error {
 // one of the four. filter is the role --role named on the command line, for
 // status to filter its allowed acts by.
 func readFlags(c *call, command string, args []string) (positional []string, filter string, err error) {
-	fs := flag.NewFlagSet(command, flag.ContinueOnError)
+	return readFlagsWith(c, command, args, flag.NewFlagSet(command, flag.ContinueOnError))
+}
+
+// readFlagsWith is readFlags over fs, which may hold flags of the command's
+// own.
+func readFlagsWith(c *call, command string, args []string, fs *flag.FlagSet) (positional []string, filter string, err error) {
 	fs.SetOutput(io.Discard)
 	var actor, role string
 	fs.StringVar(&actor, "actor", os.Getenv("HYP_ACTOR"), "")
@@ -451,6 +462,37 @@ func showCmd(c *call, args []string, stdout io.Writer) error {
 	}
 	fmt.Fprint(stdout, showText(root, actor, reads))
 	return nil
+}
+
+// pruneCmd lists the trace folders of clones that no longer exist, and with
+// --remove removes them. It reads them from the traces folder, not from the
+// store; like every command but add goal it needs a store to run from, and
+// like a read it needs an actor, whose trace it leaves.
+func pruneCmd(c *call, args []string, stdout io.Writer) error {
+	fs := flag.NewFlagSet("prune", flag.ContinueOnError)
+	var remove bool
+	fs.BoolVar(&remove, "remove", false, "")
+	positional, _, err := readFlagsWith(c, "prune", args, fs)
+	if err != nil {
+		return err
+	}
+	if len(positional) != 0 {
+		return fault.BadArg(codePruneArgs, len(positional))
+	}
+	if _, _, err := readStore(c.dir); err != nil {
+		return err
+	}
+	base, gone, err := logstore.GoneTraces()
+	if err != nil {
+		return err
+	}
+	if !remove {
+		fmt.Fprint(stdout, pruneText(base, gone, false))
+		return nil
+	}
+	removed, err := logstore.RemoveGone(base, gone)
+	fmt.Fprint(stdout, pruneText(base, removed, true))
+	return err
 }
 
 // printed marks a refusal that finish already wrote, so Run does not print it

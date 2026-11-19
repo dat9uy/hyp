@@ -32,6 +32,7 @@ const (
 	codeStateBlock     fault.Code = "state-block"     // cause
 	codeNeedsActor     fault.Code = "needs-actor"     // command
 	codeNotRecorded    fault.Code = "not-recorded"    // cause
+	codePruneArgs      fault.Code = "prune-args"      // count
 )
 
 // words is the text of every code: a format whose verbs name the code's
@@ -138,8 +139,10 @@ var words = map[fault.Code]string{
 	fault.StoreOutput:  "store output: %s",
 
 	// the trace
-	fault.NoTraceFolder: "no folder for the trace: neither $XDG_STATE_HOME nor $HOME is an absolute path",
+	fault.NoTraceFolder: "no folder for the trace: $HOME is not an absolute path",
 	fault.CreateTrace:   "create the trace folder: %s",
+	fault.ReadTraces:    "read the traces folder %s: %s",
+	fault.RemoveTrace:   "remove the trace folder %s: %s",
 
 	// Probes
 	fault.ProbeTemp:       "probe %s: %s",
@@ -204,6 +207,7 @@ var words = map[fault.Code]string{
 	codeWorkDir:        "working directory: %s",
 	codeStateBlock:     "state block: %s",
 	codeNeedsActor:     "%s needs an actor (--actor or $HYP_ACTOR): hyp records what it prints to each actor",
+	codePruneArgs:      "prune takes no argument but --remove; got %d arguments",
 	codeNotRecorded:    "could not record what this command printed, so hyp prints nothing of it: %s",
 }
 

@@ -19,14 +19,18 @@ Every other rule here is derived from such a rule, and names it.
   git merges two branches of one events file by keeping every line of both.
   Replay orders events by id, never by their place in the file (§4).
 - **The trace** of a clone is one folder outside every worktree and outside
-  the git directory: `$XDG_STATE_HOME/hyp/traces/<key>/`, with
-  `$HOME/.local/state` in place of `$XDG_STATE_HOME` when that is not an
-  absolute path. `<key>` is the sha256 of the clone's git common directory
+  the git directory, in hyp's own folder: `$HOME/.hyp/traces/<key>/`. hyp
+  does not read `$XDG_STATE_HOME` and writes nothing under `~/.local`. Owner
+  said, 2026-11-19 (record PR #238): "I don't want to use $XDG_STATE_HOME at
+  all". `<key>` is the sha256 of the clone's git common directory
   (`git rev-parse --path-format=absolute --git-common-dir`, symlinks
   resolved), which every worktree of the clone shares. The folder holds
   `events/<actor>.jsonl`, `outputs/<sha256>` and a file `clone` that names the
   common directory. It is not the log: no git command sees it, and no commit
-  carries it (§8, "The trace is not the log").
+  carries it (§8, "The trace is not the log"). Reads that an earlier hyp
+  wrote under `~/.local/state/hyp` are let go: `show` does not print them, and
+  hyp never reads, moves or removes that folder; the owner removes it by hand
+  (record PR #238, decision 8).
 - **Goal folders** are written by the owner and the agents, never by hyp:
 
   ```
@@ -139,7 +143,9 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   byte, and one more read for each command that crashed after its trace. The
   model of these rules, with both ways `show` can differ from what the actor
   got, is `goals/G-9XX4KB/specs/channel.tla`; where the trace lives, and what
-  a command leaves in the repository, is `goals/G-3FDQC0/specs/trace.tla`.
+  a command leaves in the repository, is `goals/G-3FDQC0/specs/trace.tla`;
+  that the trace is under `~/.hyp` and how `prune` cleans it is
+  `goals/G-RK4VYD/specs/home.tla`.
 - **Outputs of an act.** `place` and `run` hash their Probes' outputs when
   the Probes end, and write the output files only under the lock, after every
   guard held again and just before the event that names them. So a refused
@@ -373,6 +379,7 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
 | `status [G] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
 | `show ACTOR` | any | none | nothing in the repository; a `read` in the trace |
+| `prune [--remove]` | any | none | nothing in the repository; a `read` in the trace; with `--remove`, removes the trace folders it lists |
 
 - `select G TREE` records the commit of the row's latest Result in merge order.
   Spec and Own path read that commit, and the PR holds it. Every commit of a leaf
@@ -419,7 +426,9 @@ before it prints and `show` prints the trace, stands.
   (§1), so it needs no git state (§13). Its key is the clone's git common
   directory, so every worktree of one clone reads one trace, and `show`
   prints a read in another worktree before any commit or merge. A separate
-  clone, or the same clone moved to another path, has a trace of its own.
+  clone, or the same clone moved to another path, has a trace of its own. A
+  new repository at a deleted one's path has the deleted one's key, and shows
+  its reads. Owner accepted, 2026-11-19 (record PR #238, decision 2).
 - A read needs an actor, from `--actor` or `$HYP_ACTOR`. With none, or one that
   does not match §2, it is exit 2 and leaves no trace: a read with no actor
   would print bytes no `show` can find. The role is not needed for a read. A
@@ -431,8 +440,8 @@ before it prints and `show` prints the trace, stands.
   exit code and its stderr bytes.
 - No trace is written outside a git repository or in a repository with no
   store: a trace never creates the store. The `add goal` that creates the store
-  is traced. With no absolute `$XDG_STATE_HOME` and no absolute `$HOME`, the
-  trace has no folder: the command prints only the notice of §12 and exits 3.
+  is traced. With no absolute `$HOME`, the trace has no folder: the command
+  prints only the notice of §12 and exits 3.
 - **`show ACTOR`** prints every read of ACTOR in id order, oldest first: from
   the trace, and from the old `read` lines of the log. For
   each, its id, time, role, exit code and command, then the bytes hyp wrote to
@@ -440,6 +449,29 @@ before it prints and `show` prints the trace, stands.
   prints a fresh read. An actor with no read prints `no read of ACTOR is
   recorded`, exit 0. ACTOR must match §2 (exit 2). `show` is itself a read of
   the actor that runs it, never of the actor it shows.
+- **`prune`** lists the trace folders under `$HOME/.hyp/traces/` whose
+  clone no longer exists: the path that the folder's file `clone` names is not
+  on the disk. A deleted clone and a clone moved to another path are both
+  gone. For each it prints the folder's key and that path, and it removes
+  nothing. A live clone's trace is never listed or removed. Owner said,
+  2026-11-19 (record PR #238): "`hyp prune` lists, `hyp prune --remove`
+  removes"; the owner sees the list before anything is removed.
+  - `prune --remove` removes the folders of those clones and prints what it
+    removed. Before it removes a folder it takes the folder's lock and checks
+    its clone again, so a clone that came back keeps its trace.
+  - A folder whose file `clone` is missing, empty or not an absolute path is
+    never listed: hyp cannot tell whose it is. A clone path hyp cannot check
+    for another cause than that it does not exist counts as live.
+  - With nothing gone it prints `no trace under DIR is of a repository that no
+    longer exists`, exit 0.
+  - `prune` never reads or writes `~/.local` (§1).
+  - Like a read, it needs an actor (exit 2), records its own `read` in the
+    trace of the clone it runs in, which is live, and prints no state block.
+    It takes no argument but `--remove` (exit 2).
+  - It keeps the store rule below: with no store it is exit 1, "no store; run
+    hyp add goal". It needs the store only as a place to run from; what it
+    prunes is read from `$HOME/.hyp`. Owner said, 2026-11-19: "for
+    consistency". Outside a git repository it is exit 3, as every command.
 - `show KEY` for a Goal or a Result, and `prompt ROLE`, are later v2 Goals.
 
 No `init` act: `add goal` creates `.tree/` at
@@ -518,7 +550,9 @@ An example is one txtar file, `example.txtar`. Each section starts with a line
 - A Probe failure that is not the run's own failure records nothing (exit 3).
 - hyp does not sandbox a Probe. It is the grill's own committed code, run at the
   grill's request, with `PATH` and `HOME`; it can write outside its work
-  directories. hyp's own writes stay inside the store and its temp directories.
+  directories. hyp's own writes stay inside the store, its temp directories
+  and the trace folders under `$HOME/.hyp` (§1). hyp writes nothing under
+  `~/.local`.
 
 **How hyp runs a Probe.**
 
@@ -604,7 +638,7 @@ Owner accepted, 2026-11-19 (S16).
 
 ## 12. The return shape and exit codes
 
-Every command, read or write, but `show`, returns in one shape:
+Every command, read or write, but `show` and `prune`, returns in one shape:
 
 1. the exit code,
 2. a report: what was recorded, or the guard that refused and why,
@@ -632,7 +666,8 @@ runner may:
 - A refusal prints to stderr, then the state block to stdout. A report prints
   only on exit 0. Exit 2 and exit 3 print no state block.
 - `show ACTOR` prints the trace (§8) and no state block: it shows what the
-  actor got, not the state now.
+  actor got, not the state now. `prune` prints its list and no state block:
+  it is about the trace folders, not a Goal.
 
 **The channel.** One block of code, `internal/channel`, writes every byte hyp
 prints and turns every failure into its words and its exit code. Every other
@@ -679,7 +714,7 @@ to communicate with agent, is one block of code".
 | 0 | Recorded, or the read printed. |
 | 1 | Refused by a named guard. |
 | 2 | Bad arguments. |
-| 3 | Environment: not in a git repository, an object format other than sha1, a missing tool, a Probe that failed or timed out, a trace hyp could not write. A check's own exit code never comes back as hyp's. |
+| 3 | Environment: not in a git repository, an object format other than sha1, a missing tool, a Probe that failed or timed out, no absolute `$HOME`, a trace hyp could not write, a trace folder `prune` could not read or remove. A check's own exit code never comes back as hyp's. |
 
 `select`'s report is the PR body: each line, each example's words, output,
 stderr, exit code and verdict, and the selected commit and row. `status` prints
@@ -701,7 +736,10 @@ Owner accepted, 2026-11-19 (S11).
 hyp writes no git state in the host: no refs, objects, config, index or hooks.
 Hiding a file from git is git state too: hyp writes no `.gitignore`, no
 `info/exclude`, and sets no assume-unchanged or skip-worktree flag. The trace
-is outside the worktree and the git directory (§1) for this reason. The owner
+is outside the worktree and the git directory (§1) for this reason, in
+`$HOME/.hyp`. `prune` runs no git command on the clones it lists: whether a
+clone is gone is read from the disk, as whether the path its trace names
+exists, so a gone clone needs no git state and `prune` writes none. The owner
 and the agents commit. hyp runs only these git commands, each checked
 by its full argument shape in `internal/gitread`:
 

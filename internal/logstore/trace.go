@@ -19,10 +19,21 @@ type Trace struct {
 	Clone string // the clone's git common directory, which names the folder
 }
 
+// TracesDir is the folder that holds the trace folder of every clone:
+// $HOME/.hyp/traces. hyp reads no other variable for it: not
+// $XDG_STATE_HOME, and nothing under $HOME/.local. With no absolute $HOME
+// there is no such folder, which is an environment problem.
+func TracesDir() (string, error) {
+	home := os.Getenv("HOME")
+	if !filepath.IsAbs(home) {
+		return "", fault.EnvFault(fault.NoTraceFolder)
+	}
+	return filepath.Join(home, ".hyp", "traces"), nil
+}
+
 // TraceOf returns the trace folder of the clone that holds root:
-// $XDG_STATE_HOME/hyp/traces/<sha256 of the clone's git common directory>,
-// with $HOME/.local/state in place of $XDG_STATE_HOME when that is not an
-// absolute path. It creates nothing.
+// $HOME/.hyp/traces/<sha256 of the clone's git common directory>. It creates
+// nothing.
 func TraceOf(root string) (Trace, error) {
 	out, err := gitread.Git(root, "rev-parse", "--path-format=absolute", "--git-common-dir")
 	if err != nil {
@@ -32,15 +43,11 @@ func TraceOf(root string) (Trace, error) {
 	if real, err := filepath.EvalSymlinks(clone); err == nil {
 		clone = real
 	}
-	base := os.Getenv("XDG_STATE_HOME")
-	if !filepath.IsAbs(base) {
-		home := os.Getenv("HOME")
-		if !filepath.IsAbs(home) {
-			return Trace{}, fault.EnvFault(fault.NoTraceFolder)
-		}
-		base = filepath.Join(home, ".local", "state")
+	base, err := TracesDir()
+	if err != nil {
+		return Trace{}, err
 	}
-	return Trace{Dir: filepath.Join(base, "hyp", "traces", Hash([]byte(clone))), Clone: clone}, nil
+	return Trace{Dir: filepath.Join(base, Hash([]byte(clone))), Clone: clone}, nil
 }
 
 // Outputs is the folder that holds the trace's outputs.
