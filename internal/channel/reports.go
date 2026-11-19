@@ -61,7 +61,7 @@ func readyText(r acts.Ready) string {
 	case acts.ActAddGoal:
 		return "hyp add goal " + r.Goal + " --base <commit> --words <words> --line <kind>:<text>"
 	case acts.ActPlace:
-		return "hyp place " + r.Goal + " " + or(r.Line, "<line>") + "/<example>"
+		return "hyp place " + r.Goal + " " + r.Line + "/<example>"
 	case acts.ActRun:
 		return "hyp run " + or(shortCommit(r.Commit), "<commit>") + " " + r.Goal + "/" + r.Line
 	case acts.ActSelect:

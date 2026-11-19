@@ -29,7 +29,7 @@ type Ready struct {
 	Goal   string // the Goal id
 	Role   string
 	Act    string // ActAddGoal, ActPlace, ActRun or ActSelect
-	Line   string // place and run: the line key, or empty for any line
+	Line   string // place and run: the line key
 	Commit string // run: the commit, or empty for any leaf
 	Tree   string // select: the candidate's row tree
 }
@@ -115,18 +115,12 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 		}
 	}
 
-	// grill
-	placed := map[string]bool{}
-	for _, p := range g.Placed() {
-		placed[p.Line] = true
-	}
+	// grill: one place line per line of the Goal, whether the line holds an
+	// example or not. A further example on a placed line passes every guard
+	// that reads the tables and git, as a first one does; a selected Goal
+	// returned above.
 	for _, l := range g.Lines {
-		if !placed[l.Key] {
-			add(Ready{Role: "grill", Act: ActPlace, Line: l.Key})
-		}
-	}
-	if !hasRole(out, "grill") {
-		add(Ready{Role: "grill", Act: ActPlace})
+		add(Ready{Role: "grill", Act: ActPlace, Line: l.Key})
 	}
 
 	// runner
@@ -138,10 +132,6 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 		out = append(out, runLines(g, st)...)
 	}
 	return orderRoles(out)
-}
-
-func hasRole(ls []Ready, role string) bool {
-	return slices.ContainsFunc(ls, func(l Ready) bool { return l.Role == role })
 }
 
 // roleOrder is the order roles print in: the order section 2 names them.

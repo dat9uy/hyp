@@ -75,7 +75,10 @@ commands:
                                          record a Goal; with G, replace a Goal
                                          that is still written
   place G LINE/EXAMPLE [--why TEXT]      place the example folder
-                                         goals/G/LINE/EXAMPLE on a line of Goal G
+                                         goals/G/LINE/EXAMPLE on a line of Goal G;
+                                         a line may hold more than one example,
+                                         and until G is selected status offers
+                                         a place on each of its lines
   run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
                                          Goal G on COMMIT and record the Result
   select G TREE [--why TEXT]             select the candidate row TREE of Goal G;

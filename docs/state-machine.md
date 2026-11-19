@@ -653,16 +653,30 @@ waits: none
 owner may:
   (none)
 grill may:
-  hyp place G-NXHHVA <line>/<example>
+  hyp place G-NXHHVA line-1/<example>
+  hyp place G-NXHHVA line-2/<example>
 probe-writer may:
   (none)
 runner may:
   hyp run <commit> G-NXHHVA/line-1
+  hyp run <commit> G-NXHHVA/line-2
 ```
 
 - The roles print in the order of §2: owner, grill, probe-writer, runner. A
   role with no allowed act prints `(none)`. Only acts the binary has are
   printed.
+- **One place line per line.** While the Goal is written or open, at any stop
+  but `selected`, the grill's block holds one ready place line for each current
+  line of the Goal, in the order of its lines: `hyp place G <line>/<example>`
+  with the line key filled in, whether the line holds an example or not. A
+  further example on a line that holds one passes the same guards as a first
+  one (§8), so hyp offers it. A line a Draft replace removed is not offered.
+  Once the Goal is selected the grill may place nothing, and prints `(none)`.
+  This is line 1 of Goal G-1908D1: "The grill's allowed acts list every place
+  that the guards allow, including a further example on a line that already
+  holds one, as ready command lines". It replaces the blank
+  `hyp place G <line>/<example>` that this block printed once every line held
+  an example. Owner decided, 2026-11-19 (G-1908D1, decision 3).
 - A refusal prints to stderr, then the state block to stdout. A report prints
   only on exit 0. Exit 2 and exit 3 print no state block.
 - `show ACTOR` prints the trace (§8) and no state block: it shows what the
