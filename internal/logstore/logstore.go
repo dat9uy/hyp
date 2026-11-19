@@ -381,6 +381,10 @@ func PutOutput(root string, b []byte) (string, error) {
 	if _, err := os.Stat(path); err == nil {
 		return name, nil
 	}
+	// git keeps no empty folder, so a clone of a store can lack outputs/.
+	if err := os.MkdirAll(outputsDir(root), 0o755); err != nil {
+		return "", herr.Env("store output: %v", err)
+	}
 	tmp, err := os.CreateTemp(outputsDir(root), "tmp-*")
 	if err != nil {
 		return "", herr.Env("store output: %v", err)

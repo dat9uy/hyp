@@ -414,3 +414,18 @@ func TestWithLockNeedsAStore(t *testing.T) {
 		t.Fatalf("WithLock with no store = %v, want the no-store refusal", err)
 	}
 }
+
+func TestPutOutputInACloneWithoutOutputsDir(t *testing.T) {
+	// git keeps no empty folder, so a clone of a store has no .tree/outputs.
+	root := newStore(t)
+	if err := os.RemoveAll(filepath.Join(root, ".tree", "outputs")); err != nil {
+		t.Fatal(err)
+	}
+	name, err := PutOutput(root, []byte("hello"))
+	if err != nil {
+		t.Fatalf("PutOutput without .tree/outputs: %v", err)
+	}
+	if _, err := os.Stat(OutputPath(root, name)); err != nil {
+		t.Fatalf("output file: %v", err)
+	}
+}
