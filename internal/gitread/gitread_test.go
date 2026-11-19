@@ -2,6 +2,7 @@ package gitread
 
 import (
 	"errors"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -98,5 +99,31 @@ func TestGitExitReturnsCode(t *testing.T) {
 	code, _, err = GitExit(r.Dir, "cat-file", "-e", strings.Repeat("0", 40)+"^{commit}")
 	if err != nil || code == 0 {
 		t.Fatalf("missing commit: code %d err %v, want a non-zero code and no error", code, err)
+	}
+}
+
+func TestReadInPartialCloneFetchesNothing(t *testing.T) {
+	origin := testutil.NewRepo(t)
+	origin.Commit(t, map[string]string{"a.txt": "a"})
+	origin.Commit(t, map[string]string{"b.txt": "b"})
+	gitCmd(t, origin.Dir, "config", "uploadpack.allowFilter", "true")
+	clone := t.TempDir() + "/clone"
+	gitCmd(t, origin.Dir, "clone", "-q", "--filter=tree:0", "file://"+origin.Dir, clone)
+	before := testutil.Snapshot(t, clone)
+	if _, err := Git(clone, "ls-tree", "HEAD~1"); err == nil {
+		t.Fatal("ls-tree of a tree the partial clone lacks succeeded; it must not fetch it")
+	} else if herr.KindOf(err) != herr.Environment {
+		t.Fatalf("error kind: %v, want environment", err)
+	}
+	if after := testutil.Snapshot(t, clone); after != before {
+		t.Fatal("a read in a partial clone changed .git")
+	}
+}
+
+func gitCmd(t *testing.T, dir string, args ...string) {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
 	}
 }

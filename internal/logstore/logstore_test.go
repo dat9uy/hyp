@@ -296,3 +296,25 @@ func appendRaw(t *testing.T, root, actor, s string) {
 		t.Fatal(err)
 	}
 }
+
+func TestDuplicateLineReplaysOnce(t *testing.T) {
+	root := newStore(t)
+	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(root, ".tree", "events", "a.jsonl")
+	data, err := os.ReadFile(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, append(data, data...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	evs, errs, err := Events(root)
+	if err != nil || len(errs) != 0 {
+		t.Fatalf("Events: %v, %v", errs, err)
+	}
+	if len(evs) != 1 {
+		t.Fatalf("Events = %d events, want the duplicated line once", len(evs))
+	}
+}

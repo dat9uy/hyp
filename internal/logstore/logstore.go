@@ -240,9 +240,16 @@ func Events(root string) ([]events.Event, []LineError, error) {
 		lineErrs = append(lineErrs, errs...)
 	}
 	order := mergeOrder(files, func(a, b At) int { return bytes.Compare(raw[a.Actor][a.Index], raw[b.Actor][b.Index]) })
-	out := make([]events.Event, len(order))
+	// A union merge can keep one line twice; the copy holds no second event.
+	out := make([]events.Event, 0, len(order))
+	var prev []byte
 	for i, at := range order {
-		out[i] = files[at.Actor][at.Index]
+		line := raw[at.Actor][at.Index]
+		if i > 0 && bytes.Equal(line, prev) {
+			continue
+		}
+		prev = line
+		out = append(out, files[at.Actor][at.Index])
 	}
 	return out, lineErrs, nil
 }

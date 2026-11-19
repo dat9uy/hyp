@@ -41,8 +41,9 @@ func run(dir string, args []string) (code int, stdout []byte, stderr string, err
 		return 0, nil, "", err
 	}
 	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
-	// A read must not take an optional lock, which would touch the index.
-	cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0")
+	// A read must not take an optional lock, which would touch the index, nor
+	// fetch a missing object in a partial clone, which would write a pack.
+	cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1")
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	switch err := cmd.Run(); {
