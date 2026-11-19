@@ -1,0 +1,11 @@
+G-XXXXXX  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-XXXXXX <line>/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-XXXXXX/line-1
