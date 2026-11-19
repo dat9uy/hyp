@@ -119,9 +119,11 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   does"). Output files are named by their hash, so they never conflict in a
   merge.
 - **Which guards replay checks again.** Only the guards that read the tables:
-  Draft, Whole lines, Own case, Open, Goal's actor, Budget, Stable, Candidate,
-  Selected and Own Result, and the table half of Adds only (the new hash is not
-  the current one). The guards that read disk, git objects, the moving git state
+  Draft, Whole lines, Own case, Open, Goal's actor, Budget, Stable, Selected
+  and Own Result, the table half of Adds only (the hash is new on its key), and
+  the table half of Candidate (the row is met on every line, and the role is
+  runner or owner; the leaf mark and the one-or-two count read git and are
+  trusted as written). The guards that read disk, git objects, the moving git state
   or a Probe (Committed, Kind, Bytes, Leaf only, Spec, Own path, Same change, and
   the content half of Adds only) are trusted as written. Cost: two clones that
   each adjust one example key merge to @2 and @3, and @3 was checked against @1
@@ -347,7 +349,8 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   `prompt ROLE`. `show` and `prompt` are later v2 Goals.
 
 No `init` act: `add goal` creates `.tree/` at
-`git rev-parse --show-toplevel` when it is absent. Every other act with no store
+`git rev-parse --show-toplevel` when it is absent. Every other act, and
+`status`, with no store
 is exit 1 naming "no store; run hyp add goal". Outside a git repository is exit 3.
 Owner accepted, 2026-11-19 (S3).
 
@@ -484,6 +487,10 @@ behaviour, not a guard, so a runner can meet every line on a second leaf before
 it selects the first. No guard refuses that run. Candidate then lets only the
 owner select. Owner said, 2026-11-19: "Keep the stop as designed".
 
+At "Two candidates" and "Budget used" the state block adds an `outputs:` table:
+rows by examples, each output quoted and cut at 60 characters, its full bytes
+under `.tree/outputs/` by hash.
+
 hyp prints the table, not a reading of it: no distance, no summary line. The
 leaves' statecharts at a stop are a later v2 Goal.
 
@@ -513,11 +520,21 @@ Every command, read or write, returns in one shape:
 G-NXHHVA  open  runs: 1 of 3 used
 stop: none
 waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-NXHHVA <line>/<example>
+probe-writer may:
+  (none)
 runner may:
   hyp run <commit> G-NXHHVA/line-1
-owner may:
-  hyp reset G-NXHHVA
 ```
+
+- The roles print in the order of §2: owner, grill, probe-writer, runner. A
+  role with no allowed act prints `(none)`. Only acts the binary has are
+  printed.
+- A refusal prints to stderr, then the state block to stdout. A report prints
+  only on exit 0. Exit 2 and exit 3 print no state block.
 
 - `--role ROLE` filters the allowed acts to one role. It is a convenience of
   the read, not a boundary.
