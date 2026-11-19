@@ -8,6 +8,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/fault"
@@ -98,6 +99,10 @@ func permits(cmd string, rest []string) bool {
 		return ok && (len(pos) == 1 || len(pos) == 2) && noDash(pos)
 	case "patch-id":
 		return len(rest) == 1 && rest[0] == "--stable"
+	case "ls-files":
+		// one fixed form: the files of the checkout a commit of every
+		// change would hold
+		return slices.Equal(rest, lsFilesForm)
 	}
 	return false
 }

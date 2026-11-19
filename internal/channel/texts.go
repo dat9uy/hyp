@@ -33,6 +33,7 @@ const (
 	codeNeedsActor     fault.Code = "needs-actor"     // command
 	codeNotRecorded    fault.Code = "not-recorded"    // cause
 	codePruneArgs      fault.Code = "prune-args"      // count
+	codeTryArgs        fault.Code = "try-args"        // count
 )
 
 // words is the text of every code: a format whose verbs name the code's
@@ -208,6 +209,7 @@ var words = map[fault.Code]string{
 	codeStateBlock:     "state block: %s",
 	codeNeedsActor:     "%s needs an actor (--actor or $HYP_ACTOR): hyp records what it prints to each actor",
 	codePruneArgs:      "prune takes no argument but --remove; got %d arguments",
+	codeTryArgs:        "try takes a Goal and LINE/EXAMPLE, for example: hyp try G-NXHHVA line-1/a; got %d arguments",
 	codeNotRecorded:    "could not record what this command printed, so hyp prints nothing of it: %s",
 }
 

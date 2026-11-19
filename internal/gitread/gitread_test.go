@@ -40,6 +40,9 @@ func TestGitRefusesWriteCommand(t *testing.T) {
 		{"diff-tree", "-w", "HEAD", "HEAD"},
 		{"merge-base", "A", "B"},
 		{"patch-id"},
+		{"ls-files"},
+		{"ls-files", "-z", "--cached", "--others"},
+		{"ls-files", "-z", "--cached", "--others", "--exclude-standard", "--with-tree=HEAD"},
 		{},
 	} {
 		_, err := Git(r.Dir, args...)
@@ -78,6 +81,7 @@ func TestGitAllowsEveryReadForm(t *testing.T) {
 		{"diff-tree", "-r", "-c", "--name-only", "a"},
 		{"diff-tree", "-p", "a", "b"},
 		{"patch-id", "--stable"},
+		{"ls-files", "-z", "--cached", "--others", "--exclude-standard"},
 	} {
 		if err := allowed(args); err != nil {
 			t.Errorf("git %v refused: %v", args, err)

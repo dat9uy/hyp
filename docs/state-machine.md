@@ -145,12 +145,15 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   got, is `goals/G-9XX4KB/specs/channel.tla`; where the trace lives, and what
   a command leaves in the repository, is `goals/G-3FDQC0/specs/trace.tla`;
   that the trace is under `~/.hyp` and how `prune` cleans it is
-  `goals/G-RK4VYD/specs/home.tla`.
+  `goals/G-RK4VYD/specs/home.tla`; that `try` shows the cell `place` and
+  `run` record and writes nothing to the log is
+  `goals/G-CJWT9T/specs/try.tla`.
 - **Outputs of an act.** `place` and `run` hash their Probes' outputs when
   the Probes end, and write the output files only under the lock, after every
   guard held again and just before the event that names them. So a refused
   act leaves no output file, and a crash before the event leaves output files
-  no event names, which are harmless.
+  no event names, which are harmless. `try` (§8) hashes its outputs the same
+  way and writes no output file.
 - **Merged log.** Two clones that each passed their guards can merge into a log
   that breaks one, for example a fourth tree in one budget. Replay checks every
   event at its place in the merge order. An event whose guards fail there is
@@ -378,6 +381,7 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | `reset G` | owner | Not ended, Goal's actor | `budget.reset` |
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
 | `status [G] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
+| `try G LINE/EXAMPLE [--worktree] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
 | `show ACTOR` | any | none | nothing in the repository; a `read` in the trace |
 | `prune [--remove]` | any | none | nothing in the repository; a `read` in the trace; with `--remove`, removes the trace folders it lists |
 
@@ -472,6 +476,50 @@ before it prints and `show` prints the trace, stands.
     hyp add goal". It needs the store only as a place to run from; what it
     prunes is read from `$HOME/.hyp`. Owner said, 2026-11-19: "for
     consistency". Outside a git repository it is exit 3, as every command.
+- **`try G LINE/EXAMPLE`** shows an example's output, stderr, exit code and
+  verdict as `place` and `run` would record them, and records nothing. It is
+  line 1 of Goal G-CJWT9T: "An agent can see an example's output, stderr,
+  exit code and verdict, as hyp would record them, on H0 or on an uncommitted
+  change, without a commit, without recording anything in the log, and
+  without using a Hypothesis." Owner said, 2026-11-19 (record PR #241,
+  decision 3): "The command is `hyp try G LINE/EXAMPLE`. It runs the example
+  folder as it is on disk, on H0. With `--worktree` it runs on the files of
+  this checkout instead. It is one new read; `place` and `run` get no
+  `--dry-run`."
+  - The example is the folder `goals/<G>/<LINE>/<EXAMPLE>` as it is on disk,
+    committed or not: its `example.txtar` and its `probe/` are read from
+    disk, never from git, so Committed is not checked.
+  - Without `--worktree` the subject is H0's commit, extracted by hash as
+    `place` extracts it (§10): an edit in the checkout does not reach it.
+    With `--worktree` the subject is the files of this checkout as a commit
+    of every change would hold them: each file git tracks or would add
+    (`git ls-files -z --cached --others --exclude-standard`, §13), with its
+    bytes and execute bit on disk, without `goals` and `.tree`. A tracked
+    file deleted on disk is left out, and a file git ignores is not read. A
+    folder in that list, a submodule or a nested repository, is refused,
+    exit 1, as an extracted submodule is (§13).
+  - The Probe runs as §10 says, and the compare is §9's. hyp hashes the
+    output and the stderr as `place` and `run` do, and writes no output file.
+  - It prints where it ran (H0's commit, or HEAD's commit and every change
+    not committed), the line `nothing is recorded: no event, no output file,
+    no run of the budget`, the folder's tree hash on disk and its Probe hash,
+    the example's words, `verdict: V, exit N`, and the output and the stderr
+    as byte blocks (§12) labelled with the sha256 each would have under
+    `.tree/outputs/`. Then the Goal's state block, which `--role` filters as
+    in `status`.
+  - It is a read: it checks no guard, so it runs in every state of the Goal,
+    `selected` included, and no state block lists it as an allowed act (§12
+    lists the acts that write). It needs an actor (exit 2) and leaves its
+    `read` in the trace, so `show` holds what it printed.
+  - Exit 2 for a key that is not `LINE/EXAMPLE`, an unknown Goal or line, a
+    folder that is not on disk, or one with no `example.txtar`; exit 1 for an
+    `example.txtar` that does not parse (§9), the refusal `place` prints; exit
+    3 for a Probe that fails, times out or prints no `exit N` line (§10).
+  - What it shows equals what `place` records for H0's cell once the folder
+    is committed as it was, and what `run` records once the checkout's change
+    is committed as it was, because both run one Probe on the same bytes. A
+    Probe whose output changes from run to run shows a different output;
+    Stable (§7) judges that only in `run`.
 - `show KEY` for a Goal or a Result, and `prompt ROLE`, are later v2 Goals.
 
 No `init` act: `add goal` creates `.tree/` at
@@ -559,9 +607,10 @@ An example is one txtar file, `example.txtar`. Each section starts with a line
 - hyp runs `probe/run`, an executable file of the example folder, with empty
   stdin and a timeout of 10 minutes.
 - Its **working directory** is a fresh copy of the commit's subject, extracted
-  by hash (§13). `HYP_SUBJECT` names it too.
+  by hash (§13); for `try --worktree`, a copy of the checkout's files (§8,
+  `try`). `HYP_SUBJECT` names it too.
 - `HYP_EXAMPLE` names a fresh working copy of the example folder, extracted by
-  its tree hash. Each `input/<path>` section is written there at
+  its tree hash; for `try`, copied from the folder on disk. Each `input/<path>` section is written there at
   `input/<path>`. Inputs belong to the example; hyp never writes them into the
   subject. Owner said, 2026-11-19: "if input is example scope, they should
   belong to example folder", and "Start in the subject".
@@ -638,7 +687,8 @@ Owner accepted, 2026-11-19 (S16).
 
 ## 12. The return shape and exit codes
 
-Every command, read or write, but `show` and `prune`, returns in one shape:
+Every command, read or write, but `show` and `prune`, returns in one shape
+(`try` too):
 
 1. the exit code,
 2. a report: what was recorded, or the guard that refused and why,
@@ -751,7 +801,9 @@ hyp writes no git state in the host: no refs, objects, config, index or hooks.
 Hiding a file from git is git state too: hyp writes no `.gitignore`, no
 `info/exclude`, and sets no assume-unchanged or skip-worktree flag. The trace
 is outside the worktree and the git directory (§1) for this reason, in
-`$HOME/.hyp`. `prune` runs no git command on the clones it lists: whether a
+`$HOME/.hyp`. `try --worktree` reads the checkout's uncommitted change
+from disk, never by `git stash create` or `git add`, which write objects
+and the index. `prune` runs no git command on the clones it lists: whether a
 clone is gone is read from the disk, as whether the path its trace names
 exists, so a gone clone needs no git state and `prune` writes none. The owner
 and the agents commit. hyp runs only these git commands, each checked
@@ -765,6 +817,7 @@ by its full argument shape in `internal/gitread`:
 | `git merge-base --is-ancestor` | Leaf only |
 | `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths), `-p` (Same change) |
 | `git patch-id` | Same change |
+| `git ls-files -z --cached --others --exclude-standard` | the files of the checkout, for `try --worktree` (§8); this one form only. It reads the index and takes no optional lock; the files' bytes are read from disk |
 
 - Every git command runs with `GIT_OPTIONAL_LOCKS=0` and `GIT_NO_LAZY_FETCH=1`:
   a read takes no optional lock, and in a partial clone a missing object is an
