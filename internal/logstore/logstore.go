@@ -254,6 +254,44 @@ func Events(root string) ([]events.Event, []LineError, error) {
 	return out, lineErrs, nil
 }
 
+// lock takes the store's directory lock and returns the function that
+// releases it. It refuses a root with no store. The lock is on the events
+// directory, not one actor file, so that every writer checks against a log
+// that already holds all other writers' events.
+func lock(root string) (unlock func(), err error) {
+	if err := Find(root); err != nil {
+		return nil, err
+	}
+	dir, err := os.Open(eventsDir(root))
+	if err != nil {
+		return nil, herr.Env("open store: %v", err)
+	}
+	if err := syscall.Flock(int(dir.Fd()), syscall.LOCK_EX); err != nil {
+		dir.Close()
+		return nil, herr.Env("lock store: %v", err)
+	}
+	return func() {
+		syscall.Flock(int(dir.Fd()), syscall.LOCK_UN)
+		dir.Close()
+	}, nil
+}
+
+// WithLock takes the same directory lock as Append, reads every event, calls
+// f with them and releases the lock. It writes nothing: an act uses it to
+// check its guards before it runs a Probe, which must not hold the lock.
+func WithLock(root string, f func([]events.Event) error) error {
+	unlock, err := lock(root)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	evs, _, err := Events(root)
+	if err != nil {
+		return err
+	}
+	return f(evs)
+}
+
 // Append takes the store's lock, reads every event, calls build with them,
 // and writes the event build returns as one fsynced line to
 // .tree/events/<actor>.jsonl. V, ID, TS and Actor are filled in here, and Node
@@ -263,20 +301,11 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 	if !ValidActor(actor) {
 		return events.Event{}, herr.BadArgs("invalid actor %q (want %s)", actor, actorRe)
 	}
-	if err := Find(root); err != nil {
+	unlock, err := lock(root)
+	if err != nil {
 		return events.Event{}, err
 	}
-	// Lock the events directory, not one actor file, so that every writer
-	// checks against a log that already holds all other writers' events.
-	dir, err := os.Open(eventsDir(root))
-	if err != nil {
-		return events.Event{}, herr.Env("open store: %v", err)
-	}
-	defer dir.Close()
-	if err := syscall.Flock(int(dir.Fd()), syscall.LOCK_EX); err != nil {
-		return events.Event{}, herr.Env("lock store: %v", err)
-	}
-	defer syscall.Flock(int(dir.Fd()), syscall.LOCK_UN)
+	defer unlock()
 
 	evs, _, err := Events(root)
 	if err != nil {
@@ -373,4 +402,3 @@ func PutOutput(root string, b []byte) (string, error) {
 	}
 	return name, nil
 }
-

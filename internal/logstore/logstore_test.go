@@ -318,3 +318,99 @@ func TestDuplicateLineReplaysOnce(t *testing.T) {
 		t.Fatalf("Events = %d events, want the duplicated line once", len(evs))
 	}
 }
+
+func TestSameIDAndActorOrdersByLineBytes(t *testing.T) {
+	line := func(why string) string {
+		b, err := json.Marshal(events.Event{
+			V: events.Version, ID: "01M661QG600000000000NXHHVA", TS: "2026-11-19T00:00:00Z", Actor: "a",
+			Type: events.TypeBudgetReset, Node: "01M661QG600000000000NXHHVA", Payload: json.RawMessage(`{"role":"owner"}`), Why: why,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	first, second := line("a"), line("b")
+	if first >= second {
+		t.Fatalf("fixture lines are not in byte order: %q %q", first, second)
+	}
+	for name, order := range map[string][2]string{"ascending": {first, second}, "descending": {second, first}} {
+		root := newStore(t)
+		appendRaw(t, root, "a", order[0]+"\n"+order[1]+"\n")
+		evs, errs, err := Events(root)
+		if err != nil || len(errs) != 0 || len(evs) != 2 {
+			t.Fatalf("%s: Events = %d events, %v, %v", name, len(evs), errs, err)
+		}
+		if evs[0].Why != "a" || evs[1].Why != "b" {
+			t.Errorf("%s: order = %q, %q; two events with one id and actor go by line bytes whatever their place in the file", name, evs[0].Why, evs[1].Why)
+		}
+	}
+}
+
+func TestWithLockReadsAndWritesNothing(t *testing.T) {
+	root := newStore(t)
+	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(filepath.Join(root, ".tree", "events", "a.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	called := 0
+	err = WithLock(root, func(evs []events.Event) error {
+		called++
+		if len(evs) != 1 {
+			t.Errorf("WithLock passed %d events, want 1", len(evs))
+		}
+		return nil
+	})
+	if err != nil || called != 1 {
+		t.Fatalf("WithLock = %v, called %d times", err, called)
+	}
+	after, _ := os.ReadFile(filepath.Join(root, ".tree", "events", "a.jsonl"))
+	if string(after) != string(before) {
+		t.Fatal("WithLock wrote to the log")
+	}
+	// the error of f comes back unchanged, and the lock is released
+	want := herr.Refused("stop")
+	if err := WithLock(root, func([]events.Event) error { return want }); err != want {
+		t.Fatalf("WithLock returned %v, want f's error", err)
+	}
+	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+		t.Fatalf("Append after WithLock: %v", err)
+	}
+}
+
+func TestWithLockHoldsAppendBack(t *testing.T) {
+	root := newStore(t)
+	done := make(chan error, 1)
+	err := WithLock(root, func([]events.Event) error {
+		go func() {
+			_, err := Append(root, "a", reset(`{"role":"owner"}`))
+			done <- err
+		}()
+		time.Sleep(200 * time.Millisecond)
+		evs, _, err := Events(root)
+		if err != nil || len(evs) != 0 {
+			t.Errorf("an Append wrote while WithLock held the lock: %d events, %v", len(evs), err)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if evs, _, _ := Events(root); len(evs) != 1 {
+		t.Fatalf("Append after the lock: %d events, want 1", len(evs))
+	}
+}
+
+func TestWithLockNeedsAStore(t *testing.T) {
+	r := testutil.NewRepo(t)
+	err := WithLock(r.Dir, func([]events.Event) error { return nil })
+	if err == nil || herr.KindOf(err) != herr.Refusal {
+		t.Fatalf("WithLock with no store = %v, want the no-store refusal", err)
+	}
+}
