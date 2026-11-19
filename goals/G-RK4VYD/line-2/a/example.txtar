@@ -1,0 +1,27 @@
+-- words --
+runner reads hyp status in a repository that is then deleted, and in a live one; in the live one the owner runs hyp prune, which names the deleted repository, not the live one, and removes nothing.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME && unset XDG_STATE_HOME || exit 91
+mkrepo() { r=$(mktemp -d) && cd "$r" && git init -q && git commit -q --allow-empty -m base && g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words "$1" --line "gap:$1" | sed -n 's/^recorded //p') && [ -n "$g" ] && git add -A && git commit -q -m 'record the Goal'; }
+files() { if [ -d "$1" ] && [ -n "$(find "$1" -type f | head -n 1)" ]; then echo some; else echo none; fi; }
+holds() { if [ -s "$1" ]; then perl -e 'local $/; open A, "<", $ARGV[0]; open B, "<", $ARGV[1]; my $a = <A>; my $b = <B>; print index($b, "stdout, " . length($a) . " bytes:
+" . $a) >= 0 ? "yes" : "no"' "$1" "$2"; else echo 'no, the read is empty'; fi; }
+holding() { n=none; if [ -s "$2" ] && [ -d "$1" ]; then n=$(find "$1" -type f -exec perl -e 'local $/; open A, "<", $ARGV[0]; open B, "<", $ARGV[1]; my $a = <A>; my $b = <B>; exit(index($b, $a) >= 0 ? 0 : 1)' "$2" {} \; -print | head -n 1 | sed 's/.*/some/'); [ -n "$n" ] || n=none; fi; echo "$n"; }
+nogit() { ch=$(git status --porcelain --untracked-files=all); if [ -n "$ch" ]; then echo "changes git sees: $ch"; else echo 'changes git sees: none'; fi; }
+mkrepo 'Gone repository.' || exit 92
+dead=$(pwd -P); HYP_ACTOR=runner HYP_ROLE=runner "$bin/hyp" status >"$bin/deadread" 2>/dev/null
+mkrepo 'Live repository.' || exit 93
+live=$(pwd -P); HYP_ACTOR=runner HYP_ROLE=runner "$bin/hyp" status >/dev/null 2>&1
+rm -rf "$dead" || exit 94
+out=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" prune 2>/dev/null); c=$?
+case "$out" in *"$dead"*) d=yes ;; *) d=no ;; esac
+case "$out" in *"$live"*) l=yes ;; *) l=no ;; esac
+echo "owner: hyp prune: exit $c, names the deleted repository: $d, names the live repository: $l"
+echo "files under ~/.hyp that hold the deleted repository's read: $(holding "$HOME/.hyp" "$bin/deadread")"
+nogit
+-- floor: equals --
+owner: hyp prune: exit 0, names the deleted repository: yes, names the live repository: no
+files under ~/.hyp that hold the deleted repository's read: some
+changes git sees: none
