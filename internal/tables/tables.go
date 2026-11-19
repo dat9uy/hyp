@@ -266,11 +266,18 @@ func GuardOwnCase(role string) error {
 	return nil
 }
 
-// GuardAddsOnlyTable refuses a placement of the hash that is already current
-// on its key. The content half of Adds only reads git and is the act's.
+// GuardAddsOnlyTable refuses a placement of a hash the key has already held,
+// current or earlier: a version only grows, so an old version never comes
+// back. The content half of Adds only reads git and is the act's.
 func GuardAddsOnlyTable(g *Goal, key, hash string) error {
-	if cur, ok := g.Current(key); ok && cur.Hash == hash {
-		return herr.Refused("Adds only: %s is already the current version of %s (@%d); a new version adds a floor or a ceiling", hash, key, cur.Version)
+	for _, old := range g.Placements[key] {
+		if old.Hash != hash {
+			continue
+		}
+		if cur, _ := g.Current(key); cur.Hash == hash {
+			return herr.Refused("Adds only: %s is already the current version of %s (@%d); a new version adds a floor or a ceiling", hash, key, cur.Version)
+		}
+		return herr.Refused("Adds only: %s was version @%d of %s; an earlier version never comes back", hash, old.Version, key)
 	}
 	return nil
 }
@@ -298,24 +305,15 @@ func GuardPlace(t Tables, ev events.Event) error {
 	return GuardAddsOnlyTable(g, p.Line+"/"+p.Example, p.Hash)
 }
 
-// place applies a placement the guards allowed. The version is the place of
-// the hash among the distinct hashes the key has held.
+// place applies a placement the guards allowed. The version is the count of
+// the hashes the key has held, this one included.
 func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
 	if g.Placements == nil {
 		g.Placements = map[string][]Placement{}
 	}
 	key := p.Line + "/" + p.Example
-	version := 0
-	seen := map[string]bool{}
-	for _, old := range g.Placements[key] {
-		if old.Hash == p.Hash {
-			version = old.Version
-		}
-		seen[old.Hash] = true
-	}
-	if version == 0 {
-		version = len(seen) + 1
-	}
+	// GuardAddsOnlyTable refused every hash the key held, so this one is new.
+	version := len(g.Placements[key]) + 1
 	g.Placements[key] = append(g.Placements[key], Placement{
 		Key: key, Line: p.Line, Example: p.Example, Hash: p.Hash, Version: version,
 		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: p.H0,

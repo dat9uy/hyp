@@ -440,3 +440,14 @@ func TestH0CellIsNotRunAfterTheBaseMoves(t *testing.T) {
 		t.Fatalf("state = %s, want written: the cell is not live", g.State)
 	}
 }
+
+func TestAddsOnlyTableRefusesAnEarlierHash(t *testing.T) {
+	g := &Goal{Placements: map[string][]Placement{"line-1/a": {
+		{Key: "line-1/a", Hash: hashA, Version: 1},
+		{Key: "line-1/a", Hash: hashB, Version: 2},
+	}}}
+	err := GuardAddsOnlyTable(g, "line-1/a", hashA)
+	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Adds only") {
+		t.Fatalf("placing @1 again after @2: %v, want an Adds only refusal", err)
+	}
+}
