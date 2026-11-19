@@ -1,0 +1,18 @@
+# G-XXXXXX: Find the gap.
+
+## line-1 (gap): it fails
+
+### line-1/a: w
+
+verdict: met, exit 0
+
+output:
+
+```
+ok
+```
+
+stderr: (empty)
+
+selected commit: <hash>
+selected row: <hash>

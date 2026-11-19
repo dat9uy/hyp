@@ -49,7 +49,7 @@ type RunReport struct {
 	Commit  string
 	RowTree string
 	Cells   []RunCell
-	Used    int  // N of "runs: N of 3 used"
+	Used    int  // N of "runs: N of 3 used", which the state block prints
 	LastRun bool // the next run is the last the Goal may make
 }
 
@@ -61,18 +61,7 @@ func (r RunReport) String() string {
 	for _, c := range r.Cells {
 		fmt.Fprintf(&b, "%s %q: %s (exit %d, output %s)\n", c.Key, c.Words, c.Verdict, c.Exit, c.Output)
 	}
-	b.WriteString(runsUsed(r.Goal, r.Used, r.LastRun))
 	return b.String()
-}
-
-// runsUsed is the "runs: N of 3 used" line and, while N is two, the warning
-// that the next run is the last.
-func runsUsed(goal string, used int, last bool) string {
-	s := fmt.Sprintf("runs: %d of %d used\n", used, tables.MaxTrees)
-	if last {
-		s += fmt.Sprintf("last run: after this, %s stops for the owner.\n", goal)
-	}
-	return s
 }
 
 // runChecked is what the guards that need no Probe found.
@@ -176,7 +165,7 @@ func Run(o RunOpts) (RunReport, error) {
 	rep.Used = tables.RunsUsed(g)
 	rep.LastRun = rep.Used == tables.MaxTrees-1
 	if stable != nil {
-		return RunReport{}, fmt.Errorf("%w\n%s", stable, strings.TrimSuffix(runsUsed(rep.Goal, rep.Used, rep.LastRun), "\n"))
+		return rep, stable
 	}
 	for i, c := range cells {
 		rep.Cells = append(rep.Cells, RunCell{Key: lineKey + "/" + c.Example, Words: words[i], Verdict: c.Verdict, Output: c.Output, Exit: c.Exit})
@@ -312,18 +301,21 @@ func stableRefusal(root string, g *tables.Goal, diff []tables.Unstable) error {
 }
 
 // readOutput reads a stored output for display, at most maxShown bytes.
-func readOutput(root, hash string) string {
+func readOutput(root, hash string) string { return readOutputMax(root, hash, maxShown) }
+
+// readOutputMax reads a stored output for display, at most max bytes.
+func readOutputMax(root, hash string, max int) string {
 	f, err := os.Open(logstore.OutputPath(root, hash))
 	if err != nil {
 		return "(unreadable: " + err.Error() + ")"
 	}
 	defer f.Close()
-	buf, err := io.ReadAll(io.LimitReader(f, maxShown+1))
+	buf, err := io.ReadAll(io.LimitReader(f, int64(max)+1))
 	if err != nil {
 		return "(unreadable: " + err.Error() + ")"
 	}
-	if len(buf) > maxShown {
-		return string(buf[:maxShown]) + "\n(truncated)"
+	if len(buf) > max {
+		return string(buf[:max]) + "\n(truncated)"
 	}
 	return string(buf)
 }
