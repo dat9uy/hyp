@@ -1,0 +1,9 @@
+-- words --
+Outside internal/channel, no Go file of a package the hyp binary is built from writes text that hyp prints to the agent.
+-- input/patterns.txt --
+fmt\.(Sprint|Sprintf|Sprintln|Fprint|Fprintf|Fprintln|Print|Printf|Println|Errorf)\(
+herr\.(Refused|BadArgs|Env|New)\(
+errors\.New\(
+-- run --
+go list -deps -f '{{.ImportPath}}' ./cmd/hyp | grep '^github.com/dat9uy/hyp/' | sed 's|^github.com/dat9uy/hyp/||' | grep -vx internal/channel | while read -r d; do grep -lE -f "$HYP_EXAMPLE/input/patterns.txt" "$d"/*.go; done | grep -v '_test\.go$' | sort
+-- floor: equals --
