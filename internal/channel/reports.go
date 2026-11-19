@@ -1,0 +1,165 @@
+package channel
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/dat9uy/hyp/internal/acts"
+	"github.com/dat9uy/hyp/internal/logstore"
+	"github.com/dat9uy/hyp/internal/tables"
+)
+
+// The reports of the write acts. Each prints the values the act returned as
+// hyp holds them: a Goal's words, a line's text and an example's words are
+// never quoted or escaped.
+
+func addGoalText(rep acts.Report) string {
+	var b strings.Builder
+	verb := "recorded"
+	if rep.Replaced {
+		verb = "replaced"
+	}
+	fmt.Fprintf(&b, "%s %s\n", verb, rep.Goal)
+	fmt.Fprintf(&b, "words: %s\n", rep.Words)
+	fmt.Fprintf(&b, "H0: %s\n", rep.Base)
+	for _, l := range rep.Lines {
+		fmt.Fprintf(&b, "%s %s: %s\n", l.Key, l.Kind, l.Text)
+	}
+	return b.String()
+}
+
+func placeText(rep acts.PlaceReport) string {
+	return fmt.Sprintf("placed %s %s @%d\nhash: %s\nH0: %s (exit %d)\n%s is %s\n",
+		rep.Goal, rep.Key, rep.Version, rep.Hash, rep.Verdict, rep.Exit, rep.Goal, rep.State)
+}
+
+// runText is the report of a run: the commit and row, and for each example
+// its verdict, exit code and output hash, then its words as the example
+// holds them.
+func runText(rep acts.RunReport) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "ran %s %s at %s\n", rep.Goal, rep.Line, rep.Commit)
+	fmt.Fprintf(&b, "row: %s\n", rep.RowTree)
+	for _, c := range rep.Cells {
+		fmt.Fprintf(&b, "%s %s (exit %d, output %s)\n", c.Key, c.Verdict, c.Exit, c.Output)
+		fmt.Fprintf(&b, "  words: %s\n", c.Words)
+	}
+	return b.String()
+}
+
+// readyText is an allowed act as the command line its role runs. A key hyp
+// cannot know prints as a placeholder in angle brackets.
+func readyText(r acts.Ready) string {
+	or := func(v, placeholder string) string {
+		if v == "" {
+			return placeholder
+		}
+		return v
+	}
+	switch r.Act {
+	case acts.ActAddGoal:
+		return "hyp add goal " + r.Goal + " --base <commit> --words <words> --line <kind>:<text>"
+	case acts.ActPlace:
+		return "hyp place " + r.Goal + " " + or(r.Line, "<line>") + "/<example>"
+	case acts.ActRun:
+		return "hyp run " + or(shortCommit(r.Commit), "<commit>") + " " + r.Goal + "/" + r.Line
+	case acts.ActSelect:
+		return "hyp select " + r.Goal + " " + r.Tree
+	}
+	return "hyp " + r.Act + " " + r.Goal
+}
+
+// shortCommit is the form of a commit in a ready line.
+func shortCommit(commit string) string {
+	if len(commit) > 12 {
+		return commit[:12]
+	}
+	return commit
+}
+
+// prOutputMax is how much of one stored output the PR body prints.
+const prOutputMax = 16384
+
+var backtickRun = regexp.MustCompile("`+")
+
+// fence wraps text in a code fence longer than any run of backticks in it.
+// The fence holds the bytes as they are; the label above it gives their
+// count, so a final newline the fence cannot show is not lost.
+func fence(text string) string {
+	n := 3
+	for _, m := range backtickRun.FindAllString(text, -1) {
+		n = max(n, len(m)+1)
+	}
+	bar := strings.Repeat("`", n)
+	if !strings.HasSuffix(text, "\n") {
+		text += "\n"
+	}
+	return bar + "\n" + text + bar + "\n"
+}
+
+// prBody is the PR body of a selected Goal (section 12): its words, each line
+// with its kind, each placed example with its words, output, stderr, exit
+// code and verdict on the selected row, and the selected commit and row. A
+// split line is marked. It reads only the tables, the stored outputs and the
+// example folders.
+func prBody(root string, g *tables.Goal) string {
+	if g == nil || g.Select == nil {
+		return ""
+	}
+	tree := g.Select.RowTree
+	split := g.SplitLines(tree)
+	live := map[string]tables.LiveCell{}
+	for _, c := range g.LiveCells(tree) {
+		if _, ok := live[c.Key]; !ok {
+			live[c.Key] = c
+		}
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "# %s: %s\n", g.ID, g.Words)
+	for _, l := range g.Lines {
+		mark := ""
+		for _, s := range split {
+			if s == l.Key {
+				mark = " [split line: its examples give different verdicts on this row]"
+			}
+		}
+		fmt.Fprintf(&b, "\n## %s (%s): %s%s\n", l.Key, l.Kind, l.Text, mark)
+		for _, p := range g.Placed() {
+			if p.Line != l.Key {
+				continue
+			}
+			words, err := acts.ExampleWords(root, p.Hash)
+			if err != nil {
+				words = "(example " + p.Hash + " is not readable here: " + bodyText(err, root) + ")"
+			}
+			fmt.Fprintf(&b, "\n### %s: %s\n\n", p.Key, words)
+			c, ok := live[p.Key]
+			if !ok {
+				b.WriteString("verdict: not run\n")
+				continue
+			}
+			fmt.Fprintf(&b, "verdict: %s, exit %d\n", c.Verdict, c.Exit)
+			prStored(&b, root, "output", c.Output)
+			prStored(&b, root, "stderr", c.Stderr)
+		}
+	}
+	fmt.Fprintf(&b, "\nselected commit: %s\nselected row: %s\n", g.Select.Commit, tree)
+	return b.String()
+}
+
+// prStored prints a stored output under a label in the PR body: its byte
+// count, then the bytes in a fenced block; an empty output is "<label>, 0 bytes".
+func prStored(b *strings.Builder, root, label, hash string) {
+	data, size, err := logstore.ReadOutput(root, hash, prOutputMax)
+	switch {
+	case err != nil:
+		fmt.Fprintf(b, "\n%s: not readable here: %s\n", label, bodyText(err, root))
+	case size == 0:
+		fmt.Fprintf(b, "\n%s, 0 bytes\n", label)
+	case int64(len(data)) < size:
+		fmt.Fprintf(b, "\n%s, first %d of %d bytes:\n\n%s", label, len(data), size, fence(string(data)))
+	default:
+		fmt.Fprintf(b, "\n%s, %d bytes:\n\n%s", label, size, fence(string(data)))
+	}
+}

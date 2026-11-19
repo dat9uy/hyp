@@ -20,13 +20,13 @@ PR body:
 
 verdict: met, exit 0
 
-output:
+output, 2 bytes:
 
 ```
 ok
 ```
 
-stderr: (empty)
+stderr, 0 bytes
 
 selected commit: <hash>
 selected row: <hash>

@@ -4,13 +4,13 @@ package acts
 
 import (
 	"encoding/json"
-	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
@@ -54,25 +54,38 @@ type Report struct {
 // ValidRole reports whether role is one of the four.
 func ValidRole(role string) bool { return slices.Contains(Roles, role) }
 
+// CheckActor is the argument check of every act that writes: the actor
+// matches ^[a-z0-9][a-z0-9-]{0,39}$ and the role is one of the four.
+func CheckActor(actor, role string) error {
+	switch {
+	case actor == "":
+		return fault.BadArg(fault.NoActor)
+	case !logstore.ValidActor(actor):
+		return fault.BadArg(fault.BadActor, actor)
+	case role == "":
+		return fault.BadArg(fault.NoRole, Roles)
+	case !ValidRole(role):
+		return fault.BadArg(fault.BadRole, role, Roles)
+	}
+	return nil
+}
+
 // AddGoal records a Goal, or replaces a written one, or refuses with the first
 // failing guard: Draft, then Whole lines. It creates .tree/ at the git top
 // level when it is absent, and only after the guards pass.
 func AddGoal(o AddGoalOpts) (Report, error) {
-	if !logstore.ValidActor(o.Actor) {
-		return Report{}, herr.BadArgs("actor %q must match ^[a-z0-9][a-z0-9-]{0,39}$ (--actor or $HYP_ACTOR)", o.Actor)
-	}
-	if !ValidRole(o.Role) {
-		return Report{}, herr.BadArgs("role %q must be one of %s (--role or $HYP_ROLE)", o.Role, strings.Join(Roles, ", "))
+	if err := CheckActor(o.Actor, o.Role); err != nil {
+		return Report{}, err
 	}
 	if strings.TrimSpace(o.Words) == "" {
-		return Report{}, herr.BadArgs("the Goal's words are empty")
+		return Report{}, fault.BadArg(fault.EmptyWords)
 	}
 	lines := make([]events.Line, len(o.Lines))
 	for i, l := range o.Lines {
 		if strings.TrimSpace(l.Text) == "" {
-			return Report{}, herr.BadArgs("line %d has no text", i+1)
+			return Report{}, fault.BadArg(fault.LineNoText, i+1)
 		}
-		lines[i] = events.Line{Key: fmt.Sprintf("line-%d", i+1), Text: l.Text, Kind: l.Kind}
+		lines[i] = events.Line{Key: "line-" + strconv.Itoa(i+1), Text: l.Text, Kind: l.Kind}
 	}
 	root, err := logstore.TopLevel(o.Dir)
 	if err != nil {
@@ -108,7 +121,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 			Budget: DefaultBudget, From: from, Lines: lines,
 		})
 		if err != nil {
-			return ev, herr.Env("encode goal.add: %v", err)
+			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeGoalAdd, err)
 		}
 		ev.Payload, ev.Why = payload, o.Why
 		if err := tables.GuardGoalAdd(t, ev); err != nil {
@@ -145,14 +158,14 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 // A base that is not a commit is a bad argument.
 func resolveBase(root, base string) (commit, rowTree string, err error) {
 	if base == "" || strings.HasPrefix(base, "-") {
-		return "", "", herr.BadArgs("--base %q is not a commit", base)
+		return "", "", fault.BadArg(fault.BaseNotCommit, base)
 	}
 	code, _, err := gitread.GitExit(root, "cat-file", "-e", base+"^{commit}")
 	if err != nil {
 		return "", "", err
 	}
 	if code != 0 {
-		return "", "", herr.BadArgs("--base %q is not a commit of this repository", base)
+		return "", "", fault.BadArg(fault.BaseNotHere, base)
 	}
 	out, err := gitread.Git(root, "rev-parse", "--verify", base+"^{commit}")
 	if err != nil {

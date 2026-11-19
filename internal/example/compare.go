@@ -3,7 +3,7 @@ package example
 import (
 	"bytes"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // Verdict is the result of a compare.
@@ -47,16 +47,14 @@ func Compare(output []byte, ex Example) Verdict {
 // two versions' probe/ folders. The refusal names the first section or path
 // that differs; such a change is a new example key, not a new version.
 func AddsOnly(old, next Example, oldProbe, newProbe string) error {
-	differ := func(what string) error {
-		return herr.Refused("Adds only: %s differs from the current version; a change there is a new example key, not a new version", what)
-	}
+	section := func(name string) error { return fault.Refuse(fault.GuardAddsOnly, fault.SectionDiffers, name) }
 	switch {
 	case oldProbe != newProbe:
-		return differ("probe/")
+		return fault.Refuse(fault.GuardAddsOnly, fault.PathDiffers, "probe/")
 	case old.Words != next.Words:
-		return differ("the words section")
+		return section("words")
 	case old.Run != next.Run:
-		return differ("the run section")
+		return section("run")
 	}
 	oldIn := map[string]string{}
 	for _, in := range old.Inputs {
@@ -71,12 +69,12 @@ func AddsOnly(old, next Example, oldProbe, newProbe string) error {
 			o, inOld := oldIn[in.Path]
 			n, inNew := newIn[in.Path]
 			if inOld != inNew || o != n {
-				return differ("input/" + in.Path)
+				return section("input/" + in.Path)
 			}
 		}
 	}
 	if old.HasExternal != next.HasExternal || old.External != next.External {
-		return differ("the external section")
+		return section("external")
 	}
 	oldFloors := map[Floor]int{}
 	for _, f := range next.Floors {
@@ -84,7 +82,7 @@ func AddsOnly(old, next Example, oldProbe, newProbe string) error {
 	}
 	for _, f := range old.Floors {
 		if oldFloors[f]--; oldFloors[f] < 0 {
-			return herr.Refused("Adds only: the new version drops floor: %s %q", f.Op, f.Text)
+			return fault.Refuse(fault.GuardAddsOnly, fault.DropsFloor, f.Op, f.Text)
 		}
 	}
 	ceilings := map[string]int{}
@@ -93,11 +91,11 @@ func AddsOnly(old, next Example, oldProbe, newProbe string) error {
 	}
 	for _, c := range old.Ceilings {
 		if ceilings[c]--; ceilings[c] < 0 {
-			return herr.Refused("Adds only: the new version drops ceiling %q", c)
+			return fault.Refuse(fault.GuardAddsOnly, fault.DropsCeiling, c)
 		}
 	}
 	if len(next.Floors)+len(next.Ceilings) <= len(old.Floors)+len(old.Ceilings) {
-		return herr.Refused("Adds only: the new version adds nothing; it must add at least one floor or ceiling")
+		return fault.Refuse(fault.GuardAddsOnly, fault.AddsNothing)
 	}
 	return nil
 }

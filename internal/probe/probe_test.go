@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/dat9uy/hyp/internal/example"
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -149,7 +149,7 @@ func TestProbeTimeoutKillsGroup(t *testing.T) {
 	r, c, h := fixture(t, txtar("sleep 30"), fixtureProbe, nil)
 	start := time.Now()
 	_, err := Run(Opts{Repo: r.Dir, Commit: c, ExampleHash: h, Timeout: time.Second})
-	if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), h) {
+	if err == nil || fault.KindOf(err) != fault.Environment || !testutil.Mentions(err, h) {
 		t.Fatalf("err = %v, want an environment error naming the example hash", err)
 	}
 	if d := time.Since(start); d > 5*time.Second {
@@ -167,7 +167,7 @@ func TestProbeFailureIsEnv(t *testing.T) {
 	} {
 		r, c, h := fixture(t, txtar("true"), script, nil)
 		_, err := Run(Opts{Repo: r.Dir, Commit: c, ExampleHash: h, Timeout: 10 * time.Second})
-		if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), h) {
+		if err == nil || fault.KindOf(err) != fault.Environment || !testutil.Mentions(err, h) {
 			t.Errorf("%s: err = %v, want an environment error naming %s", name, err, h)
 		}
 	}
@@ -176,7 +176,7 @@ func TestProbeFailureIsEnv(t *testing.T) {
 func TestProbeBadExampleFileIsRefusal(t *testing.T) {
 	r, c, h := fixture(t, "no sections here\n", fixtureProbe, nil)
 	_, err := Run(Opts{Repo: r.Dir, Commit: c, ExampleHash: h, Timeout: 10 * time.Second})
-	if err == nil || herr.KindOf(err) != herr.Refusal {
+	if err == nil || fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("err = %v, want a refusal", err)
 	}
 }

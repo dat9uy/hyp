@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // Goal state names.
@@ -87,13 +87,27 @@ type Result struct {
 type Refused struct {
 	EventID string
 	Node    string // the event's node: a goal.add event id, or a Result id for a retract
-	Reason  string
+	Err     error  // the guard's refusal
+}
+
+// Read is a row of the Reads table: what hyp printed to one actor for one
+// command, from its read event.
+type Read struct {
+	ID      string // the read event id
+	Time    string
+	Actor   string
+	Role    string
+	Command []string
+	Exit    int
+	Stdout  string // the output hash of what it printed to stdout
+	Stderr  string // the output hash of what it printed to stderr
 }
 
 // Tables are the calculated tables, kept in memory for one command.
 type Tables struct {
 	Goals           map[string]*Goal // by EventID
 	results         map[string]*Result
+	Reads           map[string][]Read // by actor, in merge order
 	RefusedAtReplay []Refused
 }
 
@@ -133,11 +147,11 @@ func (t Tables) Find(name string) (*Goal, error) {
 	}
 	switch n {
 	case 0:
-		return nil, herr.BadArgs("no Goal %s", name)
+		return nil, fault.BadArg(fault.NoGoal, name)
 	case 1:
 		return found, nil
 	}
-	return nil, herr.BadArgs("%s matches %d Goals; name the event id", name, n)
+	return nil, fault.BadArg(fault.GoalTwice, name, n)
 }
 
 // GuardDraft refuses a replace of a Goal that is not written. A new Goal, with
@@ -148,10 +162,10 @@ func GuardDraft(t Tables, node string) error {
 	}
 	g, ok := t.Goals[node]
 	if !ok {
-		return herr.Refused("Draft: no Goal %s to replace", GoalID(node))
+		return fault.Refuse(fault.GuardDraft, fault.NoGoalToReplace, GoalID(node))
 	}
 	if g.State != StateWritten {
-		return herr.Refused("Draft: %s is %s; only a written Goal may be replaced", g.ID, g.State)
+		return fault.Refuse(fault.GuardDraft, fault.NotWritten, g.ID, g.State)
 	}
 	return nil
 }
@@ -163,7 +177,7 @@ const MaxLines = 10
 // gap or guard, the Goal has at least one gap line, and at most ten lines.
 func GuardWholeLines(lines []Line) error {
 	if len(lines) > MaxLines {
-		return herr.Refused("Whole lines: %d lines; a Goal lists at most %d", len(lines), MaxLines)
+		return fault.Refuse(fault.GuardWholeLines, fault.TooManyLines, len(lines), MaxLines)
 	}
 	gaps := 0
 	for i, l := range lines {
@@ -172,11 +186,11 @@ func GuardWholeLines(lines []Line) error {
 			gaps++
 		case events.KindGuard:
 		default:
-			return herr.Refused("Whole lines: line %d (%s) has kind %q; want gap or guard", i+1, l.Key, l.Kind)
+			return fault.Refuse(fault.GuardWholeLines, fault.BadLineKind, i+1, l.Key, l.Kind)
 		}
 	}
 	if gaps == 0 {
-		return herr.Refused("Whole lines: the Goal has no gap line")
+		return fault.Refuse(fault.GuardWholeLines, fault.NoGapLine)
 	}
 	return nil
 }
@@ -188,7 +202,7 @@ func GuardWholeLines(lines []Line) error {
 func GuardGoalAdd(t Tables, ev events.Event) error {
 	var p events.GoalAdd
 	if err := events.Decode(ev, &p); err != nil {
-		return herr.Refused("Whole lines: %v", err)
+		return fault.Refuse(fault.GuardWholeLines, fault.PayloadInvalid, err)
 	}
 	node := ev.Node
 	if node == ev.ID {
@@ -343,7 +357,7 @@ func (g *Goal) refresh() {
 // has a select.
 func GuardNotSelected(g *Goal) error {
 	if g.State == StateSelected {
-		return herr.Refused("Selected: %s has a select; it takes no place, run or second select", g.ID)
+		return fault.Refuse(fault.GuardSelected, fault.HasSelect, g.ID)
 	}
 	return nil
 }
@@ -351,7 +365,7 @@ func GuardNotSelected(g *Goal) error {
 // GuardOwnCase refuses a placement by any role but the grill.
 func GuardOwnCase(role string) error {
 	if role != "grill" {
-		return herr.Refused("Own case: only the grill places an example; the role is %q", role)
+		return fault.Refuse(fault.GuardOwnCase, fault.NotGrill, role)
 	}
 	return nil
 }
@@ -365,9 +379,9 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 			continue
 		}
 		if cur, _ := g.Current(key); cur.Hash == hash {
-			return herr.Refused("Adds only: %s is already the current version of %s (@%d); a new version adds a floor or a ceiling", hash, key, cur.Version)
+			return fault.Refuse(fault.GuardAddsOnly, fault.AlreadyCurrent, hash, key, cur.Version)
 		}
-		return herr.Refused("Adds only: %s was version @%d of %s; an earlier version never comes back", hash, old.Version, key)
+		return fault.Refuse(fault.GuardAddsOnly, fault.EarlierVersion, hash, old.Version, key)
 	}
 	return nil
 }
@@ -380,11 +394,11 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 func GuardPlace(t Tables, ev events.Event) error {
 	var p events.ExamplePlace
 	if err := events.Decode(ev, &p); err != nil {
-		return herr.Refused("Own case: %v", err)
+		return fault.Refuse(fault.GuardOwnCase, fault.PayloadInvalid, err)
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
-		return herr.Refused("no Goal %s to place on", GoalID(ev.Node))
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
 	}
 	if err := GuardNotSelected(g); err != nil {
 		return err
@@ -413,11 +427,11 @@ func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
 
 // Replay applies the events in order. An event that fails a guard replay
 // checks again is skipped and kept in RefusedAtReplay; it is never deleted
-// from the log.
+// from the log. A read event changes no Goal: it adds a row to Reads.
 func Replay(evs []events.Event) Tables {
-	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}}
+	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}, Reads: map[string][]Read{}}
 	refuse := func(ev events.Event, err error) {
-		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Reason: herr.Text(err)})
+		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Err: err})
 	}
 	for _, ev := range evs {
 		switch ev.Type {
@@ -441,6 +455,16 @@ func Replay(evs []events.Event) Tables {
 			replayRetract(&t, ev, refuse)
 		case events.TypeSelect:
 			replaySelect(&t, ev, refuse)
+		case events.TypeRead:
+			var p events.Read
+			if err := events.Decode(ev, &p); err != nil {
+				refuse(ev, fault.Refuse(fault.NoGuard, fault.PayloadInvalid, err))
+				continue
+			}
+			t.Reads[ev.Actor] = append(t.Reads[ev.Actor], Read{
+				ID: ev.ID, Time: ev.TS, Actor: ev.Actor, Role: p.Role, Command: p.Command,
+				Exit: p.Exit, Stdout: p.Stdout, Stderr: p.Stderr,
+			})
 		}
 	}
 	return t
@@ -476,11 +500,11 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 func replayRetract(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 	r, ok := t.results[ev.Node]
 	if !ok {
-		refuse(ev, herr.Refused("no Result %s to retract", ev.Node))
+		refuse(ev, fault.Refuse(fault.NoGuard, fault.NoResultToRetract, ev.Node))
 		return
 	}
 	if r.Actor != ev.Actor {
-		refuse(ev, herr.Refused("Own Result: %s was run by %s, not %s", r.ID, r.Actor, ev.Actor))
+		refuse(ev, fault.Refuse(fault.GuardOwnResult, fault.NotOwnResult, r.ID, r.Actor, ev.Actor))
 		return
 	}
 	r.Retracted = true

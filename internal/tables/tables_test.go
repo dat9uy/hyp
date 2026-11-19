@@ -3,11 +3,11 @@ package tables
 import (
 	"encoding/json"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/testutil"
 )
 
 func goalAdd(t *testing.T, id, node, words string, lines ...events.Line) events.Event {
@@ -60,7 +60,7 @@ func TestWholeLinesRefusesNoGap(t *testing.T) {
 		t.Fatalf("a Goal with a gap line was refused: %v", err)
 	}
 	err := GuardWholeLines([]events.Line{{Key: "line-1", Text: "x", Kind: events.KindGuard}})
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Whole lines") {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Whole lines" {
 		t.Fatalf("err = %v, want a Whole lines refusal", err)
 	}
 	if err := GuardWholeLines(nil); err == nil {
@@ -70,7 +70,7 @@ func TestWholeLinesRefusesNoGap(t *testing.T) {
 
 func TestWholeLinesRefusesMissingKind(t *testing.T) {
 	err := GuardWholeLines([]events.Line{gap, {Key: "line-2", Text: "x"}})
-	if err == nil || !strings.HasPrefix(herr.Text(err), "Whole lines") || !strings.Contains(err.Error(), "line-2") {
+	if err == nil || string(fault.GuardOf(err)) != "Whole lines" || !testutil.Mentions(err, "line-2") {
 		t.Fatalf("err = %v, want a Whole lines refusal naming line-2", err)
 	}
 	err = GuardWholeLines([]events.Line{gap, {Key: "line-2", Text: "x", Kind: "maybe"}})
@@ -87,7 +87,7 @@ func TestWholeLinesRefusesMoreThanTen(t *testing.T) {
 	if err := GuardWholeLines(lines[:10]); err != nil {
 		t.Fatalf("ten lines refused: %v", err)
 	}
-	if err := GuardWholeLines(lines); err == nil || !strings.HasPrefix(herr.Text(err), "Whole lines") {
+	if err := GuardWholeLines(lines); err == nil || string(fault.GuardOf(err)) != "Whole lines" {
 		t.Fatalf("eleven lines: %v", err)
 	}
 }
@@ -114,7 +114,7 @@ func TestDraftRefusesUnknownGoal(t *testing.T) {
 		t.Fatalf("a new Goal was refused: %v", err)
 	}
 	err := GuardDraft(Tables{Goals: map[string]*Goal{}}, id1)
-	if err == nil || !strings.HasPrefix(herr.Text(err), "Draft") {
+	if err == nil || string(fault.GuardOf(err)) != "Draft" {
 		t.Fatalf("err = %v, want a Draft refusal", err)
 	}
 	tb := Replay([]events.Event{goalAdd(t, id2, id1, "w", gap)})
@@ -127,7 +127,7 @@ func TestDraftRefusesFrozenGoal(t *testing.T) {
 	tb := Replay([]events.Event{goalAdd(t, id1, "", "w", gap)})
 	tb.Goals[id1].State = "open"
 	err := GuardDraft(tb, id1)
-	if err == nil || !strings.HasPrefix(herr.Text(err), "Draft") || herr.KindOf(err) != herr.Refusal {
+	if err == nil || string(fault.GuardOf(err)) != "Draft" || fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("err = %v, want a Draft refusal", err)
 	}
 }
@@ -137,7 +137,7 @@ func TestReplayKeepsRefusedEventAndGoesOn(t *testing.T) {
 	good := goalAdd(t, id2, "", "w2", gap)
 	tb := Replay([]events.Event{bad, good})
 	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != id1 ||
-		!strings.HasPrefix(tb.RefusedAtReplay[0].Reason, "Whole lines") {
+		string(fault.GuardOf(tb.RefusedAtReplay[0].Err)) != "Whole lines" {
 		t.Fatalf("RefusedAtReplay = %+v", tb.RefusedAtReplay)
 	}
 	if _, ok := tb.Goals[id2]; !ok || len(tb.Goals) != 1 {
@@ -157,13 +157,13 @@ func TestFindResolvesShortAndRefusesAmbiguous(t *testing.T) {
 	if g, err := tb.Find(b); err != nil || g.EventID != b {
 		t.Fatalf("Find by event id = %v, %v", g, err)
 	}
-	if _, err := tb.Find("G-NOPE00"); herr.KindOf(err) != herr.BadArguments {
+	if _, err := tb.Find("G-NOPE00"); fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("unknown Goal: %v", err)
 	}
 	// two Goals sharing their last six characters
 	d := "01M661QG900000000000XXAAAA"
 	tb = Replay([]events.Event{goalAdd(t, c, "", "w", gap), goalAdd(t, d, "", "w", gap)})
-	if _, err := tb.Find("G-AAAAAA"); err == nil || herr.KindOf(err) != herr.BadArguments {
+	if _, err := tb.Find("G-AAAAAA"); err == nil || fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("ambiguous id: %v", err)
 	}
 }
@@ -268,7 +268,7 @@ func TestOpenGoalRefusesDraftReplace(t *testing.T) {
 		goalAdd(t, id1, "", "w", gap),
 		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
 	})
-	if err := GuardDraft(tb, id1); err == nil || !strings.HasPrefix(herr.Text(err), "Draft") {
+	if err := GuardDraft(tb, id1); err == nil || string(fault.GuardOf(err)) != "Draft" {
 		t.Fatalf("GuardDraft on an open Goal = %v, want a Draft refusal", err)
 	}
 }
@@ -293,7 +293,7 @@ func TestMergedLogSkipsRefusedEvent(t *testing.T) {
 	sort.SliceStable(merged, func(i, j int) bool { return merged[i].ID < merged[j].ID })
 	tb := Replay(merged)
 	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != replaceA.ID ||
-		!strings.HasPrefix(tb.RefusedAtReplay[0].Reason, "Draft") {
+		string(fault.GuardOf(tb.RefusedAtReplay[0].Err)) != "Draft" {
 		t.Fatalf("RefusedAtReplay = %+v, want A's replace refused by Draft", tb.RefusedAtReplay)
 	}
 	g := tb.Goals[id1]
@@ -352,13 +352,13 @@ func TestReplayRefusesPlacementByTables(t *testing.T) {
 	goal := goalAdd(t, id1, "", "w", gap, guard)
 	for name, tc := range map[string]struct {
 		ev   events.Event
-		want string
+		want fault.Code
 	}{
-		"runner role":  {placeOn(t, idP1, id1, "r", "runner", "line-1", "a", hashA, "t", "failed"), "Own case"},
-		"unknown goal": {placeOn(t, idP1, id2, "g", "grill", "line-1", "a", hashA, "t", "failed"), "no Goal"},
+		"runner role":  {placeOn(t, idP1, id1, "r", "runner", "line-1", "a", hashA, "t", "failed"), fault.NotGrill},
+		"unknown goal": {placeOn(t, idP1, id2, "g", "grill", "line-1", "a", hashA, "t", "failed"), fault.NoGoalToPlace},
 	} {
 		tb := Replay([]events.Event{goal, tc.ev})
-		if len(tb.RefusedAtReplay) != 1 || !strings.HasPrefix(tb.RefusedAtReplay[0].Reason, tc.want) {
+		if len(tb.RefusedAtReplay) != 1 || fault.CodeOf(tb.RefusedAtReplay[0].Err) != tc.want {
 			t.Errorf("%s: RefusedAtReplay = %+v, want a %s refusal", name, tb.RefusedAtReplay, tc.want)
 		}
 		if len(tb.Goals[id1].Placements) != 0 {
@@ -370,7 +370,7 @@ func TestReplayRefusesPlacementByTables(t *testing.T) {
 		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
 		placeEv(t, idP2, "line-1", "a", hashA, "failed"),
 	})
-	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != idP2 || !strings.HasPrefix(tb.RefusedAtReplay[0].Reason, "Adds only") {
+	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != idP2 || string(fault.GuardOf(tb.RefusedAtReplay[0].Err)) != "Adds only" {
 		t.Fatalf("RefusedAtReplay = %+v, want the repeat refused by Adds only", tb.RefusedAtReplay)
 	}
 	if h := tb.Goals[id1].Placements["line-1/a"]; len(h) != 1 {
@@ -385,7 +385,7 @@ func TestGuardsOfPlace(t *testing.T) {
 	}
 	g.State = StateSelected
 	err := GuardNotSelected(g)
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Selected") {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Selected" {
 		t.Fatalf("a selected Goal: %v, want a Selected refusal", err)
 	}
 	if err := GuardOwnCase("grill"); err != nil {
@@ -393,7 +393,7 @@ func TestGuardsOfPlace(t *testing.T) {
 	}
 	for _, role := range []string{"runner", "owner", "probe-writer", ""} {
 		err := GuardOwnCase(role)
-		if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Own case") {
+		if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Own case" {
 			t.Errorf("role %q: %v, want an Own case refusal", role, err)
 		}
 	}
@@ -405,7 +405,7 @@ func TestGuardsOfPlace(t *testing.T) {
 		t.Fatalf("a new key was refused: %v", err)
 	}
 	err = GuardAddsOnlyTable(g, "line-1/a", hashA)
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Adds only") {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Adds only" {
 		t.Fatalf("the current hash: %v, want an Adds only refusal", err)
 	}
 }
@@ -447,7 +447,7 @@ func TestAddsOnlyTableRefusesAnEarlierHash(t *testing.T) {
 		{Key: "line-1/a", Hash: hashB, Version: 2},
 	}}}
 	err := GuardAddsOnlyTable(g, "line-1/a", hashA)
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Adds only") {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Adds only" {
 		t.Fatalf("placing @1 again after @2: %v, want an Adds only refusal", err)
 	}
 }

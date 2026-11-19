@@ -2,13 +2,12 @@ package gitread
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // Entry is one entry of a git tree as `git ls-tree` prints it.
@@ -33,7 +32,7 @@ func RootEntries(dir, commit string) ([]Entry, error) {
 		meta, name, ok := strings.Cut(string(rec), "\t")
 		f := strings.Fields(meta)
 		if !ok || len(f) != 3 {
-			return nil, herr.Env("git ls-tree %s: cannot parse %q", commit, rec)
+			return nil, fault.EnvFault(fault.LsTreeParse, commit, string(rec))
 		}
 		entries = append(entries, Entry{Mode: f[0], Type: f[1], Hash: f[2], Name: name})
 	}
@@ -71,7 +70,7 @@ func IsAncestor(dir, a, b string) (bool, error) {
 	case 1:
 		return false, nil
 	}
-	return false, herr.Env("git merge-base --is-ancestor %s %s: exit %d: %s", a, b, code, strings.TrimSpace(stderr))
+	return false, fault.EnvFault(fault.GitExit, []string{"merge-base", "--is-ancestor", a, b}, code, strings.TrimSpace(stderr))
 }
 
 // treeFile is one blob entry of ls-tree -r.
@@ -94,10 +93,10 @@ func listFiles(dir, treeish string) ([]treeFile, error) {
 		meta, name, ok := strings.Cut(string(rec), "\t")
 		f := strings.Fields(meta)
 		if !ok || len(f) != 3 {
-			return nil, herr.Env("git ls-tree %s: cannot parse %q", treeish, rec)
+			return nil, fault.EnvFault(fault.LsTreeParse, treeish, string(rec))
 		}
 		if f[0] == "160000" {
-			return nil, herr.Refused("%s: %s is a submodule (mode 160000)", treeish, name)
+			return nil, fault.Refuse(fault.NoGuard, fault.Submodule, treeish, name)
 		}
 		files = append(files, treeFile{mode: f[0], hash: f[2], path: name})
 	}
@@ -109,7 +108,7 @@ func listFiles(dir, treeish string) ([]treeFile, error) {
 func entryPath(dest, name string) (string, error) {
 	clean := filepath.Clean(filepath.FromSlash(name))
 	if name == "" || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-		return "", herr.Refused("tree entry %q leaves the destination", name)
+		return "", fault.Refuse(fault.NoGuard, fault.EntryLeaves, name)
 	}
 	return filepath.Join(dest, clean), nil
 }
@@ -135,12 +134,12 @@ func ExtractTree(dir, treeish, dest string) error {
 		}
 	}
 	if err := os.MkdirAll(dest, 0o755); err != nil {
-		return herr.Env("extract %s: %v", treeish, err)
+		return fault.EnvFault(fault.Extract, treeish, err)
 	}
 	for _, f := range files {
 		body, rest, err := nextBlob(data, f.hash)
 		if err != nil {
-			return herr.Env("git cat-file --batch %s: %v", treeish, err)
+			return fault.EnvFault(fault.CatFileBatch, treeish, err)
 		}
 		data = rest
 		path, err := entryPath(dest, f.path)
@@ -152,7 +151,7 @@ func ExtractTree(dir, treeish, dest string) error {
 		}
 		if f.mode == "120000" {
 			if err := os.Symlink(string(body), path); err != nil {
-				return herr.Env("extract %s: %v", f.path, err)
+				return fault.EnvFault(fault.Extract, f.path, err)
 			}
 			continue
 		}
@@ -161,11 +160,11 @@ func ExtractTree(dir, treeish, dest string) error {
 			perm = 0o755
 		}
 		if err := writeNew(path, body, perm); err != nil {
-			return herr.Env("extract %s: %v", f.path, err)
+			return fault.EnvFault(fault.Extract, f.path, err)
 		}
 		// The umask must not change what the tree says.
 		if err := os.Chmod(path, perm); err != nil {
-			return herr.Env("extract %s: %v", f.path, err)
+			return fault.EnvFault(fault.Extract, f.path, err)
 		}
 	}
 	return nil
@@ -176,18 +175,18 @@ func ExtractTree(dir, treeish, dest string) error {
 func nextBlob(data []byte, want string) (body, rest []byte, err error) {
 	nl := bytes.IndexByte(data, '\n')
 	if nl < 0 {
-		return nil, nil, fmt.Errorf("output ends before the object %s", want)
+		return nil, nil, fault.EnvFault(fault.BatchEnds, want)
 	}
 	f := strings.Fields(string(data[:nl]))
 	if len(f) == 2 && f[1] == "missing" {
-		return nil, nil, fmt.Errorf("object %s is missing from this clone", want)
+		return nil, nil, fault.EnvFault(fault.BatchMissing, want)
 	}
 	if len(f) != 3 || f[0] != want || f[1] != "blob" {
-		return nil, nil, fmt.Errorf("unexpected record %q for %s", data[:nl], want)
+		return nil, nil, fault.EnvFault(fault.BatchRecord, string(data[:nl]), want)
 	}
 	size, err := strconv.Atoi(f[2])
 	if err != nil || size < 0 || nl+1+size+1 > len(data) || data[nl+1+size] != '\n' {
-		return nil, nil, fmt.Errorf("bad size in record %q", data[:nl])
+		return nil, nil, fault.EnvFault(fault.BatchSize, string(data[:nl]))
 	}
 	return data[nl+1 : nl+1+size], data[nl+1+size+1:], nil
 }
@@ -214,7 +213,7 @@ func SubtreeHash(dir, treeish, name string) (string, error) {
 func ensureDirs(dest, dir string) error {
 	rel, err := filepath.Rel(dest, dir)
 	if err != nil {
-		return herr.Env("extract %s: %v", dir, err)
+		return fault.EnvFault(fault.Extract, dir, err)
 	}
 	cur := dest
 	if rel == "." {
@@ -226,12 +225,12 @@ func ensureDirs(dest, dir string) error {
 		switch {
 		case os.IsNotExist(err):
 			if err := os.Mkdir(cur, 0o755); err != nil {
-				return herr.Env("extract %s: %v", cur, err)
+				return fault.EnvFault(fault.Extract, cur, err)
 			}
 		case err != nil:
-			return herr.Env("extract %s: %v", cur, err)
+			return fault.EnvFault(fault.Extract, cur, err)
 		case !fi.IsDir():
-			return herr.Env("extract %s: a parent is not a real directory (symlink or file already written)", cur)
+			return fault.EnvFault(fault.NotRealDir, cur)
 		}
 	}
 	return nil

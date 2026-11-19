@@ -5,8 +5,8 @@ package events
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"fmt"
+
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // Version is the envelope version every line carries.
@@ -24,7 +24,8 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The six event types.
+// The seven event types. The first six change the state machine; read is
+// the trace of what hyp printed to an actor, and changes no state.
 const (
 	TypeGoalAdd       = "goal.add"
 	TypeExamplePlace  = "example.place"
@@ -32,11 +33,13 @@ const (
 	TypeResultRetract = "result.retract"
 	TypeSelect        = "select"
 	TypeBudgetReset   = "budget.reset"
+	TypeRead          = "read"
 )
 
 var types = map[string]bool{
 	TypeGoalAdd: true, TypeExamplePlace: true, TypeResultRecord: true,
 	TypeResultRetract: true, TypeSelect: true, TypeBudgetReset: true,
+	TypeRead: true,
 }
 
 // The kind of a line: a gap line must fail on H0, a guard line must be met.
@@ -123,18 +126,31 @@ type BudgetReset struct {
 	Role string `json:"role"`
 }
 
+// Read is the payload of read: what hyp printed to the event's actor for one
+// command. Command is the command's arguments after "hyp"; Stdout and Stderr
+// name the bytes it printed, stored under .tree/outputs/ by their sha256.
+// Role is the role the command declared, or empty for a read that declared
+// none.
+type Read struct {
+	Role    string   `json:"role"`
+	Command []string `json:"command"`
+	Exit    int      `json:"exit"`
+	Stdout  string   `json:"stdout"`
+	Stderr  string   `json:"stderr"`
+}
+
 // ParseLine parses one line of an events file. It refuses an unknown field, a
-// version other than 2 and a type outside the six.
+// version other than 2 and a type outside the seven.
 func ParseLine(b []byte) (Event, error) {
 	var e Event
 	if err := strictDecode(b, &e); err != nil {
 		return Event{}, err
 	}
 	if e.V != Version {
-		return Event{}, fmt.Errorf("event version %d, want %d", e.V, Version)
+		return Event{}, fault.Refuse(fault.NoGuard, fault.EventVersion, e.V, Version)
 	}
 	if !types[e.Type] {
-		return Event{}, fmt.Errorf("unknown event type %q", e.Type)
+		return Event{}, fault.Refuse(fault.NoGuard, fault.EventType, e.Type)
 	}
 	return e, nil
 }
@@ -142,7 +158,7 @@ func ParseLine(b []byte) (Event, error) {
 // Decode parses e's payload into dst, refusing an unknown field.
 func Decode(e Event, dst any) error {
 	if err := strictDecode(e.Payload, dst); err != nil {
-		return fmt.Errorf("%s payload: %w", e.Type, err)
+		return fault.Refuse(fault.NoGuard, fault.PayloadDecode, e.Type, err)
 	}
 	return nil
 }
@@ -154,7 +170,7 @@ func strictDecode(raw []byte, dst any) error {
 		return err
 	}
 	if dec.More() {
-		return errors.New("trailing data after JSON object")
+		return fault.Refuse(fault.NoGuard, fault.TrailingData)
 	}
 	return nil
 }

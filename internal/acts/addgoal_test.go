@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 	"github.com/dat9uy/hyp/internal/testutil"
@@ -61,7 +61,7 @@ func TestAddGoalRefusesNoGapLine(t *testing.T) {
 	r := testutil.NewRepo(t)
 	r.Commit(t, map[string]string{"a": "a"})
 	_, err := AddGoal(opts(r.Dir, "HEAD", LineInput{Kind: events.KindGuard, Text: "it holds"}))
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Whole lines") {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Whole lines" {
 		t.Fatalf("err = %v, want a Whole lines refusal", err)
 	}
 	if _, err := os.Stat(filepath.Join(r.Dir, ".tree")); !os.IsNotExist(err) {
@@ -74,7 +74,7 @@ func TestAddGoalBadBaseIsBadArgs(t *testing.T) {
 	r.Commit(t, map[string]string{"a": "a"})
 	for _, base := range []string{"nope", strings.Repeat("0", 40), "", "--output=x"} {
 		_, err := AddGoal(opts(r.Dir, base, gapLine))
-		if err == nil || herr.KindOf(err) != herr.BadArguments {
+		if err == nil || fault.KindOf(err) != fault.BadArguments {
 			t.Errorf("base %q: err = %v, want bad arguments", base, err)
 		}
 	}
@@ -91,7 +91,7 @@ func TestAddGoalBadActorOrRoleIsBadArgs(t *testing.T) {
 	} {
 		o := opts(r.Dir, "HEAD", gapLine)
 		mod(&o)
-		if _, err := AddGoal(o); herr.KindOf(err) != herr.BadArguments {
+		if _, err := AddGoal(o); fault.KindOf(err) != fault.BadArguments {
 			t.Errorf("%+v: err = %v, want bad arguments", o, err)
 		}
 	}
@@ -100,7 +100,7 @@ func TestAddGoalBadActorOrRoleIsBadArgs(t *testing.T) {
 func TestAddGoalOutsideRepoIsEnvironment(t *testing.T) {
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(t.TempDir()))
 	_, err := AddGoal(opts(t.TempDir(), "HEAD", gapLine))
-	if herr.KindOf(err) != herr.Environment {
+	if fault.KindOf(err) != fault.Environment {
 		t.Fatalf("err = %v, want an environment error", err)
 	}
 }
@@ -128,7 +128,7 @@ func TestAddGoalReplacesWrittenGoal(t *testing.T) {
 		t.Fatalf("tables = %+v", tb)
 	}
 	o.Goal = "G-NOPE00"
-	if _, err := AddGoal(o); herr.KindOf(err) != herr.BadArguments {
+	if _, err := AddGoal(o); fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("replace of an unknown Goal: %v", err)
 	}
 }
@@ -152,7 +152,7 @@ func TestAddGoalFromStoresOnlyTheID(t *testing.T) {
 		t.Fatalf("from = %q, %v; want %s", p.From, err, evs[0].ID)
 	}
 	o.From = "G-NOPE00"
-	if _, err := AddGoal(o); herr.KindOf(err) != herr.BadArguments {
+	if _, err := AddGoal(o); fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("from an unknown Goal: %v", err)
 	}
 }

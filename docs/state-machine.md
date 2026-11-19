@@ -64,12 +64,12 @@ Every event is one JSON line with this envelope (v1's, with `v` = 2):
 | `id` | The event's ULID. |
 | `ts` | hyp's time, RFC 3339 UTC. |
 | `actor` | The actor; equal to the events file's base name. |
-| `type` | One of the six types below. |
-| `node` | The id the event is about: the Goal's `goal.add` id, or the Result's `result.record` id for `result.retract`. |
+| `type` | One of the seven types below. |
+| `node` | The id the event is about: the Goal's `goal.add` id, the Result's `result.record` id for `result.retract`, or the event's own id for `read`. |
 | `payload` | The type's payload, parsed strictly: an unknown field does not parse. |
 | `why` | The actor's short reason, optional. |
 
-The six events:
+The seven events:
 
 | Event | Written by | `node` | Payload |
 |---|---|---|---|
@@ -79,13 +79,19 @@ The six events:
 | `result.retract` | `retract` | the Result | role |
 | `select` | `select`, `land` | the Goal | role, commit, row tree |
 | `budget.reset` | `reset` | the Goal | role |
+| `read` | every command that names an actor, in a repository with a store (§8) | its own id | role (empty when the command declared none of the four), the command's arguments, exit code, stdout hash, stderr hash |
 
 The Probe hash is the tree hash of the example's `probe/` folder. The example
 hash already covers it; it is kept on the cell so hyp can show which examples
 share one Probe (main page §4, "Copy, and let hyp show the copies").
 
-The six events are the list of `v2-architecture.html` §8. Owner said,
+The first six events are the list of `v2-architecture.html` §8. Owner said,
 2026-11-19: "Why ask me, event list is already decided in report".
+
+The seventh, `read`, is the trace of what hyp printed to an actor (§8, "Reads
+leave a trace"). Its two hashes name output files (§5, Outputs) that hold the
+bytes hyp wrote to stdout and to stderr. It changes no Goal, Result or row, and
+no guard reads it.
 
 `example.place` carries H0's cell for the example it places, with the fields of
 a Result's cell. So one placement is one line, and a crash
@@ -111,13 +117,23 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   not parse: replay reports it with its file and line number and skips it.
   Before it appends, hyp writes a newline if the file does not end in one, so a
   torn line stays alone and the next event is not glued to it.
+- **Trace.** A command that names an actor writes its trace after its act and
+  before it prints (§12): the two output files, then the `read` event, under the
+  lock like any append. A write act's own event comes first, under its own hold
+  of the lock. A crash after the trace and before the print leaves the trace of
+  bytes the actor never got; a crash before the trace leaves bytes that were
+  neither traced nor printed. So `show` holds every result and refusal the
+  actor got, in order, byte for byte, and one more read for each command that
+  crashed after its trace. The model of these rules, with both ways `show` can
+  differ from what the actor got, is `goals/G-9XX4KB/specs/channel.tla`.
 - **Merged log.** Two clones that each passed their guards can merge into a log
   that breaks one, for example a fourth tree in one budget. Replay checks every
   event at its place in the merge order. An event whose guards fail there is
   skipped, listed under "refused at replay" in `status`, and never deleted (main
   page §11: "A guard that a merged log breaks shows when hyp replays it, as v1
   does"). Output files are named by their hash, so they never conflict in a
-  merge.
+  merge. A `read` has no guard, so replay keeps every `read` whose payload
+  parses.
 - **Which guards replay checks again.** Only the guards that read the tables:
   Draft, Whole lines, Own case, Open, Goal's actor, Budget, Stable, Selected
   and Own Result, the table half of Adds only (the hash is new on its key), and
@@ -149,6 +165,7 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 | Cells | Result, example hash | example key, Probe hash, output hash, stderr hash, exit code, verdict (`met` or `failed`) |
 | Rows | Goal, row key | the commits it was seen at; leaf (from git); per example key, the verdict of its live cell under the current placement, or `not run` |
 | Selects | Goal | commit, row tree, time, actor |
+| Reads | actor, read id | time, role, command, exit code, stdout hash, stderr hash; an actor's reads are in merge order, oldest first |
 
 - A cell is **live** when its Result is not retracted, not refused by Stable,
   and its example hash is the current placement's hash for its example key.
@@ -333,6 +350,8 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | `land G COMMIT` | runner | Selected, Same change | `result.record` per line; `select` when met on every line |
 | `reset G` | owner | Not ended, Goal's actor | `budget.reset` |
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
+| `status [G] [--role ROLE]` | any | none | `read` |
+| `show ACTOR` | any | none | `read` |
 
 - `select G TREE` records the commit of the row's latest Result in merge order.
   Spec and Own path read that commit, and the PR holds it. Every commit of a leaf
@@ -345,12 +364,39 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 - `run` checks every guard that needs no Probe before it runs a Probe; Stable is
   checked on the outputs.
 - `land`, `reset` and `retract` are specified here and built as later v2 Goals.
-- Reads write nothing and are always allowed: `status`, `show KEY`,
-  `prompt ROLE`. `show` and `prompt` are later v2 Goals.
+
+**Reads leave a trace.** `status` and `show ACTOR` are reads: they check no
+guard and are always allowed. Every command that names a valid actor, a read or
+a write act, records what hyp printed to that actor as one `read` event (§3),
+before it prints (§12). So `hyp show <actor>` prints exactly what that actor
+got, however the log changed after. Owner said, 2026-11-19 (record PR #226):
+"Reads leave a trace. An agent's read, such as `hyp status`, is recorded so
+that `hyp show <actor>` can print exactly what that actor got." This replaces
+the rule "Reads write nothing".
+
+- A read needs an actor, from `--actor` or `$HYP_ACTOR`. With none, or one that
+  does not match §2, it is exit 2 and leaves no trace: a read with no actor
+  would print bytes no `show` can find. The role is not needed for a read. A
+  role from `--role` must be one of the four (exit 2), and filters `status`
+  (§12). The trace records the declared role, from `--role` or `$HYP_ROLE`,
+  when it is one of the four, else none.
+- A command records its trace once it holds a valid actor, whatever its exit
+  code: a refusal, or a bad argument found after the actor, is traced with its
+  exit code and its stderr bytes.
+- No trace is written outside a git repository or in a repository with no
+  store: a trace never creates the store. The `add goal` that creates the store
+  is traced.
+- **`show ACTOR`** prints every read of ACTOR in merge order, oldest first: for
+  each, its id, time, role, exit code and command, then the bytes hyp wrote to
+  stderr and to stdout, each as a byte block (§12) of the stored bytes. It never
+  prints a fresh read. An actor with no read prints `no read of ACTOR is
+  recorded`, exit 0. ACTOR must match §2 (exit 2). `show` is itself a read of
+  the actor that runs it, never of the actor it shows.
+- `show KEY` for a Goal or a Result, and `prompt ROLE`, are later v2 Goals.
 
 No `init` act: `add goal` creates `.tree/` at
-`git rev-parse --show-toplevel` when it is absent. Every other act, and
-`status`, with no store
+`git rev-parse --show-toplevel` when it is absent. Every other act, and every
+read, with no store
 is exit 1 naming "no store; run hyp add goal". Outside a git repository is exit 3.
 Owner accepted, 2026-11-19 (S3).
 
@@ -488,8 +534,10 @@ it selects the first. No guard refuses that run. Candidate then lets only the
 owner select. Owner said, 2026-11-19: "Keep the stop as designed".
 
 At "Two candidates" and "Budget used" the state block adds an `outputs:` table:
-rows by examples, each output quoted and cut at 60 characters, its full bytes
-under `.tree/outputs/` by hash.
+rows by examples. Each cell shows the verdict, the exit code, the output's
+hash, its size in bytes and at most 60 characters of its first line, as hyp
+holds them: no quotes and no escapes are added (§12, Values as held). Its full
+bytes are under `.tree/outputs/` by hash.
 
 hyp prints the table, not a reading of it: no distance, no summary line. The
 leaves' statecharts at a stop are a later v2 Goal.
@@ -508,7 +556,7 @@ Owner accepted, 2026-11-19 (S16).
 
 ## 12. The return shape and exit codes
 
-Every command, read or write, returns in one shape:
+Every command, read or write, but `show`, returns in one shape:
 
 1. the exit code,
 2. a report: what was recorded, or the guard that refused and why,
@@ -535,6 +583,36 @@ runner may:
   printed.
 - A refusal prints to stderr, then the state block to stdout. A report prints
   only on exit 0. Exit 2 and exit 3 print no state block.
+- `show ACTOR` prints the trace (§8) and no state block: it shows what the
+  actor got, not the state now.
+
+**The channel.** One block of code, `internal/channel`, writes every byte hyp
+prints and turns every failure into its words and its exit code. Every other
+part of the binary reports a failure as data: its kind, the guard that
+refused, a code, and the values the failure is about. A test of the channel
+holds the boundary: outside it no Go file the binary is built from imports
+`fmt`, calls `errors.New` or passes a sentence to a failure, and every code has
+words in the channel that name as many values as each failure passes. This is
+line 1 of Goal G-9XX4KB: "The communication channel, which is used for `hyp`
+to communicate with agent, is one block of code".
+
+- **Values as held.** hyp prints a value as its state holds it: an example's
+  words, an output, a path or a command print raw, never through a quote or an
+  escape. No marker is put inside a value's bytes. This is line 3 of Goal
+  G-9XX4KB, whose gap is that "hyp tells the owner and the agent something its
+  state doesn't hold".
+- **Byte blocks.** Stored bytes print as a block: `<label>, N bytes:`, a
+  newline, the bytes, a newline. A block cut to a cap is `<label>, first N of M
+  bytes:`; an empty one is `<label>, 0 bytes`. The cut is said outside the
+  bytes, in the label. The PR body puts the bytes of a block in a fence below
+  its label.
+- **Trace before print.** hyp writes nothing to stdout or stderr until the
+  command ends. It then records the trace (§8), then prints stderr, then
+  stdout. When the trace cannot be written, hyp prints none of the command's
+  bytes, only a notice that it could not record them, with the cause, and
+  exits 3. So the one thing an actor can get that its trace lacks is that
+  notice, and the notice holds nothing of the state: no Goal, verdict, word or
+  output.
 
 - `--role ROLE` filters the allowed acts to one role. It is a convenience of
   the read, not a boundary.
@@ -552,7 +630,7 @@ runner may:
 | 0 | Recorded, or the read printed. |
 | 1 | Refused by a named guard. |
 | 2 | Bad arguments. |
-| 3 | Environment: not in a git repository, an object format other than sha1, a missing tool, a Probe that failed or timed out. A check's own exit code never comes back as hyp's. |
+| 3 | Environment: not in a git repository, an object format other than sha1, a missing tool, a Probe that failed or timed out, a trace hyp could not write. A check's own exit code never comes back as hyp's. |
 
 `select`'s report is the PR body: each line, each example's words, output,
 stderr, exit code and verdict, and the selected commit and row. `status` prints
