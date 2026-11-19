@@ -63,6 +63,8 @@ commands:
            [--from G] [--why TEXT]
                                          record a Goal; with G, replace a Goal
                                          that is still written
+  place G LINE/EXAMPLE [--why TEXT]      place the example folder
+                                         goals/G/LINE/EXAMPLE on a line of Goal G
   help                                   print this text
   version                                print the hyp version
 
@@ -71,7 +73,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "version"}
+var commands = []string{"add", "help", "place", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -105,6 +107,8 @@ func dispatch(args []string, stdout, stderr io.Writer) error {
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
 		return nil
+	case "place":
+		return place(args[1:], stdout)
 	case "add":
 		if len(args) > 1 && args[1] == "goal" {
 			return addGoal(args[2:], stdout)
@@ -114,6 +118,22 @@ func dispatch(args []string, stdout, stderr io.Writer) error {
 	}
 	fmt.Fprint(stderr, usage)
 	return herr.BadArgs("unknown command %q", args[0])
+}
+
+// parseInterleaved parses args with fs, allowing the positional arguments to
+// come before or between the flags, and returns them in order.
+func parseInterleaved(fs *flag.FlagSet, args []string) ([]string, error) {
+	var positional []string
+	for rest := args; ; {
+		if err := fs.Parse(rest); err != nil {
+			return nil, err
+		}
+		if fs.NArg() == 0 {
+			return positional, nil
+		}
+		positional = append(positional, fs.Arg(0))
+		rest = fs.Args()[1:]
+	}
 }
 
 // lineFlag collects repeated --line KIND:TEXT in order.
@@ -142,17 +162,9 @@ func addGoal(args []string, stdout io.Writer) error {
 	fs.StringVar(&o.Words, "words", "", "")
 	fs.StringVar(&o.Base, "base", "", "")
 	fs.Var(&lines, "line", "")
-	// The Goal to replace comes before or between the flags, so parse in turns.
-	var positional []string
-	for rest := args; ; {
-		if err := fs.Parse(rest); err != nil {
-			return herr.BadArgs("add goal: %v", err)
-		}
-		if fs.NArg() == 0 {
-			break
-		}
-		positional = append(positional, fs.Arg(0))
-		rest = fs.Args()[1:]
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return herr.BadArgs("add goal: %v", err)
 	}
 	if len(positional) > 1 {
 		return herr.BadArgs("add goal takes at most one Goal to replace, got %d", len(positional))
@@ -189,5 +201,39 @@ func addGoal(args []string, stdout io.Writer) error {
 	for _, l := range rep.Lines {
 		fmt.Fprintf(stdout, "%s %s: %s\n", l.Key, l.Kind, l.Text)
 	}
+	return nil
+}
+
+func place(args []string, stdout io.Writer) error {
+	fs := flag.NewFlagSet("place", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var o acts.PlaceOpts
+	fs.StringVar(&o.Actor, "actor", os.Getenv("HYP_ACTOR"), "")
+	fs.StringVar(&o.Role, "role", os.Getenv("HYP_ROLE"), "")
+	fs.StringVar(&o.Why, "why", "", "")
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return herr.BadArgs("place: %v", err)
+	}
+	if len(positional) != 2 {
+		return herr.BadArgs("place takes a Goal and LINE/EXAMPLE, for example: hyp place G-NXHHVA line-1/a; got %d arguments", len(positional))
+	}
+	o.Goal, o.Key = positional[0], positional[1]
+	if n := len([]rune(o.Why)); n > logstore.MaxWhy {
+		return herr.BadArgs("--why is %d runes; the limit is %d", n, logstore.MaxWhy)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return herr.Env("working directory: %v", err)
+	}
+	o.Dir = cwd
+	rep, err := acts.Place(o)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(stdout, "placed %s %s @%d\n", rep.Goal, rep.Key, rep.Version)
+	fmt.Fprintf(stdout, "hash: %s\n", rep.Hash)
+	fmt.Fprintf(stdout, "H0: %s (exit %d)\n", rep.Verdict, rep.Exit)
+	fmt.Fprintf(stdout, "%s is %s\n", rep.Goal, rep.State)
 	return nil
 }

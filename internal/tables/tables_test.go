@@ -2,6 +2,7 @@ package tables
 
 import (
 	"encoding/json"
+	"sort"
 	"strings"
 	"testing"
 
@@ -164,5 +165,289 @@ func TestFindResolvesShortAndRefusesAmbiguous(t *testing.T) {
 	tb = Replay([]events.Event{goalAdd(t, c, "", "w", gap), goalAdd(t, d, "", "w", gap)})
 	if _, err := tb.Find("G-AAAAAA"); err == nil || herr.KindOf(err) != herr.BadArguments {
 		t.Fatalf("ambiguous id: %v", err)
+	}
+}
+
+const (
+	idP1 = "01M661QG800000000000PLACE1"
+	idP2 = "01M661QG900000000000PLACE2"
+	idP3 = "01M661QGA00000000000PLACE3"
+	idP4 = "01M661QGB00000000000PLACE4"
+)
+
+// placeEv is an example.place event on the Goal id1 whose H0 row tree is "t".
+func placeEv(t *testing.T, id, line, example, hash, verdict string) events.Event {
+	t.Helper()
+	return placeOn(t, id, id1, "g", "grill", line, example, hash, "t", verdict)
+}
+
+func placeOn(t *testing.T, id, goal, actor, role, line, example, hash, rowTree, verdict string) events.Event {
+	t.Helper()
+	p, err := json.Marshal(events.ExamplePlace{
+		Role: role, Line: line, Example: example, Hash: hash,
+		H0: events.Cell{Commit: "c", RowTree: rowTree, Probe: "p", Output: "o", Stderr: "e", Exit: 1, Verdict: verdict},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return events.Event{V: 2, ID: id, TS: "2026-11-19T00:00:00Z", Actor: actor, Type: events.TypeExamplePlace, Node: goal, Payload: p}
+}
+
+const hashA, hashB, hashC = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "cccccccccccccccccccccccccccccccccccccccc"
+
+func TestPlacementVersionCounts(t *testing.T) {
+	tb := Replay([]events.Event{
+		goalAdd(t, id1, "", "w", gap, guard),
+		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+		placeEv(t, idP2, "line-1", "a", hashB, "failed"),
+		placeEv(t, idP3, "line-1", "b", hashC, "failed"),
+	})
+	if len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("refused at replay: %+v", tb.RefusedAtReplay)
+	}
+	g := tb.Goals[id1]
+	hist := g.Placements["line-1/a"]
+	if len(hist) != 2 || hist[0].Version != 1 || hist[1].Version != 2 || hist[0].Hash != hashA || hist[1].Hash != hashB {
+		t.Fatalf("history of line-1/a = %+v, want @1 then @2", hist)
+	}
+	cur, ok := g.Current("line-1/a")
+	if !ok || cur.Hash != hashB || cur.Version != 2 || cur.Actor != "g" || cur.Line != "line-1" || cur.Example != "a" || cur.EventID != idP2 {
+		t.Fatalf("current = %+v, %v; want hashB at @2", cur, ok)
+	}
+	if b, ok := g.Current("line-1/b"); !ok || b.Version != 1 {
+		t.Fatalf("line-1/b = %+v, %v; want @1: versions count per key", b, ok)
+	}
+	if _, ok := g.Current("line-1/none"); ok {
+		t.Fatal("Current found an example key that was never placed")
+	}
+	if got := g.Placed(); len(got) != 2 || got[0].Key != "line-1/a" || got[1].Key != "line-1/b" {
+		t.Fatalf("Placed = %+v, want the current placements in key order", got)
+	}
+}
+
+func TestGoalOpensWhenEveryLineHasKindVerdict(t *testing.T) {
+	goal := goalAdd(t, id1, "", "w", gap, guard)
+	// a gap line needs failed, a guard line needs met
+	opens := Replay([]events.Event{goal,
+		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+		placeEv(t, idP2, "line-2", "a", hashB, "met"),
+	})
+	if g := opens.Goals[id1]; g.State != StateOpen {
+		t.Fatalf("state = %s, want open", g.State)
+	}
+	for name, evs := range map[string][]events.Event{
+		"gap example met":      {placeEv(t, idP1, "line-1", "a", hashA, "met"), placeEv(t, idP2, "line-2", "a", hashB, "met")},
+		"guard example failed": {placeEv(t, idP1, "line-1", "a", hashA, "failed"), placeEv(t, idP2, "line-2", "a", hashB, "failed")},
+		"second gap example met": {placeEv(t, idP1, "line-1", "a", hashA, "failed"), placeEv(t, idP2, "line-1", "b", hashC, "met"),
+			placeEv(t, idP3, "line-2", "a", hashB, "met")},
+	} {
+		tb := Replay(append([]events.Event{goal}, evs...))
+		if g := tb.Goals[id1]; g.State != StateWritten {
+			t.Errorf("%s: state = %s, want written", name, g.State)
+		}
+	}
+}
+
+func TestGoalStaysWrittenWithUnplacedLine(t *testing.T) {
+	tb := Replay([]events.Event{
+		goalAdd(t, id1, "", "w", gap, guard),
+		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+	})
+	g := tb.Goals[id1]
+	if len(g.Placed()) != 1 || g.State != StateWritten {
+		t.Fatalf("state = %s with %d placed; line-2 has no example, so the Goal is written", g.State, len(g.Placed()))
+	}
+	tb = Replay([]events.Event{goalAdd(t, id1, "", "w", gap)})
+	if g := tb.Goals[id1]; g.State != StateWritten {
+		t.Fatalf("a Goal with no placement is %s, want written", g.State)
+	}
+}
+
+func TestOpenGoalRefusesDraftReplace(t *testing.T) {
+	tb := Replay([]events.Event{
+		goalAdd(t, id1, "", "w", gap),
+		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+	})
+	if err := GuardDraft(tb, id1); err == nil || !strings.HasPrefix(herr.Text(err), "Draft") {
+		t.Fatalf("GuardDraft on an open Goal = %v, want a Draft refusal", err)
+	}
+}
+
+func TestMergedLogSkipsRefusedEvent(t *testing.T) {
+	goal := goalAdd(t, id1, "", "w", gap)
+	// Clone A replaces the Goal's draft; clone B places the example that
+	// opens it, with an id lower than A's.
+	replaceA := goalAdd(t, "01M661QGC00000000000REPLAC", id1, "replaced", gap, guard)
+	replaceA.Actor = "a"
+	placeB := placeEv(t, idP1, "line-1", "a", hashA, "failed")
+	cloneA := []events.Event{goal, replaceA}
+	cloneB := []events.Event{goal, placeB}
+	seen := map[string]bool{}
+	var merged []events.Event
+	for _, ev := range append(cloneA, cloneB...) {
+		if !seen[ev.ID] {
+			seen[ev.ID] = true
+			merged = append(merged, ev)
+		}
+	}
+	sort.SliceStable(merged, func(i, j int) bool { return merged[i].ID < merged[j].ID })
+	tb := Replay(merged)
+	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != replaceA.ID ||
+		!strings.HasPrefix(tb.RefusedAtReplay[0].Reason, "Draft") {
+		t.Fatalf("RefusedAtReplay = %+v, want A's replace refused by Draft", tb.RefusedAtReplay)
+	}
+	g := tb.Goals[id1]
+	if g.State != StateOpen || g.Words != "w" || len(g.Lines) != 1 {
+		t.Fatalf("Goal = state %s words %q lines %d; want B's placement applied and A's replace skipped", g.State, g.Words, len(g.Lines))
+	}
+	if _, ok := g.Current("line-1/a"); !ok {
+		t.Fatal("B's placement is missing")
+	}
+}
+
+func TestPlacementOfGoneLineIsHistory(t *testing.T) {
+	two := goalAdd(t, id1, "", "w", gap, events.Line{Key: "line-2", Text: "second", Kind: events.KindGap})
+	replace := goalAdd(t, idP2, id1, "w", gap) // line-2 is gone
+	replace.Actor = "a"
+	oneFailed := placeEv(t, idP1, "line-1", "a", hashA, "failed")
+	goneMet := placeEv(t, "01M661QG800000000000PLACE0", "line-2", "a", hashB, "met")
+
+	// after a replace, in the order the events happened
+	tb := Replay([]events.Event{two, goneMet, replace, oneFailed})
+	if len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("refused at replay: %+v", tb.RefusedAtReplay)
+	}
+	g := tb.Goals[id1]
+	if g.State != StateOpen {
+		t.Fatalf("state = %s; a placement whose line is gone must not hold the Goal back", g.State)
+	}
+	if got := g.Placed(); len(got) != 1 || got[0].Line != "line-1" {
+		t.Fatalf("Placed = %+v, want only line-1's", got)
+	}
+	if _, ok := g.Current("line-2/a"); !ok {
+		t.Fatal("the placement on the gone line was deleted; it is history, kept")
+	}
+
+	// a merged log that puts the replace before a placement on the gone line
+	late := placeEv(t, "01M661QGD00000000000LATE00", "line-2", "a", hashB, "met")
+	tb = Replay([]events.Event{two, replace, oneFailed, late})
+	if len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("a placement on a gone line was refused at replay: %+v", tb.RefusedAtReplay)
+	}
+	g = tb.Goals[id1]
+	if g.State != StateOpen || len(g.Placed()) != 1 {
+		t.Fatalf("state %s, placed %d; the late placement is history and counts for nothing", g.State, len(g.Placed()))
+	}
+
+	// the line comes back under the same key: its old placement counts again
+	// only through the rule, here a met example on a gap line keeps it written
+	back := goalAdd(t, "01M661QGE00000000000BACK00", id1, "w", gap, events.Line{Key: "line-2", Text: "second", Kind: events.KindGap})
+	back.Actor = "a"
+	if g := Replay([]events.Event{two, goneMet, replace, back, oneFailed}).Goals[id1]; g.State != StateWritten {
+		t.Fatalf("state = %s, want written: line-2's current example is met on a gap line", g.State)
+	}
+}
+
+func TestReplayRefusesPlacementByTables(t *testing.T) {
+	goal := goalAdd(t, id1, "", "w", gap, guard)
+	for name, tc := range map[string]struct {
+		ev   events.Event
+		want string
+	}{
+		"runner role":  {placeOn(t, idP1, id1, "r", "runner", "line-1", "a", hashA, "t", "failed"), "Own case"},
+		"unknown goal": {placeOn(t, idP1, id2, "g", "grill", "line-1", "a", hashA, "t", "failed"), "no Goal"},
+	} {
+		tb := Replay([]events.Event{goal, tc.ev})
+		if len(tb.RefusedAtReplay) != 1 || !strings.HasPrefix(tb.RefusedAtReplay[0].Reason, tc.want) {
+			t.Errorf("%s: RefusedAtReplay = %+v, want a %s refusal", name, tb.RefusedAtReplay, tc.want)
+		}
+		if len(tb.Goals[id1].Placements) != 0 {
+			t.Errorf("%s: a refused placement was applied", name)
+		}
+	}
+	// the table half of Adds only: the hash already current
+	tb := Replay([]events.Event{goal,
+		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+		placeEv(t, idP2, "line-1", "a", hashA, "failed"),
+	})
+	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != idP2 || !strings.HasPrefix(tb.RefusedAtReplay[0].Reason, "Adds only") {
+		t.Fatalf("RefusedAtReplay = %+v, want the repeat refused by Adds only", tb.RefusedAtReplay)
+	}
+	if h := tb.Goals[id1].Placements["line-1/a"]; len(h) != 1 {
+		t.Fatalf("history = %+v, want one placement", h)
+	}
+}
+
+func TestGuardsOfPlace(t *testing.T) {
+	g := &Goal{ID: "G-X", State: StateWritten}
+	if err := GuardNotSelected(g); err != nil {
+		t.Fatalf("a written Goal was refused: %v", err)
+	}
+	g.State = StateSelected
+	err := GuardNotSelected(g)
+	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Selected") {
+		t.Fatalf("a selected Goal: %v, want a Selected refusal", err)
+	}
+	if err := GuardOwnCase("grill"); err != nil {
+		t.Fatalf("grill refused: %v", err)
+	}
+	for _, role := range []string{"runner", "owner", "probe-writer", ""} {
+		err := GuardOwnCase(role)
+		if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Own case") {
+			t.Errorf("role %q: %v, want an Own case refusal", role, err)
+		}
+	}
+	g = &Goal{Placements: map[string][]Placement{"line-1/a": {{Key: "line-1/a", Hash: hashA, Version: 1}}}}
+	if err := GuardAddsOnlyTable(g, "line-1/a", hashB); err != nil {
+		t.Fatalf("a new hash was refused: %v", err)
+	}
+	if err := GuardAddsOnlyTable(g, "line-1/new", hashA); err != nil {
+		t.Fatalf("a new key was refused: %v", err)
+	}
+	err = GuardAddsOnlyTable(g, "line-1/a", hashA)
+	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Adds only") {
+		t.Fatalf("the current hash: %v, want an Adds only refusal", err)
+	}
+}
+
+func TestH0CellIsNotRunAfterTheBaseMoves(t *testing.T) {
+	goal := goalAdd(t, id1, "", "w", gap, guard)
+	replace := goalAdd(t, idP2, id1, "w", gap, guard)
+	replace.Actor = "a"
+	var p events.GoalAdd
+	if err := events.Decode(replace, &p); err != nil {
+		t.Fatal(err)
+	}
+	p.BaseTree = "other"
+	replace.Payload, _ = json.Marshal(p)
+
+	tb := Replay([]events.Event{goal, placeEv(t, idP1, "line-1", "a", hashA, "failed")})
+	if v := tb.Goals[id1].H0Verdict("line-1/a"); v != "failed" {
+		t.Fatalf("H0 verdict = %q, want failed", v)
+	}
+	tb = Replay([]events.Event{goal, placeEv(t, idP1, "line-1", "a", hashA, "failed"), replace})
+	if len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("refused at replay: %+v", tb.RefusedAtReplay)
+	}
+	g := tb.Goals[id1]
+	if v := g.H0Verdict("line-1/a"); v != NotRun {
+		t.Fatalf("H0 verdict after the base moved = %q, want %q", v, NotRun)
+	}
+	if v := g.H0Verdict("line-1/none"); v != NotRun {
+		t.Fatalf("H0 verdict of an unplaced key = %q, want %q", v, NotRun)
+	}
+	if g.State != StateWritten {
+		t.Fatalf("state = %s, want written: the cell is not live", g.State)
+	}
+}
+
+func TestAddsOnlyTableRefusesAnEarlierHash(t *testing.T) {
+	g := &Goal{Placements: map[string][]Placement{"line-1/a": {
+		{Key: "line-1/a", Hash: hashA, Version: 1},
+		{Key: "line-1/a", Hash: hashB, Version: 2},
+	}}}
+	err := GuardAddsOnlyTable(g, "line-1/a", hashA)
+	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Adds only") {
+		t.Fatalf("placing @1 again after @2: %v, want an Adds only refusal", err)
 	}
 }

@@ -17,7 +17,13 @@ import (
 // that is not on hyp's read list, or that exits non-zero, is an environment
 // error; the second holds git's stderr.
 func Git(dir string, args ...string) ([]byte, error) {
-	code, stdout, stderr, err := run(dir, args)
+	return GitStdin(dir, nil, args...)
+}
+
+// GitStdin is Git for a command that reads stdin, such as cat-file --batch.
+// It passes the same allow-list and runs with the same environment.
+func GitStdin(dir string, stdin []byte, args ...string) ([]byte, error) {
+	code, stdout, stderr, err := run(dir, stdin, args)
 	if err != nil {
 		return nil, err
 	}
@@ -32,11 +38,11 @@ func Git(dir string, args ...string) ([]byte, error) {
 // code with no error; only a command that is off the read list or cannot run
 // is an error. The bytes are stdout.
 func GitExit(dir string, args ...string) (int, []byte, error) {
-	code, stdout, _, err := run(dir, args)
+	code, stdout, _, err := run(dir, nil, args)
 	return code, stdout, err
 }
 
-func run(dir string, args []string) (code int, stdout []byte, stderr string, err error) {
+func run(dir string, stdin []byte, args []string) (code int, stdout []byte, stderr string, err error) {
 	if err := allowed(args); err != nil {
 		return 0, nil, "", err
 	}
@@ -44,6 +50,9 @@ func run(dir string, args []string) (code int, stdout []byte, stderr string, err
 	// A read must not take an optional lock, which would touch the index, nor
 	// fetch a missing object in a partial clone, which would write a pack.
 	cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1")
+	if stdin != nil {
+		cmd.Stdin = bytes.NewReader(stdin)
+	}
 	var out, errb bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errb
 	switch err := cmd.Run(); {
