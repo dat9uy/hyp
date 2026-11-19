@@ -1,0 +1,11 @@
+owner: hyp status: exit 0, names the Goal: yes, stderr: no
+owner: hyp status G: exit 0, names the Goal: yes, stderr: no
+owner: hyp status --role owner: exit 0, names the Goal: yes, stderr: no
+owner: hyp show owner: exit 0, names the Goal: yes, stderr: no
+changes git sees:
+ M .tree/events/owner.jsonl
+?? .tree/outputs/7a1610aad41910f08a957a2e6ce9350e22cd81fcd7a544cbf308bef910cc52d0
+?? .tree/outputs/c443ac9a28994620ad3dbc5592ab1c999848c22f455f9216b0c6b1c0d8f19938
+?? .tree/outputs/e5f86ffde740174ec155a959a419ec70a35b95fa4d59fe45b99c0c9a181aefc8
+HEAD moved: no
+files git is told to skip: 0
