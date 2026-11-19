@@ -109,6 +109,8 @@ const (
 	// the trace
 	NoTraceFolder Code = "no-trace-folder" // no values
 	CreateTrace   Code = "create-trace"    // cause
+	ReadTraces    Code = "read-traces"     // path, cause
+	RemoveTrace   Code = "remove-trace"    // path, cause
 
 	// Probes
 	ProbeTemp       Code = "probe-temp"         // example hash, cause

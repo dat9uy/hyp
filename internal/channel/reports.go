@@ -163,3 +163,31 @@ func prStored(b *strings.Builder, root, label, hash string) {
 		fmt.Fprintf(b, "\n%s, %d bytes:\n\n%s", label, size, fence(string(data)))
 	}
 }
+
+// pruneText is the report of hyp prune: the traces folder, then one line per
+// trace folder of a clone that no longer exists, its key and the clone its
+// file clone names. With removed, the folders listed are those hyp removed.
+func pruneText(base string, gone []logstore.Gone, removed bool) string {
+	var b strings.Builder
+	switch {
+	case len(gone) == 0 && removed:
+		fmt.Fprintf(&b, "removed nothing: no trace under %s is of a repository that no longer exists\n", base)
+	case len(gone) == 0:
+		fmt.Fprintf(&b, "no trace under %s is of a repository that no longer exists\n", base)
+	case removed && len(gone) == 1:
+		fmt.Fprintf(&b, "removed 1 trace under %s of a repository that no longer exists:\n", base)
+	case removed:
+		fmt.Fprintf(&b, "removed %d traces under %s of repositories that no longer exist:\n", len(gone), base)
+	case len(gone) == 1:
+		fmt.Fprintf(&b, "1 trace under %s is of a repository that no longer exists:\n", base)
+	default:
+		fmt.Fprintf(&b, "%d traces under %s are of repositories that no longer exist:\n", len(gone), base)
+	}
+	for _, g := range gone {
+		fmt.Fprintf(&b, "  %s  %s\n", g.Key, g.Clone)
+	}
+	if len(gone) > 0 && !removed {
+		b.WriteString("hyp prune --remove removes them; it removes nothing else\n")
+	}
+	return b.String()
+}

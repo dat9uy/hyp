@@ -1,0 +1,28 @@
+---
+title: "hyp G-RK4VYD: one clone's trace in the home folder, and hyp prune"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: live
+    lg1: gone
+  }
+  class lg0 teal
+  class lg1 orange
+  s0: Clone live, no read yet
+  s1: Clone gone, no trace left
+  s2: Clone live, its reads traced
+  s3: Clone gone, trace kept
+  s4: Clone gone, trace named by hyp prune
+  [*] --> s0
+  s0 --> s1: the clone is deleted or moved
+  s0 --> s2: an agent reads in the clone#59; hyp records it under #36;HOME/.hyp
+  s2 --> s3: the clone is deleted or moved
+  s3 --> s4: the owner runs hyp prune
+  s3 --> s1: the owner runs hyp prune --remove
+  s4 --> s1: the owner runs hyp prune --remove
+  s4 --> s3: the owner runs hyp show
+  class s0 teal
+  class s1 orange
+  class s2 teal
+  class s3 orange
+  class s4 orange

@@ -262,3 +262,66 @@ func TestShowKeepsReadsInTheLog(t *testing.T) {
 		t.Fatalf("show: code %d:\n%s", code, shown)
 	}
 }
+
+// TestPruneListsThenRemovesGoneTraces: hyp prune names the trace of a
+// repository that no longer exists, not a live one, and removes nothing;
+// hyp prune --remove removes only that trace and leaves $HOME/.local alone.
+func TestPruneListsThenRemovesGoneTraces(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	old := filepath.Join(home, ".local", "state", "hyp", "traces", "old")
+	if err := os.MkdirAll(old, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	dead := inRepo(t)
+	if code, _, errs := run(t, "add", "goal", "--base", "HEAD", "--words", "w", "--line", "gap:g"); code != 0 {
+		t.Fatalf("add goal: %s", errs)
+	}
+	deadTrace := trace(t, dead.Dir)
+	live := inRepo(t)
+	if code, _, errs := run(t, "add", "goal", "--base", "HEAD", "--words", "w", "--line", "gap:g"); code != 0 {
+		t.Fatalf("add goal: %s", errs)
+	}
+	liveTrace := trace(t, live.Dir)
+	if code, out, errs := run(t, "prune"); code != 0 || !strings.HasPrefix(out, "no trace under "+filepath.Join(home, ".hyp", "traces")) {
+		t.Fatalf("prune with nothing gone: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if err := os.RemoveAll(dead.Dir); err != nil {
+		t.Fatal(err)
+	}
+	code, out, errs := run(t, "prune")
+	if code != 0 || !strings.Contains(out, deadTrace.Clone) || strings.Contains(out, live.Dir) {
+		t.Fatalf("prune: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if _, err := os.Stat(deadTrace.Dir); err != nil {
+		t.Fatalf("prune removed a trace: %v", err)
+	}
+	code, out, errs = run(t, "prune", "--remove")
+	if code != 0 || !strings.Contains(out, "removed 1 trace") || !strings.Contains(out, deadTrace.Clone) || strings.Contains(out, live.Dir) {
+		t.Fatalf("prune --remove: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if _, err := os.Stat(deadTrace.Dir); !os.IsNotExist(err) {
+		t.Fatalf("the gone repository's trace is still there: %v", err)
+	}
+	if _, err := os.Stat(liveTrace.Dir); err != nil {
+		t.Fatalf("the live repository's trace is gone: %v", err)
+	}
+	if _, err := os.Stat(old); err != nil {
+		t.Fatalf("the folder under ~/.local changed: %v", err)
+	}
+	if code, out, _ := run(t, "prune"); code != 0 || strings.Contains(out, deadTrace.Clone) {
+		t.Fatalf("prune after --remove: code %d, stdout %q", code, out)
+	}
+	if code, _, errs := run(t, "prune", "extra"); code != 2 || errs == "" {
+		t.Fatalf("prune extra: code %d, stderr %q", code, errs)
+	}
+}
+
+// TestPruneNeedsAStore: like every command but add goal, prune in a
+// repository with no store is refused, exit 1.
+func TestPruneNeedsAStore(t *testing.T) {
+	inRepo(t)
+	if code, _, errs := run(t, "prune"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
+		t.Fatalf("prune with no store: code %d, stderr %q", code, errs)
+	}
+}
