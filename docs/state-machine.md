@@ -275,7 +275,9 @@ the first guard that fails, in the act's order (§8).
   Query: the distinct row trees, other than H0's, of the Goal's Results recorded
   after the boundary (§11), without Results refused by Stable; refuse when there are three
   and the commit's row tree is not among them. A tree run before the boundary
-  and run again after it counts: it is run against the new evidence. Owner said,
+  and run again after it counts: it is run against the new evidence. A run on a
+  tree that was H0's when it ran never counts, even after a Draft replace moved
+  the base. Owner said,
   2026-11-19: "It counts".
   A retracted Result still counts: a retract fixes a wrong
   Result, and does not give a run back (main page §8: a runner that hides failed
@@ -292,7 +294,9 @@ the first guard that fails, in the act's order (§8).
   from H0 holds `goals/<X>/` that the runner did not write. Query: the paths of
   the runner's own change of COMMIT hold none under `goals/<X>/` with `X` ≠ G.
   The refusal names the path and the commit that wrote it.
-- **Selected** — The Goal has a select. Query: `Selects[G]` exists. `land`
+- **Selected** — The Goal has a select. Query: `Selects[G]` exists. Replay
+  also checks it on `result.record`; the later `land` Goal must exempt the
+  Results `land` writes. `land`
   needs it to hold; `place`, `run` and `select` need it not to hold (§6).
 - **Same change** — The landed commit carries the same whole change as the
   selected commit. Query: the patch-id of the selected commit's own change (its
@@ -542,7 +546,8 @@ later v2 Goal.
 
 `place` and `run` check their guards under the lock, release
 it, run the Probes, take the lock again, check every guard again and append; a
-second check that fails refuses with exit 1. Allowed acts are calculated from
+second check that fails refuses with exit 1. When the placement or H0's base
+changed while the Probes ran, the refusal is named Open and says what changed. Allowed acts are calculated from
 the guards that read only the tables and git; Kind and Stable are checked when
 the act runs.
 Owner accepted, 2026-11-19 (S11).

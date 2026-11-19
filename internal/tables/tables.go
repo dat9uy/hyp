@@ -1,6 +1,7 @@
 package tables
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/dat9uy/hyp/internal/events"
@@ -48,6 +49,37 @@ type Goal struct {
 	Lines    []Line
 
 	Placements map[string][]Placement // by example key, in placement order
+	Results    []*Result              // in merge order, refused ones included
+	Select     *Select                // the Goal's select, or nil
+
+	// epoch counts the example-changing placements so far: the budget counts
+	// the Results recorded in the current epoch.
+	epoch int
+}
+
+// Select is a row of the Selects table.
+type Select struct {
+	Commit  string
+	RowTree string
+	Time    string
+	Actor   string
+}
+
+// Result is a row of the Results table.
+type Result struct {
+	ID        string // the result.record event id
+	Line      string
+	Commit    string
+	RowTree   string
+	Actor     string
+	Role      string
+	Time      string
+	Retracted bool
+	Refused   string // empty, or "Stable"
+	Differing []string
+	Cells     []events.ExampleCell
+	epoch     int  // the Goal's epoch when it was recorded
+	wasH0     bool // its row tree was H0's when it was recorded
 }
 
 // Refused is an event that failed a guard at its place in the merge order.
@@ -59,6 +91,7 @@ type Refused struct {
 // Tables are the calculated tables, kept in memory for one command.
 type Tables struct {
 	Goals           map[string]*Goal // by EventID
+	results         map[string]*Result
 	RefusedAtReplay []Refused
 }
 
@@ -198,16 +231,71 @@ func (g *Goal) Placed() []Placement {
 	return out
 }
 
-// H0Verdict is the verdict of the current placement of key on H0's row: its
-// cell's verdict while the cell's row tree is the Goal's H0 row tree, and
-// NotRun after a Draft replace moved H0, or when key was never placed.
-func (g *Goal) H0Verdict(key string) string {
-	p, ok := g.Current(key)
-	if !ok || p.H0.RowTree != g.BaseTree {
-		return NotRun
-	}
-	return p.H0.Verdict
+// LiveCell is a live cell on one row of a Goal: a cell of a Result that is not
+// retracted and not refused by Stable, or the H0 cell of a placement, under
+// the example hash that is current for its key. Result is empty for a
+// placement's H0 cell.
+type LiveCell struct {
+	Key     string // line-3/a
+	Hash    string // the example hash
+	Probe   string
+	Output  string
+	Stderr  string
+	Exit    int
+	Verdict string
+	Result  string // the result.record event id
 }
+
+// LiveCells is the one query for the live cells of a Goal on the row with
+// rowTree, in the order they were made: a placement's H0 cell first, then the
+// cells of the Results in merge order. The open state, Stable and Rows all
+// read it. A placement's H0 cell lives on H0's row, and only while its row
+// tree is the Goal's H0 row tree. A cell whose example hash is not the current
+// placement's, or whose key's line the Goal no longer lists, is history.
+func (g *Goal) LiveCells(rowTree string) []LiveCell {
+	var out []LiveCell
+	if rowTree == g.BaseTree {
+		for _, p := range g.Placed() {
+			if p.H0.RowTree == g.BaseTree {
+				out = append(out, LiveCell{Key: p.Key, Hash: p.Hash, Probe: p.H0.Probe, Output: p.H0.Output,
+					Stderr: p.H0.Stderr, Exit: p.H0.Exit, Verdict: p.H0.Verdict})
+			}
+		}
+	}
+	for _, r := range g.Results {
+		if r.Retracted || r.Refused != "" || r.RowTree != rowTree {
+			continue
+		}
+		for _, c := range r.Cells {
+			key := r.Line + "/" + c.Example
+			if cur, ok := g.Current(key); !ok || cur.Hash != c.Hash {
+				continue
+			}
+			if _, ok := g.line(r.Line); !ok {
+				continue
+			}
+			out = append(out, LiveCell{Key: key, Hash: c.Hash, Probe: c.Probe, Output: c.Output,
+				Stderr: c.Stderr, Exit: c.Exit, Verdict: c.Verdict, Result: r.ID})
+		}
+	}
+	return out
+}
+
+// Verdict is the verdict of the current placement of key on the row with
+// rowTree: the first live cell's, because Stable keeps the first verdict, or
+// NotRun when no cell is live.
+func (g *Goal) Verdict(key, rowTree string) string {
+	for _, c := range g.LiveCells(rowTree) {
+		if c.Key == key {
+			return c.Verdict
+		}
+	}
+	return NotRun
+}
+
+// H0Verdict is the verdict of key on H0's row. A placement's cell reads
+// NotRun after a Draft replace moved H0, until a run on H0 measures it.
+func (g *Goal) H0Verdict(key string) string { return g.Verdict(key, g.BaseTree) }
 
 // Needs is the verdict H0 must give an example of a line of this kind: a gap
 // example fails, a guard example is met.
@@ -314,6 +402,7 @@ func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
 	key := p.Line + "/" + p.Example
 	// GuardAddsOnlyTable refused every hash the key held, so this one is new.
 	version := len(g.Placements[key]) + 1
+	g.epoch++ // a new example key or a new hash on a key starts a new budget
 	g.Placements[key] = append(g.Placements[key], Placement{
 		Key: key, Line: p.Line, Example: p.Example, Hash: p.Hash, Version: version,
 		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: p.H0,
@@ -324,7 +413,7 @@ func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
 // checks again is skipped and kept in RefusedAtReplay; it is never deleted
 // from the log.
 func Replay(evs []events.Event) Tables {
-	t := Tables{Goals: map[string]*Goal{}}
+	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}}
 	refuse := func(ev events.Event, err error) {
 		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Reason: herr.Text(err)})
 	}
@@ -344,9 +433,57 @@ func Replay(evs []events.Event) Tables {
 			g := t.Goals[ev.Node]
 			g.place(ev, p)
 			g.refresh()
+		case events.TypeResultRecord:
+			replayResult(&t, ev, refuse)
+		case events.TypeResultRetract:
+			replayRetract(&t, ev, refuse)
+		case events.TypeSelect:
+			replaySelect(&t, ev, refuse)
 		}
 	}
 	return t
+}
+
+// replayResult adds a Result the run guards allow at its place in the merge
+// order. A Result refused by Stable is kept, marked, and counts for nothing.
+func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardRun(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	var p events.ResultRecord
+	if err := events.Decode(ev, &p); err != nil {
+		return // GuardRun decoded it already
+	}
+	g := t.Goals[ev.Node]
+	r := &Result{
+		ID: ev.ID, Line: p.Line, Commit: p.Commit, RowTree: p.RowTree, Actor: ev.Actor, Role: p.Role,
+		Time: ev.TS, Refused: p.Refused, Differing: p.Differing, Cells: p.Cells, epoch: g.epoch,
+		wasH0: p.RowTree == g.BaseTree,
+	}
+	g.Results = append(g.Results, r)
+	t.results[ev.ID] = r
+	g.refresh()
+}
+
+// replayRetract marks a Result retracted. Only the actor that ran it may
+// retract it (Own Result); a retract that names no Result is skipped.
+func replayRetract(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	r, ok := t.results[ev.Node]
+	if !ok {
+		refuse(ev, herr.Refused("no Result %s to retract", ev.Node))
+		return
+	}
+	if r.Actor != ev.Actor {
+		refuse(ev, herr.Refused("Own Result: %s was run by %s, not %s", r.ID, r.Actor, ev.Actor))
+		return
+	}
+	r.Retracted = true
+	for _, g := range t.Goals {
+		if slices.Contains(g.Results, r) {
+			g.refresh()
+		}
+	}
 }
 
 func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error)) {
@@ -367,4 +504,26 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 		ID: GoalID(ev.ID), EventID: ev.ID, Words: p.Words, Base: p.Base, BaseTree: p.BaseTree,
 		Budget: p.Budget, Actor: ev.Actor, From: p.From, State: StateWritten, Lines: p.Lines,
 	}
+}
+
+// replaySelect applies a select: the Goal is selected. The select act, with
+// its Candidate, Spec and Own path guards, is built later; replay checks only
+// that the Goal exists and has no select yet.
+func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	var p events.Select
+	if err := events.Decode(ev, &p); err != nil {
+		refuse(ev, herr.Refused("Selected: %v", err))
+		return
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		refuse(ev, herr.Refused("no Goal %s to select on", GoalID(ev.Node)))
+		return
+	}
+	if g.Select != nil {
+		refuse(ev, herr.Refused("Selected: %s already has a select", g.ID))
+		return
+	}
+	g.Select = &Select{Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
+	g.State = StateSelected
 }
