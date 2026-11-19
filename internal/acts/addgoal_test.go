@@ -147,8 +147,9 @@ func TestAddGoalFromStoresOnlyTheID(t *testing.T) {
 	}
 	evs, _, _ := logstore.Events(r.Dir)
 	var p events.GoalAdd
-	if err := events.Decode(evs[1], &p); err != nil || p.From != first.Goal {
-		t.Fatalf("from = %q, %v; want %s", p.From, err, first.Goal)
+	// from holds the cited Goal's full goal.add id, which no other Goal shares.
+	if err := events.Decode(evs[1], &p); err != nil || p.From != evs[0].ID {
+		t.Fatalf("from = %q, %v; want %s", p.From, err, evs[0].ID)
 	}
 	o.From = "G-NOPE00"
 	if _, err := AddGoal(o); herr.KindOf(err) != herr.BadArguments {

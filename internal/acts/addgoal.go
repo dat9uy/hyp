@@ -101,7 +101,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 			if err != nil {
 				return ev, err
 			}
-			from = g.ID
+			from = g.EventID
 		}
 		payload, err := json.Marshal(events.GoalAdd{
 			Role: o.Role, Words: o.Words, Base: base, BaseTree: baseTree,
