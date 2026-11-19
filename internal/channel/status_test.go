@@ -1,0 +1,338 @@
+package channel
+
+import (
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"testing"
+
+	"github.com/dat9uy/hyp/internal/testutil"
+)
+
+var (
+	hashRe  = regexp.MustCompile(`\b[0-9a-f]{40,64}\b`)
+	goalRe  = regexp.MustCompile(`G-[A-Z0-9]{6}`)
+	shortRe = regexp.MustCompile(`\b[0-9a-f]{12}\b`)
+)
+
+// normalise replaces the ids that change from run to run, as the goldens
+// expect.
+func normalise(s string) string {
+	s = hashRe.ReplaceAllString(s, "<hash>")
+	s = shortRe.ReplaceAllString(s, "<commit>")
+	return goalRe.ReplaceAllString(s, "G-XXXXXX")
+}
+
+// testdata is resolved before a test changes into its repository.
+var testdata = func() string {
+	abs, err := filepath.Abs("testdata")
+	if err != nil {
+		panic(err)
+	}
+	return abs
+}()
+
+func golden(t *testing.T, name, got string) {
+	t.Helper()
+	want, err := os.ReadFile(filepath.Join(testdata, name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if normalise(got) != string(want) {
+		t.Fatalf("%s:\n%s\nwant:\n%s", name, normalise(got), want)
+	}
+}
+
+// counterEx fails on a base whose counter reads bad and is met when it reads ok.
+const counterEx = "-- words --\nw\n-- run --\ncat counter\n-- floor: contains --\nok\n"
+
+type fx struct {
+	r    *testutil.Repo
+	goal string
+	base string
+}
+
+// keepStoreOut makes git ignore the store, so a commit made with add -A never
+// holds it and a checkout never meets it.
+func keepStoreOut(t *testing.T, dir string) {
+	t.Helper()
+	exclude := filepath.Join(testutil.Git(t, dir, "rev-parse", "--absolute-git-dir"), "info", "exclude")
+	if err := os.WriteFile(exclude, []byte(".tree/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// newFx adds a one-line gap Goal on a base whose counter reads bad, as the
+// owner, commits the example folders and places each as the grill. It leaves
+// the environment as the runner.
+func newFx(t *testing.T, examples map[string]string) *fx {
+	t.Helper()
+	r := testutil.NewRepo(t)
+	keepStoreOut(t, r.Dir)
+	base := r.Commit(t, map[string]string{"counter": "bad\n"})
+	t.Chdir(r.Dir)
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
+	code, out, errs := run(t, "add", "goal", "--base", "HEAD", "--words", "w", "--line", "gap:it fails")
+	fields := strings.Fields(out)
+	if code != 0 || len(fields) < 2 {
+		t.Fatalf("add goal: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	f := &fx{r: r, goal: fields[1], base: base}
+	for key, txtar := range examples {
+		dir := filepath.Join("goals", f.goal, key)
+		if err := os.MkdirAll(filepath.Join(r.Dir, dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(r.Dir, dir, "example.txtar"), []byte(txtar), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		r.WriteExec(t, filepath.Join(dir, "probe", "run"), fixtureProbe)
+	}
+	testutil.Git(t, r.Dir, "add", "-A")
+	testutil.Git(t, r.Dir, "commit", "-q", "--allow-empty", "-m", "examples")
+	t.Setenv("HYP_ACTOR", "grill-1")
+	t.Setenv("HYP_ROLE", "grill")
+	for key := range examples {
+		if code, out, errs := run(t, "place", f.goal, key); code != 0 {
+			t.Fatalf("place %s: code %d, stdout %q, stderr %q", key, code, out, errs)
+		}
+	}
+	t.Setenv("HYP_ACTOR", "runner-1")
+	t.Setenv("HYP_ROLE", "runner")
+	return f
+}
+
+// leaf commits files on top of the base and leaves HEAD on main.
+func (f *fx) leaf(t *testing.T, files map[string]string) string {
+	t.Helper()
+	testutil.Git(t, f.r.Dir, "checkout", "-q", "--detach", f.base)
+	c := f.r.Commit(t, files)
+	testutil.Git(t, f.r.Dir, "checkout", "-q", "main")
+	return c
+}
+
+func (f *fx) spec() string { return "goals/" + f.goal + "/specs/spec.tla" }
+
+// selectLine finds the ready select line in a status or run return.
+func selectLine(t *testing.T, out string) []string {
+	t.Helper()
+	at := strings.Index(out, "hyp select")
+	if at < 0 {
+		t.Fatalf("no ready select line in:\n%s", out)
+	}
+	line, _, _ := strings.Cut(out[at:], "\n")
+	return strings.Fields(line)
+}
+
+func TestStatusOpenGolden(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	code, out, errs := run(t, "status")
+	if code != 0 || !strings.Contains(out, f.goal) {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	golden(t, "status-open.golden", out)
+}
+
+func TestStatusSelectedGolden(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
+	if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
+		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	_, out, _ := run(t, "status")
+	args := selectLine(t, out)
+	if code, out, errs := run(t, args[1:]...); code != 0 {
+		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	code, out, errs := run(t, "status")
+	if code != 0 || !strings.Contains(out, "stop: selected") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	golden(t, "status-selected.golden", out)
+}
+
+func TestStatusBudgetUsedGolden(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	for _, v := range []string{"x1", "x2", "x3"} {
+		c := f.leaf(t, map[string]string{"counter": v + "\n"})
+		if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
+			t.Fatalf("run %s: code %d, stdout %q, stderr %q", v, code, out, errs)
+		}
+	}
+	code, out, errs := run(t, "status")
+	if code != 0 {
+		t.Fatalf("code %d, stderr %q", code, errs)
+	}
+	golden(t, "status-budget-used.golden", out)
+}
+
+func TestStatusWarnsBeforeLastRun(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	for _, v := range []string{"x1", "x2"} {
+		c := f.leaf(t, map[string]string{"counter": v + "\n"})
+		if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
+			t.Fatalf("run %s: code %d, stdout %q, stderr %q", v, code, out, errs)
+		}
+	}
+	_, out, _ := run(t, "status")
+	if !strings.Contains(out, "runs: 2 of 3 used\nlast run: after this, "+f.goal+" stops for the owner.\n") {
+		t.Fatalf("stdout %q lacks the last-run warning after runs: 2 of 3 used", out)
+	}
+}
+
+func TestStatusRoleFilter(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	_, out, _ := run(t, "status", "--role", "runner")
+	if !strings.Contains(out, "runner may:\n  hyp run <commit> "+f.goal+"/line-1\n") || strings.Contains(out, "grill may:") {
+		t.Fatalf("stdout %q", out)
+	}
+	if code, _, _ := run(t, "status", "--role", "king"); code != 2 {
+		t.Fatalf("a role outside the four: code %d, want 2", code)
+	}
+}
+
+// flakyEx prints a number that grows on every run, so two runs on one tree
+// differ: the floor 1 is met the first time and failed the second.
+const flakyEx = "-- words --\nflaky\n-- run --\nn=$(cat \"$COUNTER_FILE\"); echo $n; echo $((n+1)) > \"$COUNTER_FILE\"\n-- floor: contains --\n1\n-- external --\nCOUNTER_FILE\n"
+
+func TestStatusListsUnstable(t *testing.T) {
+	counter := filepath.Join(t.TempDir(), "n")
+	if err := os.WriteFile(counter, []byte("0\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("COUNTER_FILE", counter)
+	f := newFx(t, map[string]string{"line-1/a": flakyEx})
+	c := f.leaf(t, map[string]string{"x": "1"})
+	if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
+		t.Fatalf("first run: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	code, out, errs := run(t, "run", c, f.goal+"/line-1")
+	if code != 1 || !strings.Contains(errs, "Stable") || !strings.Contains(out, "stop: none") {
+		t.Fatalf("second run: code %d, stdout %q, stderr %q; want a Stable refusal and the block", code, out, errs)
+	}
+	// a later run on the same tree changes nothing the refusal kept
+	_, out, _ = run(t, "status")
+	re := regexp.MustCompile(`unstable:\n  line-1/a on [0-9a-f]{40}: [0-9a-f]{64} then [0-9a-f]{64}\n`)
+	if !re.MatchString(out) {
+		t.Fatalf("status lacks the unstable entry with both output hashes:\n%s", out)
+	}
+	if !strings.Contains(out, "runs: 1 of 3 used") {
+		t.Fatalf("the refused Result counted: %q", out)
+	}
+}
+
+func TestSplitLineMarked(t *testing.T) {
+	f := newFx(t, map[string]string{
+		"line-1/a": counterEx,
+		"line-1/b": "-- words --\nb\n-- run --\ncat counter\n-- floor: contains --\nzzz\n",
+	})
+	c := f.leaf(t, map[string]string{"counter": "ok\n"})
+	code, out, errs := run(t, "run", c, f.goal+"/line-1")
+	if code != 0 {
+		t.Fatalf("code %d, stderr %q", code, errs)
+	}
+	want := regexp.MustCompile(`split: line-1 on row [0-9a-f]{40}\n`)
+	if !want.MatchString(out) {
+		t.Fatalf("the run's block does not mark the split line:\n%s", out)
+	}
+	_, out, _ = run(t, "status")
+	if !want.MatchString(out) {
+		t.Fatalf("status does not mark the split line:\n%s", out)
+	}
+}
+
+func TestEveryWriteEndsWithStateBlock(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	block := regexp.MustCompile(`(?m)^G-[A-Z0-9]{6}  \w+  runs: \d of 3 used\n(last run: .*\n)?stop: .*\nwaits: .*\nowner may:\n`)
+	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
+	_, out, _ := run(t, "run", c, f.goal+"/line-1")
+	at := block.FindStringIndex(out)
+	if at == nil || !strings.HasPrefix(out, "ran ") || at[0] == 0 {
+		t.Fatalf("run does not print its report and then the block:\n%s", out)
+	}
+	_, out, _ = run(t, "status")
+	args := selectLine(t, out)
+	_, out, _ = run(t, args[1:]...)
+	at = block.FindStringIndex(out)
+	if at == nil || !strings.HasPrefix(out, "# "+f.goal) || at[0] == 0 {
+		t.Fatalf("select does not print the PR body and then the block:\n%s", out)
+	}
+	if strings.Count(out, "selected commit:") != 1 {
+		t.Fatalf("the PR body is printed twice on select's return:\n%s", out)
+	}
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
+	if _, out, _ := run(t, "add", "goal", "--base", "HEAD", "--words", "second", "--line", "gap:g"); !block.MatchString(out) || !strings.HasPrefix(out, "recorded ") {
+		t.Fatalf("add goal does not end with the block:\n%s", out)
+	}
+	t.Setenv("HYP_ACTOR", "grill-1")
+	t.Setenv("HYP_ROLE", "grill")
+	if code, out, _ := run(t, "place", f.goal, "line-1/a"); code != 1 || !block.MatchString(out) {
+		t.Fatalf("place on a selected Goal: code %d, stdout:\n%s", code, out)
+	}
+}
+
+func TestRefusalEndsWithStateBlock(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	code, out, errs := run(t, "run", "no-such-commit", f.goal+"/line-1")
+	if code != 1 || !strings.Contains(errs, "Bytes") || !strings.Contains(out, f.goal+"  open  runs: 0 of 3 used\nstop: none\n") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	// bad arguments print no block
+	if code, out, _ := run(t, "run", "HEAD", "G-NOPE00/line-1"); code != 2 || out != "" {
+		t.Fatalf("bad arguments: code %d, stdout %q", code, out)
+	}
+	if code, out, _ := run(t, "run"); code != 2 || out != "" {
+		t.Fatalf("bad arguments: code %d, stdout %q", code, out)
+	}
+}
+
+// storeBytes is every file of the store with its content.
+func storeBytes(t *testing.T, dir string) string {
+	t.Helper()
+	var b strings.Builder
+	err := filepath.WalkDir(filepath.Join(dir, ".tree"), func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			data, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			b.WriteString(p + "\x00" + string(data) + "\x00")
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b.String()
+}
+
+func TestStatusWritesNothing(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	code, out, _ := run(t, "status")
+	if code != 0 || !strings.Contains(out, f.goal) {
+		t.Fatalf("status did not print the Goal: code %d, stdout %q", code, out)
+	}
+	store := storeBytes(t, f.r.Dir)
+	gitState := testutil.Snapshot(t, f.r.Dir)
+	run(t, "status")
+	run(t, "status", f.goal)
+	if storeBytes(t, f.r.Dir) != store {
+		t.Fatal("status changed the store")
+	}
+	if testutil.Snapshot(t, f.r.Dir) != gitState {
+		t.Fatal("status changed the repository's git state")
+	}
+}
+
+func TestStatusWithoutStoreExit1(t *testing.T) {
+	inRepo(t)
+	if code, _, errs := run(t, "status"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
+		t.Fatalf("code %d, stderr %q", code, errs)
+	}
+}

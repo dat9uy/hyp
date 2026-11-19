@@ -4,6 +4,7 @@
 package channel
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/logstore"
+	"github.com/dat9uy/hyp/internal/tables"
 )
 
 // versionLine is hyp's version, followed by the commit Go stamped into this
@@ -67,6 +69,11 @@ commands:
                                          goals/G/LINE/EXAMPLE on a line of Goal G
   run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
                                          Goal G on COMMIT and record the Result
+  select G TREE [--why TEXT]             select the candidate row TREE of Goal G;
+                                         the report is the PR body
+  status [G] [--role ROLE]               print the state of every Goal, or of G:
+                                         its stop, its waits and the allowed
+                                         acts as ready command lines
   help                                   print this text
   version                                print the hyp version
 
@@ -75,7 +82,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "place", "run", "version"}
+var commands = []string{"add", "help", "place", "run", "select", "status", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -87,7 +94,10 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	if err == nil {
 		return 0
 	}
-	fmt.Fprintf(stderr, "hyp: %v\n", err)
+	var done *printed
+	if !errors.As(err, &done) {
+		fmt.Fprintf(stderr, "hyp: %v\n", err)
+	}
 	switch herr.KindOf(err) {
 	case herr.Refusal:
 		return 1
@@ -110,12 +120,16 @@ func dispatch(args []string, stdout, stderr io.Writer) error {
 		fmt.Fprint(stdout, usage)
 		return nil
 	case "place":
-		return place(args[1:], stdout)
+		return place(args[1:], stdout, stderr)
 	case "run":
-		return runCmd(args[1:], stdout)
+		return runCmd(args[1:], stdout, stderr)
+	case "select":
+		return selectCmd(args[1:], stdout, stderr)
+	case "status":
+		return statusCmd(args[1:], stdout)
 	case "add":
 		if len(args) > 1 && args[1] == "goal" {
-			return addGoal(args[2:], stdout)
+			return addGoal(args[2:], stdout, stderr)
 		}
 		fmt.Fprint(stderr, usage)
 		return herr.BadArgs("add what? only 'add goal' exists")
@@ -154,7 +168,7 @@ func (l *lineFlag) Set(s string) error {
 	return nil
 }
 
-func addGoal(args []string, stdout io.Writer) error {
+func addGoal(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("add goal", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var o acts.AddGoalOpts
@@ -193,22 +207,23 @@ func addGoal(args []string, stdout io.Writer) error {
 	o.Dir = cwd
 	rep, err := acts.AddGoal(o)
 	if err != nil {
-		return err
+		return finish(stdout, stderr, cwd, o.Goal, "", err)
 	}
+	var b strings.Builder
 	verb := "recorded"
 	if rep.Replaced {
 		verb = "replaced"
 	}
-	fmt.Fprintf(stdout, "%s %s\n", verb, rep.Goal)
-	fmt.Fprintf(stdout, "words: %s\n", rep.Words)
-	fmt.Fprintf(stdout, "H0: %s\n", rep.Base)
+	fmt.Fprintf(&b, "%s %s\n", verb, rep.Goal)
+	fmt.Fprintf(&b, "words: %s\n", rep.Words)
+	fmt.Fprintf(&b, "H0: %s\n", rep.Base)
 	for _, l := range rep.Lines {
-		fmt.Fprintf(stdout, "%s %s: %s\n", l.Key, l.Kind, l.Text)
+		fmt.Fprintf(&b, "%s %s: %s\n", l.Key, l.Kind, l.Text)
 	}
-	return nil
+	return finish(stdout, stderr, cwd, rep.Goal, b.String(), nil)
 }
 
-func place(args []string, stdout io.Writer) error {
+func place(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("place", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var o acts.PlaceOpts
@@ -233,16 +248,14 @@ func place(args []string, stdout io.Writer) error {
 	o.Dir = cwd
 	rep, err := acts.Place(o)
 	if err != nil {
-		return err
+		return finish(stdout, stderr, cwd, o.Goal, "", err)
 	}
-	fmt.Fprintf(stdout, "placed %s %s @%d\n", rep.Goal, rep.Key, rep.Version)
-	fmt.Fprintf(stdout, "hash: %s\n", rep.Hash)
-	fmt.Fprintf(stdout, "H0: %s (exit %d)\n", rep.Verdict, rep.Exit)
-	fmt.Fprintf(stdout, "%s is %s\n", rep.Goal, rep.State)
-	return nil
+	text := fmt.Sprintf("placed %s %s @%d\nhash: %s\nH0: %s (exit %d)\n%s is %s\n",
+		rep.Goal, rep.Key, rep.Version, rep.Hash, rep.Verdict, rep.Exit, rep.Goal, rep.State)
+	return finish(stdout, stderr, cwd, rep.Goal, text, nil)
 }
 
-func runCmd(args []string, stdout io.Writer) error {
+func runCmd(args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	var o acts.RunOpts
@@ -266,9 +279,136 @@ func runCmd(args []string, stdout io.Writer) error {
 	}
 	o.Dir = cwd
 	rep, err := acts.Run(o)
+	goal := ""
+	if i := strings.LastIndex(o.Line, "/"); i > 0 {
+		goal = o.Line[:i]
+	}
+	return finish(stdout, stderr, cwd, goal, rep.String(), err)
+}
+
+func selectCmd(args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("select", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var o acts.SelectOpts
+	fs.StringVar(&o.Actor, "actor", os.Getenv("HYP_ACTOR"), "")
+	fs.StringVar(&o.Role, "role", os.Getenv("HYP_ROLE"), "")
+	fs.StringVar(&o.Why, "why", "", "")
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return herr.BadArgs("select: %v", err)
+	}
+	if len(positional) != 2 {
+		return herr.BadArgs("select takes a Goal and a row tree, for example: hyp select G-NXHHVA 4df2b9e...; got %d arguments", len(positional))
+	}
+	o.Goal, o.Tree = positional[0], positional[1]
+	if n := len([]rune(o.Why)); n > logstore.MaxWhy {
+		return herr.BadArgs("--why is %d runes; the limit is %d", n, logstore.MaxWhy)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return herr.Env("working directory: %v", err)
+	}
+	o.Dir = cwd
+	rep, err := acts.Select(o)
+	if err != nil {
+		return finish(stdout, stderr, cwd, o.Goal, "", err)
+	}
+	// the report is the PR body, so the block does not print it again
+	return finishWith(stdout, stderr, cwd, BlockOpts{Goal: rep.Goal, NoBody: true}, rep.String(), nil)
+}
+
+func statusCmd(args []string, stdout io.Writer) error {
+	fs := flag.NewFlagSet("status", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var role string
+	fs.StringVar(&role, "role", "", "")
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return herr.BadArgs("status: %v", err)
+	}
+	if len(positional) > 1 {
+		return herr.BadArgs("status takes at most one Goal, got %d", len(positional))
+	}
+	if role != "" && !acts.ValidRole(role) {
+		return herr.BadArgs("role %q must be one of %s", role, strings.Join(acts.Roles, ", "))
+	}
+	o := BlockOpts{Role: role}
+	if len(positional) == 1 {
+		o.Goal = positional[0]
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return herr.Env("working directory: %v", err)
+	}
+	block, err := blockFor(cwd, o)
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(stdout, rep.String())
+	fmt.Fprint(stdout, block)
+	return nil
+}
+
+// printed marks a refusal that finish already wrote, so Run does not print it
+// a second time.
+type printed struct{ err error }
+
+func (p *printed) Error() string { return p.err.Error() }
+func (p *printed) Unwrap() error { return p.err }
+
+// blockFor reads the store under dir and prints its state block. A Goal named
+// in o that the store does not know is a bad argument; no store is a refusal.
+func blockFor(dir string, o BlockOpts) (string, error) {
+	root, err := logstore.TopLevel(dir)
+	if err != nil {
+		return "", err
+	}
+	if err := logstore.Find(root); err != nil {
+		return "", err
+	}
+	evs, _, err := logstore.Events(root)
+	if err != nil {
+		return "", err
+	}
+	t := tables.Replay(evs)
+	if o.Goal != "" {
+		g, err := t.Find(o.Goal)
+		if err != nil {
+			return "", err
+		}
+		o.Goal = g.EventID
+	}
+	return StateBlock(t, root, o), nil
+}
+
+// finish prints what a write act returned: its report, or on a refusal the
+// refusal (to stderr), and then the state block of the Goal it was about. Bad arguments
+// and an environment problem print no block.
+func finish(stdout, stderr io.Writer, dir, goal, report string, err error) error {
+	return finishWith(stdout, stderr, dir, BlockOpts{Goal: goal}, report, err)
+}
+
+func finishWith(stdout, stderr io.Writer, dir string, o BlockOpts, report string, err error) error {
+	if err != nil && herr.KindOf(err) != herr.Refusal {
+		return err
+	}
+	if err != nil {
+		// the refusal is the report: it names the guard and carries what the
+		// guard showed
+		fmt.Fprintf(stderr, "hyp: %v\n", err)
+	} else {
+		fmt.Fprint(stdout, report)
+	}
+	if o.Goal != "" {
+		block, berr := blockFor(dir, o)
+		switch {
+		case berr == nil:
+			fmt.Fprint(stdout, block)
+		case err == nil:
+			return herr.Env("state block: %v", berr)
+		}
+	}
+	if err != nil {
+		return &printed{err: err}
+	}
 	return nil
 }

@@ -1,0 +1,32 @@
+G-XXXXXX  selected  runs: 1 of 3 used
+stop: selected
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-XXXXXX: w
+
+## line-1 (gap): it fails
+
+### line-1/a: w
+
+verdict: met, exit 0
+
+output:
+
+```
+ok
+```
+
+stderr: (empty)
+
+selected commit: <hash>
+selected row: <hash>

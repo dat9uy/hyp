@@ -134,7 +134,7 @@ func TestOutsideRepoExit3(t *testing.T) {
 }
 
 func TestV1CommandGone(t *testing.T) {
-	for _, c := range []string{"sandbox", "init", "status", "signals", "events"} {
+	for _, c := range []string{"sandbox", "init", "signals", "events"} {
 		if code, _, _ := run(t, c); code != 2 {
 			t.Errorf("hyp %s: code %d, want 2", c, code)
 		}
@@ -143,7 +143,7 @@ func TestV1CommandGone(t *testing.T) {
 
 func TestCommandsAreSorted(t *testing.T) {
 	got := Commands()
-	if !slices.Equal(got, []string{"add", "help", "place", "run", "version"}) {
+	if !slices.Equal(got, []string{"add", "help", "place", "run", "select", "status", "version"}) {
 		t.Fatalf("Commands = %v", got)
 	}
 }
@@ -208,8 +208,8 @@ func TestPlaceRefusalExit1(t *testing.T) {
 	r := inRepo(t)
 	goal := goalWithExample(t, r, false)
 	code, out, errs := run(t, "place", goal, "line-1/a")
-	if code != 1 || out != "" || !strings.Contains(errs, "Committed") {
-		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	if code != 1 || !strings.HasPrefix(out, goal+"  written  runs: 0 of 3 used\n") || !strings.Contains(errs, "Committed") {
+		t.Fatalf("code %d, stdout %q, stderr %q; want the refusal on stderr and the state block on stdout", code, out, errs)
 	}
 	t.Setenv("HYP_ROLE", "runner")
 	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 1 || !strings.Contains(errs, "Own case") {
@@ -297,7 +297,7 @@ func TestRunFlagsMayFollowThePositionals(t *testing.T) {
 func TestRunRefusalExit1(t *testing.T) {
 	_, goal, _ := placed(t)
 	code, out, errs := run(t, "run", "no-such-commit", goal+"/line-1")
-	if code != 1 || out != "" || !strings.Contains(errs, "Bytes") {
+	if code != 1 || !strings.HasPrefix(out, goal+"  open  runs: 0 of 3 used\n") || !strings.Contains(errs, "Bytes") {
 		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
 	}
 }

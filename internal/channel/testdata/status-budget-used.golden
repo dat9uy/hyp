@@ -1,0 +1,20 @@
+G-XXXXXX  open  runs: 3 of 3 used
+stop: budget used
+waits: owner
+owner may:
+  (none)
+grill may:
+  hyp place G-XXXXXX <line>/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+outputs:
+  row <hash>
+    line-1/a  failed  exit 0  "bad"
+  row <hash>
+    line-1/a  failed  exit 0  "x1"
+  row <hash>
+    line-1/a  failed  exit 0  "x2"
+  row <hash>
+    line-1/a  failed  exit 0  "x3"

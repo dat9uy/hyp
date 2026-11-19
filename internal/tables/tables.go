@@ -78,13 +78,15 @@ type Result struct {
 	Refused   string // empty, or "Stable"
 	Differing []string
 	Cells     []events.ExampleCell
-	epoch     int  // the Goal's epoch when it was recorded
-	wasH0     bool // its row tree was H0's when it was recorded
+	Unstable  []UnstableCell // set only on a Result refused by Stable
+	epoch     int            // the Goal's epoch when it was recorded
+	wasH0     bool           // its row tree was H0's when it was recorded
 }
 
 // Refused is an event that failed a guard at its place in the merge order.
 type Refused struct {
 	EventID string
+	Node    string // the event's node: a goal.add event id, or a Result id for a retract
 	Reason  string
 }
 
@@ -415,7 +417,7 @@ func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
 func Replay(evs []events.Event) Tables {
 	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}}
 	refuse := func(ev events.Event, err error) {
-		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Reason: herr.Text(err)})
+		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Reason: herr.Text(err)})
 	}
 	for _, ev := range evs {
 		switch ev.Type {
@@ -460,6 +462,9 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 		ID: ev.ID, Line: p.Line, Commit: p.Commit, RowTree: p.RowTree, Actor: ev.Actor, Role: p.Role,
 		Time: ev.TS, Refused: p.Refused, Differing: p.Differing, Cells: p.Cells, epoch: g.epoch,
 		wasH0: p.RowTree == g.BaseTree,
+	}
+	if p.Refused != "" {
+		r.Unstable = g.unstableAt(p)
 	}
 	g.Results = append(g.Results, r)
 	t.results[ev.ID] = r
@@ -506,24 +511,20 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 	}
 }
 
-// replaySelect applies a select: the Goal is selected. The select act, with
-// its Candidate, Spec and Own path guards, is built later; replay checks only
-// that the Goal exists and has no select yet.
+// replaySelect applies a select the table guards allow at its place in the
+// merge order: not Selected, the table half of Candidate, and Goal's actor for
+// an owner. The git half of Candidate, the leaf mark, and Spec and Own path
+// are trusted as written.
 func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardSelect(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
 	var p events.Select
 	if err := events.Decode(ev, &p); err != nil {
-		refuse(ev, herr.Refused("Selected: %v", err))
-		return
+		return // GuardSelect decoded it already
 	}
-	g, ok := t.Goals[ev.Node]
-	if !ok {
-		refuse(ev, herr.Refused("no Goal %s to select on", GoalID(ev.Node)))
-		return
-	}
-	if g.Select != nil {
-		refuse(ev, herr.Refused("Selected: %s already has a select", g.ID))
-		return
-	}
+	g := t.Goals[ev.Node]
 	g.Select = &Select{Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
 	g.State = StateSelected
 }

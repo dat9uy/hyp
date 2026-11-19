@@ -60,15 +60,22 @@ func (g *Goal) rowCommits() (trees []string, commits map[string][]string) {
 func Rows(t Tables, anc Ancestry) []Row {
 	var out []Row
 	for _, g := range sortedGoals(t) {
-		trees, commits := g.rowCommits()
-		for _, tree := range trees {
-			row := Row{Goal: g.EventID, RowTree: tree, Commits: commits[tree], Verdicts: map[string]string{}}
-			for _, p := range g.Placed() {
-				row.Verdicts[p.Key] = g.Verdict(p.Key, tree)
-			}
-			row.Leaf, row.Unknown = leafMark(anc, trees, commits, tree)
-			out = append(out, row)
+		out = append(out, g.Rows(anc)...)
+	}
+	return out
+}
+
+// Rows calculates the rows of one Goal, H0's row first.
+func (g *Goal) Rows(anc Ancestry) []Row {
+	var out []Row
+	trees, commits := g.rowCommits()
+	for _, tree := range trees {
+		row := Row{Goal: g.EventID, RowTree: tree, Commits: commits[tree], Verdicts: map[string]string{}}
+		for _, p := range g.Placed() {
+			row.Verdicts[p.Key] = g.Verdict(p.Key, tree)
 		}
+		row.Leaf, row.Unknown = leafMark(anc, trees, commits, tree)
+		out = append(out, row)
 	}
 	return out
 }

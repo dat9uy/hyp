@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -198,7 +199,11 @@ func TestRunAfterSelectRefusedBySelectedState(t *testing.T) {
 	if _, err := e.run(c); err != nil {
 		t.Fatal(err)
 	}
-	p, _ := json.Marshal(events.Select{Role: "runner", Commit: c, RowTree: "t"})
+	tree, err := gitread.RowTree(e.root, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, _ := json.Marshal(events.Select{Role: "runner", Commit: c, RowTree: tree})
 	if _, err := logstore.Append(e.root, "runner-1", func([]events.Event) (events.Event, error) {
 		return events.Event{Type: events.TypeSelect, Node: e.goalRow(t).EventID, Payload: p}, nil
 	}); err != nil {
@@ -207,7 +212,7 @@ func TestRunAfterSelectRefusedBySelectedState(t *testing.T) {
 	if e.goalRow(t).State != tables.StateSelected {
 		t.Fatal("test setup: the Goal is not selected")
 	}
-	_, err := e.run(e.leaf(t, e.base, "ok2"))
+	_, err = e.run(e.leaf(t, e.base, "ok2"))
 	refusedBy(t, err, "Selected")
 }
 
@@ -334,7 +339,8 @@ func TestRunPrintsRunsUsed(t *testing.T) {
 	if err != nil || rep.Used != 1 || rep.LastRun {
 		t.Fatalf("report = %+v, %v; want one tree used and no warning", rep, err)
 	}
-	if got := rep.String(); !strings.Contains(got, "runs: 1 of 3 used\n") || strings.Contains(got, "last run") {
+	// the state block carries the runs line, so the report does not repeat it
+	if got := rep.String(); !strings.Contains(got, "line-1/a") || strings.Contains(got, "runs:") {
 		t.Fatalf("report text = %q", got)
 	}
 }
@@ -348,12 +354,11 @@ func TestRunWarnsBeforeLastRun(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	want := "last run: after this, " + e.goal + " stops for the owner."
-	if !rep.LastRun || !strings.Contains(rep.String(), "runs: 2 of 3 used\n"+want) {
-		t.Fatalf("report text = %q, want the warning after runs: 2 of 3 used", rep.String())
+	if !rep.LastRun || rep.Used != 2 {
+		t.Fatalf("report = %+v, want the last-run mark at two trees", rep)
 	}
 	rep, err := e.run(e.leaf(t, e.base, "ok3"))
-	if err != nil || rep.LastRun || strings.Contains(rep.String(), "last run") {
+	if err != nil || rep.LastRun {
 		t.Fatalf("report = %+v, %v; want no warning on the last run", rep, err)
 	}
 }
