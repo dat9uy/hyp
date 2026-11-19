@@ -1,0 +1,7 @@
+G-9XX4KB  open  runs: 0 of 3 used
+stop: none
+waits: none
+runner may:
+  hyp run <commit> G-9XX4KB/line-1
+  hyp run <commit> G-9XX4KB/line-2
+  hyp run <commit> G-9XX4KB/line-3
