@@ -1,0 +1,43 @@
+-- words --
+Lines 1 and 2 hold examples, the owner moves H0 to a new commit, and the grill places line-3; the Goal stays written, and the grill blocks of add goal, place and status offer a ready place line for each of the three lines.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+d='--'
+mkex() { mkdir -p "$1/probe" && cp "$HYP_EXAMPLE/probe/run" "$1/probe/run" && chmod +x "$1/probe/run" && { printf '%s words %s\nThe subject greets.\n%s run %s\n' "$d" "$d" "$d" "$d"; printf '%s\n' 'cat greet.txt; echo fixed-tail'; printf '%s %s %s\n%s\n' "$d" "$2" "$d" "$3"; } >"$1/example.txtar"; }
+mkrepo() { r=$(mktemp -d) && cd "$r" && git init -q && echo hello >greet.txt && git add greet.txt && git commit -q -m base && g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Greet.' --line 'gap:hyp says bye.' --line 'gap:hyp says bye twice.' --line 'guard:hyp keeps its tail.' | sed -n 's/^recorded //p') && [ -n "$g" ] && git add -A && git commit -q -m 'record the Goal'; }
+exs() { mkex "goals/$g/line-1/a" 'floor: contains' bye && mkex "goals/$g/line-2/a" 'floor: contains' bye && mkex "goals/$g/line-3/a" 'floor: contains' fixed-tail && git add goals && git commit -q -m 'add the examples'; }
+hy() { a=$1 r=$2; shift 2; HYP_ACTOR=$a HYP_ROLE=$r "$bin/hyp" "$@" 2>/dev/null; }
+save() { git add -A && git commit -q -m "$1"; }
+block() { echo "$1:"; b=$(sed "s/$g/G/g" | awk '/^grill may:$/ { p = 1; print; next } p && /^  / { print; next } { p = 0 }'); if [ -n "$b" ]; then printf '%s\n' "$b"; else echo 'no grill block'; fi; }
+mkrepo || exit 92
+exs || exit 93
+hy grill grill place "$g" line-1/a >/dev/null && save 'place line-1/a' || exit 94
+hy grill grill place "$g" line-2/a >/dev/null && save 'place line-2/a' || exit 94
+echo other >other.txt && save 'a new base' || exit 95
+hy owner owner add goal "$g" --base HEAD --words 'Greet.' --line 'gap:hyp says bye.' --line 'gap:hyp says bye twice.' --line 'guard:hyp keeps its tail.' | block 'H0 moved; hyp add goal G returns'
+save 'replace the Goal' || exit 96
+hy grill grill place "$g" line-3/a | block 'H0 moved; hyp place G line-3/a returns'
+save 'place line-3/a' || exit 97
+hy grill grill status "$g" >"$bin/st"
+s=$(sed -n "s/^$g  \([a-z]*\) .*/\1/p" "$bin/st" | head -n 1); [ -n "$s" ] || s='no state printed'
+echo "every line holds an example, and the Goal is: $s"
+block 'hyp status G' <"$bin/st"
+-- floor: equals --
+H0 moved; hyp add goal G returns:
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+H0 moved; hyp place G line-3/a returns:
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+every line holds an example, and the Goal is: written
+hyp status G:
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
