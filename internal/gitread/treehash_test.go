@@ -207,3 +207,23 @@ func TestDirTreeHashWritesNoGitState(t *testing.T) {
 		t.Fatalf("the tree object %s exists in the repository: code %d, %v", h, code, err)
 	}
 }
+
+func TestDirTreeHashModeFollowsOwnerExecuteBit(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"f/odd": "x", "f/plain": "y"})
+	for _, tc := range []struct {
+		perm os.FileMode
+	}{{0o654}, {0o611}, {0o710}, {0o755}, {0o644}} {
+		p := filepath.Join(r.Dir, "f/odd")
+		if err := os.Chmod(p, tc.perm); err != nil {
+			t.Fatal(err)
+		}
+		testutil.Git(t, r.Dir, "add", "-A")
+		testutil.Git(t, r.Dir, "commit", "-q", "--allow-empty", "-m", "m")
+		want := testutil.Git(t, r.Dir, "rev-parse", "HEAD:f")
+		got, err := DirTreeHash(filepath.Join(r.Dir, "f"))
+		if err != nil || got != want {
+			t.Errorf("mode %o: DirTreeHash = %s, %v; git has %s", tc.perm, got, err, want)
+		}
+	}
+}

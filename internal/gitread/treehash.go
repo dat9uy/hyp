@@ -77,7 +77,7 @@ func blobHash(b []byte) string {
 }
 
 // diskBlob returns the tree entry of the file or symlink at path, as git
-// would store it with no filter: mode 100755 when any execute bit is set,
+// would store it with no filter: mode 100755 when the owner execute bit is set,
 // otherwise 100644; a symlink is mode 120000 and holds its target. Anything
 // else, a socket or a device, is a refusal.
 func diskBlob(path, name string, info fs.FileInfo) (Entry, error) {
@@ -94,7 +94,7 @@ func diskBlob(path, name string, info fs.FileInfo) (Entry, error) {
 			return Entry{}, herr.Env("read %s: %v", path, err)
 		}
 		mode := "100644"
-		if m.Perm()&0o111 != 0 {
+		if m.Perm()&0o100 != 0 {
 			mode = "100755"
 		}
 		return Entry{Mode: mode, Type: "blob", Hash: blobHash(b), Name: name}, nil

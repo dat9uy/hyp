@@ -147,8 +147,8 @@ func ExtractTree(dir, treeish, dest string) error {
 		if err != nil {
 			return err
 		}
-		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			return herr.Env("extract %s: %v", f.path, err)
+		if err := ensureDirs(dest, filepath.Dir(path)); err != nil {
+			return err
 		}
 		if f.mode == "120000" {
 			if err := os.Symlink(string(body), path); err != nil {
@@ -160,7 +160,7 @@ func ExtractTree(dir, treeish, dest string) error {
 		if f.mode == "100755" {
 			perm = 0o755
 		}
-		if err := os.WriteFile(path, body, perm); err != nil {
+		if err := writeNew(path, body, perm); err != nil {
 			return herr.Env("extract %s: %v", f.path, err)
 		}
 		// The umask must not change what the tree says.
@@ -205,4 +205,48 @@ func SubtreeHash(dir, treeish, name string) (string, error) {
 		}
 	}
 	return "", nil
+}
+
+// ensureDirs makes every folder from dest down to dir. Each component that
+// exists must be a real directory: a symlink, or a file of the same name
+// that another tree entry made, would carry a later write outside dest (on a
+// case-insensitive file system the entry a/b reaches through a symlink A).
+func ensureDirs(dest, dir string) error {
+	rel, err := filepath.Rel(dest, dir)
+	if err != nil {
+		return herr.Env("extract %s: %v", dir, err)
+	}
+	cur := dest
+	if rel == "." {
+		return nil
+	}
+	for _, part := range strings.Split(rel, string(filepath.Separator)) {
+		cur = filepath.Join(cur, part)
+		fi, err := os.Lstat(cur)
+		switch {
+		case os.IsNotExist(err):
+			if err := os.Mkdir(cur, 0o755); err != nil {
+				return herr.Env("extract %s: %v", cur, err)
+			}
+		case err != nil:
+			return herr.Env("extract %s: %v", cur, err)
+		case !fi.IsDir():
+			return herr.Env("extract %s: a parent is not a real directory (symlink or file already written)", cur)
+		}
+	}
+	return nil
+}
+
+// writeNew creates path with body and fails when anything is there already,
+// so a case-colliding entry cannot overwrite another.
+func writeNew(path string, body []byte, perm os.FileMode) error {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(body); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }

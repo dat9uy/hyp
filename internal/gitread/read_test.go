@@ -191,3 +191,100 @@ func TestSubtreeHash(t *testing.T) {
 		t.Fatal("an unknown tree was read")
 	}
 }
+
+// caseInsensitive reports whether dir's file system treats a and A as one name.
+func caseInsensitive(t *testing.T, dir string) bool {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, "probe-case"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := os.Lstat(filepath.Join(dir, "PROBE-CASE"))
+	return err == nil
+}
+
+// commitRaw commits the given entries (path -> blob hash and mode) without
+// touching the work tree.
+func commitRaw(t *testing.T, r *testutil.Repo, entries map[string][2]string) string {
+	t.Helper()
+	for path, e := range entries {
+		testutil.Git(t, r.Dir, "update-index", "--add", "--cacheinfo", e[1]+","+e[0]+","+path)
+	}
+	tree := testutil.Git(t, r.Dir, "write-tree")
+	return testutil.Git(t, r.Dir, "commit-tree", "-m", "x", tree)
+}
+
+func blobOf(t *testing.T, r *testutil.Repo, body string) string {
+	t.Helper()
+	f := filepath.Join(t.TempDir(), "b")
+	if err := os.WriteFile(f, []byte(body), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return testutil.Git(t, r.Dir, "hash-object", "-w", f)
+}
+
+func TestExtractTreeNeverWritesThroughASymlink(t *testing.T) {
+	r := testutil.NewRepo(t)
+	outside := t.TempDir()
+	dest := filepath.Join(t.TempDir(), "out")
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !caseInsensitive(t, dest) {
+		t.Skip("the case-insensitive spelling of the escape needs a case-insensitive file system")
+	}
+	c := commitRaw(t, r, map[string][2]string{
+		"A":   {blobOf(t, r, outside), "120000"},
+		"a/b": {blobOf(t, r, "escaped"), "100644"},
+	})
+	dest = filepath.Join(t.TempDir(), "out2")
+	err := ExtractTree(r.Dir, c, dest)
+	if err == nil || herr.KindOf(err) != herr.Environment {
+		t.Fatalf("err = %v, want an environment error", err)
+	}
+	if left, _ := os.ReadDir(outside); len(left) != 0 {
+		t.Fatalf("a file landed outside dest: %v", left)
+	}
+}
+
+func TestExtractTreeRefusesAnExistingParentSymlink(t *testing.T) {
+	r := testutil.NewRepo(t)
+	outside := t.TempDir()
+	c := r.Commit(t, map[string]string{"d/f": "x"})
+	dest := filepath.Join(t.TempDir(), "out")
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(dest, "d")); err != nil {
+		t.Fatal(err)
+	}
+	err := ExtractTree(r.Dir, c, dest)
+	if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), "d") {
+		t.Fatalf("err = %v, want an environment error naming d", err)
+	}
+	if left, _ := os.ReadDir(outside); len(left) != 0 {
+		t.Fatalf("a file landed outside dest: %v", left)
+	}
+}
+
+func TestExtractTreeDoesNotOverwriteCaseCollision(t *testing.T) {
+	r := testutil.NewRepo(t)
+	dest := filepath.Join(t.TempDir(), "out")
+	if err := os.MkdirAll(dest, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !caseInsensitive(t, dest) {
+		t.Skip("a case collision needs a case-insensitive file system")
+	}
+	c := commitRaw(t, r, map[string][2]string{
+		"X": {blobOf(t, r, "first"), "100644"},
+		"x": {blobOf(t, r, "second"), "100644"},
+	})
+	dest = filepath.Join(t.TempDir(), "out2")
+	err := ExtractTree(r.Dir, c, dest)
+	if err == nil || herr.KindOf(err) != herr.Environment {
+		t.Fatalf("err = %v, want an environment error", err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dest, "X")); string(b) != "first" {
+		t.Fatalf("X = %q; the first file was overwritten", b)
+	}
+}
