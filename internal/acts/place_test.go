@@ -1,6 +1,7 @@
 package acts
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -459,5 +460,60 @@ func TestPlaceWritesNoGitState(t *testing.T) {
 	refusedBy(t, err, "Adds only")
 	if testutil.Snapshot(t, e.root) != before {
 		t.Fatal("a refused place changed the repository's git state")
+	}
+}
+
+func TestPlaceRefusesNewVersionChangingAnotherFile(t *testing.T) {
+	e := newPlaceEnv(t)
+	e.example(t, "line-1/a", failingOnH0)
+	helper := filepath.Join(e.root, "goals", e.goal, "line-1/a/helper")
+	if err := os.WriteFile(helper, []byte("one"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	e.commit(t)
+	if _, err := e.place("line-1/a"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(helper, []byte("two"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	e.write(t, "line-1/a", failingOnH0+"-- ceiling --\nzzz\n", fixtureProbe)
+	e.commit(t)
+	_, err := e.place("line-1/a")
+	refusedBy(t, err, "Adds only")
+	if !strings.Contains(err.Error(), "helper") {
+		t.Fatalf("err = %v, want it to name helper", err)
+	}
+	// the same folder with only the ceiling added passes
+	if err := os.WriteFile(helper, []byte("one"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	e.commit(t)
+	if rep, err := e.place("line-1/a"); err != nil || rep.Version != 2 {
+		t.Fatalf("place = %+v, %v; want version 2", rep, err)
+	}
+}
+
+func TestPlaceCurrentVersionMissingFromCloneIsEnvironment(t *testing.T) {
+	e := newPlaceEnv(t)
+	_, tb := e.log(t)
+	g := tb.ByID(e.goal)
+	payload, err := json.Marshal(events.ExamplePlace{
+		Role: "grill", Line: "line-1", Example: "a", Hash: strings.Repeat("ab", 20),
+		H0: events.Cell{Commit: g.Base, RowTree: g.BaseTree, Verdict: "failed"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = logstore.Append(e.root, "grill-2", func([]events.Event) (events.Event, error) {
+		return events.Event{Type: events.TypeExamplePlace, Node: g.EventID, Payload: payload}, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.example(t, "line-1/a", failingOnH0)
+	_, err = e.place("line-1/a")
+	if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), strings.Repeat("ab", 20)) {
+		t.Fatalf("err = %v, want an environment error naming the missing object", err)
 	}
 }

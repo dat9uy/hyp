@@ -7,6 +7,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -201,6 +202,9 @@ func checkPlace(root string, o PlaceOpts, evs []events.Event, lineKey, name stri
 		if err != nil {
 			return checked{}, err
 		}
+		if err := sameBesidesExample(root, cur.Hash, c.hash); err != nil {
+			return checked{}, err
+		}
 		if err := example.AddsOnly(old, c.ex, oldProbe, c.probeHash); err != nil {
 			return checked{}, err
 		}
@@ -246,6 +250,11 @@ func committedHash(root, rel string) (string, error) {
 // readExample reads and parses the example.txtar of the example folder with
 // tree hash hash, and returns the tree hash of its probe/ folder.
 func readExample(root, hash string) (example.Example, string, error) {
+	if code, _, err := gitread.GitExit(root, "cat-file", "-e", hash); err != nil {
+		return example.Example{}, "", err
+	} else if code != 0 {
+		return example.Example{}, "", herr.Env("object %s not in this clone", hash)
+	}
 	spec := hash + ":example.txtar"
 	if code, _, err := gitread.GitExit(root, "cat-file", "-e", spec); err != nil {
 		return example.Example{}, "", err
@@ -294,4 +303,51 @@ func indent(s string) string {
 		return "  (empty)"
 	}
 	return "  " + strings.ReplaceAll(strings.TrimSuffix(s, "\n"), "\n", "\n  ")
+}
+
+// sameBesidesExample refuses a new version whose folder differs from the
+// current one in any root entry but example.txtar, by mode or hash: the probe/
+// folder and every other file must be byte-equal. It names the first
+// differing entry.
+func sameBesidesExample(root, oldHash, newHash string) error {
+	oldEntries, err := gitread.RootEntries(root, oldHash)
+	if err != nil {
+		return err
+	}
+	newEntries, err := gitread.RootEntries(root, newHash)
+	if err != nil {
+		return err
+	}
+	byName := func(es []gitread.Entry) map[string]gitread.Entry {
+		m := map[string]gitread.Entry{}
+		for _, e := range es {
+			m[e.Name] = e
+		}
+		return m
+	}
+	o, n := byName(oldEntries), byName(newEntries)
+	names := make([]string, 0, len(o)+len(n))
+	for name := range o {
+		names = append(names, name)
+	}
+	for name := range n {
+		if _, ok := o[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if name == "example.txtar" {
+			continue
+		}
+		a, inOld := o[name]
+		b, inNew := n[name]
+		if inOld != inNew || a.Mode != b.Mode || a.Hash != b.Hash {
+			if a.Type == "tree" || b.Type == "tree" {
+				name += "/"
+			}
+			return herr.Refused("Adds only: %s differs from the current version; a change there is a new example key, not a new version", name)
+		}
+	}
+	return nil
 }
