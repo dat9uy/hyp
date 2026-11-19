@@ -1,5 +1,7 @@
 # Spec: events, refusals and replay rules
 
+This spec describes hyp 0.1.0 (events v1), kept on the `v1` branch. The binary on `main` follows [state-machine.md](state-machine.md).
+
 This file is the single authority for the event schema, the refusals and the derived-status rules of `hyp`; [sandbox-spec.md](sandbox-spec.md) owns the sandbox. Plans, skills and Go comments point here instead of restating the rules; Go comments cite it by section as "spec §N".
 
 Keeping it current:

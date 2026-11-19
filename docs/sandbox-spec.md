@@ -1,5 +1,7 @@
 # Spec: the sandbox
 
+This spec describes hyp 0.1.0 (events v1), kept on the `v1` branch. The binary on `main` follows [state-machine.md](state-machine.md).
+
 This file is the single authority for the sandbox: its steps and commands, its state machine, how the levels relate, what a crash leaves and its records. Plans, skills and Go comments point here instead of restating the rules; Go comments cite it by section as "sandbox spec §N". [replay-spec.md](replay-spec.md) owns the event schema, the refusals and the derived-status rules of the tree.
 
 Keeping it current:

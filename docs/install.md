@@ -13,7 +13,7 @@ hyp itself in this repository.
 
 ```bash
 go install github.com/dat9uy/hyp/cmd/hyp@latest
-hyp version   # hyp 0.1.0 (events v1)
+hyp version   # hyp 0.2.0-dev (events v2)
 ```
 
 Make sure Go's install directory (`$(go env GOPATH)/bin` unless `GOBIN` is set)
@@ -62,7 +62,7 @@ From this repository:
 ```bash
 mkdir -p ~/.local/bin
 CGO_ENABLED=0 go build -o ~/.local/bin/hyp ./cmd/hyp
-hyp version   # hyp 0.1.0 (events v1) <commit>, plus -dirty for a modified checkout
+hyp version   # hyp 0.2.0-dev (events v2) <commit>, plus -dirty for a modified checkout
 ```
 
 Make sure `~/.local/bin` is on your `PATH`. A build from a clone prints the
