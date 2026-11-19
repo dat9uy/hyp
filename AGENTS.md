@@ -35,9 +35,9 @@ Three rules keep the boundary honest: a concept stays core when self-review is w
 
 ## Improving hyp with hyp
 
-hyp is changed the way it asks its users to decide things: with a tree of rival Hypotheses, Experiments run from recipes, and a select hyp admits only when the ledger owes it. The loop:
+hyp is changed the way it asks its users to decide things: with a Goal whose gap and guard lines each hold examples, runs of rival commits against those examples, and a select hyp records only for the one candidate met on every line. The loop:
 
-1. **A real event points at hyp.** In a real run the ledger shows an item that does not settle, a refusal or warning fires, `hyp signals` reports a design mark (one-rival or D1), or the owner flags a round. A change is never proposed on speculation.
+1. **A real event points at hyp.** In a real run a refusal or a warning fires, a Goal reaches a stop it cannot leave, `hyp status` lists an event under `refused at replay`, or the owner flags a run. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
 3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, and gap and guard lines. The grill places one or more examples on each line with `hyp place`, each run on H0 to show it gives the verdict its line needs. The rules are in [state-machine.md](docs/state-machine.md).
 4. **The runner runs and selects.** `hyp run` runs a line on a commit, within three trees, and `hyp select` records the one candidate that is met on every line and holds a spec. The select's report is the PR body, and `hyp status` prints the allowed acts of each role as ready command lines. hyp v2 was built without hyp up to this point, because v1 could not measure v2; from here every change is a v2 Goal.
