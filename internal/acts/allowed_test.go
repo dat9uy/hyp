@@ -119,3 +119,49 @@ func TestAllowedBudgetUsedRunnerMayNotRun(t *testing.T) {
 		t.Fatalf("standing = %+v", st)
 	}
 }
+
+// places are the grill's allowed places, one per line key, in order.
+func places(e *runEnv, keys ...string) []Ready {
+	var out []Ready
+	for _, k := range keys {
+		out = append(out, Ready{Goal: e.goal, Role: "grill", Act: ActPlace, Line: k})
+	}
+	return out
+}
+
+// The grill may place on every line in every state that allows a place, a
+// line that holds an example included, and on no line once the Goal is
+// selected.
+func TestAllowedGrillMayPlaceOnEveryLine(t *testing.T) {
+	// written: line-1 holds an example, line-2 and line-3 none
+	e := newRunEnv(t, gapLine, gapLine, LineInput{Kind: events.KindGuard, Text: "it holds"})
+	if g := e.goalRow(t); g.State != tables.StateWritten {
+		t.Fatalf("test setup: %s", g.State)
+	}
+	if got, want := lines(e.allowed(t), "grill"), places(e, "line-1", "line-2", "line-3"); !slices.Equal(got, want) {
+		t.Fatalf("written: grill may %+v, want %+v", got, want)
+	}
+
+	// open, with no stop, then with one candidate, two candidates and the select
+	o := newRunEnv(t)
+	if got, want := lines(o.allowed(t), "grill"), places(o, "line-1"); !slices.Equal(got, want) {
+		t.Fatalf("open: grill may %+v, want %+v", got, want)
+	}
+	_, tree := o.metLeaf(t, "ok", true)
+	if got, want := lines(o.allowed(t), "grill"), places(o, "line-1"); !slices.Equal(got, want) {
+		t.Fatalf("one candidate: grill may %+v, want %+v", got, want)
+	}
+	o.metLeaf(t, "ok2", true)
+	if st := Stand(o.goalRow(t), o.root); st.Stop != StopTwoCandidates {
+		t.Fatalf("test setup: stop %s", st.Stop)
+	}
+	if got, want := lines(o.allowed(t), "grill"), places(o, "line-1"); !slices.Equal(got, want) {
+		t.Fatalf("two candidates: grill may %+v, want %+v", got, want)
+	}
+	if _, err := Select(o.selectOpts(tree, "owner-1", "owner")); err != nil {
+		t.Fatal(err)
+	}
+	if got := lines(o.allowed(t), "grill"); len(got) != 0 {
+		t.Fatalf("selected: grill may %+v, want nothing", got)
+	}
+}

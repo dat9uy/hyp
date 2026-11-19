@@ -1,0 +1,48 @@
+---
+title: "hyp G-1908D1: the grill's place lines in the state block"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: written
+    lg1: open
+    lg2: selected
+  }
+  class lg0 orange
+  class lg1 teal
+  class lg2 purple
+  state "Written, a line holds no example" as s0 {
+    s1: grill may place on each line
+  }
+  state "Open" as s2 {
+    s3: grill may place on each line
+  }
+  state "Written, every line placed, H0 moved" as s4 {
+    s5: grill may place on each line
+    [*] --> s5
+  }
+  state "Open, stop: budget used" as s6 {
+    s7: grill may place on each line
+    [*] --> s7
+  }
+  state "Open, stop: two candidates" as s8 {
+    s9: grill may place on each line
+    [*] --> s9
+  }
+  state "Selected" as s10 {
+    s11: grill may: (none)
+  }
+  [*] --> s1
+  s1 --> s4: the owner replaces the Goal#59; H0 moves or the grill places an example
+  s1 --> s3: the grill places an example
+  s3 --> s6: the runner runs a candidate
+  s3 --> s8: the runner runs a candidate
+  s3 --> s11: a candidate is selected
+  s5 --> s1: the owner replaces the Goal#59; H0 moves
+  s5 --> s3: the grill places an example or the runner runs a line on H0
+  s9 --> s11: a candidate is selected
+  class s1 orange
+  class s3 teal
+  class s5 orange
+  class s7 teal
+  class s9 teal
+  class s11 purple
