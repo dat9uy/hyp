@@ -1,0 +1,51 @@
+-- words --
+The grill writes two examples and does not commit them, while the checkout holds an edit nobody committed; hyp try shows each example's output, stderr, exit code and verdict on H0, changes no file, and what it shows is what hyp place then records: one failed, one met.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+d='--'
+mkex() { mkdir -p "$1/probe" && cp "$HYP_EXAMPLE/probe/run" "$1/probe/run" && chmod +x "$1/probe/run" && { printf '%s words %s\nThe subject greets.\n%s run %s\n' "$d" "$d" "$d" "$d"; printf '%s\n' 'cat greet.txt; cat extra.txt 2>/dev/null; echo warn-$((5*5)) >&2; exit $((3+4))'; printf '%s %s %s\n%s\n' "$d" "$2" "$d" "$3"; } >"$1/example.txtar"; }
+mkrepo() { r=$(mktemp -d) && cd "$r" && git init -q && echo hello-from-subject >greet.txt && git add greet.txt && git commit -q -m base && g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Greet.' "$@" | sed -n 's/^recorded //p') && [ -n "$g" ] && git add -A && git commit -q -m 'record the Goal'; }
+cell() { perl -MJSON::PP -ne '$e = decode_json($_); $p = $e->{payload}; next unless $e->{type} eq $ENV{T} && $p->{line} eq $ENV{L}; if ($e->{type} eq "example.place") { $c = $p->{h0} if $p->{example} eq $ENV{X} } else { for (@{$p->{cells}}) { $c = $_ if $_->{example} eq $ENV{X} } } END { print $c ? "$c->{output} $c->{stderr} $c->{exit} $c->{verdict}" : "" }' .tree/events/*.jsonl; }
+holds() { if [ -s "$2" ]; then perl -e 'local $/; open A, "<", $ARGV[0]; open B, "<", $ARGV[1]; my $a = <A>; my $b = <B>; print index($b, $a) >= 0 ? "yes" : "no"' "$2" "$1"; else echo 'no, hyp recorded no bytes'; fi; }
+compare() { f=$1 n=$2; set -- $(T=$3 L=$4 X=$5 cell); if [ -z "$4" ]; then echo "$n: hyp recorded a cell: no"; return; fi
+  echo "$n: hyp recorded a cell: yes"
+  echo "$n: try showed the output hyp recorded: $(holds "$f" ".tree/outputs/$1")"
+  echo "$n: try showed the stderr hyp recorded: $(holds "$f" ".tree/outputs/$2")"
+  if grep -q "exit $3" "$f"; then e=yes; else e=no; fi
+  if [ "$4" = met ]; then o=failed; else o=met; fi
+  if grep -qw "$4" "$f" && ! grep -qw "$o" "$f"; then v=yes; else v=no; fi
+  echo "$n: try showed the exit code hyp recorded: $e"
+  echo "$n: try showed the verdict hyp recorded, $4: $v"; }
+seen() { git status --porcelain --untracked-files=all; find .tree -type f | sort; }
+mkrepo --line 'gap:hyp says bye.' --line 'guard:hyp says hello.' || exit 92
+mkex "goals/$g/line-1/a" 'floor: equals' bye-from-subject || exit 93
+mkex "goals/$g/line-2/a" 'floor: contains' from-subject || exit 93
+echo changed-in-worktree >greet.txt
+seen >"$bin/before"
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" try "$g" line-1/a >"$bin/try1" 2>&1; c1=$?
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" try "$g" line-2/a >"$bin/try2" 2>&1; c2=$?
+seen >"$bin/after"
+echo "grill: hyp try G line-1/a: exit $c1"
+echo "grill: hyp try G line-2/a: exit $c2"
+if cmp -s "$bin/before" "$bin/after"; then echo 'files the tries changed: none'; else echo 'files the tries changed: some'; fi
+git add goals && git commit -q -m 'add the examples' || exit 94
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" place "$g" line-1/a >/dev/null 2>&1
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" place "$g" line-2/a >/dev/null 2>&1
+compare "$bin/try1" line-1/a example.place line-1 a
+compare "$bin/try2" line-2/a example.place line-2 a
+-- floor: equals --
+grill: hyp try G line-1/a: exit 0
+grill: hyp try G line-2/a: exit 0
+files the tries changed: none
+line-1/a: hyp recorded a cell: yes
+line-1/a: try showed the output hyp recorded: yes
+line-1/a: try showed the stderr hyp recorded: yes
+line-1/a: try showed the exit code hyp recorded: yes
+line-1/a: try showed the verdict hyp recorded, failed: yes
+line-2/a: hyp recorded a cell: yes
+line-2/a: try showed the output hyp recorded: yes
+line-2/a: try showed the stderr hyp recorded: yes
+line-2/a: try showed the exit code hyp recorded: yes
+line-2/a: try showed the verdict hyp recorded, met: yes
