@@ -232,18 +232,24 @@ the first guard that fails, in the act's order (§8).
   Probe on H0's commit (§10), compare (§9), read the verdict.
 - **Committed** — The example folder's bytes on disk equal the committed bytes.
   Query: the folder's tree hash computed from disk (§13) equals
-  `git rev-parse HEAD:goals/<G>/<line>/<example>`.
+  `git rev-parse HEAD:goals/<G>/<line>/<example>`, and the committed folder
+  holds an `example.txtar` that parses by §9; the refusal names the file and
+  line.
 - **Adds only** — A new version of an example only adds floor or ceiling
   sections. Everything else is byte-equal to the current version: the `words`,
-  `run`, every `input/…` and the `external` section, and the `probe/` folder.
+  `run`, every `input/…` and the `external` section, and every other entry of
+  the folder (`probe/` and any file beside it) by mode and hash.
   Any other change is a new example key, not a new version. Query: read the
-  current placement's folder by its hash (§13); the `probe/` tree hashes are
-  equal; the non-floor, non-ceiling sections are equal by name and bytes; every
+  current placement's folder by its hash (§13); every root entry but
+  `example.txtar` has an equal mode and hash; the non-floor, non-ceiling sections are equal by name and bytes; every
   floor and ceiling of the current version (kind and literal) is in the new
   file; and the new file holds at least one more. This follows the owner's
   "re grilling will have two choice, adjust (floor and ceiling) and create new
   Goal if need new line" (main page §8). The refusal names the first section or
-  path that differs.
+  path that differs. A hash the key held before, current or earlier, is refused:
+  an earlier version never comes back, also not from a merged log, which lists
+  it under "refused at replay". Owner said, 2026-11-19: "Refused". When the
+  current version's object is not in this clone, the act is exit 3.
 - **Leaf only** — A run is on H0, or on a commit that no row of the Goal descends
   from. Query: for each commit `c` of the Goal's rows other than COMMIT,
   `git merge-base --is-ancestor COMMIT c` fails.
@@ -409,6 +415,9 @@ An example is one txtar file, `example.txtar`. Each section starts with a line
   and what its example's `external` section names (main page §4: "what its
   External: line names"). Owner said, 2026-11-19: "-- external -- section".
 - A Probe failure that is not the run's own failure records nothing (exit 3).
+- hyp does not sandbox a Probe. It is the grill's own committed code, run at the
+  grill's request, with `PATH` and `HOME`; it can write outside its work
+  directories. hyp's own writes stay inside the store and its temp directories.
 
 **How hyp runs a Probe.**
 
@@ -559,6 +568,9 @@ by its full argument shape in `internal/gitread`:
 - hyp never runs `git archive`: `export-ignore` and `export-subst` attributes
   change what it extracts, so the bytes could differ from the hash that names
   them. hyp extracts a tree with `git ls-tree -r -z` and `git cat-file --batch`.
+  It writes only into real directories under its destination, never through a
+  symlink, and never over an existing path; two paths that collide on a
+  case-insensitive filesystem are exit 3, naming the path.
 - **The runner's own change** of a commit C is what the runner wrote, not what
   it took in from main. Its **base** is found by walking first parents from C
   (C excluded) to the first commit that is H0 or a merge commit; for a landed
@@ -577,7 +589,8 @@ by its full argument shape in `internal/gitread`:
 - **The row tree** of a commit is calculated in memory from `git ls-tree` of the
   commit's root without the entries `goals` and `.tree`; hyp writes no object.
 - **The disk tree hash** of a folder is calculated from its raw bytes, as git
-  would hash them with no filter. A clean filter (`autocrlf`, `eol`, LFS),
+  would hash them with no filter. A file is mode `100755` when its owner
+  execute bit is set, as git reads it, else `100644`. A clean filter (`autocrlf`, `eol`, LFS),
   `core.filemode=false` or a stray file makes Committed refuse; the refusal
   names the first differing path.
 
