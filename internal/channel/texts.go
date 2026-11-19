@@ -137,6 +137,10 @@ var words = map[fault.Code]string{
 	fault.FileSync:     "sync %s: %s",
 	fault.StoreOutput:  "store output: %s",
 
+	// the trace
+	fault.NoTraceFolder: "no folder for the trace: neither $XDG_STATE_HOME nor $HOME is an absolute path",
+	fault.CreateTrace:   "create the trace folder: %s",
+
 	// Probes
 	fault.ProbeTemp:       "probe %s: %s",
 	fault.ProbeTxtar:      "probe %s: example.txtar: %s",
@@ -339,7 +343,13 @@ func writeBlock(b *strings.Builder, label string, data []byte, size int64) {
 // writeStored writes the stored output named hash as a block, at most max
 // bytes of it, or says why it cannot.
 func writeStored(b *strings.Builder, root, label, hash string, max int) {
-	data, size, err := logstore.ReadOutput(root, hash, max)
+	writeStoredIn(b, root, logstore.OutputsDir(root), label, hash, max)
+}
+
+// writeStoredIn is writeStored for the output stored in the outputs folder
+// dir, such as the trace's.
+func writeStoredIn(b *strings.Builder, root, dir, label, hash string, max int) {
+	data, size, err := logstore.ReadOutputIn(dir, hash, max)
 	if err != nil {
 		fmt.Fprintf(b, "%s: not readable here: %s\n", label, bodyText(err, root))
 		return

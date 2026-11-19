@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -9,12 +10,23 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/logstore"
+	"github.com/dat9uy/hyp/internal/testutil"
 )
 
-// reads are the read events of actor in the store, oldest first.
+// trace is the trace folder of the clone that holds dir.
+func trace(t *testing.T, dir string) logstore.Trace {
+	t.Helper()
+	tr, err := logstore.TraceOf(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return tr
+}
+
+// reads are the read events of actor in the clone's trace, oldest first.
 func reads(t *testing.T, dir, actor string) []events.Read {
 	t.Helper()
-	evs, _, err := logstore.Events(dir)
+	evs, _, err := trace(t, dir).Events()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,9 +44,10 @@ func reads(t *testing.T, dir, actor string) []events.Read {
 	return out
 }
 
+// stored is the output of the trace named hash.
 func stored(t *testing.T, dir, hash string) string {
 	t.Helper()
-	data, err := os.ReadFile(logstore.OutputPath(dir, hash))
+	data, err := os.ReadFile(filepath.Join(trace(t, dir).Outputs(), hash))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +175,7 @@ func TestReadNeedsAnActor(t *testing.T) {
 // a read hyp cannot record prints nothing of its result and exits 3.
 func TestUnrecordedReadPrintsNothing(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
-	outputs := filepath.Join(f.r.Dir, ".tree", "outputs")
+	outputs := trace(t, f.r.Dir).Outputs()
 	if err := os.Chmod(outputs, 0o500); err != nil {
 		t.Fatal(err)
 	}
@@ -193,5 +206,59 @@ func TestValuesPrintAsHeld(t *testing.T) {
 	_, status, _ := run(t, "status")
 	if !strings.Contains(status, ` bytes: say "ok" \t`+"\n") {
 		t.Fatalf("status does not print the output as held:\n%s", status)
+	}
+}
+
+// TestShowAcrossWorktrees: a read in one git worktree of a clone shows from
+// every other worktree of that clone, before any commit or merge.
+func TestShowAcrossWorktrees(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	testutil.Git(t, f.r.Dir, "add", "-f", ".tree")
+	testutil.Git(t, f.r.Dir, "commit", "-q", "-m", "the store")
+	wt := filepath.Join(t.TempDir(), "wt")
+	testutil.Git(t, f.r.Dir, "worktree", "add", "-q", "-b", "runner", wt)
+	t.Chdir(wt)
+	code, read, errs := run(t, "status")
+	if code != 0 || !strings.Contains(read, f.goal) {
+		t.Fatalf("status in the worktree: code %d, stdout %q, stderr %q", code, read, errs)
+	}
+	t.Chdir(f.r.Dir)
+	t.Setenv("HYP_ACTOR", "owner-1")
+	code, shown, _ := run(t, "show", "runner-1")
+	if code != 0 || !strings.Contains(shown, "stdout, "+strconv.Itoa(len(read))+" bytes:\n"+read) {
+		t.Fatalf("show in the main checkout: code %d:\n%s", code, shown)
+	}
+	// a separate clone has a trace of its own
+	other := filepath.Join(t.TempDir(), "clone")
+	testutil.Git(t, f.r.Dir, "clone", "-q", f.r.Dir, other)
+	if trace(t, other).Dir == trace(t, f.r.Dir).Dir || trace(t, wt).Dir != trace(t, f.r.Dir).Dir {
+		t.Fatal("the trace folder is not one per clone")
+	}
+}
+
+// TestShowKeepsReadsInTheLog: a read event an earlier hyp wrote into the log
+// still replays, and show prints it beside the trace's reads, oldest first.
+func TestShowKeepsReadsInTheLog(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	old := "what an earlier hyp printed\n"
+	hash, err := logstore.PutOutput(f.r.Dir, []byte(old))
+	if err != nil {
+		t.Fatal(err)
+	}
+	empty, err := logstore.PutOutput(f.r.Dir, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, _ := json.Marshal(events.Read{Role: "runner", Command: []string{"status"}, Stdout: hash, Stderr: empty})
+	if _, err := logstore.Append(f.r.Dir, "runner-1", func([]events.Event) (events.Event, error) {
+		return events.Event{Type: events.TypeRead, Payload: payload}, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, now, _ := run(t, "status")
+	code, shown, _ := run(t, "show", "runner-1")
+	at := strings.Index(shown, old)
+	if code != 0 || at < 0 || !strings.Contains(shown[at:], now) || !strings.HasPrefix(shown, "runner-1: 2 reads") {
+		t.Fatalf("show: code %d:\n%s", code, shown)
 	}
 }

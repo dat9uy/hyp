@@ -97,14 +97,9 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		return PlaceReport{}, err
 	}
 	verdict := example.Compare(out.Stdout, first.ex)
-	outHash, err := logstore.PutOutput(root, out.Stdout)
-	if err != nil {
-		return PlaceReport{}, err
-	}
-	errHash, err := logstore.PutOutput(root, out.Stderr)
-	if err != nil {
-		return PlaceReport{}, err
-	}
+	// The outputs are stored only once every guard holds, just before the
+	// event that names them: a refused place leaves no file behind.
+	outHash, errHash := logstore.Hash(out.Stdout), logstore.Hash(out.Stderr)
 	if o.afterProbe != nil {
 		o.afterProbe()
 	}
@@ -140,6 +135,9 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		}
 		ev.Node, ev.Payload = again.goal.EventID, payload
 		if err := tables.GuardPlace(tables.Replay(evs), ev); err != nil {
+			return ev, err
+		}
+		if err := putOutputs(root, out.Stdout, out.Stderr); err != nil {
 			return ev, err
 		}
 		rep = PlaceReport{Goal: again.goal.ID, Key: o.Key, Hash: again.hash, Verdict: string(verdict), Exit: out.Exit}
@@ -327,6 +325,18 @@ func sameBesidesExample(root, oldHash, newHash string) error {
 				name += "/"
 			}
 			return fault.Refuse(fault.GuardAddsOnly, fault.PathDiffers, name)
+		}
+	}
+	return nil
+}
+
+// putOutputs stores each output under .tree/outputs by its sha256. An act
+// calls it under the lock, after its guards held and before it appends the
+// event that names the outputs.
+func putOutputs(root string, outs ...[]byte) error {
+	for _, b := range outs {
+		if _, err := logstore.PutOutput(root, b); err != nil {
+			return err
 		}
 	}
 	return nil

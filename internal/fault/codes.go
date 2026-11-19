@@ -106,6 +106,10 @@ const (
 	FileSync     Code = "file-sync"      // path, cause
 	StoreOutput  Code = "store-output"   // cause
 
+	// the trace
+	NoTraceFolder Code = "no-trace-folder" // no values
+	CreateTrace   Code = "create-trace"    // cause
+
 	// Probes
 	ProbeTemp       Code = "probe-temp"         // example hash, cause
 	ProbeTxtar      Code = "probe-txtar"        // example hash, cause

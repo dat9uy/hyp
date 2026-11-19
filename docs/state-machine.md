@@ -18,6 +18,15 @@ Every other rule here is derived from such a rule, and names it.
 - **Union merge.** `.tree/.gitattributes` holds `events/*.jsonl merge=union`, so
   git merges two branches of one events file by keeping every line of both.
   Replay orders events by id, never by their place in the file (§4).
+- **The trace** of a clone is one folder outside every worktree and outside
+  the git directory: `$XDG_STATE_HOME/hyp/traces/<key>/`, with
+  `$HOME/.local/state` in place of `$XDG_STATE_HOME` when that is not an
+  absolute path. `<key>` is the sha256 of the clone's git common directory
+  (`git rev-parse --path-format=absolute --git-common-dir`, symlinks
+  resolved), which every worktree of the clone shares. The folder holds
+  `events/<actor>.jsonl`, `outputs/<sha256>` and a file `clone` that names the
+  common directory. It is not the log: no git command sees it, and no commit
+  carries it (§8, "The trace is not the log").
 - **Goal folders** are written by the owner and the agents, never by hyp:
 
   ```
@@ -79,7 +88,7 @@ The seven events:
 | `result.retract` | `retract` | the Result | role |
 | `select` | `select`, `land` | the Goal | role, commit, row tree |
 | `budget.reset` | `reset` | the Goal | role |
-| `read` | every command that names an actor, in a repository with a store (§8) | its own id | role (empty when the command declared none of the four), the command's arguments, exit code, stdout hash, stderr hash |
+| `read` | every command that names an actor, in a repository with a store, into the trace, never into the log (§8) | its own id | role (empty when the command declared none of the four), the command's arguments, exit code, stdout hash, stderr hash |
 
 The Probe hash is the tree hash of the example's `probe/` folder. The example
 hash already covers it; it is kept on the cell so hyp can show which examples
@@ -88,10 +97,13 @@ share one Probe (main page §4, "Copy, and let hyp show the copies").
 The first six events are the list of `v2-architecture.html` §8. Owner said,
 2026-11-19: "Why ask me, event list is already decided in report".
 
-The seventh, `read`, is the trace of what hyp printed to an actor (§8, "Reads
-leave a trace"). Its two hashes name output files (§5, Outputs) that hold the
-bytes hyp wrote to stdout and to stderr. It changes no Goal, Result or row, and
-no guard reads it.
+The seventh, `read`, is the trace of what hyp printed to an actor (§8, "The
+trace is not the log"). hyp writes it into the clone's trace folder (§1), never
+into `.tree/events/`. Its two hashes name output files in the trace's
+`outputs/` that hold the bytes hyp wrote to stdout and to stderr. It changes no
+Goal, Result or row, and no guard reads it. A `read` line that an earlier hyp
+wrote into the log stays there: replay parses it as before, and `show` prints
+it with its outputs from `.tree/outputs/`.
 
 `example.place` carries H0's cell for the example it places, with the fields of
 a Result's cell. So one placement is one line, and a crash
@@ -118,14 +130,21 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   Before it appends, hyp writes a newline if the file does not end in one, so a
   torn line stays alone and the next event is not glued to it.
 - **Trace.** A command that names an actor writes its trace after its act and
-  before it prints (§12): the two output files, then the `read` event, under the
-  lock like any append. A write act's own event comes first, under its own hold
-  of the lock. A crash after the trace and before the print leaves the trace of
-  bytes the actor never got; a crash before the trace leaves bytes that were
-  neither traced nor printed. So `show` holds every result and refusal the
-  actor got, in order, byte for byte, and one more read for each command that
-  crashed after its trace. The model of these rules, with both ways `show` can
-  differ from what the actor got, is `goals/G-9XX4KB/specs/channel.tla`.
+  before it prints (§12): the two output files, then the `read` event, in the
+  clone's trace folder (§1), under that folder's own directory lock. A write
+  act's own event comes first, under the store's lock. A crash after the trace
+  and before the print leaves the trace of bytes the actor never got; a crash
+  before the trace leaves bytes that were neither traced nor printed. So
+  `show` holds every result and refusal the actor got, in order, byte for
+  byte, and one more read for each command that crashed after its trace. The
+  model of these rules, with both ways `show` can differ from what the actor
+  got, is `goals/G-9XX4KB/specs/channel.tla`; where the trace lives, and what
+  a command leaves in the repository, is `goals/G-3FDQC0/specs/trace.tla`.
+- **Outputs of an act.** `place` and `run` hash their Probes' outputs when
+  the Probes end, and write the output files only under the lock, after every
+  guard held again and just before the event that names them. So a refused
+  act leaves no output file, and a crash before the event leaves output files
+  no event names, which are harmless.
 - **Merged log.** Two clones that each passed their guards can merge into a log
   that breaks one, for example a fourth tree in one budget. Replay checks every
   event at its place in the merge order. An event whose guards fail there is
@@ -133,7 +152,9 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   page §11: "A guard that a merged log breaks shows when hyp replays it, as v1
   does"). Output files are named by their hash, so they never conflict in a
   merge. A `read` has no guard, so replay keeps every `read` whose payload
-  parses.
+  parses, an old one in the log as well as one in the trace. The trace is
+  never merged: a clone's agents share one trace folder, and git carries none
+  of it.
 - **Which guards replay checks again.** Only the guards that read the tables:
   Draft, Whole lines, Own case, Open, Goal's actor, Budget, Stable, Selected
   and Own Result, the table half of Adds only (the hash is new on its key), and
@@ -165,7 +186,7 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 | Cells | Result, example hash | example key, Probe hash, output hash, stderr hash, exit code, verdict (`met` or `failed`) |
 | Rows | Goal, row key | the commits it was seen at; leaf (from git); per example key, the verdict of its live cell under the current placement, or `not run` |
 | Selects | Goal | commit, row tree, time, actor |
-| Reads | actor, read id | time, role, command, exit code, stdout hash, stderr hash; an actor's reads are in merge order, oldest first |
+| Reads | actor, read id | time, role, command, exit code, stdout hash, stderr hash; from the clone's trace and from the old `read` lines of the log; an actor's reads are in id order, oldest first |
 
 - A cell is **live** when its Result is not retracted, not refused by Stable,
   and its example hash is the current placement's hash for its example key.
@@ -350,8 +371,8 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | `land G COMMIT` | runner | Selected, Same change | `result.record` per line; `select` when met on every line |
 | `reset G` | owner | Not ended, Goal's actor | `budget.reset` |
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
-| `status [G] [--role ROLE]` | any | none | `read` |
-| `show ACTOR` | any | none | `read` |
+| `status [G] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
+| `show ACTOR` | any | none | nothing in the repository; a `read` in the trace |
 
 - `select G TREE` records the commit of the row's latest Result in merge order.
   Spec and Own path read that commit, and the PR holds it. Every commit of a leaf
@@ -365,15 +386,40 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   checked on the outputs.
 - `land`, `reset` and `retract` are specified here and built as later v2 Goals.
 
-**Reads leave a trace.** `status` and `show ACTOR` are reads: they check no
-guard and are always allowed. Every command that names a valid actor, a read or
-a write act, records what hyp printed to that actor as one `read` event (§3),
-before it prints (§12). So `hyp show <actor>` prints exactly what that actor
-got, however the log changed after. Owner said, 2026-11-19 (record PR #226):
-"Reads leave a trace. An agent's read, such as `hyp status`, is recorded so
-that `hyp show <actor>` can print exactly what that actor got." This replaces
-the rule "Reads write nothing".
+**The trace is not the log.** `status` and `show ACTOR` are reads: they
+check no guard and are always allowed. Every command that names a valid actor,
+a read or a write act, records what hyp printed to that actor as one `read`
+event (§3), before it prints (§12), in the clone's trace folder (§1). So
+`hyp show <actor>` prints exactly what that actor got, however the log changed
+after. Owner said, 2026-11-19 (record PR #231):
 
+1. "Separate the trace from the log. The log holds only the acts that change a
+   Goal. What hyp printed to an actor is the trace, and `hyp show` keeps
+   reading it."
+2. "Every command. No command leaves a change in tracked files beyond its own
+   act's event and the outputs that event names. A read, a refusal (exit 1)
+   and a bad argument (exit 2) leave nothing."
+3. "Any worktree of one clone. The owner can read an agent's reads from any git
+   worktree of the clone the agent used. Reads in a separate clone are not
+   covered."
+
+This reverses the part of "Reads leave a trace" (record PR #226) that put the
+trace in the log; the rest of it, that every command's output is traced
+before it prints and `show` prints the trace, stands.
+
+- **What a command leaves in the repository.** A read, a refusal and a bad
+  argument leave no file of the repository changed, added or removed. A
+  recorded act leaves its own event and the output files that event names.
+  The first `add goal` also creates the store (§8, no `init`). A run that
+  Stable refuses is exit 1 and still records its `result.record` marked
+  refused, with the outputs it names (§7): it is the one refusal that is also a
+  recorded act. hyp never hides a file from git to meet this rule: it writes
+  no `.gitignore`, no `info/exclude` and no index flag.
+- **Where the trace lives** is outside every worktree and the git directory
+  (§1), so it needs no git state (§13). Its key is the clone's git common
+  directory, so every worktree of one clone reads one trace, and `show`
+  prints a read in another worktree before any commit or merge. A separate
+  clone, or the same clone moved to another path, has a trace of its own.
 - A read needs an actor, from `--actor` or `$HYP_ACTOR`. With none, or one that
   does not match §2, it is exit 2 and leaves no trace: a read with no actor
   would print bytes no `show` can find. The role is not needed for a read. A
@@ -385,8 +431,10 @@ the rule "Reads write nothing".
   exit code and its stderr bytes.
 - No trace is written outside a git repository or in a repository with no
   store: a trace never creates the store. The `add goal` that creates the store
-  is traced.
-- **`show ACTOR`** prints every read of ACTOR in merge order, oldest first: for
+  is traced. With no absolute `$XDG_STATE_HOME` and no absolute `$HOME`, the
+  trace has no folder: the command prints only the notice of §12 and exits 3.
+- **`show ACTOR`** prints every read of ACTOR in id order, oldest first: from
+  the trace, and from the old `read` lines of the log. For
   each, its id, time, role, exit code and command, then the bytes hyp wrote to
   stderr and to stdout, each as a byte block (§12) of the stored bytes. It never
   prints a fresh read. An actor with no read prints `no read of ACTOR is
@@ -607,7 +655,8 @@ to communicate with agent, is one block of code".
   bytes, in the label. The PR body puts the bytes of a block in a fence below
   its label.
 - **Trace before print.** hyp writes nothing to stdout or stderr until the
-  command ends. It then records the trace (§8), then prints stderr, then
+  command ends. It then records the trace (§8) in the clone's trace folder,
+  then prints stderr, then
   stdout. When the trace cannot be written, hyp prints none of the command's
   bytes, only a notice that it could not record them, with the cause, and
   exits 3. So the one thing an actor can get that its trace lacks is that
@@ -650,12 +699,15 @@ Owner accepted, 2026-11-19 (S11).
 ## 13. What hyp reads from git
 
 hyp writes no git state in the host: no refs, objects, config, index or hooks.
-The owner and the agents commit. hyp runs only these git commands, each checked
+Hiding a file from git is git state too: hyp writes no `.gitignore`, no
+`info/exclude`, and sets no assume-unchanged or skip-worktree flag. The trace
+is outside the worktree and the git directory (§1) for this reason. The owner
+and the agents commit. hyp runs only these git commands, each checked
 by its full argument shape in `internal/gitread`:
 
 | Command | Used for |
 |---|---|
-| `git rev-parse` | the top level, the object format, a commit, `HEAD:<path>` |
+| `git rev-parse` | the top level, the object format, a commit, `HEAD:<path>`, `--path-format=absolute --git-common-dir` (the trace's key, §1) |
 | `git cat-file` | `-e` (Bytes), `--batch` (extraction by hash), `-p <commit>` (a commit's parents, for the own change) |
 | `git ls-tree` | `-r -z` (extraction), the root of a commit (row tree), `goals/<G>/specs/` (Spec) |
 | `git merge-base --is-ancestor` | Leaf only |

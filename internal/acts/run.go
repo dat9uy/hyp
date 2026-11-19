@@ -63,9 +63,10 @@ type runChecked struct {
 // ended (always holds), Selected, Bytes, Open (not for H0), Own path, Leaf
 // only, Budget, then Stable. Everything but Stable is checked before a Probe
 // runs, so a refused run costs nothing; the Probes run with the lock
-// released, and every guard is checked again under the lock before the event
-// is appended. A run that Stable refuses keeps its outputs and records a
-// Result marked refused, and returns the refusal.
+// released, and every guard is checked again under the lock before the
+// outputs are stored and the event is appended, so a refused run leaves no
+// file. A run that Stable refuses keeps its outputs and records a Result
+// marked refused, and returns the refusal: its event names those outputs.
 func Run(o RunOpts) (RunReport, error) {
 	if err := CheckActor(o.Actor, o.Role); err != nil {
 		return RunReport{}, err
@@ -96,7 +97,7 @@ func Run(o RunOpts) (RunReport, error) {
 		return RunReport{}, err
 	}
 
-	cells, words, err := runProbes(root, first, o.ProbeTimeout)
+	cells, outs, words, err := runProbes(root, first, o.ProbeTimeout)
 	if err != nil {
 		return RunReport{}, err
 	}
@@ -129,6 +130,9 @@ func Run(o RunOpts) (RunReport, error) {
 		}
 		ev.Node, ev.Payload = again.goal.EventID, raw
 		if err := tables.GuardRun(tables.Replay(evs), ev); err != nil {
+			return ev, err
+		}
+		if err := putOutputs(root, outs...); err != nil {
 			return ev, err
 		}
 		rep = RunReport{Goal: again.goal.ID, Line: lineKey, Commit: again.commit, RowTree: again.rowTree}
@@ -235,36 +239,32 @@ func sameBasis(first, again runChecked) error {
 	return nil
 }
 
-// runProbes runs the Probe of every placed example of the line on the commit
-// and stores both outputs by hash. It returns the cells and each example's
-// words, in key order.
-func runProbes(root string, c runChecked, timeout time.Duration) ([]events.ExampleCell, []string, error) {
+// runProbes runs the Probe of every placed example of the line on the commit.
+// It returns the cells, which name both outputs by hash, the outputs' bytes,
+// stdout then stderr of each example, and each example's words, in key
+// order. It stores nothing: Run stores the outputs once its guards hold.
+func runProbes(root string, c runChecked, timeout time.Duration) ([]events.ExampleCell, [][]byte, []string, error) {
 	var cells []events.ExampleCell
+	var outs [][]byte
 	var words []string
 	for _, p := range c.placed {
 		ex, probeHash, err := readExample(root, p.Hash)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		out, err := probe.Run(probe.Opts{Repo: root, Commit: c.commit, ExampleHash: p.Hash, Timeout: timeout})
 		if err != nil {
-			return nil, nil, err
-		}
-		outHash, err := logstore.PutOutput(root, out.Stdout)
-		if err != nil {
-			return nil, nil, err
-		}
-		errHash, err := logstore.PutOutput(root, out.Stderr)
-		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		cells = append(cells, events.ExampleCell{
-			Example: p.Example, Hash: p.Hash, Probe: probeHash, Output: outHash, Stderr: errHash,
+			Example: p.Example, Hash: p.Hash, Probe: probeHash,
+			Output: logstore.Hash(out.Stdout), Stderr: logstore.Hash(out.Stderr),
 			Exit: out.Exit, Verdict: string(example.Compare(out.Stdout, ex)),
 		})
+		outs = append(outs, out.Stdout, out.Stderr)
 		words = append(words, ex.Words)
 	}
-	return cells, words, nil
+	return cells, outs, words, nil
 }
 
 // StableFacts is what a Stable refusal shows: the Goal, and for each example

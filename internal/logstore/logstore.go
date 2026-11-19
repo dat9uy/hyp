@@ -52,8 +52,14 @@ type LineError struct {
 	Err  error
 }
 
-func eventsDir(root string) string  { return filepath.Join(root, ".tree", "events") }
-func outputsDir(root string) string { return filepath.Join(root, ".tree", "outputs") }
+// A folder of events is a folder that holds events/<actor>.jsonl and
+// outputs/<sha256>: the store's .tree/ in the repository, or the trace
+// folder of a clone (trace.go). The functions that take a root read the store.
+func treeDir(root string) string    { return filepath.Join(root, ".tree") }
+func eventsDir(root string) string  { return eventsIn(treeDir(root)) }
+func outputsDir(root string) string { return outputsIn(treeDir(root)) }
+func eventsIn(base string) string   { return filepath.Join(base, "events") }
+func outputsIn(base string) string  { return filepath.Join(base, "outputs") }
 
 // ValidActor reports whether actor matches ^[a-z0-9][a-z0-9-]{0,39}$.
 func ValidActor(actor string) bool { return actorRe.MatchString(actor) }
@@ -221,7 +227,13 @@ func parseFile(name string, data []byte) ([]events.Event, [][]byte, []LineError)
 // Events returns every event of the store in merge order, and the lines that
 // could not be used. A torn last line is one of them, never an error.
 func Events(root string) ([]events.Event, []LineError, error) {
-	paths, err := filepath.Glob(filepath.Join(eventsDir(root), "*.jsonl"))
+	return eventsOf(treeDir(root))
+}
+
+// eventsOf is Events for the folder of events base. A folder with no events
+// folder holds no event.
+func eventsOf(base string) ([]events.Event, []LineError, error) {
+	paths, err := filepath.Glob(filepath.Join(eventsIn(base), "*.jsonl"))
 	if err != nil {
 		return nil, nil, fault.EnvFault(fault.ReadEvents, err)
 	}
@@ -262,7 +274,12 @@ func lock(root string) (unlock func(), err error) {
 	if err := Find(root); err != nil {
 		return nil, err
 	}
-	dir, err := os.Open(eventsDir(root))
+	return lockDir(treeDir(root))
+}
+
+// lockDir takes the directory lock of the events folder of base.
+func lockDir(base string) (unlock func(), err error) {
+	dir, err := os.Open(eventsIn(base))
 	if err != nil {
 		return nil, fault.EnvFault(fault.OpenStore, err)
 	}
@@ -306,8 +323,13 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 		return events.Event{}, err
 	}
 	defer unlock()
+	return appendLocked(treeDir(root), actor, build)
+}
 
-	evs, _, err := Events(root)
+// appendLocked is Append for the folder of events base, whose lock the
+// caller holds.
+func appendLocked(base, actor string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
+	evs, _, err := eventsOf(base)
 	if err != nil {
 		return events.Event{}, err
 	}
@@ -339,7 +361,7 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 		return ev, fault.EnvFault(fault.EncodeEvent, ev.Type, err)
 	}
 	// Open only after build returned, so a refused act leaves no file behind.
-	path := filepath.Join(eventsDir(root), actor+".jsonl")
+	path := filepath.Join(eventsIn(base), actor+".jsonl")
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o644)
 	if err != nil {
 		return ev, fault.EnvFault(fault.FileOpen, path, err)
@@ -368,24 +390,37 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 	return ev, nil
 }
 
+// OutputsDir is the store's outputs folder.
+func OutputsDir(root string) string { return outputsDir(root) }
+
 // OutputPath is where the output named hex is stored.
 func OutputPath(root, hex string) string { return filepath.Join(outputsDir(root), hex) }
+
+// Hash is the name an output with bytes b is stored under: its sha256.
+func Hash(b []byte) string {
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:])
+}
 
 // PutOutput stores b under .tree/outputs/<sha256> and returns the hash. Equal
 // bytes are stored once. It is called before the event that names the hash is
 // appended, so a crash leaves a file no event names, which is harmless.
 func PutOutput(root string, b []byte) (string, error) {
-	sum := sha256.Sum256(b)
-	name := hex.EncodeToString(sum[:])
-	path := OutputPath(root, name)
+	return putOutputIn(outputsDir(root), b)
+}
+
+// putOutputIn is PutOutput for the outputs folder dir.
+func putOutputIn(dir string, b []byte) (string, error) {
+	name := Hash(b)
+	path := filepath.Join(dir, name)
 	if _, err := os.Stat(path); err == nil {
 		return name, nil
 	}
 	// git keeps no empty folder, so a clone of a store can lack outputs/.
-	if err := os.MkdirAll(outputsDir(root), 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
-	tmp, err := os.CreateTemp(outputsDir(root), "tmp-*")
+	tmp, err := os.CreateTemp(dir, "tmp-*")
 	if err != nil {
 		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
@@ -410,7 +445,12 @@ func PutOutput(root string, b []byte) (string, error) {
 // ReadOutput reads the stored output named hex: at most max bytes when max
 // is positive, and the size of the whole file.
 func ReadOutput(root, hex string, max int) (data []byte, size int64, err error) {
-	path := OutputPath(root, hex)
+	return ReadOutputIn(outputsDir(root), hex, max)
+}
+
+// ReadOutputIn is ReadOutput for the outputs folder dir.
+func ReadOutputIn(dir, hex string, max int) (data []byte, size int64, err error) {
+	path := filepath.Join(dir, hex)
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, 0, fault.EnvFault(fault.FileOpen, path, err)

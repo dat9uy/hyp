@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -520,5 +521,33 @@ func TestPlaceCurrentVersionMissingFromCloneIsEnvironment(t *testing.T) {
 	_, err = e.place("line-1/a")
 	if err == nil || fault.KindOf(err) != fault.Environment || !testutil.Mentions(err, strings.Repeat("ab", 20)) {
 		t.Fatalf("err = %v, want an environment error naming the missing object", err)
+	}
+}
+
+// outputFiles lists the files of the store's outputs folder.
+func outputFiles(t *testing.T, root string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(logstore.OutputsDir(root))
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	return names
+}
+
+// TestKindRefusalStoresNoOutput: a place the Kind guard refuses, after its
+// Probe ran, leaves no file in the store: the outputs are stored only with
+// the event that names them.
+func TestKindRefusalStoresNoOutput(t *testing.T) {
+	e := newPlaceEnv(t)
+	e.example(t, "line-1/a", metOnH0)
+	before := outputFiles(t, e.root)
+	_, err := e.place("line-1/a")
+	refusedBy(t, err, "Kind")
+	if after := outputFiles(t, e.root); !slices.Equal(after, before) {
+		t.Fatalf("outputs after a Kind refusal = %v, were %v", after, before)
 	}
 }
