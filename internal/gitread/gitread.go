@@ -1,0 +1,128 @@
+// Package gitread is the only way hyp runs git. Every command passes one
+// allow-list that checks the whole argument list, so hyp can read a
+// repository and cannot write one.
+package gitread
+
+import (
+	"bytes"
+	"errors"
+	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/dat9uy/hyp/internal/herr"
+)
+
+// Git runs one read-only git command in dir and returns its stdout. A command
+// that is not on hyp's read list, or that exits non-zero, is an environment
+// error; the second holds git's stderr.
+func Git(dir string, args ...string) ([]byte, error) {
+	code, stdout, stderr, err := run(dir, args)
+	if err != nil {
+		return nil, err
+	}
+	if code != 0 {
+		return nil, herr.Env("git %s: exit %d: %s", strings.Join(args, " "), code, strings.TrimSpace(stderr))
+	}
+	return stdout, nil
+}
+
+// GitExit is Git for a caller that reads the exit code, such as
+// merge-base --is-ancestor or cat-file -e. A non-zero exit is returned as the
+// code with no error; only a command that is off the read list or cannot run
+// is an error. The bytes are stdout.
+func GitExit(dir string, args ...string) (int, []byte, error) {
+	code, stdout, _, err := run(dir, args)
+	return code, stdout, err
+}
+
+func run(dir string, args []string) (code int, stdout []byte, stderr string, err error) {
+	if err := allowed(args); err != nil {
+		return 0, nil, "", err
+	}
+	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+	// A read must not take an optional lock, which would touch the index, nor
+	// fetch a missing object in a partial clone, which would write a pack.
+	cmd.Env = append(os.Environ(), "GIT_OPTIONAL_LOCKS=0", "GIT_NO_LAZY_FETCH=1")
+	var out, errb bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &out, &errb
+	switch err := cmd.Run(); {
+	case err == nil:
+		return 0, out.Bytes(), errb.String(), nil
+	default:
+		var ee *exec.ExitError
+		if errors.As(err, &ee) {
+			return ee.ExitCode(), out.Bytes(), errb.String(), nil
+		}
+		return 0, nil, "", herr.Env("git %s: %v", strings.Join(args, " "), err)
+	}
+}
+
+// allowed checks the whole argument list against the forms hyp reads with,
+// never only the first word. Anything else, a write command or a flag that
+// makes a read write (--output, -w, --remote), is refused.
+func allowed(args []string) error {
+	if len(args) > 0 && permits(args[0], args[1:]) {
+		return nil
+	}
+	return herr.Env("git %s is not on hyp's read list", strings.Join(args, " "))
+}
+
+// permits reports whether cmd with rest is one of hyp's read forms.
+func permits(cmd string, rest []string) bool {
+	switch cmd {
+	case "rev-parse":
+		pos, ok := split(rest, "--verify", "--show-toplevel", "--show-object-format")
+		return ok && len(rest) > 0 && noDash(pos)
+	case "cat-file":
+		if len(rest) == 1 && rest[0] == "--batch" {
+			return true
+		}
+		return len(rest) == 2 && contains([]string{"-e", "-t", "-p", "blob"}, rest[0]) && noDash(rest[1:])
+	case "ls-tree":
+		pos, ok := split(rest, "-z", "-r")
+		return ok && len(pos) >= 1 && noDash(pos)
+	case "merge-base":
+		return len(rest) == 3 && rest[0] == "--is-ancestor" && noDash(rest[1:])
+	case "diff-tree":
+		pos, ok := split(rest, "--name-only", "-r", "-z", "-c", "-p")
+		return ok && (len(pos) == 1 || len(pos) == 2) && noDash(pos)
+	case "patch-id":
+		return len(rest) == 1 && rest[0] == "--stable"
+	}
+	return false
+}
+
+// split separates the leading flags of rest from its positional tail. It
+// reports false when a leading flag is not in allowedFlags.
+func split(rest []string, allowedFlags ...string) (pos []string, ok bool) {
+	for i, a := range rest {
+		if !strings.HasPrefix(a, "-") {
+			return rest[i:], true
+		}
+		if !contains(allowedFlags, a) {
+			return nil, false
+		}
+	}
+	return nil, true
+}
+
+// noDash reports that no argument is empty or starts with a dash, so a flag
+// cannot hide among the positionals.
+func noDash(ss []string) bool {
+	for _, s := range ss {
+		if s == "" || strings.HasPrefix(s, "-") {
+			return false
+		}
+	}
+	return true
+}
+
+func contains(ss []string, s string) bool {
+	for _, x := range ss {
+		if x == s {
+			return true
+		}
+	}
+	return false
+}

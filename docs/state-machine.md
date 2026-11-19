@@ -102,7 +102,8 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   appends one line and releases the lock (v1's lock).
 - **Merge order.** Replay reads every events file and orders the events by id,
   then by actor, then by line bytes (v1 `MergeOrder`), so the order of lines in a
-  file decides nothing.
+  file decides nothing. Two lines with the same actor and the same bytes are one
+  event: a union merge can keep a line twice, and the copy is read once.
 
 - **Crash.** An act writes its output files first (§5, Outputs), then its
   event as one `write` of one line and an `fsync`. A crash before the event
@@ -313,7 +314,7 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 
 | Act | Role | Guards, in order | Writes |
 |---|---|---|---|
-| `add goal [G] [--from G] --base H` | owner | Draft, Whole lines | `goal.add` |
+| `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines | `goal.add` |
 | `place G LINE/EXAMPLE` | grill | Not ended, not Selected, Own case, Committed, Adds only, Kind | `example.place` |
 | `run COMMIT LINE` | runner | Not ended, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
 | `select G TREE` | runner, or owner | Not ended, not Selected, Candidate, Goal's actor (owner only), Spec, Own path | `select` |
@@ -355,10 +356,11 @@ example `hyp run 4df2b9e G-NXHHVA/line-3`, so the act stays first and then two
 keys.
 Owner accepted, 2026-11-19 (S10).
 
-`add goal` takes repeated `--line gap:TEXT` and
-`--line guard:TEXT`, in order; hyp gives the keys `line-1`, `line-2` …. A Draft
-replace is `hyp add goal G …`. `--from G` stores only the cited Goal's id and
-copies nothing. Whole lines also refuses more than ten lines
+`add goal` takes the Goal's words as `--words TEXT` (required; owner said,
+2026-11-19: "Accept --words TEXT"), and repeated
+`--line gap:TEXT` and `--line guard:TEXT`, in order; hyp gives the keys `line-1`, `line-2` …. A Draft
+replace is `hyp add goal G …`. `--from G` stores only the cited Goal's full
+`goal.add` id, which no other Goal shares, and copies nothing. Whole lines also refuses more than ten lines
 (`v2-architecture.html` §2: "up to ten lines").
 Owner accepted, 2026-11-19 (S14).
 
@@ -551,6 +553,9 @@ by its full argument shape in `internal/gitread`:
 | `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths), `-p` (Same change) |
 | `git patch-id` | Same change |
 
+- Every git command runs with `GIT_OPTIONAL_LOCKS=0` and `GIT_NO_LAZY_FETCH=1`:
+  a read takes no optional lock, and in a partial clone a missing object is an
+  environment problem (exit 3), never a fetch that writes a pack.
 - hyp never runs `git archive`: `export-ignore` and `export-subst` attributes
   change what it extracts, so the bytes could differ from the hash that names
   them. hyp extracts a tree with `git ls-tree -r -z` and `git cat-file --batch`.

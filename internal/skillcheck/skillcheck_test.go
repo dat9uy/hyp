@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dat9uy/hyp/internal/cli"
+	"github.com/dat9uy/hyp/internal/channel"
 )
 
 // noSkills is why both tests skip on main: the skills of hyp 0.1.0 are kept
@@ -24,7 +24,7 @@ var (
 
 func TestSkillCommandsExist(t *testing.T) {
 	known := map[string]bool{}
-	for _, c := range cli.Commands() {
+	for _, c := range channel.Commands() {
 		known[c] = true
 	}
 	files, err := filepath.Glob("../../skills/*/*")
