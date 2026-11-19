@@ -1,0 +1,166 @@
+package gitread
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/testutil"
+)
+
+func TestCommitOfAndHasCommit(t *testing.T) {
+	r := testutil.NewRepo(t)
+	c := r.Commit(t, map[string]string{"a": "a"})
+	got, err := CommitOf(r.Dir, "HEAD")
+	if err != nil || got != c {
+		t.Fatalf("CommitOf(HEAD) = %q, %v; want %s", got, err, c)
+	}
+	if got, err := CommitOf(r.Dir, c[:8]); err != nil || got != c {
+		t.Fatalf("CommitOf(short) = %q, %v; want %s", got, err, c)
+	}
+	if _, err := CommitOf(r.Dir, "nope"); err == nil {
+		t.Fatal("CommitOf(nope) succeeded")
+	}
+	if _, err := CommitOf(r.Dir, "--output=x"); err == nil {
+		t.Fatal("CommitOf took a flag")
+	}
+	if ok, err := HasCommit(r.Dir, c); err != nil || !ok {
+		t.Fatalf("HasCommit(c) = %v, %v; want true", ok, err)
+	}
+	if ok, err := HasCommit(r.Dir, strings.Repeat("0", 40)); err != nil || ok {
+		t.Fatalf("HasCommit(zeros) = %v, %v; want false and no error", ok, err)
+	}
+}
+
+func TestIsAncestor(t *testing.T) {
+	r := testutil.NewRepo(t)
+	c1 := r.Commit(t, map[string]string{"a": "1"})
+	c2 := r.Commit(t, map[string]string{"a": "2"})
+	if ok, err := IsAncestor(r.Dir, c1, c2); err != nil || !ok {
+		t.Fatalf("IsAncestor(c1, c2) = %v, %v; want true", ok, err)
+	}
+	if ok, err := IsAncestor(r.Dir, c2, c1); err != nil || ok {
+		t.Fatalf("IsAncestor(c2, c1) = %v, %v; want false", ok, err)
+	}
+	if ok, err := IsAncestor(r.Dir, c1, c1); err != nil || !ok {
+		t.Fatalf("IsAncestor(c1, c1) = %v, %v; want true", ok, err)
+	}
+	if _, err := IsAncestor(r.Dir, c1, strings.Repeat("0", 40)); err == nil || herr.KindOf(err) != herr.Environment {
+		t.Fatalf("IsAncestor with a missing commit: %v, want an environment error", err)
+	}
+}
+
+func TestExtractTreeKeepsExecBitAndSymlink(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.WriteExec(t, "bin/run", "#!/bin/sh\necho hi\n")
+	r.Symlink(t, "link", "bin/run")
+	c := r.Commit(t, map[string]string{"a/b/c.txt": "deep\x00bytes\r\n", "plain.txt": "p", "empty": ""})
+	dest := filepath.Join(t.TempDir(), "out")
+	if err := ExtractTree(r.Dir, c, dest); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dest, "a/b/c.txt")); err != nil || string(b) != "deep\x00bytes\r\n" {
+		t.Fatalf("a/b/c.txt = %q, %v", b, err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dest, "empty")); err != nil || len(b) != 0 {
+		t.Fatalf("empty file = %q, %v", b, err)
+	}
+	if fi, err := os.Stat(filepath.Join(dest, "bin/run")); err != nil || fi.Mode().Perm() != 0o755 {
+		t.Fatalf("bin/run mode = %v, %v; want 0755", fi, err)
+	}
+	if fi, err := os.Stat(filepath.Join(dest, "plain.txt")); err != nil || fi.Mode().Perm() != 0o644 {
+		t.Fatalf("plain.txt mode = %v, %v; want 0644", fi, err)
+	}
+	target, err := os.Readlink(filepath.Join(dest, "link"))
+	if err != nil || target != "bin/run" {
+		t.Fatalf("link -> %q, %v; want a symlink to bin/run", target, err)
+	}
+}
+
+func TestExtractTreeFromTreeHash(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"goals/G/line-1/a/example.txtar": "x", "goals/G/line-1/a/probe/run": "y"})
+	tree, err := Git(r.Dir, "rev-parse", "HEAD:goals/G/line-1/a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dest := filepath.Join(t.TempDir(), "out")
+	if err := ExtractTree(r.Dir, strings.TrimSpace(string(tree)), dest); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dest, "probe/run")); err != nil || string(b) != "y" {
+		t.Fatalf("probe/run = %q, %v", b, err)
+	}
+}
+
+func TestExtractTreeIgnoresExportIgnore(t *testing.T) {
+	r := testutil.NewRepo(t)
+	c := r.Commit(t, map[string]string{
+		".gitattributes": "secret.txt export-ignore\nsubst.txt export-subst\n",
+		"secret.txt":     "secret",
+		"subst.txt":      "$Format:%H$",
+	})
+	dest := filepath.Join(t.TempDir(), "out")
+	if err := ExtractTree(r.Dir, c, dest); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dest, "secret.txt")); err != nil || string(b) != "secret" {
+		t.Fatalf("secret.txt = %q, %v; an export-ignore file must be extracted", b, err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dest, "subst.txt")); err != nil || string(b) != "$Format:%H$" {
+		t.Fatalf("subst.txt = %q, %v; export-subst must not change bytes", b, err)
+	}
+}
+
+func TestExtractTreeRefusesSubmodule(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"a": "a"})
+	testutil.Git(t, r.Dir, "update-index", "--add", "--cacheinfo", "160000,"+strings.Repeat("1", 40)+",vendor/sub")
+	testutil.Git(t, r.Dir, "commit", "-q", "-m", "sub")
+	dest := filepath.Join(t.TempDir(), "out")
+	err := ExtractTree(r.Dir, "HEAD", dest)
+	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.Contains(err.Error(), "vendor/sub") {
+		t.Fatalf("err = %v, want a refusal naming vendor/sub", err)
+	}
+}
+
+func TestExtractTreeRefusesPathLeavingDest(t *testing.T) {
+	r := testutil.NewRepo(t)
+	c := r.Commit(t, map[string]string{"a": "a"})
+	// A tree cannot hold a ".." entry through git itself, so the guard is
+	// asserted on the path check.
+	dest := t.TempDir()
+	if _, err := entryPath(dest, "../escape"); err == nil || herr.KindOf(err) != herr.Refusal {
+		t.Fatalf("entryPath(../escape) = %v, want a refusal", err)
+	}
+	if _, err := entryPath(dest, "/abs"); err == nil {
+		t.Fatal("entryPath(/abs) was allowed")
+	}
+	if _, err := entryPath(dest, "a/../../b"); err == nil {
+		t.Fatal("entryPath(a/../../b) was allowed")
+	}
+	if p, err := entryPath(dest, "a/b"); err != nil || p != filepath.Join(dest, "a/b") {
+		t.Fatalf("entryPath(a/b) = %q, %v", p, err)
+	}
+	if err := ExtractTree(r.Dir, c, filepath.Join(dest, "ok")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestExtractTreeWritesNoGitState(t *testing.T) {
+	r := testutil.NewRepo(t)
+	c := r.Commit(t, map[string]string{"a": "a", "d/b": "b"})
+	dest := filepath.Join(t.TempDir(), "out")
+	before := testutil.Snapshot(t, r.Dir)
+	if err := ExtractTree(r.Dir, c, dest); err != nil {
+		t.Fatal(err)
+	}
+	if b, err := os.ReadFile(filepath.Join(dest, "d/b")); err != nil || string(b) != "b" {
+		t.Fatalf("d/b = %q, %v; the extraction must have run", b, err)
+	}
+	if testutil.Snapshot(t, r.Dir) != before {
+		t.Fatal("ExtractTree changed the repository")
+	}
+}

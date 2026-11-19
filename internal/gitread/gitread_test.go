@@ -31,6 +31,10 @@ func TestGitRefusesWriteCommand(t *testing.T) {
 		{"config", "x", "y"},
 		{"archive", "--output=f", "HEAD"},
 		{"cat-file", "--remote"},
+		{"cat-file", "-p", "--textconv"},
+		{"cat-file", "-e", "-x"},
+		{"cat-file", "blob", "--path=f"},
+		{"cat-file", "-t", ""},
 		{"rev-parse", "--git-dir"},
 		{"ls-tree", "--output=x", "HEAD"},
 		{"diff-tree", "-w", "HEAD", "HEAD"},
@@ -125,5 +129,67 @@ func gitCmd(t *testing.T, dir string, args ...string) {
 	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+}
+
+func TestGitStdinFeedsBatch(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"a.txt": "hello"})
+	blob, err := Git(r.Dir, "rev-parse", "HEAD:a.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h := strings.TrimSpace(string(blob))
+	out, err := GitStdin(r.Dir, []byte(h+"\n"), "cat-file", "--batch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := h + " blob 5\nhello\n"; string(out) != want {
+		t.Fatalf("batch output = %q, want %q", out, want)
+	}
+}
+
+func TestGitStdinKeepsTheAllowList(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"a.txt": "a"})
+	before := testutil.Snapshot(t, r.Dir)
+	for _, args := range [][]string{
+		{"hash-object", "-w", "--stdin"},
+		{"cat-file", "-p", "--textconv"},
+		{"commit", "-m", "x"},
+		{},
+	} {
+		_, err := GitStdin(r.Dir, []byte("x\n"), args...)
+		if err == nil || !strings.Contains(err.Error(), "is not on hyp's read list") {
+			t.Errorf("GitStdin %v: err = %v, want a read-list refusal", args, err)
+		}
+	}
+	if testutil.Snapshot(t, r.Dir) != before {
+		t.Fatal("a refused command changed the repository")
+	}
+}
+
+func TestGitStdinInPartialCloneFetchesNothing(t *testing.T) {
+	origin := testutil.NewRepo(t)
+	origin.Commit(t, map[string]string{"a.txt": "alpha"})
+	blob, err := Git(origin.Dir, "rev-parse", "HEAD:a.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitCmd(t, origin.Dir, "config", "uploadpack.allowFilter", "true")
+	gitCmd(t, origin.Dir, "config", "uploadpack.allowAnySHA1InWant", "true")
+	clone := t.TempDir() + "/clone"
+	gitCmd(t, origin.Dir, "clone", "-q", "--no-checkout", "--filter=blob:none", "file://"+origin.Dir, clone)
+	h := strings.TrimSpace(string(blob))
+	if code, _, err := GitExit(clone, "cat-file", "-e", "HEAD^{commit}"); err != nil || code != 0 {
+		t.Fatalf("the clone lacks its commit: %d, %v", code, err)
+	}
+	before := testutil.Snapshot(t, clone)
+	out, err := GitStdin(clone, []byte(h+"\n"), "cat-file", "--batch")
+	if err == nil && strings.Contains(string(out), "alpha") {
+		t.Fatalf("batch read a blob the partial clone lacks: %q; it must not fetch it", out)
+	}
+	if after := testutil.Snapshot(t, clone); after != before {
+		t.Fatal("a batch read in a partial clone changed .git")
 	}
 }
