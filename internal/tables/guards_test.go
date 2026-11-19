@@ -1,6 +1,7 @@
 package tables
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -243,4 +244,26 @@ func TestOwnPathAllowsMergedMainWithOtherGoal(t *testing.T) {
 		t.Fatal(err)
 	}
 	refusedWith(t, GuardOwnPath(g, own), "Own path")
+}
+
+func TestGuardBudgetIgnoresAnEarlierH0(t *testing.T) {
+	// line-2 has no example, so the Goal stays written and a Draft replace may
+	// move its base from tree "t" to tree "n".
+	p, err := json.Marshal(events.GoalAdd{Role: "owner", Words: "w", Base: "c2", BaseTree: "n", Budget: 3, Lines: []events.Line{gap}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	replace := events.Event{V: 2, ID: "01M661QG800000000000REPLAC", Actor: "a", Type: events.TypeGoalAdd, Node: id1, Payload: p}
+	tb := Replay([]events.Event{
+		goalAdd(t, id1, "", "w", gap, guard),
+		placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+		run(t, "t", "failed"), // a run on H0 when it ran
+		replace,
+	})
+	if len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("refused at replay: %+v", tb.RefusedAtReplay)
+	}
+	if n := RunsUsed(tb.Goals[id1]); n != 0 {
+		t.Fatalf("RunsUsed = %d, want 0: a tree that was H0 when it ran never counts", n)
+	}
 }

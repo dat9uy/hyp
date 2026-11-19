@@ -188,11 +188,12 @@ func GuardOwnPath(g *Goal, changes []gitread.OwnPath) error {
 
 // countedTrees are the distinct row trees, H0's excluded, of the Goal's
 // Results recorded since the boundary. A retracted Result counts; one refused
-// by Stable does not.
+// by Stable does not; one on a tree that was H0 when it ran never does, even
+// after a Draft replace moved the base.
 func (g *Goal) countedTrees() []string {
 	var trees []string
 	for _, r := range g.Results {
-		if r.Refused != "" || r.epoch != g.epoch || r.RowTree == g.BaseTree || slices.Contains(trees, r.RowTree) {
+		if r.Refused != "" || r.epoch != g.epoch || r.wasH0 || r.RowTree == g.BaseTree || slices.Contains(trees, r.RowTree) {
 			continue
 		}
 		trees = append(trees, r.RowTree)

@@ -78,7 +78,8 @@ type Result struct {
 	Refused   string // empty, or "Stable"
 	Differing []string
 	Cells     []events.ExampleCell
-	epoch     int // the Goal's epoch when it was recorded
+	epoch     int  // the Goal's epoch when it was recorded
+	wasH0     bool // its row tree was H0's when it was recorded
 }
 
 // Refused is an event that failed a guard at its place in the merge order.
@@ -458,6 +459,7 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 	r := &Result{
 		ID: ev.ID, Line: p.Line, Commit: p.Commit, RowTree: p.RowTree, Actor: ev.Actor, Role: p.Role,
 		Time: ev.TS, Refused: p.Refused, Differing: p.Differing, Cells: p.Cells, epoch: g.epoch,
+		wasH0: p.RowTree == g.BaseTree,
 	}
 	g.Results = append(g.Results, r)
 	t.results[ev.ID] = r
