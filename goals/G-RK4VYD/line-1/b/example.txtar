@@ -1,0 +1,30 @@
+-- words --
+With $XDG_STATE_HOME set to a folder of its own, the owner adds a Goal and reads it; the trace is under ~/.hyp, and nothing is under $XDG_STATE_HOME or ~/.local.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME && unset XDG_STATE_HOME || exit 91
+mkrepo() { r=$(mktemp -d) && cd "$r" && git init -q && git commit -q --allow-empty -m base && g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words "$1" --line "gap:$1" | sed -n 's/^recorded //p') && [ -n "$g" ] && git add -A && git commit -q -m 'record the Goal'; }
+files() { if [ -d "$1" ] && [ -n "$(find "$1" -type f | head -n 1)" ]; then echo some; else echo none; fi; }
+holds() { if [ -s "$1" ]; then perl -e 'local $/; open A, "<", $ARGV[0]; open B, "<", $ARGV[1]; my $a = <A>; my $b = <B>; print index($b, "stdout, " . length($a) . " bytes:
+" . $a) >= 0 ? "yes" : "no"' "$1" "$2"; else echo 'no, the read is empty'; fi; }
+holding() { n=none; if [ -s "$2" ] && [ -d "$1" ]; then n=$(find "$1" -type f -exec perl -e 'local $/; open A, "<", $ARGV[0]; open B, "<", $ARGV[1]; my $a = <A>; my $b = <B>; exit(index($b, $a) >= 0 ? 0 : 1)' "$2" {} \; -print | head -n 1 | sed 's/.*/some/'); [ -n "$n" ] || n=none; fi; echo "$n"; }
+nogit() { ch=$(git status --porcelain --untracked-files=all); if [ -n "$ch" ]; then echo "changes git sees: $ch"; else echo 'changes git sees: none'; fi; }
+XDG_STATE_HOME=$(mktemp -d) && export XDG_STATE_HOME || exit 91
+mkrepo 'Say hello.' || exit 92
+HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" status >"$bin/read" 2>/dev/null; c=$?
+case "$(cat "$bin/read")" in *"$g"*) n=yes ;; *) n=no ;; esac
+echo "owner: hyp status: exit $c, names the Goal: $n"
+HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" show owner >"$bin/view" 2>&1
+echo "hyp show owner holds the owner's read byte for byte: $(holds "$bin/read" "$bin/view")"
+echo "files under ~/.hyp: $(files "$HOME/.hyp")"
+echo "files under \$XDG_STATE_HOME: $(files "$XDG_STATE_HOME")"
+echo "files under ~/.local: $(files "$HOME/.local")"
+nogit
+-- floor: equals --
+owner: hyp status: exit 0, names the Goal: yes
+hyp show owner holds the owner's read byte for byte: yes
+files under ~/.hyp: some
+files under $XDG_STATE_HOME: none
+files under ~/.local: none
+changes git sees: none
