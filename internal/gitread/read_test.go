@@ -3,6 +3,7 @@ package gitread
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -286,5 +287,60 @@ func TestExtractTreeDoesNotOverwriteCaseCollision(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(filepath.Join(dest, "X")); string(b) != "first" {
 		t.Fatalf("X = %q; the first file was overwritten", b)
+	}
+}
+
+func ownPaths(t *testing.T, r *testutil.Repo, commit, h0 string) []string {
+	t.Helper()
+	got, err := OwnChange(r.Dir, commit, h0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out []string
+	for _, p := range got {
+		out = append(out, p.Path)
+	}
+	return out
+}
+
+func TestOwnChangeStopsAtMergeCommit(t *testing.T) {
+	r := testutil.NewRepo(t)
+	h0 := r.Commit(t, map[string]string{"main.go": "1"})
+	// A side branch merges goals/X in; the runner takes that main in by a
+	// merge, then writes its own file.
+	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "side")
+	r.Commit(t, map[string]string{"goals/G-XXXXXX/line-1/a/example.txtar": "x"})
+	testutil.Git(t, r.Dir, "checkout", "-q", "main")
+	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "runner")
+	first := r.Commit(t, map[string]string{"own1.go": "1"})
+	testutil.Git(t, r.Dir, "merge", "-q", "--no-ff", "-m", "take in main", "side")
+	merge := testutil.Git(t, r.Dir, "rev-parse", "HEAD")
+	tip := r.Commit(t, map[string]string{"own2.go": "2"})
+
+	// Positive: the runner's own file after the merge is in the change.
+	got := ownPaths(t, r, tip, h0)
+	if !slices.Contains(got, "own2.go") {
+		t.Fatalf("own change of tip = %v, want own2.go in it", got)
+	}
+	// The walk stops at the merge: neither the merged-in folder nor the commit
+	// before the merge is read.
+	for _, p := range got {
+		if strings.HasPrefix(p, "goals/") || p == "own1.go" {
+			t.Fatalf("own change of tip = %v, must stop at the merge commit %s", got, merge[:8])
+		}
+	}
+	_ = first
+	// A merge commit with no conflict resolution adds no path of its own: its
+	// change is the runner's first-parent commits, not the merged-in folder.
+	if got := ownPaths(t, r, merge, h0); !slices.Equal(got, []string{"own1.go"}) {
+		t.Fatalf("own change of a clean merge = %v, want only own1.go", got)
+	}
+	// Without a merge, the walk reaches H0 and collects every commit.
+	if got := ownPaths(t, r, first, h0); !slices.Equal(got, []string{"own1.go"}) {
+		t.Fatalf("own change of first = %v", got)
+	}
+	// H0 itself has no own change.
+	if got := ownPaths(t, r, h0, h0); len(got) != 0 {
+		t.Fatalf("own change of H0 = %v", got)
 	}
 }

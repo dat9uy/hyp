@@ -250,3 +250,106 @@ func writeNew(path string, body []byte, perm os.FileMode) error {
 	}
 	return f.Close()
 }
+
+// Ancestry is the repository at Dir as the tables read it: commit ancestry
+// and the presence of a commit.
+type Ancestry struct{ Dir string }
+
+// IsAncestor reports whether a is an ancestor of b, or b itself.
+func (a Ancestry) IsAncestor(x, y string) (bool, error) { return IsAncestor(a.Dir, x, y) }
+
+// HasCommit reports whether the clone holds the commit.
+func (a Ancestry) HasCommit(commit string) (bool, error) { return HasCommit(a.Dir, commit) }
+
+// OwnPath is a path the runner's own change touches and the commit that wrote
+// it.
+type OwnPath struct {
+	Path   string
+	Commit string
+}
+
+// OwnChange returns the paths of the runner's own change of commit: what the
+// runner wrote, not what it took in from main.
+//
+// The base is found by walking first parents from commit, commit excluded, to
+// the first commit that is h0 or a merge commit. The paths are the union of
+// each non-merge commit's change against its parent on that walk, plus, when
+// commit is itself a merge, the paths that differ from every parent. It never
+// diffs from h0 when a merge lies between.
+func OwnChange(dir, commit, h0 string) ([]OwnPath, error) {
+	if commit == h0 {
+		return nil, nil
+	}
+	var out []OwnPath
+	seen := map[string]bool{}
+	add := func(c string, paths []string) {
+		for _, p := range paths {
+			if !seen[p] {
+				seen[p] = true
+				out = append(out, OwnPath{Path: p, Commit: c})
+			}
+		}
+	}
+	cur := commit
+	for {
+		parents, err := parentsOf(dir, cur)
+		if err != nil {
+			return nil, err
+		}
+		args := []string{"diff-tree", "-r", "--name-only", "-z", cur}
+		if len(parents) > 1 {
+			args = []string{"diff-tree", "-r", "-c", "--name-only", "-z", cur}
+		}
+		raw, err := Git(dir, args...)
+		if err != nil {
+			return nil, err
+		}
+		add(cur, diffPaths(raw, cur))
+		if len(parents) == 0 {
+			return out, nil
+		}
+		next := parents[0]
+		if next == h0 {
+			return out, nil
+		}
+		nextParents, err := parentsOf(dir, next)
+		if err != nil {
+			return nil, err
+		}
+		if len(nextParents) > 1 {
+			return out, nil
+		}
+		cur = next
+	}
+}
+
+// diffPaths splits the NUL-separated output of diff-tree --name-only -z; a
+// commit argument makes the first field the commit's own id.
+func diffPaths(raw []byte, commit string) []string {
+	var paths []string
+	for i, f := range bytes.Split(raw, []byte{0}) {
+		if len(f) == 0 || (i == 0 && string(f) == commit) {
+			continue
+		}
+		paths = append(paths, string(f))
+	}
+	return paths
+}
+
+// parentsOf reads the parents of commit with cat-file -p.
+func parentsOf(dir, commit string) ([]string, error) {
+	out, err := Git(dir, "cat-file", "-p", commit)
+	if err != nil {
+		return nil, err
+	}
+	var parents []string
+	for _, line := range strings.Split(string(out), "\n") {
+		if line == "" {
+			break // the header ends at the first blank line
+		}
+		if p, ok := strings.CutPrefix(line, "parent "); ok {
+			parents = append(parents, p)
+		}
+	}
+	return parents, nil
+}
