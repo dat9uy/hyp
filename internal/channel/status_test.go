@@ -1,12 +1,15 @@
 package channel
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -33,8 +36,17 @@ var testdata = func() string {
 	return abs
 }()
 
+// update rewrites the golden files from what the tests print:
+// go test ./internal/channel -run Golden -update
+var update = flag.Bool("update", false, "rewrite the golden files")
+
 func golden(t *testing.T, name, got string) {
 	t.Helper()
+	if *update {
+		if err := os.WriteFile(filepath.Join(testdata, name), []byte(normalise(got)), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	want, err := os.ReadFile(filepath.Join(testdata, name))
 	if err != nil {
 		t.Fatal(err)
@@ -289,41 +301,47 @@ func TestRefusalEndsWithStateBlock(t *testing.T) {
 	}
 }
 
-// storeBytes is every file of the store with its content.
-func storeBytes(t *testing.T, dir string) string {
-	t.Helper()
-	var b strings.Builder
-	err := filepath.WalkDir(filepath.Join(dir, ".tree"), func(p string, d os.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.IsDir() {
-			data, err := os.ReadFile(p)
-			if err != nil {
-				return err
-			}
-			b.WriteString(p + "\x00" + string(data) + "\x00")
-		}
-		return nil
-	})
+// TestStatusWritesOnlyItsTrace: a read leaves a trace, the read event of its
+// actor and the bytes it printed, and changes nothing else: no Goal, no other
+// file of the store, no git state.
+func TestStatusWritesOnlyItsTrace(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	code, first, _ := run(t, "status")
+	if code != 0 || !strings.Contains(first, f.goal) {
+		t.Fatalf("status did not print the Goal: code %d, stdout %q", code, first)
+	}
+	evs, _, err := logstore.Events(f.r.Dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return b.String()
-}
-
-func TestStatusWritesNothing(t *testing.T) {
-	f := newFx(t, map[string]string{"line-1/a": counterEx})
-	code, out, _ := run(t, "status")
-	if code != 0 || !strings.Contains(out, f.goal) {
-		t.Fatalf("status did not print the Goal: code %d, stdout %q", code, out)
-	}
-	store := storeBytes(t, f.r.Dir)
 	gitState := testutil.Snapshot(t, f.r.Dir)
-	run(t, "status")
-	run(t, "status", f.goal)
-	if storeBytes(t, f.r.Dir) != store {
-		t.Fatal("status changed the store")
+	_, again, _ := run(t, "status")
+	_, one, _ := run(t, "status", f.goal)
+	after, _, err := logstore.Events(f.r.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(after) != len(evs)+2 {
+		t.Fatalf("%d events after two reads, want %d", len(after), len(evs)+2)
+	}
+	for i, ev := range after {
+		if i < len(evs) {
+			if ev.ID != evs[i].ID {
+				t.Fatalf("event %d changed: %s, was %s", i, ev.ID, evs[i].ID)
+			}
+			continue
+		}
+		var p events.Read
+		if actor := os.Getenv("HYP_ACTOR"); ev.Type != events.TypeRead || ev.Actor != actor || events.Decode(ev, &p) != nil || p.Exit != 0 {
+			t.Fatalf("a read wrote %+v, want one read event of %s", ev, actor)
+		}
+		want := []string{again, one}[i-len(evs)]
+		if data, err := os.ReadFile(logstore.OutputPath(f.r.Dir, p.Stdout)); err != nil || string(data) != want {
+			t.Fatalf("the trace holds %q, the read printed %q (%v)", data, want, err)
+		}
+	}
+	if again != first {
+		t.Fatal("the trace of a read changed what the next read printed")
 	}
 	if testutil.Snapshot(t, f.r.Dir) != gitState {
 		t.Fatal("status changed the repository's git state")

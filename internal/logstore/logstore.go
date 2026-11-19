@@ -11,7 +11,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -26,8 +26,8 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 )
 
 // GitAttributes is the content of .tree/.gitattributes: git merges an events
@@ -43,14 +43,14 @@ var (
 	ulidRe  = regexp.MustCompile(`^[0-9A-HJKMNP-TV-Z]{26}$`)
 )
 
-// LineError is a line of an events file that could not be used.
+// LineError is a line of an events file that could not be used: the file's
+// base name, the line number (0 when the file could not be read to its end)
+// and why.
 type LineError struct {
 	File string
 	Line int
 	Err  error
 }
-
-func (e LineError) Error() string { return fmt.Sprintf("%s:%d: %v", e.File, e.Line, e.Err) }
 
 func eventsDir(root string) string  { return filepath.Join(root, ".tree", "events") }
 func outputsDir(root string) string { return filepath.Join(root, ".tree", "outputs") }
@@ -63,7 +63,7 @@ func ValidActor(actor string) bool { return actorRe.MatchString(actor) }
 func TopLevel(start string) (string, error) {
 	out, err := gitread.Git(start, "rev-parse", "--show-toplevel")
 	if err != nil {
-		return "", herr.Env("%s is not in a git repository: %v", start, err)
+		return "", fault.EnvFault(fault.NotInRepo, start, err)
 	}
 	root := strings.TrimSpace(string(out))
 	format, err := gitread.Git(root, "rev-parse", "--show-object-format")
@@ -71,7 +71,7 @@ func TopLevel(start string) (string, error) {
 		return "", err
 	}
 	if f := strings.TrimSpace(string(format)); f != "sha1" {
-		return "", herr.Env("object format %s: hyp reads sha1 repositories only", f)
+		return "", fault.EnvFault(fault.ObjectFormat, f)
 	}
 	return root, nil
 }
@@ -81,7 +81,7 @@ func TopLevel(start string) (string, error) {
 func Create(root string) error {
 	for _, d := range []string{eventsDir(root), outputsDir(root)} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
-			return herr.Env("create store: %v", err)
+			return fault.EnvFault(fault.CreateStore, err)
 		}
 	}
 	attrs := filepath.Join(root, ".tree", ".gitattributes")
@@ -89,7 +89,7 @@ func Create(root string) error {
 		return nil
 	}
 	if err := os.WriteFile(attrs, []byte(GitAttributes), 0o644); err != nil {
-		return herr.Env("create store: %v", err)
+		return fault.EnvFault(fault.CreateStore, err)
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func Create(root string) error {
 // Find reports whether the store exists under root.
 func Find(root string) error {
 	if fi, err := os.Stat(eventsDir(root)); err != nil || !fi.IsDir() {
-		return herr.Refused("no store; run hyp add goal")
+		return fault.Refuse(fault.NoGuard, fault.NoStore)
 	}
 	return nil
 }
@@ -201,9 +201,9 @@ func parseFile(name string, data []byte) ([]events.Event, [][]byte, []LineError)
 		switch {
 		case err != nil:
 		case !ValidID(ev.ID):
-			err = fmt.Errorf("id %q is not a ULID", ev.ID)
+			err = fault.Refuse(fault.NoGuard, fault.IDNotULID, ev.ID)
 		case ev.Actor != actor:
-			err = fmt.Errorf("actor %q is not the file's actor %q", ev.Actor, actor)
+			err = fault.Refuse(fault.NoGuard, fault.ActorNotFile, ev.Actor, actor)
 		}
 		if err != nil {
 			errs = append(errs, LineError{File: name, Line: n, Err: err})
@@ -223,7 +223,7 @@ func parseFile(name string, data []byte) ([]events.Event, [][]byte, []LineError)
 func Events(root string) ([]events.Event, []LineError, error) {
 	paths, err := filepath.Glob(filepath.Join(eventsDir(root), "*.jsonl"))
 	if err != nil {
-		return nil, nil, herr.Env("read events: %v", err)
+		return nil, nil, fault.EnvFault(fault.ReadEvents, err)
 	}
 	files := map[string][]events.Event{}
 	raw := map[string][][]byte{}
@@ -231,7 +231,7 @@ func Events(root string) ([]events.Event, []LineError, error) {
 	for _, p := range paths {
 		data, err := os.ReadFile(p)
 		if err != nil {
-			return nil, nil, herr.Env("read events: %v", err)
+			return nil, nil, fault.EnvFault(fault.ReadEvents, err)
 		}
 		name := filepath.Base(p)
 		evs, lines, errs := parseFile(name, data)
@@ -264,11 +264,11 @@ func lock(root string) (unlock func(), err error) {
 	}
 	dir, err := os.Open(eventsDir(root))
 	if err != nil {
-		return nil, herr.Env("open store: %v", err)
+		return nil, fault.EnvFault(fault.OpenStore, err)
 	}
 	if err := syscall.Flock(int(dir.Fd()), syscall.LOCK_EX); err != nil {
 		dir.Close()
-		return nil, herr.Env("lock store: %v", err)
+		return nil, fault.EnvFault(fault.LockStore, err)
 	}
 	return func() {
 		syscall.Flock(int(dir.Fd()), syscall.LOCK_UN)
@@ -299,7 +299,7 @@ func WithLock(root string, f func([]events.Event) error) error {
 // from build is returned unchanged and nothing is written, not even the file.
 func Append(root, actor string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
 	if !ValidActor(actor) {
-		return events.Event{}, herr.BadArgs("invalid actor %q (want %s)", actor, actorRe)
+		return events.Event{}, fault.BadArg(fault.BadActor, actor)
 	}
 	unlock, err := lock(root)
 	if err != nil {
@@ -316,7 +316,7 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 		return ev, err
 	}
 	if n := utf8.RuneCountInString(ev.Why); n > MaxWhy {
-		return ev, herr.BadArgs("why is %d runes; the limit is %d", n, MaxWhy)
+		return ev, fault.BadArg(fault.WhyTooLong, n, MaxWhy)
 	}
 
 	now := time.Now().UTC()
@@ -327,7 +327,7 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 	}
 	ev.V = events.Version
 	if ev.ID = idAfter(now, last); ev.ID == "" {
-		return ev, herr.Refused("no ULID sorts after %s, the newest id the store holds", last)
+		return ev, fault.Refuse(fault.NoGuard, fault.NoIDAfter, last)
 	}
 	ev.TS = now.Format(time.RFC3339Nano)
 	ev.Actor = actor
@@ -336,34 +336,34 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 	}
 	line, err := json.Marshal(ev)
 	if err != nil {
-		return ev, herr.Env("encode event: %v", err)
+		return ev, fault.EnvFault(fault.EncodeEvent, ev.Type, err)
 	}
 	// Open only after build returned, so a refused act leaves no file behind.
 	path := filepath.Join(eventsDir(root), actor+".jsonl")
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o644)
 	if err != nil {
-		return ev, herr.Env("open %s: %v", path, err)
+		return ev, fault.EnvFault(fault.FileOpen, path, err)
 	}
 	defer f.Close()
 	// A torn last line must stay alone: start a new line when the file does
 	// not end in one.
 	prefix := ""
 	if fi, err := f.Stat(); err != nil {
-		return ev, herr.Env("stat %s: %v", path, err)
+		return ev, fault.EnvFault(fault.FileStat, path, err)
 	} else if fi.Size() > 0 {
 		var last [1]byte
 		if _, err := f.ReadAt(last[:], fi.Size()-1); err != nil {
-			return ev, herr.Env("read %s: %v", path, err)
+			return ev, fault.EnvFault(fault.FileRead, path, err)
 		}
 		if last[0] != '\n' {
 			prefix = "\n"
 		}
 	}
 	if _, err := f.Write([]byte(prefix + string(line) + "\n")); err != nil {
-		return ev, herr.Env("write %s: %v", path, err)
+		return ev, fault.EnvFault(fault.FileWrite, path, err)
 	}
 	if err := f.Sync(); err != nil {
-		return ev, herr.Env("sync %s: %v", path, err)
+		return ev, fault.EnvFault(fault.FileSync, path, err)
 	}
 	return ev, nil
 }
@@ -383,26 +383,50 @@ func PutOutput(root string, b []byte) (string, error) {
 	}
 	// git keeps no empty folder, so a clone of a store can lack outputs/.
 	if err := os.MkdirAll(outputsDir(root), 0o755); err != nil {
-		return "", herr.Env("store output: %v", err)
+		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
 	tmp, err := os.CreateTemp(outputsDir(root), "tmp-*")
 	if err != nil {
-		return "", herr.Env("store output: %v", err)
+		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
 	defer os.Remove(tmp.Name())
 	if _, err := tmp.Write(b); err != nil {
 		tmp.Close()
-		return "", herr.Env("store output: %v", err)
+		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
 	if err := tmp.Sync(); err != nil {
 		tmp.Close()
-		return "", herr.Env("store output: %v", err)
+		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
 	if err := tmp.Close(); err != nil {
-		return "", herr.Env("store output: %v", err)
+		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
 	if err := os.Rename(tmp.Name(), path); err != nil {
-		return "", herr.Env("store output: %v", err)
+		return "", fault.EnvFault(fault.StoreOutput, err)
 	}
 	return name, nil
+}
+
+// ReadOutput reads the stored output named hex: at most max bytes when max
+// is positive, and the size of the whole file.
+func ReadOutput(root, hex string, max int) (data []byte, size int64, err error) {
+	path := OutputPath(root, hex)
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, 0, fault.EnvFault(fault.FileOpen, path, err)
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, 0, fault.EnvFault(fault.FileStat, path, err)
+	}
+	var r io.Reader = f
+	if max > 0 {
+		r = io.LimitReader(f, int64(max))
+	}
+	data, err = io.ReadAll(r)
+	if err != nil {
+		return nil, 0, fault.EnvFault(fault.FileRead, path, err)
+	}
+	return data, fi.Size(), nil
 }

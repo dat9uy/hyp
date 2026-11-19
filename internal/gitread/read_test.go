@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -48,7 +48,7 @@ func TestIsAncestor(t *testing.T) {
 	if ok, err := IsAncestor(r.Dir, c1, c1); err != nil || !ok {
 		t.Fatalf("IsAncestor(c1, c1) = %v, %v; want true", ok, err)
 	}
-	if _, err := IsAncestor(r.Dir, c1, strings.Repeat("0", 40)); err == nil || herr.KindOf(err) != herr.Environment {
+	if _, err := IsAncestor(r.Dir, c1, strings.Repeat("0", 40)); err == nil || fault.KindOf(err) != fault.Environment {
 		t.Fatalf("IsAncestor with a missing commit: %v, want an environment error", err)
 	}
 }
@@ -122,7 +122,7 @@ func TestExtractTreeRefusesSubmodule(t *testing.T) {
 	testutil.Git(t, r.Dir, "commit", "-q", "-m", "sub")
 	dest := filepath.Join(t.TempDir(), "out")
 	err := ExtractTree(r.Dir, "HEAD", dest)
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.Contains(err.Error(), "vendor/sub") {
+	if err == nil || fault.KindOf(err) != fault.Refusal || !testutil.Mentions(err, "vendor/sub") {
 		t.Fatalf("err = %v, want a refusal naming vendor/sub", err)
 	}
 }
@@ -133,7 +133,7 @@ func TestExtractTreeRefusesPathLeavingDest(t *testing.T) {
 	// A tree cannot hold a ".." entry through git itself, so the guard is
 	// asserted on the path check.
 	dest := t.TempDir()
-	if _, err := entryPath(dest, "../escape"); err == nil || herr.KindOf(err) != herr.Refusal {
+	if _, err := entryPath(dest, "../escape"); err == nil || fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("entryPath(../escape) = %v, want a refusal", err)
 	}
 	if _, err := entryPath(dest, "/abs"); err == nil {
@@ -239,7 +239,7 @@ func TestExtractTreeNeverWritesThroughASymlink(t *testing.T) {
 	})
 	dest = filepath.Join(t.TempDir(), "out2")
 	err := ExtractTree(r.Dir, c, dest)
-	if err == nil || herr.KindOf(err) != herr.Environment {
+	if err == nil || fault.KindOf(err) != fault.Environment {
 		t.Fatalf("err = %v, want an environment error", err)
 	}
 	if left, _ := os.ReadDir(outside); len(left) != 0 {
@@ -259,7 +259,7 @@ func TestExtractTreeRefusesAnExistingParentSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	err := ExtractTree(r.Dir, c, dest)
-	if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), "d") {
+	if err == nil || fault.KindOf(err) != fault.Environment || !testutil.Mentions(err, "d") {
 		t.Fatalf("err = %v, want an environment error naming d", err)
 	}
 	if left, _ := os.ReadDir(outside); len(left) != 0 {
@@ -282,7 +282,7 @@ func TestExtractTreeDoesNotOverwriteCaseCollision(t *testing.T) {
 	})
 	dest = filepath.Join(t.TempDir(), "out2")
 	err := ExtractTree(r.Dir, c, dest)
-	if err == nil || herr.KindOf(err) != herr.Environment {
+	if err == nil || fault.KindOf(err) != fault.Environment {
 		t.Fatalf("err = %v, want an environment error", err)
 	}
 	if b, _ := os.ReadFile(filepath.Join(dest, "X")); string(b) != "first" {

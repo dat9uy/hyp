@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // Git runs one read-only git command in dir and returns its stdout. A command
@@ -28,7 +28,7 @@ func GitStdin(dir string, stdin []byte, args ...string) ([]byte, error) {
 		return nil, err
 	}
 	if code != 0 {
-		return nil, herr.Env("git %s: exit %d: %s", strings.Join(args, " "), code, strings.TrimSpace(stderr))
+		return nil, fault.EnvFault(fault.GitExit, args, code, strings.TrimSpace(stderr))
 	}
 	return stdout, nil
 }
@@ -63,7 +63,7 @@ func run(dir string, stdin []byte, args []string) (code int, stdout []byte, stde
 		if errors.As(err, &ee) {
 			return ee.ExitCode(), out.Bytes(), errb.String(), nil
 		}
-		return 0, nil, "", herr.Env("git %s: %v", strings.Join(args, " "), err)
+		return 0, nil, "", fault.EnvFault(fault.GitRun, args, err)
 	}
 }
 
@@ -74,7 +74,7 @@ func allowed(args []string) error {
 	if len(args) > 0 && permits(args[0], args[1:]) {
 		return nil
 	}
-	return herr.Env("git %s is not on hyp's read list", strings.Join(args, " "))
+	return fault.EnvFault(fault.GitNotAllowed, args)
 }
 
 // permits reports whether cmd with rest is one of hyp's read forms.

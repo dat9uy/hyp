@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // metEverywhere reports whether the row with rowTree is met on every line:
@@ -51,10 +51,10 @@ func selectRole(role string) bool { return role == "owner" || role == "runner" }
 // commit this clone lacks is an environment problem naming it.
 func GuardCandidate(g *Goal, anc Ancestry, tree, role string) (Row, error) {
 	if !selectRole(role) {
-		return Row{}, herr.Refused("Candidate: the role is %q; only the runner or the owner selects", role)
+		return Row{}, fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, role)
 	}
 	if tree == "" {
-		return Row{}, herr.BadArgs("select needs a row tree")
+		return Row{}, fault.BadArg(fault.NoTree)
 	}
 	var named []Row
 	for _, row := range g.Rows(anc) {
@@ -67,14 +67,14 @@ func GuardCandidate(g *Goal, anc Ancestry, tree, role string) (Row, error) {
 		}
 	}
 	if len(named) > 1 {
-		return Row{}, herr.BadArgs("%s matches %d rows of %s; give more of the tree", tree, len(named), g.ID)
+		return Row{}, fault.BadArg(fault.TreeTwice, tree, len(named), g.ID)
 	}
 	if len(named) == 0 {
-		return Row{}, herr.Refused("Candidate: %s has no row %s; a candidate is a leaf row met on every line", g.ID, tree)
+		return Row{}, fault.Refuse(fault.GuardCandidate, fault.NoRow, g.ID, tree)
 	}
 	row := named[0]
 	if row.Unknown != "" {
-		return Row{}, herr.Env("Candidate: the leaf mark of row %s needs commit %s, which this clone lacks", row.RowTree, row.Unknown)
+		return Row{}, fault.EnvFault(fault.RowLeafUnknown, row.RowTree, row.Unknown)
 	}
 	cands := Candidates(g, anc)
 	for _, c := range cands {
@@ -82,21 +82,21 @@ func GuardCandidate(g *Goal, anc Ancestry, tree, role string) (Row, error) {
 			continue
 		}
 		if len(cands) >= 2 && role != "owner" {
-			return Row{}, herr.Refused("Candidate: %s has %d candidates; only the owner selects among them", g.ID, len(cands))
+			return Row{}, fault.Refuse(fault.GuardCandidate, fault.OwnerSelectsAmong, g.ID, len(cands))
 		}
 		return row, nil
 	}
 	if !row.Leaf {
-		return Row{}, herr.Refused("Candidate: row %s is not a leaf; a commit of another row descends from it", row.RowTree)
+		return Row{}, fault.Refuse(fault.GuardCandidate, fault.RowNotLeaf, row.RowTree)
 	}
-	return Row{}, herr.Refused("Candidate: row %s is not met on every line", row.RowTree)
+	return Row{}, fault.Refuse(fault.GuardCandidate, fault.RowNotMet, row.RowTree)
 }
 
 // GuardGoalActor is the Goal's actor guard: only the actor that added the
 // Goal selects for the owner. Other roles pass.
 func GuardGoalActor(g *Goal, actor, role string) error {
 	if role == "owner" && actor != g.Actor {
-		return herr.Refused("Goal's actor: %s was added by %s, not %s; only that actor selects for the owner", g.ID, g.Actor, actor)
+		return fault.Refuse(fault.GuardGoalsActor, fault.NotGoalsActor, g.ID, g.Actor, actor)
 	}
 	return nil
 }
@@ -109,20 +109,20 @@ func GuardGoalActor(g *Goal, actor, role string) error {
 func GuardSelect(t Tables, ev events.Event) error {
 	var p events.Select
 	if err := events.Decode(ev, &p); err != nil {
-		return herr.Refused("Selected: %v", err)
+		return fault.Refuse(fault.GuardSelected, fault.PayloadInvalid, err)
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
-		return herr.Refused("no Goal %s to select on", GoalID(ev.Node))
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToSelect, GoalID(ev.Node))
 	}
 	if err := GuardNotSelected(g); err != nil {
 		return err
 	}
 	if !selectRole(p.Role) {
-		return herr.Refused("Candidate: the role is %q; only the runner or the owner selects", p.Role)
+		return fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, p.Role)
 	}
 	if !g.metEverywhere(p.RowTree) {
-		return herr.Refused("Candidate: row %s is not met on every line of %s", p.RowTree, g.ID)
+		return fault.Refuse(fault.GuardCandidate, fault.RowNotMetOnGoal, p.RowTree, g.ID)
 	}
 	return GuardGoalActor(g, ev.Actor, p.Role)
 }

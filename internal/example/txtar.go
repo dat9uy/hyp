@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // Floor is a literal the output must contain (Op contains) or equal (Op
@@ -94,7 +94,7 @@ func Parse(data []byte) (Example, error) {
 			continue
 		}
 		if len(secs) == 0 {
-			return ex, herr.Refused("example.txtar line %d: text before the first section", i+1)
+			return ex, fault.Refuse(fault.NoGuard, fault.TextBeforeFirst, i+1)
 		}
 		secs[len(secs)-1].body.WriteString(raw)
 	}
@@ -106,12 +106,12 @@ func Parse(data []byte) (Example, error) {
 		switch {
 		case sec.name == "words":
 			if haveWords {
-				return ex, herr.Refused("example.txtar line %d: a second words section", sec.line)
+				return ex, fault.Refuse(fault.NoGuard, fault.SecondSection, sec.line, sec.name)
 			}
 			haveWords, ex.Words = true, body
 		case sec.name == "run":
 			if haveRun {
-				return ex, herr.Refused("example.txtar line %d: a second run section", sec.line)
+				return ex, fault.Refuse(fault.NoGuard, fault.SecondSection, sec.line, sec.name)
 			}
 			haveRun, ex.Run = true, body
 		case sec.name == "floor: contains":
@@ -122,35 +122,35 @@ func Parse(data []byte) (Example, error) {
 			ex.Ceilings = append(ex.Ceilings, body)
 		case sec.name == "external":
 			if ex.HasExternal {
-				return ex, herr.Refused("example.txtar line %d: a second external section", sec.line)
+				return ex, fault.Refuse(fault.NoGuard, fault.SecondSection, sec.line, sec.name)
 			}
 			for _, n := range strings.Split(body, "\n") {
 				if body != "" && !envNameRe.MatchString(n) {
-					return ex, herr.Refused("example.txtar line %d: external line %q is not an environment variable name", sec.line, n)
+					return ex, fault.Refuse(fault.NoGuard, fault.ExternalNotName, sec.line, n)
 				}
 			}
 			ex.HasExternal, ex.External = true, body
 		case strings.HasPrefix(sec.name, "input/"):
 			path := strings.TrimPrefix(sec.name, "input/")
 			if !validInputPath(path) {
-				return ex, herr.Refused("example.txtar line %d: input path %q must be a relative path inside the folder", sec.line, path)
+				return ex, fault.Refuse(fault.NoGuard, fault.InputOutside, sec.line, path)
 			}
 			if seenInput[path] {
-				return ex, herr.Refused("example.txtar line %d: input/%s appears twice", sec.line, path)
+				return ex, fault.Refuse(fault.NoGuard, fault.InputTwice, sec.line, path)
 			}
 			seenInput[path] = true
 			ex.Inputs = append(ex.Inputs, Input{Path: path, Body: body})
 		default:
-			return ex, herr.Refused("example.txtar line %d: unknown section %q", sec.line, sec.name)
+			return ex, fault.Refuse(fault.NoGuard, fault.UnknownSection, sec.line, sec.name)
 		}
 	}
 	switch {
 	case !haveWords:
-		return ex, herr.Refused("example.txtar has no words section")
+		return ex, fault.Refuse(fault.NoGuard, fault.NoSection, "words")
 	case !haveRun:
-		return ex, herr.Refused("example.txtar has no run section")
+		return ex, fault.Refuse(fault.NoGuard, fault.NoSection, "run")
 	case len(ex.Floors) == 0:
-		return ex, herr.Refused("example.txtar has no floor section")
+		return ex, fault.Refuse(fault.NoGuard, fault.NoSection, "floor")
 	}
 	return ex, nil
 }

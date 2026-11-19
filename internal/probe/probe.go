@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/dat9uy/hyp/internal/example"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 )
 
 // DefaultTimeout is how long a Probe may run.
@@ -55,7 +55,7 @@ func Run(o Opts) (Out, error) {
 	}
 	tmp, err := os.MkdirTemp("", "hyp-probe-")
 	if err != nil {
-		return Out{}, herr.Env("probe %s: %v", o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeTemp, o.ExampleHash, err)
 	}
 	defer os.RemoveAll(tmp)
 	subject, exampleDir := filepath.Join(tmp, "subject"), filepath.Join(tmp, "example")
@@ -65,7 +65,7 @@ func Run(o Opts) (Out, error) {
 	}
 	for _, p := range []string{"goals", ".tree"} {
 		if err := os.RemoveAll(filepath.Join(subject, p)); err != nil {
-			return Out{}, herr.Env("probe %s: %v", o.ExampleHash, err)
+			return Out{}, fault.EnvFault(fault.ProbeTemp, o.ExampleHash, err)
 		}
 	}
 	if err := gitread.ExtractTree(o.Repo, o.ExampleHash, exampleDir); err != nil {
@@ -73,7 +73,7 @@ func Run(o Opts) (Out, error) {
 	}
 	data, err := os.ReadFile(filepath.Join(exampleDir, "example.txtar"))
 	if err != nil {
-		return Out{}, herr.Env("probe %s: example.txtar: %v", o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeTxtar, o.ExampleHash, err)
 	}
 	ex, err := example.Parse(data)
 	if err != nil {
@@ -84,10 +84,10 @@ func Run(o Opts) (Out, error) {
 	for _, in := range ex.Inputs {
 		path := filepath.Join(exampleDir, "input", filepath.FromSlash(in.Path))
 		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-			return Out{}, herr.Env("probe %s: input/%s: %v", o.ExampleHash, in.Path, err)
+			return Out{}, fault.EnvFault(fault.ProbeInput, o.ExampleHash, in.Path, err)
 		}
 		if err := os.WriteFile(path, []byte(in.Body), 0o644); err != nil {
-			return Out{}, herr.Env("probe %s: input/%s: %v", o.ExampleHash, in.Path, err)
+			return Out{}, fault.EnvFault(fault.ProbeInput, o.ExampleHash, in.Path, err)
 		}
 	}
 
@@ -101,7 +101,7 @@ func Run(o Opts) (Out, error) {
 
 	script := filepath.Join(exampleDir, "probe", "run")
 	if fi, err := os.Stat(script); err != nil || !fi.Mode().IsRegular() {
-		return Out{}, herr.Env("probe %s: probe/run is missing", o.ExampleHash)
+		return Out{}, fault.EnvFault(fault.ProbeMissing, o.ExampleHash)
 	}
 	cmd := exec.Command(script)
 	cmd.Dir, cmd.Env = subject, env
@@ -111,7 +111,7 @@ func Run(o Opts) (Out, error) {
 	// A grandchild that outlives the kill must not hold the pipes open.
 	cmd.WaitDelay = 2 * time.Second
 	if err := cmd.Start(); err != nil {
-		return Out{}, herr.Env("probe %s: cannot start probe/run: %v", o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeStart, o.ExampleHash, err)
 	}
 	pgid := cmd.Process.Pid
 	// Whatever the Probe left running dies with its process group.
@@ -125,19 +125,19 @@ func Run(o Opts) (Out, error) {
 	case <-timer.C:
 		syscall.Kill(-pgid, syscall.SIGKILL) //nolint:errcheck
 		<-done
-		return Out{}, herr.Env("probe %s: probe/run timed out after %s", o.ExampleHash, timeout)
+		return Out{}, fault.EnvFault(fault.ProbeTimeout, o.ExampleHash, timeout)
 	}
 	if err != nil {
 		var ee *exec.ExitError
 		if errors.As(err, &ee) {
-			return Out{}, herr.Env("probe %s: probe/run exited %d: %s", o.ExampleHash, ee.ExitCode(), strings.TrimSpace(stderr.String()))
+			return Out{}, fault.EnvFault(fault.ProbeExit, o.ExampleHash, ee.ExitCode(), strings.TrimSpace(stderr.String()))
 		}
-		return Out{}, herr.Env("probe %s: probe/run: %v", o.ExampleHash, err)
+		return Out{}, fault.EnvFault(fault.ProbeWait, o.ExampleHash, err)
 	}
 
 	body, code, ok := splitExitLine(stdout.Bytes())
 	if !ok {
-		return Out{}, herr.Env("probe %s: probe/run printed no final line \"exit N\"", o.ExampleHash)
+		return Out{}, fault.EnvFault(fault.ProbeNoExitLine, o.ExampleHash)
 	}
 	return Out{Stdout: body, Stderr: stderr.Bytes(), Exit: code}, nil
 }

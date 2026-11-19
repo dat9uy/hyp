@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 )
 
 // MaxTrees is the number of distinct trees a Goal may run since its
@@ -133,10 +133,10 @@ func GuardOpen(g *Goal, rowTree, line string) error {
 				return nil
 			}
 		}
-		return herr.Refused("Open: %s has no placed example for %s; there is nothing to run", g.ID, line)
+		return fault.Refuse(fault.GuardOpen, fault.NothingPlaced, g.ID, line)
 	}
 	if g.State != StateOpen {
-		return herr.Refused("Open: %s is %s; only H0 may run before the Goal is open", g.ID, g.State)
+		return fault.Refuse(fault.GuardOpen, fault.NotOpen, g.ID, g.State)
 	}
 	return nil
 }
@@ -148,7 +148,7 @@ func GuardBytes(anc Ancestry, commit string) error {
 		return err
 	}
 	if !ok {
-		return herr.Refused("Bytes: commit %s is not in this clone", commit)
+		return fault.Refuse(fault.GuardBytes, fault.CommitNotHere, commit)
 	}
 	return nil
 }
@@ -168,10 +168,10 @@ func GuardLeafOnly(g *Goal, anc Ancestry, commit string) error {
 			}
 			below, err := anc.IsAncestor(commit, c)
 			if err != nil {
-				return herr.Env("Leaf only: the leaf mark of %s needs commit %s, which this clone lacks (%v)", g.ID, missingOf(anc, commit, c), herr.Text(err))
+				return fault.EnvFault(fault.LeafNeedsCommit, g.ID, missingOf(anc, commit, c), err)
 			}
 			if below {
-				return herr.Refused("Leaf only: %s is an ancestor of %s, a commit of a row of %s; run a leaf", commit, c, g.ID)
+				return fault.Refuse(fault.GuardLeafOnly, fault.AncestorOfRow, commit, c, g.ID)
 			}
 		}
 	}
@@ -187,7 +187,7 @@ func GuardOwnPath(g *Goal, changes []gitread.OwnPath) error {
 			continue
 		}
 		if name, _, _ := strings.Cut(rest, "/"); name != g.ID {
-			return herr.Refused("Own path: commit %s writes %s, a path of another Goal; %s may write only under goals/%s/", c.Commit, c.Path, g.ID, g.ID)
+			return fault.Refuse(fault.GuardOwnPath, fault.OtherGoalPath, c.Commit, c.Path, g.ID)
 		}
 	}
 	return nil
@@ -219,7 +219,7 @@ func GuardBudget(g *Goal, rowTree string) error {
 	}
 	counted := g.countedTrees()
 	if len(counted) >= MaxTrees && !slices.Contains(counted, rowTree) {
-		return herr.Refused("Budget: %s has used %d of %d trees since its last change; the owner decides", g.ID, len(counted), MaxTrees)
+		return fault.Refuse(fault.GuardBudget, fault.BudgetUsed, g.ID, len(counted), MaxTrees)
 	}
 	return nil
 }
@@ -263,7 +263,7 @@ func GuardStable(g *Goal, line, rowTree string, cells []events.ExampleCell) erro
 	for i, d := range diff {
 		keys[i] = d.Key
 	}
-	return herr.Refused("Stable: %s on this tree gave another verdict than its live cell: %s", g.ID, strings.Join(keys, ", "))
+	return fault.Refuse(fault.GuardStable, fault.OtherVerdict, g.ID, keys)
 }
 
 // GuardRun is the git-free check of a result.record event, called by Replay at
@@ -274,11 +274,11 @@ func GuardStable(g *Goal, line, rowTree string, cells []events.ExampleCell) erro
 func GuardRun(t Tables, ev events.Event) error {
 	var p events.ResultRecord
 	if err := events.Decode(ev, &p); err != nil {
-		return herr.Refused("Stable: %v", err)
+		return fault.Refuse(fault.GuardStable, fault.PayloadInvalid, err)
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
-		return herr.Refused("no Goal %s to run on", GoalID(ev.Node))
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToRun, GoalID(ev.Node))
 	}
 	if err := GuardNotSelected(g); err != nil {
 		return err

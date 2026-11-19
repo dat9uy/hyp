@@ -1,7 +1,6 @@
 package acts
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/dat9uy/hyp/internal/gitread"
@@ -16,12 +15,23 @@ const (
 	StopBudgetUsed    = "budget used"
 )
 
-// ReadyLine is one allowed act as a command line a role may run. A key hyp
-// cannot know is a placeholder in angle brackets.
-type ReadyLine struct {
-	Goal string
-	Role string
-	Line string
+// The acts a ready line names.
+const (
+	ActAddGoal = "add goal"
+	ActPlace   = "place"
+	ActRun     = "run"
+	ActSelect  = "select"
+)
+
+// Ready is one allowed act a role may run, with every key hyp knows. A key
+// hyp cannot know is empty; the channel prints it as a placeholder.
+type Ready struct {
+	Goal   string // the Goal id
+	Role   string
+	Act    string // ActAddGoal, ActPlace, ActRun or ActSelect
+	Line   string // place and run: the line key, or empty for any line
+	Commit string // run: the commit, or empty for any leaf
+	Tree   string // select: the candidate's row tree
 }
 
 // Standing is what hyp calculates about a Goal from the tables and git.
@@ -68,18 +78,10 @@ func budgetUsed(g *tables.Goal) bool {
 	return true
 }
 
-// short is the form of a commit in a ready line.
-func short(commit string) string {
-	if len(commit) > 12 {
-		return commit[:12]
-	}
-	return commit
-}
-
 // Allowed lists the allowed acts of every Goal, in the order of the Goals'
-// events, as ready command lines.
-func Allowed(t tables.Tables, repo string) []ReadyLine {
-	var out []ReadyLine
+// events.
+func Allowed(t tables.Tables, repo string) []Ready {
+	var out []Ready
 	for _, g := range tables.SortedGoals(t) {
 		out = append(out, AllowedFor(g, repo)...)
 	}
@@ -90,24 +92,25 @@ func Allowed(t tables.Tables, repo string) []ReadyLine {
 // reads only the tables and git; Kind and Stable need a Probe run and are
 // checked when the act runs. Acts the binary lacks are never listed. Within a
 // role the lines keep the order of the Goal's lines.
-func AllowedFor(g *tables.Goal, repo string) []ReadyLine {
+func AllowedFor(g *tables.Goal, repo string) []Ready {
 	if g.Select != nil {
 		return nil
 	}
 	st := Stand(g, repo)
-	var out []ReadyLine
-	add := func(role, format string, a ...any) {
-		out = append(out, ReadyLine{Goal: g.ID, Role: role, Line: fmt.Sprintf(format, a...)})
+	var out []Ready
+	add := func(r Ready) {
+		r.Goal = g.ID
+		out = append(out, r)
 	}
 
 	// owner
 	if g.State == tables.StateWritten {
-		add("owner", "hyp add goal %s --base <commit> --words <words> --line <kind>:<text>", g.ID)
+		add(Ready{Role: "owner", Act: ActAddGoal})
 	}
 	if st.Stop == StopTwoCandidates || (st.Stop == StopNone && len(st.Candidates) == 1) {
 		for _, c := range st.Candidates {
 			if selectable(g, repo, c) {
-				add("owner", "hyp select %s %s", g.ID, c.RowTree)
+				add(Ready{Role: "owner", Act: ActSelect, Tree: c.RowTree})
 			}
 		}
 	}
@@ -119,17 +122,17 @@ func AllowedFor(g *tables.Goal, repo string) []ReadyLine {
 	}
 	for _, l := range g.Lines {
 		if !placed[l.Key] {
-			add("grill", "hyp place %s %s/<example>", g.ID, l.Key)
+			add(Ready{Role: "grill", Act: ActPlace, Line: l.Key})
 		}
 	}
 	if !hasRole(out, "grill") {
-		add("grill", "hyp place %s <line>/<example>", g.ID)
+		add(Ready{Role: "grill", Act: ActPlace})
 	}
 
 	// runner
 	switch {
 	case st.Stop == StopNone && len(st.Candidates) == 1 && selectable(g, repo, st.Candidates[0]):
-		add("runner", "hyp select %s %s", g.ID, st.Candidates[0].RowTree)
+		add(Ready{Role: "runner", Act: ActSelect, Tree: st.Candidates[0].RowTree})
 	}
 	if st.Stop == StopNone {
 		out = append(out, runLines(g, st)...)
@@ -137,15 +140,15 @@ func AllowedFor(g *tables.Goal, repo string) []ReadyLine {
 	return orderRoles(out)
 }
 
-func hasRole(ls []ReadyLine, role string) bool {
-	return slices.ContainsFunc(ls, func(l ReadyLine) bool { return l.Role == role })
+func hasRole(ls []Ready, role string) bool {
+	return slices.ContainsFunc(ls, func(l Ready) bool { return l.Role == role })
 }
 
 // roleOrder is the order roles print in: the order section 2 names them.
 var roleOrder = []string{"owner", "grill", "probe-writer", "runner"}
 
-func orderRoles(ls []ReadyLine) []ReadyLine {
-	slices.SortStableFunc(ls, func(a, b ReadyLine) int {
+func orderRoles(ls []Ready) []Ready {
+	slices.SortStableFunc(ls, func(a, b Ready) int {
 		return slices.Index(roleOrder, a.Role) - slices.Index(roleOrder, b.Role)
 	})
 	return ls
@@ -153,18 +156,18 @@ func orderRoles(ls []ReadyLine) []ReadyLine {
 
 // runLines are the runner's run lines. On a Goal that is written only a run on
 // H0 is open, and only where an example's H0 cell is not run. On an open Goal
-// a run on any leaf is open, so the commit is a placeholder; once three trees
+// a run on any leaf is open, so the commit is left empty; once three trees
 // are counted, only the lines the counted leaf rows lack a cell for.
-func runLines(g *tables.Goal, st Standing) []ReadyLine {
-	var out []ReadyLine
+func runLines(g *tables.Goal, st Standing) []Ready {
+	var out []Ready
 	add := func(commit, line string) {
-		out = append(out, ReadyLine{Goal: g.ID, Role: "runner", Line: fmt.Sprintf("hyp run %s %s/%s", commit, g.ID, line)})
+		out = append(out, Ready{Goal: g.ID, Role: "runner", Act: ActRun, Commit: commit, Line: line})
 	}
 	if g.State == tables.StateWritten {
 		for _, l := range g.Lines {
 			for _, p := range g.Placed() {
 				if p.Line == l.Key && g.H0Verdict(p.Key) == tables.NotRun {
-					add(short(g.Base), l.Key)
+					add(g.Base, l.Key)
 					break
 				}
 			}
@@ -180,7 +183,7 @@ func runLines(g *tables.Goal, st Standing) []ReadyLine {
 			continue
 		}
 		if len(counted) < tables.MaxTrees {
-			add("<commit>", l.Key)
+			add("", l.Key)
 			continue
 		}
 		for _, row := range st.Rows {
@@ -189,7 +192,7 @@ func runLines(g *tables.Goal, st Standing) []ReadyLine {
 			}
 			for _, p := range g.Placed() {
 				if p.Line == l.Key && row.Verdicts[p.Key] == tables.NotRun {
-					add(short(row.Commits[len(row.Commits)-1]), l.Key)
+					add(row.Commits[len(row.Commits)-1], l.Key)
 					break
 				}
 			}

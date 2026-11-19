@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/example"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 	"github.com/dat9uy/hyp/internal/testutil"
@@ -104,7 +105,7 @@ func (e *placeEnv) placements(t *testing.T) []events.Event {
 
 func refusedBy(t *testing.T, err error, guard string) {
 	t.Helper()
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), guard) {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != guard {
 		t.Fatalf("err = %v, want a %s refusal", err, guard)
 	}
 }
@@ -153,7 +154,7 @@ func TestPlaceRefusesUncommittedFolder(t *testing.T) {
 	e.write(t, "line-1/a", failingOnH0, fixtureProbe)
 	_, err := e.place("line-1/a")
 	refusedBy(t, err, "Committed")
-	if !strings.Contains(err.Error(), "line-1/a") {
+	if !testutil.Mentions(err, "line-1/a") {
 		t.Fatalf("err = %v, want it to name the folder", err)
 	}
 	e.commit(t)
@@ -168,7 +169,7 @@ func TestPlaceRefusesUncommittedFolder(t *testing.T) {
 	}
 	_, err = e.place("line-1/b")
 	refusedBy(t, err, "Committed")
-	if !strings.Contains(err.Error(), "example.txtar") {
+	if !testutil.Mentions(err, "example.txtar") {
 		t.Fatalf("err = %v, want it to name the first differing path, example.txtar", err)
 	}
 	// a stray file is a difference too
@@ -179,7 +180,7 @@ func TestPlaceRefusesUncommittedFolder(t *testing.T) {
 	}
 	_, err = e.place("line-1/c")
 	refusedBy(t, err, "Committed")
-	if !strings.Contains(err.Error(), "stray") {
+	if !testutil.Mentions(err, "stray") {
 		t.Fatalf("err = %v, want it to name stray", err)
 	}
 	if n := len(e.placements(t)); n != 1 {
@@ -248,10 +249,14 @@ func TestPlaceKindRefusalShowsH0Output(t *testing.T) {
 	e.example(t, "line-1/a", metOnH0+"-- floor: equals --\nhi\n-- ceiling --\nzzz\n")
 	_, err := e.place("line-1/a")
 	refusedBy(t, err, "Kind")
-	for _, want := range []string{"hi", "exit 0", "contains", "equals", "zzz", "line-1"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Errorf("Kind refusal lacks %q:\n%v", want, err)
-		}
+	// the refusal carries H0's output beside the floors and ceilings; the
+	// channel prints them
+	e2, _ := fault.As(err)
+	f, ok := e2.Args[0].(KindFacts)
+	if !ok || e2.Code != fault.WrongVerdictOnH0 || f.Line.Key != "line-1" || f.Verdict != "met" ||
+		string(f.Out.Stdout) != "hi" || f.Out.Exit != 0 || len(f.Floors) != 2 ||
+		f.Floors[1] != (example.Floor{Op: example.OpEquals, Text: "hi"}) || len(f.Ceilings) != 1 || f.Ceilings[0] != "zzz" {
+		t.Fatalf("Kind refusal = %#v", e2)
 	}
 }
 
@@ -264,7 +269,7 @@ func TestPlaceRefusesNewVersionDroppingCeiling(t *testing.T) {
 	e.example(t, "line-1/a", failingOnH0+"-- floor: contains --\nmore\n")
 	_, err := e.place("line-1/a")
 	refusedBy(t, err, "Adds only")
-	if !strings.Contains(err.Error(), "ceiling") {
+	if !testutil.Mentions(err, "ceiling") {
 		t.Fatalf("err = %v, want it to name the dropped ceiling", err)
 	}
 	if n := len(e.placements(t)); n != 1 {
@@ -282,7 +287,7 @@ func TestPlaceRefusesNewVersionChangingProbe(t *testing.T) {
 	e.commit(t)
 	_, err := e.place("line-1/a")
 	refusedBy(t, err, "Adds only")
-	if !strings.Contains(err.Error(), "probe/") {
+	if !testutil.Mentions(err, "probe/") {
 		t.Fatalf("err = %v, want it to name probe/", err)
 	}
 }
@@ -296,7 +301,7 @@ func TestPlaceRefusesNewVersionChangingRun(t *testing.T) {
 	e.example(t, "line-1/a", strings.Replace(failingOnH0, "echo hi", "echo ho", 1)+"-- ceiling --\nzzz\n")
 	_, err := e.place("line-1/a")
 	refusedBy(t, err, "Adds only")
-	if !strings.Contains(err.Error(), "run") {
+	if !testutil.Mentions(err, "run") {
 		t.Fatalf("err = %v, want it to name the run section", err)
 	}
 }
@@ -372,7 +377,7 @@ func TestPlaceBadArgumentsAreExit2(t *testing.T) {
 	} {
 		o := e.opts("line-1/a")
 		mod(&o)
-		if _, err := Place(o); err == nil || herr.KindOf(err) != herr.BadArguments {
+		if _, err := Place(o); err == nil || fault.KindOf(err) != fault.BadArguments {
 			t.Errorf("%s: err = %v, want bad arguments", name, err)
 		}
 	}
@@ -385,7 +390,7 @@ func TestPlaceWithoutStoreIsRefusal(t *testing.T) {
 	r := testutil.NewRepo(t)
 	r.Commit(t, map[string]string{"a": "a"})
 	_, err := Place(PlaceOpts{Dir: r.Dir, Actor: "grill-1", Role: "grill", Goal: "G-AAAAAA", Key: "line-1/a"})
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.Contains(err.Error(), "no store; run hyp add goal") {
+	if fault.KindOf(err) != fault.Refusal || fault.CodeOf(err) != fault.NoStore {
 		t.Fatalf("err = %v, want the no-store refusal", err)
 	}
 }
@@ -395,7 +400,7 @@ func TestPlaceProbeFailureRecordsNothing(t *testing.T) {
 	e.write(t, "line-1/a", failingOnH0, "#!/bin/sh\nexit 7\n")
 	e.commit(t)
 	_, err := e.place("line-1/a")
-	if err == nil || herr.KindOf(err) != herr.Environment {
+	if err == nil || fault.KindOf(err) != fault.Environment {
 		t.Fatalf("err = %v, want an environment error", err)
 	}
 	if n := len(e.placements(t)); n != 0 {
@@ -436,7 +441,7 @@ func TestPlaceRefusesWhenH0MovesDuringTheProbe(t *testing.T) {
 	}
 	_, err := Place(o)
 	refusedBy(t, err, "Kind")
-	if !strings.Contains(err.Error(), "H0") {
+	if fault.CodeOf(err) != fault.H0MovedWhilePlacing {
 		t.Fatalf("err = %v, want it to say H0 moved", err)
 	}
 	if n := len(e.placements(t)); n != 0 {
@@ -481,7 +486,7 @@ func TestPlaceRefusesNewVersionChangingAnotherFile(t *testing.T) {
 	e.commit(t)
 	_, err := e.place("line-1/a")
 	refusedBy(t, err, "Adds only")
-	if !strings.Contains(err.Error(), "helper") {
+	if !testutil.Mentions(err, "helper") {
 		t.Fatalf("err = %v, want it to name helper", err)
 	}
 	// the same folder with only the ceiling added passes
@@ -513,7 +518,7 @@ func TestPlaceCurrentVersionMissingFromCloneIsEnvironment(t *testing.T) {
 	}
 	e.example(t, "line-1/a", failingOnH0)
 	_, err = e.place("line-1/a")
-	if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), strings.Repeat("ab", 20)) {
+	if err == nil || fault.KindOf(err) != fault.Environment || !testutil.Mentions(err, strings.Repeat("ab", 20)) {
 		t.Fatalf("err = %v, want an environment error naming the missing object", err)
 	}
 }

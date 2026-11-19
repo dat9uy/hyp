@@ -9,12 +9,12 @@ probe-writer may:
   (none)
 runner may:
   (none)
-outputs:
+outputs: each cell shows at most 60 characters of the output's first line; all its bytes are in .tree/outputs/<hash>
   row <hash>
-    line-1/a  failed  exit 0  "bad"
+    line-1/a  failed  exit 0  <hash>  3 bytes: bad
   row <hash>
-    line-1/a  failed  exit 0  "x1"
+    line-1/a  failed  exit 0  <hash>  2 bytes: x1
   row <hash>
-    line-1/a  failed  exit 0  "x2"
+    line-1/a  failed  exit 0  <hash>  2 bytes: x2
   row <hash>
-    line-1/a  failed  exit 0  "x3"
+    line-1/a  failed  exit 0  <hash>  2 bytes: x3

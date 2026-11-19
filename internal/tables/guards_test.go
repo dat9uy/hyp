@@ -6,14 +6,14 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
 func refusedWith(t *testing.T, err error, guard string) {
 	t.Helper()
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), guard) {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != guard {
 		t.Fatalf("err = %v, want a %s refusal", err, guard)
 	}
 }
@@ -66,7 +66,7 @@ func (f fakeAnc) HasCommit(c string) (bool, error) { return f.has[c], nil }
 
 func (f fakeAnc) IsAncestor(a, b string) (bool, error) {
 	if !f.has[a] || !f.has[b] {
-		return false, herr.Env("missing")
+		return false, fault.EnvFault(fault.Code("missing"))
 	}
 	return a == b || f.desc[[2]string{a, b}], nil
 }
@@ -95,7 +95,7 @@ func TestGuardLeafOnlyRefusesAncestor(t *testing.T) {
 	// A commit of a row that this clone lacks is an environment problem.
 	anc.has["commit-t1"] = false
 	err := GuardLeafOnly(g, anc, "other")
-	if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), "commit-t1") {
+	if err == nil || fault.KindOf(err) != fault.Environment || !testutil.Mentions(err, "commit-t1") {
 		t.Fatalf("err = %v, want an environment error naming commit-t1", err)
 	}
 }
@@ -207,7 +207,7 @@ func TestGuardOwnPathRefusesOtherGoal(t *testing.T) {
 	}
 	err := GuardOwnPath(g, append(own, gitread.OwnPath{Path: "goals/G-OTHER00/line-1/a/probe/run", Commit: "c2"}))
 	refusedWith(t, err, "Own path")
-	if !strings.Contains(err.Error(), "goals/G-OTHER00/line-1/a/probe/run") || !strings.Contains(err.Error(), "c2") {
+	if !testutil.Mentions(err, "goals/G-OTHER00/line-1/a/probe/run") || !testutil.Mentions(err, "c2") {
 		t.Fatalf("err = %v, want the path and the commit that wrote it", err)
 	}
 }

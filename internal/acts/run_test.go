@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 	"github.com/dat9uy/hyp/internal/testutil"
@@ -269,7 +269,7 @@ func TestRunRepeatDifferingVerdictRefused(t *testing.T) {
 	}
 	_, err = e.run(c)
 	refusedBy(t, err, "Stable")
-	if !strings.Contains(err.Error(), "line-1/b") {
+	if !testutil.Mentions(err, "line-1/b") {
 		t.Fatalf("err = %v, want it to name line-1/b", err)
 	}
 	// The second output stays, and the Result is marked refused.
@@ -280,7 +280,7 @@ func TestRunRepeatDifferingVerdictRefused(t *testing.T) {
 	if len(res) != 2 || res[1].Refused != "Stable" || len(res[1].Differing) != 1 || res[1].Differing[0] != "line-1/b" {
 		t.Fatalf("results = %+v, want the second marked refused by Stable naming line-1/b", res)
 	}
-	if !strings.Contains(err.Error(), sha("1")[:12]) || !strings.Contains(err.Error(), sha("2")[:12]) {
+	if !testutil.Mentions(err, sha("1")[:12]) || !testutil.Mentions(err, sha("2")[:12]) {
 		t.Fatalf("err = %v, want both output hashes", err)
 	}
 	// The refused Result counts nothing and has no live cell.
@@ -339,9 +339,8 @@ func TestRunPrintsRunsUsed(t *testing.T) {
 	if err != nil || rep.Used != 1 || rep.LastRun {
 		t.Fatalf("report = %+v, %v; want one tree used and no warning", rep, err)
 	}
-	// the state block carries the runs line, so the report does not repeat it
-	if got := rep.String(); !strings.Contains(got, "line-1/a") || strings.Contains(got, "runs:") {
-		t.Fatalf("report text = %q", got)
+	if len(rep.Cells) != 1 || rep.Cells[0].Key != "line-1/a" || rep.Cells[0].Words == "" {
+		t.Fatalf("report cells = %+v", rep.Cells)
 	}
 }
 
@@ -431,7 +430,7 @@ func TestRunRefusesOtherGoalPath(t *testing.T) {
 	bad := e.child(t, e.base, map[string]string{"counter": "ok9\n", "goals/G-OTHER00/line-1/a/example.txtar": "x"})
 	_, err := e.run(bad)
 	refusedBy(t, err, "Own path")
-	if !strings.Contains(err.Error(), "goals/G-OTHER00/line-1/a/example.txtar") || !strings.Contains(err.Error(), bad) {
+	if !testutil.Mentions(err, "goals/G-OTHER00/line-1/a/example.txtar") || !testutil.Mentions(err, bad) {
 		t.Fatalf("err = %v, want the path and the commit", err)
 	}
 }
@@ -451,7 +450,7 @@ func TestRunLeafMarkNeedsEveryCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := e.run(e.leaf(t, e.base, "ok2"))
-	if err == nil || herr.KindOf(err) != herr.Environment || !strings.Contains(err.Error(), missing) {
+	if err == nil || fault.KindOf(err) != fault.Environment || !testutil.Mentions(err, missing) {
 		t.Fatalf("err = %v, want an environment error naming %s", err, missing)
 	}
 }
@@ -470,7 +469,7 @@ func TestRunBadArguments(t *testing.T) {
 	} {
 		o := e.opts(c)
 		mod(&o)
-		if _, err := Run(o); err == nil || herr.KindOf(err) != herr.BadArguments {
+		if _, err := Run(o); err == nil || fault.KindOf(err) != fault.BadArguments {
 			t.Errorf("%s: err = %v, want bad arguments", name, err)
 		}
 	}
@@ -480,7 +479,7 @@ func TestRunWithoutStoreIsRefusal(t *testing.T) {
 	r := testutil.NewRepo(t)
 	r.Commit(t, map[string]string{"a": "a"})
 	_, err := Run(RunOpts{Dir: r.Dir, Actor: "runner-1", Role: "runner", Commit: "HEAD", Line: "G-ABCDEF/line-1"})
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.Contains(err.Error(), "no store") {
+	if fault.KindOf(err) != fault.Refusal || fault.CodeOf(err) != fault.NoStore {
 		t.Fatalf("err = %v, want a refusal naming no store", err)
 	}
 }

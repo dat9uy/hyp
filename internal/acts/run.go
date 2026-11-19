@@ -2,17 +2,14 @@ package acts
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
-	"os"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/example"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/probe"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -36,7 +33,7 @@ type RunOpts struct {
 // RunCell is one example of a run.
 type RunCell struct {
 	Key     string // line-3/a
-	Words   string
+	Words   string // the example's words section, as the example holds it
 	Verdict string
 	Output  string // the output hash
 	Exit    int
@@ -51,17 +48,6 @@ type RunReport struct {
 	Cells   []RunCell
 	Used    int  // N of "runs: N of 3 used", which the state block prints
 	LastRun bool // the next run is the last the Goal may make
-}
-
-// String is the report as the command prints it.
-func (r RunReport) String() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "ran %s %s at %s\n", r.Goal, r.Line, r.Commit)
-	fmt.Fprintf(&b, "row: %s\n", r.RowTree)
-	for _, c := range r.Cells {
-		fmt.Fprintf(&b, "%s %q: %s (exit %d, output %s)\n", c.Key, c.Words, c.Verdict, c.Exit, c.Output)
-	}
-	return b.String()
 }
 
 // runChecked is what the guards that need no Probe found.
@@ -81,21 +67,18 @@ type runChecked struct {
 // is appended. A run that Stable refuses keeps its outputs and records a
 // Result marked refused, and returns the refusal.
 func Run(o RunOpts) (RunReport, error) {
-	if !logstore.ValidActor(o.Actor) {
-		return RunReport{}, herr.BadArgs("actor %q must match ^[a-z0-9][a-z0-9-]{0,39}$ (--actor or $HYP_ACTOR)", o.Actor)
-	}
-	if !ValidRole(o.Role) {
-		return RunReport{}, herr.BadArgs("role %q must be one of %s (--role or $HYP_ROLE)", o.Role, strings.Join(Roles, ", "))
+	if err := CheckActor(o.Actor, o.Role); err != nil {
+		return RunReport{}, err
 	}
 	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return RunReport{}, herr.BadArgs("why is %d runes; the limit is %d", n, logstore.MaxWhy)
+		return RunReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
 	}
 	if o.Commit == "" {
-		return RunReport{}, herr.BadArgs("run needs a COMMIT")
+		return RunReport{}, fault.BadArg(fault.NoCommit)
 	}
 	cut := strings.LastIndex(o.Line, "/")
 	if cut <= 0 || !lineKeyRe.MatchString(o.Line[cut+1:]) {
-		return RunReport{}, herr.BadArgs("%q is not <Goal>/<line>, for example G-NXHHVA/line-1", o.Line)
+		return RunReport{}, fault.BadArg(fault.BadGoalLine, o.Line)
 	}
 	goalName, lineKey := o.Line[:cut], o.Line[cut+1:]
 	root, err := logstore.TopLevel(o.Dir)
@@ -142,7 +125,7 @@ func Run(o RunOpts) (RunReport, error) {
 		}
 		raw, err := json.Marshal(payload)
 		if err != nil {
-			return ev, herr.Env("encode result.record: %v", err)
+			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeResultRecord, err)
 		}
 		ev.Node, ev.Payload = again.goal.EventID, raw
 		if err := tables.GuardRun(tables.Replay(evs), ev); err != nil {
@@ -160,7 +143,7 @@ func Run(o RunOpts) (RunReport, error) {
 	}
 	g := tables.Replay(evs).Goals[ev.Node]
 	if g == nil {
-		return RunReport{}, herr.Env("Goal %s vanished from the log", rep.Goal)
+		return RunReport{}, fault.EnvFault(fault.GoalVanished, rep.Goal)
 	}
 	rep.Used = tables.RunsUsed(g)
 	rep.LastRun = rep.Used == tables.MaxTrees-1
@@ -184,7 +167,7 @@ func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey stri
 	}
 	c := runChecked{goal: g}
 	if _, ok := lineOf(g, lineKey); !ok {
-		return runChecked{}, herr.BadArgs("%s has no line %s", g.ID, lineKey)
+		return runChecked{}, fault.BadArg(fault.NoLine, g.ID, lineKey)
 	}
 	for _, p := range g.Placed() {
 		if p.Line == lineKey {
@@ -196,7 +179,7 @@ func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey stri
 	}
 	anc := gitread.Ancestry{Dir: root}
 	if strings.HasPrefix(o.Commit, "-") {
-		return runChecked{}, herr.Refused("Bytes: %q is not a commit", o.Commit)
+		return runChecked{}, fault.Refuse(fault.GuardBytes, fault.NotACommit, o.Commit)
 	}
 	if err := tables.GuardBytes(anc, o.Commit); err != nil {
 		return runChecked{}, err
@@ -239,14 +222,14 @@ func lineOf(g *tables.Goal, key string) (tables.Line, bool) {
 // the cells it holds measured examples that are no longer the current ones.
 func sameBasis(first, again runChecked) error {
 	if again.goal.Base != first.goal.Base {
-		return herr.Refused("Open: H0 of %s moved from %s to %s while the Probes ran; run again", again.goal.ID, first.goal.Base, again.goal.Base)
+		return fault.Refuse(fault.GuardOpen, fault.H0MovedWhileRun, again.goal.ID, first.goal.Base, again.goal.Base)
 	}
 	if len(again.placed) != len(first.placed) {
-		return herr.Refused("Open: the examples of the line changed while the Probes ran; run again")
+		return fault.Refuse(fault.GuardOpen, fault.ExamplesChanged)
 	}
 	for i, p := range first.placed {
 		if q := again.placed[i]; q.Key != p.Key || q.Hash != p.Hash {
-			return herr.Refused("Open: %s changed from %s to %s while the Probes ran; run again", p.Key, p.Hash, q.Hash)
+			return fault.Refuse(fault.GuardOpen, fault.ExampleChanged, p.Key, p.Hash, q.Hash)
 		}
 	}
 	return nil
@@ -284,38 +267,30 @@ func runProbes(root string, c runChecked, timeout time.Duration) ([]events.Examp
 	return cells, words, nil
 }
 
-// maxShown is how much of one stored output a Stable refusal prints.
-const maxShown = 4096
-
-// stableRefusal is the Stable refusal: for each example whose verdict
-// differed, both verdicts and both outputs.
-func stableRefusal(root string, g *tables.Goal, diff []tables.Unstable) error {
-	var b strings.Builder
-	fmt.Fprintf(&b, "Stable: two runs of %s on one tree gave different verdicts; the first stands", g.ID)
-	for _, d := range diff {
-		fmt.Fprintf(&b, "\n%s: %s, then %s", d.Key, d.Was.Verdict, d.Now.Verdict)
-		fmt.Fprintf(&b, "\n  first output %s:\n%s", d.Was.Output, indent(readOutput(root, d.Was.Output)))
-		fmt.Fprintf(&b, "\n  second output %s:\n%s", d.Now.Output, indent(readOutput(root, d.Now.Output)))
-	}
-	return herr.Refused("%s", b.String())
+// StableFacts is what a Stable refusal shows: the Goal, and for each example
+// whose verdict differed, the first verdict, which stands, and the second,
+// each with the hash of its output.
+type StableFacts struct {
+	Goal  string
+	Diffs []StableDiff
 }
 
-// readOutput reads a stored output for display, at most maxShown bytes.
-func readOutput(root, hash string) string { return readOutputMax(root, hash, maxShown) }
+// StableDiff is one example a Stable refusal found unstable.
+type StableDiff struct {
+	Key                   string
+	FirstVerdict, Verdict string
+	FirstOutput, Output   string // output hashes, under .tree/outputs/
+}
 
-// readOutputMax reads a stored output for display, at most max bytes.
-func readOutputMax(root, hash string, max int) string {
-	f, err := os.Open(logstore.OutputPath(root, hash))
-	if err != nil {
-		return "(unreadable: " + err.Error() + ")"
+// stableRefusal is the Stable refusal: for each example whose verdict
+// differed, both verdicts and both outputs' hashes.
+func stableRefusal(root string, g *tables.Goal, diff []tables.Unstable) error {
+	facts := StableFacts{Goal: g.ID}
+	for _, d := range diff {
+		facts.Diffs = append(facts.Diffs, StableDiff{
+			Key: d.Key, FirstVerdict: d.Was.Verdict, Verdict: d.Now.Verdict,
+			FirstOutput: d.Was.Output, Output: d.Now.Output,
+		})
 	}
-	defer f.Close()
-	buf, err := io.ReadAll(io.LimitReader(f, int64(max)+1))
-	if err != nil {
-		return "(unreadable: " + err.Error() + ")"
-	}
-	if len(buf) > max {
-		return string(buf[:max]) + "\n(truncated)"
-	}
-	return string(buf)
+	return fault.Refuse(fault.GuardStable, fault.VerdictsDiffered, facts)
 }

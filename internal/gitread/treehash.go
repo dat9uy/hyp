@@ -3,7 +3,6 @@ package gitread
 import (
 	"crypto/sha1" //nolint:gosec // git's own object id, never a security check
 	"encoding/hex"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -11,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 )
 
 // excludedFromRow are the root entries that make no part of a commit's
@@ -39,7 +38,8 @@ func TreeObjectHash(entries []Entry) string {
 			// accepts (the object format is checked before any read).
 			raw = make([]byte, sha1.Size)
 		}
-		fmt.Fprintf(&body, "%s %s\x00", mode, e.Name)
+		// the bytes of a git tree object, not text: "<mode> <name>\x00<hash>"
+		body.WriteString(mode + " " + e.Name + "\x00")
 		body.Write(raw)
 	}
 	h := sha1.New() //nolint:gosec
@@ -59,7 +59,7 @@ func RowTree(dir, commit string) (string, error) {
 	var kept []Entry
 	for _, e := range entries {
 		if e.Mode == "160000" {
-			return "", herr.Refused("%s: %s is a submodule (mode 160000)", commit, e.Name)
+			return "", fault.Refuse(fault.NoGuard, fault.Submodule, commit, e.Name)
 		}
 		if !excludedFromRow[e.Name] {
 			kept = append(kept, e)
@@ -85,13 +85,13 @@ func diskBlob(path, name string, info fs.FileInfo) (Entry, error) {
 	case m&fs.ModeSymlink != 0:
 		target, err := os.Readlink(path)
 		if err != nil {
-			return Entry{}, herr.Env("read link %s: %v", path, err)
+			return Entry{}, fault.EnvFault(fault.ReadLink, path, err)
 		}
 		return Entry{Mode: "120000", Type: "blob", Hash: blobHash([]byte(target)), Name: name}, nil
 	case m.IsRegular():
 		b, err := os.ReadFile(path)
 		if err != nil {
-			return Entry{}, herr.Env("read %s: %v", path, err)
+			return Entry{}, fault.EnvFault(fault.ReadPath, path, err)
 		}
 		mode := "100644"
 		if m.Perm()&0o100 != 0 {
@@ -99,7 +99,7 @@ func diskBlob(path, name string, info fs.FileInfo) (Entry, error) {
 		}
 		return Entry{Mode: mode, Type: "blob", Hash: blobHash(b), Name: name}, nil
 	}
-	return Entry{}, herr.Refused("%s is not a regular file, a symlink or a folder", path)
+	return Entry{}, fault.Refuse(fault.NoGuard, fault.NotFileOrDir, path)
 }
 
 // DirTreeHash returns the git tree hash of the folder at path, as git would
@@ -115,14 +115,14 @@ func DirTreeHash(path string) (string, error) {
 func dirTree(path string) (string, bool, error) {
 	des, err := os.ReadDir(path)
 	if err != nil {
-		return "", false, herr.Refused("read folder %s: %v", path, err)
+		return "", false, fault.Refuse(fault.NoGuard, fault.ReadFolder, path, err)
 	}
 	var entries []Entry
 	for _, de := range des {
 		child := filepath.Join(path, de.Name())
 		info, err := os.Lstat(child)
 		if err != nil {
-			return "", false, herr.Env("read %s: %v", child, err)
+			return "", false, fault.EnvFault(fault.ReadPath, child, err)
 		}
 		if info.IsDir() {
 			h, any, err := dirTree(child)
@@ -151,18 +151,18 @@ func diskFiles(root string) (map[string]Entry, error) {
 	out := map[string]Entry{}
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return herr.Env("read %s: %v", p, err)
+			return fault.EnvFault(fault.ReadPath, p, err)
 		}
 		if d.IsDir() {
 			return nil
 		}
 		info, err := os.Lstat(p)
 		if err != nil {
-			return herr.Env("read %s: %v", p, err)
+			return fault.EnvFault(fault.ReadPath, p, err)
 		}
 		rel, err := filepath.Rel(root, p)
 		if err != nil {
-			return herr.Env("read %s: %v", p, err)
+			return fault.EnvFault(fault.ReadPath, p, err)
 		}
 		e, err := diskBlob(p, rel, info)
 		if err != nil {

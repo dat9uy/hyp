@@ -2,8 +2,6 @@ package acts
 
 import (
 	"encoding/json"
-	"os"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -161,40 +159,17 @@ func TestSelectRefusesOtherGoalPath(t *testing.T) {
 	refusedBy(t, err, "Own path")
 }
 
-var (
-	hexRe   = regexp.MustCompile(`\b[0-9a-f]{40}\b`)
-	goalRe  = regexp.MustCompile(`G-[A-Z0-9]{6}`)
-	shortRe = regexp.MustCompile(`\b[0-9a-f]{12}\b`)
-)
-
-// normalise replaces the ids that change from run to run.
-func normalise(s string) string {
-	s = hexRe.ReplaceAllString(s, "<hash>")
-	s = shortRe.ReplaceAllString(s, "<commit>")
-	return goalRe.ReplaceAllString(s, "G-XXXXXX")
-}
-
-func TestSelectReportIsPRBody(t *testing.T) {
+func TestSelectReturnsTheSelectedGoal(t *testing.T) {
 	e := newRunEnv(t)
 	_, tree := e.metLeaf(t, "ok", true)
 	rep, err := Select(e.selectOpts(tree, "runner-1", "runner"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	want, err := os.ReadFile("testdata/select-pr-body.golden")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := normalise(rep.String()); got != string(want) {
-		t.Fatalf("PR body:\n%s\nwant:\n%s", got, want)
-	}
-	// the Goal id, the selected commit and the row are in it, in full
-	if !strings.Contains(rep.Body, e.goal) || !strings.Contains(rep.Body, rep.Commit) || !strings.Contains(rep.Body, tree) {
-		t.Fatalf("body lacks the Goal, the commit or the row:\n%s", rep.Body)
-	}
-	// status prints the same body again from the tables alone
-	if got := PRBody(e.root, e.goalRow(t)); got != rep.Body {
-		t.Fatalf("PRBody differs from the select report:\n%s", got)
+	// the channel prints the PR body from the Goal as the log holds it now
+	g := rep.Selected
+	if g == nil || g.Select == nil || g.ID != e.goal || g.Select.Commit != rep.Commit || g.Select.RowTree != tree || rep.RowTree != tree {
+		t.Fatalf("report = %+v", rep)
 	}
 }
 
@@ -203,7 +178,7 @@ func TestSelectWritesNoGitState(t *testing.T) {
 	_, tree := e.metLeaf(t, "ok", true)
 	before := testutil.Snapshot(t, e.root)
 	rep, err := Select(e.selectOpts(tree, "runner-1", "runner"))
-	if err != nil || len(e.selects(t)) != 1 || rep.Body == "" {
+	if err != nil || len(e.selects(t)) != 1 || rep.Selected == nil {
 		t.Fatalf("select did not record: %v", err)
 	}
 	if testutil.Snapshot(t, e.root) != before {

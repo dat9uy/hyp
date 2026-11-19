@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -43,11 +43,11 @@ func TestGitRefusesWriteCommand(t *testing.T) {
 		{},
 	} {
 		_, err := Git(r.Dir, args...)
-		if err == nil || herr.KindOf(err) != herr.Environment {
+		if err == nil || fault.KindOf(err) != fault.Environment {
 			t.Errorf("git %v: err = %v, want an environment refusal", args, err)
 			continue
 		}
-		if !strings.Contains(err.Error(), "is not on hyp's read list") {
+		if fault.CodeOf(err) != fault.GitNotAllowed {
 			t.Errorf("git %v: message %q does not name the read list", args, err)
 		}
 		if _, _, err := GitExit(r.Dir, args...); err == nil {
@@ -87,8 +87,8 @@ func TestGitAllowsEveryReadForm(t *testing.T) {
 func TestGitCommandFailureIsEnvironment(t *testing.T) {
 	r := testutil.NewRepo(t)
 	_, err := Git(r.Dir, "rev-parse", "--verify", "nope")
-	var he *herr.Error
-	if !errors.As(err, &he) || he.Kind != herr.Environment {
+	var he *fault.Error
+	if !errors.As(err, &he) || he.Kind != fault.Environment {
 		t.Fatalf("err = %v, want an environment error", err)
 	}
 }
@@ -116,7 +116,7 @@ func TestReadInPartialCloneFetchesNothing(t *testing.T) {
 	before := testutil.Snapshot(t, clone)
 	if _, err := Git(clone, "ls-tree", "HEAD~1"); err == nil {
 		t.Fatal("ls-tree of a tree the partial clone lacks succeeded; it must not fetch it")
-	} else if herr.KindOf(err) != herr.Environment {
+	} else if fault.KindOf(err) != fault.Environment {
 		t.Fatalf("error kind: %v, want environment", err)
 	}
 	if after := testutil.Snapshot(t, clone); after != before {
@@ -160,7 +160,7 @@ func TestGitStdinKeepsTheAllowList(t *testing.T) {
 		{},
 	} {
 		_, err := GitStdin(r.Dir, []byte("x\n"), args...)
-		if err == nil || !strings.Contains(err.Error(), "is not on hyp's read list") {
+		if fault.CodeOf(err) != fault.GitNotAllowed {
 			t.Errorf("GitStdin %v: err = %v, want a read-list refusal", args, err)
 		}
 	}

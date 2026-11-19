@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -47,7 +47,7 @@ func TestCreateAtTopLevel(t *testing.T) {
 	if root != r.Dir {
 		t.Fatalf("TopLevel = %s, want %s", root, r.Dir)
 	}
-	if err := Find(root); err == nil || herr.KindOf(err) != herr.Refusal || !strings.Contains(err.Error(), "no store; run hyp add goal") {
+	if err := Find(root); fault.KindOf(err) != fault.Refusal || fault.CodeOf(err) != fault.NoStore {
 		t.Fatalf("Find before Create = %v, want the no-store refusal", err)
 	}
 	if err := Create(root); err != nil {
@@ -72,7 +72,7 @@ func TestCreateAtTopLevel(t *testing.T) {
 
 func TestTopLevelOutsideRepoIsEnvironment(t *testing.T) {
 	t.Setenv("GIT_CEILING_DIRECTORIES", filepath.Dir(t.TempDir()))
-	if _, err := TopLevel(t.TempDir()); herr.KindOf(err) != herr.Environment {
+	if _, err := TopLevel(t.TempDir()); fault.KindOf(err) != fault.Environment {
 		t.Fatalf("err = %v, want an environment error", err)
 	}
 }
@@ -159,9 +159,9 @@ func TestRefusedBuildWritesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := Append(root, "a", func([]events.Event) (events.Event, error) {
-		return events.Event{}, herr.Refused("Draft: nope")
+		return events.Event{}, fault.Refuse(fault.GuardDraft, fault.NotWritten, "G-X", "open")
 	})
-	if herr.KindOf(err) != herr.Refusal {
+	if fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("err = %v, want a refusal", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".tree", "events", "a.jsonl")); !os.IsNotExist(err) {
@@ -188,13 +188,13 @@ func TestAppendFillsEnvelope(t *testing.T) {
 
 func TestAppendRefusesBadActorAndLongWhy(t *testing.T) {
 	root := newStore(t)
-	if _, err := Append(root, "Bad Actor", reset(`{}`)); herr.KindOf(err) != herr.BadArguments {
+	if _, err := Append(root, "Bad Actor", reset(`{}`)); fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("bad actor: %v", err)
 	}
 	_, err := Append(root, "a", func([]events.Event) (events.Event, error) {
 		return events.Event{Type: events.TypeBudgetReset, Payload: json.RawMessage(`{}`), Why: strings.Repeat("é", 601)}, nil
 	})
-	if herr.KindOf(err) != herr.BadArguments {
+	if fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("long why: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".tree", "events", "a.jsonl")); !os.IsNotExist(err) {
@@ -204,7 +204,7 @@ func TestAppendRefusesBadActorAndLongWhy(t *testing.T) {
 
 func TestAppendWithoutStoreIsRefusal(t *testing.T) {
 	r := testutil.NewRepo(t)
-	if _, err := Append(r.Dir, "a", reset(`{}`)); herr.KindOf(err) != herr.Refusal {
+	if _, err := Append(r.Dir, "a", reset(`{}`)); fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("err = %v, want the no-store refusal", err)
 	}
 }
@@ -372,7 +372,7 @@ func TestWithLockReadsAndWritesNothing(t *testing.T) {
 		t.Fatal("WithLock wrote to the log")
 	}
 	// the error of f comes back unchanged, and the lock is released
-	want := herr.Refused("stop")
+	want := fault.Refuse(fault.NoGuard, fault.Code("stop"))
 	if err := WithLock(root, func([]events.Event) error { return want }); err != want {
 		t.Fatalf("WithLock returned %v, want f's error", err)
 	}
@@ -410,7 +410,7 @@ func TestWithLockHoldsAppendBack(t *testing.T) {
 func TestWithLockNeedsAStore(t *testing.T) {
 	r := testutil.NewRepo(t)
 	err := WithLock(r.Dir, func([]events.Event) error { return nil })
-	if err == nil || herr.KindOf(err) != herr.Refusal {
+	if err == nil || fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("WithLock with no store = %v, want the no-store refusal", err)
 	}
 }

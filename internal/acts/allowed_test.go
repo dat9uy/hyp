@@ -2,25 +2,29 @@ package acts
 
 import (
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
-// lines are the ready lines of role.
-func lines(rl []ReadyLine, role string) []string {
-	var out []string
+// lines are the allowed acts of role, each as its act and keys: the channel
+// words them as command lines.
+func lines(rl []Ready, role string) []Ready {
+	var out []Ready
 	for _, l := range rl {
 		if l.Role == role {
-			out = append(out, l.Line)
+			out = append(out, l)
 		}
 	}
 	return out
 }
 
-func (e *runEnv) allowed(t *testing.T) []ReadyLine {
+func acted(rl []Ready, act string) bool {
+	return slices.ContainsFunc(rl, func(r Ready) bool { return r.Act == act })
+}
+
+func (e *runEnv) allowed(t *testing.T) []Ready {
 	t.Helper()
 	_, tb := e.log(t)
 	return AllowedFor(tb.ByID(e.goal), e.root)
@@ -32,32 +36,30 @@ func TestAllowedWrittenGoalGrillMayPlace(t *testing.T) {
 		t.Fatalf("test setup: %s", g.State)
 	}
 	rl := e.allowed(t)
-	if want := "hyp place " + e.goal + " line-2/<example>"; !slices.Contains(lines(rl, "grill"), want) {
-		t.Fatalf("grill may %q, want %q", lines(rl, "grill"), want)
+	if want := (Ready{Goal: e.goal, Role: "grill", Act: ActPlace, Line: "line-2"}); !slices.Contains(lines(rl, "grill"), want) {
+		t.Fatalf("grill may %+v, want %+v", lines(rl, "grill"), want)
 	}
 	if got := lines(rl, "runner"); len(got) != 0 {
-		t.Fatalf("runner may %q, want nothing on a Goal that is not open", got)
+		t.Fatalf("runner may %+v, want nothing on a Goal that is not open", got)
 	}
-	if got := lines(rl, "owner"); len(got) != 1 || !strings.HasPrefix(got[0], "hyp add goal "+e.goal+" ") {
-		t.Fatalf("owner may %q, want the Draft replace", got)
+	if got := lines(rl, "owner"); len(got) != 1 || got[0] != (Ready{Goal: e.goal, Role: "owner", Act: ActAddGoal}) {
+		t.Fatalf("owner may %+v, want the Draft replace", got)
 	}
 }
 
 func TestAllowedOpenGoalRunnerMayRun(t *testing.T) {
 	e := newRunEnv(t)
 	rl := e.allowed(t)
-	want := "hyp run <commit> " + e.goal + "/line-1"
-	if got := lines(rl, "runner"); !slices.Equal(got, []string{want}) {
-		t.Fatalf("runner may %q, want [%q]", got, want)
+	want := Ready{Goal: e.goal, Role: "runner", Act: ActRun, Line: "line-1"}
+	if got := lines(rl, "runner"); !slices.Equal(got, []Ready{want}) {
+		t.Fatalf("runner may %+v, want [%+v]", got, want)
 	}
 	if got := lines(rl, "owner"); len(got) != 0 {
-		t.Fatalf("owner may %q, want nothing on an open Goal with no stop", got)
+		t.Fatalf("owner may %+v, want nothing on an open Goal with no stop", got)
 	}
 	for _, l := range rl {
-		for _, banned := range []string{"land", "reset", "retract"} {
-			if strings.HasPrefix(l.Line, "hyp "+banned) {
-				t.Fatalf("printed %q, an act the binary lacks", l.Line)
-			}
+		if !slices.Contains([]string{ActAddGoal, ActPlace, ActRun, ActSelect}, l.Act) {
+			t.Fatalf("allowed %+v, an act the binary lacks", l)
 		}
 	}
 }
@@ -65,17 +67,15 @@ func TestAllowedOpenGoalRunnerMayRun(t *testing.T) {
 func TestAllowedOneCandidateRunnerMaySelect(t *testing.T) {
 	e := newRunEnv(t)
 	_, tree := e.metLeaf(t, "ok", true)
-	want := "hyp select " + e.goal + " " + tree
+	want := Ready{Goal: e.goal, Role: "runner", Act: ActSelect, Tree: tree}
 	if got := lines(e.allowed(t), "runner"); !slices.Contains(got, want) {
-		t.Fatalf("runner may %q, want %q", got, want)
+		t.Fatalf("runner may %+v, want %+v", got, want)
 	}
 	// a candidate whose commit holds no spec is not offered: run on the spec commit first
 	e2 := newRunEnv(t)
 	e2.metLeaf(t, "ok", false)
-	for _, l := range lines(e2.allowed(t), "runner") {
-		if strings.HasPrefix(l, "hyp select") {
-			t.Fatalf("offered %q without a spec", l)
-		}
+	if got := lines(e2.allowed(t), "runner"); acted(got, ActSelect) {
+		t.Fatalf("offered %+v without a spec", got)
 	}
 }
 
@@ -84,15 +84,13 @@ func TestAllowedTwoCandidatesOnlyOwnerMaySelect(t *testing.T) {
 	_, t1 := e.metLeaf(t, "ok", true)
 	_, t2 := e.metLeaf(t, "ok2", true)
 	rl := e.allowed(t)
-	for _, l := range lines(rl, "runner") {
-		if strings.HasPrefix(l, "hyp select") || strings.HasPrefix(l, "hyp run") {
-			t.Fatalf("runner may %q at a stop", l)
-		}
+	if got := lines(rl, "runner"); acted(got, ActSelect) || acted(got, ActRun) {
+		t.Fatalf("runner may %+v at a stop", got)
 	}
 	owner := lines(rl, "owner")
 	for _, tree := range []string{t1, t2} {
-		if !slices.Contains(owner, "hyp select "+e.goal+" "+tree) {
-			t.Fatalf("owner may %q, want a select of %s", owner, tree)
+		if !slices.Contains(owner, Ready{Goal: e.goal, Role: "owner", Act: ActSelect, Tree: tree}) {
+			t.Fatalf("owner may %+v, want a select of %s", owner, tree)
 		}
 	}
 	if st := Stand(e.goalRow(t), e.root); st.Stop != StopTwoCandidates || len(st.Candidates) != 2 {
@@ -115,7 +113,7 @@ func TestAllowedBudgetUsedRunnerMayNotRun(t *testing.T) {
 	}
 	rl := e.allowed(t)
 	if got := lines(rl, "runner"); len(got) != 0 {
-		t.Fatalf("runner may %q after the budget is used", got)
+		t.Fatalf("runner may %+v after the budget is used", got)
 	}
 	if st := Stand(e.goalRow(t), e.root); st.Stop != StopBudgetUsed || st.Used != 3 || st.Waits != "owner" {
 		t.Fatalf("standing = %+v", st)

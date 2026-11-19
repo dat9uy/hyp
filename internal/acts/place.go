@@ -2,7 +2,6 @@ package acts
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,8 +13,8 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/example"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/herr"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/probe"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -68,18 +67,15 @@ type checked struct {
 // the Probe runs with the lock released, and every guard is checked again
 // under the lock before the event is appended.
 func Place(o PlaceOpts) (PlaceReport, error) {
-	if !logstore.ValidActor(o.Actor) {
-		return PlaceReport{}, herr.BadArgs("actor %q must match ^[a-z0-9][a-z0-9-]{0,39}$ (--actor or $HYP_ACTOR)", o.Actor)
-	}
-	if !ValidRole(o.Role) {
-		return PlaceReport{}, herr.BadArgs("role %q must be one of %s (--role or $HYP_ROLE)", o.Role, strings.Join(Roles, ", "))
+	if err := CheckActor(o.Actor, o.Role); err != nil {
+		return PlaceReport{}, err
 	}
 	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return PlaceReport{}, herr.BadArgs("why is %d runes; the limit is %d", n, logstore.MaxWhy)
+		return PlaceReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
 	}
 	lineKey, name, ok := strings.Cut(o.Key, "/")
 	if !ok || !lineKeyRe.MatchString(lineKey) || !exampleNameRe.MatchString(name) {
-		return PlaceReport{}, herr.BadArgs("%q is not LINE/EXAMPLE, for example line-1/a (an example name matches ^[a-z0-9][a-z0-9-]{0,39}$)", o.Key)
+		return PlaceReport{}, fault.BadArg(fault.BadExampleKey, o.Key)
 	}
 	root, err := logstore.TopLevel(o.Dir)
 	if err != nil {
@@ -122,12 +118,15 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		}
 		switch {
 		case again.hash != first.hash:
-			return ev, herr.Refused("Committed: %s changed from %s to %s while the Probe ran; place it again", o.Key, first.hash, again.hash)
+			return ev, fault.Refuse(fault.GuardCommitted, fault.ChangedWhileProbe, o.Key, first.hash, again.hash)
 		case again.goal.Base != first.goal.Base:
-			return ev, herr.Refused("Kind: H0 of %s moved from %s to %s while the Probe ran; place it again", again.goal.ID, first.goal.Base, again.goal.Base)
+			return ev, fault.Refuse(fault.GuardKind, fault.H0MovedWhilePlacing, again.goal.ID, first.goal.Base, again.goal.Base)
 		}
 		if string(verdict) != tables.Needs(again.line.Kind) {
-			return ev, kindRefusal(again.line, again.ex, out, verdict)
+			return ev, fault.Refuse(fault.GuardKind, fault.WrongVerdictOnH0, KindFacts{
+				Line: again.line, Verdict: string(verdict), Out: out,
+				Floors: again.ex.Floors, Ceilings: again.ex.Ceilings,
+			})
 		}
 		payload, err := json.Marshal(events.ExamplePlace{
 			Role: o.Role, Line: lineKey, Example: name, Hash: again.hash,
@@ -137,7 +136,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 			},
 		})
 		if err != nil {
-			return ev, herr.Env("encode example.place: %v", err)
+			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeExamplePlace, err)
 		}
 		ev.Node, ev.Payload = again.goal.EventID, payload
 		if err := tables.GuardPlace(tables.Replay(evs), ev); err != nil {
@@ -179,7 +178,7 @@ func checkPlace(root string, o PlaceOpts, evs []events.Event, lineKey, name stri
 		}
 	}
 	if c.line.Key == "" {
-		return checked{}, herr.BadArgs("%s has no line %s", g.ID, lineKey)
+		return checked{}, fault.BadArg(fault.NoLine, g.ID, lineKey)
 	}
 	if err := tables.GuardNotSelected(g); err != nil {
 		return checked{}, err
@@ -217,12 +216,12 @@ func checkPlace(root string, o PlaceOpts, evs []events.Event, lineKey, name stri
 func committedHash(root, rel string) (string, error) {
 	disk := filepath.Join(root, filepath.FromSlash(rel))
 	if fi, err := os.Stat(disk); err != nil || !fi.IsDir() {
-		return "", herr.Refused("Committed: %s is not a folder on disk", rel)
+		return "", fault.Refuse(fault.GuardCommitted, fault.NotAFolder, rel)
 	}
 	onDisk, err := gitread.DirTreeHash(disk)
 	if err != nil {
-		if herr.KindOf(err) == herr.Refusal {
-			return "", herr.Refused("Committed: %s", herr.Text(err))
+		if fault.KindOf(err) == fault.Refusal {
+			return "", fault.Refuse(fault.GuardCommitted, fault.FolderOnDisk, err)
 		}
 		return "", err
 	}
@@ -231,7 +230,7 @@ func committedHash(root, rel string) (string, error) {
 		return "", err
 	}
 	if code != 0 {
-		return "", herr.Refused("Committed: %s is not committed at HEAD", rel)
+		return "", fault.Refuse(fault.GuardCommitted, fault.NotCommitted, rel)
 	}
 	committed := strings.TrimSpace(string(out))
 	if committed == onDisk {
@@ -242,9 +241,9 @@ func committedHash(root, rel string) (string, error) {
 		return "", err
 	}
 	if diff == "" {
-		return "", herr.Refused("Committed: %s on disk is not the folder committed at HEAD", rel)
+		return "", fault.Refuse(fault.GuardCommitted, fault.DiskNotCommitted, rel)
 	}
-	return "", herr.Refused("Committed: %s differs from HEAD at %s", rel, path.Join(rel, diff))
+	return "", fault.Refuse(fault.GuardCommitted, fault.DiffersAt, rel, path.Join(rel, diff))
 }
 
 // readExample reads and parses the example.txtar of the example folder with
@@ -253,13 +252,13 @@ func readExample(root, hash string) (example.Example, string, error) {
 	if code, _, err := gitread.GitExit(root, "cat-file", "-e", hash); err != nil {
 		return example.Example{}, "", err
 	} else if code != 0 {
-		return example.Example{}, "", herr.Env("object %s not in this clone", hash)
+		return example.Example{}, "", fault.EnvFault(fault.ObjectMissing, hash)
 	}
 	spec := hash + ":example.txtar"
 	if code, _, err := gitread.GitExit(root, "cat-file", "-e", spec); err != nil {
 		return example.Example{}, "", err
 	} else if code != 0 {
-		return example.Example{}, "", herr.Refused("example folder %s has no example.txtar", hash)
+		return example.Example{}, "", fault.Refuse(fault.NoGuard, fault.NoExampleTxtar, hash)
 	}
 	data, err := gitread.Git(root, "cat-file", "blob", spec)
 	if err != nil {
@@ -276,33 +275,14 @@ func readExample(root, hash string) (example.Example, string, error) {
 	return ex, probeHash, nil
 }
 
-// kindRefusal is the Kind refusal: it prints H0's output beside the example's
-// floors and ceilings.
-func kindRefusal(line tables.Line, ex example.Example, out probe.Out, verdict example.Verdict) error {
-	want := "fail"
-	if line.Kind == events.KindGuard {
-		want = "be met"
-	}
-	var b strings.Builder
-	fmt.Fprintf(&b, "Kind: %s is a %s line, so its example must %s on H0; it is %s\n", line.Key, line.Kind, want, verdict)
-	fmt.Fprintf(&b, "H0 output (exit %d):\n%s\n", out.Exit, indent(string(out.Stdout)))
-	fmt.Fprintf(&b, "H0 stderr:\n%s\n", indent(string(out.Stderr)))
-	b.WriteString("floors:")
-	for _, f := range ex.Floors {
-		fmt.Fprintf(&b, "\n  %s %q", f.Op, f.Text)
-	}
-	b.WriteString("\nceilings:")
-	for _, c := range ex.Ceilings {
-		fmt.Fprintf(&b, "\n  %q", c)
-	}
-	return herr.Refused("%s", b.String())
-}
-
-func indent(s string) string {
-	if s == "" {
-		return "  (empty)"
-	}
-	return "  " + strings.ReplaceAll(strings.TrimSuffix(s, "\n"), "\n", "\n  ")
+// KindFacts is what a Kind refusal shows: the line, the verdict H0 gave and
+// what H0 printed, beside the example's floors and ceilings.
+type KindFacts struct {
+	Line     tables.Line
+	Verdict  string
+	Out      probe.Out
+	Floors   []example.Floor
+	Ceilings []string
 }
 
 // sameBesidesExample refuses a new version whose folder differs from the
@@ -346,7 +326,7 @@ func sameBesidesExample(root, oldHash, newHash string) error {
 			if a.Type == "tree" || b.Type == "tree" {
 				name += "/"
 			}
-			return herr.Refused("Adds only: %s differs from the current version; a change there is a new example key, not a new version", name)
+			return fault.Refuse(fault.GuardAddsOnly, fault.PathDiffers, name)
 		}
 	}
 	return nil

@@ -6,7 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dat9uy/hyp/internal/herr"
+	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/testutil"
 )
 
 func mustParse(t *testing.T, s string) Example {
@@ -82,21 +83,32 @@ func TestParseKeepsEveryOtherByte(t *testing.T) {
 func refusal(t *testing.T, s, want string) {
 	t.Helper()
 	_, err := Parse([]byte(s))
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.Contains(err.Error(), want) {
+	if err == nil || fault.KindOf(err) != fault.Refusal || !testutil.Mentions(err, want) {
 		t.Fatalf("Parse(%q) error = %v, want a refusal containing %q", s, err, want)
 	}
 }
 
+// refusalAt checks that Parse refuses s with code, naming line first among
+// its values.
+func refusalAt(t *testing.T, s string, code fault.Code, line int) {
+	t.Helper()
+	_, err := Parse([]byte(s))
+	e, ok := fault.As(err)
+	if !ok || e.Kind != fault.Refusal || e.Code != code || len(e.Args) == 0 || e.Args[0] != line {
+		t.Fatalf("Parse(%q) error = %#v, want %s at line %d", s, e, code, line)
+	}
+}
+
 func TestParseRefusesPreamble(t *testing.T) {
-	refusal(t, "text first\n"+base, "line 1")
-	refusal(t, "\n"+base, "line 1")
+	refusalAt(t, "text first\n"+base, fault.TextBeforeFirst, 1)
+	refusalAt(t, "\n"+base, fault.TextBeforeFirst, 1)
 	refusal(t, "", "words")
 }
 
 func TestParseRefusesUnknownSection(t *testing.T) {
-	refusal(t, base+"-- bogus --\nx\n", "line 7")
-	refusal(t, base+"-- floor: matches --\nx\n", "line 7")
-	refusal(t, base+"-- input/ --\nx\n", "line 7")
+	refusalAt(t, base+"-- bogus --\nx\n", fault.UnknownSection, 7)
+	refusalAt(t, base+"-- floor: matches --\nx\n", fault.UnknownSection, 7)
+	refusalAt(t, base+"-- input/ --\nx\n", fault.InputOutside, 7)
 }
 
 func TestParseRefusesDotDotInput(t *testing.T) {
@@ -107,7 +119,7 @@ func TestParseRefusesDotDotInput(t *testing.T) {
 	if len(ex.Inputs) != 2 || ex.Inputs[0].Path != "a/b.txt" {
 		t.Fatalf("inputs = %+v", ex.Inputs)
 	}
-	refusal(t, base+"-- input/a --\nx\n-- input/a --\ny\n", "input/a")
+	refusalAt(t, base+"-- input/a --\nx\n-- input/a --\ny\n", fault.InputTwice, 9)
 }
 
 func TestParseNeedsAFloor(t *testing.T) {
@@ -186,10 +198,10 @@ func TestAddsOnlyAllowsNewCeiling(t *testing.T) {
 func adds(t *testing.T, old, new, probeOld, probeNew, want string) {
 	t.Helper()
 	err := AddsOnly(mustParse(t, old), mustParse(t, new), probeOld, probeNew)
-	if err == nil || herr.KindOf(err) != herr.Refusal || !strings.HasPrefix(herr.Text(err), "Adds only") {
+	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Adds only" {
 		t.Fatalf("err = %v, want an Adds only refusal", err)
 	}
-	if !strings.Contains(err.Error(), want) {
+	if !testutil.Mentions(err, want) {
 		t.Fatalf("err = %v, want it to name %q", err, want)
 	}
 }

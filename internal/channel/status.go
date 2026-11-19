@@ -1,11 +1,11 @@
 package channel
 
 import (
+	"bytes"
 	"fmt"
-	"os"
 	"slices"
-	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/acts"
 	"github.com/dat9uy/hyp/internal/logstore"
@@ -23,7 +23,8 @@ type BlockOpts struct {
 // section 2.
 var roles = []string{"owner", "grill", "probe-writer", "runner"}
 
-// maxCell is how many runes of one output the outputs table shows.
+// maxCell is how many runes of one output's first line the outputs table
+// shows.
 const maxCell = 60
 
 // StateBlock is the state block of section 12: for each Goal its state, runs
@@ -50,7 +51,7 @@ func StateBlock(t tables.Tables, repo string, o BlockOpts) string {
 	if len(refused) > 0 {
 		b.WriteString("refused at replay:\n")
 		for _, r := range refused {
-			fmt.Fprintf(&b, "  %s: %s\n", r.EventID, r.Reason)
+			fmt.Fprintf(&b, "  %s: %s\n", r.EventID, bodyText(r.Err, repo))
 		}
 	}
 	return b.String()
@@ -78,7 +79,7 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 		n := 0
 		for _, l := range ready {
 			if l.Role == role {
-				fmt.Fprintf(b, "  %s\n", l.Line)
+				fmt.Fprintf(b, "  %s\n", readyText(l))
 				n++
 			}
 		}
@@ -90,7 +91,7 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	switch {
 	case st.Stop == acts.StopSelected:
 		if !o.NoBody {
-			fmt.Fprintf(b, "\nPR body:\n\n%s", acts.PRBody(repo, g))
+			fmt.Fprintf(b, "\nPR body:\n\n%s", prBody(repo, g))
 		}
 	case st.Stop == acts.StopTwoCandidates || st.Stop == acts.StopBudgetUsed:
 		outputsTable(b, g, repo, st.Rows)
@@ -120,9 +121,11 @@ func orUnknown(hash string) string {
 }
 
 // outputsTable prints each row's output for each placed example: the table
-// of outputs of a stop, with no reading of it.
+// of outputs of a stop, with no reading of it. A cell shows the output's
+// size, its hash and the start of its first line as the bytes are; the whole
+// output is the file of that hash.
 func outputsTable(b *strings.Builder, g *tables.Goal, repo string, rows []tables.Row) {
-	b.WriteString("outputs:\n")
+	fmt.Fprintf(b, "outputs: each cell shows at most %d characters of the output's first line; all its bytes are in .tree/outputs/<hash>\n", maxCell)
 	for _, row := range rows {
 		fmt.Fprintf(b, "  row %s\n", row.RowTree)
 		cells := g.LiveCells(row.RowTree)
@@ -133,21 +136,30 @@ func outputsTable(b *strings.Builder, g *tables.Goal, repo string, rows []tables
 				continue
 			}
 			c := cells[i]
-			fmt.Fprintf(b, "    %s  %s  exit %d  %s\n", c.Key, c.Verdict, c.Exit, shown(repo, c.Output))
+			fmt.Fprintf(b, "    %s  %s  exit %d  %s  %s\n", c.Key, c.Verdict, c.Exit, c.Output, cellText(repo, c.Output))
 		}
 	}
 }
 
-// shown is a stored output on one line, quoted and cut.
-func shown(repo, hash string) string {
-	data, err := os.ReadFile(logstore.OutputPath(repo, hash))
+// cellText is one cell of the outputs table: the output's size, then the
+// start of its first line, at most maxCell characters, as the bytes are. It
+// never quotes or escapes them, and never adds a mark to them: the size says
+// whether the cell shows all of it.
+func cellText(repo, hash string) string {
+	data, size, err := logstore.ReadOutput(repo, hash, 4*maxCell)
 	if err != nil {
-		return "(unreadable: " + err.Error() + ")"
+		return "not readable here: " + bodyText(err, repo)
 	}
-	runes := []rune(string(data))
-	cut := ""
-	if len(runes) > maxCell {
-		runes, cut = runes[:maxCell], "..."
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		data = data[:i]
 	}
-	return strconv.Quote(string(runes)) + cut
+	for n, i := 0, 0; i < len(data); n++ {
+		if n == maxCell {
+			data = data[:i]
+			break
+		}
+		_, w := utf8.DecodeRune(data[i:])
+		i += w
+	}
+	return fmt.Sprintf("%d bytes: %s", size, data)
 }
