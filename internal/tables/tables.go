@@ -209,9 +209,9 @@ func (g *Goal) H0Verdict(key string) string {
 	return p.H0.Verdict
 }
 
-// needs is the verdict H0 must give an example of a line of this kind: a gap
+// Needs is the verdict H0 must give an example of a line of this kind: a gap
 // example fails, a guard example is met.
-func needs(kind string) string {
+func Needs(kind string) string {
 	if kind == events.KindGuard {
 		return "met"
 	}
@@ -225,7 +225,7 @@ func (g *Goal) isOpen() bool {
 	placed := map[string]bool{}
 	for _, p := range g.Placed() {
 		l, _ := g.line(p.Line)
-		if g.H0Verdict(p.Key) != needs(l.Kind) {
+		if g.H0Verdict(p.Key) != Needs(l.Kind) {
 			return false
 		}
 		placed[p.Line] = true
@@ -275,10 +275,11 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 	return nil
 }
 
-// GuardPlace is the git-free check of an example.place event, called by the
-// place act and again by Replay at the event's place in the merge order, so
-// the two never drift: not Selected, Own case and the table half of Adds
-// only. Not ended always holds. ev.Node is the goal.add event id of the Goal.
+// GuardPlace is the git-free check of an example.place event, called by Replay
+// at the event's place in the merge order: not Selected, Own case and the
+// table half of Adds only. The place act calls the same three guards in spec
+// order around the guards that read git. Not ended always holds. ev.Node is
+// the goal.add event id of the Goal.
 func GuardPlace(t Tables, ev events.Event) error {
 	var p events.ExamplePlace
 	if err := events.Decode(ev, &p); err != nil {

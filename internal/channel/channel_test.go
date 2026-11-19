@@ -2,6 +2,8 @@ package channel
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -106,13 +108,13 @@ func TestWriteWithoutActorExit2(t *testing.T) {
 func TestAddGoalBadArgumentsExit2(t *testing.T) {
 	inRepo(t)
 	for _, args := range [][]string{
-		{"add", "goal", "--words", "w", "--line", "gap:a"},                                 // no --base
-		{"add", "goal", "--base", "HEAD", "--line", "gap:a"},                               // no --words
-		{"add", "goal", "--base", "HEAD", "--words", "w", "--line", "maybe:a"},             // kind
-		{"add", "goal", "--base", "HEAD", "--words", "w", "--line", "nocolon"},             // no kind
-		{"add", "goal", "--base", "nope", "--words", "w", "--line", "gap:a"},               // not a commit
-		{"add", "goal", "--base", "HEAD", "--words", "w", "--line", "gap:a", "--bogus"},    // unknown flag
-		{"add", "goal", "a", "b", "--base", "HEAD", "--words", "w", "--line", "gap:a"},     // two positionals
+		{"add", "goal", "--words", "w", "--line", "gap:a"},                              // no --base
+		{"add", "goal", "--base", "HEAD", "--line", "gap:a"},                            // no --words
+		{"add", "goal", "--base", "HEAD", "--words", "w", "--line", "maybe:a"},          // kind
+		{"add", "goal", "--base", "HEAD", "--words", "w", "--line", "nocolon"},          // no kind
+		{"add", "goal", "--base", "nope", "--words", "w", "--line", "gap:a"},            // not a commit
+		{"add", "goal", "--base", "HEAD", "--words", "w", "--line", "gap:a", "--bogus"}, // unknown flag
+		{"add", "goal", "a", "b", "--base", "HEAD", "--words", "w", "--line", "gap:a"},  // two positionals
 		{"add", "goal", "--base", "HEAD", "--words", "w", "--line", "gap:a", "--why", strings.Repeat("x", 601)},
 	} {
 		if code, _, errs := run(t, args...); code != 2 {
@@ -141,7 +143,118 @@ func TestV1CommandGone(t *testing.T) {
 
 func TestCommandsAreSorted(t *testing.T) {
 	got := Commands()
-	if !slices.Equal(got, []string{"add", "help", "version"}) {
+	if !slices.Equal(got, []string{"add", "help", "place", "version"}) {
 		t.Fatalf("Commands = %v", got)
+	}
+}
+
+const fixtureProbe = `#!/bin/sh
+o=$(mktemp); sh -c "$HYP_RUN" >"$o"; c=$?; cat "$o"; [ -s "$o" ] && [ -n "$(tail -c1 "$o")" ] && echo; rm -f "$o"; echo "exit $c"
+`
+
+// goalWithExample adds a one-line gap Goal as the owner, commits an example
+// folder for line-1/a whose floor fails on H0, and switches to the grill. It
+// returns the Goal id.
+func goalWithExample(t *testing.T, r *testutil.Repo, commit bool) string {
+	t.Helper()
+	_, out, errs := run(t, "add", "goal", "--base", "HEAD", "--words", "w", "--line", "gap:it fails")
+	fields := strings.Fields(out)
+	if len(fields) < 2 {
+		t.Fatalf("add goal printed %q, %q", out, errs)
+	}
+	goal := fields[1]
+	dir := filepath.Join("goals", goal, "line-1", "a")
+	if err := os.MkdirAll(filepath.Join(r.Dir, dir), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	txtar := "-- words --\nw\n-- run --\necho hi\n-- floor: contains --\nnope\n"
+	if err := os.WriteFile(filepath.Join(r.Dir, dir, "example.txtar"), []byte(txtar), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r.WriteExec(t, filepath.Join(dir, "probe", "run"), fixtureProbe)
+	if commit {
+		testutil.Git(t, r.Dir, "add", "-A")
+		testutil.Git(t, r.Dir, "commit", "-q", "-m", "example")
+	}
+	t.Setenv("HYP_ACTOR", "grill-1")
+	t.Setenv("HYP_ROLE", "grill")
+	return goal
+}
+
+func TestPlaceRecordsExit0(t *testing.T) {
+	r := inRepo(t)
+	goal := goalWithExample(t, r, true)
+	before := testutil.Snapshot(t, r.Dir)
+	code, out, errs := run(t, "place", goal, "line-1/a")
+	if code != 0 || !strings.Contains(out, "placed "+goal+" line-1/a @1") || !strings.Contains(out, "H0: failed (exit 0)") || !strings.Contains(out, goal+" is open") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if testutil.Snapshot(t, r.Dir) != before {
+		t.Fatal("place changed the repository's git state")
+	}
+}
+
+func TestPlaceFlagsMayFollowThePositionals(t *testing.T) {
+	r := inRepo(t)
+	goal := goalWithExample(t, r, true)
+	t.Setenv("HYP_ROLE", "runner")
+	code, out, errs := run(t, "place", goal, "line-1/a", "--role", "grill", "--why", "first")
+	if code != 0 {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+}
+
+func TestPlaceRefusalExit1(t *testing.T) {
+	r := inRepo(t)
+	goal := goalWithExample(t, r, false)
+	code, out, errs := run(t, "place", goal, "line-1/a")
+	if code != 1 || out != "" || !strings.Contains(errs, "Committed") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	t.Setenv("HYP_ROLE", "runner")
+	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 1 || !strings.Contains(errs, "Own case") {
+		t.Fatalf("runner: code %d, stderr %q", code, errs)
+	}
+}
+
+func TestPlaceBadArgumentsExit2(t *testing.T) {
+	r := inRepo(t)
+	goal := goalWithExample(t, r, true)
+	for _, args := range [][]string{
+		{"place"},
+		{"place", goal},
+		{"place", goal, "line-1/a", "extra"},
+		{"place", goal, "line-1"},
+		{"place", "G-NOPE00", "line-1/a"},
+		{"place", goal, "line-9/a"},
+		{"place", goal, "line-1/a", "--bogus"},
+		{"place", goal, "line-1/a", "--why", strings.Repeat("x", 601)},
+	} {
+		if code, _, errs := run(t, args...); code != 2 {
+			t.Errorf("%v: code %d, stderr %q; want 2", args, code, errs)
+		}
+	}
+	t.Setenv("HYP_ROLE", "")
+	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 2 || !strings.Contains(errs, "role") {
+		t.Fatalf("no role: code %d, stderr %q", code, errs)
+	}
+}
+
+func TestPlaceWithoutStoreExit1(t *testing.T) {
+	inRepo(t)
+	t.Setenv("HYP_ROLE", "grill")
+	if code, _, errs := run(t, "place", "G-AAAAAA", "line-1/a"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
+		t.Fatalf("code %d, stderr %q", code, errs)
+	}
+}
+
+func TestPlaceProbeFailureExit3(t *testing.T) {
+	r := inRepo(t)
+	goal := goalWithExample(t, r, false)
+	r.WriteExec(t, filepath.Join("goals", goal, "line-1", "a", "probe", "run"), "#!/bin/sh\nexit 7\n")
+	testutil.Git(t, r.Dir, "add", "-A")
+	testutil.Git(t, r.Dir, "commit", "-q", "-m", "example")
+	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 3 {
+		t.Fatalf("code %d, stderr %q; want 3", code, errs)
 	}
 }

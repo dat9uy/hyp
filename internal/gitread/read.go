@@ -191,3 +191,18 @@ func nextBlob(data []byte, want string) (body, rest []byte, err error) {
 	}
 	return data[nl+1 : nl+1+size], data[nl+1+size+1:], nil
 }
+
+// SubtreeHash returns the hash of the entry name directly under the tree
+// treeish, or "" when treeish has no such entry.
+func SubtreeHash(dir, treeish, name string) (string, error) {
+	entries, err := RootEntries(dir, treeish)
+	if err != nil {
+		return "", err
+	}
+	for _, e := range entries {
+		if e.Name == name && e.Type == "tree" {
+			return e.Hash, nil
+		}
+	}
+	return "", nil
+}

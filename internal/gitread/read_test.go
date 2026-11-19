@@ -164,3 +164,30 @@ func TestExtractTreeWritesNoGitState(t *testing.T) {
 		t.Fatal("ExtractTree changed the repository")
 	}
 }
+
+func TestSubtreeHash(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"f/probe/run": "p", "f/example.txtar": "e", "g/other": "o"})
+	f, err := Git(r.Dir, "rev-parse", "HEAD:f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := Git(r.Dir, "rev-parse", "HEAD:f/probe")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := SubtreeHash(r.Dir, strings.TrimSpace(string(f)), "probe")
+	if err != nil || got != strings.TrimSpace(string(want)) {
+		t.Fatalf("SubtreeHash = %q, %v; want %s", got, err, want)
+	}
+	if got, err := SubtreeHash(r.Dir, strings.TrimSpace(string(f)), "nope"); err != nil || got != "" {
+		t.Fatalf("a missing entry = %q, %v; want empty and no error", got, err)
+	}
+	// a name that is a prefix of another entry is not that entry
+	if got, err := SubtreeHash(r.Dir, strings.TrimSpace(string(f)), "prob"); err != nil || got != "" {
+		t.Fatalf("a prefix = %q, %v; want empty", got, err)
+	}
+	if _, err := SubtreeHash(r.Dir, "nope", "probe"); err == nil {
+		t.Fatal("an unknown tree was read")
+	}
+}
