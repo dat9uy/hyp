@@ -65,6 +65,8 @@ commands:
                                          that is still written
   place G LINE/EXAMPLE [--why TEXT]      place the example folder
                                          goals/G/LINE/EXAMPLE on a line of Goal G
+  run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
+                                         Goal G on COMMIT and record the Result
   help                                   print this text
   version                                print the hyp version
 
@@ -73,7 +75,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "place", "version"}
+var commands = []string{"add", "help", "place", "run", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -109,6 +111,8 @@ func dispatch(args []string, stdout, stderr io.Writer) error {
 		return nil
 	case "place":
 		return place(args[1:], stdout)
+	case "run":
+		return runCmd(args[1:], stdout)
 	case "add":
 		if len(args) > 1 && args[1] == "goal" {
 			return addGoal(args[2:], stdout)
@@ -235,5 +239,36 @@ func place(args []string, stdout io.Writer) error {
 	fmt.Fprintf(stdout, "hash: %s\n", rep.Hash)
 	fmt.Fprintf(stdout, "H0: %s (exit %d)\n", rep.Verdict, rep.Exit)
 	fmt.Fprintf(stdout, "%s is %s\n", rep.Goal, rep.State)
+	return nil
+}
+
+func runCmd(args []string, stdout io.Writer) error {
+	fs := flag.NewFlagSet("run", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var o acts.RunOpts
+	fs.StringVar(&o.Actor, "actor", os.Getenv("HYP_ACTOR"), "")
+	fs.StringVar(&o.Role, "role", os.Getenv("HYP_ROLE"), "")
+	fs.StringVar(&o.Why, "why", "", "")
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return herr.BadArgs("run: %v", err)
+	}
+	if len(positional) != 2 {
+		return herr.BadArgs("run takes COMMIT and <Goal>/<line>, for example: hyp run 4df2b9e G-NXHHVA/line-3; got %d arguments", len(positional))
+	}
+	o.Commit, o.Line = positional[0], positional[1]
+	if n := len([]rune(o.Why)); n > logstore.MaxWhy {
+		return herr.BadArgs("--why is %d runes; the limit is %d", n, logstore.MaxWhy)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		return herr.Env("working directory: %v", err)
+	}
+	o.Dir = cwd
+	rep, err := acts.Run(o)
+	if err != nil {
+		return err
+	}
+	fmt.Fprint(stdout, rep.String())
 	return nil
 }

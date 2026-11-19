@@ -50,10 +50,19 @@ type Goal struct {
 
 	Placements map[string][]Placement // by example key, in placement order
 	Results    []*Result              // in merge order, refused ones included
+	Select     *Select                // the Goal's select, or nil
 
 	// epoch counts the example-changing placements so far: the budget counts
 	// the Results recorded in the current epoch.
 	epoch int
+}
+
+// Select is a row of the Selects table.
+type Select struct {
+	Commit  string
+	RowTree string
+	Time    string
+	Actor   string
 }
 
 // Result is a row of the Results table.
@@ -427,6 +436,8 @@ func Replay(evs []events.Event) Tables {
 			replayResult(&t, ev, refuse)
 		case events.TypeResultRetract:
 			replayRetract(&t, ev, refuse)
+		case events.TypeSelect:
+			replaySelect(&t, ev, refuse)
 		}
 	}
 	return t
@@ -491,4 +502,26 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 		ID: GoalID(ev.ID), EventID: ev.ID, Words: p.Words, Base: p.Base, BaseTree: p.BaseTree,
 		Budget: p.Budget, Actor: ev.Actor, From: p.From, State: StateWritten, Lines: p.Lines,
 	}
+}
+
+// replaySelect applies a select: the Goal is selected. The select act, with
+// its Candidate, Spec and Own path guards, is built later; replay checks only
+// that the Goal exists and has no select yet.
+func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	var p events.Select
+	if err := events.Decode(ev, &p); err != nil {
+		refuse(ev, herr.Refused("Selected: %v", err))
+		return
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		refuse(ev, herr.Refused("no Goal %s to select on", GoalID(ev.Node)))
+		return
+	}
+	if g.Select != nil {
+		refuse(ev, herr.Refused("Selected: %s already has a select", g.ID))
+		return
+	}
+	g.Select = &Select{Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
+	g.State = StateSelected
 }

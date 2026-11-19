@@ -143,7 +143,7 @@ func TestV1CommandGone(t *testing.T) {
 
 func TestCommandsAreSorted(t *testing.T) {
 	got := Commands()
-	if !slices.Equal(got, []string{"add", "help", "place", "version"}) {
+	if !slices.Equal(got, []string{"add", "help", "place", "run", "version"}) {
 		t.Fatalf("Commands = %v", got)
 	}
 }
@@ -256,5 +256,74 @@ func TestPlaceProbeFailureExit3(t *testing.T) {
 	testutil.Git(t, r.Dir, "commit", "-q", "-m", "example")
 	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 3 {
 		t.Fatalf("code %d, stderr %q; want 3", code, errs)
+	}
+}
+
+// placed adds a Goal with a placed example and returns its id and a new commit
+// on top of it, ready for run.
+func placed(t *testing.T) (r *testutil.Repo, goal, commit string) {
+	t.Helper()
+	r = inRepo(t)
+	goal = goalWithExample(t, r, true)
+	if code, out, errs := run(t, "place", goal, "line-1/a"); code != 0 {
+		t.Fatalf("place: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	commit = r.Commit(t, map[string]string{"x.go": "package x"})
+	t.Setenv("HYP_ACTOR", "runner-1")
+	t.Setenv("HYP_ROLE", "runner")
+	return r, goal, commit
+}
+
+func TestRunRecordsExit0(t *testing.T) {
+	r, goal, commit := placed(t)
+	before := testutil.Snapshot(t, r.Dir)
+	code, out, errs := run(t, "run", commit, goal+"/line-1")
+	if code != 0 || !strings.Contains(out, "line-1/a") || !strings.Contains(out, "failed") || !strings.Contains(out, "runs: 1 of 3 used\n") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if testutil.Snapshot(t, r.Dir) != before {
+		t.Fatal("run changed the repository's git state")
+	}
+}
+
+func TestRunFlagsMayFollowThePositionals(t *testing.T) {
+	_, goal, commit := placed(t)
+	t.Setenv("HYP_ROLE", "")
+	if code, out, errs := run(t, "run", commit, goal+"/line-1", "--role", "runner", "--why", "first"); code != 0 {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+}
+
+func TestRunRefusalExit1(t *testing.T) {
+	_, goal, _ := placed(t)
+	code, out, errs := run(t, "run", "no-such-commit", goal+"/line-1")
+	if code != 1 || out != "" || !strings.Contains(errs, "Bytes") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+}
+
+func TestRunBadArgumentsExit2(t *testing.T) {
+	_, goal, commit := placed(t)
+	for _, args := range [][]string{
+		{"run"},
+		{"run", commit},
+		{"run", commit, goal + "/line-1", "extra"},
+		{"run", commit, goal},
+		{"run", commit, "G-NOPE00/line-1"},
+		{"run", commit, goal + "/line-9"},
+		{"run", commit, goal + "/line-1", "--bogus"},
+		{"run", commit, goal + "/line-1", "--why", strings.Repeat("x", 601)},
+	} {
+		if code, _, errs := run(t, args...); code != 2 {
+			t.Errorf("%v: code %d, stderr %q; want 2", args, code, errs)
+		}
+	}
+}
+
+func TestRunWithoutStoreExit1(t *testing.T) {
+	inRepo(t)
+	t.Setenv("HYP_ROLE", "runner")
+	if code, _, errs := run(t, "run", "HEAD", "G-AAAAAA/line-1"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
+		t.Fatalf("code %d, stderr %q", code, errs)
 	}
 }
