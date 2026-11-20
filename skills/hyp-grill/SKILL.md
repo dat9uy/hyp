@@ -33,6 +33,11 @@ hyp printed. A skill names no write command." So this skill shows only reads
 copy from a line hyp printed. Set `HYP_ACTOR` to your actor name and
 `HYP_ROLE=grill` for every command. The owner records the Goal itself, with the
 act `hyp help` lists for adding a Goal; you draft the words and lines it takes.
+In that draft, set `HYP_ACTOR` to the owner's actor, never a placeholder: the
+actor of the `goal.add` events in the store, which `.tree/events/<actor>.jsonl`
+names. Ask the owner once, only when the store has no Goal yet or several actors
+added Goals. The owner's acts that end or reopen a Goal are allowed only to the
+actor that added it, so a wrong actor locks the owner out of them.
 
 ## Decisions
 
@@ -72,7 +77,9 @@ The issue is the owner's record, not a rule for the runner:
 3. **Write each option for the owner's choice.** Each option has a short label
    and a description. The description says what the option would make the
    runner build, and the cheapest build that meets it, so the owner sees the
-   price of each answer.
+   price of each answer. Check each description as you check a line (step 8)
+   before you offer it: the owner picks by the label, so a loose rule in the
+   description reaches the line unread.
 4. **Record the owner's answer as given.** The label the owner picked is the
    recorded text: keep its exact words, never the option's description or your
    paraphrase of it.
@@ -89,6 +96,15 @@ The issue is the owner's record, not a rule for the runner:
 8. **Draft the words and lines.** One sentence of words. Each line is `gap`
    (false on H0, the build must make it true) or `guard` (true on H0, the build
    must keep it true). A Goal needs at least one gap line. The owner records it.
+   When a line makes something wait for new evidence, or counts acts, check
+   whether repeating an earlier act on the same bytes (the same example version
+   on the same row) would meet its words. If it would, write the line in terms
+   of what changed, not an act being recorded: evidence is new when its pair of
+   example version and row was not run before. The same check on the same bytes
+   teaches nothing. Do not narrow it past that pair: a new version of an
+   example, a new example key and a new row each make a new check that can
+   fail, so each counts. The command you draft carries the words and lines
+   exactly as you showed them to the owner.
 9. **Switch to a record branch before the Goal is recorded.** The Goal's events
    and examples reach the default branch only through a record PR, never by a
    write on it. Before you show the owner the act that adds the Goal, run
