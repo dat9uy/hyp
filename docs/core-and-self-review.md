@@ -38,7 +38,7 @@ The self-review recipes and trees of hyp 0.1.0 are kept on the `v1` branch, not 
 
 ## Core
 
-Every item is core: `cmd/`, `internal/`, `go.mod`, `go.sum`, the skills (kept on the `v1` branch while hyp moves to events v2), and the docs in this directory, the specs [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md) among them. The test data under `internal/*/testdata` is core too: synthetic stores and bundles written by hyp for its own tests, such as the store in `internal/testutil/testdata/synth` and its `generate.sh` (that store is history from before ADR 0015, which a current hyp still replays).
+Every item is core: `cmd/`, `internal/`, `go.mod`, `go.sum`, the skills (`skills/hyp-grill` on `main`; the skills of hyp 0.1.0 are kept on the `v1` branch), and the docs in this directory, the specs [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md) among them. The test data under `internal/*/testdata` is core too: synthetic stores and bundles written by hyp for its own tests, such as the store in `internal/testutil/testdata/synth` and its `generate.sh` (that store is history from before ADR 0015, which a current hyp still replays).
 
 A new tree under `investigations/` that asks about hyp takes its question's scope, as the test above says. A tree that asks about a self-review recipe itself is the special case under rule 3, and its reason is instrument trust.
 
