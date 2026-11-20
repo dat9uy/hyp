@@ -5,7 +5,9 @@ description: "Write the model of a hyp Goal: a TLA+ spec of the states the chang
 
 # hyp statechart
 
-The grill uses this skill to write a Goal's model. The model is a tool that
+The grill uses this skill to write a Goal's model. When the record branch
+holds no spec and the runner writes the model, the runner uses this skill the
+same way, switch tries included. The model is a tool that
 finds missing examples: each switch in it is a cheap wrong build, and a wrong
 build that passes every example shows an example the Goal still needs. The
 chart shows the owner, in the owner's words, how the system moves between
@@ -74,7 +76,11 @@ record branch so that every runner commit holds it:
 
 ## Try each switch as a patch
 
-A switch in the model is only a claim about the code. Make each one real:
+A switch in the model is only a claim about the code. Make each one real,
+also when the hand-off asks for no rivals. Trying a switch is not running a
+rival: a rival is a second commit run with `hyp run`, which uses runs of the
+budget and can stop the Goal at `Two candidates`. A switch try records nothing
+and uses no run.
 
 1. Write the switch's wrong build as a patch on the code, in a scratch
    worktree of the record branch.
@@ -82,10 +88,11 @@ A switch in the model is only a claim about the code. Make each one real:
    `hyp try G LINE/EXAMPLE --worktree`. It records nothing and uses no run.
 3. When some example fails on the patch, the examples catch that wrong build.
 4. When a wrong build passes every example, the examples miss it. Report it to
-   the owner with the switch, the patch and the outputs, and propose a
-   separating example: one that fails on that wrong build and is met on a
-   right one. The owner decides whether it is placed or listed under
-   "Not covered".
+   the owner with the switch, the patch and the outputs `hyp try` printed, and
+   propose a separating example: one that fails on that wrong build and is met
+   on a right one. The owner decides whether it is placed or listed under
+   "Not covered". A wrong build read from the model alone, never tried, is not
+   such a report.
 
 Remove each patch when you are done; the record branch holds only the model and
 the examples.
@@ -96,7 +103,7 @@ Add to the grill's hand-off:
 
 - the chart, as a `mermaid` block;
 - for each switch, the rules its config names, and whether its patch failed an
-  example or passed every example;
+  example or passed every example, as `hyp try` printed it;
 - each rule left out of the check config, and why;
 - what the model leaves out;
 - the command that makes the chart again.
