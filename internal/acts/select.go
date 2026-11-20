@@ -2,7 +2,7 @@ package acts
 
 import (
 	"encoding/json"
-	"path"
+
 	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
@@ -123,15 +123,31 @@ func latestCommit(g *tables.Goal, rowTree string) string {
 }
 
 // guardSpec is the Spec guard: the commit holds a spec under
-// goals/<G>/specs/.
+// goals/<G>/specs/. When the spec is a model (a .tla file), every rule its
+// check configs check is named by a switch config under specs/switches/, and
+// the folder holds a chart (.mmd). hyp reads the files and runs no model
+// checker.
 func guardSpec(root string, g *tables.Goal, commit string) error {
-	dir := path.Join("goals", g.ID, "specs") + "/"
-	out, err := gitread.Git(root, "ls-tree", "-r", "-z", commit, dir)
+	dir := SpecDir(g.ID)
+	files, err := SpecFiles(root, commit, g.ID)
 	if err != nil {
 		return err
 	}
-	if len(out) == 0 {
+	if len(files) == 0 {
 		return fault.Refuse(fault.GuardSpec, fault.NoSpec, commit, dir)
+	}
+	m, err := ReadModel(root, files)
+	if err != nil {
+		return err
+	}
+	if !m.Present {
+		return nil
+	}
+	if missing := m.Unswitched(); len(missing) > 0 {
+		return fault.Refuse(fault.GuardSpec, fault.RuleNoSwitch, commit, missing, dir+switchesDir)
+	}
+	if len(m.Charts) == 0 {
+		return fault.Refuse(fault.GuardSpec, fault.NoChart, commit, dir)
 	}
 	return nil
 }

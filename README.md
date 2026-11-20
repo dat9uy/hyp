@@ -104,9 +104,9 @@ hyp keeps the split between facts and decisions, and each decision stays the own
 A recorded verdict does not show when the work is complete. Also, an agent can try builds until one passes by chance. hyp adds these rules:
 
 - **Only a candidate can be selected.** A candidate is a leaf commit that is met on every line. With one candidate, the runner selects it. With two or more, only the owner selects.
-- **The selected commit holds a spec.** hyp refuses a select of a commit with no file under `goals/<Goal>/specs/`.
+- **The selected commit holds a spec.** hyp refuses a select of a commit with no file under `goals/<Goal>/specs/`. When the spec is a model, hyp also refuses it while a rule of the model has no switch config that names it, or while the folder holds no chart.
 - **The budget is three Hypotheses.** Each distinct tree that the runner runs is one Hypothesis, and H0 does not count. hyp refuses a fourth. A placement that changes an example starts the count again.
-- **The report of the select is the PR body.** It holds each line, and each example's words, output, stderr, exit code and verdict. It also holds the selected commit and row. hyp writes nothing to GitHub.
+- **The report of the select is the PR body.** It holds each line, and each example's words, output, stderr, exit code and verdict. It also holds the selected commit and row, and the chart of the model. hyp writes nothing to GitHub.
 
 hyp calculates three stops:
 
@@ -195,11 +195,11 @@ go install github.com/dat9uy/hyp/cmd/hyp@latest
 hyp version   # hyp 0.2.0-dev (events v2)
 ```
 
-**2. Copy the grill skill into your project** and commit it, so each session in the project loads it. From your project's root, with a checkout of hyp at `<hyp>`:
+**2. Copy the skills into your project** and commit them, so each session in the project loads them. From your project's root, with a checkout of hyp at `<hyp>`:
 
 ```bash
 mkdir -p .claude/skills
-cp -R <hyp>/skills/hyp-grill .claude/skills/
+cp -R <hyp>/skills/hyp-grill <hyp>/skills/hyp-statechart .claude/skills/
 git add .claude/skills
 ```
 
@@ -222,7 +222,7 @@ The first `hyp add goal` makes the store, `.tree/`, at the top level of the repo
 
 ## What is in this repository
 
-What you install is **core**: the binary (`cmd/`, `internal/`), the skill under `skills/hyp-grill` and the docs (`docs/`). The Goals that changed hyp itself are under `goals/`, and their store is `.tree/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps each item to its scope.
+What you install is **core**: the binary (`cmd/`, `internal/`), the skills under `skills/hyp-grill` and `skills/hyp-statechart`, and the docs (`docs/`). The Goals that changed hyp itself are under `goals/`, and their store is `.tree/`. You need none of them to use hyp. [core-and-self-review.md](docs/core-and-self-review.md) maps each item to its scope.
 
 ## Status
 

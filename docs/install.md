@@ -26,14 +26,17 @@ hyp needs `git`, and it works only in a repository whose object format is
 
 ### Copy the skill into the project
 
-`main` holds one skill, `skills/hyp-grill`. It grills the owner into a Goal and
+`main` holds two skills. `skills/hyp-grill` grills the owner into a Goal and
 re-grills a Goal that stopped or was selected. Its part `run-rules.md` holds the
-rules a runner follows. From your project's root, with a checkout of hyp's
+rules a runner follows. `skills/hyp-statechart` is what the grill writes a
+Goal's model with: a TLA+ spec, one switch per wrong build, and a chart. Its
+statechart tool needs Node 22.18 or later (or Bun or Deno); its first run
+installs Java and TLC with mise. From your project's root, with a checkout of hyp's
 `main` at `<hyp>`:
 
 ```bash
 mkdir -p .claude/skills
-cp -R <hyp>/skills/hyp-grill .claude/skills/
+cp -R <hyp>/skills/hyp-grill <hyp>/skills/hyp-statechart .claude/skills/
 git add .claude/skills
 ```
 

@@ -37,7 +37,8 @@ Every other rule here is derived from such a rule, and names it.
   goals/<Goal>/<line>/<example>/   one example folder
       example.txtar                the example file (§9)
       probe/                       the Probe code (§10)
-  goals/<Goal>/specs/              the runner's spec and chart for the Goal
+  goals/<Goal>/specs/              the Goal's spec; a model: a .tla module, its
+                                   check configs, switches/<switch>.cfg and chart.mmd
   ```
 
 - **The subject** of a commit is the commit's tree without the top-level entries
@@ -368,8 +369,21 @@ the first guard that fails, in the act's order (§8).
   current placements. With exactly one candidate the runner may select it; with
   two or more, only the owner. Query: Rows of G with leaf = true and every
   current example key `met`.
-- **Spec** — The selected commit holds a spec under `goals/<G>/specs/`. Query:
-  `git ls-tree COMMIT goals/<G>/specs/` lists at least one file.
+- **Spec** — The selected commit holds a spec under `goals/<G>/specs/`. When
+  that spec is a model, every rule its check configs check is named by a switch
+  config, and the folder holds a chart. Query: `git ls-tree -r COMMIT
+  goals/<G>/specs/` lists at least one file. When one of them ends in `.tla`,
+  the folder is a model: every `.cfg` under `specs/switches/` is a switch
+  config, every other `.cfg` is a check config, and the rules of a config are
+  the names it lists under `INVARIANT`, `INVARIANTS`, `PROPERTY` or
+  `PROPERTIES` (`git cat-file blob`). A rule of a check config that no switch
+  config lists is refused, and the refusal names every such rule; then a model
+  with no `.mmd` file outside `switches/` is refused, and the refusal names the
+  missing chart. hyp runs no model checker and records no model result: whether
+  a switch really breaks the rules it names stays the grill's report. A spec
+  folder with no `.tla` file is checked for one file only, as before. Owner
+  said, 2026-11-20 (#247): "Grill models, option 2"; "A model but no chart:
+  refuse the select. since we have grill doing it".
 - **Own path** — A commit writes no path keyed by another Goal. Only the
   runner's own change of the commit is read (§13), never the diff from H0: when
   the runner takes in a main that merged another Goal's record branch, the diff
@@ -863,8 +877,12 @@ to communicate with agent, is one block of code".
 stderr, exit code and verdict, and the selected commit and row. `status` prints
 it again while the Goal is selected, and `status G` after it is landed. The runner pastes it into the PR, so hyp
 writes nothing to GitHub. This follows the main page §8: "hyp prints one read
-per Goal: each line, each example, its output and its verdict". Charts are a
-later v2 Goal.
+per Goal: each line, each example, its output and its verdict". After the
+lines, the PR body prints each chart of the selected commit's spec folder (each
+`.mmd` file outside `specs/switches/`) under `## Chart: <path>`, byte for byte,
+in a `mermaid` block; a folder with no chart prints none. So the select return,
+`status` and `status G` of the selected Goal, and the land return and `status G`
+of the landed Goal hold the chart (#247).
 
 `place` and `run` check their guards under the lock, release
 it, run the Probes, take the lock again, check every guard again and append; a
@@ -891,8 +909,8 @@ by its full argument shape in `internal/gitread`:
 | Command | Used for |
 |---|---|
 | `git rev-parse` | the top level, the object format, a commit, `HEAD:<path>`, `--path-format=absolute --git-common-dir` (the trace's key, §1) |
-| `git cat-file` | `-e` (Bytes), `--batch` (extraction by hash), `-p <commit>` (a commit's parents, for the own change) |
-| `git ls-tree` | `-r -z` (extraction), the root of a commit (row tree), `goals/<G>/specs/` (Spec) |
+| `git cat-file` | `-e` (Bytes), `--batch` (extraction by hash), `-p <commit>` (a commit's parents, for the own change), `blob <hash>` (a model's configs for Spec, and the charts of the PR body) |
+| `git ls-tree` | `-r -z` (extraction), the root of a commit (row tree), `-r -z` of `goals/<G>/specs/` (Spec, and the charts of the PR body) |
 | `git merge-base --is-ancestor` | Leaf only |
 | `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths); `-p` is on the read list, and no act runs it |
 | `git patch-id` | on the read list; no act runs it, since `land` checks no commit |
