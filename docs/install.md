@@ -1,8 +1,8 @@
-# Installing hyp and its skills
+# Installing hyp and its skill
 
-`hyp` is a single static binary; its skills are plain Markdown directories
-that any harness able to load a `SKILL.md` can use. Claude Code is the only
-harness hyp has been verified on.
+`hyp` is a single static binary. Its skill is a plain Markdown directory that any
+harness able to load a `SKILL.md` can use. Claude Code is the only harness hyp
+has been verified on.
 
 There are two ways to set hyp up: to use it in your own project, or to develop
 hyp itself in this repository.
@@ -21,37 +21,50 @@ is on your `PATH`. To build from a clone instead, use the command under
 [Develop hyp](#develop-hyp). The binary is named `hyp` because `tree` collides
 with the common `tree` utility and shell aliases.
 
-### Copy the skills into the project
+hyp needs `git`, and it works only in a repository whose object format is
+`sha1`. A Probe that the `hyp-grill` skill ships is a POSIX `sh` script.
 
-`main` holds `skills/hyp-grill`, the grill skill of events v2. The skills of
-hyp 0.1.0 are kept on the `v1` branch. From your project's root, with a checkout
-of hyp at `<hyp>` (`main` for hyp-grill, `v1` for the skills of hyp 0.1.0):
+### Copy the skill into the project
+
+`main` holds one skill, `skills/hyp-grill`. It grills the owner into a Goal and
+re-grills a Goal that stopped or was selected. Its part `run-rules.md` holds the
+rules a runner follows. From your project's root, with a checkout of hyp's
+`main` at `<hyp>`:
 
 ```bash
 mkdir -p .claude/skills
-cp -R <hyp>/skills/hyp-* .claude/skills/
+cp -R <hyp>/skills/hyp-grill .claude/skills/
 git add .claude/skills
 ```
 
-Committing the copies means every session in the project, and every person who
-clones it, loads the same skills. To update, re-run `go install ...@latest` and
-copy the skills again, so the binary and the skills stay the same version.
+Committing the copy means every session in the project, and every person who
+clones it, loads the same skill. To update, re-run `go install ...@latest` and
+copy the skill again, so the binary and the skill stay the same version.
+
+The skills of hyp 0.1.0 are kept on the `v1` branch. They call commands that
+the binary on `main` does not have. To use them, build the binary from a
+checkout of the `v1` branch as well.
 
 ### Per-repo setup
 
-In the repository you investigate:
+hyp has no `init` command. The first `hyp add goal` creates the store, `.tree/`,
+at the top level of the repository. The store holds `events/`, `outputs/` and a
+`.gitattributes` that sets a union merge for the events files. Commit `.tree/`
+with the work it describes.
+
+Every command needs an actor, and every act that writes also needs a role:
 
 ```bash
-hyp init                         # creates .tree/events, .tree/evidence, .tree/.gitignore, .tree/.gitattributes
-git add .tree/.gitignore .tree/.gitattributes .tree/events
-hyp bundle new NAME@1            # optional: a first versioned procedure, in recipes/ beside .tree/
+export HYP_ACTOR=<your-name> HYP_ROLE=owner   # roles: owner, grill, probe-writer, runner
+hyp status
 ```
 
-Commit `.tree/events/` and `.tree/evidence/` with the work they describe.
-hyp keeps no index (ADR 0006); the `.tree/.gitignore` still ignores the
-`index.sqlite` that older hyp binaries write.
-Each agent session sets its own actor, for example
-`export HYP_ACTOR=claude-<topic>-1`.
+Each agent session sets its own actor. hyp records what it prints to each actor
+in a trace outside the repository, one folder per clone under `~/.hyp/traces`.
+`hyp show <actor>` prints that trace. `hyp prune` lists the traces of clones
+that no longer exist, and `hyp prune --remove` removes them.
+
+[owner-guide.md](owner-guide.md) tells the owner what to do next.
 
 ## Develop hyp
 
@@ -68,10 +81,9 @@ hyp version   # hyp 0.2.0-dev (events v2) <commit>, plus -dirty for a modified c
 Make sure `~/.local/bin` is on your `PATH`. A build from a clone prints the
 commit it was built from; a `go install` build does not.
 
-### Link the skills globally
+### Link the skill globally
 
-Run from the root of a checkout of the `v1` branch, which keeps the skills of
-hyp 0.1.0. Claude Code:
+Run from the root of a checkout of `main`. Claude Code:
 
 ```bash
 mkdir -p ~/.claude/skills
@@ -79,7 +91,7 @@ for s in skills/hyp-*; do ln -s "$PWD/$s" ~/.claude/skills/"$(basename "$s")"; d
 ```
 
 Symlinks make your sessions load the working text under `skills/`, so an edit is
-live at once, and hyp's repository carries no second copy of the skills under
+live at once, and hyp's repository carries no second copy of the skill under
 `.claude/`. Do not commit a `.claude/skills` directory here.
 
 ### Other harnesses (unverified)

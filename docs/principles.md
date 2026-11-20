@@ -1,149 +1,119 @@
 # The principles hyp holds to
 
 This page states why hyp is shaped the way it is. Each section is one claim,
-a few sentences of why, and links to the spec, glossary entry or ADR that owns
-the rule. No rule is stated only here: when this page and its link disagree,
-the link wins. The words are the [glossary](glossary.md)'s.
+a few sentences of why, and a link to the rule that owns it. No rule is stated
+only here. When this page and its link disagree, the link wins. The rules are
+in [state-machine.md](state-machine.md), the one spec of hyp v2.
 
 ## 1. What hyp is for
 
-**An investigation stays legible to a later reader, and a decision is admitted
-only when the work it rests on is done.** The later reader may be the owner, a
-new session or another agent. They read the tree, not a chat, and they find in
-it what was claimed, what ran, what failed and what is still owed. Deciding
-a design and building it are both Goals, a discovery Goal and a build Goal,
-kept and gated the same way; hyp stores no kind
-([ADR 0020](adr/0020-one-store-holds-many-goals.md)).
+**A change is admitted only when evidence shows that it meets the owner's
+Goal.** The owner states the Goal as words and lines. The grill places examples
+that can fail. The runner builds rival commits and runs the lines on them. A
+later reader, such as the owner, a new session or another agent, reads the log
+and the PR body, not a chat. They find what each example printed on each build,
+and which build was selected.
 
-## 2. The log is the truth; everything else is derived
+## 2. The log is the truth; everything else is calculated
 
-**Events are appended and never edited, and every status is computed from
-them.** `supported`, `contradicted`, `stale`, `answered`, the ledger, coverage
-and a limit's category are all derived; no command can set one, and no stored
-field copies a derived state. A command appends an event: `hypothesis.abandon`
-or `dq.withdraw` is a fact a status rule reads, not the status word, and a
-later event can move the status again. The one exception is the owner's end
-of a Goal: no event moves an ended Goal again
-([ADR 0023](adr/0023-the-end-is-the-owners-one-terminal-act.md)). While it derives, replay keeps working
-facts such as whether a question was ever answered; it rebuilds them from the
-log every time and never writes them to it. A changed mind is a new event, so the earlier one
-stays in history. See [replay-spec.md](replay-spec.md) §7 and §8,
-[ADR 0006](adr/0006-scripts-read-the-tree-through-hyp-events.md) and
-[ADR 0013](adr/0013-the-tree-machine-owns-its-words-and-its-rules.md).
+**Events are appended and never edited, and every state is calculated from
+them.** Each actor appends to its own file under `.tree/events/`. hyp stores no
+table: the Goal states, the rows, the candidates and the stops are calculated
+on every command ([spec §5](state-machine.md#5-calculated-tables),
+[§6](state-machine.md#6-states)). No command sets a state. A changed mind is a
+new event, for example a new version of an example, so the earlier event stays
+in the history. Two clones merge their logs by a union merge, and replay orders
+the events by id ([spec §4](state-machine.md#4-merge-order-crash-and-merged-log)).
 
-## 3. A claim is tested by rivals and cases, not by a reader
+The log holds only the acts that change a Goal. What hyp printed to an actor is
+the trace, outside the repository. `hyp show` prints it byte for byte
+([spec §8](state-machine.md#8-acts), "The trace is not the log").
 
-**A question has rival Hypotheses, and an Experiment fixes its rubric before
-it runs.** A recipe's known answers run before every use, so an
-instrument shows it can fail before its verdicts count. A reader who checks a
-verdict after the fact catches less than a rival that could have won: the
-retired verifier passed a wrong verdict, and so did the owner. See
-[ADR 0002](adr/0002-known-answers-gate-every-recipe-run.md),
-[ADR 0004](adr/0004-a-verdict-checks-known-answers-specify-its-verdict-rule.md)
-and [ADR 0015](adr/0015-the-select-is-the-gate.md).
+## 3. H0 and the lines are the prior; an example is evidence only if it can fail
 
-## 4. The ledger owes; it never judges
+**An example counts only when H0 gives the verdict its line needs.** H0 is the
+Goal's base commit. A gap example must fail on H0, and a guard example must be
+met on H0. `place` runs the example on H0 and refuses it otherwise (the guard
+Kind, [spec §7](state-machine.md#7-guards)). So no check that cannot fail
+enters the Goal. The compare is literal: floors the output must hold and
+ceilings it must not hold. No reader judges a verdict
+([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
 
-**`hyp status` names what the tree owes and who owes it, and owing an item
-changes no status.** The gate is at the write: `hyp select` is admitted only
-when the ledger owes it, and a run stops when the runner owes nothing. Nothing
-scores a round. See [replay-spec.md](replay-spec.md#81-ledger-what-the-tree-owes)
-§8.1, [ADR 0015](adr/0015-the-select-is-the-gate.md) and
-[ADR 0017](adr/0017-the-ledger-is-the-stall-guard.md).
+## 4. The select is the gate
 
-## 5. A limit is the next case, and moving it up the tree is how thinking works
+**`select` records only a candidate: a leaf build that meets every line under
+the current examples.** With one candidate the runner may select it. With two or
+more, only the owner may select. The selected commit must hold a spec
+([spec §7](state-machine.md#7-guards), Candidate and Spec). The report of the
+select is the PR body, and the owner's merge accepts it
+([ADR 0015](adr/0015-the-select-is-the-gate.md) records why the select is the
+gate).
 
-**A limit names a case no check has run, and its life is a few typed moves.**
-A Result records it, a later Result closes it by running the case, the runner
-refers what no test within the Goal can run, and the owner accepts or returns a
-referred one. A case can also change what the work is for: a new Hypothesis is
-a new branch, and a new purpose is a new Goal. One store holds many Goals, and
-a tree is the view of one Goal ([ADR 0020](adr/0020-one-store-holds-many-goals.md)). A move never crosses Goals: a later Goal takes a case over by citing it. None of these edits what was recorded. See
-[ADR 0016](adr/0016-a-limit-is-an-untested-case.md) and
-[replay-spec.md](replay-spec.md#82-keyed-items-limits-lines-and-readings) §8.2.
+## 5. A budget stops the loop, and nothing scores a round
 
-## 6. Coverage says the bytes ran, not that the claim held
+**A Goal gets three Hypotheses beside H0, and then it stops for the owner.**
+A Hypothesis is one build, counted by its row tree. A refused run costs nothing.
+A rerun of a Hypothesis already counted costs nothing. Stable refuses a run whose verdict differs from an earlier run on
+the same bytes, so a rerun cannot change a verdict. A placement that changes an
+example moves the boundary, because the runner then runs against new evidence.
+At a stop, hyp prints the outputs table, not a reading of it: no distance and no
+summary ([spec §11](state-machine.md#11-budget-and-stops)).
 
-**A Result covers a Hypothesis it judged, or one whose whole subject, its base,
-patch and files, one run it cites holds.** hyp copies each run's subject from
-those records; the runner never types it. A matching hash proves which bytes ran, not which
-claim they stand for, and only a verdict says whether a claim held. See the
-glossary's Coverage and Subject.
+## 6. Who does what
 
-## 7. Who does what
+**The owner decides, the grill places, the runner runs, and hyp calculates.**
+The four roles are `owner`, `grill`, `probe-writer` and `runner`
+([spec §2](state-machine.md#2-ids-actors-and-roles)).
 
-**The ledger asks, the owner answers, the runner runs, and hyp derives.**
+1. **The owner records the Goal.** Its words and lines are frozen once it opens.
+   A new line or a new purpose is a new Goal, which can cite the old one with
+   `--from`.
+2. **The owner chooses between candidates.** Only the actor that added the Goal
+   selects for the owner (the guard Goal's actor).
+3. **The owner merges.** hyp writes nothing to GitHub. The merge is where the
+   owner accepts a build and vetoes its mechanics.
+4. **Only the grill places an example** (the guard Own case). The grill asks
+   the owner product questions only, and reports each decision that no example
+   checks.
+5. **The runner runs lines and selects one candidate.** It never places. It
+   runs only the lines that hyp prints for it.
+6. **The probe writer writes no event.**
+7. **hyp does not authenticate a role.** The actor and the role are
+   self-declared. A guard that reads them catches an honest mistake, not a lie.
 
-The owner is the person hyp asks on real choices. Their role holds to these
-rules:
+The owner's guide is [owner-guide.md](owner-guide.md).
 
-1. **The Goal is written once.** Its lines come with its add and are never
-   edited; a line may cite settled keys of other Goals, and no move crosses Goals. A new line or a new
-   purpose is a new Goal, which may sit in the same store. A narrower scope is a line the runner refers and the owner
-   accepts; there is no other change of scope inside a tree.
-2. **The owner is asked only on real choices, and only when the runner owes
-   nothing on the question.** The ledger routes each one to AWAITING OWNER: a
-   reading, a referred limit, a choice between candidates.
-3. **Every owner move but the lines and the end answers what the ledger hands
-   them.** A reading answer sets what a line or an answer means. An accept says
-   this tree does not run a case, and a return sends it back to run. A choice
-   selects one of the candidates that meet every line, for the owner's own
-   reasons. Each move turns one item toward the Goal, or the owner starts a new
-   Goal. The end answers nothing the ledger hands the owner: the actor that
-   added a Goal says once, in their own words, that it is wrong or outgrown
-   ([ADR 0023](adr/0023-the-end-is-the-owners-one-terminal-act.md)).
-4. **An owner move is one typed event, an answer, and hyp reads the move,
-   never the prose.** An answer may move items of several Goals, and it never
-   holds a runner field. The owner's words are kept and shown back, and no status
-   reads them.
-5. **An owner move changes no status, except the end.** Statuses move by
-   verdicts: an answer takes effect when a Result applies it, a return when a
-   Result runs the case, a choice when the select the ledger owes is recorded.
-   The end sets its Goal's state to `ended` with no Result, and after it
-   nothing of the Goal is owed or waits.
-6. **The owner produces no evidence.** They never run a case, type a verdict,
-   record or close a limit, tie a subject or write a fingerprint.
-7. **hyp does not authenticate the owner.** Separation of duties compares actor
-   names; that the owner stood behind a move rests on the procedure.
+## 7. Cheap errors come from hyp, not from the runner's judgment
 
-A check the Goal never asked for cannot decide inside the tree, because a
-verdict on it would drop a candidate for a case the Goal does not cover. It can
-inform a choice. If the owner would reject a design that fails it, it is a
-requirement the Goal lacks, and so a new Goal. Whether the Goal covers a case is
-read from the line's words and the owner's answers; where they do not say, the
-runner asks with a reading and settles it by no verdict, fix or sort.
+**A failure that hyp can see goes into the binary as a refusal or a warning.**
+Skill text teaches only what hyp cannot check. Every refusal names its guard
+and exits 1 ([spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
+hyp prints the allowed acts of each role as ready command lines. An agent runs
+a line that hyp printed, and a skill names no write command. When a fix would
+ask the runner to judge in prose what hyp could see, the gap is in hyp. See
+[how-hyp-improves-itself.md](how-hyp-improves-itself.md#mechanical-failures-belong-in-the-binary).
 
-The runner settles every item the ledger owes it, maps a recipe's checks onto a
-line when it closes the line, refers what no test within the Goal can run, and
-stops when it owes nothing. It never answers a reading, accepts, returns or
-writes a line, and it records the owner's choice but never makes it. See the
-glossary's Owner, Runner and Operator, and
-[replay-spec.md](replay-spec.md#82-keyed-items-limits-lines-and-readings) §8.2.
+## 8. hyp writes no git state in the host
 
-## 8. Cheap errors come from hyp, not from the runner's judgment
-
-**A failure the tree can show goes into the binary as a refusal or a warning.**
-Skill text teaches only what hyp cannot check. When a fix would ask the runner
-to judge in prose what hyp could see, the gap is in hyp. See
-[how-hyp-improves-itself.md](how-hyp-improves-itself.md#mechanical-failures-belong-in-the-binary)
-and [sandbox-spec.md](sandbox-spec.md) §1.3 for the exit codes.
+**hyp reads git, and the owner and the agents commit.** hyp writes no refs,
+objects, config, index or hooks, and it hides no file from git. It runs only a
+fixed set of read commands ([spec §13](state-machine.md#13-what-hyp-reads-from-git)).
 
 ## 9. hyp changes only on a real event
 
-**A change is proposed when a real investigation points at hyp, and it earns
-its way in through a gate.** [how-hyp-improves-itself.md](how-hyp-improves-itself.md) explains
-why the loop is guarded while it runs, and [AGENTS.md](../AGENTS.md) states the
-gate.
+**A change is proposed when a real event points at hyp, and it earns its way in
+through a gate.** [how-hyp-improves-itself.md](how-hyp-improves-itself.md)
+explains why the loop is guarded while it runs, and [AGENTS.md](../AGENTS.md)
+states the gate.
 
 ## 10. What hyp does not claim
 
 - It does not authenticate actors.
-- It does not judge whether an Experiment was well designed
-  ([how-hyp-improves-itself.md](how-hyp-improves-itself.md#the-ledger-shows-a-stall-nothing-scores-a-round)).
-- A select is not proof that the design is right. A later Result can
-  contradict the selected Hypothesis or make it stale, and the question
-  reopens ([replay-spec.md](replay-spec.md#74-designquestion-state) §7.4).
-- A trial run from a shell, outside hyp, leaves no record, so the tree cannot
-  see it ([ADR 0015](adr/0015-the-select-is-the-gate.md), Losses).
-- A complete Goal is not a met one: the owner reads met as a complete Goal with
-  no line owed, and hyp stores no word for it. See the glossary's Goal.
+- It does not judge whether an example is well chosen. The grill reports each
+  decision of the owner that no example checks.
+- A select is not proof that the design is right. It shows that one build met
+  every example. A gap found after a select is a new Goal.
+- It does not sandbox a Probe. A Probe is the grill's own committed code
+  ([spec §10](state-machine.md#10-the-probe-contract)).
+- `hyp try` shows a verdict without a record, and a run from a shell outside
+  hyp leaves no record. Neither is evidence in the log.

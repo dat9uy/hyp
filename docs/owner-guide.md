@@ -1,105 +1,106 @@
 # Owner guide
 
-You are the owner of a Goal when you write its lines and answer what hyp asks you. A runner does the work: it adds Hypotheses, runs Experiments and records Results. hyp calculates every status from the events, and it tells each party what it owes. This guide tells you what hyp asks of you, when a run stops for you, and which command records each answer.
+You are the owner of a Goal when you record it. The grill helps you write the Goal and places its examples. The runner builds commits and runs the lines on them. hyp calculates every state and stop from the events. It prints the acts that each role may take next. This guide tells you what you see, when a Goal stops for you, and what you do then.
 
-The words in this guide have one meaning each. [glossary.md](glossary.md) defines them, and [principles.md](principles.md#7-who-does-what) states your role as rules.
+[state-machine.md](state-machine.md) is the one spec of these rules. When this guide and the spec disagree, the spec wins. [principles.md](principles.md#6-who-does-what) states your role as rules.
 
 ## What you do
 
-- **You write the Goal one time.** Its lines are the cases that every candidate must meet. hyp never edits a Goal. A new line or a new purpose is a new Goal, which can be in the same store.
-- **You answer what hyp gives you, and nothing more.** hyp asks you only when no test in the Goal can decide. It asks you only when the runner owes nothing on that question.
-- **Your answer changes no status.** A status changes only through the verdicts of a Result. Your answer has an effect when a later Result applies it.
-- **You produce no evidence.** You never run a case, give a verdict, record a limit or tie a subject. The runner does these.
+- **You record the Goal.** A Goal has words and up to ten lines. The words are one sentence of what you want. A `gap` line is false on H0, the Goal's base commit, and a build must make it true. A `guard` line is true on H0, and a build must keep it true. A Goal needs at least one gap line.
+- **You can replace a Goal until it opens.** While the Goal is `written`, `hyp add goal G …` replaces it. After it opens, its words and lines are frozen. A new line is a new Goal. The new Goal can cite the old one with `--from G`.
+- **You choose between candidates.** When two or more builds meet every line, only you can select one.
+- **You merge.** hyp writes nothing to GitHub. The record branch holds the Goal, its examples and their place events, and it merges before the runner runs. The runner's PR holds the build and its select. Your merge accepts the build. You veto the build's mechanics there.
+- **You produce no evidence.** You never place an example, run a line or give a verdict. A verdict comes only from the compare of an example on a commit ([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
 
-hyp does not authenticate actors. An answer under your actor name shows that someone wrote it with that name. That you agreed to it depends on how your team works.
+hyp does not authenticate actors. An act under your actor name shows only that someone ran it with that name ([spec §2](state-machine.md#2-ids-actors-and-roles)).
 
-## How hyp sorts the Hypotheses
+## Record a Goal
 
-Each Hypothesis has one status at a time. The sets below are nested: each set is the set above it, plus one property. Your decisions are about the two smallest sets.
+The grill drafts the words and the lines with you. You record them yourself, with the role `owner`:
 
-| Status | Hypothesis | live | rival | candidate |
-|---|---|---|---|---|
-| `superseded`, `abandoned` | ✓ | | | |
-| `contradicted` | ✓ | ✓ | | |
-| `proposed`, `inconclusive` | ✓ | ✓ | ✓ | |
-| `supported` | ✓ | ✓ | ✓ | ✓ |
+```bash
+export HYP_ACTOR=<you> HYP_ROLE=owner
+hyp add goal --base <H0 commit> --words "<what you want>" \
+  --line "gap:<what must become true>" --line "guard:<what must stay true>"
+```
 
-- **Live** means not superseded and not abandoned.
-- **Rival** means live and not contradicted. A rival can still win.
-- **Candidate** means a rival that is supported. Only a candidate can become the answer to its question.
-- **Sibling** means another Hypothesis of the same question, with any status.
+The first `hyp add goal` in a repository creates the store, `.tree/`. Commit the store on the record branch. The grill then places examples on each line. The Goal opens when every line holds an example that gives its line's verdict on H0. That verdict is `failed` on a gap line and `met` on a guard line.
 
-A contradicted Hypothesis is never a candidate. When a Result contradicts a candidate, it leaves both sets at once. In a build Goal, each commit is a Hypothesis, and a fix is a new Hypothesis that supersedes the old one.
+## What `hyp status` shows
 
-The number of candidates sets who acts next:
-
-| Candidates on a question | Next step | Who |
-|---|---|---|
-| None, and no rival is left | add a new Hypothesis (the `rivals` item) | runner |
-| None, but a rival is untested or undecided | run an Experiment on it | runner |
-| One | record the select | runner |
-| Two or more | choose one (the `choose` item) | you |
-
-## When a run stops for you
-
-hyp keeps a ledger: a list of the open work on each question and the party that owes it. hyp calculates the ledger from the events each time you read it. `hyp status` prints the runner's items under OWED and your items under AWAITING OWNER.
-
-A run continues while the runner owes an item. When it owes nothing, OWED ends with this line, and the run stops:
+Every command needs an actor, from `--actor` or `$HYP_ACTOR`. `hyp status` prints every Goal, and `hyp status G` prints one Goal. `--role owner` shows only your allowed acts. Each Goal prints one block:
 
 ```text
-runner owes nothing: stop and report to the owner
+G-NXHHVA  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-NXHHVA line-1/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-NXHHVA/line-1
 ```
 
-Three things can stop the runner and give the next step to you:
+- **The state** is `written`, `open` or `selected` ([spec §6](state-machine.md#6-states)).
+- **`runs: N of 3 used`** counts the Hypotheses that the runner ran, H1 to H3. A Hypothesis is one build, a row tree other than H0's. H0 is not counted.
+- **`stop:`** is `none`, `selected`, `two candidates` or `budget used`.
+- **`waits:`** names who the Goal waits for. It is `grill` while the Goal is written, `owner` at a stop for you, and `none` otherwise.
+- **`<role> may:`** lists the acts that each role may take now, as ready command lines. A role with no allowed act prints `(none)`.
 
-- **An open reading.** A reading records how a run read your words, when a line can mean two things. While it is open, its question waits for your answer before any decision: hyp holds back the `select`, `choose` and `stale` items on that question, and the runner cannot select or reaffirm there. This is true whatever the answer can change. The reason is that a decision made before your answer can rest on the wrong meaning.
-- **A referred limit.** The runner says that no test in the Goal can run a case, or that the case does not apply to any candidate. The question waits for your accept or your return.
-- **Two or more candidates.** hyp cannot choose between designs that both meet every line. You choose.
+The block can hold more lines:
 
-A reading holds the decision, not all the work. It also holds the question's next Hypothesis in two cases: when your answer can move a Hypothesis there (keep it, drop it or revive it), or when the question has no open limit that the runner can run. In those cases hyp owes no `rivals` item, and the runner cannot add a Hypothesis there, or supersede or abandon a Hypothesis your answer can move. When the runner has an open limit to run and your answer can move no Hypothesis, the runner continues with that limit while the reading waits. A Hypothesis that the reading's Result judged inconclusive waits for your answer too: hyp does not ask the runner to decide it.
+| Line | Means |
+|---|---|
+| `last run: after this, G stops for the owner.` | The runner used two of three runs. |
+| `split: <line> on row <tree>` | The examples of one line give different verdicts on one build. |
+| `unstable:` | Two runs on the same bytes gave two verdicts. The first verdict stands. The example needs your attention. |
+| `refused at replay:` | A merged log broke a guard, for example with a fourth Hypothesis in one budget. hyp skips that event and keeps it in the log. |
+| `outputs:` | At a stop for you: the verdict, exit code and output of each example on each build. |
+| `PR body:` | When the Goal is selected: the report of the select. |
 
-```mermaid
-flowchart LR
-  R[Result with an open reading] --> Q{Answer can move a Hypothesis,<br/>or no open limit to run?}
-  Q -- no --> W[runner runs the open limit;<br/>no select yet]
-  Q -- yes --> S[runner owes nothing:<br/>the run stops]
-  S --> A[you answer the reading]
-  W --> A
-  A --> N[runner applies your answer]
-```
+`hyp show <actor>` prints what hyp printed to that actor, byte for byte. Use it to read what the runner saw.
 
-## What you answer, and how
+## When a Goal stops
 
-Run each command in the store's directory, under your own actor name.
+hyp calculates three stops ([spec §11](state-machine.md#11-budget-and-stops)):
 
-| What waits for you | What it asks | Command |
-|---|---|---|
-| An open reading, key `R-…#rN` | What do your words mean? | `hyp answer --answer "R-…#rN=<your words>" --actor <you>` |
-| A referred limit, key `R-…#n` or `G-…#n` | Does this Goal run the case? No. | `hyp answer --accept "<key>=<your words>" --actor <you>` |
-| A referred or accepted limit | Does this Goal run the case? Yes. | `hyp answer --returns "<key>=<your words>" --actor <you>` |
-| `choose: H-…, H-…` | Which candidate? | Tell the runner. It records `hyp select <Q> <H> --why "<your words>"` |
+| Stop | When | What you see | What you do |
+|---|---|---|---|
+| Selected | The Goal has a select. | The PR body. | Read the PR, then merge it or not. |
+| Two candidates | Two or more builds meet every line, and none is selected. | The `outputs:` table. | Select one, or have the grill add an example. |
+| Budget used | Three Hypotheses ran since the boundary, and no build meets every line. | The `outputs:` table. | Have the grill change an example, or record a new Goal. |
 
-- **An answer has no `--why`.** Your words in each item are the reason. hyp refuses `--why` on `hyp answer` with exit 2.
-- **One answer can hold many keys.** Repeat the flag for each key, also for keys of other Goals in the same store.
-- **To change an answer, answer the reading again.** The new words apply from then on. The earlier answer stays in the history, and no earlier verdict changes.
-- **An accept takes the case out of this Goal only.** A later Goal can take the case: one of its lines cites the accepted key.
+hyp prints the table, not a reading of it. It gives no score and no summary line.
 
-## When a Goal is wrong or outgrown
+### Selected
 
-A run can teach you that a Goal is wrong or outgrown. Then end it, once, in your own words:
+The runner selects when exactly one build meets every line. The report of the select is the PR body. It holds each line, the words, output, stderr, exit code and verdict of each example, and the selected commit and row. `hyp status G` prints it again while the Goal is selected. The runner pastes it into the PR.
+
+A selected Goal refuses every further place, run and select. If your review finds a gap, the gap is a new Goal that cites this one. The grill grills it from the start.
+
+### Two candidates
+
+Only you can select now, and only under the actor name that added the Goal. `hyp status G --role owner` prints one ready line for each candidate:
 
 ```text
-hyp answer --end "G-…=<your words>" --actor <you>
+owner may:
+  hyp select G-NXHHVA <tree>
 ```
 
-Only the actor that added the Goal ends it; a Goal a runner actor added ends only under that runner's name. An end is an answer of its own: it names no other key of the same Goal. After it, the Goal reads `ended`, and nothing of it is owed or waits for you. hyp refuses every write under it, and `hyp prompt` refuses it. `hyp show` still prints its lines, readings, limits and Results. A later Goal can point at your end: one of its lines cites the ended Goal's id, or any of its keys. An end is never taken back.
+Run the line of the build you choose. The selected commit must hold a spec under `goals/<G>/specs/`, or hyp refuses the select.
 
-## After you answer
+A candidate can meet the lines in a way you did not mean. Then the fix is an example. The grill can add an example that fails that build. The grill can also add a floor or a ceiling to an example.
 
-Your answer creates work for the runner, and the next run does it:
+### Budget used
 
-- An answered reading becomes the runner's `apply answer` item. A Result applies it with `--applies` and gives new verdicts.
-- A returned limit becomes the runner's `limit` item again. A Result runs the case and closes the limit.
-- When no rival is left, the runner adds a new Hypothesis. Its Experiment runs the open limits and applies your answers.
+The runner ran three Hypotheses, and none meets every line. Read the `outputs:` table to see where each build failed.
 
-The Goal is complete when every live question under it has an answer. Your Goal is met when it is complete and OWED shows no line of it. A Goal you ended reads `ended` instead.
+- If an example is wrong, the grill changes it. A new version of an example can only add a floor or a ceiling. A changed run, input or Probe is a new example key. A placement that changes an example moves the boundary of the budget. Then the runner gets three new runs.
+- If the Goal itself is wrong, record a new Goal with `--from G`.
+
+## What hyp does not have yet
+
+The spec names acts that later Goals will build: `land`, `reset` and `retract` ([spec §8](state-machine.md#8-acts)). So no command gives the budget back without an example change. A Goal also has no end state. The end waits for a real event that needs it ([spec §14](state-machine.md#14-deferred)). `hyp help` lists every command that the binary has, and `hyp status` offers only those.
