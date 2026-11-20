@@ -33,6 +33,11 @@ hyp printed. A skill names no write command." So this skill shows only reads
 copy from a line hyp printed. Set `HYP_ACTOR` to your actor name and
 `HYP_ROLE=grill` for every command. The owner records the Goal itself, with the
 act `hyp help` lists for adding a Goal; you draft the words and lines it takes.
+In that draft, set `HYP_ACTOR` to the owner's actor, never a placeholder: the
+actor of the `goal.add` events in the store, which `.tree/events/<actor>.jsonl`
+names. Ask the owner once, only when the store has no Goal yet or several actors
+added Goals. The owner's acts that end or reopen a Goal are allowed only to the
+actor that added it, so a wrong actor locks the owner out of them.
 
 ## Decisions
 
@@ -89,6 +94,11 @@ The issue is the owner's record, not a rule for the runner:
 8. **Draft the words and lines.** One sentence of words. Each line is `gap`
    (false on H0, the build must make it true) or `guard` (true on H0, the build
    must keep it true). A Goal needs at least one gap line. The owner records it.
+   When a line makes something wait for new evidence, or counts acts, check
+   whether repeating an earlier act on the same bytes (the same example, the
+   same row) would meet its words. If it would, write the line in terms of what
+   changed, such as a new example placed or a row not run before, not an act
+   being recorded. The same check on the same bytes teaches nothing.
 9. **Switch to a record branch before the Goal is recorded.** The Goal's events
    and examples reach the default branch only through a record PR, never by a
    write on it. Before you show the owner the act that adds the Goal, run
