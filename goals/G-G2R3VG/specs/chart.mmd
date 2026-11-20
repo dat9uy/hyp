@@ -1,0 +1,52 @@
+---
+title: "hyp G-G2R3VG: the Spec guard reads the model"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: commit
+    lg1: selected
+    lg2: refused
+  }
+  class lg0 teal
+  class lg1 blue
+  class lg2 orange
+  s0: Spec folder: no spec
+  s1: Spec folder: a model, a rule with no switch, no chart
+  s2: Spec folder: a plain spec
+  s3: Refused: no spec
+  s4: Refused: names each rule with no switch
+  s5: Selected
+  s6: Spec folder: a model, a rule with no switch, a chart
+  s7: Spec folder: a model, a switch for every rule, no chart
+  s8: Refused: names the missing chart
+  s9: Spec folder: a model, a switch for every rule, a chart
+  [*] --> s0
+  s0 --> s1: the runner commits a model
+  s0 --> s2: the runner commits a plain spec
+  s0 --> s3: the runner asks hyp to select
+  s1 --> s4: the runner asks hyp to select
+  s1 --> s6: the runner commits the chart
+  s2 --> s1: the runner commits a model
+  s2 --> s5: the runner asks hyp to select
+  s3 --> s0: the runner commits again
+  s0 --> s6: the runner commits a model
+  s1 --> s7: the runner commits a switch config
+  s4 --> s1: the runner commits again
+  s6 --> s4: the runner asks hyp to select
+  s2 --> s6: the runner commits a model
+  s7 --> s8: the runner asks hyp to select
+  s7 --> s9: the runner commits the chart
+  s6 --> s9: the runner commits a switch config
+  s4 --> s6: the runner commits again
+  s8 --> s7: the runner commits again
+  s9 --> s5: the runner asks hyp to select
+  class s0 teal
+  class s1 teal
+  class s2 teal
+  class s3 orange
+  class s4 orange
+  class s5 blue
+  class s6 teal
+  class s7 teal
+  class s8 orange
+  class s9 teal
