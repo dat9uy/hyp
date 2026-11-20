@@ -1,0 +1,39 @@
+-- words --
+The statechart tool that ships in /hyp-statechart runs on a small model with a switch config that breaks LonelyRule, and writes a chart that marks LonelyRule and a report that says LonelyRule breaks and NamedRule holds.
+-- input/small.tla --
+---- MODULE small ----
+EXTENDS Naturals
+CONSTANT SkipCheck
+VARIABLE x
+Init == x = 0
+Step == x' = IF SkipCheck THEN 2 ELSE 1 - x
+Next == Step
+Spec == Init /\ [][Next]_x
+NamedRule == x \in 0..2
+LonelyRule == x < 2
+====
+-- input/switch.cfg --
+SPECIFICATION Spec
+
+CONSTANTS
+    SkipCheck = TRUE
+
+INVARIANTS
+    NamedRule
+    LonelyRule
+-- run --
+t=$(find skills/hyp-statechart -type f -name statechart -perm -u+x 2>/dev/null | head -n 1)
+if [ -n "$t" ]; then echo "the shipped tool: yes"; else echo "the shipped tool: no"; exit 0; fi
+o=$(mktemp -d)/out
+"$t" "$HYP_EXAMPLE/input/small.tla" --config "$HYP_EXAMPLE/input/switch.cfg" --out "$o" >/dev/null 2>&1
+yn() { if [ "$1" = 0 ]; then echo yes; else echo no; fi; }
+test -s "$o/chart.mmd"; echo "chart written: $(yn $?)"
+grep -qF 'Breaks LonelyRule' "$o/chart.mmd" 2>/dev/null; echo "the chart marks LonelyRule: $(yn $?)"
+grep -qxF '## LonelyRule breaks' "$o/report.md" 2>/dev/null; echo "the report says LonelyRule breaks: $(yn $?)"
+sed -n '/^## Rules that hold$/,/^## /p' "$o/report.md" 2>/dev/null | grep -qw NamedRule; echo "the report says NamedRule holds: $(yn $?)"
+-- floor: equals --
+the shipped tool: yes
+chart written: yes
+the chart marks LonelyRule: yes
+the report says LonelyRule breaks: yes
+the report says NamedRule holds: yes
