@@ -1,0 +1,351 @@
+-- words --
+The model of #234, trace.tla with its check config trace.cfg and a chart but no switch config: select refuses the commit, and the refusal names NothingIsHiddenFromGit and every other rule trace.cfg checks.
+-- input/lib.sh --
+# Shared helpers for the select examples of this Goal. Each example holds its
+# own copy as input/lib.sh. The run section sources it from the subject's root.
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+out=$(mktemp -d) || exit 91
+in=$HYP_EXAMPLE/input
+d='--'
+
+hy() { _a=$1 _r=$2; shift 2; HYP_ACTOR=$_a HYP_ROLE=$_r "$bin/hyp" "$@"; }
+save() { git add -A && git commit -q -m "$1"; }
+has() { if grep -qF -- "$1"; then echo yes; else echo no; fi; }
+hasi() { if grep -qiF -- "$1"; then echo yes; else echo no; fi; }
+
+# mkrepo: a repository with one Goal whose one gap line needs a.txt to say bye;
+# sets g, then places line-1/a, so the Goal is open.
+mkrepo() {
+  r=$(mktemp -d) && cd "$r" && git init -q -b main && echo hello >greet.txt && save base &&
+  g=$(hy owner owner add goal --base HEAD --words "Say bye in a.txt." --line "gap:a.txt says bye." 2>/dev/null | sed -n 's/^recorded //p') && [ -n "$g" ] && save "record $g" &&
+  mkdir -p "goals/$g/line-1/a/probe" && cp "$HYP_EXAMPLE/probe/run" "goals/$g/line-1/a/probe/run" && chmod +x "goals/$g/line-1/a/probe/run" &&
+  printf '%s words %s\na.txt says bye.\n%s run %s\ncat a.txt\n%s floor: contains %s\nbye\n' "$d" "$d" "$d" "$d" "$d" "$d" >"goals/$g/line-1/a/example.txtar" &&
+  save "example of $g" && hy grill grill place "$g" line-1/a >/dev/null 2>&1 && save "place $g" && echo bye >a.txt
+}
+# spec FILE...: copy each input file into the Goal's spec folder; a name
+# with a slash, such as switches/x.cfg, keeps its folder.
+spec() { for f in "$@"; do mkdir -p "goals/$g/specs/$(dirname "$f")" && cp "$in/$f" "goals/$g/specs/$f" || return 1; done; }
+# runsel N: commit, run line-1 on HEAD, then select the row the run printed;
+# the select's stdout and stderr in $out/select.N, its exit code in sc.
+runsel() {
+  save "change $1" && hy runner-1 runner run HEAD "$g/line-1" >"$out/run.$1" 2>&1; save "run $1" >/dev/null 2>&1
+  row=$(sed -n 's/^row: //p' "$out/run.$1" | head -n 1)
+  hy runner-1 runner select "$g" "$row" >"$out/select.$1" 2>&1; sc=$?; save "select $1" >/dev/null 2>&1
+  return 0
+}
+-- input/trace.tla --
+----------------------------- MODULE trace -----------------------------
+(***************************************************************************)
+(* Where hyp keeps what it printed to an agent, Goal G-3FDQC0: "Take reads *)
+(* back out of the log".                                                   *)
+(*                                                                         *)
+(* One clone has two worktrees, the main checkout and the runner's        *)
+(* worktree; a second clone has one. Each worktree has its own files: the  *)
+(* log's events and the output files of .tree/. Agents run commands in a   *)
+(* worktree: a read, a refusal, a bad argument, a recorded act, or a run   *)
+(* that Stable refuses, which is exit 1 and still records its event. An    *)
+(* act hashes its Probes' outputs, checks its guards again, and only then  *)
+(* writes the outputs and its event. hyp then writes the trace, and only   *)
+(* then prints. The owner merges the runner's worktree into the main       *)
+(* checkout. Before the change, a read was already recorded in the log:    *)
+(* the old read, id 0.                                                     *)
+(*                                                                         *)
+(* The rules are the Goal's two lines and the owner's three decisions:     *)
+(*   line 1      an agent's or the owner's read makes no change in the     *)
+(*               repository;                                               *)
+(*   line 2      the owner can read exactly what the agent read;           *)
+(*   decision 1  the log holds only acts that change a Goal;               *)
+(*   decision 2  a read, a refusal or a bad argument leaves nothing; a     *)
+(*               recorded act leaves its event and the outputs it names;   *)
+(*   decision 3  the owner reads an agent's reads from any worktree of the *)
+(*               clone the agent used.                                     *)
+(* TraceInLog and WriteOutputsEarly are the two ways the build before this *)
+(* change worked; the config sets both FALSE.                             *)
+(***************************************************************************)
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS
+    Actors,             \* the agents and the owner
+    MaxCommands,        \* how many commands run in all
+    TraceInLog,         \* TRUE: a read event goes into the worktree's log
+    WriteOutputsEarly   \* TRUE: an act writes its outputs before it checks again
+
+Worktrees == {"main", "runner-wt", "other-clone"}
+CloneOf   == [w \in Worktrees |-> IF w = "other-clone" THEN "c2" ELSE "c1"]
+Clones    == {"c1", "c2"}
+
+\* What a command ends as. "act" is recorded; "stable" is exit 1 and recorded.
+Kinds     == {"read", "refusal", "bad-argument", "act", "stable"}
+LeaveNothing == {"read", "refusal", "bad-argument"}
+Recorded     == {"act", "stable"}
+GoalActs     == {"goal.add", "example.place", "result.record", "select"}
+
+\* The read an earlier hyp wrote into the log, with its output, id 0.
+OldRead == [id |-> 0, type |-> "read", actor |-> "runner", names |-> {0}]
+
+VARIABLES
+    repo,     \* repo[w]: the files of worktree w: its events and output files
+    trace,    \* trace[c]: the reads in the trace folder of clone c
+    got,      \* got[a]: what actor a got: a command id and the clone it ran in
+    phase,    \* "idle", "probing", "checked", "outputs written", "ended", "traced"
+    cur,      \* the command in flight
+    before,   \* the files of its worktree when it started
+    pending,  \* the outputs it hashed and has not written
+    last,     \* the last command that ended: its kind, its id, and its worktree's files before and after
+    n,        \* commands run
+    crashes,  \* acts that crashed after their outputs, before their event
+    skipped   \* files hyp told git to skip or ignore
+
+vars == <<repo, trace, got, phase, cur, before, pending, last, n, crashes, skipped>>
+
+NoCommand == [w |-> "main", actor |-> "runner", kind |-> "none", id |-> 0]
+NoLast    == [kind |-> "none", id |-> 0, before |-> [ev |-> {}, out |-> {}], after |-> [ev |-> {}, out |-> {}]]
+
+Init ==
+    /\ repo = [w \in Worktrees |-> [ev |-> {OldRead}, out |-> {0}]]
+    /\ trace = [c \in Clones |-> {}]
+    /\ got = [a \in Actors |-> IF a = "runner" THEN {[id |-> 0, clone |-> "c1"], [id |-> 0, clone |-> "c2"]} ELSE {}]
+    /\ phase = "idle"
+    /\ cur = NoCommand
+    /\ before = [ev |-> {}, out |-> {}]
+    /\ pending = {}
+    /\ last = NoLast
+    /\ n = 0
+    /\ crashes = 0
+    /\ skipped = {}
+
+SetRepo(w, files) == repo' = [repo EXCEPT ![w] = files]
+
+(* An actor runs a command in a worktree. A read, a refusal by a guard     *)
+(* that needs no Probe, and a bad argument after the actor end at once.    *)
+Start(w, a, k) ==
+    /\ phase = "idle" /\ n < MaxCommands
+    /\ n' = n + 1
+    /\ cur' = [w |-> w, actor |-> a, kind |-> k, id |-> n + 1]
+    /\ before' = repo[w]
+    /\ phase' = IF k \in Recorded THEN "probing" ELSE "ended"
+    /\ UNCHANGED <<repo, trace, got, pending, last, crashes, skipped>>
+
+(* The Probes end: hyp hashes their outputs.                               *)
+ProbesEnd ==
+    /\ phase = "probing"
+    /\ pending' = {cur.id}
+    /\ IF WriteOutputsEarly
+         THEN SetRepo(cur.w, [repo[cur.w] EXCEPT !.out = @ \cup {cur.id}])
+         ELSE UNCHANGED repo
+    /\ phase' = "checked"
+    /\ UNCHANGED <<trace, got, cur, before, last, n, crashes, skipped>>
+
+(* A guard checked again under the lock refuses: another act landed while *)
+(* the Probes ran.                                                         *)
+RecheckRefuses ==
+    /\ phase = "checked"
+    /\ cur' = [cur EXCEPT !.kind = "refusal"]
+    /\ pending' = {} /\ phase' = "ended"
+    /\ UNCHANGED <<repo, trace, got, before, last, n, crashes, skipped>>
+
+(* Every guard holds again: hyp writes the outputs the event will name.   *)
+OutputsWritten ==
+    /\ phase = "checked"
+    /\ SetRepo(cur.w, [repo[cur.w] EXCEPT !.out = @ \cup pending])
+    /\ phase' = "outputs written"
+    /\ UNCHANGED <<trace, got, cur, before, pending, last, n, crashes, skipped>>
+
+EventWritten ==
+    /\ phase = "outputs written"
+    /\ SetRepo(cur.w, [repo[cur.w] EXCEPT !.ev = @ \cup
+                {[id |-> cur.id, type |-> "result.record", actor |-> cur.actor, names |-> pending]}])
+    /\ pending' = {} /\ phase' = "ended"
+    /\ UNCHANGED <<trace, got, cur, before, last, n, crashes, skipped>>
+
+(* hyp crashes between the outputs and the event: the outputs stay, named *)
+(* by no event.                                                           *)
+CrashBeforeEvent ==
+    /\ phase = "outputs written"
+    /\ crashes' = crashes + 1
+    /\ pending' = {} /\ phase' = "idle" /\ cur' = NoCommand
+    /\ UNCHANGED <<repo, trace, got, before, last, n, skipped>>
+
+(* hyp records what it will print: in the clone's trace folder, or, the   *)
+(* build before this change, as a read event in the worktree's log.       *)
+TraceWritten ==
+    /\ phase = "ended"
+    /\ IF TraceInLog
+         THEN /\ SetRepo(cur.w, [ev |-> repo[cur.w].ev \cup
+                     {[id |-> cur.id, type |-> "read", actor |-> cur.actor, names |-> {cur.id}]},
+                                 out |-> repo[cur.w].out \cup {cur.id}])
+              /\ UNCHANGED trace
+         ELSE /\ trace' = [trace EXCEPT ![CloneOf[cur.w]] = @ \cup {[id |-> cur.id, actor |-> cur.actor]}]
+              /\ UNCHANGED repo
+    /\ phase' = "traced"
+    /\ UNCHANGED <<got, cur, before, pending, last, n, crashes, skipped>>
+
+Printed ==
+    /\ phase = "traced"
+    /\ got' = [got EXCEPT ![cur.actor] = @ \cup {[id |-> cur.id, clone |-> CloneOf[cur.w]]}]
+    /\ last' = [kind |-> cur.kind, id |-> cur.id, before |-> before, after |-> repo[cur.w]]
+    /\ phase' = "idle" /\ cur' = NoCommand
+    /\ UNCHANGED <<repo, trace, before, pending, n, crashes, skipped>>
+
+(* The owner merges the runner's worktree into the main checkout.         *)
+OwnerMerges ==
+    /\ phase = "idle"
+    /\ repo["runner-wt"] # repo["main"]
+    /\ SetRepo("main", [ev |-> repo["main"].ev \cup repo["runner-wt"].ev,
+                        out |-> repo["main"].out \cup repo["runner-wt"].out])
+    /\ last' = NoLast
+    /\ UNCHANGED <<trace, got, phase, cur, before, pending, n, crashes, skipped>>
+
+Done ==
+    /\ phase = "idle" /\ n = MaxCommands
+    /\ UNCHANGED vars
+
+Next ==
+    \/ \E w \in Worktrees, a \in Actors, k \in Kinds : Start(w, a, k)
+    \/ ProbesEnd
+    \/ RecheckRefuses
+    \/ OutputsWritten
+    \/ EventWritten
+    \/ CrashBeforeEvent
+    \/ TraceWritten
+    \/ Printed
+    \/ OwnerMerges
+    \/ Done
+
+Spec == Init /\ [][Next]_vars
+
+-----------------------------------------------------------------------------
+(* What the owner's hyp show ACTOR prints in worktree w: the old read     *)
+(* events of w's log, and the reads of the trace of w's clone.            *)
+Show(w, a) ==
+    {e.id : e \in {x \in repo[w].ev : x.type = "read" /\ x.actor = a}}
+    \cup {r.id : r \in {x \in trace[CloneOf[w]] : x.actor = a}}
+
+\* What actor a got from commands in clone c.
+GotIn(c, a) == {g.id : g \in {x \in got[a] : x.clone = c}}
+
+(* Rules. Each is an INVARIANT of trace.cfg.                              *)
+
+(* Decision 1: the log holds only acts that change a Goal; the one read   *)
+(* in it is the old read an earlier hyp wrote.                            *)
+LogHoldsOnlyGoalActs ==
+    \A w \in Worktrees : \A e \in repo[w].ev :
+        e.type \in GoalActs \/ e = OldRead
+
+(* Line 1 and decision 2: a read, a refusal or a bad argument leaves the  *)
+(* files of its worktree as they were.                                    *)
+ALeaveNothingCommandLeavesNothing ==
+    last.kind \in LeaveNothing => last.after = last.before
+
+(* Decision 2: a recorded act, a Stable refusal included, adds its own    *)
+(* event and only the outputs that event names.                           *)
+AnActLeavesItsEventAndItsOutputs ==
+    last.kind \in Recorded =>
+        \E e \in last.after.ev :
+            /\ e.id = last.id /\ e.type \in GoalActs
+            /\ last.after.ev = last.before.ev \cup {e}
+            /\ last.after.out \ last.before.out \subseteq e.names
+
+(* Decision 2: every output file is named by an event, or was left by an  *)
+(* act that crashed before its event.                                     *)
+EveryOutputIsNamedOrCrashed ==
+    \A w \in Worktrees : crashes = 0 /\ phase = "idle" =>
+        repo[w].out \subseteq UNION {e.names : e \in repo[w].ev}
+
+(* The limit of §13: hyp hides no file from git.                          *)
+NothingIsHiddenFromGit == skipped = {}
+
+(* Line 2: once a command has ended, show in any worktree holds exactly   *)
+(* what the actor got from commands in that worktree's clone.             *)
+ShowHoldsExactlyWhatTheActorGot ==
+    phase = "idle" =>
+        \A w \in Worktrees, a \in Actors : Show(w, a) = GotIn(CloneOf[w], a)
+
+(* Decision 3: every worktree of one clone shows the same reads, before   *)
+(* any merge.                                                             *)
+AnyWorktreeOfTheClone ==
+    \A w1, w2 \in Worktrees, a \in Actors :
+        CloneOf[w1] = CloneOf[w2] => Show(w1, a) = Show(w2, a)
+
+(* The old read in the log still shows, in every worktree.                *)
+OldReadStillShows ==
+    \A w \in Worktrees : 0 \in Show(w, "runner")
+
+TypeOK ==
+    /\ phase \in {"idle", "probing", "checked", "outputs written", "ended", "traced"}
+    /\ n \in 0..MaxCommands
+    /\ crashes \in 0..MaxCommands
+
+=============================================================================
+-- input/trace.cfg --
+SPECIFICATION Spec
+
+CONSTANTS
+    Actors = {"runner", "owner"}
+    MaxCommands = 1
+    TraceInLog = FALSE
+    WriteOutputsEarly = FALSE
+
+INVARIANTS
+    TypeOK
+    LogHoldsOnlyGoalActs
+    ALeaveNothingCommandLeavesNothing
+    AnActLeavesItsEventAndItsOutputs
+    EveryOutputIsNamedOrCrashed
+    NothingIsHiddenFromGit
+    ShowHoldsExactlyWhatTheActorGot
+    AnyWorktreeOfTheClone
+    OldReadStillShows
+-- input/chart.mmd --
+---
+title: "hyp G-3FDQC0: the trace is not the log"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: rest
+    lg1: act
+    lg2: trace
+  }
+  class lg0 teal
+  class lg1 orange
+  class lg2 purple
+  s0: No command running
+  s1: Command ended, output held back
+  s2: Act: Probes running
+  s3: Act: outputs hashed, guards checked again
+  s4: Trace recorded outside the repository
+  s5: Act: outputs written, event not yet
+  [*] --> s0
+  s0 --> s1: an agent reads, is refused, or gives a bad argument
+  s0 --> s2: an agent runs an act that runs Probes
+  s1 --> s4: hyp records what it will print, in the clone's trace folder
+  s2 --> s3: the Probes end#59; hyp hashes their outputs
+  s3 --> s1: a guard checked again refuses#59; nothing is written
+  s3 --> s5: every guard holds#59; hyp writes the outputs
+  s4 --> s0: hyp prints to the agent
+  s5 --> s1: hyp appends the act's event
+  s5 --> s0: hyp crashes before the event
+  class s0 teal
+  class s1 purple
+  class s2 orange
+  class s3 orange
+  class s4 purple
+  class s5 orange
+-- run --
+. "$HYP_EXAMPLE/input/lib.sh"
+mkrepo || exit 92
+spec trace.tla trace.cfg chart.mmd || exit 93
+runsel 1
+echo "select exit: $sc"
+echo "the refusal names NothingIsHiddenFromGit: $(has NothingIsHiddenFromGit <"$out/select.1")"
+all=yes
+for rule in $(awk '/^INVARIANTS?/ { p = 1; next } /^[A-Z_]+/ { p = 0 } p && NF { print $1 }' "$in/trace.cfg"); do
+  [ "$(has "$rule" <"$out/select.1")" = yes ] || all=no
+done
+echo "the refusal names every rule of trace.cfg: $all"
+-- floor: equals --
+select exit: 1
+the refusal names NothingIsHiddenFromGit: yes
+the refusal names every rule of trace.cfg: yes
