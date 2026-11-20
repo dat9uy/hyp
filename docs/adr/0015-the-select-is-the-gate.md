@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: accepted; holds in part in v2, see the note below
 ---
+
+In v2 this part holds: the select is the gate. hyp records a select only for a candidate, and the selected commit must hold a spec ([state-machine.md §7](../state-machine.md#7-guards), Candidate and Spec; [§8](../state-machine.md#8-acts), `select`). The ledger, `AdmitSelect` and the owner confirm are v1 only.
 
 Superseded in part by [ADR 0021](0021-a-skill-change-is-a-build-goal.md): the frozen verifier recipes are removed.
 

@@ -1,5 +1,5 @@
 ---
-status: accepted; extended by ADR 0018: an Experiment may sit under a DesignQuestion
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no Experiment. Extended by ADR 0018: an Experiment may sit under a DesignQuestion
 ---
 
 # An Experiment has a lifecycle of its own

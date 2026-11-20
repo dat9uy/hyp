@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no sandbox record, command record or patch
 ---
 
 Superseded in part by [ADR 0021](0021-a-skill-change-is-a-build-goal.md): the skill-text recipes it names as a follow-up are removed.

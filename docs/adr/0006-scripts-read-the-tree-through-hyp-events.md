@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: accepted; holds in part in v2, see the note below
 ---
+
+In v2 this part holds: hyp keeps no index, and every command calculates its tables from the log ([state-machine.md §5](../state-machine.md#5-calculated-tables)). `hyp events`, the Projection and recipe scripts are v1 only.
 
 # hyp has no index, and scripts read the tree through `hyp events`
 

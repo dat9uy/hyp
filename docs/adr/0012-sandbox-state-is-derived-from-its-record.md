@@ -1,12 +1,12 @@
 ---
-status: accepted
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no sandbox
 ---
 
 # A sandbox's state is derived from its record and its lock
 
 A `kill -9` during Launch left `setup` absent. Drive refused only `setup == "failed"`, so `hyp sandbox drive` ran and exited 0 on a setup that never finished. A directory with no record could not be removed at all: create said to remove it and remove said no such sandbox. State was being inferred in several places, from a file, a per-recipe string, a lock and process checks. The sandbox had no machine. The owner accepted this in the architecture review of 2026-11-05 (#44). There is no tree: the choices below were design decisions, not measurable rivals, and the gate is `go test`.
 
-**The sandbox has a state machine, whose state is derived.** One pure function, `deriveState`, reads each recipe's `setup`, whether the lock is held and one stored field, `removing`, and returns `building`, `setting_up`, `interrupted`, `ready`, `setup_failed` or `removing`. Each command refuses by that state ([sandbox-spec.md](../sandbox-spec.md) §2). `interrupted` is never written: it is what an unfinished setup and a free lock mean, so no crash can leave it wrong.
+**The sandbox has a state machine, whose state is derived.** One pure function, `deriveState`, reads each recipe's `setup`, whether the lock is held and one stored field, `removing`, and returns `building`, `setting_up`, `interrupted`, `ready`, `setup_failed` or `removing`. Each command refuses by that state ([sandbox-spec.md](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md) §2). `interrupted` is never written: it is what an unfinished setup and a free lock mean, so no crash can leave it wrong.
 
 **`setup` is written per recipe, and the manifest before the last one.** A sandbox that reads as `ready` has finished every setup and has its baseline, whichever write a kill lands between.
 

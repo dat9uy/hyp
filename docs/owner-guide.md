@@ -1,114 +1,193 @@
 # Owner guide
 
-You are the owner of a Goal when you record it. The grill helps you write the Goal and places its examples. The runner builds commits and runs the lines on them. hyp calculates every state and stop from the events. It prints the acts that each role may take next. This guide tells you what you see, when a Goal stops for you, and what you do then.
+You are the owner of a Goal when you add it. This guide tells you what you do, what you read and what you decide, from the issue to the land. Read the [README](../README.md) first: it says what a Goal, a line, an example and a Hypothesis are. [glossary.md](glossary.md) defines each word. [state-machine.md](state-machine.md) is the one spec of the rules, and when this guide and the spec disagree, the spec wins.
 
-[state-machine.md](state-machine.md) is the one spec of these rules. When this guide and the spec disagree, the spec wins. [principles.md](principles.md#6-who-does-what) states your role as rules.
+## What you decide, and why it matters
 
-## What you do
+An agent that builds a change can also say when the change is done. hyp takes that decision away from the agent and gives it to you, in four parts:
 
-- **You record the Goal.** A Goal has words and up to ten lines. The words are one sentence of what you want. A `gap` line is false on H0, the Goal's base commit, and a build must make it true. A `guard` line is true on H0, and a build must keep it true. A Goal needs at least one gap line.
-- **You can replace a Goal until it opens.** While the Goal is `written`, `hyp add goal G …` replaces it. After it opens, its words and lines are frozen. A new line is a new Goal. The new Goal can cite the old one with `--from G`.
-- **You choose between candidates.** When two or more builds meet every line, only you can select one.
-- **You merge.** hyp writes nothing to GitHub. The record branch holds the Goal, its examples and their place events, and it merges before the runner runs. The runner's PR holds the build and its select. Your merge accepts the build. You veto the build's mechanics there.
-- **You produce no evidence.** You never place an example, run a line or give a verdict. A verdict comes only from the compare of an example on a commit ([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
+- **You state what must be true, before any build.** The Goal's words and lines, against the base commit H0, are the only wants the agents work toward. An agent can show you a gap and ask you. Only your act adds a want.
+- **An example counts only if it can fail.** hyp runs each example on H0 before it accepts the example. So a verdict on a build can show a real change from H0.
+- **Verdicts are calculated, not argued.** A literal compare of the output gives `met` or `failed`. When a verdict seems wrong to you, the fix is a better example, not a discussion.
+- **You decide at the stops.** hyp stops the loop and waits for you. Only you choose between two candidates, accept a build with a merge, and end a Goal with a land.
 
-hyp does not authenticate actors. An act under your actor name shows only that someone ran it with that name ([spec §2](state-machine.md#2-ids-actors-and-roles)).
+You read examples and their outputs, not code. You read code only at the merge, where you can reject how the build works.
 
-## Record a Goal
+Four roles act: owner, grill, Probe writer and runner. hyp is not a role: it runs each Probe, calculates each state and refuses an act that breaks a rule. Only the actor that added a Goal can select for the owner, unselect or land that Goal. hyp does not authenticate actors, so this rule catches an honest mistake, not a lie.
 
-The grill drafts the words and the lines with you. You record them yourself, with the role `owner`:
+## The life of a Goal
 
-```bash
-export HYP_ACTOR=<you> HYP_ROLE=owner
-hyp add goal --base <H0 commit> --words "<what you want>" \
-  --line "gap:<what must become true>" --line "guard:<what must stay true>"
+A Goal is `written`, `open`, `selected` or `landed`. hyp calculates the state from the events, and you never set it:
+
+```mermaid
+stateDiagram-v2
+  [*] --> written: you add the Goal
+  written --> open: the grill places an example on each line
+  open --> selected: a select
+  selected --> open: you unselect
+  open --> landed: you land at Two candidates or Budget used
+  selected --> landed: you land
+  landed --> [*]
 ```
 
-The first `hyp add goal` in a repository creates the store, `.tree/`. Commit the store on the record branch. The grill then places examples on each line. The Goal opens when every line holds an example that gives its line's verdict on H0. That verdict is `failed` on a gap line and `met` on a guard line.
+**1. The grill asks, and you answer.** A real event, such as a refusal or a run you flag, starts an issue. A session with the [hyp-grill](../skills/hyp-grill/SKILL.md) skill asks you questions about that issue. It asks only what you want to be true, never how to build it. Each question gives options with a short label and a description of what each option makes the runner build. You pick by the label, and the label is the text that the grill records. When you correct a draft, the grill shows it again and waits for your consent. The grill writes each of your decisions to the issue, in your words. A record cites only an issue, a PR or a commit.
+
+**2. You add the Goal.** The grill switches to a record branch and drafts the command with your actor. You run it yourself:
+
+```bash
+export HYP_ACTOR=<your actor> HYP_ROLE=owner
+hyp add goal --base <H0 commit> --words "<one sentence>" \
+  --line "gap:<what the build must make true>" \
+  --line "guard:<what the build must keep true>"
+```
+
+A Goal has one to ten lines and a minimum of one gap line. The Goal is `written` and `waits: grill`. While it is written, `hyp add goal G …` replaces it. After it opens, its words and lines are frozen, and a new line is a new Goal.
+
+**3. The grill places the examples and hands off.** The grill writes each example and runs it on H0. A gap example must fail there, and a guard example must be met. The Goal opens when each line holds such an example. When the change moves through states, the grill also writes a model and its chart with the [hyp-statechart](../skills/hyp-statechart/SKILL.md) skill. It tries each cheap wrong build of the model as a patch. When a wrong build passes every example, the grill shows it to you and proposes an example that fails it. You decide: the grill places that example, or lists the gap under "Not covered".
+
+The hand-off lists your decisions and a part named "Not covered". Each item there is a want that no example checks. The runner never gets it as a task, so a "Not covered" item can stay false in the build.
+
+**4. You merge the record PR.** The record PR holds the Goal, its examples, their place events and the model. Merge it before the runner runs, so the examples reach the runner's commits.
+
+**5. The runner runs.** You start a runner session with [run-rules.md](../skills/hyp-grill/run-rules.md). Each build that the runner offers is a Hypothesis, keyed by its subject hash. The budget is three Hypotheses after H0. A candidate is a Hypothesis that meets every line and has no Hypothesis built on it. With one candidate, the runner selects it. You may select a candidate at any time, and you do not have to wait for the runner.
+
+**6. You read the select report.** The report of the select is the PR body. It shows each line, and each example's words, verdict, exit code, output and stderr. It prints each chart of the model in a `mermaid` block, under `## Chart: goals/<G>/specs/chart.mmd`. It ends with the selected commit and row. Read each output against what you meant, not only its verdict. The PR can also name wrong builds that pass every example. To close such a gap, unselect the Goal and have the grill place an example that fails that build.
+
+**7. You merge the runner's PR, and you land the Goal.** Nothing merges by itself, and hyp writes nothing to GitHub. `hyp land G` records your decision and ends the Goal. It checks no commit, so you can land before the merge, after it, or with no merge. The landed Goal is a snapshot of your decision. A later Goal can cite it with `--from G`.
 
 ## What `hyp status` shows
 
-Every command needs an actor, from `--actor` or `$HYP_ACTOR`. `hyp status` prints every Goal, and `hyp status G` prints one Goal. `--role owner` shows only your allowed acts. Each Goal prints one block:
+`hyp status G` prints the state block of one Goal. This is the real output for G-H7GGGK, which is selected, with its PR body cut:
 
 ```text
-G-NXHHVA  open  runs: 1 of 3 used
-stop: none
-waits: none
+G-H7GGGK  selected  runs: 1 of 3 used
+stop: selected, by select 01M7VJY97WYEK53FKKE0HGYHHM at 2026-11-20T04:20:24.44407Z
+waits: owner
 owner may:
-  (none)
+  hyp land G-H7GGGK
+  hyp unselect G-H7GGGK
 grill may:
-  hyp place G-NXHHVA line-1/<example>
+  (none)
 probe-writer may:
   (none)
 runner may:
-  hyp run <commit> G-NXHHVA/line-1
+  (none)
+
+PR body:
+
+# G-H7GGGK: A grill skill that ships with hyp
+…
+selected commit: 84fc46ea7054a2f9116b10039f735a0f488ffb75
+selected row: 8326335b3416ae83ee1cab190b66a82965950e89
 ```
 
-- **The state** is `written`, `open`, `selected` or `landed` ([spec §6](state-machine.md#6-states)). A Goal is `landed` after your `hyp land G`, and it takes no further write.
-- **`runs: N of 3 used`** counts the Hypotheses that the runner ran, H1 to H3. A Hypothesis is one build, a row tree other than H0's. H0 is not counted.
-- **`stop:`** is `none`, `selected`, `two candidates` or `budget used`.
-- **`waits:`** names who the Goal waits for. It is `grill` while the Goal is written, `owner` at a stop for you, and `none` otherwise.
-- **`<role> may:`** lists the acts that each role may take now, as ready command lines. A role with no allowed act prints `(none)`.
+- **The first line** gives the Goal, its state and the Hypotheses used. H0 is not counted.
+- **`stop:`** names the stop, the act that caused it, its event id and its time. It is `none` when the Goal has no stop.
+- **`waits:`** is `grill` while the Goal is written, `owner` at a stop, and `none` otherwise.
+- **`<role> may:`** lists each act that a role may take now, as a command line ready to run. `--role owner` shows only your acts.
+- **`landed:`** follows `stop:` on a landed Goal, for example `landed: by owner, land 01M7WJSTFC9FX8WGA0CRM50H4M at 2026-11-20T13:37:12.684825Z`.
 
 The block can hold more lines:
 
 | Line | Means |
 |---|---|
-| `last run: after this, G stops for the owner.` | The runner used two of three runs. |
-| `split: <line> on row <tree>` | The examples of one line give different verdicts on one build. |
-| `unstable:` | Two runs on the same bytes gave two verdicts. The first verdict stands. The example needs your attention. |
-| `refused at replay:` | A merged log broke a guard, for example with a fourth Hypothesis in one budget. hyp skips that event and keeps it in the log. |
-| `outputs:` | At a stop for you: the verdict, exit code and output of each example on each build. |
-| `PR body:` | When the Goal is selected: the report of the select. |
+| `last run: after this, G stops for the owner.` | The runner used two of three Hypotheses. |
+| `split: <line> on row <subject hash>` | The examples of one line give different verdicts on one Hypothesis. |
+| `unstable:` | A repeat run on the same bytes gave another verdict. hyp keeps the first one. The example needs the grill. |
+| `refused at replay:` | A merged log broke a rule. hyp skips that event and keeps it in the log. |
+| `outputs:` | At Two candidates or Budget used: each example's verdict and output on each Hypothesis. |
 
 `hyp show <actor>` prints what hyp printed to that actor, byte for byte. Use it to read what the runner saw.
 
-## When a Goal stops
+## At each stop
 
-hyp calculates three stops ([spec §11](state-machine.md#11-budget-and-stops)):
-
-| Stop | When | What you see | What you do |
-|---|---|---|---|
-| Selected | The Goal has a select. | The PR body. | Read the PR, merge it or not, and land the Goal; or unselect it to have the grill add an example or the runner run again. |
-| Two candidates | Two or more builds meet every line, and none is selected. | The `outputs:` table. | Select one, have the grill add an example, or land the Goal. |
-| Budget used | Three Hypotheses ran since the boundary, and no build meets every line. | The `outputs:` table. | Have the grill change an example, or land the Goal and record a new one. |
-
-The `stop:` line shows the stop as an event: which stop, the act that caused it, its event id and when. At each stop the Goal waits for you, and `hyp status G --role owner` prints `hyp land G`.
-
-hyp prints the table, not a reading of it. It gives no score and no summary line.
+Each stop waits for you, and `hyp land G` is among your acts at each one. hyp prints the outputs, not a reading of them: no score and no summary.
 
 ### Selected
 
-The runner selects when exactly one build meets every line. The report of the select is the PR body. It holds each line, the words, output, stderr, exit code and verdict of each example, and the selected commit and row. `hyp status G` prints it again while the Goal is selected. The runner pastes it into the PR.
-
-A selected Goal refuses every further place, run and select. If your review finds a gap inside the Goal's lines, unselect the Goal: the grill adds an example, and the runner runs and selects again. If it needs a new line, land the Goal, then record a new Goal that cites it with `--from`. The grill grills it from the start.
-
-### Two candidates
-
-Only you can select now, and only under the actor name that added the Goal. `hyp status G --role owner` prints one ready line for each candidate:
+You read the PR body. Your acts are the two lines that hyp prints:
 
 ```text
 owner may:
-  hyp select G-NXHHVA <tree>
+  hyp land G-H7GGGK
+  hyp unselect G-H7GGGK
 ```
 
-Run the line of the build you choose. The selected commit must hold a spec under `goals/<G>/specs/`, or hyp refuses the select.
+Merge the PR and land, or unselect when your review finds a gap (see [When your review finds a gap](#when-your-review-finds-a-gap)).
 
-A candidate can meet the lines in a way you did not mean. Then the fix is an example. The grill can add an example that fails that build. The grill can also add a floor or a ceiling to an example.
+### Two candidates
+
+Two or more Hypotheses meet every line, and none is selected. Only you can select now. This is the real output of `hyp status G-YNGYCD --role owner` for a small demo Goal, cut after its first two rows:
+
+```text
+G-YNGYCD  open  runs: 2 of 3 used
+stop: two candidates, by run 01M7WQRF6DSBH5G28BCGXJXRQR at 2026-11-20T15:03:51.245311Z
+waits: owner
+owner may:
+  hyp select G-YNGYCD 1051b308294c7006204f0f3a6dc0b29e0f253b02
+  hyp select G-YNGYCD 4082e81ad23e01e00ecbf43e916b7624feaa6add
+  hyp land G-YNGYCD
+outputs: each cell shows at most 60 characters of the output's first line; all its bytes are in .tree/outputs/<hash>
+  row b73ce8eb02bc4ea2f6747ed4074aca68f17a4c3a
+    line-1/a  failed  exit 0  3c6ac18a67305bf96690d803fc1843912c72a2f2f2edabd2159133a62933f7f6  15 bytes: greeting: hello
+    line-2/a  met  exit 0  3c6ac18a67305bf96690d803fc1843912c72a2f2f2edabd2159133a62933f7f6  15 bytes: greeting: hello
+  row 1051b308294c7006204f0f3a6dc0b29e0f253b02
+    line-1/a  met  exit 0  6e0bbcf07d2f8f455a49d00679345a65ccc9663886c4653acad812108fdcd53f  19 bytes: greeting: hello Ann
+    line-2/a  met  exit 0  6e0bbcf07d2f8f455a49d00679345a65ccc9663886c4653acad812108fdcd53f  19 bytes: greeting: hello Ann
+```
+
+The first row is H0. Compare the outputs of the candidates. You have three choices:
+
+- Run the `hyp select` line of the build you want.
+- Ask the grill for an example that fails the build you do not want. The grill can place it now.
+- Land the Goal with no select.
+
+hyp prints a select line only for a candidate whose commit holds a spec under `goals/<G>/specs/`.
 
 ### Budget used
 
-The runner ran three Hypotheses, and none meets every line. Read the `outputs:` table to see where each build failed.
+Three Hypotheses ran since the boundary, and none meets every line. The boundary is the latest example change or unselect. Your only printed act is `hyp land G`, and the grill may place. This is the real output of a second demo Goal, with the other roles, the `outputs:` heading and the first three rows cut:
 
-- If an example is wrong, the grill changes it. A new version of an example can only add a floor or a ceiling. A changed run, input or Probe is a new example key. A placement that changes an example moves the boundary of the budget. Then the runner gets three new runs.
-- If the Goal itself is wrong, land it, then record a new Goal with `--from G`.
+```text
+G-728VFW  open  runs: 3 of 3 used
+stop: budget used, by run 01M7WQS2EMW66EF80KTDNH0X2F at 2026-11-20T15:04:10.964873Z
+waits: owner
+owner may:
+  hyp land G-728VFW
+…
+  row 39532ee6a007642933f46ac660c4b60c8bb20f53
+    line-1/a  failed  exit 0  783603eb11e541b41f39290571f2901c1e180b375f1ef7ae339c62d98d192a96  14 bytes: total: 2
+```
 
-### Land
+A cell shows only the first line. The last row prints `total: 2`, but its 14 bytes hold a second line, and the `floor: equals` fails on it. Open `.tree/outputs/<hash>` to read every byte. Then choose:
 
-`hyp land G` is your act that ends a Goal at its stop. It records one `land` event that names the stop. It checks no commit, and it does not need a merge: land before the merge, after it, or with no merge. A landed Goal takes no further write, and `hyp add goal --from G` cites only a landed Goal. `hyp status G` and the return of `land` print the record of your decision: the PR body, or the `outputs:` table when the Goal has no select. `hyp status` for every Goal prints only the state block of a landed Goal ([spec §8](state-machine.md#8-acts)).
+- **The example is wrong.** Have the grill re-grill it. A new version of an example only adds a floor or a ceiling. A changed run, input or Probe is a new example key. Each such placement moves the boundary, so the runner gets three new Hypotheses.
+- **The Goal is wrong.** Land it, and add a new Goal with `--from G`.
 
-`hyp unselect G` is your act that puts a selected Goal back to `open`. Use it when your review finds a gap the grill can hold with an example on an existing line, or when main moved and you want the selected build run again on a merge. It records one `unselect` event. The rows and their verdicts stay, and the budget starts again at `runs: 0 of 3 used`. You may select the old row again at once. The runner selects again only after a run that records a new cell: an example version, or a row, that had not run before the unselect. `hyp status G --role owner` prints `hyp unselect G` beside `hyp land G` while the Goal is selected. A landed Goal takes no unselect ([spec §8](state-machine.md#8-acts)).
+The spec also gives you a reset of the budget, but hyp does not have it yet.
+
+## When your review finds a gap
+
+**Before the land, unselect.** A selected Goal refuses every new example. `hyp unselect G` puts it back to `open`:
+
+```text
+unselected G-YNGYCD
+undid: select 01M7WQSA0EZRNGP9VCP00NKB66 at 2026-11-20T15:04:18.702886Z, commit 007c5aa882d369067b07b3d5d68abe9f71bdeff6, row 4082e81ad23e01e00ecbf43e916b7624feaa6add
+G-YNGYCD  open  runs: 0 of 3 used
+```
+
+Each Hypothesis and verdict stays, and the budget starts again. The grill then re-grills: it places an example on an existing line that fails the wrong build. The runner selects again only after a run records new evidence: a new example version or a new Hypothesis. A rerun on the same bytes is not new evidence. You may select again immediately. When main moved after the select, unselect and have the runner run the line on the merge commit, then select.
+
+**A gap that needs a new line is a new Goal.** Land this Goal, then add a new Goal that cites it with `--from G`.
+
+**After the land, the Goal takes no write.** A gap that you find later is a new Goal, with `--from G`.
 
 ## What hyp does not have yet
 
-The spec names acts that later Goals will build: `reset` and `retract` ([spec §8](state-machine.md#8-acts)). So no command gives the budget back without an example change. A Goal that never reaches a stop has no end ([spec §14](state-machine.md#14-deferred)). `hyp help` lists every command that the binary has, and `hyp status` offers only those.
+Each item below is in the spec but not in the binary. `hyp help` lists every command that the binary has, and `hyp status` offers only those.
+
+- **`reset`**, which gives the budget back with no example change. `hyp help` does not list it, and `hyp reset` prints the usage, exit 2.
+- **`retract`**, which takes back a wrong run. `hyp help` does not list it, so each verdict of a wrong run stays.
+- **An end for a Goal with no stop.** `land` needs a stop, so a Goal that never reaches one stays open ([spec §14](state-machine.md#14-deferred)).
+- **A chart of each Hypothesis at a stop.** At Two candidates and Budget used you read only the `outputs:` table ([spec §11](state-machine.md#11-budget-and-stops)).
+- **A runner that hyp starts.** You start the runner session yourself. The grill can write its prompt when you ask.
