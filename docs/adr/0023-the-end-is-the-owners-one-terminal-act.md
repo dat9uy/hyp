@@ -1,6 +1,8 @@
 ---
-status: accepted
+status: superseded by the owner's `land`, see the note below
 ---
+
+Superseded by `land`: the owner's act that ends a Goal at a stop, with the state `landed` ([state-machine.md §6](../state-machine.md#6-states), [§8](../state-machine.md#8-acts), `land`; #245). The `answer` event, the `end` item and the state `ended` are v1 only.
 
 Amends [ADR 0020](0020-one-store-holds-many-goals.md) (one store holds many Goals) and [principles.md](../principles.md) §2 and §7.
 

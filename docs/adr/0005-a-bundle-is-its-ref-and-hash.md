@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no bundle
 ---
 
 Superseded in part by [ADR 0007](0007-records-start-at-230.md): single-file recipes and `SingleFile` are gone.

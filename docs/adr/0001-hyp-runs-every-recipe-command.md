@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no recipe, bundle or sandbox
 ---
 
 # hyp runs and records every recipe command

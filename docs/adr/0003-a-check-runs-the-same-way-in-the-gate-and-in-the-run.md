@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no known-answer gate
 ---
 
 # A check runs the same way in the gate and in the run

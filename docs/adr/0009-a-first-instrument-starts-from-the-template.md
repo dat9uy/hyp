@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no instrument and no recipe template
 ---
 
 ADR 0001 to 0008 stand. This ADR leaves ADR 0002's rationale on a transcript reader unchanged. It was rewritten in place on 2026-11-02: the first version recorded only the recipe-base experiment and kept the template in the skill; the owner's decision on how a first version is made is added below.

@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no Experiment and no rubric
 ---
 
 # An Experiment is a pre-registered Result

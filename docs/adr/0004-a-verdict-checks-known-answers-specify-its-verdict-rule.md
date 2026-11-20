@@ -1,5 +1,5 @@
 ---
-status: accepted; amended by ADR 0018: the verdict check is a rubric's command, and a recipe prints measures only
+status: v1 only (hyp 0.1.0), kept on the v1 branch's terms; v2 has no verdict rule or rubric. Amended by ADR 0018: the verdict check is a rubric's command, and a recipe prints measures only
 ---
 
 # A verdict check's known answers specify its verdict rule
