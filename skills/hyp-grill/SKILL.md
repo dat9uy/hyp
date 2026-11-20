@@ -36,8 +36,8 @@ act `hyp help` lists for adding a Goal; you draft the words and lines it takes.
 In that draft, set `HYP_ACTOR` to the owner's actor, never a placeholder: the
 actor of the `goal.add` events in the store, which `.tree/events/<actor>.jsonl`
 names. Ask the owner once, only when the store has no Goal yet or several actors
-added Goals. The owner's acts that end or reopen a Goal are allowed only to the
-actor that added it, so a wrong actor locks the owner out of them.
+added Goals. The owner's land, unselect and select of a Goal are allowed only
+to the actor that added it, so a wrong actor locks the owner out of them.
 
 ## Decisions
 
@@ -156,8 +156,11 @@ The re-grill reviews a Goal against its line, not against the build that met it.
   version of an example may only add a floor or a ceiling; a changed `run`,
   input or Probe is a new example key. A placement that changes an example moves
   the budget's boundary.
-- **After a select**, the Goal refuses every further place. A gap the review
-  finds is a new Goal that cites this one, grilled from the start.
+- **After a select**, the Goal refuses every place. When the review finds a
+  gap that an example on an existing line can hold, the owner unselects the
+  Goal first. The Goal is then open again, its rows and verdicts stay, and you
+  place the new example as at any other stop. A gap that needs a new line is a
+  new Goal: the owner lands this Goal, and the new Goal cites it.
 - A new line is always a new Goal, never an edit of an open one.
 - Use `hyp show <actor>` to read exactly what hyp printed to the runner.
 

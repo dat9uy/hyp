@@ -14,8 +14,9 @@ refuses what breaks its guards; these are the rules it cannot check.
    outputs `hyp try` printed, never from the model alone.
 3. **A refusal names its guard.** Read the guard's name and fix its cause. Never
    run again to get a different verdict.
-4. **Keep every tree you ran.** The budget counts trees, and it cannot see a
-   failed path you hide. Do not rewrite away a commit you ran.
+4. **Keep every commit you ran.** The budget counts Hypotheses: each distinct
+   subject you ran, other than H0. It cannot see a failed path you hide. Do not
+   rewrite away a commit you ran.
 5. **Leave the examples as the grill placed them.** An example that seems wrong
    goes to the owner; it is not yours to edit.
 6. **Commit only what your acts wrote.** Add the event lines and output files
