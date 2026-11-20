@@ -44,7 +44,7 @@ runner may:
   hyp run <commit> G-NXHHVA/line-1
 ```
 
-- **The state** is `written`, `open` or `selected` ([spec §6](state-machine.md#6-states)).
+- **The state** is `written`, `open`, `selected` or `landed` ([spec §6](state-machine.md#6-states)). A Goal is `landed` after your `hyp land G`, and it takes no further write.
 - **`runs: N of 3 used`** counts the Hypotheses that the runner ran, H1 to H3. A Hypothesis is one build, a row tree other than H0's. H0 is not counted.
 - **`stop:`** is `none`, `selected`, `two candidates` or `budget used`.
 - **`waits:`** names who the Goal waits for. It is `grill` while the Goal is written, `owner` at a stop for you, and `none` otherwise.
