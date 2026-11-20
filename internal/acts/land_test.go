@@ -125,8 +125,9 @@ func TestStopWaitsForTheOwnerAfterSelect(t *testing.T) {
 		t.Fatalf("standing = %+v", st)
 	}
 	got := AllowedFor(g, e.root)
-	if len(got) != 1 || got[0].Role != "owner" || got[0].Act != ActLand || got[0].Goal != e.goal {
-		t.Fatalf("allowed = %+v, want only the owner's land", got)
+	if len(got) != 2 || got[0].Role != "owner" || got[0].Act != ActLand || got[0].Goal != e.goal ||
+		got[1].Role != "owner" || got[1].Act != ActUnselect || got[1].Goal != e.goal {
+		t.Fatalf("allowed = %+v, want only the owner's land and unselect", got)
 	}
 }
 

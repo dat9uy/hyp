@@ -28,6 +28,8 @@ const (
 	GuardDraft      Guard = "Draft"
 	GuardNotEnded   Guard = "Not ended"
 	GuardOwnerLands Guard = "Owner lands"
+	GuardOwnerUnsel Guard = "Owner unselects"
+	GuardNewCell    Guard = "New cell"
 	GuardStop       Guard = "Stop"
 	GuardFromLanded Guard = "From landed"
 	GuardWholeLines Guard = "Whole lines"

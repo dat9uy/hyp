@@ -94,6 +94,11 @@ commands:
                                          Goal ends, and its events up to the
                                          land are the snapshot that a later
                                          Goal's --from cites
+  unselect G [--why TEXT]                the owner unselects Goal G: G is open
+                                         again with its rows and cells, its
+                                         budget starts again, and the runner
+                                         selects again only after a run that
+                                         records a new cell
   status [G] [--role ROLE]               print the state of every Goal, or of G:
                                          its stop, its waits and the allowed
                                          acts as ready command lines
@@ -110,7 +115,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "land", "place", "prune", "run", "select", "show", "status", "try", "version"}
+var commands = []string{"add", "help", "land", "place", "prune", "run", "select", "show", "status", "try", "unselect", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -204,6 +209,8 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return selectCmd(c, args[1:], stdout, stderr)
 	case "land":
 		return landCmd(c, args[1:], stdout, stderr)
+	case "unselect":
+		return unselectCmd(c, args[1:], stdout, stderr)
 	case "status":
 		return statusCmd(c, args[1:], stdout)
 	case "try":
@@ -635,4 +642,31 @@ func finishWith(stdout, stderr io.Writer, dir string, o BlockOpts, report string
 		return &printed{err: err}
 	}
 	return nil
+}
+
+// unselectCmd records the owner's unselect. Its report names the select it
+// undid; the state block below it shows the Goal open again.
+func unselectCmd(c *call, args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("unselect", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var o acts.UnselectOpts
+	actorFlags(fs, &o.Actor, &o.Role, &o.Why)
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return flagsFailed("unselect", err)
+	}
+	c.declare(o.Actor, o.Role)
+	if len(positional) != 1 {
+		return fault.BadArg(codeUnselectArgs, len(positional))
+	}
+	o.Goal = positional[0]
+	if err := checkWhy(o.Why); err != nil {
+		return err
+	}
+	o.Dir = c.dir
+	rep, err := acts.Unselect(o)
+	if err != nil {
+		return finish(stdout, stderr, c.dir, o.Goal, "", err)
+	}
+	return finish(stdout, stderr, c.dir, rep.Goal, unselectText(rep), nil)
 }

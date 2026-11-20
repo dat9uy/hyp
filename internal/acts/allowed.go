@@ -17,11 +17,12 @@ const (
 
 // The acts a ready line names.
 const (
-	ActAddGoal = "add goal"
-	ActPlace   = "place"
-	ActRun     = "run"
-	ActSelect  = "select"
-	ActLand    = "land"
+	ActAddGoal  = "add goal"
+	ActPlace    = "place"
+	ActRun      = "run"
+	ActSelect   = "select"
+	ActLand     = "land"
+	ActUnselect = "unselect"
 )
 
 // Ready is one allowed act a role may run, with every key hyp knows. A key
@@ -29,7 +30,7 @@ const (
 type Ready struct {
 	Goal   string // the Goal id
 	Role   string
-	Act    string // ActAddGoal, ActPlace, ActRun, ActSelect or ActLand
+	Act    string // ActAddGoal, ActPlace, ActRun, ActSelect, ActLand or ActUnselect
 	Line   string // place and run: the line key
 	Commit string // run: the commit, or empty for any leaf
 	Tree   string // select: the candidate's row tree
@@ -138,8 +139,8 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 		return nil
 	}
 	if g.Select != nil {
-		// a selected Goal allows only the owner's land
-		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand}}
+		// a selected Goal allows only the owner's land and unselect
+		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand}, {Goal: g.ID, Role: "owner", Act: ActUnselect}}
 	}
 	st := Stand(g, repo)
 	var out []Ready
@@ -173,7 +174,7 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 
 	// runner
 	switch {
-	case st.Stop == StopNone && len(st.Candidates) == 1 && selectable(g, repo, st.Candidates[0]):
+	case st.Stop == StopNone && len(st.Candidates) == 1 && g.HasNewCell() && selectable(g, repo, st.Candidates[0]):
 		add(Ready{Role: "runner", Act: ActSelect, Tree: st.Candidates[0].RowTree})
 	}
 	if st.Stop == StopNone {

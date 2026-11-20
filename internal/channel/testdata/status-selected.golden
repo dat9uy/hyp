@@ -3,6 +3,7 @@ stop: selected, by select <id> at <time>
 waits: owner
 owner may:
   hyp land G-XXXXXX
+  hyp unselect G-XXXXXX
 grill may:
   (none)
 probe-writer may:

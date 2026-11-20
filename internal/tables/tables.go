@@ -58,8 +58,9 @@ type Goal struct {
 
 	Placements map[string][]Placement // by example key, in placement order
 	Results    []*Result              // in merge order, refused ones included
-	Select     *Select                // the Goal's select, or nil
+	Select     *Select                // the Goal's current select, or nil
 	Land       *Land                  // the Goal's land, or nil
+	Unselects  []Unselect             // the owner's unselects, in merge order
 
 	// epoch counts the example-changing placements so far: the budget counts
 	// the Results recorded in the current epoch.
@@ -73,6 +74,21 @@ type Select struct {
 	RowTree string
 	Time    string
 	Actor   string
+}
+
+// Unselect is a row of the Unselects table: the owner's unselect of a
+// selected Goal, which puts it back to open. Select is the select it undid.
+// Results and Versions hold what had run before it: the count of the Goal's
+// Results then, and every example version placed then (its example key and
+// hash), each of which has H0's cell from its placement. The New cell guard
+// reads them.
+type Unselect struct {
+	ID       string // the unselect event id
+	Select   Select // the select it undid
+	Time     string
+	Actor    string
+	Results  int
+	Versions map[string]bool // by example key and hash: line-1/a@<hash>
 }
 
 // Land is a row of the Lands table: the owner's land of a Goal, which ends it.
@@ -488,6 +504,8 @@ func Replay(evs []events.Event) Tables {
 			replaySelect(&t, ev, refuse)
 		case events.TypeLand:
 			replayLand(&t, ev, refuse)
+		case events.TypeUnselect:
+			replayUnselect(&t, ev, refuse)
 		case events.TypeRead:
 			var p events.Read
 			if err := events.Decode(ev, &p); err != nil {
@@ -641,4 +659,112 @@ func replayLand(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 	g := t.Goals[ev.Node]
 	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor}
 	g.State = StateLanded
+}
+
+// GuardOwnerUnselects refuses an unselect by any role but the owner.
+func GuardOwnerUnselects(role string) error {
+	if role != "owner" {
+		return fault.Refuse(fault.GuardOwnerUnsel, fault.NotOwnerUnselect, role)
+	}
+	return nil
+}
+
+// GuardHasSelect is the Selected guard of unselect: the Goal has a select.
+// An open Goal, never selected or already unselected, has none.
+func GuardHasSelect(g *Goal) error {
+	if g.State != StateSelected {
+		return fault.Refuse(fault.GuardSelected, fault.NoSelect, g.ID, g.State)
+	}
+	return nil
+}
+
+// GuardUnselect is the check of an unselect event, called by the unselect act
+// and by Replay at the event's place in the merge order: Not ended, Owner
+// unselects, Goal's actor, then Selected (the Goal has a select). Every guard
+// reads only the tables. ev.Node is the goal.add event id.
+func GuardUnselect(t Tables, ev events.Event) error {
+	var p events.Unselect
+	if err := events.Decode(ev, &p); err != nil {
+		return fault.Refuse(fault.GuardOwnerUnsel, fault.PayloadInvalid, err)
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToUnselect, GoalID(ev.Node))
+	}
+	if err := GuardNotEnded(g); err != nil {
+		return err
+	}
+	if err := GuardOwnerUnselects(p.Role); err != nil {
+		return err
+	}
+	if err := GuardGoalActor(g, ev.Actor, p.Role); err != nil {
+		return err
+	}
+	return GuardHasSelect(g)
+}
+
+// replayUnselect applies an unselect the guards allow: the Goal loses its
+// select and is open again, its Results and cells stay as they were, and the
+// budget's boundary moves to the unselect.
+func replayUnselect(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardUnselect(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	g := t.Goals[ev.Node]
+	versions := map[string]bool{}
+	for _, hist := range g.Placements {
+		for _, p := range hist {
+			versions[p.Key+"@"+p.Hash] = true
+		}
+	}
+	g.Unselects = append(g.Unselects, Unselect{
+		ID: ev.ID, Select: *g.Select, Time: ev.TS, Actor: ev.Actor, Results: len(g.Results), Versions: versions,
+	})
+	g.Select = nil
+	g.State = StateOpen
+	g.epoch++ // the unselect starts a new budget
+	g.refresh()
+}
+
+// HasNewCell reports whether a run since the Goal's latest unselect recorded
+// a live cell whose example version, or whose row, had not run before that
+// unselect. A Goal never unselected needs none, so it reports true. A version
+// is an example key at one hash: two keys whose folders hold the same bytes
+// are two versions. A version placed before the unselect ran on H0 when it
+// was placed; a row ran before
+// when a Result before the unselect, not refused by Stable, named its tree.
+func (g *Goal) HasNewCell() bool {
+	if len(g.Unselects) == 0 {
+		return true
+	}
+	u := g.Unselects[len(g.Unselects)-1]
+	oldRows := map[string]bool{g.BaseTree: true}
+	for _, r := range g.Results[:u.Results] {
+		if r.Refused == "" {
+			oldRows[r.RowTree] = true
+		}
+	}
+	for _, r := range g.Results[u.Results:] {
+		if r.Retracted || r.Refused != "" {
+			continue
+		}
+		for _, c := range r.Cells {
+			if !oldRows[r.RowTree] || !u.Versions[r.Line+"/"+c.Example+"@"+c.Hash] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// GuardNewCell is the New cell guard of select: after an unselect, the runner
+// selects only once a run recorded a new cell (HasNewCell). The owner selects
+// at any time.
+func GuardNewCell(g *Goal, role string) error {
+	if role == "owner" || g.HasNewCell() {
+		return nil
+	}
+	u := g.Unselects[len(g.Unselects)-1]
+	return fault.Refuse(fault.GuardNewCell, fault.NoNewCell, g.ID, u.ID)
 }

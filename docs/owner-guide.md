@@ -69,7 +69,7 @@ hyp calculates three stops ([spec §11](state-machine.md#11-budget-and-stops)):
 
 | Stop | When | What you see | What you do |
 |---|---|---|---|
-| Selected | The Goal has a select. | The PR body. | Read the PR, merge it or not, and land the Goal. |
+| Selected | The Goal has a select. | The PR body. | Read the PR, merge it or not, and land the Goal; or unselect it to have the grill add an example or the runner run again. |
 | Two candidates | Two or more builds meet every line, and none is selected. | The `outputs:` table. | Select one, have the grill add an example, or land the Goal. |
 | Budget used | Three Hypotheses ran since the boundary, and no build meets every line. | The `outputs:` table. | Have the grill change an example, or land the Goal and record a new one. |
 
@@ -81,7 +81,7 @@ hyp prints the table, not a reading of it. It gives no score and no summary line
 
 The runner selects when exactly one build meets every line. The report of the select is the PR body. It holds each line, the words, output, stderr, exit code and verdict of each example, and the selected commit and row. `hyp status G` prints it again while the Goal is selected. The runner pastes it into the PR.
 
-A selected Goal refuses every further place, run and select. If your review finds a gap, land the Goal, then record a new Goal that cites it with `--from`. The grill grills it from the start.
+A selected Goal refuses every further place, run and select. If your review finds a gap inside the Goal's lines, unselect the Goal: the grill adds an example, and the runner runs and selects again. If it needs a new line, land the Goal, then record a new Goal that cites it with `--from`. The grill grills it from the start.
 
 ### Two candidates
 
@@ -106,6 +106,8 @@ The runner ran three Hypotheses, and none meets every line. Read the `outputs:` 
 ### Land
 
 `hyp land G` is your act that ends a Goal at its stop. It records one `land` event that names the stop. It checks no commit, and it does not need a merge: land before the merge, after it, or with no merge. A landed Goal takes no further write, and `hyp add goal --from G` cites only a landed Goal. `hyp status G` and the return of `land` print the record of your decision: the PR body, or the `outputs:` table when the Goal has no select. `hyp status` for every Goal prints only the state block of a landed Goal ([spec §8](state-machine.md#8-acts)).
+
+`hyp unselect G` is your act that puts a selected Goal back to `open`. Use it when your review finds a gap the grill can hold with an example on an existing line, or when main moved and you want the selected build run again on a merge. It records one `unselect` event. The rows and their verdicts stay, and the budget starts again at `runs: 0 of 3 used`. You may select the old row again at once. The runner selects again only after a run that records a new cell: an example version, or a row, that had not run before the unselect. `hyp status G --role owner` prints `hyp unselect G` beside `hyp land G` while the Goal is selected. A landed Goal takes no unselect ([spec §8](state-machine.md#8-acts)).
 
 ## What hyp does not have yet
 
