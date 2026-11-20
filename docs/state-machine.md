@@ -2,12 +2,13 @@
 
 This is the one spec of hyp v2 (events v2). It states what hyp stores, what it
 calculates from what it stores, each state and what it refuses, every act with
-its guards and exit codes, and what happens on a crash or a merged log. The
-design behind it, with the owner's words, is on the local design page "Where
-the model stands"; this file wins over it for v2 behaviour once merged.
+its guards and exit codes, and what happens on a crash or a merged log. Where
+an earlier design text differs from it, this file wins.
 
 Tags: **Owner said** marks a rule the owner stated or accepted, with the date.
-Every other rule here is derived from such a rule, and names it.
+Every other rule here is derived from such a rule, and names it. A rule cites
+only what a reader of the repository can check: an issue, a PR, a commit or a
+Goal.
 
 ## 1. Names and locations
 
@@ -41,11 +42,13 @@ Every other rule here is derived from such a rule, and names it.
                                    check configs, switches/<switch>.cfg and chart.mmd
   ```
 
-- **The subject** of a commit is the commit's tree without the top-level entries
-  `goals` and `.tree`. A change to an example, a Probe, a spec or the store makes
-  no new subject.
-- An example folder is identified by its **git tree hash**. The hash of a line
-  folder or a Goal folder is never used.
+- **The subject** of a commit is the commit's git tree without the top-level
+  entries `goals` and `.tree`. A change to an example, a Probe, a spec or the
+  store makes no new subject. Its **subject hash** is the git tree hash of that
+  tree, calculated as §13 says. The events store it in the field `row_tree`
+  (`base_tree` for H0 in `goal.add`).
+- An example folder is identified by its **example hash**: the git tree hash of
+  the folder (§13). The hash of a line folder or a Goal folder is never used.
 - Example folders travel on the Goal's record branch, which merges before the
   runner's run, so the examples reach the runner's commits.
 
@@ -60,7 +63,7 @@ Every other rule here is derived from such a rule, and names it.
 - **Line key**: `line-1`, `line-2` … in the order the Goal lists its lines.
   **Example key**: `<line>/<example>`, for example `line-3/a`. An example name
   matches `^[a-z0-9][a-z0-9-]{0,39}$`.
-- **Row key**: the row tree, see §5.
+- **Row key**: the subject hash, see §5.
 - **Actor**: a name matching `^[a-z0-9][a-z0-9-]{0,39}$`. It names the events
   file the act appends to.
 - **Roles**: `owner`, `grill`, `probe-writer`, `runner`. The grill also does the
@@ -87,22 +90,22 @@ The nine events:
 
 | Event | Written by | `node` | Payload |
 |---|---|---|---|
-| `goal.add` | `add goal` | its own id; a Draft replace names the replaced Goal's id | role, words, H0 commit, H0 row tree, budget (3), `from` Goal or empty, lines: key, text, kind |
-| `example.place` | `place` | the Goal | role, line key, example name, the folder's tree hash, and H0's cell: H0 commit, H0 row tree, Probe hash, output hash, stderr hash, exit code, verdict |
-| `result.record` | `run` | the Goal | role, line key, commit, row tree, `refused` (empty, or `Stable` with the differing example keys), and per example: example key, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
+| `goal.add` | `add goal` | its own id; a Draft replace names the replaced Goal's id | role, words, H0 commit, H0 subject hash, budget (3), `from` Goal or empty, lines: key, text, kind |
+| `example.place` | `place` | the Goal | role, line key, example name, the example hash, and H0's cell: H0 commit, H0 subject hash, Probe hash, output hash, stderr hash, exit code, verdict |
+| `result.record` | `run` | the Goal | role, line key, commit, subject hash, `refused` (empty, or `Stable` with the differing example keys), and per example: example key, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
 | `result.retract` | `retract` | the Result | role |
-| `select` | `select` | the Goal | role, commit, row tree |
+| `select` | `select` | the Goal | role, commit, subject hash |
 | `budget.reset` | `reset` | the Goal | role |
 | `land` | `land` | the Goal | role, the stop it ends (`selected`, `two candidates` or `budget used`), and `cause`: the id of the event of the act that caused that stop |
 | `unselect` | `unselect` | the Goal | role |
 | `read` | every command that names an actor, in a repository with a store, into the trace, never into the log (§8) | its own id | role (empty when the command declared none of the four), the command's arguments, exit code, stdout hash, stderr hash |
 
-The Probe hash is the tree hash of the example's `probe/` folder. The example
-hash already covers it; it is kept on the cell so hyp can show which examples
-share one Probe (main page §4, "Copy, and let hyp show the copies").
+The **Probe hash** is the git tree hash of the example's `probe/` folder. The
+example hash already covers it; it is kept on the cell so hyp can show which
+examples share one Probe: a Probe is copied, and hyp shows the copies.
 
-The first six events are the list of `v2-architecture.html` §8. Owner said,
-2026-11-19: "Why ask me, event list is already decided in report".
+The first six events were decided with the design. Owner said, 2026-11-19:
+"Why ask me, event list is already decided in report".
 
 `land` is the owner's event that ends a Goal (§8, `land`). It was added by
 Goal G-M66KKY, after the six. A stop itself is not stored: it follows from the
@@ -126,12 +129,12 @@ it with its outputs from `.tree/outputs/`.
 
 `example.place` carries H0's cell for the example it places, with the fields of
 a Result's cell. So one placement is one line, and a crash
-cannot leave a placement without its H0 verdict. This follows the main page §6:
-"A new example runs on H0 as part of the act that adds it". That cell is live on
+cannot leave a placement without its H0 verdict: a new example runs on H0 as
+part of the act that adds it. That cell is live on
 H0's row like a Result's cell; it is not a Result and cannot be retracted. It
-is live only while its row tree equals the Goal's H0 row tree: after a Draft
-replace that changes the base it reads `not run` (main page §10: "A changed H0
-subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
+is live only while its subject hash equals the Goal's H0 subject hash: after a
+Draft replace that changes the base it reads `not run`, as every cell of a
+changed H0 subject does, and `run <H0 commit> LINE` measures it.
 
 ## 4. Merge order, crash and merged log
 
@@ -170,11 +173,10 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   no event names, which are harmless. `try` (§8) hashes its outputs the same
   way and writes no output file.
 - **Merged log.** Two clones that each passed their guards can merge into a log
-  that breaks one, for example a fourth tree in one budget. Replay checks every
-  event at its place in the merge order. An event whose guards fail there is
-  skipped, listed under "refused at replay" in `status`, and never deleted (main
-  page §11: "A guard that a merged log breaks shows when hyp replays it, as v1
-  does"). Output files are named by their hash, so they never conflict in a
+  that breaks one, for example a fourth Hypothesis in one budget. Replay checks
+  every event at its place in the merge order. An event whose guards fail there
+  is skipped, listed under "refused at replay" in `status`, and never deleted: a
+  guard that a merged log breaks shows when hyp replays it, as in v1. Output files are named by their hash, so they never conflict in a
   merge. A `read` has no guard, so replay keeps every `read` whose payload
   parses, an old one in the log as well as one in the trace. The trace is
   never merged: a clone's agents share one trace folder, and git carries none
@@ -195,7 +197,7 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   landed, and it replays as it was. Cost: two clones that
   each adjust one example key merge to @2 and @3, and @3 was checked against @1
   only. So when
-  two clones merge and one Goal holds a fourth counted tree, the fourth by
+  two clones merge and one Goal holds a fourth counted Hypothesis, the fourth by
   merge order is refused at replay: its Result counts for nothing, even when it
   was a candidate. Owner said, 2026-11-19: "Refused at replay".
 - **An unselect in a merged log.** Replay applies an `unselect` at its place
@@ -213,7 +215,7 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   such event after the land in merge order is refused at replay by Not ended,
   and `status G` lists it under "refused at replay".
 - These rules follow from rules already decided: the store of ADR 0020 and
-  ADR 0022, and the main page §11. Owner said, 2026-11-19: "Why ask me, event
+  ADR 0022. Owner said, 2026-11-19: "Why ask me, event
   list is already decided in report".
 
 ## 5. Calculated tables
@@ -223,13 +225,13 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 
 | Table | Key | Columns |
 |---|---|---|
-| Goals | Goal id | words, H0 commit, H0 row tree, budget, actor (of the first `goal.add`; a Draft replace keeps it), `from`, state (§6) |
+| Goals | Goal id | words, H0 commit, H0 subject hash, budget, actor (of the first `goal.add`; a Draft replace keeps it), `from`, state (§6) |
 | Lines | Goal, line key | text, kind (`gap` or `guard`) |
 | Placements | Goal, example key | example hash, version `@n` (count of distinct hashes placed on that key, in order), time, actor; the latest is current |
-| Results | Result id | Goal, line key, commit, row tree, actor, role, time, retracted, refused by Stable |
+| Results | Result id | Goal, line key, commit, subject hash, actor, role, time, retracted, refused by Stable |
 | Cells | Result, example hash | example key, Probe hash, output hash, stderr hash, exit code, verdict (`met` or `failed`) |
 | Rows | Goal, row key | the commits it was seen at; leaf (from git); per example key, the verdict of its live cell under the current placement, or `not run` |
-| Selects | Goal | select id, commit, row tree, time, actor; the current select only: an unselect removes it |
+| Selects | Goal | select id, commit, subject hash, time, actor; the current select only: an unselect removes it |
 | Unselects | Goal, unselect id | the select it undid, time, actor, and what had run before it: the Results recorded up to it and the example versions (key and hash) placed up to it |
 | Lands | Goal | land id, the stop it ends, its cause, time, actor |
 | Reads | actor, read id | time, role, command, exit code, stdout hash, stderr hash; from the clone's trace and from the old `read` lines of the log; an actor's reads are in id order, oldest first |
@@ -239,18 +241,27 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 - **Outputs.** An output is a file named by its sha256 under
   `.tree/outputs/<sha256>`; the cell holds the hash. Equal outputs are stored
   once, and "same bytes" is a compare of two hashes. hyp writes the file before
-  the event that names it. Owner said, 2026-11-19: "File by sha256" (the lean of
-  `v2-architecture.html` §8).
+  the event that names it. Owner said, 2026-11-19: "File by sha256".
 - **Cell key.** A cell is keyed by its Result and the example's hash, not by
   the example key and version. An adjust makes new cells; the old cells stay as
   history and are not live under the new placement. Owner said, 2026-11-19:
-  "Example hash" (the lean of `v2-architecture.html` §8).
-- **Row key.** A row is keyed by its Goal and its row tree: the subject tree
-  hash hyp calculates (§13). The commits it was seen at are a column, because a
-  leaf comes from commit ancestry and one tree can sit at several commits. A row
-  is a **leaf** when none of its commits has a descendant commit among the
+  "Example hash".
+- **Row key.** A row is keyed by its Goal and its subject hash (§1, §13). A
+  row records one **Hypothesis**: one build the runner offers, the subject of a
+  commit. Commits with the same subject hash are one Hypothesis, so the commits
+  a row was seen at are a column: a leaf comes from commit ancestry, and one
+  subject can sit at several commits. **H0** is the Hypothesis of the Goal's
+  base. H1, H2, H3 are the others, in the order they first ran, and the budget
+  counts them (§11).
+- **Hypothesis tree.** The Hypotheses of one Goal, arranged by the git ancestry
+  of their commits, with H0 as its root: a Hypothesis is below another when one
+  of its commits descends from one of the other's. hyp reads the arrangement
+  from git (§13) and stores no edge. A row is a **leaf**, a Hypothesis with
+  nothing below it, when none of its commits has a descendant commit among the
   commits of the Goal's other rows. Owner said, 2026-11-19: "Tree; leaf = no
-  commit has a descendant".
+  commit has a descendant". Owner decided, 2026-11-20 (#253): a Hypothesis is
+  one build, keyed by its subject hash, and "tree" alone names only the
+  Hypothesis tree.
 
 ## 6. States
 
@@ -266,7 +277,7 @@ Goal can be selected again after it.
 
 | State | Holds when | Refuses |
 |---|---|---|
-| `written` | A `goal.add` exists, and the Goal is not open. | `run` on a tree other than H0's (**Open**), `select` (**Candidate**: no row is met yet), `land` (**Stop**: a written Goal has no stop), `unselect` (**Selected**: no select) |
+| `written` | A `goal.add` exists, and the Goal is not open. | `run` on a Hypothesis other than H0 (**Open**), `select` (**Candidate**: no row is met yet), `land` (**Stop**: a written Goal has no stop), `unselect` (**Selected**: no select) |
 | `open` | Every line has at least one placed example, and every current placement has a live cell on H0's row with the verdict its line's kind needs: `failed` on a gap line, `met` on a guard line. | `add goal G` replace (**Draft**), `land` while the Goal has no stop (**Stop**), `unselect` (**Selected**: no select), a runner's `select` after an unselect with no new cell since (**New cell**) |
 | `selected` | The Goal has a select and no land. | `add goal G` replace (**Draft**); `place`, `run` and a second `select` (**Selected**: the Goal already has a select); `add goal --from G` (**From landed**) |
 | `landed` | The Goal has a land. | every write: `add goal G` replace (**Draft**), `place`, `run`, `select`, `unselect` and a second `land` (**Not ended**) |
@@ -277,9 +288,9 @@ Goal is open again only when the rule above holds.
 
 `selected` refuses `place`, a second `select` and `run` by a
 guard named for the state, **Selected**, so that no refusal reads "Open" by
-accident ("a run after the select counts nothing", main page §10). The
+accident: a run after the select counts nothing. The
 owner's `land` and `unselect` are the only writes it allows.
-Owner accepted, 2026-11-19 (S13). The re-grill of a selected Goal goes through
+Owner accepted, 2026-11-19. The re-grill of a selected Goal goes through
 `unselect`: it puts the Goal back to `open`, and then the grill places and
 the runner runs as on any open Goal. Owner said, 2026-11-20 (#245): "that's
 why #246 is needed (unselect)". Built by Goal G-VDG87A (#246).
@@ -307,7 +318,7 @@ examples read `not run` on that row again. A retracted Result is never deleted.
 ### Row
 
 A row has no stored state. H0's row always exists. Any other row exists when a
-Result names its tree. Its leaf mark and its verdicts are calculated (§5). When
+Result names its subject hash. Its leaf mark and its verdicts are calculated (§5). When
 one of a row's commits is not in this clone, reads print `leaf unknown` for it,
 and `run` and `select`, which need the mark, exit 3 naming the commit.
 
@@ -325,8 +336,8 @@ the first guard that fails, in the act's order (§8).
   Checked first by `place`, `run`, `select`, `land` and `unselect`, and by
   replay. Query:
   `Lands[G]` does not exist.
-- **Open** — The Goal is open. Checked by `run` unless the commit's row tree
-  equals H0's row tree. Query: `Goals[G].state == open`.
+- **Open** — The Goal is open. Checked by `run` unless the commit's subject
+  hash equals H0's. Query: `Goals[G].state == open`.
 - **Goal's actor** — Only the actor that added the Goal selects for the owner,
   lands or unselects the Goal, or resets the budget. Query: the act's actor `== Goals[G].actor`.
 - **Own case** — Only the grill places an example; the runner never places.
@@ -335,7 +346,7 @@ the first guard that fails, in the act's order (§8).
   Probe: a gap example fails on H0, a guard example is met on H0. Query: run the
   Probe on H0's commit (§10), compare (§9), read the verdict.
 - **Committed** — The example folder's bytes on disk equal the committed bytes.
-  Query: the folder's tree hash computed from disk (§13) equals
+  Query: the folder's example hash computed from disk (§13) equals
   `git rev-parse HEAD:goals/<G>/<line>/<example>`, and the committed folder
   holds an `example.txtar` that parses by §9; the refusal names the file and
   line.
@@ -349,7 +360,11 @@ the first guard that fails, in the act's order (§8).
   floor and ceiling of the current version (kind and literal) is in the new
   file; and the new file holds at least one more. This follows the owner's
   "re grilling will have two choice, adjust (floor and ceiling) and create new
-  Goal if need new line" (main page §8). The refusal names the first section or
+  Goal if need new line", and narrows it. The design let a re-grill change a
+  Probe or add an input under the same key. v2 makes each of those a new
+  example key, so the verdicts of the old check never mix with the verdicts of
+  the new one. Owner decided, 2026-11-20 (#253): keep this narrower rule. The
+  refusal names the first section or
   path that differs. A hash the key held before, current or earlier, is refused:
   an earlier version never comes back, also not from a merged log, which lists
   it under "refused at replay". Owner said, 2026-11-19: "Refused". When the
@@ -358,14 +373,13 @@ the first guard that fails, in the act's order (§8).
   from. Query: for each commit `c` of the Goal's rows other than COMMIT,
   `git merge-base --is-ancestor COMMIT c` fails.
 - **Nothing new** — Removed. It refused a second run of an example on the same
-  tree under the same example hash. Stable now judges every repeat instead.
-  Owner said, 2026-11-19: "Drop Nothing new". This replaces the main page's §11
-  guard row and its §6 sentence "The guards Leaf only and Nothing new enforce
-  it"; Leaf only alone keeps runs on H0 and leaves.
+  Hypothesis under the same example hash. Stable now judges every repeat instead.
+  Owner said, 2026-11-19: "Drop Nothing new". Leaf only alone keeps runs on H0
+  and leaves.
 - **Bytes** — The commit exists. Query: `git cat-file -e COMMIT^{commit}`.
 - **Stable** — Two runs on the same bytes give one verdict. Checked by `run`
-  after the Probes run: for each example run, no live cell on the same row tree
-  under the same example hash has another verdict. A Stable refusal is exit 1,
+  after the Probes run: for each example run, no live cell on the same subject
+  hash under the same example hash has another verdict. A Stable refusal is exit 1,
   and its cells never become live, so the first verdict stands. It still keeps
   what it saw: the new output files stay, and `run` appends its `result.record`
   marked `refused: "Stable"` with the examples whose verdict differed. That
@@ -373,20 +387,21 @@ the first guard that fails, in the act's order (§8).
   under `unstable:` with both outputs' hashes, so the owner sees the unstable
   example. The report prints both outputs. A
   retracted cell is not live, so a retract followed by a rerun is never refused
-  by Stable. A repeat on a tree already counted costs no budget (§11). Owner
+  by Stable. A repeat on a Hypothesis already counted costs no budget (§11). Owner
   said, 2026-11-19: "Drop Nothing new" (C5: keep Stable alone).
-- **Budget** — No fourth distinct tree since the boundary, H0 never counted.
-  Query: the distinct row trees, other than H0's, of the Goal's Results recorded
-  after the boundary (§11), without Results refused by Stable; refuse when there are three
-  and the commit's row tree is not among them. A tree run before the boundary
-  and run again after it counts: it is run against the new evidence. A run on a
-  tree that was H0's when it ran never counts, even after a Draft replace moved
+- **Budget** — No fourth Hypothesis since the boundary, H0 never counted.
+  Query: the distinct subject hashes, other than H0's, of the Goal's Results
+  recorded after the boundary (§11), without Results refused by Stable; refuse
+  when there are three and the commit's subject hash is not among them. A
+  Hypothesis run before the boundary and run again after it counts: it is run
+  against the new evidence. A run on a subject hash that was H0's when it ran
+  never counts, even after a Draft replace moved
   the base. Owner said,
   2026-11-19: "It counts".
   A retracted Result still counts: a retract fixes a wrong
-  Result, and does not give a run back (main page §8: a runner that hides failed
-  paths is what the budget cannot see).
-- **Candidate** — The tree is a candidate: a leaf row met on every line under the
+  Result, and does not give a run back: a runner that hides failed
+  paths is what the budget cannot see.
+- **Candidate** — The Hypothesis is a candidate: a leaf row met on every line under the
   current placements. With exactly one candidate the runner may select it; with
   two or more, only the owner. Query: Rows of G with leaf = true and every
   current example key `met`.
@@ -395,9 +410,9 @@ the first guard that fails, in the act's order (§8).
   or whose row, had not run before that unselect. A version is an example key
   at one hash; one placed before the unselect ran on H0 when it was placed.
   A row ran before when a Result before the unselect, not refused by Stable,
-  named its tree; H0's row always ran before. So a rerun of the same version
+  named its subject hash; H0's row always ran before. So a rerun of the same version
   on the old row is no new cell, and neither is an old version run on an old
-  row that never had it. A run on a new commit whose row tree is new, or a
+  row that never had it. A run on a new commit whose subject hash is new, or a
   run of a version placed after the unselect, is one. The owner selects at
   any time. A Goal never unselected always passes. Query: over the Unselects,
   Placements and Results tables, for the runner's role only. `status` prints
@@ -445,7 +460,7 @@ the first guard that fails, in the act's order (§8).
   already".
 - **Own Result** — Only the actor that ran a Result retracts it. Query: the act's
   actor `== Results[R].actor`.
-  Owner accepted, 2026-11-19 (S17).
+  Owner accepted, 2026-11-19.
 
 ## 8. Acts
 
@@ -469,11 +484,13 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | `show ACTOR` | any | none | nothing in the repository; a `read` in the trace |
 | `prune [--remove]` | any | none | nothing in the repository; a `read` in the trace; with `--remove`, removes the trace folders it lists |
 
-- `select G TREE` records the commit of the row's latest Result in merge order.
+- In `select G TREE`, TREE is the selected row's subject hash, or a prefix of
+  it, as hyp prints it. The select records the commit of the row's latest
+  Result in merge order.
   Spec and Own path read that commit, and the PR holds it. Every commit of a leaf
   row has no descendant among the Goal's rows (§5), so the commit is a leaf. A
   spec committed after the last run is not in that commit: the runner runs one
-  line on the spec commit first. Its tree is the same row, so it costs no
+  line on the spec commit first. Its subject is the same Hypothesis, so it costs no
   budget, and Stable checks the repeat.
 - `place` checks Committed and Adds only before it runs the Probe for Kind, so a
   refusal that needs no Probe costs no Probe run.
@@ -502,14 +519,15 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   - A Goal never unselected selects as before.
   It checks no commit, as `land` checks none. The recheck of a selected
   commit on a main that moved is `unselect`, then a run on the merge commit,
-  whose row tree is new, then a select. Built by Goal G-VDG87A (#246). The
+  whose subject hash is new, then a select. Built by Goal G-VDG87A (#246). The
   model of its rules, with the cheaper builds each rule refuses, is
   `goals/G-VDG87A/specs/unselect.tla`.
 - **The snapshot** of a landed Goal is not a separate thing: it is the Goal's
-  events in the `.tree/` of the tree being read, up to its land, and the
-  outputs they name. hyp stores nothing more for it, and it holds no code of a
-  Hypothesis, only Results. So each tree shows what it holds: a tree reads a
-  Goal as landed only once it holds the Goal's stop and its land, as git shows
+  events in the `.tree/` of the commit or checkout being read, up to its land,
+  and the outputs they name. hyp stores nothing more for it, and it holds no
+  code of a Hypothesis, only Results. So each commit shows what it holds: hyp
+  reads a Goal as landed in a checkout only once it holds the Goal's stop and
+  its land, as git shows
   any branch before a merge. Owner said, 2026-11-20 (#245): "Result only then",
   and "If you want to replay, why not read the tree itself?" It is the owner's
   decision, fixed: what the owner accepted (the words, lines, examples, the
@@ -630,7 +648,7 @@ before it prints and `show` prints the trace, stands.
     output and the stderr as `place` and `run` do, and writes no output file.
   - It prints where it ran (H0's commit, or HEAD's commit and every change
     not committed), the line `nothing is recorded: no event, no output file,
-    no run of the budget`, the folder's tree hash on disk and its Probe hash,
+    no run of the budget`, the folder's example hash on disk and its Probe hash,
     the example's words, `verdict: V, exit N`, and the output and the stderr
     as byte blocks (§12) labelled with the sha256 each would have under
     `.tree/outputs/`. Then the Goal's state block, which `--role` filters as
@@ -654,35 +672,33 @@ No `init` act: `add goal` creates `.tree/` at
 `git rev-parse --show-toplevel` when it is absent. Every other act, and every
 read, with no store
 is exit 1 naming "no store; run hyp add goal". Outside a git repository is exit 3.
-Owner accepted, 2026-11-19 (S3).
+Owner accepted, 2026-11-19.
 
 The actor comes from `--actor` or `$HYP_ACTOR`, the role from
 `--role` or `$HYP_ROLE`. Each event stores its role in the payload. A write act
 missing either, or naming a role outside the four, is exit 2. Only Own case and
 Candidate read the role; elsewhere it is recorded, not enforced.
-Owner accepted, 2026-11-19 (S4).
+Owner accepted, 2026-11-19.
 
 Own path is checked by `run` and `select`: they refuse a commit whose own
-change (§13) touches `goals/<other Goal>/`. The main page §10 names it on both acts;
-`v2-architecture.html` §7 lists it in no act, and the main page wins.
+change (§13) touches `goals/<other Goal>/`.
 
 `run` names its Goal in LINE, written `<Goal>/<line>`, for
 example `hyp run 4df2b9e G-NXHHVA/line-3`, so the act stays first and then two
 keys.
-Owner accepted, 2026-11-19 (S10).
+Owner accepted, 2026-11-19.
 
 `add goal` takes the Goal's words as `--words TEXT` (required; owner said,
 2026-11-19: "Accept --words TEXT"), and repeated
 `--line gap:TEXT` and `--line guard:TEXT`, in order; hyp gives the keys `line-1`, `line-2` …. A Draft
 replace is `hyp add goal G …`. `--from G` needs G to be landed (From landed,
 §7), stores only the cited Goal's full `goal.add` id, which no other Goal
-shares, and copies nothing. Whole lines also refuses more than ten lines
-(`v2-architecture.html` §2: "up to ten lines").
-Owner accepted, 2026-11-19 (S14).
+shares, and copies nothing. Whole lines also refuses more than ten lines.
+Owner accepted, 2026-11-19.
 
 A line with no placed example has nothing to run: `run` refuses it by Open,
 even on H0. `run` runs every placed example of the line on the commit, whether or not a
-cell already exists on that tree; a repeat is judged by Stable. Owner said,
+cell already exists on that Hypothesis; a repeat is judged by Stable. Owner said,
 2026-11-19: "'live' is depend on the version of probe. So when new probe
 created, Why not [j]ust run H0 and leaf without caring about the live ?"
 
@@ -722,8 +738,8 @@ An example is one txtar file, `example.txtar`. Each section starts with a line
 - An example's Probe is its folder's `probe/`. The Probe runs `run` on the
   subject and prints what `run` printed. It gives no verdict.
 - A Probe is self-contained. It reads nothing outside itself except the subject
-  and what its example's `external` section names (main page §4: "what its
-  External: line names"). Owner said, 2026-11-19: "-- external -- section".
+  and what its example's `external` section names. Owner said, 2026-11-19:
+  "-- external -- section".
 - A Probe failure that is not the run's own failure records nothing (exit 3).
 - hyp does not sandbox a Probe. It is the grill's own committed code, run at the
   grill's request, with `PATH` and `HOME`; it can write outside its work
@@ -739,7 +755,7 @@ An example is one txtar file, `example.txtar`. Each section starts with a line
   by hash (§13); for `try --worktree`, a copy of the checkout's files (§8,
   `try`). `HYP_SUBJECT` names it too.
 - `HYP_EXAMPLE` names a fresh working copy of the example folder, extracted by
-  its tree hash; for `try`, copied from the folder on disk. Each `input/<path>` section is written there at
+  its example hash; for `try`, copied from the folder on disk. Each `input/<path>` section is written there at
   `input/<path>`. Inputs belong to the example; hyp never writes them into the
   subject. Owner said, 2026-11-19: "if input is example scope, they should
   belong to example folder", and "Start in the subject".
@@ -761,22 +777,22 @@ So the decided example of line 1 reads its pattern list from the example:
 grep -rlE -f "$HYP_EXAMPLE/input/patterns.txt" --include=*.go . | grep -v _test.go | grep -v internal/render/
 ```
 
-Committed compares the folder's tree hash from disk with
+Committed compares the folder's example hash from disk with
 `git rev-parse HEAD:goals/<G>/<line>/<example>`. hyp extracts the example for a
-run by its tree hash (`ls-tree -r -z` and `cat-file --batch`), so a run does not
-depend on the branch checked out. This follows the main page §5: "hyp places
-only a folder whose on-disk hash equals its committed hash".
+run by its example hash (`ls-tree -r -z` and `cat-file --batch`), so a run does
+not depend on the branch checked out: hyp places only a folder whose on-disk
+hash equals its committed hash.
 
 ## 11. Budget and stops
 
-- **Budget**: at most three distinct trees run, H0 never counted, since the
-  boundary. The unit is the row tree (main page §8: "three distinct trees run";
-  `v2-architecture.html` §7 says "commits", and the main page wins). Three is
-  fixed for every Goal.
+- **Budget**: at most three Hypotheses run, H0 never counted, since the
+  boundary. The unit is the Hypothesis, one subject hash, not the commit. Three
+  is fixed for every Goal.
 - **The boundary** is the latest of: the latest `example.place` that changed an
   example (defined below), the latest `budget.reset`, and the latest
   `unselect`. Before any, it is the Goal's start.
-- Every return prints `runs: N of 3 used`. The last run warns:
+- Every return prints `runs: N of 3 used`, where N counts Hypotheses. The last
+  run warns:
   `last run: after this, G stops for the owner.`
 - A refused run costs nothing.
 
@@ -786,7 +802,7 @@ only a folder whose on-disk hash equals its committed hash".
 |---|---|---|---|
 | Selected | The Goal has a select: one that no `unselect` undid. | the `select` | The PR body (§12) |
 | Two candidates | Two or more candidates and no select. | the latest run | The table of outputs, rows × examples |
-| Budget used | Three trees counted since the boundary and no candidate. | the latest run | The table of outputs, rows × examples |
+| Budget used | Three Hypotheses counted since the boundary and no candidate. | the latest run | The table of outputs, rows × examples |
 
 **A stop is an event**, calculated from the log and never stored (§3): which
 stop, the act that caused it, and when. `status` prints it on the `stop:`
@@ -819,17 +835,17 @@ bytes are under `.tree/outputs/` by hash.
 hyp prints the table, not a reading of it: no distance, no summary line. The
 leaves' statecharts at a stop are a later v2 Goal.
 
-The stop "Budget used" shows once the third tree has a live
+The stop "Budget used" shows once the third Hypothesis has a live
 cell for every placed example and no candidate exists; until then the third
-tree's remaining lines stay among the runner's allowed acts. The last-run
+Hypothesis's remaining lines stay among the runner's allowed acts. The last-run
 warning prints in the state block while `runs: 2 of 3 used`, before the third
-tree's first run.
-Owner accepted, 2026-11-19 (S15).
+Hypothesis's first run.
+Owner accepted, 2026-11-19.
 
 An example-changing placement is one that writes a new example
 key or a new hash on an existing key. A placement of the current hash changes
 nothing (refused by Adds only).
-Owner accepted, 2026-11-19 (S16).
+Owner accepted, 2026-11-19.
 
 ## 12. The return shape and exit codes
 
@@ -917,13 +933,13 @@ to communicate with agent, is one block of code".
 - `--role ROLE` filters the allowed acts to one role. It is a convenience of
   the read, not a boundary.
 - An agent runs a line hyp printed. A skill names no write command.
-- **Split line.** A line whose examples give different verdicts on one tree is
-  marked every time it prints, in the state block and in the PR body (main page
-  §6). It is never a refusal.
-- `unstable:` lists every Result refused by Stable: the example, the tree, and
+- **Split line.** A line whose examples give different verdicts on one
+  Hypothesis is marked every time it prints, in the state block and in the PR
+  body. It is never a refusal.
+- `unstable:` lists every Result refused by Stable: the example, the subject hash, and
   the two output hashes (§7).
-- A **Kind** refusal prints H0's output beside the example's floors and ceilings
-  (main page §4).
+- A **Kind** refusal prints H0's output beside the example's floors and
+  ceilings.
 
 | Code | Means |
 |---|---|
@@ -935,8 +951,8 @@ to communicate with agent, is one block of code".
 `select`'s report is the PR body: each line, each example's words, output,
 stderr, exit code and verdict, and the selected commit and row. `status` prints
 it again while the Goal is selected, and `status G` after it is landed. The runner pastes it into the PR, so hyp
-writes nothing to GitHub. This follows the main page §8: "hyp prints one read
-per Goal: each line, each example, its output and its verdict". After the
+writes nothing to GitHub. It is the one read hyp prints per Goal: each line,
+each example, its output and its verdict. After the
 lines, the PR body prints each chart of the selected commit's spec folder (each
 `.mmd` file outside `specs/switches/`) under `## Chart: <path>`, byte for byte,
 in a `mermaid` block; a folder with no chart prints none. So the select return,
@@ -949,7 +965,7 @@ second check that fails refuses with exit 1. When the placement or H0's base
 changed while the Probes ran, the refusal is named Open and says what changed. Allowed acts are calculated from
 the guards that read only the tables and git; Kind and Stable are checked when
 the act runs.
-Owner accepted, 2026-11-19 (S11).
+Owner accepted, 2026-11-19.
 
 ## 13. What hyp reads from git
 
@@ -969,7 +985,7 @@ by its full argument shape in `internal/gitread`:
 |---|---|
 | `git rev-parse` | the top level, the object format, a commit, `HEAD:<path>`, `--path-format=absolute --git-common-dir` (the trace's key, §1) |
 | `git cat-file` | `-e` (Bytes), `--batch` (extraction by hash), `-p <commit>` (a commit's parents, for the own change), `blob <hash>` (a model's configs for Spec, and the charts of the PR body) |
-| `git ls-tree` | `-r -z` (extraction), the root of a commit (row tree), `-r -z` of `goals/<G>/specs/` (Spec, and the charts of the PR body) |
+| `git ls-tree` | `-r -z` (extraction), the root of a commit (subject hash), `-r -z` of `goals/<G>/specs/` (Spec, and the charts of the PR body) |
 | `git merge-base --is-ancestor` | Leaf only |
 | `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths); `-p` is on the read list, and no act runs it |
 | `git patch-id` | on the read list; no act runs it, since `land` checks no commit |
@@ -996,22 +1012,24 @@ by its full argument shape in `internal/gitread`:
   not a merge commit, the walk does not stop there, and Own path can refuse a
   path the runner did not write; the refusal names the commit, so the runner
   takes main in by a merge instead.
-- A tree entry with mode `160000` (a submodule) is refused, exit 1, naming the
+- A git tree entry with mode `160000` (a submodule) is refused, exit 1, naming the
   path.
-- **The row tree** of a commit is calculated in memory from `git ls-tree` of the
-  commit's root without the entries `goals` and `.tree`; hyp writes no object.
-- **The disk tree hash** of a folder is calculated from its raw bytes, as git
-  would hash them with no filter. A file is mode `100755` when its owner
+- **The subject hash** of a commit is calculated in memory from `git ls-tree`
+  of the commit's root without the entries `goals` and `.tree`: the git tree
+  hash that tree would have. hyp writes no object.
+- **The disk hash** of a folder, the example hash that Committed and `try`
+  read, is its git tree hash calculated from its raw bytes, as git would hash
+  them with no filter. A file is mode `100755` when its owner
   execute bit is set, as git reads it, else `100644`. A clean filter (`autocrlf`, `eol`, LFS),
   `core.filemode=false` or a stray file makes Committed refuse; the refusal
   names the first differing path.
 
 Sha1 repositories only: `git rev-parse --show-object-format`
 other than `sha1` is exit 3.
-Owner accepted, 2026-11-19 (S6).
+Owner accepted, 2026-11-19.
 
 `why` is optional on every event, at most 600 runes.
-Owner accepted, 2026-11-19 (S8).
+Owner accepted, 2026-11-19.
 
 
 ## 14. Deferred
@@ -1020,13 +1038,11 @@ Deferred by the owner until a real event shows the need:
 
 - **o7-actors** — whether two rival builds need two actors that cannot see each
   other. Owner said, 2026-11-18: deferred, "the two items below wait for an
-  event" (main page §13, Batch 4).
+  event".
 - **o11-blind** — whether the Probe writer can be kept from reading the
-  candidate. Owner said, 2026-11-18: deferred with o7-actors (main page §13,
-  Batch 4).
+  candidate. Owner said, 2026-11-18: deferred with o7-actors.
 - **o8-end** — closed by Goal G-M66KKY: the owner's `land` is the act that
   ends a Goal, at a stop (§8). Not ended refuses every write after it. A Goal
   that never reaches a stop has no end yet; that waits for a real event, as
   the owner said: "whether we need an end state + end action for owner will
-  leave open until we see 'dangling open' goal is the problem later on" (main
-  page §8).
+  leave open until we see 'dangling open' goal is the problem later on".
