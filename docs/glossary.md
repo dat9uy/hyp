@@ -14,7 +14,7 @@ _Avoid_: database, index (hyp keeps no table, [spec §5](state-machine.md#5-calc
 One JSON line in `.tree/events/<actor>.jsonl`. Only hyp writes it, and it is only appended ([spec §1](state-machine.md#1-names-and-locations), [spec §3](state-machine.md#3-events)). Every table and state comes from the events.
 _Avoid_: entry, record (alone)
 
-The eight event types ([spec §3](state-machine.md#3-events)):
+The nine event types ([spec §3](state-machine.md#3-events)):
 
 | Event | Records |
 |---|---|
@@ -43,10 +43,10 @@ The calculation of every table and state from the log, in merge order, on every 
 _Avoid_: re-run (a run of a line again is a repeat, which Stable judges)
 
 **Refused at replay**:
-An event whose guards fail at its place in the merge order, for example a fourth counted tree after a merge. Replay skips it and `status` lists it. hyp never deletes it ([spec §4](state-machine.md#4-merge-order-crash-and-merged-log)).
+An event whose guards fail at its place in the merge order, for example a fourth counted Hypothesis after a merge. Replay skips it and `status` lists it. hyp never deletes it ([spec §4](state-machine.md#4-merge-order-crash-and-merged-log)).
 
 **Calculated table**:
-A table that replay calculates in memory: Goals, Lines, Placements, Results, Cells, Rows, Selects and Reads. hyp stores no table, and each guard is a query over the tables or over git ([spec §5](state-machine.md#5-calculated-tables)).
+A table that replay calculates in memory: Goals, Lines, Placements, Results, Cells, Rows, Selects, Unselects, Lands and Reads. hyp stores no table, and each guard is a query over the tables or over git ([spec §5](state-machine.md#5-calculated-tables)).
 _Avoid_: projection (a v1 word), cache
 
 **Output**:
@@ -68,25 +68,25 @@ The trace of one command: its role, arguments, exit code and the hashes of its s
 `line-1`, `line-2` …, in the order the Goal lists its lines ([spec §2](state-machine.md#2-ids-actors-and-roles)).
 
 **Example key**:
-`<line>/<example>`, for example `line-3/a`. The example name matches `^[a-z0-9][a-z0-9-]{0,39}$` ([spec §2](state-machine.md#2-ids-actors-and-roles)).
+The example's name within its Goal, written `<line>/<example>`, for example `line-4/e`. The example name matches `^[a-z0-9][a-z0-9-]{0,39}$`. Each version of an example keeps its key; a change that is not a new version is a new key ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §6](state-machine.md#6-states)).
 
 **Actor**:
-The name an act records as its author, from `--actor` or `$HYP_ACTOR`. It names the events file the act appends to. Every command but `help` and `version` needs one ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §8](state-machine.md#8-acts)).
+The name an act records as its author, from `--actor` or `$HYP_ACTOR`. It names the events file the act appends to. Every act and every read needs one ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §8](state-machine.md#8-acts)).
 _Avoid_: user, author (alone); actor for a role
 
 **Role**:
 What an actor does in an act: `owner`, `grill`, `probe-writer` or `runner`. It comes from `--role` or `$HYP_ROLE`, and a write act needs one. Roles are self-declared: hyp has no authorization layer ([spec §2](state-machine.md#2-ids-actors-and-roles)).
 
 **Owner**:
-The role that adds the Goal, selects when two or more candidates exist, unselects and lands a Goal, and resets the budget. Only the actor that added the Goal selects for the owner ([spec §7](state-machine.md#7-guards), Goal's actor). The owner answers product questions; the builder chooses the mechanics.
+The role that adds the Goal, selects a candidate, unselects and lands a Goal, and resets the budget. The owner may select at any time, and is the only role that selects when two or more candidates exist. Only the actor that added the Goal selects for the owner ([spec §7](state-machine.md#7-guards), Candidate, New cell and Goal's actor; [spec §8](state-machine.md#8-acts)). The owner answers product questions; the builder chooses the mechanics.
 _Avoid_: user, stakeholder, approver
 
 **Grill**:
-The role that writes a Goal's examples and places them. The grill drafts the words and lines with the owner, and the owner records them. Only the grill places ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §7](state-machine.md#7-guards), Own case). The skill `skills/hyp-grill` teaches it.
+The role that writes a Goal's examples and places them, and that does the re-grill. Only the grill places ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §7](state-machine.md#7-guards), Own case). The skill `skills/hyp-grill` teaches it. In that skill the grill also drafts the words and lines with the owner, and the owner records them.
 _Avoid_: interviewer, reviewer
 
 **Re-grill**:
-The grill's review of a Goal after a stop for the owner or after a select. At a stop it adjusts an example or adds one; after a select, a gap it finds is a new Goal ([spec §2](state-machine.md#2-ids-actors-and-roles); `skills/hyp-grill`, "How to re-grill").
+The grill's review of a Goal at a stop for the owner. At Two candidates or Budget used, it adjusts an example or places a new one. A selected Goal refuses every place, so its re-grill goes through the owner's `unselect`: the Goal is open again, and then the grill places. A new line is a new Goal ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §6](state-machine.md#6-states)).
 
 **Probe writer**:
 The role that writes a Probe. It writes no event ([spec §2](state-machine.md#2-ids-actors-and-roles)). Whether it can be kept from reading the candidate is deferred ([spec §14](state-machine.md#14-deferred), o11-blind).
@@ -98,7 +98,7 @@ _Avoid_: operator, driver
 ## Goal and lines
 
 **Goal**:
-What a change must make true, held as words and lines and recorded by `add goal`. Its id is `G-…`. A new purpose or a new line is a new Goal, which can cite an earlier one with `--from` ([spec §8](state-machine.md#8-acts)).
+What a change must make true, held as words and lines and recorded by `add goal`. Its id is `G-…`. A new purpose or a new line is a new Goal, which can cite an earlier, landed Goal with `--from` ([spec §7](state-machine.md#7-guards), From landed; [spec §8](state-machine.md#8-acts)).
 _Avoid_: objective, epic, issue
 
 **Words** (of a Goal):
@@ -131,7 +131,7 @@ _Avoid_: done, met (as a state word); ended for a Goal that is not landed
 ## Examples and Probes
 
 **Example**:
-A folder `goals/<G>/<line>/<example>/` that holds an `example.txtar` and a `probe/` folder. It checks one line. A line can hold more than one example ([spec §1](state-machine.md#1-names-and-locations), [spec §9](state-machine.md#9-the-example-file-and-the-compare)). hyp identifies it by its git tree hash.
+A folder `goals/<G>/<line>/<example>/` that holds an `example.txtar` and a `probe/` folder. It checks one line. A line can hold more than one example ([spec §1](state-machine.md#1-names-and-locations), [spec §9](state-machine.md#9-the-example-file-and-the-compare)). hyp identifies it by its example hash.
 _Avoid_: test case, fixture, known answer (a v1 word)
 
 **Example file**:
@@ -158,11 +158,17 @@ _Avoid_: supports, contradicts, inconclusive (v1 verdicts)
 The `probe/` folder of an example. hyp runs its `probe/run` on a fresh copy of the subject, and the Probe prints what `run` printed and a last line `exit N`. It gives no verdict ([spec §10](state-machine.md#10-the-probe-contract)). hyp does not sandbox it.
 _Avoid_: checker, instrument, test script
 
+**Example hash**:
+The git tree hash of an example folder, which identifies the example. hyp calculates it from the committed folder, and from the bytes on disk for Committed and `try`. A Probe change, an input change or a floor change gives a new example hash ([spec §1](state-machine.md#1-names-and-locations), [spec §13](state-machine.md#13-what-hyp-reads-from-git)).
+
+**Probe hash**:
+The git tree hash of an example's `probe/` folder. The example hash already covers it. Each cell keeps it, so hyp can show which examples share one Probe ([spec §3](state-machine.md#3-events)).
+
 **Generic Probe**:
 The Probe that `skills/hyp-grill/probe/run` ships. It runs `$HYP_RUN` in the subject and prints its stdout, then `exit N`. The grill copies it into an example and writes a new Probe only when the example needs one.
 
 **Placement**:
-The act `place G LINE/EXAMPLE` and its `example.place` event. It records the folder's tree hash and H0's cell for the example. The latest placement of an example key is the current one ([spec §3](state-machine.md#3-events), [spec §5](state-machine.md#5-calculated-tables)).
+The act `place G LINE/EXAMPLE` and its `example.place` event. It records the example hash and H0's cell for the example. The latest placement of an example key is the current one ([spec §3](state-machine.md#3-events), [spec §5](state-machine.md#5-calculated-tables)).
 
 **Version** (of an example):
 `@1`, `@2` …: the count of distinct hashes placed on one example key. A new version only adds floors or ceilings. A changed input, `run`, `external` section or Probe is a new example key ([spec §6](state-machine.md#6-states), [spec §7](state-machine.md#7-guards), Adds only).
@@ -181,18 +187,18 @@ A commit's tree without the top-level entries `goals` and `.tree`. A change to a
 _Avoid_: base plus patch (a v1 subject)
 
 **Subject hash**:
-The git tree hash of a commit's subject. hyp calculates it in memory and writes no object ([spec §13](state-machine.md#13-what-hyp-reads-from-git)). It keys a row and names a Hypothesis. The events store it in the field `row_tree`, and hyp's output still prints it as a tree, for example `select G TREE`.
+The git tree hash of a commit's subject. hyp calculates it in memory and writes no object ([spec §1](state-machine.md#1-names-and-locations), [spec §13](state-machine.md#13-what-hyp-reads-from-git)). It keys a row and names a Hypothesis. The events store it in the field `row_tree`, and hyp's output still prints it as a tree, for example `select G TREE`.
 _Avoid_: row tree, tree (alone): "tree" means only the Hypothesis tree
 
 **Row**:
 hyp's record of one Hypothesis: the verdicts of one Goal on one subject hash, keyed by the Goal and the subject hash. It lists the commits it was seen at. H0's row always exists, and any other row exists when a Result names its subject hash ([spec §5](state-machine.md#5-calculated-tables), [spec §6](state-machine.md#6-states)).
 
 **Hypothesis**:
-One build the runner offers against a Goal's examples: the subject of a commit. hyp records it as a row, so commits with the same subject hash are one Hypothesis. H0 is the Goal's base. H1, H2, H3 are the others, in the order they first ran. The budget counts Hypotheses other than H0 ([spec §5](state-machine.md#5-calculated-tables), Row key; [spec §11](state-machine.md#11-budget-and-stops)).
+One build the runner offers against a Goal's examples: the subject of a commit. hyp records it as a row, so commits with the same subject hash are one Hypothesis. H0 is the Hypothesis of the Goal's base. H1, H2, H3 are the others, in the order they first ran. The budget counts Hypotheses other than H0 ([spec §5](state-machine.md#5-calculated-tables), Row key; [spec §11](state-machine.md#11-budget-and-stops)).
 _Avoid_: tree, first tree (say H1, or the 1st Hypothesis); attempt; candidate (a candidate is a Hypothesis met on every line)
 
 **H0**:
-The Goal's base: the commit `--base` names, and its subject hash. A gap example fails on H0 and a guard example is met on H0. The budget never counts H0 ([spec §6](state-machine.md#6-states), [spec §11](state-machine.md#11-budget-and-stops)).
+The Hypothesis of the Goal's base: the commit `--base` names, and its subject hash. A gap example fails on H0 and a guard example is met on H0. The budget never counts H0 ([spec §6](state-machine.md#6-states), [spec §11](state-machine.md#11-budget-and-stops)).
 _Avoid_: baseline, main
 
 **Rival**:
@@ -200,18 +206,21 @@ A Hypothesis the runner builds beside another, from the same parent in the Hypot
 _Avoid_: rival for a v1 Hypothesis with a status (see the v1 table)
 
 **Hypothesis tree**:
-The Hypotheses of one Goal, arranged by the git ancestry of their commits. H0 is its root. A Hypothesis whose commit descends from another's commit is its child. hyp reads the arrangement from git and stores no edge ([spec §5](state-machine.md#5-calculated-tables), Row key; [spec §13](state-machine.md#13-what-hyp-reads-from-git)). It is the only tree in hyp's words.
+The Hypotheses of one Goal, arranged by the git ancestry of their commits. H0 is its root. A Hypothesis is below another when one of its commits descends from one of the other's. hyp reads the arrangement from git and stores no edge ([spec §5](state-machine.md#5-calculated-tables), Hypothesis tree). It is the only tree in hyp's words.
 _Avoid_: run tree, tree for a hash
 
 **Leaf**:
-A Hypothesis with no child in the Hypothesis tree: none of its row's commits has a descendant among the commits of the Goal's other rows. hyp reads it from git. A missing commit prints `leaf unknown` ([spec §5](state-machine.md#5-calculated-tables), [spec §6](state-machine.md#6-states)).
+A Hypothesis with nothing below it in the Hypothesis tree: none of its row's commits has a descendant among the commits of the Goal's other rows. hyp reads it from git. A missing commit prints `leaf unknown` ([spec §5](state-machine.md#5-calculated-tables), Hypothesis tree; [spec §6](state-machine.md#6-states)).
 
 **Result**:
 The record of one `run`: one line of one Goal on one commit, with one cell per placed example. Its id is `R-…`. A retracted Result is never deleted ([spec §3](state-machine.md#3-events), [spec §6](state-machine.md#6-states)).
 _Avoid_: finding, outcome
 
 **Cell**:
-One example's record on one Result: the example key and hash, the Probe hash, the output and stderr hashes, the exit code and the verdict. A cell is keyed by its Result and its example hash ([spec §5](state-machine.md#5-calculated-tables)).
+One example's record on one Result: the example key and hash, the Probe hash, the output and stderr hashes, the exit code and the verdict ([spec §5](state-machine.md#5-calculated-tables)).
+
+**Cell key**:
+A cell is keyed by its Result and its example hash, not by the example key and version. So an adjust makes new cells, and the old cells stay as history that is not live under the new placement ([spec §5](state-machine.md#5-calculated-tables), Cell key).
 
 **Live** (cell):
 A cell whose Result is not retracted and not refused by Stable, and whose example hash is the current placement's hash ([spec §5](state-machine.md#5-calculated-tables)).
@@ -229,11 +238,23 @@ A Result that Stable refused, because a repeat on the same bytes gave another ve
 _Avoid_: flaky (say unstable, and name the example)
 
 **Select**:
-The act `select G TREE` and its `select` event. It records one candidate row as the Goal's answer, with the commit of the row's latest Result. The select is the gate, and its report is the PR body ([spec §8](state-machine.md#8-acts), [spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
+The act `select G TREE` and its `select` event. TREE is the row's subject hash, as hyp prints it. The act records one candidate row as the Goal's answer, with the commit of the row's latest Result. The select is the gate, and its report is the PR body ([spec §8](state-machine.md#8-acts), [spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
 _Avoid_: pick, choose, accept, merge
 
 **Spec** (of a Goal):
-The runner's files under `goals/<G>/specs/`, for example a model or a chart of the build. A select needs the selected commit to hold one ([spec §1](state-machine.md#1-names-and-locations), [spec §7](state-machine.md#7-guards), Spec).
+The runner's files under `goals/<G>/specs/`, for example a model and its chart. A select needs the selected commit to hold one. When the spec is a model, every rule of its check configs must be named by a switch config, and the folder must hold a chart ([spec §1](state-machine.md#1-names-and-locations), [spec §7](state-machine.md#7-guards), Spec).
+
+**Model**:
+A spec folder that holds a `.tla` file. hyp reads its configs and its chart at select, and runs no model checker ([spec §7](state-machine.md#7-guards), Spec). The skill `skills/hyp-statechart` teaches how to write one.
+
+**Check config**:
+A `.cfg` file of a model that is not under `specs/switches/`. Its rules are the names it lists under `INVARIANT`, `INVARIANTS`, `PROPERTY` or `PROPERTIES` ([spec §7](state-machine.md#7-guards), Spec).
+
+**Switch config**:
+A `.cfg` file under `specs/switches/`. It names the rules that one switch of the model breaks. A rule of a check config that no switch config names makes hyp refuse the select ([spec §7](state-machine.md#7-guards), Spec).
+
+**Chart**:
+A `.mmd` file of a spec folder outside `specs/switches/`. A model with no chart is refused at select, and the PR body prints each chart in a `mermaid` block ([spec §7](state-machine.md#7-guards), Spec; [spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
 
 **Record branch**:
 The branch that holds a Goal's examples and their place events. It merges before the runner's run, so the examples reach the runner's commits ([spec §1](state-machine.md#1-names-and-locations)).
@@ -248,7 +269,7 @@ At most three Hypotheses run since the boundary, H0 never counted. Three is fixe
 _Avoid_: three commits (the unit is the Hypothesis: one subject hash), retries
 
 **Boundary**:
-The start of the budget's count: the latest example-changing placement or the latest `budget.reset`, else the Goal's start ([spec §11](state-machine.md#11-budget-and-stops)).
+The start of the budget's count: the latest of the latest example-changing placement, the latest `budget.reset` and the latest `unselect`, else the Goal's start ([spec §11](state-machine.md#11-budget-and-stops)).
 
 **Stop**:
 A calculated point that ends the runner's runs on a Goal. A stop is not stored: hyp shows it as an event, calculated from the log, on the `stop:` line of the state block: which stop, the act that caused it, its event id and when. Each stop waits for the owner, who may land the Goal ([spec §11](state-machine.md#11-budget-and-stops)):
@@ -257,7 +278,7 @@ A calculated point that ends the runner's runs on a Goal. A stop is not stored: 
 |---|---|---|---|
 | Selected | the Goal has a select | the `select` | the PR body |
 | Two candidates | two or more candidates and no select | the latest run | the table of outputs |
-| Budget used | three trees counted since the boundary and no candidate | the latest run | the table of outputs |
+| Budget used | three Hypotheses counted since the boundary and no candidate | the latest run | the table of outputs |
 
 _Avoid_: land for a stop (a stop ends the runs; the land ends the Goal)
 
@@ -334,7 +355,7 @@ _Avoid_: check, validation, rule (alone)
 | Draft | a replace names a Goal that is still written |
 | Whole lines | every line has a kind, one line or more is a gap line, and there are at most ten lines |
 | Not ended | the Goal is not landed |
-| Open | the Goal is open; `run` on H0's tree does not check it |
+| Open | the Goal is open; `run` on H0 does not check it |
 | Goal's actor | the actor added the Goal, for an owner's select, a land, an unselect and a reset |
 | Own case | the act's role is grill, for a place |
 | Kind | H0 gives the verdict the line's kind needs |
@@ -343,10 +364,10 @@ _Avoid_: check, validation, rule (alone)
 | Leaf only | the commit is H0, or no row of the Goal descends from it |
 | Bytes | the commit exists |
 | Stable | a repeat on the same bytes gives the same verdict |
-| Budget | the run adds no fourth counted tree since the boundary |
-| Candidate | the tree is a candidate; with two or more, the role is owner |
+| Budget | the run adds no fourth counted Hypothesis since the boundary |
+| Candidate | the Hypothesis is a candidate; with two or more, the role is owner |
 | New cell | after an unselect, a runner's select follows a run that recorded a new cell; the owner's select does not need one |
-| Spec | the selected commit holds a file under `goals/<G>/specs/` |
+| Spec | the selected commit holds a file under `goals/<G>/specs/`; a model also names every check-config rule in a switch config, and holds a chart |
 | Own path | the commit's own change writes no path of another Goal |
 | Selected | the Goal has no select, for `place`, `run` and `select`; it has one, for `unselect` |
 | Owner lands | the act's role is owner, for a land |
@@ -405,7 +426,7 @@ The rules a runner follows that hyp cannot check, in `skills/hyp-grill/run-rules
 
 ## Deferred
 
-The spec defers three items until a real event shows the need: o7-actors, o11-blind and o8-end. Until o8-end is decided, no Goal ends, and the guard Not ended always holds ([spec §14](state-machine.md#14-deferred)).
+The spec defers two items until a real event shows the need: o7-actors and o11-blind. A third, o8-end, is closed: the owner's `land` ends a Goal at a stop, and Not ended refuses every write after it. A Goal that never reaches a stop has no end yet ([spec §14](state-machine.md#14-deferred)).
 
 ## Scopes of this repository
 
@@ -427,10 +448,10 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 |---|---|---|
 | Tree | The view of one Goal and every node under it, kept as events in a store. | No node tree. "Tree" means only the Hypothesis tree: a Goal's Hypotheses by git ancestry. |
 | Store | `.tree/`, found by a walk up from the current directory to the repository root ([spec §1](replay-spec.md#1-names-and-locations)). | Store, at the git top level. |
-| Event | A v1 line (`v` = 1) with a type from the v1 set ([spec §4](replay-spec.md#4-event-types-closed-set)). | Event, with `v` = 2 and seven types. |
+| Event | A v1 line (`v` = 1) with a type from the v1 set ([spec §4](replay-spec.md#4-event-types-closed-set)). | Event, with `v` = 2 and nine types. |
 | Replay, Projection | The derivation of every status, and what it returns ([spec §7](replay-spec.md#7-derived-state-forward-pass), [§8](replay-spec.md#8-projection-what-replay-returns)). | Replay and the calculated tables. |
-| Goal | A node `G-` with no parent; its lines never change after its add; complete when every live top-level question is answered. | Goal, with states written, open and selected; a Draft replace may change a written Goal. |
-| End, Ended | The owner's terminal act on a Goal, and its state ([spec §7.5](replay-spec.md#75-goal)). | Deferred (o8-end). |
+| Goal | A node `G-` with no parent; its lines never change after its add; complete when every live top-level question is answered. | Goal, with states written, open, selected and landed; a Draft replace may change a written Goal. |
+| End, Ended | The owner's terminal act on a Goal, and its state ([spec §7.5](replay-spec.md#75-goal)). | Land: the owner's act `land`, and the state `landed`. |
 | Discovery Goal, Build Goal | A Goal whose Hypotheses are claims, or commits. hyp stored no kind. | Every v2 Goal runs commits. |
 | Constraints block | The end of a Goal's body that `hyp prompt` read. | None; `prompt ROLE` is a later v2 Goal. |
 | DesignQuestion, Top-level question, Sub-question | A node `Q-` that asks one design question, and where it sits ([spec §7.4](replay-spec.md#74-designquestion-state)). | None. A new question is a new Goal. |
@@ -459,7 +480,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 
 | Word | In hyp 0.1.0 | In v2 |
 |---|---|---|
-| Bundle, Frozen, Draft | A versioned folder of a description and scripts; a version a tree pins; a version no tree pins. | An example folder, by its tree hash. Draft is now a guard. |
+| Bundle, Frozen, Draft | A versioned folder of a description and scripts; a version a tree pins; a version no tree pins. | An example folder, by its example hash. Draft is now a guard. |
 | Recipe, Harness recipe, Environment recipe, Stack, Recipe ref, Recipe library | How to run one kind of subject, its roles in a stack, and how it is named and kept. | An example's `run` section and its Probe. |
 | Rubric | The rule that turned measures into verdicts. | The compare: floors and ceilings. |
 | Instrument | A bundle with an Evidence or Standalone command, gated by its known answers. | None: say example and Probe. An example gives its line's verdict on H0 before it is placed. |
