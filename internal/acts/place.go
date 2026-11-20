@@ -178,6 +178,9 @@ func checkPlace(root string, o PlaceOpts, evs []events.Event, lineKey, name stri
 	if c.line.Key == "" {
 		return checked{}, fault.BadArg(fault.NoLine, g.ID, lineKey)
 	}
+	if err := tables.GuardNotEnded(g); err != nil {
+		return checked{}, err
+	}
 	if err := tables.GuardNotSelected(g); err != nil {
 		return checked{}, err
 	}

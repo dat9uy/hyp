@@ -280,6 +280,9 @@ func GuardRun(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToRun, GoalID(ev.Node))
 	}
+	if err := GuardNotEnded(g); err != nil {
+		return err
+	}
 	if err := GuardNotSelected(g); err != nil {
 		return err
 	}

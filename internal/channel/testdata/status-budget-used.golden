@@ -1,8 +1,8 @@
 G-XXXXXX  open  runs: 3 of 3 used
-stop: budget used
+stop: budget used, by run <id> at <time>
 waits: owner
 owner may:
-  (none)
+  hyp land G-XXXXXX
 grill may:
   hyp place G-XXXXXX line-1/<example>
 probe-writer may:

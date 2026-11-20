@@ -76,6 +76,24 @@ func or(v, placeholder string) string {
 	return v
 }
 
+// landText is the report of a land: the Goal, and the stop it ended with the
+// act that caused it.
+func landText(rep acts.LandReport) string {
+	return fmt.Sprintf("landed %s\nstop: %s\n", rep.Goal, stopText(rep.Stop, rep.Cause))
+}
+
+// stopText is a stop as an event: which stop, the act that caused it, its
+// event id and when. The stop none has no cause.
+func stopText(stop string, c acts.Cause) string {
+	if c.ID == "" {
+		return stop
+	}
+	if c.Act == "" {
+		return fmt.Sprintf("%s, by %s", stop, c.ID)
+	}
+	return fmt.Sprintf("%s, by %s %s at %s", stop, c.Act, c.ID, c.Time)
+}
+
 // readyText is an allowed act as the command line its role runs. A key hyp
 // cannot know prints as a placeholder in angle brackets.
 func readyText(r acts.Ready) string {
@@ -88,6 +106,8 @@ func readyText(r acts.Ready) string {
 		return "hyp run " + or(shortCommit(r.Commit), "<commit>") + " " + r.Goal + "/" + r.Line
 	case acts.ActSelect:
 		return "hyp select " + r.Goal + " " + r.Tree
+	case acts.ActLand:
+		return "hyp land " + r.Goal
 	}
 	return "hyp " + r.Act + " " + r.Goal
 }

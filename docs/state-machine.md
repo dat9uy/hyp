@@ -77,21 +77,22 @@ Every event is one JSON line with this envelope (v1's, with `v` = 2):
 | `id` | The event's ULID. |
 | `ts` | hyp's time, RFC 3339 UTC. |
 | `actor` | The actor; equal to the events file's base name. |
-| `type` | One of the seven types below. |
+| `type` | One of the eight types below. |
 | `node` | The id the event is about: the Goal's `goal.add` id, the Result's `result.record` id for `result.retract`, or the event's own id for `read`. |
 | `payload` | The type's payload, parsed strictly: an unknown field does not parse. |
 | `why` | The actor's short reason, optional. |
 
-The seven events:
+The eight events:
 
 | Event | Written by | `node` | Payload |
 |---|---|---|---|
 | `goal.add` | `add goal` | its own id; a Draft replace names the replaced Goal's id | role, words, H0 commit, H0 row tree, budget (3), `from` Goal or empty, lines: key, text, kind |
 | `example.place` | `place` | the Goal | role, line key, example name, the folder's tree hash, and H0's cell: H0 commit, H0 row tree, Probe hash, output hash, stderr hash, exit code, verdict |
-| `result.record` | `run`, `land` | the Goal | role, line key, commit, row tree, `refused` (empty, or `Stable` with the differing example keys), and per example: example key, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
+| `result.record` | `run` | the Goal | role, line key, commit, row tree, `refused` (empty, or `Stable` with the differing example keys), and per example: example key, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
 | `result.retract` | `retract` | the Result | role |
-| `select` | `select`, `land` | the Goal | role, commit, row tree |
+| `select` | `select` | the Goal | role, commit, row tree |
 | `budget.reset` | `reset` | the Goal | role |
+| `land` | `land` | the Goal | role, the stop it ends (`selected`, `two candidates` or `budget used`), and `cause`: the id of the event of the act that caused that stop |
 | `read` | every command that names an actor, in a repository with a store, into the trace, never into the log (§8) | its own id | role (empty when the command declared none of the four), the command's arguments, exit code, stdout hash, stderr hash |
 
 The Probe hash is the tree hash of the example's `probe/` folder. The example
@@ -101,7 +102,14 @@ share one Probe (main page §4, "Copy, and let hyp show the copies").
 The first six events are the list of `v2-architecture.html` §8. Owner said,
 2026-11-19: "Why ask me, event list is already decided in report".
 
-The seventh, `read`, is the trace of what hyp printed to an actor (§8, "The
+`land` is the owner's event that ends a Goal (§8, `land`). It was added by
+Goal G-M66KKY, after the six. A stop itself is not stored: it follows from the
+stored events (§11), so the log cannot disagree with itself about it. The land
+names the stop it ends, so a landed Goal keeps that stop. Owner said,
+2026-11-20 (#245): "Stop and land are two different events", and for the stop,
+"1 it is": shown as an event, calculated from the log.
+
+The eighth, `read`, is the trace of what hyp printed to an actor (§8, "The
 trace is not the log"). hyp writes it into the clone's trace folder (§1), never
 into `.tree/events/`. Its two hashes name output files in the trace's
 `outputs/` that hold the bytes hyp wrote to stdout and to stderr. It changes no
@@ -165,18 +173,27 @@ subject shows its cells as not run"), and `run <H0 commit> LINE` measures it.
   never merged: a clone's agents share one trace folder, and git carries none
   of it.
 - **Which guards replay checks again.** Only the guards that read the tables:
-  Draft, Whole lines, Own case, Open, Goal's actor, Budget, Stable, Selected
-  and Own Result, the table half of Adds only (the hash is new on its key), and
-  the table half of Candidate (the row is met on every line, and the role is
-  runner or owner; the leaf mark and the one-or-two count read git and are
-  trusted as written). The guards that read disk, git objects, the moving git state
-  or a Probe (Committed, Kind, Bytes, Leaf only, Spec, Own path, Same change, and
-  the content half of Adds only) are trusted as written. Cost: two clones that
+  Draft, Whole lines, Not ended, Own case, Open, Goal's actor, Budget, Stable,
+  Selected, Owner lands and Own Result, the table half of Adds only (the hash
+  is new on its key), the table half of Candidate (the row is met on every
+  line, and the role is runner or owner; the leaf mark and the one-or-two count
+  read git and are trusted as written), and the table half of Stop (the stop a
+  land names is one of the three; `selected` needs a select and the other two
+  need none; that the candidates or the budget held reads git and is trusted
+  as written). The guards that read disk, git objects, the moving git state
+  or a Probe (Committed, Kind, Bytes, Leaf only, Spec, Own path, and the content
+  half of Adds only) are trusted as written. From landed is not checked again:
+  a log written before land existed holds Goals that cite a Goal that is not
+  landed, and it replays as it was. Cost: two clones that
   each adjust one example key merge to @2 and @3, and @3 was checked against @1
   only. So when
   two clones merge and one Goal holds a fourth counted tree, the fourth by
   merge order is refused at replay: its Result counts for nothing, even when it
   was a candidate. Owner said, 2026-11-19: "Refused at replay".
+- **A write after a land in another clone.** A clone that has not merged a
+  land can still place, run or select on that Goal. Once the logs merge, each
+  such event after the land in merge order is refused at replay by Not ended,
+  and `status G` lists it under "refused at replay".
 - These rules follow from rules already decided: the store of ADR 0020 and
   ADR 0022, and the main page §11. Owner said, 2026-11-19: "Why ask me, event
   list is already decided in report".
@@ -194,7 +211,8 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 | Results | Result id | Goal, line key, commit, row tree, actor, role, time, retracted, refused by Stable |
 | Cells | Result, example hash | example key, Probe hash, output hash, stderr hash, exit code, verdict (`met` or `failed`) |
 | Rows | Goal, row key | the commits it was seen at; leaf (from git); per example key, the verdict of its live cell under the current placement, or `not run` |
-| Selects | Goal | commit, row tree, time, actor |
+| Selects | Goal | select id, commit, row tree, time, actor |
+| Lands | Goal | land id, the stop it ends, its cause, time, actor |
 | Reads | actor, read id | time, role, command, exit code, stdout hash, stderr hash; from the clone's trace and from the old `read` lines of the log; an actor's reads are in id order, oldest first |
 
 - A cell is **live** when its Result is not retracted, not refused by Stable,
@@ -217,16 +235,20 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 
 ## 6. States
 
-Each state is calculated from the tables; none is stored. `selected` wins over
-`open`: a selected Goal is not open.
+Each state is calculated from the tables; none is stored. `landed` wins over
+`selected`, and `selected` wins over `open`: a selected Goal is not open.
 
-### Goal: `written → open → selected`
+### Goal: `written → open → selected → landed`
+
+A Goal with no select lands from `open` at the stops Two candidates and Budget
+used (§11), so `open → landed` is a path too.
 
 | State | Holds when | Refuses |
 |---|---|---|
-| `written` | A `goal.add` exists, and the Goal is not open. | `run` on a tree other than H0's (**Open**), `select` (**Candidate**: no row is met yet), `land` (**Selected**) |
-| `open` | Every line has at least one placed example, and every current placement has a live cell on H0's row with the verdict its line's kind needs: `failed` on a gap line, `met` on a guard line. | `add goal G` replace (**Draft**), `land` (**Selected**) |
-| `selected` | The Goal has a select. | `add goal G` replace (**Draft**); `place`, `run` and a second `select` (**Selected**: the Goal already has a select) |
+| `written` | A `goal.add` exists, and the Goal is not open. | `run` on a tree other than H0's (**Open**), `select` (**Candidate**: no row is met yet), `land` (**Stop**: a written Goal has no stop) |
+| `open` | Every line has at least one placed example, and every current placement has a live cell on H0's row with the verdict its line's kind needs: `failed` on a gap line, `met` on a guard line. | `add goal G` replace (**Draft**), `land` while the Goal has no stop (**Stop**) |
+| `selected` | The Goal has a select and no land. | `add goal G` replace (**Draft**); `place`, `run` and a second `select` (**Selected**: the Goal already has a select); `add goal --from G` (**From landed**) |
+| `landed` | The Goal has a land. | every write: `add goal G` replace (**Draft**), `place`, `run`, `select` and a second `land` (**Not ended**) |
 
 All refusals are exit 1. A Draft replace that changes the lines leaves existing
 placements on their keys; a placement whose line key is gone is history, and the
@@ -236,7 +258,17 @@ Goal is open again only when the rule above holds.
 guard named for the state, **Selected**, so that no refusal reads "Open" by
 accident ("a run after the select counts nothing", main page §10). `land` is
 the only write it allows.
-Owner accepted, 2026-11-19 (S13).
+Owner accepted, 2026-11-19 (S13). The re-grill of a selected Goal goes through
+`unselect` (#246), not built; until then a selected Goal keeps refusing
+`place`, `run` and a second `select`. Owner said, 2026-11-20 (#245): "that's
+why #246 is needed (unselect)".
+
+`landed` ends the Goal. Only the owner lands it, and only at a stop: the Goal
+is done when the owner says so, since a re-grill can still add an example
+inside the Goal. Owner said, 2026-11-20 (#245): "That's why owner is a one who
+decide the `land`". The land is not coupled to a merge: a Goal can land before
+the merge of its change, after it, or with no merge, and a merge never lands a
+Goal. Owner said: "I find coupling `land` to the merge action is the bad idea".
 
 ### Example: placed `@1 → @2 → …`
 
@@ -268,12 +300,13 @@ the first guard that fails, in the act's order (§8).
   always passes.
 - **Whole lines** — Every line has a kind, `gap` or `guard`, and the Goal has at
   least one gap line. Query: over the act's own input.
-- **Not ended** — No write after the Goal ends. No act ends a Goal yet (§14), so
-  it always holds. Query: none.
+- **Not ended** — No write after the Goal ends: the owner's `land` ends it.
+  Checked first by `place`, `run`, `select` and `land`, and by replay. Query:
+  `Lands[G]` does not exist.
 - **Open** — The Goal is open. Checked by `run` unless the commit's row tree
   equals H0's row tree. Query: `Goals[G].state == open`.
-- **Goal's actor** — Only the actor that added the Goal selects for the owner or
-  resets the budget. Query: the act's actor `== Goals[G].actor`.
+- **Goal's actor** — Only the actor that added the Goal selects for the owner,
+  lands the Goal or resets the budget. Query: the act's actor `== Goals[G].actor`.
 - **Own case** — Only the grill places an example; the runner never places.
   Query: the act's role `== grill`.
 - **Kind** — H0 gives the verdict the line's kind needs under the example's
@@ -343,21 +376,21 @@ the first guard that fails, in the act's order (§8).
   from H0 holds `goals/<X>/` that the runner did not write. Query: the paths of
   the runner's own change of COMMIT hold none under `goals/<X>/` with `X` ≠ G.
   The refusal names the path and the commit that wrote it.
-- **Selected** — The Goal has a select. Query: `Selects[G]` exists. Replay
-  also checks it on `result.record`; the later `land` Goal must exempt the
-  Results `land` writes. `land`
-  needs it to hold; `place`, `run` and `select` need it not to hold (§6).
-- **Same change** — The landed commit carries the same whole change as the
-  selected commit. Query: the patch-id of the selected commit's own change (its
-  diff from its base, §13) equals the patch-id of the landed commit's own change
-  (its diff from its new base). Each is `git diff-tree -p <base> <commit>`
-  piped to `git patch-id --stable`. Comparing each commit against its first
-  parent would compare only the last commit of a change made of several.
-  Limit: when the runner took main in by a merge commit before the select, the
-  selected commit's base is that merge, so its own change holds only the commits
-  after it; a rebase that flattens that merge then gives a different patch-id and
-  is refused. `land` is built as a later v2 Goal, which tests this against a real
-  landing.
+- **Selected** — The Goal has a select. Query: `Selects[G]` exists. `place`,
+  `run` and `select` need it not to hold (§6); replay also checks it on
+  `result.record`.
+- **Owner lands** — Only the owner lands a Goal. Query: the act's role
+  `== owner`.
+- **Stop** — The Goal is at a stop (§11): Selected, Two candidates or Budget
+  used. Query: the stop of §11, calculated from the tables and git. A land on a
+  Goal with no stop is refused, and checks no commit: land is not a recheck of
+  a commit on a main that moved. That recheck is `unselect` (#246), then a run
+  and a select again. Owner said, 2026-11-20 (#245), decision 9: "the problem
+  is by design, it affect only H0, right? so why this is complicated?"
+- **From landed** — `add goal --from G` cites only a landed Goal. Query:
+  `Goals[G].state == landed`. Checked by the act only, never at replay (§4).
+  Owner said, 2026-11-20 (#245): "The --from should be the Goal that landed
+  already".
 - **Own Result** — Only the actor that ran a Result retracts it. Query: the act's
   actor `== Results[R].actor`.
   Owner accepted, 2026-11-19 (S17).
@@ -366,18 +399,16 @@ the first guard that fails, in the act's order (§8).
 
 The act comes first, then its keys. Every write act takes the lock, checks its
 guards in the order listed, appends one event, and prints the return (§12).
-`land` is the one exception: it appends a `result.record` per line and, when met
-on every line, a `select`.
 Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 (§12).
 
 | Act | Role | Guards, in order | Writes |
 |---|---|---|---|
-| `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines | `goal.add` |
+| `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines, From landed (with `--from`) | `goal.add` |
 | `place G LINE/EXAMPLE` | grill | Not ended, not Selected, Own case, Committed, Adds only, Kind | `example.place` |
 | `run COMMIT LINE` | runner | Not ended, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
 | `select G TREE` | runner, or owner | Not ended, not Selected, Candidate, Goal's actor (owner only), Spec, Own path | `select` |
-| `land G COMMIT` | runner | Selected, Same change | `result.record` per line; `select` when met on every line |
+| `land G` | owner | Not ended, Owner lands, Goal's actor, Stop | `land` |
 | `reset G` | owner | Not ended, Goal's actor | `budget.reset` |
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
 | `status [G] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
@@ -395,7 +426,32 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   refusal that needs no Probe costs no Probe run.
 - `run` checks every guard that needs no Probe before it runs a Probe; Stable is
   checked on the outputs.
-- `land`, `reset` and `retract` are specified here and built as later v2 Goals.
+- `land G` ends a Goal at its stop. It records one `land` event that names
+  the stop and the event of the act that caused it, whether or not the change
+  was merged. Its report is `landed G` and the stop as an event (§11), then the
+  state block of the landed Goal, which prints the record of the decision
+  (§12). `status` offers it to the owner at every stop, as `hyp land G`. Built
+  by Goal G-M66KKY. The model of its rules, with the cheaper builds each rule
+  refuses, is `goals/G-M66KKY/specs/land.tla`.
+- **The snapshot** of a landed Goal is not a separate thing: it is the Goal's
+  events in the `.tree/` of the tree being read, up to its land, and the
+  outputs they name. hyp stores nothing more for it, and it holds no code of a
+  Hypothesis, only Results. So each tree shows what it holds: a tree reads a
+  Goal as landed only once it holds the Goal's stop and its land, as git shows
+  any branch before a merge. Owner said, 2026-11-20 (#245): "Result only then",
+  and "If you want to replay, why not read the tree itself?" It is the owner's
+  decision, fixed: what the owner accepted (the words, lines, examples, the
+  selected row, the verdicts and outputs), or with no select what failed.
+  Later Goals that cite it with `--from` start from it. It is read:
+
+  | When | Who reads | What, and why |
+  |---|---|---|
+  | Every hyp command | hyp, in replay | the land event, to calculate `landed` and refuse every write to the Goal (Not ended) |
+  | The return of `land`, and `status G` | any role | the record of the decision: the PR body, or the table of outputs with no select (§12) |
+  | `status` for every Goal | any role | only the state block of a landed Goal |
+  | `add goal --from G` | hyp | whether G is landed (From landed) |
+
+- `reset` and `retract` are specified here and built as later v2 Goals.
 
 **The trace is not the log.** `status` and `show ACTOR` are reads: they
 check no guard and are always allowed. Every command that names a valid actor,
@@ -546,8 +602,9 @@ Owner accepted, 2026-11-19 (S10).
 `add goal` takes the Goal's words as `--words TEXT` (required; owner said,
 2026-11-19: "Accept --words TEXT"), and repeated
 `--line gap:TEXT` and `--line guard:TEXT`, in order; hyp gives the keys `line-1`, `line-2` …. A Draft
-replace is `hyp add goal G …`. `--from G` stores only the cited Goal's full
-`goal.add` id, which no other Goal shares, and copies nothing. Whole lines also refuses more than ten lines
+replace is `hyp add goal G …`. `--from G` needs G to be landed (From landed,
+§7), stores only the cited Goal's full `goal.add` id, which no other Goal
+shares, and copies nothing. Whole lines also refuses more than ten lines
 (`v2-architecture.html` §2: "up to ten lines").
 Owner accepted, 2026-11-19 (S14).
 
@@ -653,11 +710,27 @@ only a folder whose on-disk hash equals its committed hash".
 
 **Stops**, calculated:
 
-| Stop | Holds when | What hyp prints |
-|---|---|---|
-| Selected | The Goal has a select. | The PR body (§12) |
-| Two candidates | Two or more candidates and no select. | The table of outputs, rows × examples |
-| Budget used | Three trees counted since the boundary and no candidate. | The table of outputs, rows × examples |
+| Stop | Holds when | Caused by | What hyp prints |
+|---|---|---|---|
+| Selected | The Goal has a select. | the `select` | The PR body (§12) |
+| Two candidates | Two or more candidates and no select. | the latest run | The table of outputs, rows × examples |
+| Budget used | Three trees counted since the boundary and no candidate. | the latest run | The table of outputs, rows × examples |
+
+**A stop is an event**, calculated from the log and never stored (§3): which
+stop, the act that caused it, and when. `status` prints it on the `stop:`
+line as `stop: STOP, by ACT ID at TIME`, for example
+`stop: selected, by select 01M7W4E3Y3MB9PZB2X2YHY4K7H at 2026-11-20T09:26:09.091171Z`.
+For Selected the cause is the `select` event. For the two stops of the runs it
+is the latest `result.record` of the Goal in merge order that counts, neither
+retracted nor refused by Stable: only a run adds a row or a cell, so the stop
+held after it. A Goal with no stop prints `stop: none`. A landed Goal prints
+the stop its land names, with that cause, and a line
+`landed: by ACTOR, land ID at TIME`.
+
+**Each stop waits for the owner**: `waits: owner`, with `hyp land G` among the
+owner's acts. After a select, the owner reads the PR and lands the Goal, before
+or after the merge. Owner said, 2026-11-20 (#245): "C". A landed Goal waits
+for no one.
 
 Two candidates can happen with one runner: "selects at once" is runner
 behaviour, not a guard, so a runner can meet every line on a second leaf before
@@ -729,6 +802,12 @@ runner may:
   an example. Owner decided, 2026-11-19 (G-1908D1, decision 3).
 - A refusal prints to stderr, then the state block to stdout. A report prints
   only on exit 0. Exit 2 and exit 3 print no state block.
+- **The record of a landed Goal.** `status G` and the return of `land` print
+  the state block of a landed Goal, then the record of its decision: the PR
+  body when the Goal has a select, or the table of outputs (§11) when it has
+  none. `status` for every Goal prints only the state block of a landed Goal.
+  A selected Goal that is not landed prints its PR body in both. Owner said,
+  2026-11-20 (#245): "agree with the mix".
 - `show ACTOR` prints the trace (§8) and no state block: it shows what the
   actor got, not the state now. `prune` prints its list and no state block:
   it is about the trace folders, not a Goal.
@@ -782,7 +861,7 @@ to communicate with agent, is one block of code".
 
 `select`'s report is the PR body: each line, each example's words, output,
 stderr, exit code and verdict, and the selected commit and row. `status` prints
-it again while the Goal is selected. The runner pastes it into the PR, so hyp
+it again while the Goal is selected, and `status G` after it is landed. The runner pastes it into the PR, so hyp
 writes nothing to GitHub. This follows the main page §8: "hyp prints one read
 per Goal: each line, each example, its output and its verdict". Charts are a
 later v2 Goal.
@@ -815,8 +894,8 @@ by its full argument shape in `internal/gitread`:
 | `git cat-file` | `-e` (Bytes), `--batch` (extraction by hash), `-p <commit>` (a commit's parents, for the own change) |
 | `git ls-tree` | `-r -z` (extraction), the root of a commit (row tree), `goals/<G>/specs/` (Spec) |
 | `git merge-base --is-ancestor` | Leaf only |
-| `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths), `-p` (Same change) |
-| `git patch-id` | Same change |
+| `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths); `-p` is on the read list, and no act runs it |
+| `git patch-id` | on the read list; no act runs it, since `land` checks no commit |
 | `git ls-files -z --cached --others --exclude-standard` | the files of the checkout, for `try --worktree` (§8); this one form only. It reads the index and takes no optional lock; the files' bytes are read from disk |
 
 - Every git command runs with `GIT_OPTIONAL_LOCKS=0` and `GIT_NO_LAZY_FETCH=1`:
@@ -830,8 +909,7 @@ by its full argument shape in `internal/gitread`:
   case-insensitive filesystem are exit 3, naming the path.
 - **The runner's own change** of a commit C is what the runner wrote, not what
   it took in from main. Its **base** is found by walking first parents from C
-  (C excluded) to the first commit that is H0 or a merge commit; for a landed
-  commit the walk stops at the first merge commit, which is its new base. The own
+  (C excluded) to the first commit that is H0 or a merge commit. The own
   change is the diff from the base to C. Its paths are the union of each
   non-merge commit's `git diff-tree -r --name-only` against its parent on that
   walk, plus, when C itself is a merge commit, the paths of
@@ -869,7 +947,9 @@ Deferred by the owner until a real event shows the need:
 - **o11-blind** — whether the Probe writer can be kept from reading the
   candidate. Owner said, 2026-11-18: deferred with o7-actors (main page §13,
   Batch 4).
-- **o8-end** — an ended state and an `end G` act. Owner said: "whether we need
-  an end state + end action for owner will leave open until we see 'dangling
-  open' goal is the problem later on" (main page §8). Until then **Not ended**
-  always holds.
+- **o8-end** — closed by Goal G-M66KKY: the owner's `land` is the act that
+  ends a Goal, at a stop (§8). Not ended refuses every write after it. A Goal
+  that never reaches a stop has no end yet; that waits for a real event, as
+  the owner said: "whether we need an end state + end action for owner will
+  leave open until we see 'dangling open' goal is the problem later on" (main
+  page §8).

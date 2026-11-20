@@ -28,9 +28,11 @@ var roles = []string{"owner", "grill", "probe-writer", "runner"}
 const maxCell = 60
 
 // StateBlock is the state block of section 12: for each Goal its state, runs
-// used, stop and what it waits for, the allowed acts of every role as ready
+// used, stop with the act that caused it and what it waits for, the allowed acts of every role as ready
 // command lines, a marked split line, the Results Stable refused, and, while
-// the Goal is selected, the PR body. Events refused at replay close it. repo
+// the Goal is selected, the PR body; at a stop with no select, the table of
+// outputs. A landed Goal prints that record only when o names it: the list of
+// every Goal prints its state block alone. Events refused at replay close it. repo
 // is the git top level.
 func StateBlock(t tables.Tables, repo string, o BlockOpts) string {
 	var b strings.Builder
@@ -63,7 +65,10 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	if st.Stop == acts.StopNone && st.Used == tables.MaxTrees-1 {
 		fmt.Fprintf(b, "last run: after this, %s stops for the owner.\n", g.ID)
 	}
-	fmt.Fprintf(b, "stop: %s\n", st.Stop)
+	fmt.Fprintf(b, "stop: %s\n", stopText(st.Stop, st.Cause))
+	if g.Land != nil {
+		fmt.Fprintf(b, "landed: by %s, land %s at %s\n", g.Land.Actor, g.Land.ID, g.Land.Time)
+	}
 	fmt.Fprintf(b, "waits: %s\n", st.Waits)
 	for _, row := range st.Rows {
 		for _, line := range g.SplitLines(row.RowTree) {
@@ -89,6 +94,8 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	}
 	unstable(b, g)
 	switch {
+	case g.Land != nil && o.Goal == "":
+		// the list of every Goal prints only the state block of a landed Goal
 	case st.Stop == acts.StopSelected:
 		if !o.NoBody {
 			fmt.Fprintf(b, "\nPR body:\n\n%s", prBody(repo, g))

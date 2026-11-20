@@ -178,6 +178,9 @@ func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey stri
 			c.placed = append(c.placed, p)
 		}
 	}
+	if err := tables.GuardNotEnded(g); err != nil {
+		return runChecked{}, err
+	}
 	if err := tables.GuardNotSelected(g); err != nil {
 		return runChecked{}, err
 	}

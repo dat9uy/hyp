@@ -13,6 +13,14 @@ const (
 	StateWritten  = "written"
 	StateOpen     = "open"
 	StateSelected = "selected"
+	StateLanded   = "landed"
+)
+
+// The stops of a Goal (section 11). A land event names one of the three.
+const (
+	StopSelected      = "selected"
+	StopTwoCandidates = "two candidates"
+	StopBudgetUsed    = "budget used"
 )
 
 // NotRun is the verdict a row shows for a cell that is not live.
@@ -51,6 +59,7 @@ type Goal struct {
 	Placements map[string][]Placement // by example key, in placement order
 	Results    []*Result              // in merge order, refused ones included
 	Select     *Select                // the Goal's select, or nil
+	Land       *Land                  // the Goal's land, or nil
 
 	// epoch counts the example-changing placements so far: the budget counts
 	// the Results recorded in the current epoch.
@@ -59,10 +68,21 @@ type Goal struct {
 
 // Select is a row of the Selects table.
 type Select struct {
+	ID      string // the select event id
 	Commit  string
 	RowTree string
 	Time    string
 	Actor   string
+}
+
+// Land is a row of the Lands table: the owner's land of a Goal, which ends it.
+// Stop is the stop it ended and Cause the event of the act that caused it.
+type Land struct {
+	ID    string // the land event id
+	Stop  string
+	Cause string
+	Time  string
+	Actor string
 }
 
 // Result is a row of the Results table.
@@ -342,15 +362,23 @@ func (g *Goal) isOpen() bool {
 	return len(g.Lines) > 0
 }
 
-// refresh recalculates the Goal's state. A selected Goal stays selected.
+// refresh recalculates the Goal's state. A selected or landed Goal stays so.
 func (g *Goal) refresh() {
 	switch {
-	case g.State == StateSelected:
+	case g.State == StateSelected, g.State == StateLanded:
 	case g.isOpen():
 		g.State = StateOpen
 	default:
 		g.State = StateWritten
 	}
+}
+
+// GuardNotEnded refuses every write to a landed Goal: the land ends it.
+func GuardNotEnded(g *Goal) error {
+	if g.State == StateLanded {
+		return fault.Refuse(fault.GuardNotEnded, fault.Landed, g.ID)
+	}
+	return nil
 }
 
 // GuardNotSelected refuses a place, a run or a second select on a Goal that
@@ -399,6 +427,9 @@ func GuardPlace(t Tables, ev events.Event) error {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
+	}
+	if err := GuardNotEnded(g); err != nil {
+		return err
 	}
 	if err := GuardNotSelected(g); err != nil {
 		return err
@@ -455,6 +486,8 @@ func Replay(evs []events.Event) Tables {
 			replayRetract(&t, ev, refuse)
 		case events.TypeSelect:
 			replaySelect(&t, ev, refuse)
+		case events.TypeLand:
+			replayLand(&t, ev, refuse)
 		case events.TypeRead:
 			var p events.Read
 			if err := events.Decode(ev, &p); err != nil {
@@ -549,6 +582,63 @@ func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 		return // GuardSelect decoded it already
 	}
 	g := t.Goals[ev.Node]
-	g.Select = &Select{Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
+	g.Select = &Select{ID: ev.ID, Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
 	g.State = StateSelected
+}
+
+// GuardOwnerLands refuses a land by any role but the owner.
+func GuardOwnerLands(role string) error {
+	if role != "owner" {
+		return fault.Refuse(fault.GuardOwnerLands, fault.NotOwner, role)
+	}
+	return nil
+}
+
+// GuardLand is the git-free check of a land event, called by Replay at the
+// event's place in the merge order: Not ended, Owner lands, Goal's actor, and
+// the table half of Stop: the stop it names is one of the three, a select
+// for Selected and none for the other two. That two candidates or the budget
+// held when the act ran reads git, and is trusted as written, as the leaf mark
+// of a select is. ev.Node is the goal.add event id.
+func GuardLand(t Tables, ev events.Event) error {
+	var p events.Land
+	if err := events.Decode(ev, &p); err != nil {
+		return fault.Refuse(fault.GuardStop, fault.PayloadInvalid, err)
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToLand, GoalID(ev.Node))
+	}
+	if err := GuardNotEnded(g); err != nil {
+		return err
+	}
+	if err := GuardOwnerLands(p.Role); err != nil {
+		return err
+	}
+	if err := GuardGoalActor(g, ev.Actor, p.Role); err != nil {
+		return err
+	}
+	switch {
+	case p.Stop == StopSelected && g.Select != nil:
+	case (p.Stop == StopTwoCandidates || p.Stop == StopBudgetUsed) && g.Select == nil:
+	default:
+		return fault.Refuse(fault.GuardStop, fault.StopNotHeld, p.Stop, g.ID)
+	}
+	return nil
+}
+
+// replayLand applies a land the table guards allow: the Goal is landed, and
+// keeps the stop the land names.
+func replayLand(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardLand(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	var p events.Land
+	if err := events.Decode(ev, &p); err != nil {
+		return // GuardLand decoded it already
+	}
+	g := t.Goals[ev.Node]
+	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor}
+	g.State = StateLanded
 }
