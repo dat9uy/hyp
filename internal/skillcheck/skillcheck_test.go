@@ -12,9 +12,39 @@ import (
 	"github.com/dat9uy/hyp/internal/channel"
 )
 
-// noSkills is why both tests skip on main: the skills of hyp 0.1.0 are kept
-// on the v1 branch, and the skills of events v2 are not written yet.
+// noSkills is why both tests skip when skills/ holds no file: the skills of
+// hyp 0.1.0 are kept on the v1 branch.
 const noSkills = "no skills under skills/; the hyp 0.1.0 skills are on the v1 branch"
+
+// skillFiles lists every file under skills/, at any depth, whose name ends in
+// one of the suffixes. A skill's references and parts live in subfolders, and
+// a command they show must exist as much as one SKILL.md shows.
+func skillFiles(t *testing.T, suffixes ...string) []string {
+	t.Helper()
+	var files []string
+	err := filepath.WalkDir("../../skills", func(p string, d os.DirEntry, err error) error {
+		if err != nil {
+			if os.IsNotExist(err) && p == "../../skills" {
+				return filepath.SkipDir
+			}
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		for _, s := range suffixes {
+			if strings.HasSuffix(p, s) {
+				files = append(files, p)
+				break
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return files
+}
 
 var (
 	fenceRe   = regexp.MustCompile("(?s)```[a-z]*\n(.*?)```")
@@ -27,18 +57,12 @@ func TestSkillCommandsExist(t *testing.T) {
 	for _, c := range channel.Commands() {
 		known[c] = true
 	}
-	files, err := filepath.Glob("../../skills/*/*")
-	if err != nil {
-		t.Fatal(err)
-	}
+	files := skillFiles(t, ".md", ".sh")
 	if len(files) == 0 {
 		t.Skip(noSkills)
 	}
 	seen := 0
 	for _, f := range files {
-		if !strings.HasSuffix(f, ".md") && !strings.HasSuffix(f, ".sh") {
-			continue
-		}
 		data, err := os.ReadFile(f)
 		if err != nil {
 			t.Fatal(err)
@@ -58,13 +82,15 @@ func TestSkillCommandsExist(t *testing.T) {
 			for _, m := range commandRe.FindAllStringSubmatch(c, -1) {
 				seen++
 				if !known[m[1]] {
-					t.Errorf("%s: unknown command `hyp %s`", filepath.Base(f), m[1])
+					t.Errorf("%s: unknown command `hyp %s`", f, m[1])
 				}
 			}
 		}
 	}
-	if seen < 20 {
-		t.Fatalf("only %d hyp commands found in the skills; the extractor is probably broken", seen)
+	// A skill names only reads (a skill names no write command), so a short
+	// skill shows few commands. None at all means the extractor is broken.
+	if seen == 0 {
+		t.Fatalf("no hyp command found in the skills; the extractor is probably broken")
 	}
 }
 
@@ -74,10 +100,7 @@ func TestSkillCommandsExist(t *testing.T) {
 var retiredRe = regexp.MustCompile(`(?i)verdict[ -](rule|check)`)
 
 func TestSkillsUseNoRetiredWord(t *testing.T) {
-	files, err := filepath.Glob("../../skills/*/*.md")
-	if err != nil {
-		t.Fatal(err)
-	}
+	files := skillFiles(t, ".md")
 	if len(files) == 0 {
 		t.Skip(noSkills)
 	}
