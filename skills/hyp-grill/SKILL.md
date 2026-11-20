@@ -89,9 +89,8 @@ extra rule.
    subject, prints its stdout, then a last line `exit N`. Write a new Probe only
    when the example needs one that this one cannot be.
 4. **Make the check able to fail.** A gap example must fail on H0 and a guard
-   example must be met on H0. Show both answers before placing: `hyp try` on H0,
-   and `hyp try --worktree` on a stand-in build in a scratch checkout, so the
-   example is met by a build that meets the line and failed by one that does not.
+   example must be met on H0. `hyp try` shows the verdict on H0 before you
+   place; `hyp try --worktree` can also show it on the files of a checkout.
 5. **Run `hyp try` before you place.** Run `hyp try G LINE/EXAMPLE` and read its
    verdict, exit code, output and stderr. It records nothing and uses no run.
    Only then commit the folder and place it, with the place line
@@ -116,8 +115,8 @@ The re-grill reviews a Goal against its line, not against the build that met it.
 
 The grill ends with a record branch that holds the examples and the place
 events, and a hand-off the owner and the runner read: the Goal's line, the
-owner's decisions numbered with their words, each example's H0 verdict, and
-"Not covered" with each decision no example checks.
+owner's decisions numbered with their words, and "Not covered" with each
+decision no example checks.
 
 ## Done when
 

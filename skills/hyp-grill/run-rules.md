@@ -17,8 +17,9 @@ refuses what breaks its guards; these are the rules it cannot check.
    goes to the owner; it is not yours to edit.
 6. **Commit only what your acts wrote.** Add the event lines and output files
    your own acts wrote, each by name.
-7. **Select at once.** When hyp offers one candidate, select it before you run
-   another tree; a second candidate stops the Goal for the owner.
+7. **Select when hyp offers it.** When hyp offers one candidate, select it,
+   unless the hand-off asks you to look for rivals; then run each rival the
+   hand-off names, and a second candidate stops the Goal for the owner.
 8. **Stop for the owner when hyp stops.** At `Two candidates` or
    `Budget used`, stop and report the state block.
 9. **The PR body is the select's report.** Paste it as hyp printed it; hyp

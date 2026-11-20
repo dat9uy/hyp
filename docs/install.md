@@ -23,9 +23,9 @@ with the common `tree` utility and shell aliases.
 
 ### Copy the skills into the project
 
-The skills of hyp 0.1.0 are kept on the `v1` branch; `main` has none while hyp
-moves to events v2. From your project's root, with a checkout of the `v1`
-branch at `<hyp>`:
+`main` holds `skills/hyp-grill`, the grill skill of events v2. The skills of
+hyp 0.1.0 are kept on the `v1` branch. From your project's root, with a checkout
+of hyp at `<hyp>` (`main` for hyp-grill, `v1` for the skills of hyp 0.1.0):
 
 ```bash
 mkdir -p .claude/skills
