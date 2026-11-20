@@ -92,10 +92,11 @@ The issue is the owner's record, not a rule for the runner:
 9. **Switch to a record branch before the Goal is recorded.** The Goal's events
    and examples reach the default branch only through a record PR, never by a
    write on it. Before you show the owner the act that adds the Goal, run
-   `git fetch origin` and `git switch -c record/<name> origin/main` (or the
+   `git fetch origin` and `git switch -c record/<issue> origin/main` (or the
    repository's default branch) in the checkout where the owner will run it,
-   and rename the branch `record/<G>` with `git branch -m` once hyp prints the
-   Goal's id.
+   where `<issue>` is the number of the issue you grill. hyp gives the Goal
+   its id only when the Goal is added, so rename the branch `record/<G>` with
+   `git branch -m` once hyp prints it.
 
 ## How to write examples
 
