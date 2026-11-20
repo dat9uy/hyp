@@ -1,6 +1,6 @@
 # Glossary
 
-The words of hyp v2 (events v2). [state-machine.md](state-machine.md) is the one spec of v2, and its rules win over this file. This file fixes which word means what, and links the section of the spec that holds the rule. `hyp help` lists the commands the binary has. It also names the two scopes of this repository; [core-and-self-review.md](core-and-self-review.md) maps the repository onto them.
+The words of hyp v2 (events v2). [state-machine.md](state-machine.md) is the one spec of v2, and its rules win over this file. This file fixes which word means what, and links the section of the spec that holds the rule. `hyp help` lists the commands the binary has. It also names the two scopes of this repository, which [AGENTS.md](../AGENTS.md) applies.
 
 The words of hyp 0.1.0 are in the last section, "Words of hyp 0.1.0 (v1 branch)". Do not use them for a v2 concept.
 

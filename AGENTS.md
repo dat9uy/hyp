@@ -6,7 +6,7 @@ This file is for any agent or person who changes hyp. It says how the repository
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores each Goal as append-only events under `.tree/events/`, one file per actor, and calculates every state from them.
 - **Two skills on `main`**, the first of events v2: `skills/hyp-grill`, which grills and re-grills a Goal and ships the runner's run rules as its part `run-rules.md`, and `skills/hyp-statechart`, with which the grill writes a Goal's model, its switches and its chart, and which ships the statechart tool (MIT) with its license and source. The five skills of hyp 0.1.0 are kept on the `v1` branch: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses), `skills/hyp-verification` (run one Experiment from a recipe), and the owner flow: `skills/hyp-owner-grill` (grill the owner into a Goal), `skills/hyp-goal-run` (run a Goal as an unattended `/goal`, whose prompt the hyp 0.1.0 binary prints) and `skills/hyp-owner-answer` (answer what a stopped run left for the owner).
-- **Docs** in `docs/`: the v2 rules in [state-machine.md](docs/state-machine.md); the rules of hyp 0.1.0 in `docs/replay-spec.md` and `docs/sandbox-spec.md` on the `v1` branch; the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md), and the scope map in [core-and-self-review.md](docs/core-and-self-review.md).
+- **Docs** in `docs/`: the v2 rules in [state-machine.md](docs/state-machine.md); the rules of hyp 0.1.0 in `docs/replay-spec.md` and `docs/sandbox-spec.md` on the `v1` branch; the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md).
 - **Test data** under `internal/*/testdata`, such as the synthetic store in `internal/testutil/testdata/synth`. The recipes and trees that tested hyp 0.1.0, and the trees that decided and built its shared store (ADR 0020), are kept on the `v1` branch, not on `main`. Records made before the public release stay in the private development history.
 
 Install the binary as [install.md](docs/install.md) describes. To use the skills of hyp 0.1.0, link them from a checkout of the `v1` branch.
@@ -16,7 +16,7 @@ Install the binary as [install.md](docs/install.md) describes. To use the skills
 Every item in this repository belongs to one of two scopes:
 
 - **Core** is every concept hyp has, such as Goal, line, example, Probe, runner and select, and everything a user who installs hyp into another repository runs, loads or reads there.
-- **Self-review** is a Goal of this repository whose lines are about how hyp is tested, not about a concept hyp has. An example is a Goal that checks a Probe or a test fixture of hyp itself. `main` keeps none today. In hyp 0.1.0, self-review was the recipes on the `v1` branch, and the scope map lists them.
+- **Self-review** is a Goal of this repository whose lines are about how hyp is tested, not about a concept hyp has. An example is a Goal that checks a Probe or a test fixture of hyp itself. `main` keeps none today. In hyp 0.1.0, self-review was the recipes on the `v1` branch; the scope map `docs/core-and-self-review.md` on that branch lists them.
 
 The split exists for four reasons:
 
@@ -25,13 +25,13 @@ The split exists for four reasons:
 3. **Self-review has no rule of its own.** Its examples give their line's verdict on H0 before they count, like the examples of every Goal.
 4. **Visibility is a separate question.** Every item in this repository is public, so "private" never needs to mean "self-review".
 
-Three rules keep the boundary honest: a concept stays core when self-review is what tests it; a self-review Goal does not make the concepts it uses self-review; and self-review invents no concept of its own. The test, the rules, the map of every item and the table of self-review words are in [core-and-self-review.md](docs/core-and-self-review.md), section "The test".
+Three rules keep the boundary honest: a concept stays core when self-review is what tests it; a self-review Goal does not make the concepts it uses self-review; and self-review invents no concept and no rule of its own: its examples give their line's verdict on H0 before they count, like every Goal's ([state-machine.md](docs/state-machine.md) §7, Kind). There are exactly two scopes. An item that fits neither has not been split far enough. Every item on `main` today is core.
 
 ## Before you change anything
 
 - Name the scope of the change by the concept it changes, not by the Goal or test that checks it. An item that fits neither scope has not been split far enough.
 - If the issue names a Goal, run `hyp status G` first, with `HYP_ACTOR` set. It shows the Goal's state, its stop, who it waits for, the runs used and the allowed acts of each role.
-- Use the words in [glossary.md](docs/glossary.md). A new self-review word needs an entry in the scope map's word table.
+- Use the words in [glossary.md](docs/glossary.md). A self-review Goal uses only core words; a new word it needs gets a glossary entry that maps it onto core concepts, and a word that maps onto none is a sign that a core concept is missing.
 
 ## Improving hyp with hyp
 
@@ -74,4 +74,4 @@ go vet ./...
 go test ./... -count=1
 ```
 
-There is no CI; these commands are the only gate. `go test` includes skillcheck, which fails when a file under `skills/` names a `hyp` command that does not exist. It reads every file under `skills/`, at any depth, and runs on `skills/hyp-grill` and `skills/hyp-statechart`. Core tests read only the synthetic data under `internal/*/testdata`; [core-and-self-review.md](docs/core-and-self-review.md), section "Where the scopes touch", lists them.
+There is no CI; these commands are the only gate. `go test` includes skillcheck, which fails when a file under `skills/` names a `hyp` command that does not exist. It reads every file under `skills/`, at any depth, and runs on `skills/hyp-grill` and `skills/hyp-statechart`. Core tests read only core test data: the v2 tests build their stores in temporary git repositories and compare against goldens under `internal/channel/testdata` and fixtures under `internal/example/testdata`, and the tests of the hyp 0.1.0 packages read the synthetic store in `internal/testutil/testdata/synth`. A copy of the repository that holds only core passes `go test`.
