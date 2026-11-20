@@ -5,18 +5,18 @@ This file is for any agent or person who changes hyp. It says how the repository
 ## What this repository holds
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores each Goal as append-only events under `.tree/events/`, one file per actor, and calculates every state from them.
-- **Two skills on `main`**, the first of events v2: `skills/hyp-grill`, which grills and re-grills a Goal and ships the runner's run rules as its part `run-rules.md`, and `skills/hyp-statechart`, with which the grill writes a Goal's model, its switches and its chart, and which ships the statechart tool (MIT) with its license and source. The five skills of hyp 0.1.0 are kept on the `v1` branch: `skills/hyp-prototype` (run an investigation as a tree of rival Hypotheses), `skills/hyp-verification` (run one Experiment from a recipe), and the owner flow: `skills/hyp-owner-grill` (grill the owner into a Goal), `skills/hyp-goal-run` (run a Goal as an unattended `/goal`, whose prompt the hyp 0.1.0 binary prints) and `skills/hyp-owner-answer` (answer what a stopped run left for the owner).
-- **Docs** in `docs/`: the v2 rules in [state-machine.md](docs/state-machine.md); the rules of hyp 0.1.0 in `docs/replay-spec.md` and `docs/sandbox-spec.md` on the `v1` branch; the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md).
-- **Test data** under `internal/*/testdata`, such as the synthetic store in `internal/testutil/testdata/synth`. The recipes and trees that tested hyp 0.1.0, and the trees that decided and built its shared store (ADR 0020), are kept on the `v1` branch, not on `main`. Records made before the public release stay in the private development history.
+- **Two skills**: `skills/hyp-grill`, which grills and re-grills a Goal and ships the runner's run rules as its part `run-rules.md`, and `skills/hyp-statechart`, with which the grill writes a Goal's model, its switches and its chart, and which ships the statechart tool (MIT) with its license and source.
+- **Docs** in `docs/`: the rules in [state-machine.md](docs/state-machine.md); the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md).
+- **Test data** under `internal/*/testdata`. Records made before the public release stay in the private development history.
 
-Install the binary as [install.md](docs/install.md) describes. To use the skills of hyp 0.1.0, link them from a checkout of the `v1` branch.
+Install the binary as [install.md](docs/install.md) describes.
 
 ## Two scopes, and why
 
 Every item in this repository belongs to one of two scopes:
 
 - **Core** is every concept hyp has, such as Goal, line, example, Probe, runner and select, and everything a user who installs hyp into another repository runs, loads or reads there.
-- **Self-review** is a Goal of this repository whose lines are about how hyp is tested, not about a concept hyp has. An example is a Goal that checks a Probe or a test fixture of hyp itself. `main` keeps none today. In hyp 0.1.0, self-review was the recipes on the `v1` branch; the scope map `docs/core-and-self-review.md` on that branch lists them.
+- **Self-review** is a Goal of this repository whose lines are about how hyp is tested, not about a concept hyp has. An example is a Goal that checks a Probe or a test fixture of hyp itself. `main` keeps none today.
 
 The split exists for four reasons:
 
@@ -40,7 +40,7 @@ hyp is changed the way it asks its users to decide things: with a Goal whose gap
 1. **A real event points at hyp.** In a real run a refusal or a warning fires, a Goal reaches a stop it cannot leave, `hyp status` lists an event under `refused at replay`, or the owner flags a run. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
 3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, and gap and guard lines. The grill places one or more examples on each line with `hyp place`, each run on H0 to show it gives the verdict its line needs. The rules are in [state-machine.md](docs/state-machine.md).
-4. **The runner runs and selects.** `hyp run` runs a line on a commit, within a budget of three Hypotheses, and `hyp select` records the one candidate that is met on every line and holds a spec. The select's report is the PR body, and `hyp status` prints the allowed acts of each role as ready command lines. hyp v2 was built without hyp up to this point, because v1 could not measure v2; from here every change is a v2 Goal.
+4. **The runner runs and selects.** `hyp run` runs a line on a commit, within a budget of three Hypotheses, and `hyp select` records the one candidate that is met on every line and holds a spec. The select's report is the PR body, and `hyp status` prints the allowed acts of each role as ready command lines. Every change is a Goal.
 5. **The change passes its gate.**
    - A failure that can be detected from the log or from git goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.
    - A change to `skills/`, a new skill included, is a build Goal like any code change: its lines, examples whose Probes the Goal writes and that give their line's verdict on H0 before they are placed, and the select. How a skill is tested is that Goal's choice.
@@ -74,4 +74,4 @@ go vet ./...
 go test ./... -count=1
 ```
 
-There is no CI; these commands are the only gate. `go test` includes skillcheck, which fails when a file under `skills/` names a `hyp` command that does not exist. It reads every file under `skills/`, at any depth, and runs on `skills/hyp-grill` and `skills/hyp-statechart`. Core tests read only core test data: the v2 tests build their stores in temporary git repositories and compare against goldens under `internal/channel/testdata` and fixtures under `internal/example/testdata`, and the tests of the hyp 0.1.0 packages read the synthetic store in `internal/testutil/testdata/synth`. A copy of the repository that holds only core passes `go test`.
+There is no CI; these commands are the only gate. `go test` includes skillcheck, which fails when a file under `skills/` names a `hyp` command that does not exist. It reads every file under `skills/`, at any depth, and runs on `skills/hyp-grill` and `skills/hyp-statechart`. Core tests read only core test data: the tests of the binary build their stores in temporary git repositories and compare against goldens under `internal/channel/testdata` and fixtures under `internal/example/testdata`; other tests read only data under `internal/*/testdata`. A copy of the repository that holds only core passes `go test`.
