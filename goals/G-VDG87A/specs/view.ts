@@ -26,6 +26,7 @@ export const step = (action: string, from: V, to: V) => {
   if (action === "RunnerSelect") return to.lastOK ? "the runner selects" : "hyp refuses the runner's select";
   return ({
     RunNewRow: "the runner runs a new commit",
+    RunOldVersionOnOtherRow: "the runner runs an old version on another old row",
     RunOldRow: from.pending ? "the runner runs the new version on the row" : "the runner reruns the row",
     Place: "the grill places a new version",
     OwnerSelect: "the owner selects",

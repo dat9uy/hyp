@@ -13,7 +13,7 @@
 (*   line 3  unselect is refused on a landed Goal, on a Goal that is not   *)
 (*           selected, and for anyone but the owner who added the Goal;    *)
 (*   line 4  after an unselect, the runner selects only once a run records *)
-(*           a cell for an example version or a row not run before it, and *)
+(*           a cell whose version, or whose row, was not run before it, and *)
 (*           status prints the runner no select line until then; the owner *)
 (*           selects at any time;                                          *)
 (*   line 5  a Goal never unselected selects as before.                    *)
@@ -33,7 +33,8 @@ CONSTANTS
     ReselectsAtOnce,       \* the runner may reselect with no new cell
     RerunCounts,           \* a rerun of the same version counts as a new cell
     OwnerOnlyAfterUnselect, \* after any unselect only the owner selects
-    StatusOffersSelect      \* status prints the runner's select line for any candidate
+    StatusOffersSelect,     \* status prints the runner's select line for any candidate
+    PairCounts              \* an old version run on an old row that never had it counts
 
 Who == {"owner", "other"}
 Budget == 3
@@ -88,6 +89,15 @@ RunOldRow ==
     /\ pending' = FALSE
     /\ Tried("rerun", TRUE, "runner")
     /\ UNCHANGED <<st, used, since, unselected, by, landedEver>>
+
+(* The runner runs an old version on another old row that never had it,   *)
+(* and that row fails: the latest row stays the one candidate. The cell   *)
+(* is new as a pair, but its version and its row each ran before.        *)
+RunOldVersionOnOtherRow ==
+    /\ st = "open" /\ (used > 0 \/ unselected)
+    /\ fresh' = (fresh \/ PairCounts) /\ newCell' = newCell
+    /\ Tried("rerun", TRUE, "runner")
+    /\ UNCHANGED <<st, cand, pending, used, since, unselected, by, landedEver>>
 
 (* The grill places a new example version: no row has its cell yet.       *)
 Place ==
@@ -150,7 +160,7 @@ Land ==
     /\ UNCHANGED <<cand, pending, used, since, unselected, fresh, newCell, by>>
 
 Next ==
-    \/ RunNewRow \/ RunOldRow \/ Place
+    \/ RunNewRow \/ RunOldRow \/ RunOldVersionOnOtherRow \/ Place
     \/ RunnerSelect \/ OwnerSelect
     \/ \E w \in Who : Unselect(w)
     \/ Land
