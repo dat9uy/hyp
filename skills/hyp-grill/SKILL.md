@@ -163,10 +163,22 @@ The re-grill reviews a Goal against its line, not against the build that met it.
 ## Hand-off
 
 The grill ends with a record branch that holds the examples and the place
-events, and a hand-off the owner and the runner read: the Goal's line, the
-owner's decisions numbered with their words, and "Not covered" with each
-decision no example checks. Before the record PR, the issues already hold those
-decisions and the "Not covered" items they own.
+events, and a hand-off for the owner: the Goal's line, the owner's decisions
+numbered with their words, and "Not covered" with each decision no example
+checks. Before the record PR, the issues already hold those decisions and the
+"Not covered" items they own.
+
+A runner works from the Goal: what `hyp status G --role runner` prints, the
+placed examples and the model in the spec folder, with the run rules. If a
+runner reads the hand-off, it is background, and no "Not covered" item is a
+task.
+
+Until hyp starts a runner by itself, the owner may ask you to write the
+runner's prompt. The prompt names only the Goal, the run rules, the
+repository's agent files (such as `AGENTS.md`) and the owner's hand-off
+choices: the runner's actor, whether to look for rivals, and that the owner
+merges. It names no record PR, issue comment or hand-off as a source of work,
+and it says that the examples are the whole task.
 
 ## Done when
 
