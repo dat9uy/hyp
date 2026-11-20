@@ -1,0 +1,87 @@
+-- words --
+unselect is refused with exit 1 on an open Goal that was never selected, and on a Goal the owner has already unselected; the log does not change.
+-- input/lib.sh --
+# Shared helpers for the examples of the unselect Goal. Each example holds its
+# own copy as input/lib.sh. The run section sources it from the subject's root.
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+out=$(mktemp -d) || exit 91
+d='--'
+
+hy() { _a=$1 _r=$2; shift 2; HYP_ACTOR=$_a HYP_ROLE=$_r "$bin/hyp" "$@"; }
+save() { git add -A && git commit -q -m "$1" >/dev/null 2>&1; return 0; }
+events() { cat .tree/events/*.jsonl 2>/dev/null | sort; }
+state() { hy grill grill status "$1" 2>/dev/null | head -n 1 | awk '{ print $2 }'; }
+runs() { hy grill grill status "$1" 2>/dev/null | head -n 1 | sed -n 's/.*runs: \([0-9]* of [0-9]*\) used.*/\1/p'; }
+has() { if grep -qF -- "$1"; then echo yes; else echo no; fi; }
+
+# mkrepo: a repository with one Goal on the file f; sets g, base and f.
+mkrepo() { r=$(mktemp -d) && cd "$r" && git init -q -b main && echo hello >greet.txt && save base && addgoal a.txt; }
+# addgoal FILE: a Goal whose one gap line needs FILE to say bye.
+addgoal() { f=$1 && base=$(git rev-parse HEAD) && g=$(hy owner owner add goal --base HEAD --words "Say bye in $f." --line "gap:$f says bye." 2>/dev/null | sed -n 's/^recorded //p') && [ -n "$g" ] && save "record $g"; }
+# mkex FOLDER [FLOOR...]: an example whose run prints the file f and needs bye,
+# with one more floor: contains section for each FLOOR.
+mkex() { x=$1; shift; mkdir -p "$x/probe" && cp "$HYP_EXAMPLE/probe/run" "$x/probe/run" && chmod +x "$x/probe/run" && printf '%s words %s\n%s says bye.\n%s run %s\ncat %s\n%s floor: contains %s\nbye\n' "$d" "$d" "$f" "$d" "$d" "$f" "$d" "$d" >"$x/example.txtar" && for fl in "$@"; do printf '%s floor: contains %s\n%s\n' "$d" "$d" "$fl" >>"$x/example.txtar"; done; }
+# opened: place line-1/a; the place runs it on H0, so the Goal is open.
+opened() { mkex "goals/$g/line-1/a" && save "example of $g" && hy grill grill place "$g" line-1/a >/dev/null 2>&1 && save "place $g"; }
+# change TEXT: commit f with TEXT, and a spec for the Goal.
+change() { echo "$1" >"$f" && mkdir -p "goals/$g/specs" && echo "$1" >"goals/$g/specs/spec.txt" && save "change $1"; }
+# runhead: run line-1 on HEAD and commit the Result; its exit code in rc.
+runhead() { hy runner-1 runner run HEAD "$g/line-1" >"$out/run" 2>&1; rc=$?; save "run $g"; return 0; }
+# selected: open, one change that says bye, a run, and the select status
+# prints to the runner; s holds that select line without "hyp ".
+selected() { opened && change bye && runhead && s=$(hy runner-1 runner status "$g" --role runner 2>/dev/null | sed -n 's/^  hyp select /select /p' | head -n 1) && [ -n "$s" ] && hy runner-1 runner $s >"$out/select" 2>&1 && save "select $g"; }
+# budgetused: open, then three changes that do not say bye.
+budgetused() { opened && for t in x1 x2 x3; do change "$t" && runhead || return 1; done; }
+# owneracts G: the lines under "owner may:" for Goal G.
+owneracts() { hy owner owner status "$1" --role owner 2>/dev/null | awk '/^owner may:$/ { p = 1; next } p && /^  / { print; next } { p = 0 }'; }
+# actsin ROLE: the act lines under "ROLE may:" of a state block on stdin.
+actsin() { awk -v r="$1 may:" '$0 == r { p = 1; next } p && /^  / { print; next } { p = 0 }'; }
+# unselline G: the unselect act hyp prints to the owner for G, without "hyp ".
+unselline() { owneracts "$1" | sed -n 's/^  hyp unselect /unselect /p' | head -n 1; }
+# landline G: the land act hyp prints to the owner for G, without "hyp ".
+landline() { owneracts "$1" | sed -n 's/^  hyp land /land /p' | head -n 1; }
+# unsel G: run the unselect line hyp prints to the owner; exit code in uc.
+unsel() { u=$(unselline "$1"); if [ -z "$u" ]; then uc=none; return 1; fi; hy owner owner $u >"$out/unselect" 2>&1; uc=$?; save "unselect $1"; return 0; }
+# sel ACTOR ROLE TREE: select row TREE of g; prints the exit code.
+sel() { hy "$1" "$2" select "$g" "$3" >"$out/sel" 2>&1; c=$?; save "select $g"; echo "$c"; }
+# oldrow: the row tree of the select line s.
+oldrow() { printf '%s\n' "$s" | awk '{ print $3 }'; }
+# lastrow: the row tree of the latest Result in the log.
+lastrow() { events | grep '"type":"result.record"' | tail -n 1 | sed 's/.*"row_tree":"\([^"]*\)".*/\1/'; }
+# snap N: save the sorted log as N; same A B: yes when the log did not change.
+snap() { events >"$out/ev.$1"; }
+same() { if cmp -s "$out/ev.$1" "$out/ev.$2"; then echo yes; else echo no; fi; }
+# twocand: two sibling changes that each say bye, run on two branches, merged.
+twocand() { opened && git switch -q -c side && echo bye >"$f" && echo side >side.txt && mkdir -p "goals/$g/specs" && echo b >"goals/$g/specs/b.txt" && save 'change on side' && runhead && t1=$(lastrow) && git switch -q main && echo bye >"$f" && mkdir -p "goals/$g/specs" && echo a >"goals/$g/specs/a.txt" && save 'change on main' && runhead && t2=$(lastrow) && git merge -q --no-edit side >/dev/null 2>&1; }
+# stopof G: the stop's name on the stop: line of G.
+stopof() { hy grill grill status "$1" 2>/dev/null | sed -n 's/^stop: //p' | head -n 1 | cut -d, -f1; }
+# trim: drop leading spaces of each line on stdin, joined by "; ".
+trim() { sed 's/^ *//' | paste -sd ';' - | sed 's/;/; /g'; }
+-- run --
+. "$HYP_EXAMPLE/input/lib.sh"
+mkrepo || exit 92
+selected || exit 93
+g1=$g
+u=$(unselline "$g1")
+if [ -n "$u" ]; then echo "unselect line printed: yes"; else echo "unselect line printed: no"; exit 0; fi
+addgoal b.txt && opened || exit 94
+u2=$(printf '%s\n' "$u" | sed "s/$g1/$g/g")
+[ "$u2" != "$u" ] || exit 95
+snap 0
+hy owner owner $u2 >/dev/null 2>&1; echo "unselect of an open Goal exit: $?"; save 'unselect open'
+snap 1
+echo "log unchanged: $(same 0 1)"
+hy owner owner $u >/dev/null 2>&1; echo "first unselect exit: $?"; save 'unselect'
+snap 2
+hy owner owner $u >/dev/null 2>&1; echo "second unselect exit: $?"; save 'unselect again'
+snap 3
+echo "log unchanged: $(same 2 3)"
+-- floor: equals --
+unselect line printed: yes
+unselect of an open Goal exit: 1
+log unchanged: yes
+first unselect exit: 0
+second unselect exit: 1
+log unchanged: yes
