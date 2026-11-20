@@ -1,8 +1,8 @@
 G-XXXXXX  selected  runs: 1 of 3 used
-stop: selected
-waits: none
+stop: selected, by select <id> at <time>
+waits: owner
 owner may:
-  (none)
+  hyp land G-XXXXXX
 grill may:
   (none)
 probe-writer may:

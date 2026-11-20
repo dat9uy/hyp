@@ -156,4 +156,10 @@ const (
 	EarlierVersion    Code = "earlier-version"      // hash, version, key
 	NoResultToRetract Code = "no-result-to-retract" // Result id
 	NotOwnResult      Code = "not-own-result"       // Result id, its actor, the act's actor
+	Landed            Code = "landed"               // Goal
+	NotOwner          Code = "not-owner"            // role
+	NoStop            Code = "no-stop"              // Goal
+	NoGoalToLand      Code = "no-goal-to-land"      // Goal
+	StopNotHeld       Code = "stop-not-held"        // stop, Goal
+	FromNotLanded     Code = "from-not-landed"      // Goal, state
 )

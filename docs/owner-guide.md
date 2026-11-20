@@ -69,9 +69,11 @@ hyp calculates three stops ([spec §11](state-machine.md#11-budget-and-stops)):
 
 | Stop | When | What you see | What you do |
 |---|---|---|---|
-| Selected | The Goal has a select. | The PR body. | Read the PR, then merge it or not. |
-| Two candidates | Two or more builds meet every line, and none is selected. | The `outputs:` table. | Select one, or have the grill add an example. |
-| Budget used | Three Hypotheses ran since the boundary, and no build meets every line. | The `outputs:` table. | Have the grill change an example, or record a new Goal. |
+| Selected | The Goal has a select. | The PR body. | Read the PR, merge it or not, and land the Goal. |
+| Two candidates | Two or more builds meet every line, and none is selected. | The `outputs:` table. | Select one, have the grill add an example, or land the Goal. |
+| Budget used | Three Hypotheses ran since the boundary, and no build meets every line. | The `outputs:` table. | Have the grill change an example, or land the Goal and record a new one. |
+
+The `stop:` line shows the stop as an event: which stop, the act that caused it, its event id and when. At each stop the Goal waits for you, and `hyp status G --role owner` prints `hyp land G`.
 
 hyp prints the table, not a reading of it. It gives no score and no summary line.
 
@@ -79,7 +81,7 @@ hyp prints the table, not a reading of it. It gives no score and no summary line
 
 The runner selects when exactly one build meets every line. The report of the select is the PR body. It holds each line, the words, output, stderr, exit code and verdict of each example, and the selected commit and row. `hyp status G` prints it again while the Goal is selected. The runner pastes it into the PR.
 
-A selected Goal refuses every further place, run and select. If your review finds a gap, the gap is a new Goal that cites this one. The grill grills it from the start.
+A selected Goal refuses every further place, run and select. If your review finds a gap, land the Goal, then record a new Goal that cites it with `--from`. The grill grills it from the start.
 
 ### Two candidates
 
@@ -99,8 +101,12 @@ A candidate can meet the lines in a way you did not mean. Then the fix is an exa
 The runner ran three Hypotheses, and none meets every line. Read the `outputs:` table to see where each build failed.
 
 - If an example is wrong, the grill changes it. A new version of an example can only add a floor or a ceiling. A changed run, input or Probe is a new example key. A placement that changes an example moves the boundary of the budget. Then the runner gets three new runs.
-- If the Goal itself is wrong, record a new Goal with `--from G`.
+- If the Goal itself is wrong, land it, then record a new Goal with `--from G`.
+
+### Land
+
+`hyp land G` is your act that ends a Goal at its stop. It records one `land` event that names the stop. It checks no commit, and it does not need a merge: land before the merge, after it, or with no merge. A landed Goal takes no further write, and `hyp add goal --from G` cites only a landed Goal. `hyp status G` and the return of `land` print the record of your decision: the PR body, or the `outputs:` table when the Goal has no select. `hyp status` for every Goal prints only the state block of a landed Goal ([spec §8](state-machine.md#8-acts)).
 
 ## What hyp does not have yet
 
-The spec names acts that later Goals will build: `land`, `reset` and `retract` ([spec §8](state-machine.md#8-acts)). So no command gives the budget back without an example change. A Goal also has no end state. The end waits for a real event that needs it ([spec §14](state-machine.md#14-deferred)). `hyp help` lists every command that the binary has, and `hyp status` offers only those.
+The spec names acts that later Goals will build: `reset` and `retract` ([spec §8](state-machine.md#8-acts)). So no command gives the budget back without an example change. A Goal that never reaches a stop has no end ([spec §14](state-machine.md#14-deferred)). `hyp help` lists every command that the binary has, and `hyp status` offers only those.

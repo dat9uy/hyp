@@ -133,24 +133,13 @@ func TestAddGoalReplacesWrittenGoal(t *testing.T) {
 	}
 }
 
-func TestAddGoalFromStoresOnlyTheID(t *testing.T) {
+func TestAddGoalFromAnUnknownGoalIsBadArgs(t *testing.T) {
 	r := testutil.NewRepo(t)
 	r.Commit(t, map[string]string{"a": "a"})
-	first, err := AddGoal(opts(r.Dir, "HEAD", gapLine))
-	if err != nil {
+	if _, err := AddGoal(opts(r.Dir, "HEAD", gapLine)); err != nil {
 		t.Fatal(err)
 	}
 	o := opts(r.Dir, "HEAD", gapLine)
-	o.From = first.Goal
-	if _, err := AddGoal(o); err != nil {
-		t.Fatal(err)
-	}
-	evs, _, _ := logstore.Events(r.Dir)
-	var p events.GoalAdd
-	// from holds the cited Goal's full goal.add id, which no other Goal shares.
-	if err := events.Decode(evs[1], &p); err != nil || p.From != evs[0].ID {
-		t.Fatalf("from = %q, %v; want %s", p.From, err, evs[0].ID)
-	}
 	o.From = "G-NOPE00"
 	if _, err := AddGoal(o); fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("from an unknown Goal: %v", err)

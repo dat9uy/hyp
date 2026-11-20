@@ -19,11 +19,15 @@ var (
 	hashRe  = regexp.MustCompile(`\b[0-9a-f]{40,64}\b`)
 	goalRe  = regexp.MustCompile(`G-[A-Z0-9]{6}`)
 	shortRe = regexp.MustCompile(`\b[0-9a-f]{12}\b`)
+	ulidRe  = regexp.MustCompile(`\b[0-9A-HJKMNP-TV-Z]{26}\b`)
+	timeRe  = regexp.MustCompile(`\b\d{4}-\d\d-\d\dT[0-9:.]+Z\b`)
 )
 
 // normalise replaces the ids that change from run to run, as the goldens
 // expect.
 func normalise(s string) string {
+	s = ulidRe.ReplaceAllString(s, "<id>")
+	s = timeRe.ReplaceAllString(s, "<time>")
 	s = hashRe.ReplaceAllString(s, "<hash>")
 	s = shortRe.ReplaceAllString(s, "<commit>")
 	return goalRe.ReplaceAllString(s, "G-XXXXXX")
@@ -374,5 +378,33 @@ func TestStatusWithoutStoreExit1(t *testing.T) {
 	inRepo(t)
 	if code, _, errs := run(t, "status"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
 		t.Fatalf("code %d, stderr %q", code, errs)
+	}
+}
+
+func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
+	if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
+		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	_, out, _ := run(t, "status")
+	args := selectLine(t, out)
+	if code, out, errs := run(t, args[1:]...); code != 0 || !strings.Contains(out, "  hyp land "+f.goal+"\n") {
+		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	code, out, errs := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner")
+	if code != 0 || !strings.HasPrefix(out, "landed "+f.goal+"\nstop: selected, by select ") || !strings.Contains(out, "selected row: ") {
+		t.Fatalf("land: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	_, one, _ := run(t, "status", f.goal)
+	if !strings.Contains(one, f.goal+"  landed  ") || !strings.Contains(one, "selected row: ") {
+		t.Fatalf("status G of a landed Goal lacks its PR body:\n%s", one)
+	}
+	_, all, _ := run(t, "status")
+	if !strings.Contains(all, f.goal+"  landed  ") || strings.Contains(all, "selected row: ") {
+		t.Fatalf("status of every Goal prints a landed Goal's record:\n%s", all)
+	}
+	if code, _, _ := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 1 {
+		t.Fatalf("a second land: code %d, want 1", code)
 	}
 }

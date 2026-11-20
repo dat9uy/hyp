@@ -90,6 +90,10 @@ commands:
                                          them; records nothing and uses no run
   select G TREE [--why TEXT]             select the candidate row TREE of Goal G;
                                          the report is the PR body
+  land G [--why TEXT]                    the owner lands Goal G at its stop: the
+                                         Goal ends, and its events up to the
+                                         land are the snapshot that a later
+                                         Goal's --from cites
   status [G] [--role ROLE]               print the state of every Goal, or of G:
                                          its stop, its waits and the allowed
                                          acts as ready command lines
@@ -106,7 +110,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "place", "prune", "run", "select", "show", "status", "try", "version"}
+var commands = []string{"add", "help", "land", "place", "prune", "run", "select", "show", "status", "try", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -198,6 +202,8 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return runCmd(c, args[1:], stdout, stderr)
 	case "select":
 		return selectCmd(c, args[1:], stdout, stderr)
+	case "land":
+		return landCmd(c, args[1:], stdout, stderr)
 	case "status":
 		return statusCmd(c, args[1:], stdout)
 	case "try":
@@ -393,6 +399,33 @@ func selectCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	}
 	// the report is the PR body, so the block does not print it again
 	return finishWith(stdout, stderr, c.dir, BlockOpts{Goal: rep.Goal, NoBody: true}, prBody(root, rep.Selected), nil)
+}
+
+// landCmd records the owner's land. Its report names the stop it ended; the
+// state block of the landed Goal below it prints the record of the decision.
+func landCmd(c *call, args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("land", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var o acts.LandOpts
+	actorFlags(fs, &o.Actor, &o.Role, &o.Why)
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return flagsFailed("land", err)
+	}
+	c.declare(o.Actor, o.Role)
+	if len(positional) != 1 {
+		return fault.BadArg(codeLandArgs, len(positional))
+	}
+	o.Goal = positional[0]
+	if err := checkWhy(o.Why); err != nil {
+		return err
+	}
+	o.Dir = c.dir
+	rep, err := acts.Land(o)
+	if err != nil {
+		return finish(stdout, stderr, c.dir, o.Goal, "", err)
+	}
+	return finish(stdout, stderr, c.dir, rep.Goal, landText(rep), nil)
 }
 
 // readFlags parses the flags of a read: --actor, read from $HYP_ACTOR when

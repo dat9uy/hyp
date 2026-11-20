@@ -10,9 +10,9 @@ import (
 // The stops of a Goal.
 const (
 	StopNone          = "none"
-	StopSelected      = "selected"
-	StopTwoCandidates = "two candidates"
-	StopBudgetUsed    = "budget used"
+	StopSelected      = tables.StopSelected
+	StopTwoCandidates = tables.StopTwoCandidates
+	StopBudgetUsed    = tables.StopBudgetUsed
 )
 
 // The acts a ready line names.
@@ -21,6 +21,7 @@ const (
 	ActPlace   = "place"
 	ActRun     = "run"
 	ActSelect  = "select"
+	ActLand    = "land"
 )
 
 // Ready is one allowed act a role may run, with every key hyp knows. A key
@@ -28,15 +29,24 @@ const (
 type Ready struct {
 	Goal   string // the Goal id
 	Role   string
-	Act    string // ActAddGoal, ActPlace, ActRun or ActSelect
+	Act    string // ActAddGoal, ActPlace, ActRun, ActSelect or ActLand
 	Line   string // place and run: the line key
 	Commit string // run: the commit, or empty for any leaf
 	Tree   string // select: the candidate's row tree
 }
 
+// Cause is the event of the act that caused a stop: a select, or the
+// result.record of the run after which the stop held.
+type Cause struct {
+	Act  string // ActSelect or ActRun
+	ID   string // the event id
+	Time string // the event's time
+}
+
 // Standing is what hyp calculates about a Goal from the tables and git.
 type Standing struct {
 	Stop       string
+	Cause      Cause  // the act that caused the stop; empty for StopNone
 	Waits      string // who the Goal waits for: grill, owner or none
 	Used       int    // N of "runs: N of 3 used"
 	Rows       []tables.Row
@@ -44,22 +54,53 @@ type Standing struct {
 }
 
 // Stand calculates the standing of a Goal: its rows and candidates, and the
-// stop of section 11. repo is the git top level.
+// stop of section 11 with the act that caused it. A landed Goal keeps the stop
+// its land names and waits for no one. repo is the git top level.
 func Stand(g *tables.Goal, repo string) Standing {
 	anc := gitread.Ancestry{Dir: repo}
 	st := Standing{Stop: StopNone, Waits: "none", Used: tables.RunsUsed(g), Rows: g.Rows(anc)}
 	st.Candidates = tables.Candidates(g, anc)
 	switch {
+	case g.Land != nil:
+		st.Stop, st.Cause = g.Land.Stop, causeOf(g, g.Land.Cause)
 	case g.Select != nil:
-		st.Stop = StopSelected
+		st.Stop, st.Waits = StopSelected, "owner"
+		st.Cause = Cause{Act: ActSelect, ID: g.Select.ID, Time: g.Select.Time}
 	case len(st.Candidates) >= 2:
-		st.Stop, st.Waits = StopTwoCandidates, "owner"
+		st.Stop, st.Waits, st.Cause = StopTwoCandidates, "owner", lastRun(g)
 	case len(st.Candidates) == 0 && budgetUsed(g):
-		st.Stop, st.Waits = StopBudgetUsed, "owner"
+		st.Stop, st.Waits, st.Cause = StopBudgetUsed, "owner", lastRun(g)
 	case g.State == tables.StateWritten:
 		st.Waits = "grill"
 	}
 	return st
+}
+
+// lastRun is the run that caused a stop of the runs: the latest Result, in
+// merge order, that counts, neither retracted nor refused by Stable. Only a
+// run adds a row or a cell, so the latest one is the run after which the stop
+// held.
+func lastRun(g *tables.Goal) Cause {
+	for i := len(g.Results) - 1; i >= 0; i-- {
+		if r := g.Results[i]; !r.Retracted && r.Refused == "" {
+			return Cause{Act: ActRun, ID: r.ID, Time: r.Time}
+		}
+	}
+	return Cause{}
+}
+
+// causeOf is the cause a land event names: the Goal's select, or one of its
+// Results.
+func causeOf(g *tables.Goal, id string) Cause {
+	if g.Select != nil && g.Select.ID == id {
+		return Cause{Act: ActSelect, ID: id, Time: g.Select.Time}
+	}
+	for _, r := range g.Results {
+		if r.ID == id {
+			return Cause{Act: ActRun, ID: id, Time: r.Time}
+		}
+	}
+	return Cause{ID: id}
 }
 
 // budgetUsed reports the stop of section 11: three trees counted, the third
@@ -93,8 +134,12 @@ func Allowed(t tables.Tables, repo string) []Ready {
 // checked when the act runs. Acts the binary lacks are never listed. Within a
 // role the lines keep the order of the Goal's lines.
 func AllowedFor(g *tables.Goal, repo string) []Ready {
-	if g.Select != nil {
+	if g.Land != nil {
 		return nil
+	}
+	if g.Select != nil {
+		// a selected Goal allows only the owner's land
+		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand}}
 	}
 	st := Stand(g, repo)
 	var out []Ready
@@ -113,6 +158,9 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 				add(Ready{Role: "owner", Act: ActSelect, Tree: c.RowTree})
 			}
 		}
+	}
+	if st.Stop == StopTwoCandidates || st.Stop == StopBudgetUsed {
+		add(Ready{Role: "owner", Act: ActLand})
 	}
 
 	// grill: one place line per line of the Goal, whether the line holds an

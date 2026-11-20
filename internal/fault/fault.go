@@ -26,6 +26,10 @@ type Guard string
 // The guards.
 const (
 	GuardDraft      Guard = "Draft"
+	GuardNotEnded   Guard = "Not ended"
+	GuardOwnerLands Guard = "Owner lands"
+	GuardStop       Guard = "Stop"
+	GuardFromLanded Guard = "From landed"
 	GuardWholeLines Guard = "Whole lines"
 	GuardOpen       Guard = "Open"
 	GuardGoalsActor Guard = "Goal's actor"

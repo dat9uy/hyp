@@ -34,6 +34,7 @@ const (
 	codeNotRecorded    fault.Code = "not-recorded"    // cause
 	codePruneArgs      fault.Code = "prune-args"      // count
 	codeTryArgs        fault.Code = "try-args"        // count
+	codeLandArgs       fault.Code = "land-args"       // count
 )
 
 // words is the text of every code: a format whose verbs name the code's
@@ -177,7 +178,7 @@ var words = map[fault.Code]string{
 	fault.RowNotLeaf:        "row %s is not a leaf; a commit of another row descends from it",
 	fault.RowNotMet:         "row %s is not met on every line",
 	fault.RowNotMetOnGoal:   "row %s is not met on every line of %s",
-	fault.NotGoalsActor:     "%s was added by %s, not %s; only that actor selects for the owner",
+	fault.NotGoalsActor:     "%s was added by %s, not %s; only that actor acts for the owner",
 	fault.NoGoalToReplace:   "no Goal %s to replace",
 	fault.NotWritten:        "%s is %s; only a written Goal may be replaced",
 	fault.TooManyLines:      "%d lines; a Goal lists at most %d",
@@ -189,6 +190,12 @@ var words = map[fault.Code]string{
 	fault.EarlierVersion:    "%s was version @%d of %s; an earlier version never comes back",
 	fault.NoResultToRetract: "no Result %s to retract",
 	fault.NotOwnResult:      "%s was run by %s, not %s",
+	fault.Landed:            "%s is landed; a landed Goal takes no write",
+	fault.NotOwner:          "only the owner lands a Goal; the role is %s",
+	fault.NoStop:            "%s has no stop; the owner lands a Goal once it is selected, has two candidates or has used its budget",
+	fault.NoGoalToLand:      "no Goal %s to land",
+	fault.StopNotHeld:       "the land names the stop %s, which %s does not hold",
+	fault.FromNotLanded:     "%s is %s; --from cites only a landed Goal",
 
 	// the channel's own
 	codeNoCommand:      "no command",
@@ -209,6 +216,7 @@ var words = map[fault.Code]string{
 	codeStateBlock:     "state block: %s",
 	codeNeedsActor:     "%s needs an actor (--actor or $HYP_ACTOR): hyp records what it prints to each actor",
 	codePruneArgs:      "prune takes no argument but --remove; got %d arguments",
+	codeLandArgs:       "land takes one Goal, for example: hyp land G-NXHHVA; got %d arguments",
 	codeTryArgs:        "try takes a Goal and LINE/EXAMPLE, for example: hyp try G-NXHHVA line-1/a; got %d arguments",
 	codeNotRecorded:    "could not record what this command printed, so hyp prints nothing of it: %s",
 }

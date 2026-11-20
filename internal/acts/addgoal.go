@@ -71,7 +71,7 @@ func CheckActor(actor, role string) error {
 }
 
 // AddGoal records a Goal, or replaces a written one, or refuses with the first
-// failing guard: Draft, then Whole lines. It creates .tree/ at the git top
+// failing guard: Draft, Whole lines, then From landed. It creates .tree/ at the git top
 // level when it is absent, and only after the guards pass.
 func AddGoal(o AddGoalOpts) (Report, error) {
 	if err := CheckActor(o.Actor, o.Role); err != nil {
@@ -126,6 +126,15 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		ev.Payload, ev.Why = payload, o.Why
 		if err := tables.GuardGoalAdd(t, ev); err != nil {
 			return ev, err
+		}
+		if o.From != "" {
+			// From landed is the act's guard only: replay does not check
+			// it, so a log written before land, whose Goal cites a Goal
+			// that is not landed, replays as it was.
+			cited, _ := t.Find(o.From)
+			if cited.State != tables.StateLanded {
+				return ev, fault.Refuse(fault.GuardFromLanded, fault.FromNotLanded, cited.ID, cited.State)
+			}
 		}
 		rep = Report{Replaced: o.Goal != "", Words: o.Words, Base: base, BaseTree: baseTree, Lines: lines}
 		if rep.Replaced {

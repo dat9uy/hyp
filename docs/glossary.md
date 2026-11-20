@@ -14,7 +14,7 @@ _Avoid_: database, index (hyp keeps no table, [spec §5](state-machine.md#5-calc
 One JSON line in `.tree/events/<actor>.jsonl`. Only hyp writes it, and it is only appended ([spec §1](state-machine.md#1-names-and-locations), [spec §3](state-machine.md#3-events)). Every table and state comes from the events.
 _Avoid_: entry, record (alone)
 
-The seven event types ([spec §3](state-machine.md#3-events)):
+The eight event types ([spec §3](state-machine.md#3-events)):
 
 | Event | Records |
 |---|---|
@@ -24,6 +24,7 @@ The seven event types ([spec §3](state-machine.md#3-events)):
 | `result.retract` | a retract of a Result |
 | `select` | the select of a candidate row |
 | `budget.reset` | a reset of the budget's boundary |
+| `land` | the owner's land of a Goal at a stop; it names the stop and the act that caused it |
 | `read` | what hyp printed to an actor; it goes into the trace, never into the log |
 
 **Log**:
@@ -118,12 +119,13 @@ _Avoid_: guard (alone) for a guard line; a guard is a rule of an act
 _Avoid_: edit, amend
 
 **Goal state**:
-`written`, `open` or `selected`, calculated and never stored ([spec §6](state-machine.md#6-states)).
+`written`, `open`, `selected` or `landed`, calculated and never stored ([spec §6](state-machine.md#6-states)).
 - **written**: a `goal.add` exists, and the Goal is not open.
 - **open**: every line holds a placed example. Each current placement has a live cell on H0's row with the verdict its line's kind needs.
 - **selected**: the Goal has a select. It allows only `land`.
+- **landed**: the owner landed the Goal. It takes no write.
 
-_Avoid_: done, met (as a state word); ended (no act ends a Goal, [spec §14](state-machine.md#14-deferred))
+_Avoid_: done, met (as a state word); ended for a Goal that is not landed
 
 ## Examples and Probes
 
@@ -240,13 +242,15 @@ _Avoid_: three commits (the unit is the row tree), retries
 The start of the budget's count: the latest example-changing placement or the latest `budget.reset`, else the Goal's start ([spec §11](state-machine.md#11-budget-and-stops)).
 
 **Stop**:
-A calculated point that ends the runner's runs on a Goal. hyp prints the stop in the state block ([spec §11](state-machine.md#11-budget-and-stops)):
+A calculated point that ends the runner's runs on a Goal. A stop is not stored: hyp shows it as an event, calculated from the log, on the `stop:` line of the state block: which stop, the act that caused it, its event id and when. Each stop waits for the owner, who may land the Goal ([spec §11](state-machine.md#11-budget-and-stops)):
 
-| Stop | Holds when | hyp prints |
-|---|---|---|
-| Selected | the Goal has a select | the PR body |
-| Two candidates | two or more candidates and no select | the table of outputs |
-| Budget used | three trees counted since the boundary and no candidate | the table of outputs |
+| Stop | Holds when | Caused by | hyp prints |
+|---|---|---|---|
+| Selected | the Goal has a select | the `select` | the PR body |
+| Two candidates | two or more candidates and no select | the latest run | the table of outputs |
+| Budget used | three trees counted since the boundary and no candidate | the latest run | the table of outputs |
+
+_Avoid_: land for a stop (a stop ends the runs; the land ends the Goal)
 
 **Table of outputs**:
 The `outputs:` table of the state block at "Two candidates" and "Budget used": rows by examples. Each cell shows the verdict, the exit code, the output's hash, its size and at most 60 characters of its first line. hyp prints the table and no reading of it ([spec §11](state-machine.md#11-budget-and-stops)).
@@ -257,7 +261,7 @@ The line `last run: after this, G stops for the owner.` hyp prints it while `run
 ## Acts
 
 **Act**:
-A command that writes one event to the log under the store's lock, after its guards hold. `land` writes more than one ([spec §8](state-machine.md#8-acts)).
+A command that writes one event to the log under the store's lock, after its guards hold ([spec §8](state-machine.md#8-acts)).
 
 **Read** (command):
 A command that writes nothing in the repository and only a `read` in the trace: `status`, `try`, `show` and `prune`. A read checks no guard ([spec §8](state-machine.md#8-acts)).
@@ -268,7 +272,7 @@ A command that writes nothing in the repository and only a `read` in the trace: 
 | `place` | grill | yes |
 | `run` | runner | yes |
 | `select` | runner, or owner | yes |
-| `land` | runner | specified, not built |
+| `land` | owner | yes |
 | `reset` | owner | specified, not built |
 | `retract` | the actor that ran the Result | specified, not built |
 
@@ -282,8 +286,13 @@ _Avoid_: run for the example file's `run` section (say the `run` section)
 The read `try G LINE/EXAMPLE`. It runs an example folder as it is on disk, on H0, or with `--worktree` on this checkout's files. It prints the cell that `place` and `run` would record, and records nothing ([spec §8](state-machine.md#8-acts)).
 _Avoid_: dry run
 
-**Land** (specified, not built):
-The act `land G COMMIT` on a selected Goal. The landed commit must carry the same whole change as the selected commit. The act records a Result per line, and a select when every line is met ([spec §7](state-machine.md#7-guards), Same change; [spec §8](state-machine.md#8-acts)).
+**Land**:
+The owner's act `land G` and its `land` event, which end a Goal. The owner lands a Goal at a stop: after a select, or at Two candidates or Budget used with no select. The event names the stop it ends and the act that caused it. Land is the owner's decision, not a check of a commit, and it is not coupled to a merge: a Goal can land before the merge, after it, or with no merge. The landed Goal is a fixed snapshot that later Goals cite with `--from` ([spec §6](state-machine.md#6-states), [spec §8](state-machine.md#8-acts)).
+_Avoid_: merge, close, recheck (the recheck of a commit on a main that moved is `unselect`, then a run)
+
+**Snapshot**:
+What a landed Goal leaves: its events in the `.tree/` of the tree being read, up to its land, and the outputs they name. hyp stores nothing more for it, and it holds no code, only Results. It is the owner's decision, fixed. `status G` and the return of `land` print its record: the PR body, or the table of outputs when the Goal has no select. A later Goal starts from it with `add goal --from G` ([spec §8](state-machine.md#8-acts), `land`).
+_Avoid_: archive, report file
 
 **Reset** (specified, not built):
 The owner's act `reset G`. It writes `budget.reset`, which moves the budget's boundary ([spec §8](state-machine.md#8-acts), [spec §11](state-machine.md#11-budget-and-stops)).
@@ -310,9 +319,9 @@ _Avoid_: check, validation, rule (alone)
 |---|---|
 | Draft | a replace names a Goal that is still written |
 | Whole lines | every line has a kind, one line or more is a gap line, and there are at most ten lines |
-| Not ended | always, until an act ends a Goal ([spec §14](state-machine.md#14-deferred)) |
+| Not ended | the Goal is not landed |
 | Open | the Goal is open; `run` on H0's tree does not check it |
-| Goal's actor | the actor added the Goal, for an owner's select and a reset |
+| Goal's actor | the actor added the Goal, for an owner's select, a land and a reset |
 | Own case | the act's role is grill, for a place |
 | Kind | H0 gives the verdict the line's kind needs |
 | Committed | the example folder on disk equals its committed bytes |
@@ -324,8 +333,10 @@ _Avoid_: check, validation, rule (alone)
 | Candidate | the tree is a candidate; with two or more, the role is owner |
 | Spec | the selected commit holds a file under `goals/<G>/specs/` |
 | Own path | the commit's own change writes no path of another Goal |
-| Selected | the Goal has a select (`land`), or has none (`place`, `run`, `select`) |
-| Same change | the landed commit's own change has the patch-id of the selected commit's own change |
+| Selected | the Goal has no select, for `place`, `run` and `select` |
+| Owner lands | the act's role is owner, for a land |
+| Stop | the Goal is at a stop, for a land |
+| From landed | the Goal that `add goal --from` cites is landed |
 | Own Result | the actor ran the Result it retracts |
 
 The guard **Nothing new** is removed: Stable judges every repeat ([spec §7](state-machine.md#7-guards)).
@@ -346,7 +357,7 @@ The part of a return that shows a Goal. It holds the state, `runs: N of 3 used`,
 The part of a return that says what was recorded, or which guard refused and why ([spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
 
 **PR body**:
-The select's report: each line, each example's words, output, stderr, exit code and verdict, and the selected commit and row. The runner pastes it into the PR; hyp writes nothing to GitHub ([spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
+The select's report: each line, each example's words, output, stderr, exit code and verdict, and the selected commit and row. The runner pastes it into the PR; hyp writes nothing to GitHub. `status G` prints it again after the Goal is landed, as the record of its decision ([spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
 
 **Byte block**:
 Stored bytes printed under a label `<label>, N bytes:`. A cut is said in the label, never inside the bytes ([spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
