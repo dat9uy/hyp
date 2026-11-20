@@ -164,4 +164,8 @@ const (
 	NoGoalToLand      Code = "no-goal-to-land"      // Goal
 	StopNotHeld       Code = "stop-not-held"        // stop, Goal
 	FromNotLanded     Code = "from-not-landed"      // Goal, state
+	NotOwnerUnselect  Code = "not-owner-unselect"   // role
+	NoSelect          Code = "no-select"            // Goal, state
+	NoGoalToUnselect  Code = "no-goal-to-unselect"  // Goal
+	NoNewCell         Code = "no-new-cell"          // Goal, unselect id
 )

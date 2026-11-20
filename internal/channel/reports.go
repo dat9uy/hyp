@@ -83,6 +83,13 @@ func landText(rep acts.LandReport) string {
 	return fmt.Sprintf("landed %s\nstop: %s\n", rep.Goal, stopText(rep.Stop, rep.Cause))
 }
 
+// unselectText is the report of an unselect: the Goal, open again, and the
+// select it undid.
+func unselectText(rep acts.UnselectReport) string {
+	return fmt.Sprintf("unselected %s\nundid: select %s at %s, commit %s, row %s\n",
+		rep.Goal, rep.Select.ID, rep.Select.Time, rep.Select.Commit, rep.Select.RowTree)
+}
+
 // stopText is a stop as an event: which stop, the act that caused it, its
 // event id and when. The stop none has no cause.
 func stopText(stop string, c acts.Cause) string {
@@ -109,6 +116,8 @@ func readyText(r acts.Ready) string {
 		return "hyp select " + r.Goal + " " + r.Tree
 	case acts.ActLand:
 		return "hyp land " + r.Goal
+	case acts.ActUnselect:
+		return "hyp unselect " + r.Goal
 	}
 	return "hyp " + r.Act + " " + r.Goal
 }

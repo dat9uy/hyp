@@ -25,6 +25,7 @@ The eight event types ([spec §3](state-machine.md#3-events)):
 | `select` | the select of a candidate row |
 | `budget.reset` | a reset of the budget's boundary |
 | `land` | the owner's land of a Goal at a stop; it names the stop and the act that caused it |
+| `unselect` | the owner's unselect of a selected Goal, which puts it back to open |
 | `read` | what hyp printed to an actor; it goes into the trace, never into the log |
 
 **Log**:
@@ -77,7 +78,7 @@ _Avoid_: user, author (alone); actor for a role
 What an actor does in an act: `owner`, `grill`, `probe-writer` or `runner`. It comes from `--role` or `$HYP_ROLE`, and a write act needs one. Roles are self-declared: hyp has no authorization layer ([spec §2](state-machine.md#2-ids-actors-and-roles)).
 
 **Owner**:
-The role that adds the Goal, selects when two or more candidates exist, and resets the budget. Only the actor that added the Goal selects for the owner ([spec §7](state-machine.md#7-guards), Goal's actor). The owner answers product questions; the builder chooses the mechanics.
+The role that adds the Goal, selects when two or more candidates exist, unselects and lands a Goal, and resets the budget. Only the actor that added the Goal selects for the owner ([spec §7](state-machine.md#7-guards), Goal's actor). The owner answers product questions; the builder chooses the mechanics.
 _Avoid_: user, stakeholder, approver
 
 **Grill**:
@@ -122,7 +123,7 @@ _Avoid_: edit, amend
 `written`, `open`, `selected` or `landed`, calculated and never stored ([spec §6](state-machine.md#6-states)).
 - **written**: a `goal.add` exists, and the Goal is not open.
 - **open**: every line holds a placed example. Each current placement has a live cell on H0's row with the verdict its line's kind needs.
-- **selected**: the Goal has a select. It allows only `land`.
+- **selected**: the Goal has a select. It allows only the owner's `land` and `unselect`. An unselect puts it back to open.
 - **landed**: the owner landed the Goal. It takes no write.
 
 _Avoid_: done, met (as a state word); ended for a Goal that is not landed
@@ -273,6 +274,7 @@ A command that writes nothing in the repository and only a `read` in the trace: 
 | `run` | runner | yes |
 | `select` | runner, or owner | yes |
 | `land` | owner | yes |
+| `unselect` | owner | yes |
 | `reset` | owner | specified, not built |
 | `retract` | the actor that ran the Result | specified, not built |
 
@@ -289,6 +291,10 @@ _Avoid_: dry run
 **Land**:
 The owner's act `land G` and its `land` event, which end a Goal. The owner lands a Goal at a stop: after a select, or at Two candidates or Budget used with no select. The event names the stop it ends and the act that caused it. Land is the owner's decision, not a check of a commit, and it is not coupled to a merge: a Goal can land before the merge, after it, or with no merge. The landed Goal is a fixed snapshot that later Goals cite with `--from` ([spec §6](state-machine.md#6-states), [spec §8](state-machine.md#8-acts)).
 _Avoid_: merge, close, recheck (the recheck of a commit on a main that moved is `unselect`, then a run)
+
+**Unselect**:
+The owner's act `unselect G` and its `unselect` event. It puts a selected Goal back to open, so the grill can place a new example and the runner can run again, for example on a merge of a main that moved. The rows and cells stay as they were, and the budget starts again at the unselect. The owner may select a candidate again at once; the runner selects again only after a run that records a new cell: a cell of an example version, or of a row, that had not run before the unselect. A landed Goal takes no unselect ([spec §6](state-machine.md#6-states), [spec §7](state-machine.md#7-guards), New cell; [spec §8](state-machine.md#8-acts); [spec §11](state-machine.md#11-budget-and-stops)).
+_Avoid_: deselect, reopen, undo
 
 **Snapshot**:
 What a landed Goal leaves: its events in the `.tree/` of the tree being read, up to its land, and the outputs they name. hyp stores nothing more for it, and it holds no code, only Results. It is the owner's decision, fixed. `status G` and the return of `land` print its record: the PR body, or the table of outputs when the Goal has no select. A later Goal starts from it with `add goal --from G` ([spec §8](state-machine.md#8-acts), `land`).
@@ -321,7 +327,7 @@ _Avoid_: check, validation, rule (alone)
 | Whole lines | every line has a kind, one line or more is a gap line, and there are at most ten lines |
 | Not ended | the Goal is not landed |
 | Open | the Goal is open; `run` on H0's tree does not check it |
-| Goal's actor | the actor added the Goal, for an owner's select, a land and a reset |
+| Goal's actor | the actor added the Goal, for an owner's select, a land, an unselect and a reset |
 | Own case | the act's role is grill, for a place |
 | Kind | H0 gives the verdict the line's kind needs |
 | Committed | the example folder on disk equals its committed bytes |
@@ -331,10 +337,12 @@ _Avoid_: check, validation, rule (alone)
 | Stable | a repeat on the same bytes gives the same verdict |
 | Budget | the run adds no fourth counted tree since the boundary |
 | Candidate | the tree is a candidate; with two or more, the role is owner |
+| New cell | after an unselect, a runner's select follows a run that recorded a new cell; the owner's select does not need one |
 | Spec | the selected commit holds a file under `goals/<G>/specs/` |
 | Own path | the commit's own change writes no path of another Goal |
-| Selected | the Goal has no select, for `place`, `run` and `select` |
+| Selected | the Goal has no select, for `place`, `run` and `select`; it has one, for `unselect` |
 | Owner lands | the act's role is owner, for a land |
+| Owner unselects | the act's role is owner, for an unselect |
 | Stop | the Goal is at a stop, for a land |
 | From landed | the Goal that `add goal --from` cites is landed |
 | Own Result | the actor ran the Result it retracts |
@@ -430,7 +438,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 | Evidence pointer, Pin, Questionable | Where a Result points, the hash it recorded for a bundle, and the flag when that hash moved. | Outputs by hash, and the example hash on each cell. |
 | Stale, depends_on, Reaffirm | A node whose basis may no longer hold, the edge it follows, and the act that renews it. | None. |
 | Keyed item, Limit, Line, Reading, Reach | Items inside an event: a case no check ran, a limit on the Goal (`G-…#n`), how a run read owner words, and what an answer could move ([spec §8.2](replay-spec.md#82-keyed-items-limits-lines-and-readings)). | Line: `line-N`, a gap or guard line with examples. A gap a review finds is an example or a new Goal. |
-| Answer, Checkpoint | The owner's event, and the runner's report event. | The owner's acts `add goal`, `select` and `reset`. |
+| Answer, Checkpoint | The owner's event, and the runner's report event. | The owner's acts `add goal`, `select`, `land`, `unselect` and `reset`. |
 | Aim, Reassess, Coverage | What an Experiment planned to settle, how an answer reached the tree, and which Hypotheses a Result ran on. | None. |
 | Out-of-Goal finding | A finding that is a case of no line. | A defect outside the Goal, which the runner lists in the PR. |
 | Ledger item, Owed, Awaiting owner, Frontier, Open limits, Status section | The open work and the `hyp status` sections that showed it ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)). | The state block: the stop, the waits and the allowed acts. |

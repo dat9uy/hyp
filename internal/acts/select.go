@@ -34,7 +34,8 @@ type SelectReport struct {
 
 // Select records a select, or refuses with the first failing guard of the
 // state machine, section 8: Not ended (always holds), Selected, Candidate,
-// Goal's actor (for the owner), Spec, then Own path. Spec and Own path read the
+// New cell (for the runner), Goal's actor (for the owner), Spec, then Own
+// path. Spec and Own path read the
 // commit of the row's latest Result in merge order, which is the commit the
 // select records. Everything is checked under the lock.
 func Select(o SelectOpts) (SelectReport, error) {
@@ -65,6 +66,9 @@ func Select(o SelectOpts) (SelectReport, error) {
 		}
 		row, err := tables.GuardCandidate(g, gitread.Ancestry{Dir: root}, o.Tree, o.Role)
 		if err != nil {
+			return ev, err
+		}
+		if err := tables.GuardNewCell(g, o.Role); err != nil {
 			return ev, err
 		}
 		if err := tables.GuardGoalActor(g, o.Actor, o.Role); err != nil {

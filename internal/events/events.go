@@ -24,7 +24,7 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The eight event types. All but read change the state machine; read is the
+// The nine event types. All but read change the state machine; read is the
 // trace of what hyp printed to an actor, and changes no state.
 const (
 	TypeGoalAdd       = "goal.add"
@@ -34,13 +34,14 @@ const (
 	TypeSelect        = "select"
 	TypeBudgetReset   = "budget.reset"
 	TypeLand          = "land"
+	TypeUnselect      = "unselect"
 	TypeRead          = "read"
 )
 
 var types = map[string]bool{
 	TypeGoalAdd: true, TypeExamplePlace: true, TypeResultRecord: true,
 	TypeResultRetract: true, TypeSelect: true, TypeBudgetReset: true,
-	TypeLand: true, TypeRead: true,
+	TypeLand: true, TypeUnselect: true, TypeRead: true,
 }
 
 // The kind of a line: a gap line must fail on H0, a guard line must be met.
@@ -131,6 +132,12 @@ type Land struct {
 	Cause string `json:"cause"`
 }
 
+// Unselect is the payload of unselect: the owner's act that puts a selected
+// Goal back to open.
+type Unselect struct {
+	Role string `json:"role"`
+}
+
 // BudgetReset is the payload of budget.reset.
 type BudgetReset struct {
 	Role string `json:"role"`
@@ -150,7 +157,7 @@ type Read struct {
 }
 
 // ParseLine parses one line of an events file. It refuses an unknown field, a
-// version other than 2 and a type outside the eight.
+// version other than 2 and a type outside the nine.
 func ParseLine(b []byte) (Event, error) {
 	var e Event
 	if err := strictDecode(b, &e); err != nil {

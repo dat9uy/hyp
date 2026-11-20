@@ -35,6 +35,7 @@ const (
 	codePruneArgs      fault.Code = "prune-args"      // count
 	codeTryArgs        fault.Code = "try-args"        // count
 	codeLandArgs       fault.Code = "land-args"       // count
+	codeUnselectArgs   fault.Code = "unselect-args"   // count
 )
 
 // words is the text of every code: a format whose verbs name the code's
@@ -198,6 +199,10 @@ var words = map[fault.Code]string{
 	fault.NoGoalToLand:      "no Goal %s to land",
 	fault.StopNotHeld:       "the land names the stop %s, which %s does not hold",
 	fault.FromNotLanded:     "%s is %s; --from cites only a landed Goal",
+	fault.NotOwnerUnselect:  "only the owner unselects a Goal; the role is %s",
+	fault.NoSelect:          "%s is %s and has no select; only a selected Goal is unselected",
+	fault.NoGoalToUnselect:  "no Goal %s to unselect",
+	fault.NoNewCell:         "%s was unselected by %s, and no run since recorded a new cell: an example version or a row that had not run before the unselect; the runner selects again after such a run, the owner at any time",
 
 	// the channel's own
 	codeNoCommand:      "no command",
@@ -219,6 +224,7 @@ var words = map[fault.Code]string{
 	codeNeedsActor:     "%s needs an actor (--actor or $HYP_ACTOR): hyp records what it prints to each actor",
 	codePruneArgs:      "prune takes no argument but --remove; got %d arguments",
 	codeLandArgs:       "land takes one Goal, for example: hyp land G-NXHHVA; got %d arguments",
+	codeUnselectArgs:   "unselect takes one Goal, for example: hyp unselect G-NXHHVA; got %d arguments",
 	codeTryArgs:        "try takes a Goal and LINE/EXAMPLE, for example: hyp try G-NXHHVA line-1/a; got %d arguments",
 	codeNotRecorded:    "could not record what this command printed, so hyp prints nothing of it: %s",
 }
