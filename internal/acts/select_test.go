@@ -22,7 +22,7 @@ func (e *runEnv) metLeaf(t *testing.T, value string, withSpec bool) (commit, tre
 	t.Helper()
 	files := map[string]string{"counter": value + "\n"}
 	if withSpec {
-		files["goals/"+e.goal+"/specs/spec.tla"] = "spec\n"
+		files["goals/"+e.goal+"/specs/spec.md"] = "spec\n"
 	}
 	commit = e.child(t, e.base, files)
 	if _, err := e.run(commit); err != nil {
@@ -76,7 +76,7 @@ func TestSelectRefusesNonCandidate(t *testing.T) {
 	e := newRunEnv(t)
 	_, okTree := e.metLeaf(t, "ok", true)
 	// a failed leaf is a row of the Goal but not a candidate
-	bad := e.child(t, e.base, map[string]string{"counter": "nope\n", "goals/" + e.goal + "/specs/spec.tla": "s\n"})
+	bad := e.child(t, e.base, map[string]string{"counter": "nope\n", "goals/" + e.goal + "/specs/spec.md": "s\n"})
 	if _, err := e.run(bad); err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +144,7 @@ func TestSelectRefusesOtherGoalPath(t *testing.T) {
 	// A Result recorded on a commit whose own change writes another Goal's
 	// path: run would refuse it, so the Result is appended by hand.
 	c := e.child(t, e.base, map[string]string{
-		"counter": "ok\n", "goals/" + e.goal + "/specs/spec.tla": "s\n", "goals/G-OTHER1/note": "n\n",
+		"counter": "ok\n", "goals/" + e.goal + "/specs/spec.md": "s\n", "goals/G-OTHER1/note": "n\n",
 	})
 	tree, _ := gitread.RowTree(e.root, c)
 	cur, _ := e.goalRow(t).Current("line-1/a")

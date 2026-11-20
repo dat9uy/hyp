@@ -131,7 +131,7 @@ func (f *fx) leaf(t *testing.T, files map[string]string) string {
 	return c
 }
 
-func (f *fx) spec() string { return "goals/" + f.goal + "/specs/spec.tla" }
+func (f *fx) spec() string { return "goals/" + f.goal + "/specs/spec.md" }
 
 // selectLine finds the ready select line in a status or run return.
 func selectLine(t *testing.T, out string) []string {

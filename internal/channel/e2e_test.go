@@ -74,7 +74,7 @@ func TestOneGoalEndToEnd(t *testing.T) {
 	}
 
 	// the runner commits the fix and the spec, then runs both lines on it
-	fix := r.Commit(t, map[string]string{"title.sh": titleAfter, "goals/" + goal + "/specs/spec.tla": "---- MODULE spec ----\n====\n"})
+	fix := r.Commit(t, map[string]string{"title.sh": titleAfter, "goals/" + goal + "/specs/spec.md": "the title says bye\n"})
 	afterCommit := testutil.Snapshot(t, r.Dir)
 	t.Setenv("HYP_ACTOR", "runner-1")
 	t.Setenv("HYP_ROLE", "runner")

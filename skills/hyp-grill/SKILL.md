@@ -97,6 +97,14 @@ The issue is the owner's record, not a rule for the runner:
    where `<issue>` is the number of the issue you grill. hyp gives the Goal
    its id only when the Goal is added, so rename the branch `record/<G>` with
    `git branch -m` once hyp prints it.
+10. **Write the model with `/hyp-statechart`.** When the change moves through
+    states, write the Goal's model on the record branch with the hyp-statechart
+    skill, which ships with hyp: a TLA+ spec in `goals/<G>/specs/`, one switch
+    per cheap wrong build, a switch config for every rule, each switch tried as
+    a patch against the examples, and the chart. A wrong build that passes
+    every example goes to the owner. At select, hyp refuses a model that has a
+    rule no switch config names, or no chart; a spec folder with no model is
+    selected as before.
 
 ## How to write examples
 
@@ -156,5 +164,7 @@ decisions and the "Not covered" items they own.
 ## Resources
 
 - [run-rules.md](run-rules.md): the run part. Give it to the runner of the Goal.
+- The hyp-statechart skill, beside this one: the model, its switches and its
+  chart, with the statechart tool.
 - [probe/run](probe/run): the generic Probe, a POSIX `sh` script. hyp runs it
   on macOS and Linux; `hyp try` exercises it, so it has no test of its own.

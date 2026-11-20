@@ -41,7 +41,7 @@ The self-review recipes and trees of hyp 0.1.0 are kept on the `v1` branch, not 
 Every item on `main` is core:
 
 - **The binary:** `cmd/`, `internal/`, `go.mod` and `go.sum`. The binary builds only the v2 packages that `cmd/hyp` imports. The packages of hyp 0.1.0, such as `internal/cli`, `internal/replay`, `internal/sandbox` and `internal/recipe`, are still under `internal/`. The binary does not import them, and `go test` still runs their tests.
-- **The skill:** `skills/hyp-grill`, with its run rules and its generic Probe. The skills of hyp 0.1.0 are kept on the `v1` branch.
+- **The skills:** `skills/hyp-grill`, with its run rules and its generic Probe, and `skills/hyp-statechart`, with the statechart tool. The skills of hyp 0.1.0 are kept on the `v1` branch.
 - **The Goals:** `goals/`, with each Goal's examples, Probes and specs, and the store `.tree/` that records them. Each Goal changes a core concept of hyp, so each is core-scope work.
 - **The docs** in this directory. [state-machine.md](state-machine.md) is the v2 spec. [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md) are the specs of hyp 0.1.0.
 - **The test data** under `internal/*/testdata`: synthetic stores, goldens and fixtures written for hyp's own tests. The store in `internal/testutil/testdata/synth` and its `generate.sh` are history from hyp 0.1.0, which the packages of hyp 0.1.0 still replay.
