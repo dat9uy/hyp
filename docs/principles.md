@@ -9,7 +9,8 @@ in [state-machine.md](state-machine.md), the one spec of hyp v2.
 
 **A change is admitted only when evidence shows that it meets the owner's
 Goal.** The owner states the Goal as words and lines. The grill places examples
-that can fail. The runner builds rival commits and runs the lines on them. A
+that can fail. The runner builds Hypotheses, the subjects of its commits, and
+runs the lines on them. A
 later reader, such as the owner, a new session or another agent, reads the log
 and the PR body, not a chat. They find what each example printed on each build,
 and which build was selected.
@@ -52,7 +53,7 @@ gate).
 ## 5. A budget stops the loop, and nothing scores a round
 
 **A Goal gets three Hypotheses beside H0, and then it stops for the owner.**
-A Hypothesis is one build, counted by its row tree. A refused run costs nothing.
+A Hypothesis is one build, counted by its subject hash. A refused run costs nothing.
 A rerun of a Hypothesis already counted costs nothing. Stable refuses a run whose verdict differs from an earlier run on
 the same bytes, so a rerun cannot change a verdict. A placement that changes an
 example moves the boundary, because the runner then runs against new evidence.
@@ -68,17 +69,20 @@ The four roles are `owner`, `grill`, `probe-writer` and `runner`
 1. **The owner records the Goal.** Its words and lines are frozen once it opens.
    A new line or a new purpose is a new Goal, which can cite the old one with
    `--from`.
-2. **The owner chooses between candidates.** Only the actor that added the Goal
-   selects for the owner (the guard Goal's actor).
-3. **The owner merges.** hyp writes nothing to GitHub. The merge is where the
+2. **The owner chooses between candidates.** The owner may select at any time,
+   and with two or more candidates only the owner selects. Only the actor that
+   added the Goal selects for the owner (the guard Goal's actor).
+3. **The owner ends a Goal.** At a stop the owner lands the Goal, and the owner
+   may unselect a selected Goal so that the grill can place again.
+4. **The owner merges.** hyp writes nothing to GitHub. The merge is where the
    owner accepts a build and vetoes its mechanics.
-4. **Only the grill places an example** (the guard Own case). The grill asks
+5. **Only the grill places an example** (the guard Own case). The grill asks
    the owner product questions only, and reports each decision that no example
    checks.
-5. **The runner runs lines and selects one candidate.** It never places. It
+6. **The runner runs lines and selects one candidate.** It never places. It
    runs only the lines that hyp prints for it.
-6. **The probe writer writes no event.**
-7. **hyp does not authenticate a role.** The actor and the role are
+7. **The probe writer writes no event.**
+8. **hyp does not authenticate a role.** The actor and the role are
    self-declared. A guard that reads them catches an honest mistake, not a lie.
 
 The owner's guide is [owner-guide.md](owner-guide.md).
@@ -112,7 +116,8 @@ states the gate.
 - It does not judge whether an example is well chosen. The grill reports each
   decision of the owner that no example checks.
 - A select is not proof that the design is right. It shows that one build met
-  every example. A gap found after a select is a new Goal.
+  every example. A gap found after a select goes back to the grill after the
+  owner's `unselect`; a gap that needs a new line is a new Goal.
 - It does not sandbox a Probe. A Probe is the grill's own committed code
   ([spec §10](state-machine.md#10-the-probe-contract)).
 - `hyp try` shows a verdict without a record, and a run from a shell outside

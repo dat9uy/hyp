@@ -4,8 +4,8 @@ hyp is changed the way it asks its users to decide things: from a real event,
 through a gate. This page explains where a fix goes: the binary or the skill
 text. It explains why the loop is guarded while it runs, not proven in advance.
 It also says when a change earns its way in. The loop is a Goal with gap and guard lines,
-examples placed on each line, rival commits run against the examples, and a
-select. Its main risk is runs that teach nothing. It is the change-control part
+examples placed on each line, rival Hypotheses run against the examples, and
+a select. Its main risk is runs that teach nothing. It is the change-control part
 of [principles.md](principles.md), which states hyp's other principles.
 
 ## Guard the loop while it runs, not before
@@ -22,8 +22,8 @@ run goes well. [state-machine.md](state-machine.md) owns each rule:
   naming the first guard that fails ([spec §7](state-machine.md#7-guards)). For
   example, Kind refuses an example that gives the wrong verdict on H0, and Leaf
   only refuses a run on a commit that another build descends from.
-- **The budget.** A Goal gets three Hypotheses beside H0, one per distinct row
-  tree. Then it stops for the owner. A refused run costs nothing, and a rerun of
+- **The budget.** A Goal gets three Hypotheses beside H0, one per subject hash.
+  Then it stops for the owner. A refused run costs nothing, and a rerun of
   a counted Hypothesis costs nothing ([spec §11](state-machine.md#11-budget-and-stops)).
 - **Stable.** Two runs on the same bytes give one verdict. A rerun that gives
   another verdict is refused, and `hyp status` lists it under `unstable:`. So a
@@ -62,9 +62,10 @@ Do not change hyp or a skill on speculation. A change starts from a real run.
 In that run a refusal or a warning fires, a Goal reaches a stop it cannot leave,
 `hyp status` lists an event under `refused at replay:`, or the owner flags it.
 
-A change to a skill is a build Goal like any change to code: its lines, its own
-test or an instrument the Goal builds, red on base, and the select. How a skill
-is tested is that Goal's choice. No instrument is kept for skill text as such
+A change to a skill is a build Goal like any change to code: its lines,
+examples whose Probes the Goal writes, and the select. Each example gives its
+line's verdict on H0 before it is placed. How a skill is tested is that Goal's
+choice. hyp keeps no example or Probe for skill text as such
 ([ADR 0021](adr/0021-a-skill-change-is-a-build-goal.md)).
 
 ## Nothing scores a round
@@ -76,4 +77,4 @@ table and decides.
 
 Nothing in hyp judges whether an example was well chosen. The grill reports
 each decision of the owner that no example checks. Measuring how good an
-example is needs the owner's judgment. No such instrument is part of hyp.
+example is needs the owner's judgment, and hyp has no check for it.

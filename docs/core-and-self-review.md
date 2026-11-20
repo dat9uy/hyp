@@ -1,26 +1,26 @@
 # Map: core and self-review
 
-This repository holds hyp, its skill, and the Goals that built hyp v2. Records made before the public release stay in the private development history. This page says which concepts and files belong to which scope, so that an issue, a plan or a change can say which scope it serves. The two words are defined in [glossary.md](glossary.md), "Scopes of this repository".
+This repository holds hyp, its skills, and the Goals that built hyp v2. Records made before the public release stay in the private development history. This page says which concepts and files belong to which scope, so that an issue, a plan or a change can say which scope it serves. The two words are defined in [glossary.md](glossary.md), "Scopes of this repository".
 
 ## The test
 
 Core and self-review are scopes. An item's scope is the concept it belongs to, not who uses it or what tested it.
 
 - **Core** is every concept hyp has, and everything a user who installs hyp into another repository runs, loads or reads there. A user records Goals, places examples and runs lines on their own code. So Goal, line, example, Probe, runner and select are core concepts.
-- **Self-review** is the recipes this repository keeps to test hyp, whatever repository the runner works on, plus the inputs only they use. Nothing else is self-review.
+- **Self-review** is a Goal of this repository whose lines are about how hyp is tested, not about a concept hyp has. An example is a Goal that checks a Probe or a test fixture of hyp itself, plus the inputs only that Goal uses. Nothing else is self-review.
 
 The repository a runner works on is its investigated repository, a core concept. Here it is often hyp itself. Which repository it is does not change the scope.
 
-Investigating hyp is an activity, not a scope. A Goal takes its place by its question:
+Working on hyp is an activity, not a scope. A Goal takes its scope from its lines:
 
-- A Goal about hyp takes the scope of the concept it changes. Every Goal here changes a core concept, so each is core-scope work.
-- A Goal whose question is about another project is a self-review input: a run this repository keeps as evidence about hyp, not for its answer.
+- A Goal whose lines change a concept of hyp takes the scope of that concept, which is core. Every Goal on `main` is of this kind.
+- A Goal whose lines are about how hyp is tested is self-review.
 
 Three rules keep the boundary honest:
 
 1. **A concept stays core when self-review is what tests it.**
-2. **A self-review recipe does not make its kind self-review.** Recipes are core concepts of hyp 0.1.0.
-3. **Self-review invents no concept of its own.** Every word a self-review recipe uses maps onto core concepts (see "Self-review words" below). Work whose question is about a self-review recipe itself is a special case, and it needs a reason. Today there is one: an instrument must give its known answers before its verdicts count, which is a core rule applied to a self-review recipe.
+2. **A self-review Goal does not make the concepts it uses self-review.** Its examples, Probes and lines are core concepts.
+3. **Self-review invents no concept of its own, and has no rule of its own.** Its examples give their line's verdict on H0 before they count, like the examples of every Goal ([state-machine.md §7](state-machine.md#7-guards), Kind).
 
 There are exactly two scopes. An item that fits neither is a problem that has not been scoped well enough: split it until each part has one scope. `.agentkit/` is not an item of this project at all: it is the local development setup for working on the repository, like `.gitignore`.
 
@@ -30,7 +30,9 @@ Visibility is a separate axis from scope. Every item in this repository is publi
 
 ## Self-review
 
-`main` holds no self-review item. A new self-review recipe gets a row here, with its visibility.
+`main` holds no self-review item. A new self-review Goal gets a row here, with its visibility.
+
+In hyp 0.1.0, self-review was the recipes this repository kept to test hyp, plus the inputs only they used. "Recipe" is a word of hyp 0.1.0; v2 has examples and Probes instead. The rest of this section, and the section "Self-review words of hyp 0.1.0", are history for the `v1` branch.
 
 The self-review recipes kept before the public release (session-replay, scratch-pg, readout-read, containment-arms, declaration-shape and signals-replay-proto), their inputs, and the trees that pinned them are not published.
 
@@ -48,7 +50,11 @@ Every item on `main` is core:
 
 ## Self-review words
 
-A word a self-review recipe uses is a name for core concepts. A new self-review word gets an entry here, and a word that maps onto no core concept is a sign that a core concept is missing. The words below are those of the hyp 0.1.0 recipes on the `v1` branch.
+A word a self-review Goal uses is a name for core concepts. A new self-review word gets an entry here, and a word that maps onto no core concept is a sign that a core concept is missing. `main` has no self-review word today.
+
+### Self-review words of hyp 0.1.0
+
+The words below are those of the hyp 0.1.0 recipes on the `v1` branch. Their core terms are the concepts of hyp 0.1.0.
 
 | Self-review word | In core terms |
 |---|---|

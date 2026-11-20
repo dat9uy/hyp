@@ -8,7 +8,7 @@ You are the owner of a Goal when you record it. The grill helps you write the Go
 
 - **You record the Goal.** A Goal has words and up to ten lines. The words are one sentence of what you want. A `gap` line is false on H0, the Goal's base commit, and a build must make it true. A `guard` line is true on H0, and a build must keep it true. A Goal needs at least one gap line.
 - **You can replace a Goal until it opens.** While the Goal is `written`, `hyp add goal G …` replaces it. After it opens, its words and lines are frozen. A new line is a new Goal. The new Goal can cite the old one with `--from G`.
-- **You choose between candidates.** When two or more builds meet every line, only you can select one.
+- **You choose between candidates.** You may select a candidate at any time. When two or more builds meet every line, only you can select one.
 - **You merge.** hyp writes nothing to GitHub. The record branch holds the Goal, its examples and their place events, and it merges before the runner runs. The runner's PR holds the build and its select. Your merge accepts the build. You veto the build's mechanics there.
 - **You produce no evidence.** You never place an example, run a line or give a verdict. A verdict comes only from the compare of an example on a commit ([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
 
@@ -45,7 +45,7 @@ runner may:
 ```
 
 - **The state** is `written`, `open`, `selected` or `landed` ([spec §6](state-machine.md#6-states)). A Goal is `landed` after your `hyp land G`, and it takes no further write.
-- **`runs: N of 3 used`** counts the Hypotheses that the runner ran, H1 to H3. A Hypothesis is one build, a row tree other than H0's. H0 is not counted.
+- **`runs: N of 3 used`** counts the Hypotheses that the runner ran, H1 to H3. A Hypothesis is one build: the subject of a commit, named by its subject hash. Commits with the same subject are one Hypothesis. H0 is not counted.
 - **`stop:`** is `none`, `selected`, `two candidates` or `budget used`.
 - **`waits:`** names who the Goal waits for. It is `grill` while the Goal is written, `owner` at a stop for you, and `none` otherwise.
 - **`<role> may:`** lists the acts that each role may take now, as ready command lines. A role with no allowed act prints `(none)`.
@@ -55,7 +55,7 @@ The block can hold more lines:
 | Line | Means |
 |---|---|
 | `last run: after this, G stops for the owner.` | The runner used two of three runs. |
-| `split: <line> on row <tree>` | The examples of one line give different verdicts on one build. |
+| `split: <line> on row <subject hash>` | The examples of one line give different verdicts on one build. |
 | `unstable:` | Two runs on the same bytes gave two verdicts. The first verdict stands. The example needs your attention. |
 | `refused at replay:` | A merged log broke a guard, for example with a fourth Hypothesis in one budget. hyp skips that event and keeps it in the log. |
 | `outputs:` | At a stop for you: the verdict, exit code and output of each example on each build. |
@@ -89,7 +89,7 @@ Only you can select now, and only under the actor name that added the Goal. `hyp
 
 ```text
 owner may:
-  hyp select G-NXHHVA <tree>
+  hyp select G-NXHHVA <subject hash>
 ```
 
 Run the line of the build you choose. The selected commit must hold a spec under `goals/<G>/specs/`, or hyp refuses the select.
