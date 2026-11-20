@@ -1,0 +1,4 @@
+place exit: 1
+run exit: 1
+select exit: 1
+log unchanged: yes
