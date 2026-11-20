@@ -91,19 +91,20 @@ The issue is the owner's record, not a rule for the runner:
    do not turn it into a question.
 7. **A form question names every case.** When you ask about the form of what
    hyp prints (the state block, a report, an error), name every state a Goal
-   can be in (`written`, `open`, `selected`) and every command that prints that
-   form, so the answer covers each one.
+   can be in (`written`, `open`, `selected`, `landed`) and every command that
+   prints that form, so the answer covers each one.
 8. **Draft the words and lines.** One sentence of words. Each line is `gap`
    (false on H0, the build must make it true) or `guard` (true on H0, the build
    must keep it true). A Goal needs at least one gap line. The owner records it.
    When a line makes something wait for new evidence, or counts acts, check
    whether repeating an earlier act on the same bytes (the same example version
    on the same row) would meet its words. If it would, write the line in terms
-   of what changed, not an act being recorded: evidence is new when its pair of
-   example version and row was not run before. The same check on the same bytes
-   teaches nothing. Do not narrow it past that pair: a new version of an
-   example, a new example key and a new row each make a new check that can
-   fail, so each counts. The command you draft carries the words and lines
+   of what changed, not an act being recorded: the same check on the same bytes
+   teaches nothing, so it never counts as new evidence. When the words allow
+   more than one reading of what changed (for example, whether a version and a
+   row that each ran before, but never together, count), show the owner a
+   concrete case of each reading and let the owner choose. Place an example for
+   the chosen reading. The command you draft carries the words and lines
    exactly as you showed them to the owner.
 9. **Switch to a record branch before the Goal is recorded.** The Goal's events
    and examples reach the default branch only through a record PR, never by a
