@@ -1,0 +1,11 @@
+-- words --
+A decision is the Goal's words, a line or an example; a decision no example checks is a gap the grill reports.
+-- input/rules.txt --
+decision-is-words-line-or-example	decision	words	line	example
+unchecked-decision-is-a-gap-the-grill-reports	decision	no example	(gap|not covered)
+-- run --
+perl "$HYP_EXAMPLE/check.pl" --scope all --skill hyp-grill --rules "$HYP_EXAMPLE/input/rules.txt"
+-- floor: equals --
+skill folder hyp-grill: yes
+rule decision-is-words-line-or-example: yes
+rule unchecked-decision-is-a-gap-the-grill-reports: yes
