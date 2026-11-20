@@ -13,8 +13,9 @@
 (*   line 3  unselect is refused on a landed Goal, on a Goal that is not   *)
 (*           selected, and for anyone but the owner who added the Goal;    *)
 (*   line 4  after an unselect, the runner selects only once a run records *)
-(*           a cell for an example version or a row not run before it; the *)
-(*           owner selects at any time;                                    *)
+(*           a cell for an example version or a row not run before it, and *)
+(*           status prints the runner no select line until then; the owner *)
+(*           selects at any time;                                          *)
 (*   line 5  a Goal never unselected selects as before.                    *)
 (*                                                                         *)
 (* Each switch is a cheap wrong build; the check config sets every switch  *)
@@ -31,7 +32,8 @@ CONSTANTS
     AnyoneUnselects,       \* any actor or role can unselect
     ReselectsAtOnce,       \* the runner may reselect with no new cell
     RerunCounts,           \* a rerun of the same version counts as a new cell
-    OwnerOnlyAfterUnselect \* after any unselect only the owner selects
+    OwnerOnlyAfterUnselect, \* after any unselect only the owner selects
+    StatusOffersSelect      \* status prints the runner's select line for any candidate
 
 Who == {"owner", "other"}
 Budget == 3
@@ -98,6 +100,10 @@ RunnerMay ==
     /\ st = "open" /\ cand
     /\ ~unselected \/ fresh \/ ReselectsAtOnce
     /\ ~(OwnerOnlyAfterUnselect /\ unselected)
+
+(* hyp status prints the runner's select line.                            *)
+Offered ==
+    IF StatusOffersSelect THEN st = "open" /\ cand ELSE RunnerMay
 
 (* The runner asks hyp to select the latest row.                          *)
 RunnerSelect ==
@@ -187,6 +193,11 @@ OnlyTheOwnerUnselects ==
 (* Line 4: the runner's select after an unselect needs a new cell.        *)
 TheRunnerReselectsOnlyAfterANewCell ==
     st = "selected" /\ by = "runner" /\ unselected => newCell
+
+(* Line 4: hyp status prints the runner's select line only when the       *)
+(* runner's select would be recorded.                                     *)
+StatusOffersTheRunnerOnlyWhatHypRecords ==
+    Offered => RunnerMay
 
 (* Lines 4 and 5: hyp refuses the runner's select of a candidate on an    *)
 (* open Goal only after an unselect with no new cell since.               *)
