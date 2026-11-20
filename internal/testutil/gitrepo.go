@@ -55,6 +55,10 @@ func NewRepo(t *testing.T) *Repo {
 	git(t, dir, "init", "-q", "-b", "main")
 	git(t, dir, "config", "user.name", "t")
 	git(t, dir, "config", "user.email", "t@example.com")
+	// git commit starts a detached "git maintenance run --auto", which holds
+	// objects/maintenance.lock after the commit returns. Under load a
+	// Snapshot then sees the lock come and go with no write by hyp.
+	git(t, dir, "config", "maintenance.auto", "false")
 	return &Repo{Dir: dir}
 }
 
