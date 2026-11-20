@@ -1,0 +1,15 @@
+-- words --
+The spec gives land to the owner, has no Same change guard, names the snapshot, and says that --from needs a landed Goal.
+-- run --
+has() { if grep -qF -- "$1"; then echo yes; else echo no; fi; }
+not() { if [ "$1" = yes ]; then echo no; else echo yes; fi; }
+m=docs/state-machine.md
+echo "the acts table gives land to the owner: $(if grep -E '^\| `land' "$m" | grep -qF '| owner |'; then echo yes; else echo no; fi)"
+echo "no Same change guard: $(not "$(has 'Same change' <"$m")")"
+echo "the spec names the snapshot: $(has snapshot <"$m")"
+echo "--from needs a landed Goal: $(if grep -F -- '--from' "$m" | grep -q landed; then echo yes; else echo no; fi)"
+-- floor: equals --
+the acts table gives land to the owner: yes
+no Same change guard: yes
+the spec names the snapshot: yes
+--from needs a landed Goal: yes
