@@ -1,0 +1,44 @@
+---
+title: "hyp G-VDG87A: the owner's unselect"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: open
+    lg1: selected
+    lg2: unselected
+    lg3: landed
+  }
+  class lg0 teal
+  class lg1 blue
+  class lg2 orange
+  class lg3 purple
+  s0: Open, no candidate
+  s1: Open, a candidate
+  s2: Selected
+  s3: Unselected, the old candidate only
+  s4: Landed
+  s5: Unselected, no candidate
+  s6: Selected again
+  s7: Unselected, a candidate with a new cell
+  [*] --> s0
+  s0 --> s1: the runner runs a new commit or the runner runs the new version on the row
+  s1 --> s0: the runner runs a new commit or the grill places a new version
+  s1 --> s2: the owner selects or the runner selects
+  s2 --> s3: the owner unselects
+  s2 --> s4: the owner lands
+  s3 --> s5: the grill places a new version or the runner runs a new commit
+  s3 --> s6: the owner selects
+  s3 --> s7: the runner runs a new commit
+  s5 --> s7: the runner runs a new commit or the runner runs the new version on the row
+  s6 --> s3: the owner unselects
+  s6 --> s4: the owner lands
+  s7 --> s5: the runner runs a new commit or the grill places a new version
+  s7 --> s6: the owner selects or the runner selects
+  class s0 teal
+  class s1 teal
+  class s2 blue
+  class s3 orange
+  class s4 purple
+  class s5 orange
+  class s6 blue
+  class s7 orange
