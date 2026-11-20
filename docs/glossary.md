@@ -180,23 +180,31 @@ A placement that writes a new example key, or a new hash on a key. The latest on
 A commit's tree without the top-level entries `goals` and `.tree`. A change to an example, a Probe, a spec or the store makes no new subject ([spec §1](state-machine.md#1-names-and-locations)).
 _Avoid_: base plus patch (a v1 subject)
 
-**Row tree**:
-The git tree hash of a commit's subject. hyp calculates it in memory and writes no object ([spec §13](state-machine.md#13-what-hyp-reads-from-git)). Use "row tree" only for this hash.
-_Avoid_: tree (alone) for a Hypothesis
+**Subject hash**:
+The git tree hash of a commit's subject. hyp calculates it in memory and writes no object ([spec §13](state-machine.md#13-what-hyp-reads-from-git)). It keys a row and names a Hypothesis. The events store it in the field `row_tree`, and hyp's output still prints it as a tree, for example `select G TREE`.
+_Avoid_: row tree, tree (alone): "tree" means only the Hypothesis tree
 
 **Row**:
-The verdicts of one Goal on one row tree, keyed by the Goal and the row tree. It lists the commits it was seen at. H0's row always exists, and any other row exists when a Result names its tree ([spec §5](state-machine.md#5-calculated-tables), [spec §6](state-machine.md#6-states)).
-
-**H0**:
-The Goal's base: the commit `--base` names, and its row tree. A gap example fails on H0 and a guard example is met on H0. The budget never counts H0 ([spec §6](state-machine.md#6-states), [spec §11](state-machine.md#11-budget-and-stops)).
-_Avoid_: baseline, main
+hyp's record of one Hypothesis: the verdicts of one Goal on one subject hash, keyed by the Goal and the subject hash. It lists the commits it was seen at. H0's row always exists, and any other row exists when a Result names its subject hash ([spec §5](state-machine.md#5-calculated-tables), [spec §6](state-machine.md#6-states)).
 
 **Hypothesis**:
-One build of the runner: a row other than H0's. Count them H1, H2, H3. The budget allows three Hypotheses since its boundary ([spec §8](state-machine.md#8-acts), `try`; [spec §11](state-machine.md#11-budget-and-stops)).
-_Avoid_: tree, first tree (say H1, or the 1st Hypothesis); attempt, candidate (a candidate is a Hypothesis met on every line)
+One build the runner offers against a Goal's examples: the subject of a commit. hyp records it as a row, so commits with the same subject hash are one Hypothesis. H0 is the Goal's base. H1, H2, H3 are the others, in the order they first ran. The budget counts Hypotheses other than H0 ([spec §5](state-machine.md#5-calculated-tables), Row key; [spec §11](state-machine.md#11-budget-and-stops)).
+_Avoid_: tree, first tree (say H1, or the 1st Hypothesis); attempt; candidate (a candidate is a Hypothesis met on every line)
+
+**H0**:
+The Goal's base: the commit `--base` names, and its subject hash. A gap example fails on H0 and a guard example is met on H0. The budget never counts H0 ([spec §6](state-machine.md#6-states), [spec §11](state-machine.md#11-budget-and-stops)).
+_Avoid_: baseline, main
+
+**Rival**:
+A Hypothesis the runner builds beside another, from the same parent in the Hypothesis tree, to test a different design. It costs the budget like any Hypothesis ([spec §11](state-machine.md#11-budget-and-stops)).
+_Avoid_: rival for a v1 Hypothesis with a status (see the v1 table)
+
+**Hypothesis tree**:
+The Hypotheses of one Goal, arranged by the git ancestry of their commits. H0 is its root. A Hypothesis whose commit descends from another's commit is its child. hyp reads the arrangement from git and stores no edge ([spec §5](state-machine.md#5-calculated-tables), Row key; [spec §13](state-machine.md#13-what-hyp-reads-from-git)). It is the only tree in hyp's words.
+_Avoid_: run tree, tree for a hash
 
 **Leaf**:
-A row none of whose commits has a descendant among the commits of the Goal's other rows. hyp reads it from git. A missing commit prints `leaf unknown` ([spec §5](state-machine.md#5-calculated-tables), [spec §6](state-machine.md#6-states)).
+A Hypothesis with no child in the Hypothesis tree: none of its row's commits has a descendant among the commits of the Goal's other rows. hyp reads it from git. A missing commit prints `leaf unknown` ([spec §5](state-machine.md#5-calculated-tables), [spec §6](state-machine.md#6-states)).
 
 **Result**:
 The record of one `run`: one line of one Goal on one commit, with one cell per placed example. Its id is `R-…`. A retracted Result is never deleted ([spec §3](state-machine.md#3-events), [spec §6](state-machine.md#6-states)).
@@ -236,8 +244,8 @@ What the runner wrote in a commit, not what it took in from main: the diff from 
 ## Budget and stops
 
 **Budget**:
-At most three distinct row trees run since the boundary, H0 never counted. Three is fixed for every Goal. A refused run costs nothing, and a retracted Result still counts ([spec §7](state-machine.md#7-guards), Budget; [spec §11](state-machine.md#11-budget-and-stops)).
-_Avoid_: three commits (the unit is the row tree), retries
+At most three Hypotheses run since the boundary, H0 never counted. Three is fixed for every Goal. A refused run costs nothing, and a retracted Result still counts ([spec §7](state-machine.md#7-guards), Budget; [spec §11](state-machine.md#11-budget-and-stops)).
+_Avoid_: three commits (the unit is the Hypothesis: one subject hash), retries
 
 **Boundary**:
 The start of the budget's count: the latest example-changing placement or the latest `budget.reset`, else the Goal's start ([spec §11](state-machine.md#11-budget-and-stops)).
@@ -406,7 +414,7 @@ Every concept hyp has, and everything a user who installs hyp into another repos
 _Avoid_: product, the tool, hyp proper
 
 **Self-review**:
-The recipes this repository keeps to test hyp, whatever repository the runner works on, with the inputs only they use. Investigating hyp is an activity, not a scope. A Goal about hyp takes the scope of the concept it changes.
+A Goal of this repository whose lines are about how hyp is tested, not about a concept hyp has, for example a Goal that checks a Probe or a test fixture of hyp itself. Its examples give their line's verdict on H0 before they count, as every Goal's do ([spec §7](state-machine.md#7-guards), Kind), so self-review has no rule of its own. A Goal that changes a concept of hyp takes the scope of that concept, which is core. In hyp 0.1.0, self-review was the recipes on the `v1` branch.
 _Avoid_: dogfood (alone), meta, hyp-self
 
 ## Words of hyp 0.1.0 (v1 branch)
@@ -417,7 +425,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 
 | Word | In hyp 0.1.0 | In v2 |
 |---|---|---|
-| Tree | The view of one Goal and every node under it, kept as events in a store. | No node tree. "Row tree" is a git hash; "run tree" is the owner's word for the Hypotheses of a Goal. |
+| Tree | The view of one Goal and every node under it, kept as events in a store. | No node tree. "Tree" means only the Hypothesis tree: a Goal's Hypotheses by git ancestry. |
 | Store | `.tree/`, found by a walk up from the current directory to the repository root ([spec §1](replay-spec.md#1-names-and-locations)). | Store, at the git top level. |
 | Event | A v1 line (`v` = 1) with a type from the v1 set ([spec §4](replay-spec.md#4-event-types-closed-set)). | Event, with `v` = 2 and seven types. |
 | Replay, Projection | The derivation of every status, and what it returns ([spec §7](replay-spec.md#7-derived-state-forward-pass), [§8](replay-spec.md#8-projection-what-replay-returns)). | Replay and the calculated tables. |
@@ -426,7 +434,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 | Discovery Goal, Build Goal | A Goal whose Hypotheses are claims, or commits. hyp stored no kind. | Every v2 Goal runs commits. |
 | Constraints block | The end of a Goal's body that `hyp prompt` read. | None; `prompt ROLE` is a later v2 Goal. |
 | DesignQuestion, Top-level question, Sub-question | A node `Q-` that asks one design question, and where it sits ([spec §7.4](replay-spec.md#74-designquestion-state)). | None. A new question is a new Goal. |
-| Hypothesis | A node `H-` that states one answer as a claim, with a status from verdicts ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)). | Hypothesis: one build, a row other than H0's. |
+| Hypothesis | A node `H-` that states one answer as a claim, with a status from verdicts ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)). | Hypothesis: one build, the subject of a commit, recorded as a row. |
 | Live, Rival, Sibling | Statuses and relations of v1 Hypotheses. | Live is a property of a cell. No rival or sibling. |
 | Candidate | A supported rival. | Candidate: a leaf row met on every line. |
 | Trade-off | A question with two or more candidates. | The stop "Two candidates". |
@@ -454,7 +462,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 | Bundle, Frozen, Draft | A versioned folder of a description and scripts; a version a tree pins; a version no tree pins. | An example folder, by its tree hash. Draft is now a guard. |
 | Recipe, Harness recipe, Environment recipe, Stack, Recipe ref, Recipe library | How to run one kind of subject, its roles in a stack, and how it is named and kept. | An example's `run` section and its Probe. |
 | Rubric | The rule that turned measures into verdicts. | The compare: floors and ceilings. |
-| Instrument | A bundle with an Evidence or Standalone command, gated by its known answers. | A Probe gives no verdict; the compare does. |
+| Instrument | A bundle with an Evidence or Standalone command, gated by its known answers. | None: say example and Probe. An example gives its line's verdict on H0 before it is placed. |
 | Command, Check, Measure, Standalone | A `Run:` line, a command under Evidence or Standalone, a line a check printed, and a section that is not a step. | The `run` section and the Probe. |
 | Known answer, Known-answer run | A fixed input of an instrument with its expected output, and one run of it by the gate. | An example placed on H0, which Kind checks. |
 | External line | The `External:` line under a command. | The `external` section of an example file. |
