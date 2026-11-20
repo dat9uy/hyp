@@ -440,40 +440,40 @@ _Avoid_: dogfood (alone), meta, hyp-self
 
 ## Words of hyp 0.1.0 (v1 branch)
 
-These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md), and its skills are on the `v1` branch. The v1 specs and old logs still use them. Do not use them for a v2 concept. Where a v2 word has the same spelling, the v2 meaning above is the current one.
+These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md) and [sandbox-spec.md](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md), and they and its skills are on the `v1` branch. The v1 specs and old logs still use them. Do not use them for a v2 concept. Where a v2 word has the same spelling, the v2 meaning above is the current one.
 
 ### Tree words
 
 | Word | In hyp 0.1.0 | In v2 |
 |---|---|---|
 | Tree | The view of one Goal and every node under it, kept as events in a store. | No node tree. "Tree" means only the Hypothesis tree: a Goal's Hypotheses by git ancestry. |
-| Store | `.tree/`, found by a walk up from the current directory to the repository root ([spec §1](replay-spec.md#1-names-and-locations)). | Store, at the git top level. |
-| Event | A v1 line (`v` = 1) with a type from the v1 set ([spec §4](replay-spec.md#4-event-types-closed-set)). | Event, with `v` = 2 and nine types. |
-| Replay, Projection | The derivation of every status, and what it returns ([spec §7](replay-spec.md#7-derived-state-forward-pass), [§8](replay-spec.md#8-projection-what-replay-returns)). | Replay and the calculated tables. |
+| Store | `.tree/`, found by a walk up from the current directory to the repository root ([spec §1](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#1-names-and-locations)). | Store, at the git top level. |
+| Event | A v1 line (`v` = 1) with a type from the v1 set ([spec §4](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#4-event-types-closed-set)). | Event, with `v` = 2 and nine types. |
+| Replay, Projection | The derivation of every status, and what it returns ([spec §7](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#7-derived-state-forward-pass), [§8](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#8-projection-what-replay-returns)). | Replay and the calculated tables. |
 | Goal | A node `G-` with no parent; its lines never change after its add; complete when every live top-level question is answered. | Goal, with states written, open, selected and landed; a Draft replace may change a written Goal. |
-| End, Ended | The owner's terminal act on a Goal, and its state ([spec §7.5](replay-spec.md#75-goal)). | Land: the owner's act `land`, and the state `landed`. |
+| End, Ended | The owner's terminal act on a Goal, and its state ([spec §7.5](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#75-goal)). | Land: the owner's act `land`, and the state `landed`. |
 | Discovery Goal, Build Goal | A Goal whose Hypotheses are claims, or commits. hyp stored no kind. | Every v2 Goal runs commits. |
 | Constraints block | The end of a Goal's body that `hyp prompt` read. | None; `prompt ROLE` is a later v2 Goal. |
-| DesignQuestion, Top-level question, Sub-question | A node `Q-` that asks one design question, and where it sits ([spec §7.4](replay-spec.md#74-designquestion-state)). | None. A new question is a new Goal. |
-| Hypothesis | A node `H-` that states one answer as a claim, with a status from verdicts ([spec §7.1](replay-spec.md#71-hypothesis-status-first-matching-rule-wins)). | Hypothesis: one build, the subject of a commit, recorded as a row. |
+| DesignQuestion, Top-level question, Sub-question | A node `Q-` that asks one design question, and where it sits ([spec §7.4](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#74-designquestion-state)). | None. A new question is a new Goal. |
+| Hypothesis | A node `H-` that states one answer as a claim, with a status from verdicts ([spec §7.1](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#71-hypothesis-status-first-matching-rule-wins)). | Hypothesis: one build, the subject of a commit, recorded as a row. |
 | Live, Rival, Sibling | Statuses and relations of v1 Hypotheses. | Live is a property of a cell. No rival or sibling. |
 | Candidate | A supported rival. | Candidate: a leaf row met on every line. |
 | Trade-off | A question with two or more candidates. | The stop "Two candidates". |
-| Select | `dq.select`: one Hypothesis as the answer of a DesignQuestion ([spec §5.1](replay-spec.md#51-write-time-refusals)). | Select: one candidate row of a Goal. |
+| Select | `dq.select`: one Hypothesis as the answer of a DesignQuestion ([spec §5.1](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#51-write-time-refusals)). | Select: one candidate row of a Goal. |
 | Decision, Turn, new_candidate | The record of a question's selects, where it stands, and why it reopened. | The Goal's state and its stop. |
 | Experiment, Experiment status, Target, Trial, Round | A node `E-` that pre-registers one run, its state, what it judges, a scored repeat, and a `hyp signals` row. | An example on a line; a `run` on a commit. |
 | Result | A node `R-` under an Experiment, with a verdict per target. | Result: one line on one commit. |
 | Verdict | supports, contradicts or inconclusive, typed by the operator. | Verdict: met or failed, from the compare. |
 | Evidence pointer, Pin, Questionable | Where a Result points, the hash it recorded for a bundle, and the flag when that hash moved. | Outputs by hash, and the example hash on each cell. |
 | Stale, depends_on, Reaffirm | A node whose basis may no longer hold, the edge it follows, and the act that renews it. | None. |
-| Keyed item, Limit, Line, Reading, Reach | Items inside an event: a case no check ran, a limit on the Goal (`G-…#n`), how a run read owner words, and what an answer could move ([spec §8.2](replay-spec.md#82-keyed-items-limits-lines-and-readings)). | Line: `line-N`, a gap or guard line with examples. A gap a review finds is an example or a new Goal. |
+| Keyed item, Limit, Line, Reading, Reach | Items inside an event: a case no check ran, a limit on the Goal (`G-…#n`), how a run read owner words, and what an answer could move ([spec §8.2](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#82-keyed-items-limits-lines-and-readings)). | Line: `line-N`, a gap or guard line with examples. A gap a review finds is an example or a new Goal. |
 | Answer, Checkpoint | The owner's event, and the runner's report event. | The owner's acts `add goal`, `select`, `land`, `unselect` and `reset`. |
 | Aim, Reassess, Coverage | What an Experiment planned to settle, how an answer reached the tree, and which Hypotheses a Result ran on. | None. |
 | Out-of-Goal finding | A finding that is a case of no line. | A defect outside the Goal, which the runner lists in the PR. |
-| Ledger item, Owed, Awaiting owner, Frontier, Open limits, Status section | The open work and the `hyp status` sections that showed it ([spec §8.1](replay-spec.md#81-ledger-what-the-tree-owes)). | The state block: the stop, the waits and the allowed acts. |
+| Ledger item, Owed, Awaiting owner, Frontier, Open limits, Status section | The open work and the `hyp status` sections that showed it ([spec §8.1](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#81-ledger-what-the-tree-owes)). | The state block: the stop, the waits and the allowed acts. |
 | Edge, supersedes, external_ref | Typed links between nodes. | None. |
-| Admission, Cite | Write-time rules, and a token that names a node ([spec §5.1](replay-spec.md#51-write-time-refusals)). | Guards. |
-| Refusal | Exit 1, and nothing is appended ([spec §5](replay-spec.md#5-refusals)). | Refusal; a Stable refusal appends its Result marked refused. |
+| Admission, Cite | Write-time rules, and a token that names a node ([spec §5.1](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#51-write-time-refusals)). | Guards. |
+| Refusal | Exit 1, and nothing is appended ([spec §5](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#5-refusals)). | Refusal; a Stable refusal appends its Result marked refused. |
 | Signal, one-rival, D1 | Design marks that `hyp signals` printed. | None. |
 
 ### Recipe words
@@ -488,7 +488,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 | Known answer, Known-answer run | A fixed input of an instrument with its expected output, and one run of it by the gate. | An example placed on H0, which Kind checks. |
 | External line | The `External:` line under a command. | The `external` section of an example file. |
 | Kept input | A file an operator argument named, copied and hashed before a run. | An `input/<path>` section of an example file. |
-| Self-contained | A recipe that relies on nothing but its files, hyp and the subject ([sandbox spec §1.2](sandbox-spec.md#12-hyp-runs-every-command)). | The same rule for a Probe ([spec §10](state-machine.md#10-the-probe-contract)). |
+| Self-contained | A recipe that relies on nothing but its files, hyp and the subject ([sandbox spec §1.2](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md#12-hyp-runs-every-command)). | The same rule for a Probe ([spec §10](state-machine.md#10-the-probe-contract)). |
 | Containment, Uncontained | Whether hyp could vouch for the script that decided a verdict. | None. |
 | Trace, Command trace | hyp's file of one run of a bundle's commands, `command.json`. | Trace: what hyp printed to an actor. |
 
@@ -496,11 +496,11 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 
 | Word | In hyp 0.1.0 | In v2 |
 |---|---|---|
-| Sandbox, Sandbox trace, Sandbox state | A disposable copy of the subject at a base commit, its file `sandbox.json`, and its derived state ([sandbox spec §2](sandbox-spec.md#2-the-sandbox-machine)). | A fresh copy of the subject, extracted by hash for each Probe run. hyp does not sandbox a Probe. |
-| Step: Launch, Doctor, Drive, Evidence, Cleanup | The stages of an Experiment, each a recipe section ([sandbox spec §1.1](sandbox-spec.md#11-steps-and-sections)). | None. |
+| Sandbox, Sandbox trace, Sandbox state | A disposable copy of the subject at a base commit, its file `sandbox.json`, and its derived state ([sandbox spec §2](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md#2-the-sandbox-machine)). | A fresh copy of the subject, extracted by hash for each Probe run. hyp does not sandbox a Probe. |
+| Step: Launch, Doctor, Drive, Evidence, Cleanup | The stages of an Experiment, each a recipe section ([sandbox spec §1.1](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md#11-steps-and-sections)). | None. |
 | Kept files | What remove copied out of a sandbox. | Outputs by hash. |
 | Store cut | A copy of a store as it stood at one event. | None. |
-| Patch, Arm | A throwaway change over the base, and a variant of the subject an Experiment compares ([sandbox spec §5.3](sandbox-spec.md#53-the-subject)). | A commit; each build is a Hypothesis. |
+| Patch, Arm | A throwaway change over the base, and a variant of the subject an Experiment compares ([sandbox spec §5.3](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md#53-the-subject)). | A commit; each build is a Hypothesis. |
 | Subject | A base commit, at most one patch and input files. | Subject: a commit's tree without `goals` and `.tree`. |
 
 ### People and binaries
@@ -510,7 +510,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](replay-spec.m
 | Owner | The person hyp asks on real choices, who answers readings, limits and choices. | Owner, a role. |
 | Runner | The agent that settles what the ledger owes it, inside a sandbox in a replay. | Runner, a role. |
 | Operator | The person or agent that ran an Experiment from outside the sandbox. | None. |
-| Actor | The author of a write ([spec §1](replay-spec.md#1-names-and-locations)). | Actor, unchanged in meaning. |
+| Actor | The author of a write ([spec §1](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md#1-names-and-locations)). | Actor, unchanged in meaning. |
 | Harness | The agent runtime that loads a skill and hosts the runner. | Unchanged. |
 | Sandbox hyp, Operator hyp | The binary inside a sandbox, and the binary outside it. | One binary. |
 

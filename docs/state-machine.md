@@ -55,9 +55,9 @@ Goal.
 ## 2. Ids, actors and roles
 
 - **Event id**: a ULID, unique in the store, sorting after the newest id the
-  store holds (v1 `idAfter`).
-- **Goal id**: `G-` plus the last six characters of its `goal.add` event's id
-  (as v1 `event.DisplayID`), for example `G-NXHHVA`. **Result id**: `R-` plus the
+  store holds.
+- **Goal id**: `G-` plus the last six characters of its `goal.add` event's id,
+  for example `G-NXHHVA`. **Result id**: `R-` plus the
   last six characters of its `result.record` event's id. A short id that matches
   two events is refused as ambiguous (exit 2).
 - **Line key**: `line-1`, `line-2` … in the order the Goal lists its lines.
@@ -73,7 +73,7 @@ Goal.
 
 ## 3. Events
 
-Every event is one JSON line with this envelope (v1's, with `v` = 2):
+Every event is one JSON line with this envelope (with `v` = 2):
 
 | Field | Holds |
 |---|---|
@@ -139,9 +139,9 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
 ## 4. Merge order, crash and merged log
 
 - **Lock.** Every write act takes the store's directory lock, checks its guards,
-  appends one line and releases the lock (v1's lock).
+  appends one line and releases the lock.
 - **Merge order.** Replay reads every events file and orders the events by id,
-  then by actor, then by line bytes (v1 `MergeOrder`), so the order of lines in a
+  then by actor, then by line bytes, so the order of lines in a
   file decides nothing. Two lines with the same actor and the same bytes are one
   event: a union merge can keep a line twice, and the copy is read once.
 
@@ -176,7 +176,7 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   that breaks one, for example a fourth Hypothesis in one budget. Replay checks
   every event at its place in the merge order. An event whose guards fail there
   is skipped, listed under "refused at replay" in `status`, and never deleted: a
-  guard that a merged log breaks shows when hyp replays it, as in v1. Output files are named by their hash, so they never conflict in a
+  guard that a merged log breaks shows when hyp replays it. Output files are named by their hash, so they never conflict in a
   merge. A `read` has no guard, so replay keeps every `read` whose payload
   parses, an old one in the log as well as one in the trace. The trace is
   never merged: a clone's agents share one trace folder, and git carries none

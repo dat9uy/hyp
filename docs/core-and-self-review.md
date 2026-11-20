@@ -45,7 +45,7 @@ Every item on `main` is core:
 - **The binary:** `cmd/`, `internal/`, `go.mod` and `go.sum`. The binary builds only the v2 packages that `cmd/hyp` imports. The packages of hyp 0.1.0, such as `internal/cli`, `internal/replay`, `internal/sandbox` and `internal/recipe`, are still under `internal/`. The binary does not import them, and `go test` still runs their tests.
 - **The skills:** `skills/hyp-grill`, with its run rules and its generic Probe, and `skills/hyp-statechart`, with the statechart tool. The skills of hyp 0.1.0 are kept on the `v1` branch.
 - **The Goals:** `goals/`, with each Goal's examples, Probes and specs, and the store `.tree/` that records them. Each Goal changes a core concept of hyp, so each is core-scope work.
-- **The docs** in this directory. [state-machine.md](state-machine.md) is the v2 spec. [replay-spec.md](replay-spec.md) and [sandbox-spec.md](sandbox-spec.md) are the specs of hyp 0.1.0.
+- **The docs** in this directory. [state-machine.md](state-machine.md) is the v2 spec. The specs of hyp 0.1.0, [replay-spec.md](https://github.com/dat9uy/hyp/blob/v1/docs/replay-spec.md) and [sandbox-spec.md](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md), are on the `v1` branch.
 - **The test data** under `internal/*/testdata`: synthetic stores, goldens and fixtures written for hyp's own tests. The store in `internal/testutil/testdata/synth` and its `generate.sh` are history from hyp 0.1.0, which the packages of hyp 0.1.0 still replay.
 
 ## Self-review words
@@ -69,7 +69,7 @@ The words below are those of the hyp 0.1.0 recipes on the `v1` branch. Their cor
 
 **Self-review text inside core docs.**
 
-- [sandbox-spec.md](sandbox-spec.md) §5.2 records choices made in design trees that are core-scope, so that is ordinary provenance.
+- [sandbox-spec.md](https://github.com/dat9uy/hyp/blob/v1/docs/sandbox-spec.md#52-choices) §5.2, on the `v1` branch, records choices made in design trees that are core-scope, so that is ordinary provenance.
 - On the `v1` branch, `skills/hyp-verification/RECIPE-FORMAT.md` names scratch-pg in its examples. That is a choice of example rather than a split.
 
 Skill text reaches every run that loads the skill, so moving a passage out of a skill is its own change, a build Goal like any change to `skills/`. This page is the owner decision such a change can cite.
