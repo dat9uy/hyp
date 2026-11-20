@@ -1,0 +1,37 @@
+-- words --
+The skill covers the grill and the re-grill.
+-- input/rules.txt --
+option-label-is-the-recorded-text	label	(exact|recorded)	(words|text)
+option-description-says-the-build	description	cheapest	build
+correction-is-not-consent	correction	consent
+missing-name-is-proposed-for-veto	propose	veto
+form-question-names-every-state-and-command	form	every state	command
+surfaces-before-examples	surface	before	example
+hyp-try-before-place	hyp try	place
+-- input/forbidden.txt --
+a file under docs/	docs/
+an ADR	\bADR\b|adr/
+a file under plans/	plans/
+an issue of this repository by number	(?<![&\w$])#[0-9]+\b
+a Goal of this repository	G-(9XX4KB|3FDQC0|RK4VYD|CJWT9T|1908D1|H7GGGK)
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+perl "$HYP_EXAMPLE/check.pl" --scope all --skill hyp-grill --rules "$HYP_EXAMPLE/input/rules.txt" --forbidden "$HYP_EXAMPLE/input/forbidden.txt" --hyp "$bin/hyp" --probe
+-- floor: equals --
+skill folder hyp-grill: yes
+rule option-label-is-the-recorded-text: yes
+rule option-description-says-the-build: yes
+rule correction-is-not-consent: yes
+rule missing-name-is-proposed-for-veto: yes
+rule form-question-names-every-state-and-command: yes
+rule surfaces-before-examples: yes
+rule hyp-try-before-place: yes
+cites a file under docs/: no
+cites an ADR: no
+cites a file under plans/: no
+cites an issue of this repository by number: no
+cites a Goal of this repository: no
+links that leave the skill folder or do not resolve: none
+hyp commands the skill shows in code: some
+hyp commands that hyp help does not list: none
+a file of the skill works as the generic Probe: yes
