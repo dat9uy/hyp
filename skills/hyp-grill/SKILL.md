@@ -44,6 +44,23 @@ A decision that no example checks is a gap: the grill reports it under
 sees what the examples cannot catch. It is never passed to the runner as an
 extra rule.
 
+## The issue holds the decisions
+
+A chat, a local page and a memory note are read by no one else, so what the
+grill learns goes to the issues, in the same session, with `gh issue comment`.
+The issue is the owner's record, not a rule for the runner:
+
+- **Each decision of the owner goes to the issue you grill**, with the owner's
+  words quoted and kept apart from your proposals. Say which part of the issue
+  a decision replaces. Your inference is a proposal: never write it as the
+  owner's words, in the issue or anywhere else.
+- **A "Not covered" item that another open issue owns** (it waits on that
+  issue's change, or that issue decides it) goes to that issue too, with the
+  owner's words, and the hand-off names that issue.
+- **A record cites only what others can read**: an issue, a PR or a commit.
+  Never a gitignored or local file, such as a design page, a report or a
+  memory note, in the Goal's words, a `--why` or a comment.
+
 ## How to grill
 
 1. **Read the event and the store.** Read the issue or event that points at the
@@ -72,6 +89,14 @@ extra rule.
 8. **Draft the words and lines.** One sentence of words. Each line is `gap`
    (false on H0, the build must make it true) or `guard` (true on H0, the build
    must keep it true). A Goal needs at least one gap line. The owner records it.
+9. **Switch to a record branch before the Goal is recorded.** The Goal's events
+   and examples reach the default branch only through a record PR, never by a
+   write on it. Before you show the owner the act that adds the Goal, run
+   `git fetch origin` and `git switch -c record/<issue> origin/main` (or the
+   repository's default branch) in the checkout where the owner will run it,
+   where `<issue>` is the number of the issue you grill. hyp gives the Goal
+   its id only when the Goal is added, so rename the branch `record/<G>` with
+   `git branch -m` once hyp prints it.
 
 ## How to write examples
 
@@ -116,7 +141,8 @@ The re-grill reviews a Goal against its line, not against the build that met it.
 The grill ends with a record branch that holds the examples and the place
 events, and a hand-off the owner and the runner read: the Goal's line, the
 owner's decisions numbered with their words, and "Not covered" with each
-decision no example checks.
+decision no example checks. Before the record PR, the issues already hold those
+decisions and the "Not covered" items they own.
 
 ## Done when
 
@@ -124,6 +150,8 @@ decision no example checks.
   line's verdict on H0.
 - Each decision of the owner is the words, a line or an example, or is listed
   under "Not covered".
+- The issue you grill holds each decision of the owner in the owner's words,
+  and each "Not covered" item another open issue owns is on that issue.
 
 ## Resources
 
