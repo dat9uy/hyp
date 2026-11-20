@@ -382,7 +382,7 @@ The part of the grill's hand-off that lists each decision no example checks, wit
 A file, output or command where a line's words can be true or false. The grill lists every surface of a line before it writes examples.
 
 **Hand-off**:
-What the grill leaves for the owner and the runner: the record branch, the Goal's lines, the owner's decisions with their words, and "Not covered".
+What the grill leaves for the owner: the record branch, the Goal's lines, the owner's decisions with their words, and "Not covered". A runner works from the Goal and the run rules; if it reads the hand-off, it is background, and no "Not covered" item is a task.
 
 **Run rules**:
 The rules a runner follows that hyp cannot check, in `skills/hyp-grill/run-rules.md`.
