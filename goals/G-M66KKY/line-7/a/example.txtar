@@ -1,0 +1,17 @@
+-- words --
+The glossary lists land as a built act of the owner, and its Land entry names the snapshot and no check of a commit. The glossary has a Snapshot entry.
+-- run --
+e=$(awk '/^\*\*Land\*\*/ { p = 1 } p && /^$/ { exit } p' docs/glossary.md)
+has() { if grep -qF -- "$1"; then echo yes; else echo no; fi; }
+not() { if [ "$1" = yes ]; then echo no; else echo yes; fi; }
+echo "the acts table: land, owner, built: $(has '| `land` | owner | yes |' <docs/glossary.md)"
+echo "the Land entry is built: $(not "$(printf '%s\n' "$e" | has 'specified, not built')")"
+echo "the Land entry names the snapshot: $(printf '%s\n' "$e" | has snapshot)"
+echo "the Land entry checks no commit: $(not "$(printf '%s\n' "$e" | has 'same whole change')")"
+echo "a Snapshot entry: $(if grep -q '^\*\*Snapshot\*\*' docs/glossary.md; then echo yes; else echo no; fi)"
+-- floor: equals --
+the acts table: land, owner, built: yes
+the Land entry is built: yes
+the Land entry names the snapshot: yes
+the Land entry checks no commit: yes
+a Snapshot entry: yes
