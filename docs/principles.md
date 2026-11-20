@@ -94,8 +94,9 @@ Skill text teaches only what hyp cannot check. Every refusal names its guard
 and exits 1 ([spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
 hyp prints the allowed acts of each role as ready command lines. An agent runs
 a line that hyp printed, and a skill names no write command. When a fix would
-ask the runner to judge in prose what hyp could see, the gap is in hyp. See
-[how-hyp-improves-itself.md](how-hyp-improves-itself.md#mechanical-failures-belong-in-the-binary).
+ask the runner to judge in prose what hyp could see, the gap is in hyp.
+A refusal holds for every runner and every model. Skill text works only when
+an agent loads it and follows it.
 
 ## 8. hyp writes no git state in the host
 
@@ -106,9 +107,17 @@ fixed set of read commands ([spec §13](state-machine.md#13-what-hyp-reads-from-
 ## 9. hyp changes only on a real event
 
 **A change is proposed when a real event points at hyp, and it earns its way in
-through a gate.** [how-hyp-improves-itself.md](how-hyp-improves-itself.md)
-explains why the loop is guarded while it runs, and [AGENTS.md](../AGENTS.md)
-states the gate.
+through a gate.** [AGENTS.md](../AGENTS.md) states the gate.
+
+**hyp guards the loop while it runs, and does not prove it in advance.** A
+study run before a real Goal cannot show that agents behave well: an agent
+with the skill loaded seldom makes the errors that such a study counts. The
+guards in the spec cost nothing when a run goes well, and they stop a run
+that goes wrong: the refusals and Stable
+([spec §7](state-machine.md#7-guards)), the budget and its stops
+([spec §11](state-machine.md#11-budget-and-stops)), and the replay of a merged
+log ([spec §4](state-machine.md#4-merge-order-crash-and-merged-log)). A run that reaches a select with no refusal
+needs no further study.
 
 ## 10. What hyp does not claim
 
