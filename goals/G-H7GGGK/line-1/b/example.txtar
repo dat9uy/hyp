@@ -1,0 +1,8 @@
+-- words --
+The skill gives the runner the short list of run rules hyp cannot check, as a part beside it, not a second skill.
+-- run --
+perl "$HYP_EXAMPLE/check.pl" --scope part --skill hyp-grill
+-- floor: equals --
+a file beside SKILL.md that SKILL.md names: yes
+the run part shows a hyp command in code: yes
+run part text repeated in another skill folder: none
