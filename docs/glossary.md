@@ -524,7 +524,7 @@ A retired word stays only in old logs, ADRs and history.
 | Dossier | ADR 0019 | nothing |
 | Lapse | ADR 0019 | `new_candidate` (v1) |
 | Verifier, verifier-loop | ADR 0015 | the select is the gate |
-| unjudged | ADR 0018 | a refusal (v1) |
+| unjudged | [ADR 0018](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0018-an-experiment-is-a-pre-registered-result.md) | a refusal (v1) |
 | wasted, pending, no-movement, spin | ADR 0017 | the ledger (v1) |
-| verdict check, verdict rule | ADR 0018 | Rubric (v1); in v2, the compare |
+| verdict check, verdict rule | [ADR 0018](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0018-an-experiment-is-a-pre-registered-result.md) | Rubric (v1); in v2, the compare |
 | command record, sandbox record | owner decision of 2026-11-14 | Command trace, Sandbox trace (v1) |

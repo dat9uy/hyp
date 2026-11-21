@@ -774,7 +774,7 @@ So the decided example of line 1 reads its pattern list from the example:
 
 ```
 -- run --
-grep -rlE -f "$HYP_EXAMPLE/input/patterns.txt" --include=*.go . | grep -v _test.go | grep -v internal/render/
+grep -rlE -f "$HYP_EXAMPLE/input/patterns.txt" --include=*.go . | grep -v _test.go
 ```
 
 Committed compares the folder's example hash from disk with

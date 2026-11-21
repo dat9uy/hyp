@@ -4,7 +4,7 @@ status: accepted; holds in part in v2, see the note below. Amended 2026-11-13: a
 
 In v2 this part holds: a change to `skills/` is a build Goal, and a prose-only change ships as a plain PR. [AGENTS.md](../../AGENTS.md#improving-hyp-with-hyp) states the rule; the spec holds none of it. The recipe bundles and the eval mechanism it names are v1 only.
 
-Supersedes in part [ADR 0007](0007-records-start-at-230.md) (the skill-text gate's replay instrument), [ADR 0010](0010-a-record-keeps-or-identifies-what-a-replay-needs.md) (the follow-up that rebuilds `skill-text-arms` Arms from patches) and [ADR 0015](0015-the-select-is-the-gate.md) (the frozen verifier recipes).
+Supersedes in part [ADR 0007](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0007-records-start-at-230.md) (the skill-text gate's replay instrument), [ADR 0010](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0010-a-record-keeps-or-identifies-what-a-replay-needs.md) (the follow-up that rebuilds `skill-text-arms` Arms from patches) and [ADR 0015](0015-the-select-is-the-gate.md) (the frozen verifier recipes).
 
 # A skill change is a build Goal
 
