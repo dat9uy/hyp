@@ -1,1 +1,0 @@
-{"step": "standalone", "command": "rule", "args": ["$CASE/input"], "exit": 0, "stdout": "verdict: a=supports\n"}

@@ -1,5 +1,5 @@
 ---
-status: accepted; holds in part in v2, see the note below. Amended by ADR 0018: unjudged is a refusal, not a mark
+status: accepted; holds in part in v2, see the note below. Amended by ADR 0018, on the v1 branch: unjudged is a refusal, not a mark
 ---
 
 In v2 this part holds: nothing scores a round. At a stop hyp prints the table of outputs and no reading of it ([state-machine.md §11](../state-machine.md#11-budget-and-stops)). The ledger and its items are v1 only.
@@ -8,7 +8,7 @@ In v2 this part holds: nothing scores a round. At a stop hyp prints the table of
 
 `hyp signals` had two halves. The design half (`one-rival`, `D1`, `unjudged`) marks how an Experiment was set up. The progress half (`wasted`, `pending`, `no-movement`, `spin`) judged a round by whether a Result changed a Hypothesis's status. On 2026-10-24 the owner defined wasted as a round that moved no live rival's status. The wasted-definition tree of 2026-10-27 tried to calibrate that label against the owner's sense of a stall, and its supported rival was never selected. The owner's reasons in that tree were structural: a test of a fix is a new Hypothesis, and an untested part should be named.
 
-Each of those reasons has since become a typed ledger item (spec §8.1): `untested`, `limit`, `reading` and `undecided`, each settled by an explicit event. ADR 0016 makes the intended loop "run every candidate through the next case", and statuses move only forward, so a candidate that holds every case reads `supported→supported` at every round. The progress signals read only that status change, never `aims`, `closes` or `applies`.
+Each of those reasons has since become a typed ledger item (spec §8.1): `untested`, `limit`, `reading` and `undecided`, each settled by an explicit event. [ADR 0016](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0016-a-limit-is-an-untested-case.md) makes the intended loop "run every candidate through the next case", and statuses move only forward, so a candidate that holds every case reads `supported→supported` at every round. The progress signals read only that status change, never `aims`, `closes` or `applies`.
 
 Run 3 of the multi-tenant tree showed the cost. `hyp signals` printed five `wasted` rounds, three `no-movement` pairs and one `spin`. Four of the five wasted rounds closed limits or applied an answer: E-FWTH64, E-YS13MW, E-BGHDGF and E-EKCW21. The one round that settled nothing, E-TT1HSQ, the ledger already showed while it mattered: `hyp status` printed `limit R-XFSQEE#1 [aimed_not_settled by E-TT1HSQ]`, naming the item and the Experiment.
 

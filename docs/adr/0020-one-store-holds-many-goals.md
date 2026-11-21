@@ -6,11 +6,11 @@ In v2 this part holds: one store holds every Goal of the repository ([state-mach
 
 # One store holds many Goals
 
-Until now a tree had one Goal (spec §5 rule 4: "only one Goal per log"). A new purpose was a new tree, and that tree cited the old one in prose as `<tree>:ID`, which hyp does not check (ADR 0016). After the multi-tenant tree completed on 2026-11-10, the owner wanted the build that follows a tree to run from the tree instead of from a plan in prose. Every problem with that came from the one-Goal rule:
+Until now a tree had one Goal (spec §5 rule 4: "only one Goal per log"). A new purpose was a new tree, and that tree cited the old one in prose as `<tree>:ID`, which hyp does not check ([ADR 0016](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0016-a-limit-is-an-untested-case.md)). After the multi-tenant tree completed on 2026-11-10, the owner wanted the build that follows a tree to run from the tree instead of from a plan in prose. Every problem with that came from the one-Goal rule:
 
 - A build had no checked way to cite what the tree had decided.
 - The owner's checkpoints were split across trees.
-- A commit could not be a subject, because `hyp record` copied file hashes and dropped the sandbox's `base` (`internal/cli/subject.go:118`).
+- A commit could not be a subject, because `hyp record` copied file hashes and dropped the sandbox's `base` ([`internal/cli/subject.go:118`](https://github.com/dat9uy/hyp/blob/v1/internal/cli/subject.go)).
 
 In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **building is a Goal like any other.** hyp keeps no discovery kind and no delivery kind. The design questions it raised are recorded and selected in `investigations/checkpoint-store-design` (G-73R704), with that session as evidence:
 
@@ -37,7 +37,7 @@ In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **buildin
   - an accepted or closed limit;
   - an answered reading;
   - a selected or contradicted Hypothesis;
-  - an ended Goal, or any key of it ([ADR 0023](0023-the-end-is-the-owners-one-terminal-act.md)).
+  - an ended Goal, or any key of it ([ADR 0023](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0023-the-end-is-the-owners-one-terminal-act.md)).
 
   Anything else is refused with exit 1. A cite carries no relation label. Its meaning is derived from the key's state at the line's position in the log:
 
@@ -47,7 +47,7 @@ In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **buildin
   | a closed limit, or a contradicted Hypothesis | forbidden |
   | an answered reading | applied |
   | a selected Hypothesis | realised |
-  | an ended Goal's id, or a key or Hypothesis of an ended Goal not settled otherwise | ended ([ADR 0023](0023-the-end-is-the-owners-one-terminal-act.md)) |
+  | an ended Goal's id, or a key or Hypothesis of an ended Goal not settled otherwise | ended ([ADR 0023](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0023-the-end-is-the-owners-one-terminal-act.md)) |
 
   A Goal's origin is the Goals its cited keys belong to. When a cited key's state later differs, `hyp check` warns and `hyp show` prints both states; no status changes.
 - **The owner's acts are their own event type, `answer`.** It holds `answers`, `accepts` and `returns`, each `[{key, text}]`, with at least one key. It has no `node`, no `summary`, no envelope `why` and no `role`. The owner's reason is in each item's text (Q-R21S8R, Q-H8PJ20).
@@ -56,7 +56,7 @@ In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **buildin
   - `hyp answer` warns, at exit 0, when it revises a key another Goal's line cites.
   - An accept means only "this Goal does not run this case". A later Goal carries the case by citing the accepted key, and there is no deferred state.
 - **The runner's `checkpoint` keeps its Goal as `node` and a required `why`.** It holds `summary` and `refers: [{key, text}]`, and at least one of the two. An empty `checkpoint` is refused.
-- **Whose hand an item is in is the contract between the two event types, and OWED is a view of it.** The move tables (`internal/replay/keyed.go`) enforce the hand on the stored log and in a merged log. No write is checked against OWED.
+- **Whose hand an item is in is the contract between the two event types, and OWED is a view of it.** The move tables ([`internal/replay/keyed.go`](https://github.com/dat9uy/hyp/blob/v1/internal/replay/keyed.go)) enforce the hand on the stored log and in a merged log. No write is checked against OWED.
 - **A move never crosses Goals; a cite or a reading's `of` may.**
   - A refer must lead to its checkpoint's Goal.
   - `aims`, `closes` and `applies` must lead to their Experiment's Goal.
@@ -77,7 +77,7 @@ In session `e6a35a24` (2026-11-10 and 11) the owner settled the model: **buildin
 - **Superseded text, changed in the PRs that build it:**
   - principles §5 ("a new purpose is a new Goal, so a new tree") and §7 rule 1 ("its lines are written on one owner checkpoint … so a new tree");
   - the glossary's Goal, Line, Subject, Coverage and Checkpoint, plus a new Answer entry;
-  - ADR 0016's "A new Goal is a new tree" and its cross-tree cite rules;
+  - [ADR 0016](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0016-a-limit-is-an-untested-case.md)'s "A new Goal is a new tree" and its cross-tree cite rules;
   - ADR 0019's table row "a new Goal, so a new tree";
   - spec §4 (the `checkpoint` row, a new `answer` row, `lines` on `node.add`), §5 rules 4, 21 to 24, and §8, §8.1 and §8.2.
 

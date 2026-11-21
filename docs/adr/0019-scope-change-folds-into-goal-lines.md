@@ -6,9 +6,9 @@ In v2 this part holds: a Goal's lines are frozen once it opens, and a new line i
 
 # Scope change folds into Goal lines
 
-Since ADR 0015 the select is the gate, and the owner confirm survived for one job: a select marked `--scope-change` waited for the owner's `sufficient`, and that confirm lapsed when its Dossier changed (ADR 0011). That lapse rule was the Dossier's only effect on any status. Spec §7.4 already said that for a plain select, a Dossier change that adds no candidate leaves the question answered.
+Since ADR 0015 the select is the gate, and the owner confirm survived for one job: a select marked `--scope-change` waited for the owner's `sufficient`, and that confirm lapsed when its Dossier changed ([ADR 0011](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0011-a-confirm-counts-while-its-dossier-stands.md)). That lapse rule was the Dossier's only effect on any status. Spec §7.4 already said that for a plain select, a Dossier change that adds no candidate leaves the question answered.
 
-Since #102 a Goal's lines say what the Goal requires, and they move by typed events: a runner refers a line the answer will not meet and the owner accepts or returns it, and a Goal that needs more is a new Goal, so a new tree (ADR 0016 amendment). A scope-change select said the same thing in a second way that no line could read.
+Since #102 a Goal's lines say what the Goal requires, and they move by typed events: a runner refers a line the answer will not meet and the owner accepts or returns it, and a Goal that needs more is a new Goal, so a new tree ([ADR 0016](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0016-a-limit-is-an-untested-case.md) amendment). A scope-change select said the same thing in a second way that no line could read.
 
 In the 6 trees whose events `hyp events --json` could read on 2026-11-10 there were 6 selects, none with `--scope-change`, and 4 owner confirms, all written before ADR 0015. Owner decision on 2026-11-10 (#107): fold scope change into the moves the lines already have.
 
@@ -22,8 +22,8 @@ In the 6 trees whose events `hyp events --json` could read on 2026-11-10 there w
 - **`hyp confirm` and `hyp select --scope-change` are retired.** Both exit 2 before anything else and name the refer and accept of a line, or a new tree. No command writes a `confirm` event or a `scope_change` flag.
 - **Old events are history.** An old `confirm` applies only the `accepts` it made, at its place in the log, as before, so every limit keeps its state. Its verdict and role apply nothing, and a verifier confirm applies nothing at all. An old `scope_change` flag on a select changes nothing.
 - **The Dossier, Lapse and `awaiting_owner` are removed.** Without an owner confirm, nothing reads the Dossier, so it is no longer derived. A question with a select that stands is answered. `hyp show` prints no `dossier:`, `owner:` or `changed since` lines, nor the Dossier's mark of a `contradicts` that decides a trade-off, and `hyp status` prints no `awaiting_owner` line.
-- **A limit no longer has a gating flag.** It only marked which open limits held the owner's confirm. An open limit holds the select through the ledger whichever Hypotheses its Result judged (ADR 0016), and `hyp show` drops the `does not gate` mark.
-- This supersedes what remained of ADR 0011: the Dossier, its lapse rule and the owner requirement. The Decision record stays: the select history, the conflict set and the reason order.
+- **A limit no longer has a gating flag.** It only marked which open limits held the owner's confirm. An open limit holds the select through the ledger whichever Hypotheses its Result judged ([ADR 0016](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0016-a-limit-is-an-untested-case.md)), and `hyp show` drops the `does not gate` mark.
+- This supersedes what remained of [ADR 0011](https://github.com/dat9uy/hyp/blob/v1/docs/adr/0011-a-confirm-counts-while-its-dossier-stands.md): the Dossier, its lapse rule and the owner requirement. The Decision record stays: the select history, the conflict set and the reason order.
 
 ## Consequences
 
