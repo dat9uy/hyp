@@ -70,7 +70,10 @@ The issue is the owner's record, not a rule for the runner:
 
 1. **Read the event and the store.** Read the issue or event that points at the
    change, `hyp help`, and `hyp status`. Restate the problem in the owner's
-   terms, with no mechanism in it.
+   terms, with no mechanism in it. When the Goal you draft will cite a landed
+   Goal with `--from`, read `hyp status` of that Goal: it prints what that
+   Goal decided, its words, lines, examples and their verdicts. Read it there,
+   not from the store's files.
 2. **Ask product questions only.** Ask what the owner wants to be true, never
    how to build it: the file layout, the command shape and the names inside the
    build are the runner's to choose, and the owner vetoes them at merge.

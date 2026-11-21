@@ -157,6 +157,15 @@ func guardSpec(root string, g *tables.Goal, commit string) error {
 	return nil
 }
 
+// ExampleFile is the example.txtar of the example folder with tree hash
+// hash, byte for byte.
+func ExampleFile(root, hash string) ([]byte, error) {
+	if _, _, err := readExample(root, hash); err != nil {
+		return nil, err
+	}
+	return gitread.Git(root, "cat-file", "blob", hash+":example.txtar")
+}
+
 // ExampleWords is the words section of the example folder with tree hash
 // hash, as the example holds it.
 func ExampleWords(root, hash string) (string, error) {
