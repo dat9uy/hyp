@@ -1,5 +1,5 @@
 -- words --
-An open Goal on greet.sh with three placed examples and a model with two variants, Loud (prints BYE, fails all three) and Shy (prints bye hello, meets the contains-bye example and fails the other two), each written as a patch, tried 3 times on Sonnet with the subject's hyp-grill and hyp-statechart skills: in every try the grill tries each variant on one example only, and that try fails, because it stops trying a variant at its first failed example.
+An open Goal on greet.sh with three placed examples and a model with two variants, Loud (prints BYE, fails all three) and Shy (prints bye hello, meets the contains-bye example and fails the other two), each written as a patch, tried 3 times, one after another, on Sonnet with the subject's hyp-grill and hyp-statechart skills: in every try the grill tries each variant on one example only, and that try fails, because it stops trying a variant at its first failed example.
 -- input/lib.sh --
 # Shared helpers for the examples of Goal G-D2MVSR. Each example holds its own
 # copy as input/lib.sh, with grill.py and its scenario files. The run section
@@ -22,6 +22,9 @@ grill() { n=$1; shift; sed -e "s#@G@#$g#g" -e "s#@SK@#$sk#g" "$in/prompt.txt" >"
 # tries FN: run FN 1, FN 2 and FN 3 in parallel, each in a new directory, then
 # print each try's checks, prefixed with "try N: ".
 tries() { for n in 1 2 3; do ( r=$(mktemp -d) && cd "$r" && "$1" "$n" >"$out/c.$n" 2>&1 ) & done; wait; for n in 1 2 3; do sed "s/^/try $n: /" "$out/c.$n"; done; }
+# serial FN: like tries, but runs FN 1, FN 2 and FN 3 one after another, for a
+# try whose grill may use fixed paths outside its repository.
+serial() { for n in 1 2 3; do ( r=$(mktemp -d) && cd "$r" && "$1" "$n" >"$out/c.$n" 2>&1 ); done; for n in 1 2 3; do sed "s/^/try $n: /" "$out/c.$n"; done; }
 -- input/grill.py --
 #!/usr/bin/env python3
 # Run one grill session on Sonnet against a scripted owner, and write its
@@ -197,7 +200,7 @@ stops() {
   grill "$1" "$sk/hyp-grill/SKILL.md" "$sk/hyp-statechart/SKILL.md"
   python3 "$in/check3a.py" "$g" "$out/t.$1"
 }
-tries stops
+serial stops
 -- floor: equals --
 try 1: the grill ran: yes
 try 1: Loud is tried on one example, and that try failed: yes
