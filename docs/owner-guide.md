@@ -95,6 +95,7 @@ The block can hold more lines:
 | `split: <line> on row <subject hash>` | The examples of one line give different verdicts on one Hypothesis. |
 | `unstable:` | A repeat run on the same bytes gave another verdict. hyp keeps the first one. The example needs the grill. |
 | `refused at replay:` | A merged log broke a rule. hyp skips that event and keeps it in the log. |
+| `not read at replay:` | A line of an events file does not parse, for example a line torn by a crash. hyp names its file and line number, skips it and keeps it in the log. Every block lists it, because the line names no Goal. |
 | `outputs:` | At Two candidates or Budget used: each example's verdict and output on each Hypothesis. |
 
 `hyp show <actor>` prints what hyp printed to that actor, byte for byte. Use it to read what the runner saw.
