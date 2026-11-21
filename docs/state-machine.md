@@ -39,7 +39,7 @@ Goal.
       example.txtar                the example file (§9)
       probe/                       the Probe code (§10)
   goals/<Goal>/specs/              the Goal's spec; a model: a .tla module, its
-                                   check configs, switches/<switch>.cfg and chart.mmd
+                                   check configs, variants/<variant>.cfg and chart.mmd
   ```
 
 - **The subject** of a commit is the commit's git tree without the top-level
@@ -420,17 +420,21 @@ the first guard that fails, in the act's order (§8).
   line 4: "the runner selects only once a run records a cell whose version,
   or whose row, was not run before it".
 - **Spec** — The selected commit holds a spec under `goals/<G>/specs/`. When
-  that spec is a model, every rule its check configs check is named by a switch
-  config, and the folder holds a chart. Query: `git ls-tree -r COMMIT
+  that spec is a model, every rule its check configs check is named by a
+  variant config, and the folder holds a chart. Query: `git ls-tree -r COMMIT
   goals/<G>/specs/` lists at least one file. When one of them ends in `.tla`,
-  the folder is a model: every `.cfg` under `specs/switches/` is a switch
-  config, every other `.cfg` is a check config, and the rules of a config are
-  the names it lists under `INVARIANT`, `INVARIANTS`, `PROPERTY` or
-  `PROPERTIES` (`git cat-file blob`). A rule of a check config that no switch
-  config lists is refused, and the refusal names every such rule; then a model
-  with no `.mmd` file outside `switches/` is refused, and the refusal names the
-  missing chart. hyp runs no model checker and records no model result: whether
-  a switch really breaks the rules it names stays the grill's report. A spec
+  the folder is a model: every `.cfg` under `specs/variants/` is a variant
+  config, and so is every `.cfg` under `specs/switches/`, the folder that held
+  the variant configs of a spec written before the rename; every other `.cfg`
+  is a check config, and the rules of a config are the names it lists under
+  `INVARIANT`, `INVARIANTS`, `PROPERTY` or `PROPERTIES` (`git cat-file blob`).
+  A rule of a check config that no variant config lists is refused
+  (`rule-no-variant`), and the refusal names every such rule and the folder
+  `goals/<G>/specs/variants/`; then a model with no `.mmd` file outside the
+  variant config folders is refused, and the refusal names the missing chart.
+  hyp runs no model checker, reads no model report and records no model
+  result: the statechart tool writes the variant configs, and whether a variant
+  really breaks the rules it names is the tool's report, not a guard. A spec
   folder with no `.tla` file is checked for one file only, as before. Owner
   said, 2026-11-20 (#247): "Grill models, option 2"; "A model but no chart:
   refuse the select. since we have grill doing it".
@@ -954,7 +958,7 @@ it again while the Goal is selected, and `status G` after it is landed. The runn
 writes nothing to GitHub. It is the one read hyp prints per Goal: each line,
 each example, its output and its verdict. After the
 lines, the PR body prints each chart of the selected commit's spec folder (each
-`.mmd` file outside `specs/switches/`) under `## Chart: <path>`, byte for byte,
+`.mmd` file outside `specs/variants/` and `specs/switches/`) under `## Chart: <path>`, byte for byte,
 in a `mermaid` block; a folder with no chart prints none. So the select return,
 `status` and `status G` of the selected Goal, and the land return and `status G`
 of the landed Goal hold the chart (#247).

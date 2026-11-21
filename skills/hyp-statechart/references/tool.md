@@ -23,6 +23,7 @@ The view can also export these:
 - `group(vars)` returns the name of a phase. Each chart state gets the color of its group. When the model states behind one chart state are in different groups, that state gets no color.
 - `colors` gives each group name a color class.
 - `title` is a string that the chart shows at the top.
+- `print(action, from, to)` returns what the system prints on that step. The tool matches the prints of a walk, joined by newlines, against the floors and ceilings of a hyp Goal's examples. Without it, a step prints its label.
 
 The command calls `state()` and `group()` at most once for each model state, and `step()` at most once for each step. The chart and the report both use those answers. So make each function depend only on its arguments.
 
@@ -49,4 +50,4 @@ Aim for about 20 arrows or fewer, because a busier chart is hard to read. First 
 
 Show `chart.mmd` to the user as a `mermaid` code block. The chart has a budget of 500 states, counted by TLC on the config as written. Above that, the chart draws only the paths to the rules that break, and when no rule breaks, the command writes no `chart.mmd`. It still checks each rule, and the report gives the state count and each bug path.
 
-Never make the checked model smaller to fit the budget: the rules would then hold on fewer states than the hand-off claims. Keep the check config as it is. To draw the whole graph, write a second config, such as `chart.cfg`, with smaller constants, and run the command again with it and a new `--out` folder. Keep both configs, and in the hand-off name the config and the state count behind each result. In a hyp spec folder, hyp reads every `.cfg` outside `switches/` as a check config, so each rule of a second config also needs a switch config that names it.
+Never make the checked model smaller to fit the budget: the rules would then hold on fewer states than the hand-off claims. Keep the check config as it is. To draw the whole graph, write a second config, such as `chart.cfg`, with smaller constants, and run the command again with it and a new `--out` folder. Keep both configs, and in the hand-off name the config and the state count behind each result. In a hyp spec folder, hyp reads every `.cfg` outside `variants/` as a check config, so each rule of a second config also needs a variant config that names it.

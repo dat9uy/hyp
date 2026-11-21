@@ -12,12 +12,16 @@ Checks SPEC.tla with TLC and draws its state graph as Mermaid. Above 500 states,
 draws only the paths to the rules that break, and with no rule broken there is no chart.mmd.
   --config FILE  TLC config. Default: SPEC.cfg beside the spec.
   --view FILE    A module that exports state(vars) and, if you want, step(action, from, to),
-                 group(vars), colors, and title. state() returns a string for a flat chart, an
+                 print(action, from, to), group(vars), colors, and title. state() returns a string for a flat chart, an
                  array for parent states, or an object for regions. Default: each state's values.
                  colors gives each group blue, orange, purple, yellow, teal, tan, or pink.
   --out DIR      Where to write report.md, chart.mmd, tlc.out, and tlc-RULE.out for each
                  property that breaks and each rule that breaks off the chart. The folder must
                  be new or empty. Default: SPEC-chart.
+In a hyp Goal's spec folder (goals/G/specs/), the command also runs each variant (a constant the
+config sets FALSE), writes specs/variants/VARIANT.cfg with exactly the rules it breaks, and
+writes goal.md: the rules and their sources, a walk for each example, and each example
+predicted under each variant.
 Exit code: TLC's own on the config as written: 0 when every rule holds, 1 when a rule breaks,
 and 2 when TLC stops with an error, a signal kills the check, or the command cannot run. 130 or
 143 when SIGINT or SIGTERM stops the check. Only exits 0 and 1 write output.`;
@@ -149,6 +153,8 @@ try {
         );
       }
       process.stdout.write(fs.readFileSync(path.join(dest, "report.md")));
+      const goal = path.join(dest, "goal.md");
+      if (fs.existsSync(goal)) process.stdout.write(`\n${fs.readFileSync(goal, "utf8")}`);
       console.log(`\nWrote ${out}`);
       exitCode = verdict;
     } else exitCode = 2;

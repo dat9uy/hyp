@@ -47,7 +47,7 @@ const (
 	SelectNotInLog   Code = "select-not-in-log"  // Goal
 	NoResultOnRow    Code = "no-result-on-row"   // row tree
 	NoSpec           Code = "no-spec"            // commit, folder
-	RuleNoSwitch     Code = "rule-no-switch"     // commit, rules, switches folder
+	RuleNoVariant    Code = "rule-no-variant"    // commit, rules, variants folder
 	NoChart          Code = "no-chart"           // commit, folder
 
 	// events and their payloads

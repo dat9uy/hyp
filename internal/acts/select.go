@@ -128,7 +128,8 @@ func latestCommit(g *tables.Goal, rowTree string) string {
 
 // guardSpec is the Spec guard: the commit holds a spec under
 // goals/<G>/specs/. When the spec is a model (a .tla file), every rule its
-// check configs check is named by a switch config under specs/switches/, and
+// check configs check is named by a variant config under specs/variants/ (or
+// the older specs/switches/), and
 // the folder holds a chart (.mmd). hyp reads the files and runs no model
 // checker.
 func guardSpec(root string, g *tables.Goal, commit string) error {
@@ -147,8 +148,8 @@ func guardSpec(root string, g *tables.Goal, commit string) error {
 	if !m.Present {
 		return nil
 	}
-	if missing := m.Unswitched(); len(missing) > 0 {
-		return fault.Refuse(fault.GuardSpec, fault.RuleNoSwitch, commit, missing, dir+switchesDir)
+	if missing := m.Unnamed(); len(missing) > 0 {
+		return fault.Refuse(fault.GuardSpec, fault.RuleNoVariant, commit, missing, dir+variantsDir)
 	}
 	if len(m.Charts) == 0 {
 		return fault.Refuse(fault.GuardSpec, fault.NoChart, commit, dir)

@@ -30,9 +30,10 @@ Run the hyp Goal <G> as its runner.
 2. **Check before you run.** `hyp try G LINE/EXAMPLE --worktree` shows an
    example's verdict on your uncommitted files. It records nothing and uses no
    run of the budget. When the record branch holds no spec and you write the
-   Goal's model, follow the hyp-statechart skill: try each switch as a patch
-   this way, and report each potential Hypothesis that meets every example
-   with the outputs `hyp try` printed, never from the model alone. Its patch
+   Goal's model, follow the hyp-statechart skill: try each variant the tool
+   predicts to meet every example as a patch this way, and report each
+   potential Hypothesis that meets every example with the outputs `hyp try`
+   printed, never from the model alone. Its patch
    goes in the PR body as a diff (rule 9).
 3. **A refusal names its guard.** Read the guard's name and fix its cause. Never
    run again to get a different verdict.
@@ -46,12 +47,12 @@ Run the hyp Goal <G> as its runner.
 7. **Select when hyp offers it.** When hyp offers one candidate, select it.
    You run a rival, a second commit with `hyp run` that uses runs of the
    budget, only after the owner unselects the Goal; a second candidate then
-   stops the Goal for the owner. A switch tried with `hyp try --worktree` is
+   stops the Goal for the owner. A variant tried with `hyp try --worktree` is
    not a rival.
 8. **Stop for the owner when hyp stops.** At `Two candidates` or
    `Budget used`, stop and report the state block.
 9. **The PR body is the select's report.** Paste it as hyp printed it; hyp
    writes nothing to GitHub. Below it, add only the diffs of rule 2, each
-   with its switch and the outputs `hyp try` printed.
+   with its variant and the outputs `hyp try` printed.
 10. **A defect outside the Goal** is fixed only when the line needs it.
     Otherwise list it in the PR for the owner.

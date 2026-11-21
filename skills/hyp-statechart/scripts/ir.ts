@@ -141,6 +141,7 @@ export const CHART_STATES = 500;
 export type View = {
   state?: (vars: Vars) => unknown;
   step?: (action: string, from: Vars, to: Vars) => unknown;
+  print?: (action: string, from: Vars, to: Vars) => unknown;
   group?: (vars: Vars) => unknown;
   colors?: { [group: string]: string };
   title?: string;
