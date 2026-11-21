@@ -1,0 +1,3 @@
+every rule named under switches/: select exit 0
+a rule no config under switches/ names: select exit 1
+the refusal names LonelyRule: yes
