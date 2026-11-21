@@ -7,6 +7,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/dat9uy/hyp"
 	"github.com/dat9uy/hyp/internal/acts"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -82,6 +83,10 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 			continue
 		}
 		fmt.Fprintf(b, "%s may:\n", role)
+		if role == "probe-writer" && o.Ask && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
+			probeWriter(b, g)
+			continue
+		}
 		n := 0
 		for _, l := range ready {
 			if l.Role == role {
@@ -106,6 +111,32 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 		}
 	case st.Stop == acts.StopTwoCandidates || st.Stop == acts.StopBudgetUsed:
 		outputsTable(b, g, repo, st.Rows)
+	}
+}
+
+// probeWriter is the probe-writer block of a written or open Goal in
+// hyp status G: the Probe writer's contract, the generic Probe and one task
+// for each line of the Goal. The Probe writer writes no event, so the block
+// holds no write act. Every line is indented, so the block ends where the
+// next role starts.
+func probeWriter(b *strings.Builder, g *tables.Goal) {
+	b.WriteString("  the Probe writer's contract, for the Probe of one example:\n")
+	b.WriteString("    1. Read the line, its example and H0.\n")
+	fmt.Fprintf(b, "    2. Write and commit only that example's probe folder, goals/%s/<line>/<example>/probe.\n", g.ID)
+	b.WriteString("    3. Start from the generic Probe and write new code only when it cannot run the example.\n")
+	b.WriteString("    4. Run the example on H0 with hyp try and return its output.\n")
+	b.WriteString("    5. Write no event.\n")
+	b.WriteString("  the generic Probe, probe/run:\n")
+	for _, l := range strings.Split(strings.TrimSuffix(hyp.GenericProbe, "\n"), "\n") {
+		if l == "" {
+			b.WriteString("\n")
+			continue
+		}
+		fmt.Fprintf(b, "    %s\n", l)
+	}
+	b.WriteString("  tasks, one for each line:\n")
+	for _, l := range g.Lines {
+		fmt.Fprintf(b, "    %s (%s): the Probe of each example of %s; check it with: hyp try %s %s/<example>\n", l.Key, l.Kind, l.Key, g.ID, l.Key)
 	}
 }
 
