@@ -1,0 +1,85 @@
+-- words --
+A written Goal with a gap line and a guard line: hyp status G and hyp status G --role probe-writer print in the probe-writer block each clause of the Probe writer's contract, the generic Probe, a task for line-1 and for line-2, and no write act.
+-- input/lib.sh --
+# Shared helpers for the examples of Goal G-GRXA9K. Each example holds its own
+# copy as input/lib.sh. The run section sources it from the example folder.
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+d='--'
+hy() { _a=$1 _r=$2; shift 2; HYP_ACTOR=$_a HYP_ROLE=$_r "$bin/hyp" "$@"; }
+save() { git add -A && git commit -q -m "$1"; }
+# mkrepo: a repository with a.txt (hello) and greet.txt (hello).
+mkrepo() { r=$(mktemp -d) && cd "$r" && git init -q -b main && echo hello >a.txt && echo hello >greet.txt && save base; }
+# addgoal: a Goal with a gap line (a.txt says bye) and a guard line
+# (greet.txt says hello); sets g.
+addgoal() { g=$(hy owner owner add goal --base HEAD --words "Say bye in a.txt." --line "gap:a.txt says bye." --line "guard:greet.txt says hello." 2>/dev/null | sed -n 's/^recorded //p') && [ -n "$g" ] && save "record $g"; }
+# mkex LINE FILE WORD: an example that prints FILE and needs WORD.
+mkex() { x="goals/$g/$1/a" && mkdir -p "$x/probe" && cp "$HYP_EXAMPLE/probe/run" "$x/probe/run" && chmod +x "$x/probe/run" && printf '%s words %s\n%s says %s.\n%s run %s\ncat %s\n%s floor: contains %s\n%s\n' "$d" "$d" "$2" "$3" "$d" "$d" "$2" "$d" "$d" "$3" >"$x/example.txtar"; }
+# opened: place an example on each line, so the Goal is open.
+opened() { mkex line-1 a.txt bye && mkex line-2 greet.txt hello && save "examples of $g" && hy grill grill place "$g" line-1/a >/dev/null 2>&1 && hy grill grill place "$g" line-2/a >/dev/null 2>&1 && save "place $g"; }
+# selected: open, a change that says bye, a run of each line, and the select hyp prints.
+selected() { opened && echo bye >a.txt && save change && hy runner-1 runner run HEAD "$g/line-1" >/dev/null 2>&1 && save run1 && hy runner-1 runner run HEAD "$g/line-2" >/dev/null 2>&1 && save run2 && s=$(hy runner-1 runner status "$g" --role runner 2>/dev/null | sed -n 's/^  hyp select /select /p' | head -n 1) && [ -n "$s" ] && hy runner-1 runner $s >/dev/null 2>&1 && save select; }
+# landed: selected, then the land line hyp prints to the owner.
+landed() { selected && l=$(hy owner owner status "$g" --role owner 2>/dev/null | sed -n 's/^  hyp land /land /p' | head -n 1) && [ -n "$l" ] && hy owner owner $l >/dev/null 2>&1 && save land; }
+# st ARGS: hyp status as the grill's actor, ids, hashes and times made plain.
+st() { hy grill grill status "$@" 2>&1 | norm; }
+norm() { sed -E -e 's/G-[0-9A-Z]{6}/G-ID/g' -e 's/R-[0-9A-Z]{6}/R-ID/g' -e 's/[0-9A-HJKMNP-TV-Z]{26}/ULID/g' -e 's/[0-9a-f]{40}/HASH/g' -e 's/[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z/TIME/g' -e 's/\b[0-9a-f]{7,12}\b/SHORT/g' -e "s#$HOME#HOME#g"; }
+# pwblock: the lines of the probe-writer block of a state block on stdin.
+pwblock() { awk '/^probe-writer may:$/ { p = 1; next } /^runner may:$/ { p = 0 } p'; }
+# nopw: a state block on stdin without its probe-writer block.
+nopw() { awk '/^probe-writer may:$/ { p = 1; next } /^runner may:$/ { p = 0 } !p'; }
+-- input/check.pl --
+#!/usr/bin/perl
+# Read a probe-writer block on stdin. Join it into one text, split it into
+# sentences at ". " or "; " or a line end, and print one line per clause of
+# the Probe writer's contract: a clause holds when one sentence matches every
+# pattern of it, case-insensitive. Then print whether the block holds the
+# generic Probe, a task for each line key given as an argument, and a write act.
+use strict; use warnings;
+local $/; my $b = <STDIN>; $b = '' unless defined $b;
+my @s = split /(?<=[.;])\s+|\n/, $b;
+my @c = (
+  ['reads the line, its example and H0', qr/read/, qr/line/, qr/example/, qr/H0/],
+  ['writes and commits only the probe folder', qr/only/, qr/probe/, qr/commit/],
+  ['starts from the generic Probe', qr/generic probe/, qr/only when|unless/, qr/can ?not|can't|cannot/],
+  ['runs hyp try on H0 and returns its output', qr/hyp try/, qr/H0/, qr/output/],
+  ['writes no event', qr/\bno event|never\b.*\bevent|not\b.*\bevent/],
+);
+for my $c (@c) { my ($n, @p) = @$c; my $h = 'no';
+  S: for my $x (@s) { for my $p (@p) { next S unless $x =~ /$p/i } $h = 'yes'; last }
+  print "contract, $n: $h\n" }
+my $gp = ($b =~ /sh -c "\$HYP_RUN"/ && $b =~ /echo "exit \$code"/) ? 'yes' : 'no';
+print "generic Probe printed: $gp\n";
+for my $l (@ARGV) { print "task for $l: ", ($b =~ /\b\Q$l\E\b/ ? 'yes' : 'no'), "\n" }
+print "write act in block: ", ($b =~ /^\s*hyp (add|place|run|select|land|unselect)\b/m ? 'yes' : 'no'), "\n";
+-- run --
+. "$HYP_EXAMPLE/input/lib.sh"
+mkrepo && addgoal || exit 92
+:
+echo "== status G"
+hy grill grill status "$g" 2>/dev/null | pwblock | perl "$HYP_EXAMPLE/input/check.pl" line-1 line-2
+echo "== status G --role probe-writer"
+hy grill grill status "$g" --role probe-writer 2>/dev/null | pwblock | perl "$HYP_EXAMPLE/input/check.pl" line-1 line-2
+-- floor: equals --
+== status G
+contract, reads the line, its example and H0: yes
+contract, writes and commits only the probe folder: yes
+contract, starts from the generic Probe: yes
+contract, runs hyp try on H0 and returns its output: yes
+contract, writes no event: yes
+generic Probe printed: yes
+task for line-1: yes
+task for line-2: yes
+write act in block: no
+== status G --role probe-writer
+contract, reads the line, its example and H0: yes
+contract, writes and commits only the probe folder: yes
+contract, starts from the generic Probe: yes
+contract, runs hyp try on H0 and returns its output: yes
+contract, writes no event: yes
+generic Probe printed: yes
+task for line-1: yes
+task for line-2: yes
+write act in block: no
+exit 0
