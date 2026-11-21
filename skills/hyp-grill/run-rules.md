@@ -3,6 +3,27 @@
 The run part of hyp-grill. A runner of a hyp Goal follows these rules. hyp
 refuses what breaks its guards; these are the rules it cannot check.
 
+## Start
+
+A runner starts on an open Goal from this prompt. The owner fills in the Goal
+and the actor, and adds nothing else: what the runner is told comes only from
+the Goal and these rules, so two runners of one Goal are told the same.
+
+```text
+Run the hyp Goal <G> as its runner.
+- Your actor is <actor>. Set HYP_ACTOR=<actor> each time you call hyp.
+- Work in your own worktree, on a new branch from the default branch.
+- Follow the run rules of the hyp-grill skill (run-rules.md) and this
+  repository's agent files, such as AGENTS.md.
+- The Goal's placed examples are the whole task: start from what
+  `hyp status <G> --role runner` prints. No issue, PR or hand-off is a
+  source of work.
+- Open a PR whose body is the select's report. Do not merge it: the owner
+  merges.
+```
+
+## Rules
+
 1. **Run only the lines hyp prints.** Read `hyp status G --role runner` and
    copy the run line it prints, with your commit filled in. Run the select line
    only when hyp prints it for you.
@@ -11,7 +32,8 @@ refuses what breaks its guards; these are the rules it cannot check.
    run of the budget. When the record branch holds no spec and you write the
    Goal's model, follow the hyp-statechart skill: try each switch as a patch
    this way, and report each potential Hypothesis that meets every example
-   with the outputs `hyp try` printed, never from the model alone.
+   with the outputs `hyp try` printed, never from the model alone. Put its
+   patch in the PR body as a diff.
 3. **A refusal names its guard.** Read the guard's name and fix its cause. Never
    run again to get a different verdict.
 4. **Keep every commit you ran.** The budget counts Hypotheses: each distinct
@@ -21,12 +43,11 @@ refuses what breaks its guards; these are the rules it cannot check.
    goes to the owner; it is not yours to edit.
 6. **Commit only what your acts wrote.** Add the event lines and output files
    your own acts wrote, each by name.
-7. **Select when hyp offers it.** When hyp offers one candidate, select it,
-   unless the hand-off asks you to look for rivals; then run each rival the
-   hand-off names, and a second candidate stops the Goal for the owner. A rival
-   is a second commit you run with `hyp run`: it uses runs of the budget. A
-   hand-off that asks for no rivals holds back only that, never a switch tried
-   with `hyp try --worktree`.
+7. **Select when hyp offers it.** When hyp offers one candidate, select it.
+   You run a rival, a second commit with `hyp run` that uses runs of the
+   budget, only after the owner unselects the Goal; a second candidate then
+   stops the Goal for the owner. A switch tried with `hyp try --worktree` is
+   not a rival.
 8. **Stop for the owner when hyp stops.** At `Two candidates` or
    `Budget used`, stop and report the state block.
 9. **The PR body is the select's report.** Paste it as hyp printed it; hyp

@@ -78,11 +78,10 @@ record branch so that every runner commit holds it:
 
 ## Try each switch as a patch
 
-A switch in the model is only a claim about the code. Make each one real,
-also when the hand-off asks for no rivals. Trying a switch is not running a
-rival: a rival is a second commit run with `hyp run`, which uses runs of the
-budget and can stop the Goal at `Two candidates`. A switch try records nothing
-and uses no run.
+A switch in the model is only a claim about the code. Make each one real.
+Trying a switch is not running a rival: a rival is a second commit run with
+`hyp run`, which uses runs of the budget and can stop the Goal at
+`Two candidates`. A switch try records nothing and uses no run.
 
 1. Write the switch's build as a patch on the code, in a scratch worktree of
    the record branch. The patch is a potential Hypothesis: hyp has no record
