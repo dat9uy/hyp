@@ -51,9 +51,8 @@ extra rule.
 
 ## The issue holds the decisions
 
-A chat, a local page and a memory note are read by no one else, so when the
-Goal comes from an issue, what the grill learns goes to the issues, in the same
-session, with `gh issue comment`.
+A chat, a local page and a memory note are read by no one else, so what the
+grill learns goes to the issues, in the same session, with `gh issue comment`.
 The issue is the owner's record, not a rule for the runner:
 
 - **Each decision of the owner goes to the issue you grill**, with the owner's
@@ -153,22 +152,16 @@ Use this when the Goal is recorded and its lines need examples. The owner's
 answers are the examples: you write them down, you do not design them. The
 grill takes two rounds of questions, in this order: first the open question
 about every line, then, after you write the floors, the split and ceiling
-questions. The owner answers only a message that asks a question, so every
-message that needs an answer holds a question mark.
+questions.
 
 1. **Ask the open question about each line.** Ask, for each line, exactly
-   "What would you do, and what would you see?" Put each line's question on
-   its own line of your message, starting with the line's key and words, for
-   example: `line-1 (sh greet.sh prints bye): What would you do, and what would
-   you see?` Ask every line in one message. Offer no draft and no options.
-   This first message asks only the open question: it says nothing yet about
-   ceilings or splits.
+   "What would you do, and what would you see?" Name the line, by its key and
+   words, with its question. Offer no draft and no options, and ask nothing yet
+   about ceilings or splits.
 2. **The answer is the example.** What the owner does is the `run`, in the
    owner's words (for example `sh greet.sh`). What the owner sees, the want,
    is the floor, as a literal. Write the example from the answer. Do not read
-   it back to the owner and do not ask the owner to accept it: no message asks
-   whether an example is right, and no message uses the words "confirm",
-   "approve" or "look right".
+   it back to the owner and do not ask the owner to accept it.
 3. **Two things to see is two rules.** When one line's answer names two
    separate things to see (for example a list and a count), warn that the line
    combines two rules, and propose to split it into two lines. Ask the owner
@@ -178,14 +171,12 @@ message that needs an answer holds a question mark.
    line, its example holds a floor for each thing.
 4. **Ask the ceiling question about each line.** After you write a line's
    floor, read aloud the line's "must never" words, quoted exactly as the line
-   has them (for example: line-1 says "never prints hello"), and ask on the
-   same line of your message: "What could a wrong build print that this floor
-   still lets through?" Ask it word for word: do not name the floor in it, and
-   do not change "this floor" to "these floors". Ask it for every line, also a
-   line with no "never" words. Each wrong output the owner names becomes a
-   `ceiling` section of that line's example. When the owner names none, the
-   example has no ceiling. Ask the split and ceiling questions together, in
-   your second message, after the owner answered the open questions.
+   has them (for example: line-1 says "never prints hello"), and ask: "What
+   could a wrong build print that this floor still lets through?" Ask it word
+   for word, for every line, also a line with no "never" words. Each wrong
+   output the owner names becomes a `ceiling` section of that line's example.
+   When the owner names none, the example has no ceiling. Ask the split and
+   ceiling questions after the owner answered the open questions.
 5. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
    `example.txtar` and a `probe/` folder. The `example.txtar` sections are
    `words` (the owner's sentence), `run` (the command run on the subject),
@@ -218,20 +209,23 @@ message that needs an answer holds a question mark.
    `hyp status G --role grill` prints for that line.
 9. **Stop when the Goal has enough.** Once every line has an example that
    gives its line's verdict on H0, `hyp status G` shows the Goal `open`. Then
-   stop asking. Your last message starts with the sentence "The Goal has
-   enough examples." and then gives the hand-off. It holds no question and no
-   question mark: offer no more examples and no next step as a question.
+   stop asking: say "This is enough.", and give the hand-off.
+   Ask no further question and offer no more examples; more examples come only
+   from real outputs.
+10. **Report the surfaces no example covers.** List every surface each line
+    reaches: each file, output or command where the line's words can be true
+    or false. Each surface that no example covers goes under "Not covered" in
+    the hand-off. Listing a surface is not a question to the owner.
 
 ## How to re-grill
 
 The re-grill reviews a Goal against its line, not against the build that met it.
 
 - **When the owner reports something odd**, run `hyp status G` to see the
-  Goal's lines, then ask the owner to state the odd thing in one of two
-  forms, quoted in your question: "On input X, I must see Y." or "On input X,
-  I must never see Y." Ask it as a question that ends with a question mark,
-  for example: Can you state it as "On input X, I must see Y." or "On input X,
-  I must never see Y."? Ask before you read the outputs or name a cause.
+  Goal's lines, then ask the owner, as a question, to state the odd thing in
+  one of two forms, quoted in your question: "On input X, I must see Y." or "On input X,
+  I must never see Y." You may read the candidate's outputs to find what
+  looks off, but ask for the statement before you propose a fix.
 - **Then compare Y with the lines' words.** When a line's words already ask
   for Y or forbid it, propose an adjust: a new version of that line's example
   that adds Y as a floor (must see) or as a ceiling (must never see). When Y
@@ -255,7 +249,7 @@ The re-grill reviews a Goal against its line, not against the build that met it.
 ## Hand-off
 
 The grill ends with a record branch that holds the examples and the place
-events, and a hand-off for the owner: the Goal's line, the owner's decisions
+events, and a hand-off for the owner: the Goal's lines, the owner's decisions
 numbered with their words, and "Not covered" with each decision no example
 checks. Before the record PR, the issues already hold those decisions and the
 "Not covered" items they own.
@@ -276,9 +270,8 @@ runner looks for no rivals until the owner unselects.
   line's verdict on H0.
 - Each decision of the owner is the words, a line or an example, or is listed
   under "Not covered".
-- When the Goal comes from an issue, the issue you grill holds each decision
-  of the owner in the owner's words, and each "Not covered" item another open
-  issue owns is on that issue.
+- The issue you grill holds each decision of the owner in the owner's words,
+  and each "Not covered" item another open issue owns is on that issue.
 
 ## Resources
 
