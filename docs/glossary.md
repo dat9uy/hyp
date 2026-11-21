@@ -205,6 +205,10 @@ _Avoid_: baseline, main
 A Hypothesis the runner builds beside another, from the same parent in the Hypothesis tree, to test a different design. It costs the budget like any Hypothesis ([spec §11](state-machine.md#11-budget-and-stops)).
 _Avoid_: rival for a v1 Hypothesis with a status (see the v1 table)
 
+**Potential Hypothesis**:
+A build that hyp has not recorded, such as a switch of a Goal's model written as a patch and tried with `hyp try --worktree`. When it meets every example, the examples do not separate it from the build under test, and it goes to the owner with its outputs. The owner chooses which output is wanted; no party calls a build right or wrong. Run with `hyp run`, it is a Hypothesis.
+_Avoid_: wrong build, broken variant, right build
+
 **Hypothesis tree**:
 The Hypotheses of one Goal, arranged by the git ancestry of their commits. H0 is its root. A Hypothesis is below another when one of its commits descends from one of the other's. hyp reads the arrangement from git and stores no edge ([spec §5](state-machine.md#5-calculated-tables), Hypothesis tree). It is the only tree in hyp's words.
 _Avoid_: run tree, tree for a hash

@@ -1,6 +1,6 @@
 ---
 name: hyp-statechart
-description: "Write the model of a hyp Goal: a TLA+ spec of the states the change moves through, one switch per cheap wrong build, and a Mermaid chart, checked with the statechart tool this skill ships. Use when the grill of a hyp Goal writes the Goal's model in its spec folder, or when a wrong build of a Goal needs to be found before the runner builds. Not for running a Goal's lines on commits: the runner does that."
+description: "Write the model of a hyp Goal: a TLA+ spec of the states the change moves through, one switch per potential Hypothesis, and a Mermaid chart, checked with the statechart tool this skill ships. Use when the grill of a hyp Goal writes the Goal's model in its spec folder, or when the builds the examples do not separate need to be found before the runner builds. Not for running a Goal's lines on commits: the runner does that."
 ---
 
 # hyp statechart
@@ -8,8 +8,10 @@ description: "Write the model of a hyp Goal: a TLA+ spec of the states the chang
 The grill uses this skill to write a Goal's model. When the record branch
 holds no spec and the runner writes the model, the runner uses this skill the
 same way, switch tries included. The model is a tool that
-finds missing examples: each switch in it is a cheap wrong build, and a wrong
-build that passes every example shows an example the Goal still needs. The
+finds potential Hypotheses: each switch in it is a different build a runner
+could make in a few lines. A potential Hypothesis that meets every example
+shows two builds the examples do not separate. Which output is wanted is the
+owner's choice. The
 chart shows the owner, in the owner's words, how the system moves between
 states.
 
@@ -22,7 +24,7 @@ A model result never counts at select: only the examples on the commit count.
 
 - The grill writes the model of a Goal on its record branch, after the owner
   consented to the Goal's words and lines.
-- A Goal needs its wrong builds found before a runner builds it.
+- A Goal needs its potential Hypotheses found before a runner builds it.
 - Not for: a Goal whose change moves through no states worth a chart. Its spec
   folder can hold a plain text spec instead; hyp then checks no model.
 
@@ -44,10 +46,10 @@ record branch so that every runner commit holds it:
    the Goal's words, its lines and the owner's decisions. A rule can be about a
    screen, a result, a stored value or a message. If the model has no variable
    for a rule, add the variable. Never weaken a rule to make it hold.
-2. **One switch per cheap wrong build.** Model each wrong or old behaviour that
-   a cheap build could ship behind a boolean CONSTANT switch, such as
-   `WriteOutputsEarly`, that is FALSE in the check config. A switch is a wrong
-   build a runner could make in a few lines, not a wish list.
+2. **One switch per potential Hypothesis.** Model each other behaviour that a
+   cheap build could ship, such as the old behaviour, behind a boolean CONSTANT
+   switch, such as `WriteOutputsEarly`, that is FALSE in the check config. A
+   switch is a build a runner could make in a few lines, not a wish list.
 3. **Every rule is named by a switch config.** For each switch, write
    `switches/<switch>.cfg`: the check config with only that switch TRUE, whose
    `INVARIANTS` section lists only the rules that switch breaks. Run the tool
@@ -82,17 +84,19 @@ rival: a rival is a second commit run with `hyp run`, which uses runs of the
 budget and can stop the Goal at `Two candidates`. A switch try records nothing
 and uses no run.
 
-1. Write the switch's wrong build as a patch on the code, in a scratch
-   worktree of the record branch.
+1. Write the switch's build as a patch on the code, in a scratch worktree of
+   the record branch. The patch is a potential Hypothesis: hyp has no record
+   of it.
 2. Run each placed example of the Goal on that patch with
    `hyp try G LINE/EXAMPLE --worktree`. It records nothing and uses no run.
-3. When some example fails on the patch, the examples catch that wrong build.
-4. When a wrong build passes every example, the examples miss it. Report it to
-   the owner with the switch, the patch and the outputs `hyp try` printed, and
-   propose a separating example: one that fails on that wrong build and is met
-   on a right one. The owner decides whether it is placed or listed under
-   "Not covered". A wrong build read from the model alone, never tried, is not
-   such a report.
+3. When some example fails on the patch, the examples separate it from the
+   build under test.
+4. When the patch meets every example, the examples do not separate the two
+   builds. Report it to the owner with the switch, the patch and the outputs
+   `hyp try` printed. The owner says which output is wanted, or that both
+   are. Only after that choice is an example placed that separates them, or
+   the choice listed under "Not covered". A potential Hypothesis read from the
+   model alone, never tried, is not such a report.
 
 Remove each patch when you are done; the record branch holds only the model and
 the examples.
@@ -103,7 +107,7 @@ Add to the grill's hand-off:
 
 - the chart, as a `mermaid` block;
 - for each switch, the rules its config names, and whether its patch failed an
-  example or passed every example, as `hyp try` printed it;
+  example or met every example, as `hyp try` printed it;
 - each rule left out of the check config, and why;
 - what the model leaves out;
 - the command that makes the chart again.
@@ -112,8 +116,9 @@ Add to the grill's hand-off:
 
 - `goals/<G>/specs/` holds the model, its check config, a switch config for
   every rule the check config checks, and `chart.mmd`.
-- Each switch was tried as a patch with `hyp try --worktree`, and each wrong
-  build that passed every example is in the hand-off for the owner.
+- Each switch was tried as a patch with `hyp try --worktree`, and each
+  potential Hypothesis that met every example is in the hand-off for the
+  owner, with its outputs.
 
 ## Resources
 

@@ -117,9 +117,10 @@ The issue is the owner's record, not a rule for the runner:
 10. **Write the model with `/hyp-statechart`.** When the change moves through
     states, write the Goal's model on the record branch with the hyp-statechart
     skill, which ships with hyp: a TLA+ spec in `goals/<G>/specs/`, one switch
-    per cheap wrong build, a switch config for every rule, each switch tried as
-    a patch against the examples, and the chart. A wrong build that passes
-    every example goes to the owner. At select, hyp refuses a model that has a
+    per potential Hypothesis, a switch config for every rule, each switch tried
+    as a patch against the examples, and the chart. A potential Hypothesis that
+    meets every example goes to the owner with its outputs, and the owner
+    chooses which output is wanted. At select, hyp refuses a model that has a
     rule no switch config names, or no chart; a spec folder with no model is
     selected as before.
 

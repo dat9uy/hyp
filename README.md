@@ -66,12 +66,12 @@ From [`show-me-your-work`](https://github.com/cursor/plugins/blob/ae5650febf4320
 
 ### A model that finds missing examples
 
-From [`create-formal-verification-skill`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/create-formal-verification-skill/SKILL.md) and [`statechart`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/statechart/SKILL.md), hyp keeps the TLA+ model of a change, the rule that a check must be shown to fail on a broken variant, and the Mermaid chart. The [hyp-statechart](skills/hyp-statechart/SKILL.md) skill ships the `statechart` tool with its MIT license and [its source](skills/hyp-statechart/SOURCE). In hyp, the model does not prove the code. It finds the wrong builds that the examples miss.
+From [`create-formal-verification-skill`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/create-formal-verification-skill/SKILL.md) and [`statechart`](https://github.com/cursor/plugins/blob/ae5650febf4320793844c12c4adaa937f417f8da/harness/pstack/claude-code/skills/statechart/SKILL.md), hyp keeps the TLA+ model of a change, the rule that a check must be shown to fail on a broken variant, and the Mermaid chart. The [hyp-statechart](skills/hyp-statechart/SKILL.md) skill ships the `statechart` tool with its MIT license and [its source](skills/hyp-statechart/SOURCE). In hyp, the model does not prove the code. It finds other builds, potential Hypotheses, that the examples do not separate from the one under test.
 
 | In these skills | The rule in hyp |
 |---|---|
-| The model checker gives the verdict on the model. | **Only the examples count at the select.** hyp runs no model checker. The model is in `goals/<G>/specs/`: a `.tla` module, its check config, one switch config per wrong build, and `chart.mmd`. |
-| Each property fails on a broken variant of the code. | **Each switch is tried as a patch.** The grill writes each switch's wrong build as a patch and runs the examples on it with `hyp try --worktree`. A wrong build that passes every example goes to the owner. |
+| The model checker gives the verdict on the model. | **Only the examples count at the select.** hyp runs no model checker. The model is in `goals/<G>/specs/`: a `.tla` module, its check config, one switch config per potential Hypothesis, and `chart.mmd`. |
+| Each property fails on a broken variant of the code. | **Each switch is tried as a patch.** The grill writes each switch's build as a patch and runs the examples on it with `hyp try --worktree`. A patch that meets every example goes to the owner with its outputs, and the owner chooses which output is wanted. |
 | The verify skill leaves the check for the next agent. | **The select checks the model.** hyp refuses a select while a rule of the check config has no switch config that names it, or while the folder holds no chart. |
 | The chart goes to the reader. | **The PR body prints the chart.** The report of the select holds each chart of the spec folder in a `mermaid` block. |
 

@@ -14,8 +14,8 @@
 (* Line 2 (the chart in the report) and line 3 (the skill) are not states  *)
 (* of the guard; the model leaves them out.                                *)
 (*                                                                         *)
-(* Each switch is a cheap wrong version of the guard; the check config     *)
-(* sets every switch FALSE.                                                *)
+(* Each switch is a cheap other version of the guard, a potential          *)
+(* Hypothesis; the check config sets every switch FALSE.                   *)
 (***************************************************************************)
 EXTENDS FiniteSets
 

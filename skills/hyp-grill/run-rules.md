@@ -10,8 +10,8 @@ refuses what breaks its guards; these are the rules it cannot check.
    example's verdict on your uncommitted files. It records nothing and uses no
    run of the budget. When the record branch holds no spec and you write the
    Goal's model, follow the hyp-statechart skill: try each switch as a patch
-   this way, and report each wrong build that passes every example with the
-   outputs `hyp try` printed, never from the model alone.
+   this way, and report each potential Hypothesis that meets every example
+   with the outputs `hyp try` printed, never from the model alone.
 3. **A refusal names its guard.** Read the guard's name and fix its cause. Never
    run again to get a different verdict.
 4. **Keep every commit you ran.** The budget counts Hypotheses: each distinct

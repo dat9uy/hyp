@@ -18,8 +18,8 @@
 (*           selects at any time;                                          *)
 (*   line 5  a Goal never unselected selects as before.                    *)
 (*                                                                         *)
-(* Each switch is a cheap wrong build; the check config sets every switch  *)
-(* FALSE.                                                                  *)
+(* Each switch is a cheap potential Hypothesis; the check config sets      *)
+(* every switch FALSE.                                                     *)
 (***************************************************************************)
 EXTENDS Naturals
 

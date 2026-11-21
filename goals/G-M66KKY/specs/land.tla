@@ -26,7 +26,8 @@
 (* Lines 2, 3 and 7 are what hyp prints and what the docs say; no state    *)
 (* rule here reads them.                                                   *)
 (*                                                                         *)
-(* Switches are cheaper or wrong builds; land.cfg sets all FALSE.          *)
+(* Switches are cheaper builds or other potential Hypotheses;              *)
+(* land.cfg sets all FALSE.                                                *)
 (*   AnyRoleLands    a build with no Owner lands guard                     *)
 (*   LandWithNoStop  a build with no Stop guard                            *)
 (*   NoReplayCheck   a build whose replay does not check Not ended         *)
@@ -80,7 +81,7 @@ Init ==
 \* Not ended, then Selected: the guards of place, run and select.
 Writable == ~landed /\ stop # "selected"
 
-\* A write the tables accept; one after the land only a wrong build accepts.
+\* A write the tables accept; one after the land only another build accepts.
 Wrote == afterLand' = IF landed THEN afterLand + 1 ELSE afterLand
 
 \* The grill places an example that changes the examples: the boundary moves.
