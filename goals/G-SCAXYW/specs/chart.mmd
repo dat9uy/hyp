@@ -1,0 +1,52 @@
+---
+title: "hyp G-SCAXYW: the tool's report and the grill's tries"
+---
+stateDiagram-v2
+  direction LR
+  state "Legend" as legend {
+    lg0: tool
+    lg1: grill
+    lg2: done
+  }
+  class lg0 teal
+  class lg1 orange
+  class lg2 purple
+  state "At the same time" as all {
+    state "Tool and grill" as r0 {
+      s0: Model written
+      s1: Variant configs written
+      s2: Walks matched
+      s3: Cells predicted
+      s4: Variants tried
+      s5: Report: every try agrees
+      s6: Report: a try differs
+      s7: Owner asked
+      s8: Model fixed, walks matched
+      [*] --> s0
+      s0 --> s1: the tool runs each rule alone under each variant
+      s1 --> s2: the tool matches each floor to a walk
+      s2 --> s3: the tool predicts each example under each variant
+      s3 --> s4: the grill tries the variants with hyp try
+      s4 --> s5: the tool writes the report
+      s4 --> s6: the tool writes the report
+      s5 --> s7: the grill asks the owner
+      s6 --> s8: the grill fixes the model
+      s8 --> s3: the tool predicts each example under each variant
+    }
+    --
+    state "Select" as r1 {
+      s9: Not selected
+      s10: Select recorded
+      [*] --> s9
+      s9 --> s10: a select reads the spec folder
+    }
+  }
+  class s0 teal
+  class s1 teal
+  class s2 teal
+  class s3 teal
+  class s4 orange
+  class s5 orange
+  class s6 orange
+  class s7 purple
+  class s8 teal
