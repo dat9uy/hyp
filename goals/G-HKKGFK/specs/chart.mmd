@@ -1,0 +1,26 @@
+---
+title: "hyp G-HKKGFK: the grill's tries of one variant and the report"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: grill
+    lg1: report
+  }
+  class lg0 orange
+  class lg1 teal
+  s0: Variant written as a patch
+  s1: An example failed
+  s2: Every try so far met
+  s3: Report: separated
+  s4: Report: no example separates it
+  [*] --> s0
+  s0 --> s1: the grill tries the next example
+  s0 --> s2: the grill tries the next example
+  s1 --> s3: the tool writes the report
+  s2 --> s1: the grill tries the next example
+  s2 --> s4: the tool writes the report
+  class s0 orange
+  class s1 orange
+  class s2 orange
+  class s3 teal
+  class s4 teal
