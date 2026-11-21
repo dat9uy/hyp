@@ -178,12 +178,10 @@ placed examples and the model in the spec folder, with the run rules. If a
 runner reads the hand-off, it is background, and no "Not covered" item is a
 task.
 
-Until hyp starts a runner by itself, the owner may ask you to write the
-runner's prompt. The prompt names only the Goal, the run rules, the
-repository's agent files (such as `AGENTS.md`) and the owner's hand-off
-choices: the runner's actor, whether to look for rivals, and that the owner
-merges. It names no record PR, issue comment or hand-off as a source of work,
-and it says that the examples are the whole task.
+The owner starts a runner with the prompt in the Start section of the run
+rules, with the Goal and the runner's actor filled in. Do not write a runner
+prompt of your own, and add no choice to the hand-off for the runner: the
+runner looks for no rivals until the owner unselects.
 
 ## Done when
 
