@@ -99,7 +99,7 @@ func TestOneGoalEndToEnd(t *testing.T) {
 		!strings.Contains(out, "selected commit: "+fix) {
 		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
 	}
-	status = mustStatus(t)
+	_, status, _ = run(t, "status", goal)
 	if !strings.Contains(status, "stop: selected") || !strings.Contains(status, "selected commit: "+fix) {
 		t.Fatalf("status after the select:\n%s", status)
 	}

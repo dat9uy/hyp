@@ -179,7 +179,7 @@ func TestStatusSelectedGolden(t *testing.T) {
 	if code, out, errs := run(t, args[1:]...); code != 0 {
 		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
 	}
-	code, out, errs := run(t, "status")
+	code, out, errs := run(t, "status", f.goal)
 	if code != 0 || !strings.Contains(out, "stop: selected") {
 		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
 	}
@@ -421,6 +421,37 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 	}
 	if code, _, _ := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 1 {
 		t.Fatalf("a second land: code %d, want 1", code)
+	}
+}
+
+// TestStatusListPrintsNoQuotedGoalLine: an output that holds a state line of
+// another store does not read as a Goal of this one. status for every Goal
+// prints a selected Goal's state block alone, so each line that starts with
+// G- is a Goal of this store; status G still prints the output byte for byte.
+func TestStatusListPrintsNoQuotedGoalLine(t *testing.T) {
+	quoted := "ok\nG-ABCDEF  written  runs: 0 of 3 used\n"
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	c := f.leaf(t, map[string]string{"counter": quoted, f.spec(): "spec\n"})
+	if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
+		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	_, out, _ := run(t, "status")
+	args := selectLine(t, out)
+	if code, out, errs := run(t, args[1:]...); code != 0 {
+		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	_, all, _ := run(t, "status")
+	for l := range strings.SplitSeq(all, "\n") {
+		if strings.HasPrefix(l, "G-") && !strings.HasPrefix(l, f.goal+"  ") {
+			t.Fatalf("status of every Goal prints a line that reads as a Goal of this store: %q\n%s", l, all)
+		}
+	}
+	if !strings.Contains(all, f.goal+"  selected  ") || strings.Contains(all, "PR body:") {
+		t.Fatalf("status of every Goal prints a selected Goal's PR body:\n%s", all)
+	}
+	_, one, _ := run(t, "status", f.goal)
+	if !strings.Contains(one, "PR body:") || !strings.Contains(one, "```\n"+quoted+"```\n") {
+		t.Fatalf("status G of a selected Goal lacks its output byte for byte:\n%s", one)
 	}
 }
 
