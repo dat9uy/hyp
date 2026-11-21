@@ -178,7 +178,10 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 		add(Ready{Role: "runner", Act: ActSelect, Tree: st.Candidates[0].RowTree})
 	}
 	if st.Stop == StopNone {
-		out = append(out, runLines(g, st)...)
+		// A lone candidate that fails Spec or Own path is fixed by a commit
+		// that changes only goals/, so its subject, and its Hypothesis, stay.
+		fix := len(st.Candidates) == 1 && !selectable(g, repo, st.Candidates[0])
+		out = append(out, runLines(g, st, fix)...)
 	}
 	return orderRoles(out)
 }
@@ -196,8 +199,11 @@ func orderRoles(ls []Ready) []Ready {
 // runLines are the runner's run lines. On a Goal that is written only a run on
 // H0 is open, and only where an example's H0 cell is not run. On an open Goal
 // a run on any leaf is open, so the commit is left empty; once three trees
-// are counted, only the lines the counted leaf rows lack a cell for.
-func runLines(g *tables.Goal, st Standing) []Ready {
+// are counted, only the lines the counted leaf rows lack a cell for. With
+// fix, the lone candidate cannot be selected on its commit: a run of any line
+// on a new commit of the same Hypothesis costs no budget, so every line is
+// open on a commit hyp cannot know yet.
+func runLines(g *tables.Goal, st Standing, fix bool) []Ready {
 	var out []Ready
 	add := func(commit, line string) {
 		out = append(out, Ready{Goal: g.ID, Role: "runner", Act: ActRun, Commit: commit, Line: line})
@@ -221,7 +227,7 @@ func runLines(g *tables.Goal, st Standing) []Ready {
 		if !slices.ContainsFunc(g.Placed(), func(p tables.Placement) bool { return p.Line == l.Key }) {
 			continue
 		}
-		if len(counted) < tables.MaxTrees {
+		if len(counted) < tables.MaxTrees || fix {
 			add("", l.Key)
 			continue
 		}

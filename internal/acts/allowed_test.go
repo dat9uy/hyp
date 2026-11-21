@@ -120,6 +120,36 @@ func TestAllowedBudgetUsedRunnerMayNotRun(t *testing.T) {
 	}
 }
 
+// A candidate with no spec at three Hypotheses still has an act: the run on
+// a spec commit of the same Hypothesis, which costs no budget. With it the
+// runner may select.
+func TestAllowedCandidateWithoutSpecAtBudgetMayRunSpecCommit(t *testing.T) {
+	e := newRunEnv(t)
+	for _, v := range []string{"x1", "x2"} {
+		if _, err := e.run(e.leaf(t, e.base, v)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	commit, tree := e.metLeaf(t, "ok", false)
+	st := Stand(e.goalRow(t), e.root)
+	if st.Stop != StopNone || st.Used != 3 || len(st.Candidates) != 1 {
+		t.Fatalf("test setup: standing = %+v", st)
+	}
+	want := Ready{Goal: e.goal, Role: "runner", Act: ActRun, Line: "line-1"}
+	if got := lines(e.allowed(t), "runner"); !slices.Equal(got, []Ready{want}) {
+		t.Fatalf("runner may %+v, want [%+v]", got, want)
+	}
+
+	spec := e.child(t, commit, map[string]string{"goals/" + e.goal + "/specs/spec.md": "spec\n"})
+	if _, err := e.run(spec); err != nil {
+		t.Fatalf("run on the spec commit: %v", err)
+	}
+	sel := Ready{Goal: e.goal, Role: "runner", Act: ActSelect, Tree: tree}
+	if got := lines(e.allowed(t), "runner"); !slices.Equal(got, []Ready{sel}) {
+		t.Fatalf("after the spec run runner may %+v, want [%+v]", got, sel)
+	}
+}
+
 // places are the grill's allowed places, one per line key, in order.
 func places(e *runEnv, keys ...string) []Ready {
 	var out []Ready
