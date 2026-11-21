@@ -209,7 +209,7 @@ questions.
    `hyp status G --role grill` prints for that line.
 9. **Stop when the Goal has enough.** Once every line has an example that
    gives its line's verdict on H0, `hyp status G` shows the Goal `open`. Then
-   stop asking: say that the Goal has enough examples, and give the hand-off.
+   stop asking: say "This is enough.", and give the hand-off.
    Ask no further question and offer no more examples; more examples come only
    from real outputs.
 10. **Report the surfaces no example covers.** List every surface each line
@@ -222,8 +222,8 @@ questions.
 The re-grill reviews a Goal against its line, not against the build that met it.
 
 - **When the owner reports something odd**, run `hyp status G` to see the
-  Goal's lines, then ask the owner to state the odd thing in one of two
-  forms, quoted in your question: "On input X, I must see Y." or "On input X,
+  Goal's lines, then ask the owner, as a question, to state the odd thing in
+  one of two forms, quoted in your question: "On input X, I must see Y." or "On input X,
   I must never see Y." You may read the candidate's outputs to find what
   looks off, but ask for the statement before you propose a fix.
 - **Then compare Y with the lines' words.** When a line's words already ask
