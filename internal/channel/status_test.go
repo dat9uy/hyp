@@ -423,3 +423,31 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 		t.Fatalf("a second land: code %d, want 1", code)
 	}
 }
+
+// TestStatusReportsTornLine: a torn last line of an events file does not
+// parse. Replay skips it, and status, with or without a Goal, names its file
+// and line number. A later write still succeeds and the line stays reported.
+func TestStatusReportsTornLine(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	file := filepath.Join(f.r.Dir, ".tree", "events", "owner-1.jsonl")
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := strings.Count(string(data), "\n") + 1
+	if err := os.WriteFile(file, append(data, []byte(`{"v":1,"id":"`)...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	want := fmt.Sprintf("not read at replay:\n  .tree/events/owner-1.jsonl line %d: ", n)
+	for _, args := range [][]string{{"status"}, {"status", f.goal}} {
+		code, out, errs := run(t, args...)
+		if code != 0 || !strings.Contains(out, want) || !strings.Contains(out, f.goal) {
+			t.Fatalf("%v: code %d, stdout %q, stderr %q; want it to hold %q", args, code, out, errs, want)
+		}
+	}
+	c := f.leaf(t, map[string]string{"counter": "ok\n"})
+	code, out, errs := run(t, "run", c, f.goal+"/line-1")
+	if code != 0 || !strings.Contains(out, want) {
+		t.Fatalf("run after a torn line: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+}

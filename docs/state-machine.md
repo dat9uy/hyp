@@ -148,7 +148,9 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
 - **Crash.** An act writes its output files first (§5, Outputs), then its
   event as one `write` of one line and an `fsync`. A crash before the event
   leaves output files no event names; they are harmless. A torn last line does
-  not parse: replay reports it with its file and line number and skips it.
+  not parse: replay skips it, and every state block lists it under "not read
+  at replay" with its file and line number. A line whose id is not a ULID or
+  whose actor is not the file's actor is listed the same way.
   Before it appends, hyp writes a newline if the file does not end in one, so a
   torn line stays alone and the next event is not glued to it.
 - **Trace.** A command that names an actor writes its trace after its act and

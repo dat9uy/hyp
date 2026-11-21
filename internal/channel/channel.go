@@ -581,24 +581,31 @@ func (p *printed) Unwrap() error { return p.err }
 // readStore reads the store under dir and calculates its tables. No store is
 // a refusal.
 func readStore(dir string) (tables.Tables, string, error) {
+	t, _, root, err := readStoreLines(dir)
+	return t, root, err
+}
+
+// readStoreLines is readStore that also returns the lines of the events files
+// that replay could not read, such as a torn last line.
+func readStoreLines(dir string) (tables.Tables, []logstore.LineError, string, error) {
 	root, err := logstore.TopLevel(dir)
 	if err != nil {
-		return tables.Tables{}, "", err
+		return tables.Tables{}, nil, "", err
 	}
 	if err := logstore.Find(root); err != nil {
-		return tables.Tables{}, "", err
+		return tables.Tables{}, nil, "", err
 	}
-	evs, _, err := logstore.Events(root)
+	evs, unread, err := logstore.Events(root)
 	if err != nil {
-		return tables.Tables{}, "", err
+		return tables.Tables{}, nil, "", err
 	}
-	return tables.Replay(evs), root, nil
+	return tables.Replay(evs), unread, root, nil
 }
 
 // blockFor reads the store under dir and prints its state block. A Goal named
 // in o that the store does not know is a bad argument; no store is a refusal.
 func blockFor(dir string, o BlockOpts) (string, error) {
-	t, root, err := readStore(dir)
+	t, unread, root, err := readStoreLines(dir)
 	if err != nil {
 		return "", err
 	}
@@ -609,7 +616,7 @@ func blockFor(dir string, o BlockOpts) (string, error) {
 		}
 		o.Goal = g.EventID
 	}
-	return StateBlock(t, root, o), nil
+	return StateBlock(t, unread, root, o), nil
 }
 
 // finish prints what a write act returned: its report, or on a refusal the

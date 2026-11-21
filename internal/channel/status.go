@@ -3,6 +3,7 @@ package channel
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -34,9 +35,10 @@ const maxCell = 60
 // command lines, a marked split line, the Results Stable refused, and, while
 // the Goal is selected, the PR body; at a stop with no select, the table of
 // outputs. A landed Goal prints that record only when o names it: the list of
-// every Goal prints its state block alone. Events refused at replay close it. repo
-// is the git top level.
-func StateBlock(t tables.Tables, repo string, o BlockOpts) string {
+// every Goal prints its state block alone. Events refused at replay close it,
+// then the lines of the events files that replay could not read: such a line
+// names no Goal, so every block lists all of them. repo is the git top level.
+func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o BlockOpts) string {
 	var b strings.Builder
 	shown := map[string]bool{}
 	for _, g := range tables.SortedGoals(t) {
@@ -56,6 +58,16 @@ func StateBlock(t tables.Tables, repo string, o BlockOpts) string {
 		b.WriteString("refused at replay:\n")
 		for _, r := range refused {
 			fmt.Fprintf(&b, "  %s: %s\n", r.EventID, bodyText(r.Err, repo))
+		}
+	}
+	if len(unread) > 0 {
+		b.WriteString("not read at replay:\n")
+		for _, l := range unread {
+			where := filepath.Join(".tree", "events", l.File)
+			if l.Line > 0 {
+				where = fmt.Sprintf("%s line %d", where, l.Line)
+			}
+			fmt.Fprintf(&b, "  %s: %s\n", where, bodyText(l.Err, repo))
 		}
 	}
 	return b.String()
