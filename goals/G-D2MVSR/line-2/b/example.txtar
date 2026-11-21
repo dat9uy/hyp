@@ -37,8 +37,10 @@ tries() { for n in 1 2 3; do ( r=$(mktemp -d) && cd "$r" && "$1" "$n" >"$out/c.$
 # ends the session. The owner reads the message one line at a time. A rule
 # fires on a line that every "if" matches (case-insensitive). Of the rules
 # that share an "if", the one fires whose "about" matches last in that line
-# or, when none does, last before it in the message. With no rule firing, the
-# owner says the default text. At most 12 turns.
+# or, when none does, last before it in the message. A rule with "once": true
+# fires at most once in the session; a rule with "after": text fires only once
+# the owner has said that text. With no rule firing, the owner says the
+# default text. At most 12 turns.
 import json, re, subprocess, sys
 
 d, prompt_file, owner_file, *skills = sys.argv[1:]
@@ -72,13 +74,16 @@ def turn(msg, sid):
             text = e.get("result") or ""
     return text, new_sid
 
+said, used = [], set()
 def answer(msg):
     if "?" not in msg: return None
     fired, upto = [], ""
     for para in msg.split("\n"):
         upto += para + "\n"
         groups = {}
-        for r in rules:
+        for i, r in enumerate(rules):
+            if r.get("once") and i in used: continue
+            if "after" in r and not any(r["after"] in s for s in said): continue
             if all(re.search(x, para, re.I) for x in r["if"]):
                 groups.setdefault(json.dumps(r["if"]), []).append(r)
         for rs in groups.values():
@@ -90,7 +95,8 @@ def answer(msg):
                     ms = [m.start() for m in re.finditer(r["about"], scope, re.I)]
                     if ms and ms[-1] > pos: best, pos = r, ms[-1]
                 if best: break
-            if best and best["say"] not in fired: fired.append(best["say"])
+            if best and best["say"] not in fired:
+                fired.append(best["say"]); used.add(rules.index(best))
     return " ".join(fired) if fired else default
 
 msg, sid = open(prompt_file).read(), None
@@ -99,12 +105,14 @@ for _ in range(12):
     emit({"who": "grill", "text": text})
     msg = answer(text)
     if msg is None: break
+    said.append(msg)
     emit({"who": "owner", "text": msg})
 -- input/check2.py --
 #!/usr/bin/env python3
 # check2.py TRANSCRIPT adjust|new: print whether the grill ran, whether it
 # asked the owner to state the odd thing as "on input X, I must see Y" or
-# "I must never see Y" before the owner did, and whether, after the owner's
+# "I must never see Y" (a question that holds "must see" or "must never see")
+# before the owner did, and whether, after the owner's
 # statement, it proposed the outcome named: an adjust, or a new Goal.
 import json, re, sys
 tf, want = sys.argv[1:]
@@ -114,7 +122,7 @@ print("the grill ran:", yn(any(e["who"] == "tool" for e in ev)))
 asked, stated, adjust, new = False, False, False, False
 for e in ev:
     t = e.get("text", "").lower()
-    if e["who"] == "grill" and not stated and "on input" in t and re.search(r"must (never )?see", t): asked = True
+    if e["who"] == "grill" and not stated and "?" in t and re.search(r"must (never )?see", t): asked = True
     if e["who"] == "owner" and t.startswith("on input"): stated = True
     if e["who"] == "grill" and stated:
         adjust = adjust or bool(re.search(r"\badjust", t))
@@ -130,8 +138,8 @@ The owner, actor owner, asks you to re-grill Goal @G@, which the runner selected
 The owner reads each of your messages and answers it. End your turn when you need the owner. There is no GitHub issue and no network: record nothing on GitHub and push nothing.
 -- input/owner.json --
 [
- {"if": ["on input", "must (never )?see"], "say": "On input sh greet.sh, I must see the date."},
- {"if": ["adjust|new goal"], "say": "Thank you. Stop here; I decide later."}
+ {"if": ["must (never )?see"], "once": true, "say": "On input sh greet.sh, I must see the date."},
+ {"if": ["\\?"], "after": "On input sh greet.sh", "say": "Thank you. Stop here; I decide later."}
 ]
 -- external --
 USER
