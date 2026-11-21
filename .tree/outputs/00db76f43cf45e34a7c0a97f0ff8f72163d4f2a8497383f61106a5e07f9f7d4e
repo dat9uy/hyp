@@ -1,0 +1,33 @@
+try 1: the grill ran: yes
+try 1: asks the open question about line-1: yes
+try 1: asks the open question about line-2: yes
+try 1: proposes a split after the two-thing answer: yes
+try 1: reads "never prints hello" aloud: yes
+try 1: asks the ceiling question: yes
+try 1: a line-1 example has a ceiling with goodbye: yes
+try 1: the Goal is open: yes
+try 1: says enough at the end: yes
+try 1: asks nothing at the end: yes
+try 1: asks for approval of an example: no
+try 2: the grill ran: yes
+try 2: asks the open question about line-1: yes
+try 2: asks the open question about line-2: yes
+try 2: proposes a split after the two-thing answer: yes
+try 2: reads "never prints hello" aloud: yes
+try 2: asks the ceiling question: yes
+try 2: a line-1 example has a ceiling with goodbye: yes
+try 2: the Goal is open: yes
+try 2: says enough at the end: yes
+try 2: asks nothing at the end: yes
+try 2: asks for approval of an example: no
+try 3: the grill ran: yes
+try 3: asks the open question about line-1: yes
+try 3: asks the open question about line-2: yes
+try 3: proposes a split after the two-thing answer: yes
+try 3: reads "never prints hello" aloud: yes
+try 3: asks the ceiling question: yes
+try 3: a line-1 example has a ceiling with goodbye: yes
+try 3: the Goal is open: yes
+try 3: says enough at the end: yes
+try 3: asks nothing at the end: yes
+try 3: asks for approval of an example: no
