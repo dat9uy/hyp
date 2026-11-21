@@ -212,6 +212,10 @@ questions.
    stop asking: say that the Goal has enough examples, and give the hand-off.
    Ask no further question and offer no more examples; more examples come only
    from real outputs.
+10. **Report the surfaces no example covers.** List every surface each line
+    reaches: each file, output or command where the line's words can be true
+    or false. Each surface that no example covers goes under "Not covered" in
+    the hand-off. Listing a surface is not a question to the owner.
 
 ## How to re-grill
 
@@ -220,7 +224,8 @@ The re-grill reviews a Goal against its line, not against the build that met it.
 - **When the owner reports something odd**, run `hyp status G` to see the
   Goal's lines, then ask the owner to state the odd thing in one of two
   forms, quoted in your question: "On input X, I must see Y." or "On input X,
-  I must never see Y." Ask before you read the outputs or name a cause.
+  I must never see Y." You may read the candidate's outputs to find what
+  looks off, but ask for the statement before you propose a fix.
 - **Then compare Y with the lines' words.** When a line's words already ask
   for Y or forbid it, propose an adjust: a new version of that line's example
   that adds Y as a floor (must see) or as a ceiling (must never see). When Y
@@ -244,7 +249,7 @@ The re-grill reviews a Goal against its line, not against the build that met it.
 ## Hand-off
 
 The grill ends with a record branch that holds the examples and the place
-events, and a hand-off for the owner: the Goal's line, the owner's decisions
+events, and a hand-off for the owner: the Goal's lines, the owner's decisions
 numbered with their words, and "Not covered" with each decision no example
 checks. Before the record PR, the issues already hold those decisions and the
 "Not covered" items they own.
