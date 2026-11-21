@@ -182,10 +182,10 @@ message that needs an answer holds a question mark.
    same line of your message: "What could a wrong build print that this floor
    still lets through?" Ask it word for word: do not name the floor in it, and
    do not change "this floor" to "these floors". Ask it for every line, also a
-   line with no "never" words. Each wrong output the owner names becomes a `ceiling` section of
-   that line's example. When the owner names none, the example has no ceiling.
-   Ask the split and ceiling questions together, in your second message,
-   after the owner answered the open questions.
+   line with no "never" words. Each wrong output the owner names becomes a
+   `ceiling` section of that line's example. When the owner names none, the
+   example has no ceiling. Ask the split and ceiling questions together, in
+   your second message, after the owner answered the open questions.
 5. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
    `example.txtar` and a `probe/` folder. The `example.txtar` sections are
    `words` (the owner's sentence), `run` (the command run on the subject),
@@ -219,8 +219,8 @@ message that needs an answer holds a question mark.
 9. **Stop when the Goal has enough.** Once every line has an example that
    gives its line's verdict on H0, `hyp status G` shows the Goal `open`. Then
    stop asking. Your last message starts with the sentence "The Goal has
-   enough examples." and then gives the hand-off. It holds no question and no question mark: offer no
-   more examples and no next step as a question.
+   enough examples." and then gives the hand-off. It holds no question and no
+   question mark: offer no more examples and no next step as a question.
 
 ## How to re-grill
 
@@ -236,8 +236,8 @@ The re-grill reviews a Goal against its line, not against the build that met it.
   for Y or forbid it, propose an adjust: a new version of that line's example
   that adds Y as a floor (must see) or as a ceiling (must never see). When Y
   needs words that no line has, propose a new Goal. Use the words "an adjust"
-  or "a new Goal" in the proposal. The owner decides.
-
+  or "a new Goal" in the proposal. The owner decides. An adjust of a selected
+  Goal waits for the owner's unselect (see "After a select").
 - **At a stop for the owner** (`Two candidates`, `Budget used`), read the table
   of outputs `hyp status G` prints. If an example let a build pass that the
   line does not mean, or failed one it does, the fix is an example: a new
@@ -248,8 +248,8 @@ The re-grill reviews a Goal against its line, not against the build that met it.
   gap that an example on an existing line can hold, the owner unselects the
   Goal first. The Goal is then open again, its rows and verdicts stay, and you
   place the new example as at any other stop. A gap that needs a new line is a
-  new Goal: the owner lands this Goal, and the new Goal cites it.
-- A new line is always a new Goal, never an edit of an open one.
+  new Goal: the owner lands this Goal, and the new Goal cites it. A new line
+  is always a new Goal, never an edit of an open one.
 - Use `hyp show <actor>` to read exactly what hyp printed to the runner.
 
 ## Hand-off
@@ -262,9 +262,8 @@ checks. Before the record PR, the issues already hold those decisions and the
 
 A runner works from the Goal: what `hyp status G --role runner` prints, which
 holds the Goal's words, lines and placed examples, and the model in the spec
-folder, with the run rules. If a
-runner reads the hand-off, it is background, and no "Not covered" item is a
-task.
+folder, with the run rules. If a runner reads the hand-off, it is
+background, and no "Not covered" item is a task.
 
 The owner starts a runner with the prompt in the Start section of the run
 rules, with the Goal and the runner's actor filled in. Do not write a runner
@@ -277,8 +276,9 @@ runner looks for no rivals until the owner unselects.
   line's verdict on H0.
 - Each decision of the owner is the words, a line or an example, or is listed
   under "Not covered".
-- The issue you grill holds each decision of the owner in the owner's words,
-  and each "Not covered" item another open issue owns is on that issue.
+- When the Goal comes from an issue, the issue you grill holds each decision
+  of the owner in the owner's words, and each "Not covered" item another open
+  issue owns is on that issue.
 
 ## Resources
 
