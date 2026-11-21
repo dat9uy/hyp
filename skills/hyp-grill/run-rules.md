@@ -32,8 +32,8 @@ Run the hyp Goal <G> as its runner.
    run of the budget. When the record branch holds no spec and you write the
    Goal's model, follow the hyp-statechart skill: try each switch as a patch
    this way, and report each potential Hypothesis that meets every example
-   with the outputs `hyp try` printed, never from the model alone. Put its
-   patch in the PR body as a diff.
+   with the outputs `hyp try` printed, never from the model alone. Its patch
+   goes in the PR body as a diff (rule 9).
 3. **A refusal names its guard.** Read the guard's name and fix its cause. Never
    run again to get a different verdict.
 4. **Keep every commit you ran.** The budget counts Hypotheses: each distinct
@@ -51,6 +51,7 @@ Run the hyp Goal <G> as its runner.
 8. **Stop for the owner when hyp stops.** At `Two candidates` or
    `Budget used`, stop and report the state block.
 9. **The PR body is the select's report.** Paste it as hyp printed it; hyp
-   writes nothing to GitHub.
+   writes nothing to GitHub. Below it, add only the diffs of rule 2, each
+   with its switch and the outputs `hyp try` printed.
 10. **A defect outside the Goal** is fixed only when the line needs it.
     Otherwise list it in the PR for the owner.

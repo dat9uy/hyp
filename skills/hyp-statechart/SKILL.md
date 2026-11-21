@@ -81,7 +81,7 @@ record branch so that every runner commit holds it:
 A switch in the model is only a claim about the code. Make each one real.
 Trying a switch is not running a rival: a rival is a second commit run with
 `hyp run`, which uses runs of the budget and can stop the Goal at
-`Two candidates`. A switch try records nothing and uses no run.
+`Two candidates`.
 
 1. Write the switch's build as a patch on the code, in a scratch worktree of
    the record branch. The patch is a potential Hypothesis: hyp has no record
@@ -91,11 +91,11 @@ Trying a switch is not running a rival: a rival is a second commit run with
 3. When some example fails on the patch, the examples separate it from the
    build under test.
 4. When the patch meets every example, the examples do not separate the two
-   builds. Report it to the owner with the switch, the patch and the outputs
-   `hyp try` printed. The owner says which output is wanted, or that both
-   are. Only after that choice is an example placed that separates them, or
-   the choice listed under "Not covered". A potential Hypothesis read from the
-   model alone, never tried, is not such a report.
+   builds. Report it to the owner with the switch, the patch as a diff and the
+   outputs `hyp try` printed. The owner says which output is wanted, or that
+   both are. Only after that choice is an example placed that separates them,
+   or the choice listed under "Not covered". A potential Hypothesis read from
+   the model alone, never tried, is not such a report.
 
 Remove each patch when you are done; the record branch holds only the model and
 the examples.
