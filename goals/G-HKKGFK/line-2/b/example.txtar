@@ -1,0 +1,70 @@
+-- words --
+No .md file of the skills hyp ships holds, in one paragraph, list item or table row, a rule to spot check a variant, to try one example the tool predicts to fail for each other variant, or to try one more example the tool predicts to fail.
+-- input/check.pl --
+#!/usr/bin/perl
+# Read every .md file under skills/ of the subject (the working directory),
+# split each into units (a paragraph, a list item, a heading or a table row,
+# its lines joined and its spaces collapsed), and print one line per rule of
+# the rules file: a rule holds when one unit matches every pattern of it,
+# case-insensitive. With --each, print one line per .md file instead, saying
+# whether any unit of that file matches every pattern of any rule.
+use strict;
+use warnings;
+use File::Find;
+
+my ($rules, $each) = ('', 0);
+while (@ARGV) {
+    my $k = shift @ARGV;
+    if ($k eq '--rules') { $rules = shift @ARGV }
+    elsif ($k eq '--each') { $each = 1 }
+    else { die "unknown flag $k\n" }
+}
+sub slurp { my ($f) = @_; open my $h, '<', $f or return ''; local $/; my $t = <$h>; return defined $t ? $t : '' }
+my @files;
+find({ no_chdir => 1, wanted => sub { push @files, $File::Find::name if -f $_ && /\.md\z/ } }, 'skills') if -d 'skills';
+@files = sort @files;
+sub units {
+    my @units;
+    for my $f (@_) {
+        my @cur;
+        my $flush = sub { if (@cur) { my $u = join(' ', @cur); $u =~ s/\s+/ /g; push @units, $u; @cur = () } };
+        for my $line (split /\n/, slurp($f)) {
+            if ($line =~ /^\s*$/) { $flush->(); next }
+            if ($line =~ /^\s*([-*+]|\d+[.)])\s/ || $line =~ /^#/ || $line =~ /^\s*\|/) { $flush->() }
+            push @cur, $line;
+            $flush->() if $line =~ /^#/ || $line =~ /^\s*\|/;
+        }
+        $flush->();
+    }
+    return @units;
+}
+my @rules = map { [split /\t/] } grep { !/^\s*$/ } split /\n/, slurp($rules);
+sub hits {
+    my %h;
+    for my $r (@rules) {
+        my ($name, @pats) = @$r;
+        UNIT: for my $x (@_) {
+            for my $p (@pats) { next UNIT unless $x =~ /$p/i }
+            $h{$name} = 1;
+            last;
+        }
+    }
+    return %h;
+}
+print "skill files read: ", (@files ? 'yes' : 'no'), "\n";
+if ($each) {
+    my @with = grep { my %h = hits(units($_)); %h } @files;
+    print "skill files that hold a rule to try a predicted fail once more: ", (@with ? join(' ', @with) : 'none'), "\n";
+} else {
+    my %h = hits(units(@files));
+    print "rule $_->[0]: ", ($h{$_->[0]} ? 'yes' : 'no'), "\n" for @rules;
+}
+-- input/rules.txt --
+spot-check	spot[- ]check
+one-predicted-fail-per-other-variant	predict	fail	(each|every) other variant
+one-more-predicted-fail	(one|once) more|another (example|try)	predict	fail
+-- run --
+perl "$HYP_EXAMPLE/input/check.pl" --each --rules "$HYP_EXAMPLE/input/rules.txt"
+-- floor: equals --
+skill files read: yes
+skill files that hold a rule to try a predicted fail once more: none
