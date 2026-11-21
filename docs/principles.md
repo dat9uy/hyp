@@ -76,7 +76,7 @@ The four roles are `owner`, `grill`, `probe-writer` and `runner`
    may unselect a selected Goal so that the grill can place again.
 4. **The owner merges.** hyp writes nothing to GitHub. The merge is where the
    owner accepts a build and vetoes its mechanics.
-5. **Only the grill places an example** (the guard Own case). The grill asks
+5. **Only the grill places an example** (the guard Grill places). The grill asks
    the owner product questions only, and reports each decision that no example
    checks.
 6. **The runner runs lines and selects one candidate.** It never places. It

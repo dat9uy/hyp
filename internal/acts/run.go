@@ -150,7 +150,7 @@ func Run(o RunOpts) (RunReport, error) {
 		return RunReport{}, fault.EnvFault(fault.GoalVanished, rep.Goal)
 	}
 	rep.Used = tables.RunsUsed(g)
-	rep.LastRun = rep.Used == tables.MaxTrees-1
+	rep.LastRun = rep.Used == tables.MaxHypotheses-1
 	if stable != nil {
 		return rep, stable
 	}
@@ -178,7 +178,7 @@ func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey stri
 			c.placed = append(c.placed, p)
 		}
 	}
-	if err := tables.GuardNotEnded(g); err != nil {
+	if err := tables.GuardNotLanded(g); err != nil {
 		return runChecked{}, err
 	}
 	if err := tables.GuardNotSelected(g); err != nil {

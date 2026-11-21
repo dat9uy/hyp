@@ -184,7 +184,7 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   never merged: a clone's agents share one trace folder, and git carries none
   of it.
 - **Which guards replay checks again.** Only the guards that read the tables:
-  Draft, Whole lines, Not ended, Own case, Open, Goal's actor, Budget, Stable,
+  Draft, Whole lines, Not landed, Grill places, Open, Goal's actor, Budget, Stable,
   Selected, Owner lands, Owner unselects, New cell and Own Result, the table
   half of Adds only (the hash
   is new on its key), the table half of Candidate (the row is met on every
@@ -214,7 +214,7 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   unselect.
 - **A write after a land in another clone.** A clone that has not merged a
   land can still place, run or select on that Goal. Once the logs merge, each
-  such event after the land in merge order is refused at replay by Not ended,
+  such event after the land in merge order is refused at replay by Not landed,
   and `status G` lists it under "refused at replay".
 - These rules follow from rules already decided: the store of ADR 0020 and
   ADR 0022. Owner said, 2026-11-19: "Why ask me, event
@@ -282,7 +282,7 @@ Goal can be selected again after it.
 | `written` | A `goal.add` exists, and the Goal is not open. | `run` on a Hypothesis other than H0 (**Open**), `select` (**Candidate**: no row is met yet), `land` (**Stop**: a written Goal has no stop), `unselect` (**Selected**: no select) |
 | `open` | Every line has at least one placed example, and every current placement has a live cell on H0's row with the verdict its line's kind needs: `failed` on a gap line, `met` on a guard line. | `add goal G` replace (**Draft**), `land` while the Goal has no stop (**Stop**), `unselect` (**Selected**: no select), a runner's `select` after an unselect with no new cell since (**New cell**) |
 | `selected` | The Goal has a select and no land. | `add goal G` replace (**Draft**); `place`, `run` and a second `select` (**Selected**: the Goal already has a select); `add goal --from G` (**From landed**) |
-| `landed` | The Goal has a land. | every write: `add goal G` replace (**Draft**), `place`, `run`, `select`, `unselect` and a second `land` (**Not ended**) |
+| `landed` | The Goal has a land. | every write: `add goal G` replace (**Draft**), `place`, `run`, `select`, `unselect` and a second `land` (**Not landed**) |
 
 All refusals are exit 1. A Draft replace that changes the lines leaves existing
 placements on their keys; a placement whose line key is gone is history, and the
@@ -334,7 +334,7 @@ the first guard that fails, in the act's order (§8).
   always passes.
 - **Whole lines** — Every line has a kind, `gap` or `guard`, and the Goal has at
   least one gap line. Query: over the act's own input.
-- **Not ended** — No write after the Goal ends: the owner's `land` ends it.
+- **Not landed** — No write after the Goal is landed: the owner's `land` ends it.
   Checked first by `place`, `run`, `select`, `land` and `unselect`, and by
   replay. Query:
   `Lands[G]` does not exist.
@@ -342,7 +342,7 @@ the first guard that fails, in the act's order (§8).
   hash equals H0's. Query: `Goals[G].state == open`.
 - **Goal's actor** — Only the actor that added the Goal selects for the owner,
   lands or unselects the Goal, or resets the budget. Query: the act's actor `== Goals[G].actor`.
-- **Own case** — Only the grill places an example; the runner never places.
+- **Grill places** — Only the grill places an example; the runner never places.
   Query: the act's role `== grill`.
 - **Kind** — H0 gives the verdict the line's kind needs under the example's
   Probe: a gap example fails on H0, a guard example is met on H0. Query: run the
@@ -478,19 +478,19 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | Act | Role | Guards, in order | Writes |
 |---|---|---|---|
 | `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines, From landed (with `--from`) | `goal.add` |
-| `place G LINE/EXAMPLE` | grill | Not ended, not Selected, Own case, Committed, Adds only, Kind | `example.place` |
-| `run COMMIT LINE` | runner | Not ended, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
-| `select G TREE` | runner, or owner | Not ended, not Selected, Candidate, New cell (runner only), Goal's actor (owner only), Spec, Own path | `select` |
-| `land G` | owner | Not ended, Owner lands, Goal's actor, Stop | `land` |
-| `unselect G` | owner | Not ended, Owner unselects, Goal's actor, Selected | `unselect` |
-| `reset G` | owner | Not ended, Goal's actor | `budget.reset` |
+| `place G LINE/EXAMPLE` | grill | Not landed, not Selected, Grill places, Committed, Adds only, Kind | `example.place` |
+| `run COMMIT LINE` | runner | Not landed, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
+| `select G HASH` | runner, or owner | Not landed, not Selected, Candidate, New cell (runner only), Goal's actor (owner only), Spec, Own path | `select` |
+| `land G` | owner | Not landed, Owner lands, Goal's actor, Stop | `land` |
+| `unselect G` | owner | Not landed, Owner unselects, Goal's actor, Selected | `unselect` |
+| `reset G` | owner | Not landed, Goal's actor | `budget.reset` |
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
 | `status [G] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
 | `try G LINE/EXAMPLE [--worktree] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
 | `show ACTOR` | any | none | nothing in the repository; a `read` in the trace |
 | `prune [--remove]` | any | none | nothing in the repository; a `read` in the trace; with `--remove`, removes the trace folders it lists |
 
-- In `select G TREE`, TREE is the selected row's subject hash, or a prefix of
+- In `select G HASH`, HASH is the selected row's subject hash, or a prefix of
   it, as hyp prints it. The select records the commit of the row's latest
   Result in merge order.
   Spec and Own path read that commit, and the PR holds it. Every commit of a leaf
@@ -542,7 +542,7 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 
   | When | Who reads | What, and why |
   |---|---|---|
-  | Every hyp command | hyp, in replay | the land event, to calculate `landed` and refuse every write to the Goal (Not ended) |
+  | Every hyp command | hyp, in replay | the land event, to calculate `landed` and refuse every write to the Goal (Not landed) |
   | The return of `land`, and `status G` | any role | the record of the decision: the PR body, or the table of outputs with no select (§12) |
   | `status` for every Goal | any role | only the state block of a landed Goal, as of a selected one (§12) |
   | `add goal --from G` | hyp | whether G is landed (From landed) |
@@ -682,7 +682,7 @@ Owner accepted, 2026-11-19.
 
 The actor comes from `--actor` or `$HYP_ACTOR`, the role from
 `--role` or `$HYP_ROLE`. Each event stores its role in the payload. A write act
-missing either, or naming a role outside the four, is exit 2. Only Own case and
+missing either, or naming a role outside the four, is exit 2. Only Grill places and
 Candidate read the role; elsewhere it is recorded, not enforced.
 Owner accepted, 2026-11-19.
 
@@ -1091,7 +1091,7 @@ Deferred by the owner until a real event shows the need:
 - **o11-blind** — whether the Probe writer can be kept from reading the
   candidate. Owner said, 2026-11-18: deferred with o7-actors.
 - **o8-end** — closed by Goal G-M66KKY: the owner's `land` is the act that
-  ends a Goal, at a stop (§8). Not ended refuses every write after it. A Goal
+  ends a Goal, at a stop (§8). Not landed refuses every write after it. A Goal
   that never reaches a stop has no end yet; that waits for a real event, as
   the owner said: "whether we need an end state + end action for owner will
   leave open until we see 'dangling open' goal is the problem later on".

@@ -88,8 +88,9 @@ commands:
                                          its output, stderr, exit code and
                                          verdict as place and run would record
                                          them; records nothing and uses no run
-  select G TREE [--why TEXT]             select the candidate row TREE of Goal G;
-                                         the report is the PR body
+  select G HASH [--why TEXT]             select the candidate row of Goal G whose
+                                         subject hash is HASH; the report is the
+                                         PR body
   land G [--why TEXT]                    the owner lands Goal G at its stop: the
                                          Goal ends, and its events up to the
                                          land are the snapshot that a later

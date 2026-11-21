@@ -212,7 +212,7 @@ func TestPlaceRefusalExit1(t *testing.T) {
 		t.Fatalf("code %d, stdout %q, stderr %q; want the refusal on stderr and the state block on stdout", code, out, errs)
 	}
 	t.Setenv("HYP_ROLE", "runner")
-	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 1 || !strings.Contains(errs, "Own case") {
+	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 1 || !strings.Contains(errs, "Grill places") {
 		t.Fatalf("runner: code %d, stderr %q", code, errs)
 	}
 }

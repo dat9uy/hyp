@@ -28,7 +28,7 @@ type LandReport struct {
 }
 
 // Land records the owner's land of a Goal at a stop, or refuses with the
-// first failing guard of the state machine, section 8: Not ended, Owner
+// first failing guard of the state machine, section 8: Not landed, Owner
 // lands, Goal's actor, then Stop. The land ends the Goal: its events up to
 // the land, and the outputs they name, are the snapshot later Goals cite. It
 // checks no commit and does not need a merge. Everything is checked under the
@@ -52,7 +52,7 @@ func Land(o LandOpts) (LandReport, error) {
 		if err != nil {
 			return ev, err
 		}
-		if err := tables.GuardNotEnded(g); err != nil {
+		if err := tables.GuardNotLanded(g); err != nil {
 			return ev, err
 		}
 		if err := tables.GuardOwnerLands(o.Role); err != nil {

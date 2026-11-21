@@ -33,7 +33,7 @@ type SelectReport struct {
 }
 
 // Select records a select, or refuses with the first failing guard of the
-// state machine, section 8: Not ended (always holds), Selected, Candidate,
+// state machine, section 8: Not landed (always holds), Selected, Candidate,
 // New cell (for the runner), Goal's actor (for the owner), Spec, then Own
 // path. Spec and Own path read the
 // commit of the row's latest Result in merge order, which is the commit the
@@ -58,7 +58,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err != nil {
 			return ev, err
 		}
-		if err := tables.GuardNotEnded(g); err != nil {
+		if err := tables.GuardNotLanded(g); err != nil {
 			return ev, err
 		}
 		if err := tables.GuardNotSelected(g); err != nil {

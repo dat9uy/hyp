@@ -61,13 +61,13 @@ func TestLandAfterSelectNamesTheSelect(t *testing.T) {
 	if got := AllowedFor(g, e.root); len(got) != 0 {
 		t.Fatalf("a landed Goal allows %+v", got)
 	}
-	// a landed Goal takes no write: Not ended refuses each
+	// a landed Goal takes no write: Not landed refuses each
 	_, err = Land(e.landOpts("owner-1", "owner"))
-	refusedBy(t, err, "Not ended")
+	refusedBy(t, err, "Not landed")
 	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
-	refusedBy(t, err, "Not ended")
+	refusedBy(t, err, "Not landed")
 	_, err = e.run(commit)
-	refusedBy(t, err, "Not ended")
+	refusedBy(t, err, "Not landed")
 	if len(e.lands(t)) != 1 {
 		t.Fatal("a refused land wrote an event")
 	}

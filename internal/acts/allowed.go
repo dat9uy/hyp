@@ -108,10 +108,10 @@ func causeOf(g *tables.Goal, id string) Cause {
 // with a live cell for every placed example. The caller checks no candidate.
 func budgetUsed(g *tables.Goal) bool {
 	counted := g.CountedTrees()
-	if len(counted) < tables.MaxTrees {
+	if len(counted) < tables.MaxHypotheses {
 		return false
 	}
-	third := counted[tables.MaxTrees-1]
+	third := counted[tables.MaxHypotheses-1]
 	for _, p := range g.Placed() {
 		if g.Verdict(p.Key, third) == tables.NotRun {
 			return false
@@ -227,7 +227,7 @@ func runLines(g *tables.Goal, st Standing, fix bool) []Ready {
 		if !slices.ContainsFunc(g.Placed(), func(p tables.Placement) bool { return p.Line == l.Key }) {
 			continue
 		}
-		if len(counted) < tables.MaxTrees || fix {
+		if len(counted) < tables.MaxHypotheses || fix {
 			add("", l.Key)
 			continue
 		}
