@@ -51,8 +51,9 @@ extra rule.
 
 ## The issue holds the decisions
 
-A chat, a local page and a memory note are read by no one else, so what the
-grill learns goes to the issues, in the same session, with `gh issue comment`.
+A chat, a local page and a memory note are read by no one else, so when the
+Goal comes from an issue, what the grill learns goes to the issues, in the same
+session, with `gh issue comment`.
 The issue is the owner's record, not a rule for the runner:
 
 - **Each decision of the owner goes to the issue you grill**, with the owner's
@@ -86,9 +87,11 @@ The issue is the owner's record, not a rule for the runner:
 4. **Record the owner's answer as given.** The label the owner picked is the
    recorded text: keep its exact words, never the option's description or your
    paraphrase of it.
-5. **A correction is not consent.** When the owner corrects a draft, apply the
-   correction and show the result again. Run no act on a correction; wait for
-   the owner's consent to that act.
+5. **A correction is not consent.** When the owner corrects a draft of the
+   words or lines, apply the correction and show the result again. The owner
+   records the Goal only after agreeing to the draft. This step is about the
+   owner's acts; the examples of a recorded Goal follow "How to grill the
+   examples".
 6. **Propose missing names.** When the Goal needs a name the owner did not give
    (an example name, a folder, a file), propose one and let the owner veto it;
    do not turn it into a question.
@@ -138,36 +141,102 @@ The issue is the owner's record, not a rule for the runner:
       "Not covered". Otherwise place an example that separates the two builds.
     - A prediction alone, never tried, never reaches the owner: only a tried
       variant does.
+    - Stop trying a variant at its first failed example. A variant that fails
+      one example meets not every example, so its other tries teach nothing.
 
     At select, hyp refuses a model that has a rule no variant config names, or
     no chart; a spec folder with no model is selected as before.
 
-## How to write examples
+## How to grill the examples
 
-1. **List the surfaces before the examples.** Before you write any example,
-   list every surface the line reaches: each file, output or command where the
-   line's words can be true or false. Then give each surface an example, or
-   report it under "Not covered".
-2. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
+Use this when the Goal is recorded and its lines need examples. The owner's
+answers are the examples: you write them down, you do not design them. The
+grill takes two rounds of questions, in this order: first the open question
+about every line, then, after you write the floors, the split and ceiling
+questions. The owner answers only a message that asks a question, so every
+message that needs an answer holds a question mark.
+
+1. **Ask the open question about each line.** Ask, for each line, exactly
+   "What would you do, and what would you see?" Put each line's question on
+   its own line of your message, starting with the line's key and words, for
+   example: `line-1 (sh greet.sh prints bye): What would you do, and what would
+   you see?` Ask every line in one message. Offer no draft and no options.
+   This first message asks only the open question: it says nothing yet about
+   ceilings or splits.
+2. **The answer is the example.** What the owner does is the `run`, in the
+   owner's words (for example `sh greet.sh`). What the owner sees, the want,
+   is the floor, as a literal. Write the example from the answer. Do not read
+   it back to the owner and do not ask the owner to accept it: no message asks
+   whether an example is right, and no message uses the words "confirm",
+   "approve" or "look right".
+3. **Two things to see is two rules.** When one line's answer names two
+   separate things to see (for example a list and a count), warn that the line
+   combines two rules, and propose to split it into two lines. Ask the owner
+   whether to split; the owner decides. Raise a split only after the owner's
+   answer names two things, never in advance. A split changes the lines, so the
+   owner records it while the Goal is `written`. When the owner keeps one
+   line, its example holds a floor for each thing.
+4. **Ask the ceiling question about each line.** After you write a line's
+   floor, read aloud the line's "must never" words, quoted exactly as the line
+   has them (for example: line-1 says "never prints hello"), and ask on the
+   same line of your message: "What could a wrong build print that this floor
+   still lets through?" Ask it word for word: do not name the floor in it, and
+   do not change "this floor" to "these floors". Ask it for every line, also a
+   line with no "never" words. Each wrong output the owner names becomes a `ceiling` section of
+   that line's example. When the owner names none, the example has no ceiling.
+   Ask the split and ceiling questions together, in your second message,
+   after the owner answered the open questions.
+5. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
    `example.txtar` and a `probe/` folder. The `example.txtar` sections are
    `words` (the owner's sentence), `run` (the command run on the subject),
    `input/<path>` files, and at least one `floor: contains` or `floor: equals`,
-   with any `ceiling`. Floors are literals, byte for byte.
-3. **Use the generic Probe.** Copy [probe/run](probe/run) from this skill into
-   the example's `probe/run` and keep it executable. It runs `$HYP_RUN` in the
-   subject, prints its stdout, then a last line `exit N`. Write a new Probe only
-   when the example needs one that this one cannot be.
-4. **Make the check able to fail.** A gap example must fail on H0 and a guard
-   example must be met on H0. `hyp try` shows the verdict on H0 before you
-   place; `hyp try --worktree` can also show it on the files of a checkout.
-5. **Run `hyp try` before you place.** Run `hyp try G LINE/EXAMPLE` and read its
+   with any `ceiling`. Floors and ceilings are literals, byte for byte.
+6. **Give the generic Probe to each example it can run.** The generic Probe,
+   [probe/run](probe/run), runs `$HYP_RUN` in a copy of the subject, prints its
+   stdout, then a last line `exit N`. It can run an example when the owner's
+   command, run in a plain copy of the subject, shows what the owner sees.
+   Copy it with `cp` into the example's `probe/run`, byte for byte, and keep it
+   executable.
+7. **Hand every other example to a Probe writer.** When the owner's answer
+   names a state to set up before the command (for example "in a git
+   repository with three commits"), the generic Probe cannot run it. Then:
+   - Write and commit the `example.txtar`. Its `run` stays the owner's command,
+     word for word; the setup goes in the Probe, never in the `run`.
+   - Write no Probe code for it yourself. Start a Probe writer: an agent
+     whose prompt is the probe-writer block that
+     `hyp status G --role probe-writer` prints, copied word for word, followed
+     by the example's key (for example `line-2/a`), its words and the setup it
+     needs.
+   - The Probe writer commits the example's `probe/` folder and returns the
+     output of `hyp try`. Start no Probe writer for an example the generic
+     Probe can run.
+8. **Run `hyp try` before you place.** A gap example must fail on H0 and a
+   guard example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
    verdict, exit code, output and stderr. It records nothing and uses no run.
-   Only then commit the folder and place it, with the place line
+   When the verdict is not the one the line needs, fix the example and try
+   again. Then commit the folder and place it, with the place line
    `hyp status G --role grill` prints for that line.
+9. **Stop when the Goal has enough.** Once every line has an example that
+   gives its line's verdict on H0, `hyp status G` shows the Goal `open`. Then
+   stop asking. Your last message starts with the sentence "The Goal has
+   enough examples." and then gives the hand-off. It holds no question and no question mark: offer no
+   more examples and no next step as a question.
 
 ## How to re-grill
 
 The re-grill reviews a Goal against its line, not against the build that met it.
+
+- **When the owner reports something odd**, run `hyp status G` to see the
+  Goal's lines, then ask the owner to state the odd thing in one of two
+  forms, quoted in your question: "On input X, I must see Y." or "On input X,
+  I must never see Y." Ask it as a question that ends with a question mark,
+  for example: Can you state it as "On input X, I must see Y." or "On input X,
+  I must never see Y."? Ask before you read the outputs or name a cause.
+- **Then compare Y with the lines' words.** When a line's words already ask
+  for Y or forbid it, propose an adjust: a new version of that line's example
+  that adds Y as a floor (must see) or as a ceiling (must never see). When Y
+  needs words that no line has, propose a new Goal. Use the words "an adjust"
+  or "a new Goal" in the proposal. The owner decides.
 
 - **At a stop for the owner** (`Two candidates`, `Budget used`), read the table
   of outputs `hyp status G` prints. If an example let a build pass that the
