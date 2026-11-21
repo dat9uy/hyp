@@ -34,8 +34,8 @@ const maxCell = 60
 // used, stop with the act that caused it and what it waits for, the allowed acts of every role as ready
 // command lines, a marked split line, the Results Stable refused, and, while
 // the Goal is selected, the PR body; at a stop with no select, the table of
-// outputs. A landed Goal prints that record only when o names it: the list of
-// every Goal prints its state block alone. Events refused at replay close it,
+// outputs. A selected or landed Goal prints its PR body only when o names it:
+// the list of every Goal prints its state block alone. Events refused at replay close it,
 // then the lines of the events files that replay could not read: such a line
 // names no Goal, so every block lists all of them. repo is the git top level.
 func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o BlockOpts) string {
@@ -115,8 +115,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
 	}
 	switch {
-	case g.Land != nil && o.Goal == "":
-		// the list of every Goal prints only the state block of a landed Goal
+	case o.Goal == "" && (g.Land != nil || st.Stop == acts.StopSelected):
+		// the list of every Goal prints no PR body: an output it quotes can
+		// hold lines that read as Goals of this store
 	case st.Stop == acts.StopSelected:
 		if !o.NoBody {
 			fmt.Fprintf(b, "\nPR body:\n\n%s", prBody(repo, g))

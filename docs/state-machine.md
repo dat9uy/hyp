@@ -544,7 +544,7 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   |---|---|---|
   | Every hyp command | hyp, in replay | the land event, to calculate `landed` and refuse every write to the Goal (Not ended) |
   | The return of `land`, and `status G` | any role | the record of the decision: the PR body, or the table of outputs with no select (§12) |
-  | `status` for every Goal | any role | only the state block of a landed Goal |
+  | `status` for every Goal | any role | only the state block of a landed Goal, as of a selected one (§12) |
   | `add goal --from G` | hyp | whether G is landed (From landed) |
 
 - `reset` and `retract` are specified here and built as later v2 Goals.
@@ -908,9 +908,17 @@ runner may:
 - **The record of a landed Goal.** `status G` and the return of `land` print
   the state block of a landed Goal, then the record of its decision: the PR
   body when the Goal has a select, or the table of outputs (§11) when it has
-  none. `status` for every Goal prints only the state block of a landed Goal.
-  A selected Goal that is not landed prints its PR body in both. Owner said,
-  2026-11-20 (#245): "agree with the mix".
+  none. A selected Goal that is not landed prints its PR body in `status G`
+  too.
+- **The list of every Goal holds no PR body.** `status` for every Goal prints
+  only the state block of a selected or a landed Goal. A PR body quotes each
+  output byte for byte at column 0, and an output can hold any text: an
+  example that runs `hyp status` in a store of its own prints lines such as
+  `G-J3MA1E  written`, which a reader that scans lines takes for Goals of this
+  store (#255). So in the list each line that starts with a Goal id is a Goal
+  of this store, and the PR body stays one `status G` away. This replaces the
+  owner's decision of 2026-11-20 (#245) that the list prints a selected
+  Goal's PR body; owner decided, 2026-11-21 (#255).
 - **What a written or open Goal asks.** `status G`, with or without `--role`,
   prints below the state block of a written or open Goal what it asks, under
   `The Goal asks:`: its words, each line's key, kind and text, and under each
