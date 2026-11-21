@@ -901,6 +901,21 @@ runner may:
   none. `status` for every Goal prints only the state block of a landed Goal.
   A selected Goal that is not landed prints its PR body in both. Owner said,
   2026-11-20 (#245): "agree with the mix".
+- **What a written or open Goal asks.** `status G`, with or without `--role`,
+  prints below the state block of a written or open Goal what it asks, under
+  `The Goal asks:`: its words, each line's key, kind and text, and under each
+  line every placed example in its current version, with its version, hash,
+  who placed it and when, its verdict and exit code on H0 at place, and its
+  `example.txtar` byte for byte in a fence, which holds its words, run, inputs,
+  floors and ceilings. A line with no placed example prints
+  `no example placed`. The example is read from git by its hash, never from
+  the files on disk. Only `status G` prints it: `status` for every Goal, the
+  return of every act and the return of `try` print the state block alone, and
+  a selected or landed Goal prints its record as above. This is line 1 of Goal
+  G-X0HY3A: "While a Goal is written or open, `hyp status G`, with or without
+  `--role`, prints the Goal's words, each line's key and text, and for each
+  placed example its key, words, run, floors, ceilings and its verdict on H0
+  at place".
 - `show ACTOR` prints the trace (§8) and no state block: it shows what the
   actor got, not the state now. `prune` prints its list and no state block:
   it is about the trace folders, not a Goal.

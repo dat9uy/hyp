@@ -101,7 +101,9 @@ commands:
                                          records a new cell
   status [G] [--role ROLE]               print the state of every Goal, or of G:
                                          its stop, its waits and the allowed
-                                         acts as ready command lines
+                                         acts as ready command lines; of a
+                                         written or open G, also its words,
+                                         lines and placed examples
   show ACTOR                             print every output hyp printed to
                                          ACTOR, byte for byte, oldest first
   prune [--remove]                       list the traces under ~/.hyp/traces of
@@ -482,7 +484,7 @@ func statusCmd(c *call, args []string, stdout io.Writer) error {
 	}
 	o := BlockOpts{Role: role}
 	if len(positional) == 1 {
-		o.Goal = positional[0]
+		o.Goal, o.Ask = positional[0], true
 	}
 	block, err := blockFor(c.dir, o)
 	if err != nil {

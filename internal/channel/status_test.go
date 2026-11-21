@@ -153,6 +153,21 @@ func TestStatusOpenGolden(t *testing.T) {
 	golden(t, "status-open.golden", out)
 }
 
+// TestStatusGoalAsksGolden: status G of an open Goal prints, below its state
+// block, what the Goal asks: its words, its lines and each placed example as
+// the example holds it. The list of every Goal prints the state block alone.
+func TestStatusGoalAsksGolden(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	code, out, errs := run(t, "status", f.goal, "--role", "runner")
+	if code != 0 || !strings.Contains(out, "The Goal asks:") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	golden(t, "status-goal-asks.golden", out)
+	if _, all, _ := run(t, "status"); strings.Contains(all, "The Goal asks:") {
+		t.Fatalf("status for every Goal prints what a Goal asks:\n%s", all)
+	}
+}
+
 func TestStatusSelectedGolden(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
 	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})

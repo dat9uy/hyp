@@ -17,6 +17,7 @@ type BlockOpts struct {
 	Goal   string // a Goal id or goal.add event id; empty for every Goal
 	Role   string // filter the allowed acts to one role; empty for all four
 	NoBody bool   // leave the PR body out: the report above already printed it
+	Ask    bool   // a written or open Goal prints what it asks: hyp status G
 }
 
 // roles are the roles a block lists, in the order of the state machine,
@@ -93,6 +94,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 		}
 	}
 	unstable(b, g)
+	if o.Ask && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
+		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
+	}
 	switch {
 	case g.Land != nil && o.Goal == "":
 		// the list of every Goal prints only the state block of a landed Goal
@@ -169,4 +173,37 @@ func cellText(repo, hash string) string {
 		i += w
 	}
 	return fmt.Sprintf("%d bytes: %s", size, data)
+}
+
+// askText is what a written or open Goal asks: its words, each line's key,
+// kind and text, and under each line every placed example with its version,
+// hash, verdict on H0 at place and its example.txtar byte for byte, which
+// holds its words, run, floors and ceilings.
+func askText(repo string, g *tables.Goal) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "# %s: %s\n", g.ID, g.Words)
+	placed := g.Placed()
+	for _, l := range g.Lines {
+		fmt.Fprintf(&b, "\n## %s (%s): %s\n", l.Key, l.Kind, l.Text)
+		n := 0
+		for _, p := range placed {
+			if p.Line != l.Key {
+				continue
+			}
+			n++
+			fmt.Fprintf(&b, "\n### %s @%d\n\n", p.Key, p.Version)
+			fmt.Fprintf(&b, "hash: %s\nplaced: by %s at %s\n", p.Hash, p.Actor, p.Time)
+			fmt.Fprintf(&b, "verdict on H0 at place: %s, exit %d\n", p.H0.Verdict, p.H0.Exit)
+			data, err := acts.ExampleFile(repo, p.Hash)
+			if err != nil {
+				fmt.Fprintf(&b, "\nexample.txtar: not readable here: %s\n", bodyText(err, repo))
+				continue
+			}
+			fmt.Fprintf(&b, "\nexample.txtar, %d bytes:\n\n%s", len(data), fence(string(data)))
+		}
+		if n == 0 {
+			b.WriteString("\nno example placed\n")
+		}
+	}
+	return b.String()
 }

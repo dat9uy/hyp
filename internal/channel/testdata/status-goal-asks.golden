@@ -1,0 +1,28 @@
+G-XXXXXX  open  runs: 0 of 3 used
+stop: none
+waits: none
+runner may:
+  hyp run <commit> G-XXXXXX/line-1
+
+The Goal asks:
+
+# G-XXXXXX: w
+
+## line-1 (gap): it fails
+
+### line-1/a @1
+
+hash: <hash>
+placed: by grill-1 at <time>
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 61 bytes:
+
+```
+-- words --
+w
+-- run --
+cat counter
+-- floor: contains --
+ok
+```
