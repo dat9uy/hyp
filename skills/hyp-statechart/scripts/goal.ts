@@ -521,8 +521,11 @@ export async function goalReport(
         )
           ? "met"
           : "fail";
-      if (predicted === "fail") sep.push(ex.key);
-      row.set(ex.key, { predicted, tried: readTried(specDir, v, ex.key) });
+      // A tried verdict stands over the prediction: a tried fail separates
+      // the variant, and a tried met does not, whatever the model predicts.
+      const tried = readTried(specDir, v, ex.key);
+      if ((tried ?? predicted) === "fail") sep.push(ex.key);
+      row.set(ex.key, { predicted, tried });
     }
     grid.set(v, row);
     separatedBy.set(v, sep);
@@ -593,7 +596,7 @@ export async function goalReport(
   if (variants.length && goal.examples.length) {
     out.push("", "## Examples by variants", "");
     out.push(
-      "Each cell is predicted from the model alone: the example's walk, followed under the variant. A tried cell, from specs/tried/<variant>/<example>.txt, is the verdict `hyp try --worktree` printed on the variant's patch.",
+      "Each cell is predicted from the model alone: the example's walk, followed under the variant. A tried cell, from specs/tried/<variant>/<example>.txt, is the verdict `hyp try --worktree` printed on the variant's patch. An example separates a variant when its tried verdict is a fail, or when it was not tried and the tool predicts it to fail.",
       "",
     );
     out.push(`| Example | ${variants.join(" | ")} |`);

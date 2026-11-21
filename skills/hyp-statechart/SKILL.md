@@ -85,7 +85,9 @@ record branch so that every runner commit holds it:
      floors and ceilings, or that no walk of the model does;
    - for each example and each variant, whether the example is met under that
      variant, predicted from the model alone by following the example's walk,
-     and for each variant the examples that separate it;
+     and for each variant the examples that separate it: each example whose
+     tried verdict on the variant's patch is a fail, and each untried example
+     the tool predicts to fail. A tried met stands over a predicted fail;
    - one part for each variant that no example separates, naming its rules,
      the step no example takes and what the model and the variant print there.
 
@@ -105,11 +107,14 @@ uses runs of the budget and can stop the Goal at `Two candidates`.
 1. Write the variant's build as a patch on the code, in a scratch worktree of
    the record branch. The patch is a potential Hypothesis: hyp has no record
    of it.
-2. For each variant the tool predicts to meet every example, run each placed
-   example on its patch with `hyp try G LINE/EXAMPLE --worktree`. It records
-   nothing and uses no run.
-3. For each other variant, try one example the tool predicts to fail on its
-   patch, as a spot check of the model.
+2. Try the placed examples on the variant's patch, one at a time, with
+   `hyp try G LINE/EXAMPLE --worktree`. It records nothing and uses no run.
+   Try first the example the tool predicts the variant to fail. With no
+   prediction, try first the examples on the source lines of the rules the
+   variant breaks.
+3. Stop trying a variant at its first failed example. That failed try
+   separates the variant, and the report counts it so. A variant whose every
+   try is met is tried on every placed example.
 4. Write the verdict line each try printed, such as `verdict: met, exit 0`, in
    `specs/tried/<variant>/<line>/<example>.txt`, and run the tool again. The
    report sets each tried cell beside its prediction and names each cell where
@@ -140,9 +145,9 @@ Add to the grill's hand-off:
 
 - `goals/<G>/specs/` holds the model, its check config, the variant configs the
   tool wrote, and `chart.mmd`.
-- Each variant the tool predicts to meet every example was tried as a patch
-  with `hyp try --worktree`, and one predicted-fail example of each other
-  variant was tried; no tried verdict differs from its prediction.
+- Each variant was tried as a patch with `hyp try --worktree` up to its first
+  failed example, or on every placed example when each try was met; no tried
+  verdict differs from its prediction.
 
 ## Resources
 
