@@ -9,7 +9,7 @@ import (
 )
 
 // A Goal's spec folder, goals/<G>/specs/, may hold a model: a TLA+ module
-// (.tla), its check configs (.cfg), one switch config per wrong build under
+// (.tla), its check configs (.cfg), one switch config per potential Hypothesis under
 // specs/switches/, and a chart (.mmd). hyp reads these files from a commit
 // and runs no model checker.
 const switchesDir = "switches/"

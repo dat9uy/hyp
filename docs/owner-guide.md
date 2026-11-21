@@ -43,7 +43,7 @@ hyp add goal --base <H0 commit> --words "<one sentence>" \
 
 A Goal has one to ten lines and a minimum of one gap line. The Goal is `written` and `waits: grill`. While it is written, `hyp add goal G …` replaces it. After it opens, its words and lines are frozen, and a new line is a new Goal.
 
-**3. The grill places the examples and hands off.** The grill writes each example and runs it on H0. A gap example must fail there, and a guard example must be met. The Goal opens when each line holds such an example. When the change moves through states, the grill also writes a model and its chart with the [hyp-statechart](../skills/hyp-statechart/SKILL.md) skill. It tries each cheap wrong build of the model as a patch. When a wrong build passes every example, the grill shows it to you and proposes an example that fails it. You decide: the grill places that example, or lists the gap under "Not covered".
+**3. The grill places the examples and hands off.** The grill writes each example and runs it on H0. A gap example must fail there, and a guard example must be met. The Goal opens when each line holds such an example. When the change moves through states, the grill also writes a model and its chart with the [hyp-statechart](../skills/hyp-statechart/SKILL.md) skill. It tries each switch of the model as a patch: a potential Hypothesis, a different build that hyp has not recorded. When a patch meets every example, the grill shows you its outputs beside the build under test. You choose which output you want, or both. The grill then places an example that separates them, or lists the choice under "Not covered".
 
 The hand-off lists your decisions and a part named "Not covered". Each item there is a want that no example checks. The runner never gets it as a task, so a "Not covered" item can stay false in the build.
 
@@ -51,7 +51,7 @@ The hand-off lists your decisions and a part named "Not covered". Each item ther
 
 **5. The runner runs.** You start a runner session with [run-rules.md](../skills/hyp-grill/run-rules.md). Each build that the runner offers is a Hypothesis, keyed by its subject hash. The budget is three Hypotheses after H0. A candidate is a Hypothesis that meets every line and has no Hypothesis built on it. With one candidate, the runner selects it. You may select a candidate at any time, and you do not have to wait for the runner.
 
-**6. You read the select report.** The report of the select is the PR body. It shows each line, and each example's words, verdict, exit code, output and stderr. It prints each chart of the model in a `mermaid` block, under `## Chart: goals/<G>/specs/chart.mmd`. It ends with the selected commit and row. Read each output against what you meant, not only its verdict. The PR can also name wrong builds that pass every example. To close such a gap, unselect the Goal and have the grill place an example that fails that build.
+**6. You read the select report.** The report of the select is the PR body. It shows each line, and each example's words, verdict, exit code, output and stderr. It prints each chart of the model in a `mermaid` block, under `## Chart: goals/<G>/specs/chart.mmd`. It ends with the selected commit and row. Read each output against what you meant, not only its verdict. The PR can also name potential Hypotheses that meet every example, with their outputs. When you want one output and not the other, unselect the Goal and have the grill place an example that separates them.
 
 **7. You merge the runner's PR, and you land the Goal.** Nothing merges by itself, and hyp writes nothing to GitHub. `hyp land G` records your decision and ends the Goal. It checks no commit, so you can land before the merge, after it, or with no merge. The landed Goal is a snapshot of your decision. A later Goal can cite it with `--from G`.
 
@@ -176,7 +176,7 @@ undid: select 01M7WQSA0EZRNGP9VCP00NKB66 at 2026-11-20T15:04:18.702886Z, commit 
 G-YNGYCD  open  runs: 0 of 3 used
 ```
 
-Each Hypothesis and verdict stays, and the budget starts again. The grill then re-grills: it places an example on an existing line that fails the wrong build. The runner selects again only after a run records new evidence: a new example version or a new Hypothesis. A rerun on the same bytes is not new evidence. You may select again immediately. When main moved after the select, unselect and have the runner run the line on the merge commit, then select.
+Each Hypothesis and verdict stays, and the budget starts again. The grill then re-grills: you choose which output you want, and the grill places an example on an existing line that separates the two builds. The runner selects again only after a run records new evidence: a new example version or a new Hypothesis. A rerun on the same bytes is not new evidence. You may select again immediately. When main moved after the select, unselect and have the runner run the line on the merge commit, then select.
 
 **A gap that needs a new line is a new Goal.** Land this Goal, then add a new Goal that cites it with `--from G`.
 
