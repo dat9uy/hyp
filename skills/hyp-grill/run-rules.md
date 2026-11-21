@@ -5,9 +5,11 @@ refuses what breaks its guards; these are the rules it cannot check.
 
 ## Start
 
-A runner starts on an open Goal from this prompt. The owner fills in the Goal
-and the actor, and adds nothing else: what the runner is told comes only from
-the Goal and these rules, so two runners of one Goal are told the same.
+A runner starts on an open Goal from this prompt. The grill prints it at its
+hand-off with the Goal, the actor and the issues the Goal serves filled in, and
+the owner copies it and adds nothing else: what the runner is told comes only
+from the Goal and these rules, so two runners of one Goal are told the same.
+`<issues>` lists each issue as `#N`, separated by commas.
 
 ```text
 Run the hyp Goal <G> as its runner.
@@ -18,8 +20,10 @@ Run the hyp Goal <G> as its runner.
 - The Goal's placed examples are the whole task: start from what
   `hyp status <G> --role runner` prints. No issue, PR or hand-off is a
   source of work.
-- Open a PR whose body is the select's report. Do not merge it: the owner
-  merges.
+- Open a PR whose body is the select's report. Below it, add a line
+  `Closes #N` for each of these issues, so the merge closes them: <issues>.
+  They are only the issues to close, not a source of work. Do not merge the
+  PR: the owner merges.
 ```
 
 ## Rules
@@ -52,7 +56,8 @@ Run the hyp Goal <G> as its runner.
 8. **Stop for the owner when hyp stops.** At `Two candidates` or
    `Budget used`, stop and report the state block.
 9. **The PR body is the select's report.** Paste it as hyp printed it; hyp
-   writes nothing to GitHub. Below it, add only the diffs of rule 2, each
-   with its variant and the outputs `hyp try` printed.
+   writes nothing to GitHub. Below it, add only one `Closes #N` line for each
+   issue the Start prompt names, and the diffs of rule 2, each with its
+   variant and the outputs `hyp try` printed.
 10. **A defect outside the Goal** is fixed only when the line needs it.
     Otherwise list it in the PR for the owner.
