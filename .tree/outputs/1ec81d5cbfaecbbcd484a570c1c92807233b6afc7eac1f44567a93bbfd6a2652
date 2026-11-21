@@ -1,0 +1,96 @@
+== selected, status G
+G-ID  selected  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+waits: owner
+owner may:
+  hyp land G-ID
+  hyp unselect G-ID
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a: a.txt says bye.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a: greet.txt says hello.
+
+verdict: met, exit 0
+
+output, 5 bytes:
+
+```
+hello
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+== landed, status G
+G-ID  landed  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+landed: by owner, land ULID at TIME
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a: a.txt says bye.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a: greet.txt says hello.
+
+verdict: met, exit 0
+
+output, 5 bytes:
+
+```
+hello
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
