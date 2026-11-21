@@ -259,10 +259,14 @@ holds the Goal's words, lines and placed examples, and the model in the spec
 folder, with the run rules. If a runner reads the hand-off, it is
 background, and no "Not covered" item is a task.
 
-The owner starts a runner with the prompt in the Start section of the run
-rules, with the Goal and the runner's actor filled in. Do not write a runner
-prompt of your own, and add no choice to the hand-off for the runner: the
-runner looks for no rivals until the owner unselects.
+The hand-off ends with the runner's prompt, ready to copy: the Start prompt
+of the run rules, word for word, in one `text` block, with `<G>`, `<actor>`
+and `<issues>` filled in. `<issues>` is the issue you grill and each other
+issue the owner names as settled by the Goal. Propose the runner's actor, such as `runner-` and the Goal
+id in lower case, and let the owner veto it; it is never the owner's actor.
+Change no other word of the prompt, write no runner prompt of your own, and
+add no choice to the hand-off for the runner: the runner looks for no rivals
+until the owner unselects.
 
 ## Done when
 
@@ -272,6 +276,8 @@ runner looks for no rivals until the owner unselects.
   under "Not covered".
 - The issue you grill holds each decision of the owner in the owner's words,
   and each "Not covered" item another open issue owns is on that issue.
+- The hand-off ends with the Start prompt of the run rules, filled in with the
+  Goal, the runner's actor and the issues the Goal serves.
 
 ## Resources
 
