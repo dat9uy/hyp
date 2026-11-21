@@ -916,6 +916,19 @@ runner may:
   `--role`, prints the Goal's words, each line's key and text, and for each
   placed example its key, words, run, floors, ceilings and its verdict on H0
   at place".
+- **The Probe writer's contract.** The Probe writer writes no event, so its
+  block holds no act. While a Goal is written or open, `status G`, with no role
+  or with `--role probe-writer`, prints in the probe-writer block, every line
+  indented: the Probe writer's contract, for the Probe of one example (read the
+  line, its example and H0; write and commit only that example's probe folder;
+  start from the generic Probe and write new code only when it cannot run the
+  example; run the example on H0 with `hyp try` and return its output; write no
+  event), the generic Probe, which is `skills/hyp-grill/probe/run` byte for
+  byte, built into the binary, and one task for each line of the Goal, in its
+  order, with the `hyp try G <line>/<example>` line that checks it. Everywhere
+  else the block prints `(none)`: `status` for every Goal, the return of every
+  act and of `try`, and a selected or landed Goal. This is line 1 of Goal
+  G-GRXA9K.
 - `show ACTOR` prints the trace (§8) and no state block: it shows what the
   actor got, not the state now. `prune` prints its list and no state block:
   it is about the trace folders, not a Goal.
