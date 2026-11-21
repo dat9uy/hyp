@@ -103,25 +103,27 @@ for _ in range(12):
 -- input/check1.py --
 #!/usr/bin/env python3
 # check1.py G TRANSCRIPT: print one yes/no line per move of a first grill, from
-# the transcript and the repository in the working directory.
+# the transcript and the repository in the working directory. The two question
+# texts are matched in any case.
 import glob, json, re, subprocess, sys
 g, tf = sys.argv[1:]
 ev = [json.loads(l) for l in open(tf) if l.strip()]
 def norm(s): return re.sub(r"\s+", " ", s.replace("“", '"').replace("”", '"').replace("’", "'"))
 gm = [norm(e["text"]) for e in ev if e["who"] == "grill"]
-q1 = "What would you do, and what would you see?"
-q2 = "What could a wrong build print that this floor still lets through?"
+gl = [m.lower() for m in gm]
+q1 = "what would you do, and what would you see?"
+q2 = "what could a wrong build print that this floor still lets through?"
 def yn(b): return "yes" if b else "no"
 print("the grill ran:", yn(any(e["who"] == "tool" for e in ev)))
-print("asks the open question about line-1:", yn(any(q1 in m and re.search(r"line-1|greet", m, re.I) for m in gm)))
-print("asks the open question about line-2:", yn(any(q1 in m and re.search(r"line-2|list", m, re.I) for m in gm)))
+print("asks the open question about line-1:", yn(any(q1 in m and re.search(r"line-1|greet", m) for m in gl)))
+print("asks the open question about line-2:", yn(any(q1 in m and re.search(r"line-2|list", m) for m in gl)))
 seen, split = False, False
 for e in ev:
     if e["who"] == "owner" and "files: 2" in e["text"]: seen = True
     elif e["who"] == "grill" and seen and re.search(r"split", e["text"], re.I): split = True
 print("proposes a split after the two-thing answer:", yn(split))
 print('reads "never prints hello" aloud:', yn(any("never prints hello" in m.lower() for m in gm)))
-print("asks the ceiling question:", yn(any(q2 in m for m in gm)))
+print("asks the ceiling question:", yn(any(q2 in m for m in gl)))
 ceil = False
 for f in glob.glob(f"goals/{g}/line-1/*/example.txtar"):
     t = open(f).read()
