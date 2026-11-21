@@ -895,6 +895,14 @@ runner may:
   holds one, as ready command lines". It replaces the blank
   `hyp place G <line>/<example>` that this block printed once every line held
   an example. Owner decided, 2026-11-19 (G-1908D1, decision 3).
+- **The run on the spec commit.** An open Goal with one candidate that fails
+  Spec or Own path on its commit (§7) offers the runner
+  `hyp run <commit> G/<line>` for every line that holds an example, also when
+  three Hypotheses are counted. Both guards read only `goals/`, which is not in
+  the subject, so the fix is a new commit of the same Hypothesis: its run costs
+  no budget (§8, `select`). hyp cannot know that commit, so it prints
+  `<commit>`. Without this line a Goal at `runs: 3 of 3 used` with such a
+  candidate had no stop, no wait and no allowed act (#229).
 - A refusal prints to stderr, then the state block to stdout. A report prints
   only on exit 0. Exit 2 and exit 3 print no state block.
 - **The record of a landed Goal.** `status G` and the return of `land` print
