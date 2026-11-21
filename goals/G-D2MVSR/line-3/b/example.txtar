@@ -1,0 +1,187 @@
+-- words --
+A first grill of a written Goal with two gap lines, run 3 times on Sonnet with the subject's hyp-grill skill and a scripted owner: line-1's want is a plain command (I run sh greet.sh and I see bye), and line-2's want needs a fixture (in a git repository with three commits, I run sh commits.sh and I see 3). In every try the grill gives line-1 the generic Probe and starts no Probe writer for it, starts a Probe writer for line-2 with the contract hyp status G prints, writes no line-2 Probe code itself, keeps line-2's run as the owner's command sh commits.sh, and opens the Goal.
+-- input/lib.sh --
+# Shared helpers for the examples of Goal G-D2MVSR. Each example holds its own
+# copy as input/lib.sh, with grill.py and its scenario files. The run section
+# sources it from the example folder. It builds hyp from the subject, copies
+# the subject's skills, and runs each try in its own repository.
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+sk=$(mktemp -d) && cp -R skills/. "$sk/" || exit 91
+export PATH="$bin:$PATH"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+out=$(mktemp -d) || exit 91
+export HYP_ACTOR=grill HYP_ROLE=grill
+in="$HYP_EXAMPLE/input"
+save() { git add -A && git commit -q -m "$1"; }
+# addgoal WORDS LINE1 LINE2: the owner adds a Goal with two lines on HEAD; sets g.
+addgoal() { g=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words "$1" --line "$2" --line "$3" 2>/dev/null | sed -n 's/^recorded //p') && [ -n "$g" ] && save "record $g"; }
+# grill N SKILL...: run try N of the grill in the current repository, with
+# the prompt in $in/prompt.txt (G and the skill folder filled in) and the
+# owner in $in/owner.json; the transcript goes to $out/t.N.
+grill() { n=$1; shift; sed -e "s#@G@#$g#g" -e "s#@SK@#$sk#g" "$in/prompt.txt" >"$out/p.$n" && python3 "$in/grill.py" "$PWD" "$out/p.$n" "$in/owner.json" "$@" >"$out/t.$n" 2>"$out/e.$n"; }
+# tries FN: run FN 1, FN 2 and FN 3 in parallel, each in a new directory, then
+# print each try's checks, prefixed with "try N: ".
+tries() { for n in 1 2 3; do ( r=$(mktemp -d) && cd "$r" && "$1" "$n" >"$out/c.$n" 2>&1 ) & done; wait; for n in 1 2 3; do sed "s/^/try $n: /" "$out/c.$n"; done; }
+-- input/grill.py --
+#!/usr/bin/env python3
+# Run one grill session on Sonnet against a scripted owner, and write its
+# transcript as JSON lines: {"who": "grill"|"owner"|"tool", ...}; a tool
+# call made inside an agent the grill started has "agent": true.
+#
+# grill.py DIR PROMPT_FILE OWNER_FILE SKILL_FILE... > transcript.jsonl
+#
+# The grill works in DIR. Its instructions are the SKILL_FILEs, passed as its
+# system prompt; no installed skill, user setting or hook loads. After each
+# grill turn, the scripted owner answers from OWNER_FILE, a JSON list of rules
+# {"if": [regex...], "about": regex (optional), "say": text}. The owner answers
+# only a message that asks a question (holds "?"); a message that asks none
+# ends the session. The owner reads the message one line at a time. A rule
+# fires on a line that every "if" matches (case-insensitive). Of the rules
+# that share an "if", the one fires whose "about" matches last in that line
+# or, when none does, last before it in the message. A rule with "once": true
+# fires at most once in the session; a rule with "after": text fires only once
+# the owner has said that text. With no rule firing, the owner says the
+# default text. At most 12 turns.
+import json, re, subprocess, sys
+
+d, prompt_file, owner_file, *skills = sys.argv[1:]
+rules = json.load(open(owner_file))
+default = "Use your proposal."
+sysfile = d + "/.grill-system.md"
+with open(sysfile, "w") as f:
+    for s in skills:
+        f.write(open(s).read() + "\n\n")
+base = ["claude", "-p", "--model", "sonnet", "--output-format", "stream-json", "--verbose",
+        "--setting-sources", "project", "--disable-slash-commands",
+        "--append-system-prompt-file", sysfile,
+        "--allowedTools", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "Agent",
+        "--disallowedTools", "AskUserQuestion", "Skill", "WebFetch", "WebSearch", "Bash(gh:*)", "Bash(git push:*)"]
+out = sys.stdout
+def emit(o): out.write(json.dumps(o) + "\n"); out.flush()
+
+def turn(msg, sid):
+    cmd = base + (["--resume", sid] if sid else []) + ["--", msg]
+    p = subprocess.run(cmd, cwd=d, capture_output=True, text=True, timeout=480)
+    text, new_sid = "", sid
+    for line in p.stdout.splitlines():
+        try: e = json.loads(line)
+        except ValueError: continue
+        if e.get("session_id"): new_sid = e["session_id"]
+        if e.get("type") == "assistant":
+            for c in e["message"].get("content", []):
+                if c.get("type") == "tool_use":
+                    emit({"who": "tool", "name": c.get("name"), "input": c.get("input"),
+                          "agent": bool(e.get("parent_tool_use_id"))})
+        if e.get("type") == "result":
+            text = e.get("result") or ""
+    return text, new_sid
+
+said, used = [], set()
+def answer(msg):
+    if "?" not in msg: return None
+    fired, upto = [], ""
+    for para in msg.split("\n"):
+        upto += para + "\n"
+        groups = {}
+        for i, r in enumerate(rules):
+            if r.get("once") and i in used: continue
+            if "after" in r and not any(r["after"] in s for s in said): continue
+            if all(re.search(x, para, re.I) for x in r["if"]):
+                groups.setdefault(json.dumps(r["if"]), []).append(r)
+        for rs in groups.values():
+            best = None
+            for scope in (para, upto):
+                pos = -1
+                for r in rs:
+                    if "about" not in r: best = best or r; continue
+                    ms = [m.start() for m in re.finditer(r["about"], scope, re.I)]
+                    if ms and ms[-1] > pos: best, pos = r, ms[-1]
+                if best: break
+            if best and best["say"] not in fired:
+                fired.append(best["say"]); used.add(rules.index(best))
+    return " ".join(fired) if fired else default
+
+msg, sid = open(prompt_file).read(), None
+for _ in range(12):
+    text, sid = turn(msg, sid)
+    emit({"who": "grill", "text": text})
+    msg = answer(text)
+    if msg is None: break
+    said.append(msg)
+    emit({"who": "owner", "text": msg})
+-- input/check3b.py --
+#!/usr/bin/env python3
+# check3b.py G TRANSCRIPT GENERIC: print whether the grill ran, started a Probe
+# writer for line-2 with the contract hyp status G prints, started none for
+# line-1, wrote no line-2 Probe code itself, kept line-2's run as the owner's
+# command, gave line-1 the generic Probe (the file GENERIC, byte for byte),
+# and opened the Goal.
+import glob, json, re, subprocess, sys
+g, tf, generic = sys.argv[1:]
+ev = [json.loads(l) for l in open(tf) if l.strip()]
+def yn(b): return "yes" if b else "no"
+contract = "Start from the generic Probe and write new code only when it cannot run the example."
+agents = [json.dumps(e["input"]) for e in ev if e["who"] == "tool" and e["name"] in ("Agent", "Task") and not e.get("agent")]
+print("the grill ran:", yn(any(e["who"] == "tool" for e in ev)))
+print("starts a Probe writer for line-2 with the printed contract:", yn(any(contract in a and "line-2" in a for a in agents)))
+print("starts a Probe writer for line-1:", yn(any("line-1/" in a and "line-2" not in a for a in agents)))
+own = False
+for e in ev:
+    if e["who"] == "tool" and not e.get("agent") and e["name"] in ("Write", "Edit"):
+        if re.search(rf"goals/{g}/line-2/[^/]+/probe/", e["input"].get("file_path", "")): own = True
+print("writes line-2 Probe code itself:", yn(own))
+def run_of(f):
+    m = re.search(r"^-- run --\n(.*?)(?=^-- |\Z)", open(f).read(), re.M | re.S)
+    return m.group(1).strip() if m else None
+l2 = glob.glob(f"goals/{g}/line-2/*/example.txtar")
+print("line-2's run is the owner's command:", yn(bool(l2) and all(run_of(f) == "sh commits.sh" for f in l2)))
+l1 = glob.glob(f"goals/{g}/line-1/*/probe/run")
+print("line-1 has the generic Probe:", yn(bool(l1) and all(open(f, "rb").read() == open(generic, "rb").read() for f in l1)))
+st = subprocess.run(["hyp", "status", g], capture_output=True, text=True).stdout
+print("the Goal is open:", yn(st.split("\n")[0].split()[1:2] == ["open"]))
+-- input/prompt.txt --
+You are the grill of the hyp store in this repository, and you follow the hyp-grill skill given in your system prompt. That skill's folder is @SK@/hyp-grill. Set HYP_ACTOR=grill and HYP_ROLE=grill for every hyp command.
+
+The owner, actor owner, added Goal @G@ from this event: greet.sh greets with hello, and commits.sh always prints 0; the owner wants greet.sh to say bye and commits.sh to count the commits. Its words and lines are recorded. Grill the owner for the Goal's examples and place them.
+
+The owner reads each of your messages and answers it. End your turn when you need the owner. There is no GitHub issue and no network: record nothing on GitHub and push nothing.
+-- input/owner.json --
+[
+ {"if": ["what would you do, and what would you see"], "about": "line-1|greet", "say": "I run sh greet.sh and I see bye."},
+ {"if": ["what would you do, and what would you see"], "about": "line-2|commits", "say": "In a git repository with three commits, I run sh commits.sh and I see 3."},
+ {"if": ["split"], "say": "Keep it as one line."},
+ {"if": ["what could a wrong build print"], "say": "I can name none."}
+]
+-- external --
+USER
+-- run --
+. "$HYP_EXAMPLE/input/lib.sh"
+handoff() {
+  git init -q -b main && echo 'echo hello' >greet.sh && echo 'echo 0' >commits.sh && save base || return 1
+  addgoal "greet.sh says bye, and commits.sh counts commits." "gap:sh greet.sh prints bye." "gap:sh commits.sh prints the number of commits of the git repository it runs in." || return 1
+  grill "$1" "$sk/hyp-grill/SKILL.md"
+  python3 "$in/check3b.py" "$g" "$out/t.$1" "$sk/hyp-grill/probe/run"
+}
+tries handoff
+-- floor: equals --
+try 1: the grill ran: yes
+try 1: starts a Probe writer for line-2 with the printed contract: yes
+try 1: starts a Probe writer for line-1: no
+try 1: writes line-2 Probe code itself: no
+try 1: line-2's run is the owner's command: yes
+try 1: line-1 has the generic Probe: yes
+try 1: the Goal is open: yes
+try 2: the grill ran: yes
+try 2: starts a Probe writer for line-2 with the printed contract: yes
+try 2: starts a Probe writer for line-1: no
+try 2: writes line-2 Probe code itself: no
+try 2: line-2's run is the owner's command: yes
+try 2: line-1 has the generic Probe: yes
+try 2: the Goal is open: yes
+try 3: the grill ran: yes
+try 3: starts a Probe writer for line-2 with the printed contract: yes
+try 3: starts a Probe writer for line-1: no
+try 3: writes line-2 Probe code itself: no
+try 3: line-2's run is the owner's command: yes
+try 3: line-1 has the generic Probe: yes
+try 3: the Goal is open: yes

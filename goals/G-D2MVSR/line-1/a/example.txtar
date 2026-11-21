@@ -1,0 +1,196 @@
+-- words --
+A first grill of a written Goal with a gap line (sh greet.sh prints bye and never prints hello) and a guard line (sh list.sh lists a.txt and b.txt, in order), run 3 times on Sonnet with the subject's hyp-grill skill and a scripted owner: in every try the grill asks the open question about each line, proposes a split after the owner's two-thing answer, reads "never prints hello" aloud, asks the ceiling question, makes the owner's goodbye a ceiling, opens the Goal, and ends by saying enough with no question and no request for approval.
+-- input/lib.sh --
+# Shared helpers for the examples of Goal G-D2MVSR. Each example holds its own
+# copy as input/lib.sh, with grill.py and its scenario files. The run section
+# sources it from the example folder. It builds hyp from the subject, copies
+# the subject's skills, and runs each try in its own repository.
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+sk=$(mktemp -d) && cp -R skills/. "$sk/" || exit 91
+export PATH="$bin:$PATH"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+out=$(mktemp -d) || exit 91
+export HYP_ACTOR=grill HYP_ROLE=grill
+in="$HYP_EXAMPLE/input"
+save() { git add -A && git commit -q -m "$1"; }
+# addgoal WORDS LINE1 LINE2: the owner adds a Goal with two lines on HEAD; sets g.
+addgoal() { g=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words "$1" --line "$2" --line "$3" 2>/dev/null | sed -n 's/^recorded //p') && [ -n "$g" ] && save "record $g"; }
+# grill N SKILL...: run try N of the grill in the current repository, with
+# the prompt in $in/prompt.txt (G and the skill folder filled in) and the
+# owner in $in/owner.json; the transcript goes to $out/t.N.
+grill() { n=$1; shift; sed -e "s#@G@#$g#g" -e "s#@SK@#$sk#g" "$in/prompt.txt" >"$out/p.$n" && python3 "$in/grill.py" "$PWD" "$out/p.$n" "$in/owner.json" "$@" >"$out/t.$n" 2>"$out/e.$n"; }
+# tries FN: run FN 1, FN 2 and FN 3 in parallel, each in a new directory, then
+# print each try's checks, prefixed with "try N: ".
+tries() { for n in 1 2 3; do ( r=$(mktemp -d) && cd "$r" && "$1" "$n" >"$out/c.$n" 2>&1 ) & done; wait; for n in 1 2 3; do sed "s/^/try $n: /" "$out/c.$n"; done; }
+-- input/grill.py --
+#!/usr/bin/env python3
+# Run one grill session on Sonnet against a scripted owner, and write its
+# transcript as JSON lines: {"who": "grill"|"owner"|"tool", ...}.
+#
+# grill.py DIR PROMPT_FILE OWNER_FILE SKILL_FILE... > transcript.jsonl
+#
+# The grill works in DIR. Its instructions are the SKILL_FILEs, passed as its
+# system prompt; no installed skill, user setting or hook loads. After each
+# grill turn, the scripted owner answers from OWNER_FILE, a JSON list of rules
+# {"if": [regex...], "about": regex (optional), "say": text}. The owner answers
+# only a message that asks a question (holds "?"); a message that asks none
+# ends the session. The owner reads the message one line at a time. A rule
+# fires on a line that every "if" matches (case-insensitive). Of the rules
+# that share an "if", the one fires whose "about" matches last in that line
+# or, when none does, last before it in the message. With no rule firing, the
+# owner says the default text. At most 12 turns.
+import json, re, subprocess, sys
+
+d, prompt_file, owner_file, *skills = sys.argv[1:]
+rules = json.load(open(owner_file))
+default = "Use your proposal."
+sysfile = d + "/.grill-system.md"
+with open(sysfile, "w") as f:
+    for s in skills:
+        f.write(open(s).read() + "\n\n")
+base = ["claude", "-p", "--model", "sonnet", "--output-format", "stream-json", "--verbose",
+        "--setting-sources", "project", "--disable-slash-commands",
+        "--append-system-prompt-file", sysfile,
+        "--allowedTools", "Bash", "Read", "Write", "Edit", "Glob", "Grep", "Agent",
+        "--disallowedTools", "AskUserQuestion", "Skill", "WebFetch", "WebSearch", "Bash(gh:*)", "Bash(git push:*)"]
+out = sys.stdout
+def emit(o): out.write(json.dumps(o) + "\n"); out.flush()
+
+def turn(msg, sid):
+    cmd = base + (["--resume", sid] if sid else []) + ["--", msg]
+    p = subprocess.run(cmd, cwd=d, capture_output=True, text=True, timeout=480)
+    text, new_sid = "", sid
+    for line in p.stdout.splitlines():
+        try: e = json.loads(line)
+        except ValueError: continue
+        if e.get("session_id"): new_sid = e["session_id"]
+        if e.get("type") == "assistant":
+            for c in e["message"].get("content", []):
+                if c.get("type") == "tool_use":
+                    emit({"who": "tool", "name": c.get("name"), "input": c.get("input")})
+        if e.get("type") == "result":
+            text = e.get("result") or ""
+    return text, new_sid
+
+def answer(msg):
+    if "?" not in msg: return None
+    fired, upto = [], ""
+    for para in msg.split("\n"):
+        upto += para + "\n"
+        groups = {}
+        for r in rules:
+            if all(re.search(x, para, re.I) for x in r["if"]):
+                groups.setdefault(json.dumps(r["if"]), []).append(r)
+        for rs in groups.values():
+            best = None
+            for scope in (para, upto):
+                pos = -1
+                for r in rs:
+                    if "about" not in r: best = best or r; continue
+                    ms = [m.start() for m in re.finditer(r["about"], scope, re.I)]
+                    if ms and ms[-1] > pos: best, pos = r, ms[-1]
+                if best: break
+            if best and best["say"] not in fired: fired.append(best["say"])
+    return " ".join(fired) if fired else default
+
+msg, sid = open(prompt_file).read(), None
+for _ in range(12):
+    text, sid = turn(msg, sid)
+    emit({"who": "grill", "text": text})
+    msg = answer(text)
+    if msg is None: break
+    emit({"who": "owner", "text": msg})
+-- input/check1.py --
+#!/usr/bin/env python3
+# check1.py G TRANSCRIPT: print one yes/no line per move of a first grill, from
+# the transcript and the repository in the working directory. The two question
+# texts are matched in any case.
+import glob, json, re, subprocess, sys
+g, tf = sys.argv[1:]
+ev = [json.loads(l) for l in open(tf) if l.strip()]
+def norm(s): return re.sub(r"\s+", " ", s.replace("“", '"').replace("”", '"').replace("’", "'"))
+gm = [norm(e["text"]) for e in ev if e["who"] == "grill"]
+gl = [m.lower() for m in gm]
+q1 = "what would you do, and what would you see?"
+q2 = "what could a wrong build print that this floor still lets through?"
+def yn(b): return "yes" if b else "no"
+print("the grill ran:", yn(any(e["who"] == "tool" for e in ev)))
+print("asks the open question about line-1:", yn(any(q1 in m and re.search(r"line-1|greet", m) for m in gl)))
+print("asks the open question about line-2:", yn(any(q1 in m and re.search(r"line-2|list", m) for m in gl)))
+seen, split = False, False
+for e in ev:
+    if e["who"] == "owner" and "files: 2" in e["text"]: seen = True
+    elif e["who"] == "grill" and seen and re.search(r"split", e["text"], re.I): split = True
+print("proposes a split after the two-thing answer:", yn(split))
+print('reads "never prints hello" aloud:', yn(any("never prints hello" in m.lower() for m in gm)))
+print("asks the ceiling question:", yn(any(q2 in m for m in gl)))
+ceil = False
+for f in glob.glob(f"goals/{g}/line-1/*/example.txtar"):
+    t = open(f).read()
+    for m in re.finditer(r"^-- ceiling[^\n]*--\n(.*?)(?=^-- |\Z)", t, re.M | re.S):
+        if "goodbye" in m.group(1): ceil = True
+print("a line-1 example has a ceiling with goodbye:", yn(ceil))
+st = subprocess.run(["hyp", "status", g], capture_output=True, text=True).stdout
+print("the Goal is open:", yn(st.split("\n")[0].split()[1:2] == ["open"]))
+print("says enough at the end:", yn(bool(gm) and re.search(r"\benough\b", gm[-1], re.I)))
+print("asks nothing at the end:", yn(bool(gm) and "?" not in gm[-1]))
+print("asks for approval of an example:", yn(any(re.search(r"look right|approve|confirm|is (this|that) (ok|correct|right)", m, re.I) for m in gm)))
+-- input/prompt.txt --
+You are the grill of the hyp store in this repository, and you follow the hyp-grill skill given in your system prompt. That skill's folder is @SK@/hyp-grill. Set HYP_ACTOR=grill and HYP_ROLE=grill for every hyp command.
+
+The owner, actor owner, added Goal @G@ from this event: greet.sh greets with hello, and the owner wants it to say bye. Its words and lines are recorded. Grill the owner for the Goal's examples and place them.
+
+The owner reads each of your messages and answers it. End your turn when you need the owner. There is no GitHub issue and no network: record nothing on GitHub and push nothing.
+-- input/owner.json --
+[
+ {"if": ["what would you do, and what would you see"], "about": "line-1|greet", "say": "I run sh greet.sh and I see bye."},
+ {"if": ["what would you do, and what would you see"], "about": "line-2|list", "say": "I run sh list.sh and I see a.txt then b.txt, and I also see the line files: 2."},
+ {"if": ["split"], "say": "Keep it as one line."},
+ {"if": ["what could a wrong build print"], "about": "line-1|greet", "say": "A wrong build could print goodbye."},
+ {"if": ["what could a wrong build print"], "about": "line-2|list", "say": "I can name none."}
+]
+-- external --
+USER
+-- run --
+. "$HYP_EXAMPLE/input/lib.sh"
+first() {
+  git init -q -b main && echo 'echo hello' >greet.sh && printf '%s\n' 'printf "a.txt\nb.txt\nfiles: 2\n"' >list.sh && save base || return 1
+  addgoal "greet.sh says bye." "gap:sh greet.sh prints bye and never prints hello." "guard:sh list.sh lists a.txt and b.txt, in order." || return 1
+  grill "$1" "$sk/hyp-grill/SKILL.md"
+  python3 "$in/check1.py" "$g" "$out/t.$1"
+}
+tries first
+-- floor: equals --
+try 1: the grill ran: yes
+try 1: asks the open question about line-1: yes
+try 1: asks the open question about line-2: yes
+try 1: proposes a split after the two-thing answer: yes
+try 1: reads "never prints hello" aloud: yes
+try 1: asks the ceiling question: yes
+try 1: a line-1 example has a ceiling with goodbye: yes
+try 1: the Goal is open: yes
+try 1: says enough at the end: yes
+try 1: asks nothing at the end: yes
+try 1: asks for approval of an example: no
+try 2: the grill ran: yes
+try 2: asks the open question about line-1: yes
+try 2: asks the open question about line-2: yes
+try 2: proposes a split after the two-thing answer: yes
+try 2: reads "never prints hello" aloud: yes
+try 2: asks the ceiling question: yes
+try 2: a line-1 example has a ceiling with goodbye: yes
+try 2: the Goal is open: yes
+try 2: says enough at the end: yes
+try 2: asks nothing at the end: yes
+try 2: asks for approval of an example: no
+try 3: the grill ran: yes
+try 3: asks the open question about line-1: yes
+try 3: asks the open question about line-2: yes
+try 3: proposes a split after the two-thing answer: yes
+try 3: reads "never prints hello" aloud: yes
+try 3: asks the ceiling question: yes
+try 3: a line-1 example has a ceiling with goodbye: yes
+try 3: the Goal is open: yes
+try 3: says enough at the end: yes
+try 3: asks nothing at the end: yes
+try 3: asks for approval of an example: no
