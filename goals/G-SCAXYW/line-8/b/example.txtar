@@ -1,0 +1,20 @@
+-- words --
+No skill text, no page among the glossary, the spec and the owner guide, and no Go file of hyp outside its tests says "switch" for a variant; a folder path specs/switches/ or switches/ is a name, and the verb in "switches to a branch" is not a variant, so neither counts. The glossary holds an entry "Variant config", and the spec says "variant config".
+-- run --
+yn() { if [ "$1" = 0 ]; then echo yes; else echo no; fi; }
+strip() { sed -E -e 's#specs/switches/##g' -e 's#switches/##g' -e 's/[Ss]witch(es)? to //g' "$1"; }
+said=$(for f in $(find skills -type f -name '*.md' | sort) docs/glossary.md docs/state-machine.md docs/owner-guide.md; do
+  [ -f "$f" ] && strip "$f" | grep -qiwE 'switch|switches' && echo "$f"
+done)
+echo "skill and doc pages that say switch: ${said:-none}" | tr '\n' ' ' | sed 's/ $//'; echo
+code=$(find internal cmd -type f -name '*.go' ! -name '*_test.go' ! -path '*/testdata/*' | sort | while read -r f; do
+  strip "$f" | grep -qE 'NoSwitch|no-switch|Unswitched|[Ss]witch configs?|[Ss]witches folder|per switch|one switch' && echo "$f"
+done)
+echo "Go files of hyp that say switch: ${code:-none}" | tr '\n' ' ' | sed 's/ $//'; echo
+grep -qiE '^(#+ *|\| *|- *\*\*|\*\*)Variant configs?\b' docs/glossary.md; echo "the glossary has an entry Variant config: $(yn $?)"
+grep -qi 'variant config' docs/state-machine.md; echo "the spec says variant config: $(yn $?)"
+-- floor: equals --
+skill and doc pages that say switch: none
+Go files of hyp that say switch: none
+the glossary has an entry Variant config: yes
+the spec says variant config: yes

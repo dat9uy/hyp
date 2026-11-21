@@ -1,0 +1,4 @@
+skill and doc pages that say switch: skills/hyp-grill/SKILL.md skills/hyp-grill/run-rules.md skills/hyp-statechart/SKILL.md skills/hyp-statechart/references/tool.md docs/glossary.md docs/state-machine.md docs/owner-guide.md
+Go files of hyp that say switch: internal/acts/model.go internal/acts/select.go internal/channel/texts.go internal/fault/codes.go
+the glossary has an entry Variant config: no
+the spec says variant config: no
