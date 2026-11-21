@@ -1,0 +1,104 @@
+-- words --
+A model whose check config checks NamedRule and LonelyRule: with variants/SkipCheck.cfg naming only NamedRule, select refuses the commit, names LonelyRule and the variants folder, and says no "switch"; with variants/SkipCheck.cfg naming both rules, select records the commit.
+-- input/lib.sh --
+# Shared helpers for the select examples of this Goal. Each example holds its
+# own copy as input/lib.sh. The run section sources it from the subject's root.
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+out=$(mktemp -d) || exit 91
+in=$HYP_EXAMPLE/input
+d='--'
+
+hy() { _a=$1 _r=$2; shift 2; HYP_ACTOR=$_a HYP_ROLE=$_r "$bin/hyp" "$@"; }
+save() { git add -A && git commit -q -m "$1"; }
+has() { if grep -qF -- "$1"; then echo yes; else echo no; fi; }
+hasi() { if grep -qiF -- "$1"; then echo yes; else echo no; fi; }
+
+# mkrepo: a repository with one Goal whose one gap line needs a.txt to say bye;
+# sets g, then places line-1/a, so the Goal is open.
+mkrepo() {
+  r=$(mktemp -d) && cd "$r" && git init -q -b main && echo hello >greet.txt && save base &&
+  g=$(hy owner owner add goal --base HEAD --words "Say bye in a.txt." --line "gap:a.txt says bye." 2>/dev/null | sed -n 's/^recorded //p') && [ -n "$g" ] && save "record $g" &&
+  mkdir -p "goals/$g/line-1/a/probe" && cp "$HYP_EXAMPLE/probe/run" "goals/$g/line-1/a/probe/run" && chmod +x "goals/$g/line-1/a/probe/run" &&
+  printf '%s words %s\na.txt says bye.\n%s run %s\ncat a.txt\n%s floor: contains %s\nbye\n' "$d" "$d" "$d" "$d" "$d" "$d" >"goals/$g/line-1/a/example.txtar" &&
+  save "example of $g" && hy grill grill place "$g" line-1/a >/dev/null 2>&1 && save "place $g" && echo bye >a.txt
+}
+# spec FILE...: copy each input file into the Goal's spec folder; a name
+# with a slash, such as switches/x.cfg, keeps its folder.
+spec() { for f in "$@"; do mkdir -p "goals/$g/specs/$(dirname "$f")" && cp "$in/$f" "goals/$g/specs/$f" || return 1; done; }
+# runsel N: commit, run line-1 on HEAD, then select the row the run printed;
+# the select's stdout and stderr in $out/select.N, its exit code in sc.
+runsel() {
+  save "change $1" && hy runner-1 runner run HEAD "$g/line-1" >"$out/run.$1" 2>&1; save "run $1" >/dev/null 2>&1
+  row=$(sed -n 's/^row: //p' "$out/run.$1" | head -n 1)
+  hy runner-1 runner select "$g" "$row" >"$out/select.$1" 2>&1; sc=$?; save "select $1" >/dev/null 2>&1
+  return 0
+}
+-- input/small.tla --
+---- MODULE small ----
+EXTENDS Naturals
+CONSTANT SkipCheck
+VARIABLE x
+Init == x = 0
+Step == x' = IF SkipCheck THEN 2 ELSE 1 - x
+Next == Step
+Spec == Init /\ [][Next]_x
+NamedRule == x \in 0..2
+LonelyRule == x < 2
+====
+-- input/small.cfg --
+SPECIFICATION Spec
+
+CONSTANTS
+    SkipCheck = FALSE
+
+INVARIANTS
+    NamedRule
+    LonelyRule
+-- input/one/variants/SkipCheck.cfg --
+SPECIFICATION Spec
+
+CONSTANTS
+    SkipCheck = TRUE
+
+INVARIANTS
+    NamedRule
+-- input/both/variants/SkipCheck.cfg --
+SPECIFICATION Spec
+
+CONSTANTS
+    SkipCheck = TRUE
+
+INVARIANTS
+    NamedRule
+    LonelyRule
+-- input/chart.mmd --
+stateDiagram-v2
+  s0: x is 0
+  s1: x is 1
+  [*] --> s0
+  s0 --> s1: a step
+  s1 --> s0: a step
+-- run --
+. "$HYP_EXAMPLE/input/lib.sh"
+start=$(pwd)
+mkrepo || exit 92
+spec small.tla small.cfg chart.mmd || exit 93
+mkdir -p "goals/$g/specs/variants" && cp "$in/one/variants/SkipCheck.cfg" "goals/$g/specs/variants/" || exit 93
+runsel 1
+echo "a rule no variant config names: select exit $sc"
+echo "the refusal names LonelyRule: $(has LonelyRule <"$out/select.1")"
+echo "the refusal names the variants folder: $(has variants/ <"$out/select.1")"
+if grep -qiw -e switch -e switches "$out/select.1"; then echo "the refusal says switch: yes"; else echo "the refusal says switch: no"; fi
+cd "$start" && mkrepo || exit 92
+spec small.tla small.cfg chart.mmd || exit 93
+mkdir -p "goals/$g/specs/variants" && cp "$in/both/variants/SkipCheck.cfg" "goals/$g/specs/variants/" || exit 93
+runsel 2
+echo "every rule named under variants/: select exit $sc"
+-- floor: equals --
+a rule no variant config names: select exit 1
+the refusal names LonelyRule: yes
+the refusal names the variants folder: yes
+the refusal says switch: no
+every rule named under variants/: select exit 0

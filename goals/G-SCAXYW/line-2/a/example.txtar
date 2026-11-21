@@ -1,0 +1,87 @@
+-- words --
+A lamp whose view prints "pressed" on a press and "lamp: on" or "lamp: off" on a look, and one example whose floor contains "lamp: on": the tool prints, for that example, a walk of the model that presses and then looks.
+-- input/fx/goals/G-LAMP/specs/lamp.tla --
+---- MODULE lamp ----
+(* A lamp with one button. Pressing prints "pressed"; looking prints the
+   lamp. SlowPress: the first press from off only half-presses. NeverOff: a
+   press while on leaves the lamp on. *)
+EXTENDS Naturals
+CONSTANTS SlowPress, NeverOff
+VARIABLES on, half, parity, said
+vars == <<on, half, parity, said>>
+
+Init == on = FALSE /\ half = FALSE /\ parity = 0 /\ said = "none"
+
+Press ==
+    /\ parity' = 1 - parity
+    /\ said' = "pressed"
+    /\ IF on
+         THEN /\ on' = NeverOff
+              /\ half' = FALSE
+         ELSE IF SlowPress /\ ~half
+           THEN /\ on' = FALSE
+                /\ half' = TRUE
+           ELSE /\ on' = TRUE
+                /\ half' = FALSE
+
+Look ==
+    /\ said' = IF on THEN "on" ELSE "off"
+    /\ UNCHANGED <<on, half, parity>>
+
+Next == Press \/ Look
+Spec == Init /\ [][Next]_vars
+
+\* source: model only
+TypeOK == on \in BOOLEAN /\ half \in BOOLEAN /\ parity \in {0, 1}
+
+\* source: line-1
+OnePressTurnsOn == ~half
+
+\* source: line-2
+LampFollowsPresses == on = (parity = 1)
+
+SaidIsKnown == said \in {"none", "pressed", "on", "off"}
+====
+-- input/fx/goals/G-LAMP/specs/lamp.cfg --
+SPECIFICATION Spec
+
+CONSTANTS
+    SlowPress = FALSE
+    NeverOff = FALSE
+
+INVARIANTS
+    TypeOK
+    OnePressTurnsOn
+    LampFollowsPresses
+    SaidIsKnown
+-- input/fx/goals/G-LAMP/specs/lamp-view.mjs --
+// The lamp as its user sees it. print() is what the lamp prints on a step.
+export const title = "A lamp with one button";
+export const state = (v) => (v.on ? "On" : v.half ? "Half pressed" : "Off");
+export const step = (action) => (action === "Press" ? "you press" : "you look");
+export const print = (action, from, to) =>
+  action === "Press" ? "pressed" : to.on ? "lamp: on" : "lamp: off";
+-- input/fx/goals/G-LAMP/line-1/a/example.txtar --
+~~ words ~~
+One press turns the lamp on.
+~~ run ~~
+press; look
+~~ floor: contains ~~
+lamp: on
+-- run --
+t=$HYP_SUBJECT/skills/hyp-statechart/scripts/statechart
+w=$(mktemp -d) && o=$(mktemp -d)/out && so=${o%/out}/stdout || exit 91
+(cd "$HYP_EXAMPLE/input/fx" && find . -type f) | while read -r f; do
+  mkdir -p "$w/$(dirname "$f")" && sed 's/^~~ \(.*\) ~~$/-- \1 --/' "$HYP_EXAMPLE/input/fx/$f" >"$w/$f"
+done
+cd "$w" || exit 91
+yn() { if [ "$1" = 0 ]; then echo yes; else echo no; fi; }
+"$t" goals/G-LAMP/specs/lamp.tla --config goals/G-LAMP/specs/lamp.cfg --view goals/G-LAMP/specs/lamp-view.mjs --out "$o" >"$so" 2>&1
+all=$(mktemp)
+cat "$so" >"$all" 2>/dev/null
+find "$o" -name '*.md' -type f -exec cat {} + >>"$all" 2>/dev/null
+grep -i 'line-1/a' "$all" | grep -qiE 'press.*look'; echo "walk of line-1/a printed, a press then a look: $(yn $?)"
+grep -i 'line-1/a' "$all" | grep -qi 'no walk'; echo "line-1/a said to have no walk: $(yn $?)"
+-- floor: equals --
+walk of line-1/a printed, a press then a look: yes
+line-1/a said to have no walk: no

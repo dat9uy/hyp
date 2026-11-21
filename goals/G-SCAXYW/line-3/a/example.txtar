@@ -1,0 +1,347 @@
+-- words --
+G-1908D1's model with a view that prints the grill block on each step, and three examples a, b and c whose floors are those prints: from the model alone, every example is met under OfferGoneLines and failed under OldH0 (how H0 worked), and no example separates OfferGoneLines.
+-- input/fx/goals/G-1908D1/specs/place.tla --
+------------------------------ MODULE place ------------------------------
+(***************************************************************************)
+(* The grill's place lines in the state block, Goal G-1908D1: "While a     *)
+(* line has no example, status offers a further example on a line that     *)
+(* has one".                                                               *)
+(*                                                                         *)
+(* A Goal has up to three lines. The grill places examples; a Draft        *)
+(* replace by the owner may change the lines and move H0, which leaves     *)
+(* every placed example without a live H0 cell; the runner runs a line on  *)
+(* H0 to give it one again. The Goal is open when every current line holds *)
+(* an example with a live H0 cell. While open, the runner's runs may reach *)
+(* the stops "two candidates" or "budget used", and a candidate may be     *)
+(* selected. After every command (place, a refused place, status, run,     *)
+(* add goal, select) hyp prints the state block; block is what the grill's *)
+(* part of it offered: line keys, or Blank (0) for the blank             *)
+(* `hyp place G <line>/<example>`.                                         *)
+(*                                                                         *)
+(* The rules are the Goal's line and the owner's decision 3:               *)
+(*   line 1        while the Goal is not selected, every place the guards  *)
+(*                 allow is offered: one on each current line              *)
+(*   decision 3    one ready place line per Goal line, naming its key, in  *)
+(*                 every state that allows a place: written and open; none *)
+(*                 once selected                                           *)
+(* Decisions 1 (the words) and 2 (one gap line) are facts of the Goal's    *)
+(* record, not of what hyp does; this model holds no rule for them.        *)
+(*                                                                         *)
+(* Switches. OldH0 is how H0 worked: a place line only for lines with no   *)
+(* example, and the blank form once every line held one. BlankBeside,      *)
+(* PlaceWhenSelected, OfferGoneLines and OnlyWhenWritten are cheaper       *)
+(* builds or other potential Hypotheses. place.cfg sets all FALSE.         *)
+(* Left out: the guards Committed, Adds only and Kind, which refuse one    *)
+(* example folder and never a line; the runner's and owner's blocks; and   *)
+(* the line kinds, which no rule here reads.                               *)
+(***************************************************************************)
+EXTENDS Naturals, FiniteSets
+
+CONSTANTS
+    OldH0,              \* H0: offer only empty lines, then the blank form
+    BlankBeside,        \* a build that keeps the blank line beside the ready lines
+    PlaceWhenSelected,  \* a build that offers a place line in every state
+    OfferGoneLines,     \* a build that offers every line the Goal ever had
+    OnlyWhenWritten     \* a build that offers place lines only while written
+
+AllLines == {1, 2, 3}
+Blank    == 0   \* the blank `hyp place G <line>/<example>`
+
+VARIABLES
+    lines,     \* the current lines of the Goal
+    ever,      \* every line the Goal has had
+    cell,      \* cell[l]: "none" (no example), "live" (placed, live H0 cell),
+               \* "stale" (placed, H0 moved by a Draft replace)
+    stop,      \* "none", "two candidates", "budget used"
+    selected,  \* TRUE once the Goal has a select
+    block      \* what the grill's block offered after the last command
+
+vars == <<lines, ever, cell, stop, selected, block>>
+
+Open    == ~selected /\ \A l \in lines : cell[l] = "live"
+Written == ~selected /\ ~Open
+State   == IF selected THEN "selected" ELSE IF Open THEN "open" ELSE "written"
+
+\* What this build offers the grill in a state.
+Offer(ls, ev, c, sel) ==
+    LET placedAll == \A l \in ls : c[l] # "none"
+        open      == ~sel /\ \A l \in ls : c[l] = "live"
+    IN
+    IF sel /\ ~PlaceWhenSelected THEN {}
+    ELSE IF OldH0
+        THEN (IF placedAll THEN {Blank} ELSE {l \in ls : c[l] = "none"})
+    ELSE IF OnlyWhenWritten /\ open THEN {}
+    ELSE (IF OfferGoneLines THEN ev ELSE ls)
+         \cup (IF BlankBeside /\ open THEN {Blank} ELSE {})
+
+Print(ls, ev, c, sel) == block' = Offer(ls, ev, c, sel)
+
+Init ==
+    /\ lines \in {{1, 2, 3}, {1, 2}}
+    /\ ever = lines
+    /\ cell = [l \in AllLines |-> "none"]
+    /\ stop = "none"
+    /\ selected = FALSE
+    /\ block = Offer(lines, ever, cell, FALSE)
+
+\* The grill places an example on a current line; Kind runs it on H0, so it
+\* has a live H0 cell. A further example on a placed line is the same act.
+GrillPlaces ==
+    /\ ~selected
+    /\ \E l \in lines :
+        /\ cell' = [cell EXCEPT ![l] = "live"]
+        /\ Print(lines, ever, cell', selected)
+    /\ UNCHANGED <<lines, ever, stop, selected>>
+
+\* A place refused by a guard (Adds only, Committed, Kind, Selected) changes
+\* nothing and prints the block again.
+PlaceRefused ==
+    /\ Print(lines, ever, cell, selected)
+    /\ UNCHANGED <<lines, ever, cell, stop, selected>>
+
+\* The owner replaces the written Goal: new lines, and H0 moved, so every
+\* placed example has no live H0 cell. A placement on a gone line is history.
+OwnerReplaces ==
+    /\ Written
+    /\ \E ls \in SUBSET AllLines \ {{}} :
+        /\ lines' = ls
+        /\ ever' = ever \cup ls
+        /\ cell' = [l \in AllLines |-> IF cell[l] = "none" THEN "none" ELSE "stale"]
+        /\ Print(ls, ever', cell', selected)
+    /\ UNCHANGED <<stop, selected>>
+
+\* The runner runs a line on H0, which gives its placed examples a live cell.
+RunnerRunsH0 ==
+    /\ Written
+    /\ \E l \in lines :
+        /\ cell[l] = "stale"
+        /\ cell' = [cell EXCEPT ![l] = "live"]
+        /\ Print(lines, ever, cell', selected)
+    /\ UNCHANGED <<lines, ever, stop, selected>>
+
+\* The runner runs a candidate on an open Goal; it may reach a stop.
+RunnerRuns ==
+    /\ Open
+    /\ stop = "none"
+    /\ stop' \in {"none", "two candidates", "budget used"}
+    /\ Print(lines, ever, cell, selected)
+    /\ UNCHANGED <<lines, ever, cell, selected>>
+
+\* The runner (one candidate) or the owner (two) selects.
+Selects ==
+    /\ Open
+    /\ stop \in {"none", "two candidates"}
+    /\ selected' = TRUE
+    /\ Print(lines, ever, cell, TRUE)
+    /\ UNCHANGED <<lines, ever, cell, stop>>
+
+\* Anyone reads status.
+Status ==
+    /\ Print(lines, ever, cell, selected)
+    /\ UNCHANGED <<lines, ever, cell, stop, selected>>
+
+Next ==
+    \/ GrillPlaces
+    \/ PlaceRefused
+    \/ OwnerReplaces
+    \/ RunnerRunsH0
+    \/ RunnerRuns
+    \/ Selects
+    \/ Status
+
+Spec == Init /\ [][Next]_vars
+
+TypeOK ==
+    /\ lines \subseteq AllLines /\ lines # {}
+    /\ ever \subseteq AllLines /\ lines \subseteq ever
+    /\ cell \in [AllLines -> {"none", "live", "stale"}]
+    /\ stop \in {"none", "two candidates", "budget used"}
+    /\ selected \in BOOLEAN
+    /\ block \subseteq AllLines \cup {Blank}
+
+\* line 1: every place the guards allow is offered, a further example on a
+\* line that holds one included.
+EveryAllowedPlaceOffered == ~selected => lines \subseteq block
+
+\* decision 3: one ready place line per Goal line while written ...
+OneLinePerLineWhileWritten == Written => block = lines
+
+\* ... and while open, at every stop.
+OneLinePerLineWhileOpen == Open => block = lines
+
+\* decision 3: each line names its key; the blank form is never printed.
+EveryLineNamesItsKey == Blank \notin block
+
+\* decision 3: no state but written and open allows a place.
+NothingOnceSelected == selected => block = {}
+
+=============================================================================
+-- input/fx/goals/G-1908D1/specs/place.cfg --
+SPECIFICATION Spec
+
+CONSTANTS
+    OldH0 = FALSE
+    BlankBeside = FALSE
+    PlaceWhenSelected = FALSE
+    OfferGoneLines = FALSE
+    OnlyWhenWritten = FALSE
+
+INVARIANTS
+    TypeOK
+    EveryAllowedPlaceOffered
+    OneLinePerLineWhileWritten
+    OneLinePerLineWhileOpen
+    EveryLineNamesItsKey
+    NothingOnceSelected
+-- input/fx/goals/G-1908D1/specs/place-view.mjs --
+// The view of place.tla with the exact print: print() returns what hyp
+// prints to the grill on each step, in the form this fixture's examples use:
+// what happened, the Goal's state, then the grill's block.
+
+export const title = "hyp G-1908D1: the grill's place lines in the state block";
+
+const goal = (v) => {
+  if (v.selected) return "selected";
+  return [...v.lines].every((l) => v.cell[l] === "live") ? "open" : "written";
+};
+
+export const state = (v) => goal(v);
+
+export const step = (action) => action;
+
+const block = (v) => {
+  const b = [...(v.block ?? [])].map(Number).sort((x, y) => x - y);
+  if (b.length === 0) return "grill may:\n  (none)";
+  return "grill may:\n" + b.map((l) => (l === 0 ? "  hyp place G <line>/<example>" : `  hyp place G line-${l}/<example>`)).join("\n");
+};
+
+const what = (action, from, to) => {
+  switch (action) {
+    case "GrillPlaces": {
+      const l = [...to.lines].find((x) => from.cell[x] !== to.cell[x]);
+      return l === undefined ? "placed again" : `placed line-${l}`;
+    }
+    case "PlaceRefused": return "place refused";
+    case "OwnerReplaces": return "replaced: lines " + [...to.lines].map(Number).sort((x, y) => x - y).join(",");
+    case "RunnerRunsH0": return "ran on H0";
+    case "RunnerRuns": return "ran a candidate";
+    case "Selects": return "selected";
+    case "Status": return "status";
+  }
+  return action;
+};
+
+export const print = (action, from, to) => `${what(action, from, to)}\nstate: ${goal(to)}\n${block(to)}`;
+-- input/fx/goals/G-1908D1/line-1/a/example.txtar --
+~~ words ~~
+A Goal has three lines and only line-1 holds an example; the grill block offers a ready place line for each of the three lines.
+~~ run ~~
+add a Goal with three lines; place line-1/a
+~~ floor: contains ~~
+placed line-1
+state: written
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+-- input/fx/goals/G-1908D1/line-1/b/example.txtar --
+~~ words ~~
+Once every line holds an example the Goal is open and still offers a place line for each line; once selected it offers none.
+~~ run ~~
+place line-1/a, line-2/a, line-3/a; run; select
+~~ floor: contains ~~
+placed line-3
+state: open
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+~~ floor: contains ~~
+selected
+state: selected
+grill may:
+  (none)
+-- input/fx/goals/G-1908D1/line-1/c/example.txtar --
+~~ words ~~
+After the owner replaces the Goal with the same three lines, the grill block offers a place line for each line, before and after the last place.
+~~ run ~~
+place line-1/a, line-2/a; replace the Goal; place line-3/a
+~~ floor: contains ~~
+replaced: lines 1,2,3
+state: written
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+~~ floor: contains ~~
+placed line-3
+state: written
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+-- run --
+t=$HYP_SUBJECT/skills/hyp-statechart/scripts/statechart
+w=$(mktemp -d) && o=$(mktemp -d)/out && so=${o%/out}/stdout || exit 91
+(cd "$HYP_EXAMPLE/input/fx" && find . -type f) | while read -r f; do
+  mkdir -p "$w/$(dirname "$f")" && sed 's/^~~ \(.*\) ~~$/-- \1 --/' "$HYP_EXAMPLE/input/fx/$f" >"$w/$f"
+done
+cd "$w" || exit 91
+yn() { if [ "$1" = 0 ]; then echo yes; else echo no; fi; }
+"$t" goals/G-1908D1/specs/place.tla --config goals/G-1908D1/specs/place.cfg --view goals/G-1908D1/specs/place-view.mjs --out "$o" >"$so" 2>&1
+all=$(mktemp)
+cat "$so" >"$all" 2>/dev/null
+find "$o" -name '*.md' -type f -exec cat {} + >>"$all" 2>/dev/null
+VARIANTS='OfferGoneLines OldH0'
+# cell ROW VARIANT: the met/fail words of the grid cell of example ROW (or
+# the row whose first cell starts with ROW) under VARIANT, read from the
+# Markdown table whose header names every variant of VARIANTS.
+cell() {
+  awk -v row="$1" -v col="$2" -v vs="$VARIANTS" '
+    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    /^\|/ {
+      n = split($0, c, "|")
+      if (!hdr) {
+        k = split(vs, want, " "); found = 0
+        for (i = 2; i < n; i++) for (j = 1; j <= k; j++) if (trim(c[i]) == want[j]) found++
+        if (found == k) { hdr = 1; for (i = 2; i < n; i++) if (trim(c[i]) == col) ci = i }
+        next
+      }
+      first = trim(c[2])
+      if (ci && (first == row || index(first, row) == 1)) {
+        s = tolower(c[ci]); out = ""
+        while (match(s, /met|fail/)) { out = out (out ? " " : "") substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH) }
+        print (out ? out : "empty"); exit
+      }
+      next
+    }
+    hdr { hdr = 0; ci = 0 }
+  ' "$all"
+}
+# keys ROW VARIANT: the example keys in that cell, sorted, or "none"
+keys() {
+  awk -v row="$1" -v col="$2" -v vs="$VARIANTS" '
+    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    /^\|/ {
+      n = split($0, c, "|")
+      if (!hdr) {
+        k = split(vs, want, " "); found = 0
+        for (i = 2; i < n; i++) for (j = 1; j <= k; j++) if (trim(c[i]) == want[j]) found++
+        if (found == k) { hdr = 1; for (i = 2; i < n; i++) if (trim(c[i]) == col) ci = i }
+        next
+      }
+      if (ci && index(tolower(trim(c[2])), row) == 1) { print c[ci]; exit }
+      next
+    }
+    hdr { hdr = 0; ci = 0 }
+  ' "$all" | { v=$(cat); k=$(printf '%s\n' "$v" | grep -o 'line-[0-9]*/[a-z0-9-]*' | sort | tr '\n' ' ' | sed 's/ $//'); if [ -n "$k" ]; then echo "$k"; elif printf '%s' "$v" | grep -qi none; then echo none; else echo empty; fi; }
+}
+for e in line-1/a line-1/b line-1/c; do
+  echo "$e: OfferGoneLines $(cell "$e" OfferGoneLines | cut -d' ' -f1), OldH0 $(cell "$e" OldH0 | cut -d' ' -f1)"
+done
+echo "separated by: OfferGoneLines $(keys 'separated by' OfferGoneLines); OldH0 $(keys 'separated by' OldH0)"
+-- floor: equals --
+line-1/a: OfferGoneLines met, OldH0 fail
+line-1/b: OfferGoneLines met, OldH0 fail
+line-1/c: OfferGoneLines met, OldH0 fail
+separated by: OfferGoneLines none; OldH0 line-1/a line-1/b line-1/c
