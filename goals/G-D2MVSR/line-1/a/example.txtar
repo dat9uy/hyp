@@ -32,11 +32,13 @@ tries() { for n in 1 2 3; do ( r=$(mktemp -d) && cd "$r" && "$1" "$n" >"$out/c.$
 # The grill works in DIR. Its instructions are the SKILL_FILEs, passed as its
 # system prompt; no installed skill, user setting or hook loads. After each
 # grill turn, the scripted owner answers from OWNER_FILE, a JSON list of rules
-# {"if": [regex...], "about": regex (optional), "say": text}: a rule fires when
-# every "if" matches the grill's last message (case-insensitive); of the rules
-# that share an "if", only the one whose "about" matches last in the message
-# fires. With no rule firing, the owner says the default text when the message
-# asks a question, and the session ends when it asks none. At most 12 turns.
+# {"if": [regex...], "about": regex (optional), "say": text}. The owner reads
+# the grill's last message one paragraph at a time. A rule fires on a
+# paragraph that every "if" matches (case-insensitive). Of the rules that share
+# an "if", the one fires whose "about" matches last in that paragraph or, when
+# none does, last before it in the message. With no rule firing, the owner says
+# the default text when the message asks a question, and the session ends when
+# it asks none. At most 12 turns.
 import json, re, subprocess, sys
 
 d, prompt_file, owner_file, *skills = sys.argv[1:]
@@ -71,17 +73,23 @@ def turn(msg, sid):
     return text, new_sid
 
 def answer(msg):
-    fired, groups = [], {}
-    for r in rules:
-        if all(re.search(x, msg, re.I) for x in r["if"]):
-            groups.setdefault(json.dumps(r["if"]), []).append(r)
-    for rs in groups.values():
-        best, pos = None, -1
-        for r in rs:
-            if "about" not in r: best = best or r; continue
-            ms = [m.start() for m in re.finditer(r["about"], msg, re.I)]
-            if ms and ms[-1] > pos: best, pos = r, ms[-1]
-        if best and best["say"] not in fired: fired.append(best["say"])
+    fired, upto = [], ""
+    for para in re.split(r"\n\s*\n", msg):
+        upto += para + "\n\n"
+        groups = {}
+        for r in rules:
+            if all(re.search(x, para, re.I) for x in r["if"]):
+                groups.setdefault(json.dumps(r["if"]), []).append(r)
+        for rs in groups.values():
+            best = None
+            for scope in (para, upto):
+                pos = -1
+                for r in rs:
+                    if "about" not in r: best = best or r; continue
+                    ms = [m.start() for m in re.finditer(r["about"], scope, re.I)]
+                    if ms and ms[-1] > pos: best, pos = r, ms[-1]
+                if best: break
+            if best and best["say"] not in fired: fired.append(best["say"])
     if fired: return " ".join(fired)
     return default if "?" in msg else None
 
