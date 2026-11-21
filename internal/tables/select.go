@@ -115,7 +115,7 @@ func GuardSelect(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToSelect, GoalID(ev.Node))
 	}
-	if err := GuardNotEnded(g); err != nil {
+	if err := GuardNotLanded(g); err != nil {
 		return err
 	}
 	if err := GuardNotSelected(g); err != nil {

@@ -82,7 +82,7 @@ The role that adds the Goal, selects a candidate, unselects and lands a Goal, an
 _Avoid_: user, stakeholder, approver
 
 **Grill**:
-The role that writes a Goal's examples and places them, and that does the re-grill. Only the grill places ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §7](state-machine.md#7-guards), Own case). The skill `skills/hyp-grill` teaches it. In that skill the grill also drafts the words and lines with the owner, and the owner records them.
+The role that writes a Goal's examples and places them, and that does the re-grill. Only the grill places ([spec §2](state-machine.md#2-ids-actors-and-roles), [spec §7](state-machine.md#7-guards), Grill places). The skill `skills/hyp-grill` teaches it. In that skill the grill also drafts the words and lines with the owner, and the owner records them.
 _Avoid_: interviewer, reviewer
 
 **Re-grill**:
@@ -92,7 +92,7 @@ The grill's review of a Goal at a stop for the owner. At Two candidates or Budge
 The role that writes a Probe. It writes no event ([spec §2](state-machine.md#2-ids-actors-and-roles)). Whether it can be kept from reading the candidate is deferred ([spec §14](state-machine.md#14-deferred), o11-blind).
 
 **Runner**:
-The role that builds commits for a Goal, runs lines on them and selects a single candidate. The runner never places an example ([spec §7](state-machine.md#7-guards), Own case). `skills/hyp-grill/run-rules.md` lists the rules a runner follows that hyp cannot check.
+The role that builds commits for a Goal, runs lines on them and selects a single candidate. The runner never places an example ([spec §7](state-machine.md#7-guards), Grill places). `skills/hyp-grill/run-rules.md` lists the rules a runner follows that hyp cannot check.
 _Avoid_: operator, driver
 
 ## Goal and lines
@@ -187,7 +187,7 @@ A commit's tree without the top-level entries `goals` and `.tree`. A change to a
 _Avoid_: base plus patch (a v1 subject)
 
 **Subject hash**:
-The git tree hash of a commit's subject. hyp calculates it in memory and writes no object ([spec §1](state-machine.md#1-names-and-locations), [spec §13](state-machine.md#13-what-hyp-reads-from-git)). It keys a row and names a Hypothesis. The events store it in the field `row_tree`, and hyp's output still prints it as a tree, for example `select G TREE`.
+The git tree hash of a commit's subject. hyp calculates it in memory and writes no object ([spec §1](state-machine.md#1-names-and-locations), [spec §13](state-machine.md#13-what-hyp-reads-from-git)). It keys a row and names a Hypothesis. The events store it in the field `row_tree`; hyp prints it as a subject hash, for example `select G HASH`.
 _Avoid_: row tree, tree (alone): "tree" means only the Hypothesis tree
 
 **Row**:
@@ -242,7 +242,7 @@ A Result that Stable refused, because a repeat on the same bytes gave another ve
 _Avoid_: flaky (say unstable, and name the example)
 
 **Select**:
-The act `select G TREE` and its `select` event. TREE is the row's subject hash, as hyp prints it. The act records one candidate row as the Goal's answer, with the commit of the row's latest Result. The select is the gate, and its report is the PR body ([spec §8](state-machine.md#8-acts), [spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
+The act `select G HASH` and its `select` event. HASH is the row's subject hash, as hyp prints it. The act records one candidate row as the Goal's answer, with the commit of the row's latest Result. The select is the gate, and its report is the PR body ([spec §8](state-machine.md#8-acts), [spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
 _Avoid_: pick, choose, accept, merge
 
 **Spec** (of a Goal):
@@ -358,10 +358,10 @@ _Avoid_: check, validation, rule (alone)
 |---|---|
 | Draft | a replace names a Goal that is still written |
 | Whole lines | every line has a kind, one line or more is a gap line, and there are at most ten lines |
-| Not ended | the Goal is not landed |
+| Not landed | the Goal is not landed |
 | Open | the Goal is open; `run` on H0 does not check it |
 | Goal's actor | the actor added the Goal, for an owner's select, a land, an unselect and a reset |
-| Own case | the act's role is grill, for a place |
+| Grill places | the act's role is grill, for a place |
 | Kind | H0 gives the verdict the line's kind needs |
 | Committed | the example folder on disk equals its committed bytes |
 | Adds only | a new version only adds floors or ceilings, and its hash is new on its key |
@@ -430,7 +430,7 @@ The rules a runner follows that hyp cannot check, in `skills/hyp-grill/run-rules
 
 ## Deferred
 
-The spec defers two items until a real event shows the need: o7-actors and o11-blind. A third, o8-end, is closed: the owner's `land` ends a Goal at a stop, and Not ended refuses every write after it. A Goal that never reaches a stop has no end yet ([spec §14](state-machine.md#14-deferred)).
+The spec defers two items until a real event shows the need: o7-actors and o11-blind. A third, o8-end, is closed: the owner's `land` ends a Goal at a stop, and Not landed refuses every write after it. A Goal that never reaches a stop has no end yet ([spec §14](state-machine.md#14-deferred)).
 
 ## Scopes of this repository
 

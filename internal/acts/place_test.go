@@ -214,15 +214,15 @@ func TestUncommittedPlaceRunsNoProbe(t *testing.T) {
 
 func TestPlaceRefusesRunnerRole(t *testing.T) {
 	e := newPlaceEnv(t)
-	e.write(t, "line-1/a", failingOnH0, fixtureProbe) // uncommitted: Own case comes first
+	e.write(t, "line-1/a", failingOnH0, fixtureProbe) // uncommitted: Grill places comes first
 	for _, role := range []string{"runner", "owner", "probe-writer"} {
 		o := e.opts("line-1/a")
 		o.Role = role
 		_, err := Place(o)
-		refusedBy(t, err, "Own case")
+		refusedBy(t, err, "Grill places")
 	}
 	if n := len(e.placements(t)); n != 0 {
-		t.Fatalf("%d placements after Own case refusals", n)
+		t.Fatalf("%d placements after Grill places refusals", n)
 	}
 }
 

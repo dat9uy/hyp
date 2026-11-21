@@ -388,13 +388,13 @@ func TestGuardsOfPlace(t *testing.T) {
 	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Selected" {
 		t.Fatalf("a selected Goal: %v, want a Selected refusal", err)
 	}
-	if err := GuardOwnCase("grill"); err != nil {
+	if err := GuardGrillPlaces("grill"); err != nil {
 		t.Fatalf("grill refused: %v", err)
 	}
 	for _, role := range []string{"runner", "owner", "probe-writer", ""} {
-		err := GuardOwnCase(role)
-		if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Own case" {
-			t.Errorf("role %q: %v, want an Own case refusal", role, err)
+		err := GuardGrillPlaces(role)
+		if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Grill places" {
+			t.Errorf("role %q: %v, want an Grill places refusal", role, err)
 		}
 	}
 	g = &Goal{Placements: map[string][]Placement{"line-1/a": {{Key: "line-1/a", Hash: hashA, Version: 1}}}}

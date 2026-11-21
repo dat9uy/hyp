@@ -61,8 +61,8 @@ type checked struct {
 }
 
 // Place records an example placement, or refuses with the first failing
-// guard of the state machine, section 8: Not ended (always holds), Selected,
-// Own case, Committed, Adds only, then Kind. Everything but Kind is checked
+// guard of the state machine, section 8: Not landed (always holds), Selected,
+// Grill places, Committed, Adds only, then Kind. Everything but Kind is checked
 // before the Probe runs, so a refusal that needs no Probe costs no Probe run;
 // the Probe runs with the lock released, and every guard is checked again
 // under the lock before the event is appended.
@@ -160,7 +160,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 }
 
 // checkPlace runs the guards that need no Probe, in the order of the state
-// machine: Selected, Own case, Committed, then Adds only. An unknown Goal or
+// machine: Selected, Grill places, Committed, then Adds only. An unknown Goal or
 // line is a bad argument.
 func checkPlace(root string, o PlaceOpts, evs []events.Event, lineKey, name string) (checked, error) {
 	t := tables.Replay(evs)
@@ -178,13 +178,13 @@ func checkPlace(root string, o PlaceOpts, evs []events.Event, lineKey, name stri
 	if c.line.Key == "" {
 		return checked{}, fault.BadArg(fault.NoLine, g.ID, lineKey)
 	}
-	if err := tables.GuardNotEnded(g); err != nil {
+	if err := tables.GuardNotLanded(g); err != nil {
 		return checked{}, err
 	}
 	if err := tables.GuardNotSelected(g); err != nil {
 		return checked{}, err
 	}
-	if err := tables.GuardOwnCase(o.Role); err != nil {
+	if err := tables.GuardGrillPlaces(o.Role); err != nil {
 		return checked{}, err
 	}
 	if c.hash, err = committedHash(root, path.Join("goals", g.ID, lineKey, name)); err != nil {

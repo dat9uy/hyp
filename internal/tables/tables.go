@@ -389,10 +389,10 @@ func (g *Goal) refresh() {
 	}
 }
 
-// GuardNotEnded refuses every write to a landed Goal: the land ends it.
-func GuardNotEnded(g *Goal) error {
+// GuardNotLanded refuses every write to a landed Goal: the land ends it.
+func GuardNotLanded(g *Goal) error {
 	if g.State == StateLanded {
-		return fault.Refuse(fault.GuardNotEnded, fault.Landed, g.ID)
+		return fault.Refuse(fault.GuardNotLanded, fault.Landed, g.ID)
 	}
 	return nil
 }
@@ -406,10 +406,10 @@ func GuardNotSelected(g *Goal) error {
 	return nil
 }
 
-// GuardOwnCase refuses a placement by any role but the grill.
-func GuardOwnCase(role string) error {
+// GuardGrillPlaces refuses a placement by any role but the grill.
+func GuardGrillPlaces(role string) error {
 	if role != "grill" {
-		return fault.Refuse(fault.GuardOwnCase, fault.NotGrill, role)
+		return fault.Refuse(fault.GuardGrillPlaces, fault.NotGrill, role)
 	}
 	return nil
 }
@@ -431,26 +431,26 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 }
 
 // GuardPlace is the git-free check of an example.place event, called by Replay
-// at the event's place in the merge order: not Selected, Own case and the
+// at the event's place in the merge order: not Selected, Grill places and the
 // table half of Adds only. The place act calls the same three guards in spec
-// order around the guards that read git. Not ended always holds. ev.Node is
+// order around the guards that read git. Not landed always holds. ev.Node is
 // the goal.add event id of the Goal.
 func GuardPlace(t Tables, ev events.Event) error {
 	var p events.ExamplePlace
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardOwnCase, fault.PayloadInvalid, err)
+		return fault.Refuse(fault.GuardGrillPlaces, fault.PayloadInvalid, err)
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
 	}
-	if err := GuardNotEnded(g); err != nil {
+	if err := GuardNotLanded(g); err != nil {
 		return err
 	}
 	if err := GuardNotSelected(g); err != nil {
 		return err
 	}
-	if err := GuardOwnCase(p.Role); err != nil {
+	if err := GuardGrillPlaces(p.Role); err != nil {
 		return err
 	}
 	return GuardAddsOnlyTable(g, p.Line+"/"+p.Example, p.Hash)
@@ -613,7 +613,7 @@ func GuardOwnerLands(role string) error {
 }
 
 // GuardLand is the git-free check of a land event, called by Replay at the
-// event's place in the merge order: Not ended, Owner lands, Goal's actor, and
+// event's place in the merge order: Not landed, Owner lands, Goal's actor, and
 // the table half of Stop: the stop it names is one of the three, a select
 // for Selected and none for the other two. That two candidates or the budget
 // held when the act ran reads git, and is trusted as written, as the leaf mark
@@ -627,7 +627,7 @@ func GuardLand(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToLand, GoalID(ev.Node))
 	}
-	if err := GuardNotEnded(g); err != nil {
+	if err := GuardNotLanded(g); err != nil {
 		return err
 	}
 	if err := GuardOwnerLands(p.Role); err != nil {
@@ -679,7 +679,7 @@ func GuardHasSelect(g *Goal) error {
 }
 
 // GuardUnselect is the check of an unselect event, called by the unselect act
-// and by Replay at the event's place in the merge order: Not ended, Owner
+// and by Replay at the event's place in the merge order: Not landed, Owner
 // unselects, Goal's actor, then Selected (the Goal has a select). Every guard
 // reads only the tables. ev.Node is the goal.add event id.
 func GuardUnselect(t Tables, ev events.Event) error {
@@ -691,7 +691,7 @@ func GuardUnselect(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToUnselect, GoalID(ev.Node))
 	}
-	if err := GuardNotEnded(g); err != nil {
+	if err := GuardNotLanded(g); err != nil {
 		return err
 	}
 	if err := GuardOwnerUnselects(p.Role); err != nil {

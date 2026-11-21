@@ -167,14 +167,14 @@ var words = map[fault.Code]string{
 	fault.LeafNeedsCommit:   "Leaf only: the leaf mark of %s needs commit %s, which this clone lacks (%s)",
 	fault.AncestorOfRow:     "%s is an ancestor of %s, a commit of a row of %s; run a leaf",
 	fault.OtherGoalPath:     "commit %[1]s writes %[2]s, a path of another Goal; %[3]s may write only under goals/%[3]s/",
-	fault.BudgetUsed:        "%s has used %d of %d trees since its last change; the owner decides",
-	fault.OtherVerdict:      "%s on this tree gave another verdict than its live cell: %s",
+	fault.BudgetUsed:        "%s has used %d of %d Hypotheses since its last change; the owner decides",
+	fault.OtherVerdict:      "%s on this Hypothesis gave another verdict than its live cell: %s",
 	fault.NoGoalToRun:       "no Goal %s to run on",
 	fault.NoGoalToPlace:     "no Goal %s to place on",
 	fault.NoGoalToSelect:    "no Goal %s to select on",
 	fault.RoleCannotSelect:  "the role is %s; only the runner or the owner selects",
-	fault.NoTree:            "select needs a row tree",
-	fault.TreeTwice:         "%s matches %d rows of %s; give more of the tree",
+	fault.NoTree:            "select needs a subject hash",
+	fault.TreeTwice:         "%s matches %d rows of %s; give more of the subject hash",
 	fault.NoRow:             "%s has no row %s; a candidate is a leaf row met on every line",
 	fault.RowLeafUnknown:    "Candidate: the leaf mark of row %s needs commit %s, which this clone lacks",
 	fault.OwnerSelectsAmong: "%s has %d candidates; only the owner selects among them",
@@ -211,7 +211,7 @@ var words = map[fault.Code]string{
 	codeFlags:          "%s: %s",
 	codePlaceArgs:      "place takes a Goal and LINE/EXAMPLE, for example: hyp place G-NXHHVA line-1/a; got %d arguments",
 	codeRunArgs:        "run takes COMMIT and <Goal>/<line>, for example: hyp run 4df2b9e G-NXHHVA/line-3; got %d arguments",
-	codeSelectArgs:     "select takes a Goal and a row tree, for example: hyp select G-NXHHVA 4df2b9e...; got %d arguments",
+	codeSelectArgs:     "select takes a Goal and a subject hash, for example: hyp select G-NXHHVA 4df2b9e...; got %d arguments",
 	codeStatusArgs:     "status takes at most one Goal, got %d",
 	codeShowArgs:       "show takes one actor, for example: hyp show runner-1; got %d arguments",
 	codeShowActor:      "show %s: an actor matches ^[a-z0-9][a-z0-9-]{0,39}$",
@@ -333,7 +333,7 @@ func stableText(args []any, root string) string {
 		return "(" + string(fault.VerdictsDiffered) + ")"
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, "two runs of %s on one tree gave different verdicts; the first stands\n", f.Goal)
+	fmt.Fprintf(&b, "two runs of %s on one Hypothesis gave different verdicts; the first stands\n", f.Goal)
 	for _, d := range f.Diffs {
 		fmt.Fprintf(&b, "%s: %s, then %s\n", d.Key, d.FirstVerdict, d.Verdict)
 		writeStored(&b, root, "first output "+d.FirstOutput, d.FirstOutput, maxShown)

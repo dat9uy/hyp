@@ -9,9 +9,9 @@ import (
 	"github.com/dat9uy/hyp/internal/gitread"
 )
 
-// MaxTrees is the number of distinct trees a Goal may run since its
-// boundary, H0's tree never counted. It is three for every Goal.
-const MaxTrees = 3
+// MaxHypotheses is the number of distinct Hypotheses a Goal may run since its
+// boundary, H0 never counted. It is three for every Goal.
+const MaxHypotheses = 3
 
 // Ancestry answers the two questions about git that Rows and the run guards
 // ask. gitread.Ancestry is the real one.
@@ -218,8 +218,8 @@ func GuardBudget(g *Goal, rowTree string) error {
 		return nil
 	}
 	counted := g.countedTrees()
-	if len(counted) >= MaxTrees && !slices.Contains(counted, rowTree) {
-		return fault.Refuse(fault.GuardBudget, fault.BudgetUsed, g.ID, len(counted), MaxTrees)
+	if len(counted) >= MaxHypotheses && !slices.Contains(counted, rowTree) {
+		return fault.Refuse(fault.GuardBudget, fault.BudgetUsed, g.ID, len(counted), MaxHypotheses)
 	}
 	return nil
 }
@@ -280,7 +280,7 @@ func GuardRun(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToRun, GoalID(ev.Node))
 	}
-	if err := GuardNotEnded(g); err != nil {
+	if err := GuardNotLanded(g); err != nil {
 		return err
 	}
 	if err := GuardNotSelected(g); err != nil {

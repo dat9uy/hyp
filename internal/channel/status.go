@@ -75,8 +75,8 @@ func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o Blo
 
 func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	st := acts.Stand(g, repo)
-	fmt.Fprintf(b, "%s  %s  runs: %d of %d used\n", g.ID, g.State, st.Used, tables.MaxTrees)
-	if st.Stop == acts.StopNone && st.Used == tables.MaxTrees-1 {
+	fmt.Fprintf(b, "%s  %s  runs: %d of %d used\n", g.ID, g.State, st.Used, tables.MaxHypotheses)
+	if st.Stop == acts.StopNone && st.Used == tables.MaxHypotheses-1 {
 		fmt.Fprintf(b, "last run: after this, %s stops for the owner.\n", g.ID)
 	}
 	fmt.Fprintf(b, "stop: %s\n", stopText(st.Stop, st.Cause))

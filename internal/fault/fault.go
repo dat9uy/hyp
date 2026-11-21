@@ -26,7 +26,7 @@ type Guard string
 // The guards.
 const (
 	GuardDraft      Guard = "Draft"
-	GuardNotEnded   Guard = "Not ended"
+	GuardNotLanded   Guard = "Not landed"
 	GuardOwnerLands Guard = "Owner lands"
 	GuardOwnerUnsel Guard = "Owner unselects"
 	GuardNewCell    Guard = "New cell"
@@ -35,7 +35,7 @@ const (
 	GuardWholeLines Guard = "Whole lines"
 	GuardOpen       Guard = "Open"
 	GuardGoalsActor Guard = "Goal's actor"
-	GuardOwnCase    Guard = "Own case"
+	GuardGrillPlaces    Guard = "Grill places"
 	GuardKind       Guard = "Kind"
 	GuardCommitted  Guard = "Committed"
 	GuardAddsOnly   Guard = "Adds only"
