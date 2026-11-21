@@ -1,0 +1,109 @@
+-- words --
+A Goal with one gap line and one guard line, from add goal to open and a run on H0: the returns of add goal, of each place and of the run, and hyp status for every Goal, print what they print on H0.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+d='--'
+mkex() { mkdir -p "$1/probe" && cp "$HYP_EXAMPLE/probe/run" "$1/probe/run" && chmod +x "$1/probe/run" && printf '%s words %s\n%s\n%s run %s\n%s\n%s floor: contains %s\n%s\n%s ceiling %s\n%s\n' "$d" "$d" "$2" "$d" "$d" "$3" "$d" "$d" "$4" "$d" "$d" "$5" >"$1/example.txtar"; }
+mask() { sed -E -e "s/$g/G/g" -e 's/[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z/TIME/g' -e 's/[0-9A-HJKMNP-TV-Z]{26}/ULID/g' -e 's/[0-9a-f]{7,64}/HASH/g'; }
+show() { echo "== $1"; mask; }
+r=$(mktemp -d) && cd "$r" && git init -q && echo mark-floor-two >greet.txt && git add greet.txt && git commit -q -m base || exit 92
+base=$(git rev-parse HEAD)
+out=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'mark-goal-words' --line 'gap:mark-line-one' --line 'guard:mark-line-two' 2>&1)
+g=$(printf '%s\n' "$out" | sed -n 's/^recorded //p') && [ -n "$g" ] && git add -A && git commit -q -m 'record the Goal' || exit 93
+printf '%s\n' "$out" | show 'add goal returns'
+mkex "goals/$g/line-1/a" mark-example-one 'cat greet.txt; echo mark-run-one' mark-floor-one mark-ceiling-one && mkex "goals/$g/line-2/a" mark-example-two 'cat greet.txt; echo mark-run-two' mark-floor-two mark-ceiling-two && git add goals && git commit -q -m 'add the examples' || exit 94
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" place "$g" line-1/a 2>&1 | show 'place line-1/a returns, Goal written'
+git add -A && git commit -q -m 'place line-1/a' || exit 95
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" place "$g" line-2/a 2>&1 | show 'place line-2/a returns, Goal open'
+git add -A && git commit -q -m 'place line-2/a' || exit 96
+HYP_ACTOR=runner-1 HYP_ROLE=runner "$bin/hyp" run "$base" "$g/line-1" 2>&1 | show 'run H0 on line-1 returns'
+git add -A && git commit -q -m 'run line-1' || exit 97
+HYP_ACTOR=reader "$bin/hyp" status 2>&1 | show 'hyp status, every Goal'
+-- floor: equals --
+== add goal returns
+recorded G
+words: mark-goal-words
+H0: HASH
+line-1 gap: mark-line-one
+line-2 guard: mark-line-two
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+== place line-1/a returns, Goal written
+placed G line-1/a @1
+hash: HASH
+H0: failed (exit 0)
+G is written
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+== place line-2/a returns, Goal open
+placed G line-2/a @1
+hash: HASH
+H0: met (exit 0)
+G is open
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+== run H0 on line-1 returns
+ran G line-1 at HASH
+row: HASH
+line-1/a failed (exit 0, output HASH)
+  words: mark-example-one
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+== hyp status, every Goal
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2

@@ -1,0 +1,21 @@
+-- words --
+In the grill skill's steps of how to grill, a step that names both --from and hyp status comes before the step that drafts the words and lines.
+-- run --
+awk '
+/^## / { in_steps = ($0 == "## How to grill") }
+!in_steps { next }
+/^[0-9]+\. / { step = $1 + 0 }
+step && /--from/ { from[step] = 1 }
+step && /hyp status/ { status[step] = 1 }
+step && /\*\*Draft the words and lines/ { draft = step }
+END {
+  read = 0
+  for (s in from) if (s in status && (read == 0 || s + 0 < read)) read = s + 0
+  print "step that names --from and hyp status: " (read ? "yes" : "no")
+  print "step that drafts the words and lines: " (draft ? "yes" : "no")
+  print "the first comes before the second: " (read && draft && read < draft ? "yes" : "no")
+}' skills/hyp-grill/SKILL.md
+-- floor: equals --
+step that names --from and hyp status: yes
+step that drafts the words and lines: yes
+the first comes before the second: yes

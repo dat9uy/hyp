@@ -1,0 +1,48 @@
+-- words --
+An open Goal with a gap example on line-1 and a guard example on line-2: hyp status G, with no role and with each of the four roles, prints the Goal's words, each line's key with its text, and each placed example's key, words, run, floor, ceiling and its verdict on H0, failed for the gap example and met for the guard example.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+d='--'
+mkex() { mkdir -p "$1/probe" && cp "$HYP_EXAMPLE/probe/run" "$1/probe/run" && chmod +x "$1/probe/run" && printf '%s words %s\n%s\n%s run %s\n%s\n%s floor: contains %s\n%s\n%s ceiling %s\n%s\n' "$d" "$d" "$2" "$d" "$d" "$3" "$d" "$d" "$4" "$d" "$d" "$5" >"$1/example.txtar"; }
+r=$(mktemp -d) && cd "$r" && git init -q && echo mark-floor-two >greet.txt && git add greet.txt && git commit -q -m base || exit 92
+g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'mark-goal-words' --line 'gap:mark-line-one' --line 'guard:mark-line-two' | sed -n 's/^recorded //p') && [ -n "$g" ] && git add -A && git commit -q -m 'record the Goal' || exit 93
+has() { printf '%s\n' "$out" | grep -qF -- "$1"; }
+both() { printf '%s\n' "$out" | grep -F -- "$1" | grep -qF -- "$2"; }
+check() {
+  for role in '' owner grill probe-writer runner; do
+    if [ -z "$role" ]; then out=$(HYP_ACTOR=reader "$bin/hyp" status "$g" 2>/dev/null); n='hyp status G'; else out=$(HYP_ACTOR=reader "$bin/hyp" status "$g" --role "$role" 2>/dev/null); n="hyp status G --role $role"; fi
+    miss=
+    has mark-goal-words || miss="$miss words"
+    both line-1 mark-line-one || miss="$miss line-1"
+    both line-2 mark-line-two || miss="$miss line-2"
+    if [ "$1" = open ]; then
+      has line-1/a || miss="$miss key"
+      has mark-example-one || miss="$miss example-words"
+      has mark-run-one || miss="$miss run"
+      has mark-floor-one || miss="$miss floor"
+      has mark-ceiling-one || miss="$miss ceiling"
+      printf '%s\n' "$out" | grep -qw failed || miss="$miss verdict-on-H0"
+      has line-2/a || miss="$miss key-two"
+      has mark-example-two || miss="$miss example-words-two"
+      has mark-run-two || miss="$miss run-two"
+      has mark-floor-two || miss="$miss floor-two"
+      has mark-ceiling-two || miss="$miss ceiling-two"
+      printf '%s\n' "$out" | grep -qw met || miss="$miss verdict-on-H0-two"
+    fi
+    echo "$1, $n: missing${miss:- nothing}"
+  done
+}
+mkex "goals/$g/line-1/a" mark-example-one 'cat greet.txt; echo mark-run-one' mark-floor-one mark-ceiling-one && git add goals && git commit -q -m 'add line-1/a' || exit 94
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" place "$g" line-1/a >/dev/null 2>&1 && git add -A && git commit -q -m 'place line-1/a' || exit 95
+mkex "goals/$g/line-2/a" mark-example-two 'cat greet.txt; echo mark-run-two' mark-floor-two mark-ceiling-two && git add goals && git commit -q -m 'add line-2/a' || exit 96
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" place "$g" line-2/a >/dev/null 2>&1 && git add -A && git commit -q -m 'place line-2/a' || exit 97
+HYP_ACTOR=reader "$bin/hyp" status "$g" 2>/dev/null | head -n 1 | grep -q ' open ' || exit 98
+check open
+-- floor: equals --
+open, hyp status G: missing nothing
+open, hyp status G --role owner: missing nothing
+open, hyp status G --role grill: missing nothing
+open, hyp status G --role probe-writer: missing nothing
+open, hyp status G --role runner: missing nothing
