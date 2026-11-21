@@ -1029,8 +1029,7 @@ by its full argument shape in `internal/gitread`:
 | `git cat-file` | `-e` (Bytes), `--batch` (extraction by hash), `-p <commit>` (a commit's parents, for the own change), `blob <hash>` (a model's configs for Spec, and the charts of the PR body) |
 | `git ls-tree` | `-r -z` (extraction), the root of a commit (subject hash), `-r -z` of `goals/<G>/specs/` (Spec, and the charts of the PR body) |
 | `git merge-base --is-ancestor` | Leaf only |
-| `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths); `-p` is on the read list, and no act runs it |
-| `git patch-id` | on the read list; no act runs it, since `land` checks no commit |
+| `git diff-tree` | `-r --name-only` and `-r -c --name-only` (own change paths) |
 | `git ls-files -z --cached --others --exclude-standard` | the files of the checkout, for `try --worktree` (§8); this one form only. It reads the index and takes no optional lock; the files' bytes are read from disk |
 
 - Every git command runs with `GIT_OPTIONAL_LOCKS=0` and `GIT_NO_LAZY_FETCH=1`:

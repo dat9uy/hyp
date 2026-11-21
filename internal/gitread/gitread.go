@@ -95,10 +95,8 @@ func permits(cmd string, rest []string) bool {
 	case "merge-base":
 		return len(rest) == 3 && rest[0] == "--is-ancestor" && noDash(rest[1:])
 	case "diff-tree":
-		pos, ok := split(rest, "--name-only", "-r", "-z", "-c", "-p")
+		pos, ok := split(rest, "--name-only", "-r", "-z", "-c")
 		return ok && (len(pos) == 1 || len(pos) == 2) && noDash(pos)
-	case "patch-id":
-		return len(rest) == 1 && rest[0] == "--stable"
 	case "ls-files":
 		// one fixed form: the files of the checkout a commit of every
 		// change would hold

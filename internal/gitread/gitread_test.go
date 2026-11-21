@@ -40,6 +40,9 @@ func TestGitRefusesWriteCommand(t *testing.T) {
 		{"diff-tree", "-w", "HEAD", "HEAD"},
 		{"merge-base", "A", "B"},
 		{"patch-id"},
+		{"patch-id", "--stable"},
+		{"diff-tree", "-p", "a", "b"},
+		{"diff-tree", "-r", "-p", "a"},
 		{"ls-files"},
 		{"ls-files", "-z", "--cached", "--others"},
 		{"ls-files", "-z", "--cached", "--others", "--exclude-standard", "--with-tree=HEAD"},
@@ -79,8 +82,6 @@ func TestGitAllowsEveryReadForm(t *testing.T) {
 		{"merge-base", "--is-ancestor", "a", "b"},
 		{"diff-tree", "-r", "--name-only", "a", "b"},
 		{"diff-tree", "-r", "-c", "--name-only", "a"},
-		{"diff-tree", "-p", "a", "b"},
-		{"patch-id", "--stable"},
 		{"ls-files", "-z", "--cached", "--others", "--exclude-standard"},
 	} {
 		if err := allowed(args); err != nil {
