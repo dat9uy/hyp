@@ -106,23 +106,51 @@ The issue is the owner's record, not a rule for the runner:
    concrete case of each reading and let the owner choose. Place an example for
    the chosen reading. The command you draft carries the words and lines
    exactly as you showed them to the owner.
-9. **Switch to a record branch before the Goal is recorded.** The Goal's events
+9. **Make a record branch before the Goal is recorded.** The Goal's events
    and examples reach the default branch only through a record PR, never by a
    write on it. Before you show the owner the act that adds the Goal, run
-   `git fetch origin` and `git switch -c record/<issue> origin/main` (or the
+   `git fetch origin` and `git checkout -b record/<issue> origin/main` (or the
    repository's default branch) in the checkout where the owner will run it,
    where `<issue>` is the number of the issue you grill. hyp gives the Goal
    its id only when the Goal is added, so rename the branch `record/<G>` with
    `git branch -m` once hyp prints it.
-10. **Write the model with `/hyp-statechart`.** When the change moves through
-    states, write the Goal's model on the record branch with the hyp-statechart
-    skill, which ships with hyp: a TLA+ spec in `goals/<G>/specs/`, one switch
-    per potential Hypothesis, a switch config for every rule, each switch tried
-    as a patch against the examples, and the chart. A potential Hypothesis that
-    meets every example goes to the owner with its outputs, and the owner
-    chooses which output is wanted. At select, hyp refuses a model that has a
-    rule no switch config names, or no chart; a spec folder with no model is
-    selected as before.
+10. **Draft the model with `/hyp-statechart`.** When the change moves through
+    states, write the Goal's model on the record branch with the
+    hyp-statechart skill, which ships with hyp: a TLA+ spec in
+    `goals/<G>/specs/`, one variant per potential Hypothesis, and the chart.
+    The statechart tool, not you, says which rules each variant breaks and
+    which examples each variant would meet:
+    - Draft the model after the owner consents to the words and lines and
+      before the examples are final, so that what the tool predicts can still
+      change the examples.
+    - Run the tool on the check config. It writes one variant config per
+      variant under `specs/variants/`, prints each rule no variant breaks as
+      not shown to fail, prints a walk of the model for each example, and
+      predicts from the model alone whether each example is met under each
+      variant.
+    - Try each variant the tool predicts to meet every example: write it as a
+      patch and run each example on it with `hyp try G LINE/EXAMPLE
+      --worktree`.
+    - For each other variant, try one example the tool predicts to fail on
+      that variant's patch: one spot check for each other variant.
+    - Give the tool what `hyp try` printed: the verdict line of each tried
+      example goes in `specs/tried/<variant>/<line>/<example>.txt`, and the
+      tool's report sets each tried cell beside its prediction.
+    - Where a tried verdict differs from its prediction, fix the model, not an
+      example, and run the tool again.
+    - Say so in one line of the hand-off for each tried verdict that differed
+      from its prediction, and what you fixed in the model.
+    - For each tried variant that meets every example and prints something
+      else on a step no example takes, ask the owner one question in plain
+      English, at the example level and with no model word: show the case, what
+      each build prints for it, and ask which output is wanted.
+    - When the owner answers "either output is fine", list the case under
+      "Not covered". Otherwise place an example that separates the two builds.
+    - A prediction alone, never tried, never reaches the owner: only a tried
+      variant does.
+
+    At select, hyp refuses a model that has a rule no variant config names, or
+    no chart; a spec folder with no model is selected as before.
 
 ## How to write examples
 
@@ -195,7 +223,7 @@ runner looks for no rivals until the owner unselects.
 ## Resources
 
 - [run-rules.md](run-rules.md): the run part. Give it to the runner of the Goal.
-- The hyp-statechart skill, beside this one: the model, its switches and its
+- The hyp-statechart skill, beside this one: the model, its variants and its
   chart, with the statechart tool.
 - [probe/run](probe/run): the generic Probe, a POSIX `sh` script. hyp runs it
   on macOS and Linux; `hyp try` exercises it, so it has no test of its own.

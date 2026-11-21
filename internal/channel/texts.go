@@ -82,7 +82,7 @@ var words = map[fault.Code]string{
 	fault.SelectNotInLog:  "the select of %s is not in the log",
 	fault.NoResultOnRow:   "row %s has no Result to select",
 	fault.NoSpec:          "commit %s holds no file under %s; commit the spec, then run one line on that commit",
-	fault.RuleNoSwitch:    "commit %s holds a model whose rules no switch config names: %s; commit a switch config under %s that lists each rule it breaks, then run one line on that commit",
+	fault.RuleNoVariant:   "commit %s holds a model whose rules no variant config names: %s; commit a variant config under %s that lists each rule it breaks, then run one line on that commit",
 	fault.NoChart:         "commit %s holds a model and no chart under %s; commit the chart (.mmd), then run one line on that commit",
 
 	// events and their payloads

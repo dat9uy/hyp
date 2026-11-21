@@ -9,10 +9,21 @@ import (
 )
 
 // A Goal's spec folder, goals/<G>/specs/, may hold a model: a TLA+ module
-// (.tla), its check configs (.cfg), one switch config per potential Hypothesis under
-// specs/switches/, and a chart (.mmd). hyp reads these files from a commit
-// and runs no model checker.
-const switchesDir = "switches/"
+// (.tla), its check configs (.cfg), one variant config per potential
+// Hypothesis under specs/variants/, and a chart (.mmd). hyp reads these files
+// from a commit and runs no model checker. A spec folder written before the
+// rename holds its variant configs under specs/switches/; hyp reads both.
+const variantsDir = "variants/"
+
+// oldVariantsDir is the folder that held the variant configs before they
+// were called variant configs.
+const oldVariantsDir = "switches/"
+
+// inVariants reports whether p, a path below the spec folder, is in a folder
+// of variant configs.
+func inVariants(p string) bool {
+	return strings.HasPrefix(p, variantsDir) || strings.HasPrefix(p, oldVariantsDir)
+}
 
 // SpecFile is one file of a spec folder at a commit: its path below the spec
 // folder and its blob hash.
@@ -51,12 +62,12 @@ func SpecFiles(root, commit, id string) ([]SpecFile, error) {
 type Model struct {
 	Present bool       // the folder holds a .tla file
 	Rules   []string   // the rules the check configs check, in first-seen order
-	Named   []string   // the rules some switch config names
-	Charts  []SpecFile // the .mmd files outside switches/
+	Named   []string   // the rules some variant config names
+	Charts  []SpecFile // the .mmd files outside the variant folders
 }
 
-// Unswitched is every rule of the model that no switch config names.
-func (m Model) Unswitched() []string {
+// Unnamed is every rule of the model that no variant config names.
+func (m Model) Unnamed() []string {
 	named := map[string]bool{}
 	for _, r := range m.Named {
 		named[r] = true
@@ -71,16 +82,17 @@ func (m Model) Unswitched() []string {
 }
 
 // ReadModel reads the model of a spec folder from its files: a config under
-// switches/ is a switch config, every other .cfg is a check config.
+// variants/ (or the older switches/) is a variant config, every other .cfg is
+// a check config.
 func ReadModel(root string, files []SpecFile) (Model, error) {
 	var m Model
 	for _, f := range files {
-		inSwitches := strings.HasPrefix(f.Path, switchesDir)
+		isVariant := inVariants(f.Path)
 		switch path.Ext(f.Path) {
 		case ".tla":
 			m.Present = true
 		case ".mmd":
-			if !inSwitches {
+			if !isVariant {
 				m.Charts = append(m.Charts, f)
 			}
 		case ".cfg":
@@ -88,7 +100,7 @@ func ReadModel(root string, files []SpecFile) (Model, error) {
 			if err != nil {
 				return Model{}, err
 			}
-			if inSwitches {
+			if isVariant {
 				m.Named = appendNew(m.Named, CfgRules(string(data))...)
 			} else {
 				m.Rules = appendNew(m.Rules, CfgRules(string(data))...)

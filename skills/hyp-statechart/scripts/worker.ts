@@ -1,9 +1,11 @@
 import { Buffer } from "node:buffer";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { inspect } from "node:util";
 import { checkView } from "./frontends/view.ts";
+import { goalReport } from "./goal.ts";
 import { compile } from "./pipeline.ts";
 import { check, messageOf } from "./run.ts";
 
@@ -14,7 +16,15 @@ try {
     viewFile ? await import(pathToFileURL(path.resolve(viewFile)).href) : {},
     inspect,
   );
-  const { files, exit } = compile(await check(specFile, configFile), view);
+  const result = await check(specFile, configFile);
+  const { files, exit } = compile(result, view);
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "statechart-goal-"));
+  try {
+    const goal = await goalReport(specFile, configFile, view, result, scratch);
+    if (goal !== undefined) files.set("goal.md", [goal]);
+  } finally {
+    fs.rmSync(scratch, { recursive: true, force: true });
+  }
   const draft = path.join(stage, "draft");
   fs.mkdirSync(draft);
   for (const [name, parts] of files) {

@@ -206,7 +206,7 @@ A Hypothesis the runner builds beside another, from the same parent in the Hypot
 _Avoid_: rival for a v1 Hypothesis with a status (see the v1 table)
 
 **Potential Hypothesis**:
-A build that hyp has not recorded, such as a switch of a Goal's model written as a patch and tried with `hyp try --worktree`. When it meets every example, the examples do not separate it from the build under test, and it goes to the owner with its outputs. The owner chooses which output is wanted; no party calls a build right or wrong. Run with `hyp run`, it is a Hypothesis.
+A build that hyp has not recorded, such as a variant of a Goal's model written as a patch and tried with `hyp try --worktree`. When it meets every example, the examples do not separate it from the build under test, and it goes to the owner with its outputs. The owner chooses which output is wanted; no party calls a build right or wrong. Run with `hyp run`, it is a Hypothesis.
 _Avoid_: wrong build, broken variant, right build
 
 **Hypothesis tree**:
@@ -246,19 +246,19 @@ The act `select G TREE` and its `select` event. TREE is the row's subject hash, 
 _Avoid_: pick, choose, accept, merge
 
 **Spec** (of a Goal):
-The runner's files under `goals/<G>/specs/`, for example a model and its chart. A select needs the selected commit to hold one. When the spec is a model, every rule of its check configs must be named by a switch config, and the folder must hold a chart ([spec §1](state-machine.md#1-names-and-locations), [spec §7](state-machine.md#7-guards), Spec).
+The runner's files under `goals/<G>/specs/`, for example a model and its chart. A select needs the selected commit to hold one. When the spec is a model, every rule of its check configs must be named by a variant config, and the folder must hold a chart ([spec §1](state-machine.md#1-names-and-locations), [spec §7](state-machine.md#7-guards), Spec).
 
 **Model**:
 A spec folder that holds a `.tla` file. hyp reads its configs and its chart at select, and runs no model checker ([spec §7](state-machine.md#7-guards), Spec). The skill `skills/hyp-statechart` teaches how to write one.
 
 **Check config**:
-A `.cfg` file of a model that is not under `specs/switches/`. Its rules are the names it lists under `INVARIANT`, `INVARIANTS`, `PROPERTY` or `PROPERTIES` ([spec §7](state-machine.md#7-guards), Spec).
+A `.cfg` file of a model that is not under `specs/variants/` (or the older `specs/switches/`). Its rules are the names it lists under `INVARIANT`, `INVARIANTS`, `PROPERTY` or `PROPERTIES` ([spec §7](state-machine.md#7-guards), Spec).
 
-**Switch config**:
-A `.cfg` file under `specs/switches/`. It names the rules that one switch of the model breaks. A rule of a check config that no switch config names makes hyp refuse the select ([spec §7](state-machine.md#7-guards), Spec).
+**Variant config**:
+A `.cfg` file under `specs/variants/`. It names exactly the rules that one variant of the model breaks: a boolean constant that the check config sets FALSE, which stands for one potential Hypothesis. The statechart tool writes it. A spec folder written before the rename holds its variant configs under `specs/switches/`, and hyp reads them there too. A rule of a check config that no variant config names makes hyp refuse the select ([spec §7](state-machine.md#7-guards), Spec).
 
 **Chart**:
-A `.mmd` file of a spec folder outside `specs/switches/`. A model with no chart is refused at select, and the PR body prints each chart in a `mermaid` block ([spec §7](state-machine.md#7-guards), Spec; [spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
+A `.mmd` file of a spec folder outside its variant config folders. A model with no chart is refused at select, and the PR body prints each chart in a `mermaid` block ([spec §7](state-machine.md#7-guards), Spec; [spec §12](state-machine.md#12-the-return-shape-and-exit-codes)).
 
 **Record branch**:
 The branch that holds a Goal's examples and their place events. It merges before the runner's run, so the examples reach the runner's commits ([spec §1](state-machine.md#1-names-and-locations)).
@@ -371,7 +371,7 @@ _Avoid_: check, validation, rule (alone)
 | Budget | the run adds no fourth counted Hypothesis since the boundary |
 | Candidate | the Hypothesis is a candidate; with two or more, the role is owner |
 | New cell | after an unselect, a runner's select follows a run that recorded a new cell; the owner's select does not need one |
-| Spec | the selected commit holds a file under `goals/<G>/specs/`; a model also names every check-config rule in a switch config, and holds a chart |
+| Spec | the selected commit holds a file under `goals/<G>/specs/`; a model also names every check-config rule in a variant config, and holds a chart |
 | Own path | the commit's own change writes no path of another Goal |
 | Selected | the Goal has no select, for `place`, `run` and `select`; it has one, for `unselect` |
 | Owner lands | the act's role is owner, for a land |

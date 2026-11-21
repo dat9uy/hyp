@@ -53,14 +53,14 @@ const (
 	chartMmd  = "stateDiagram-v2\n  [*] --> s0\n"
 )
 
-func TestSelectRefusesARuleNoSwitchNames(t *testing.T) {
+func TestSelectRefusesARuleNoVariantNames(t *testing.T) {
 	e := newRunEnv(t)
 	err := e.selectModel(t, map[string]string{
 		"m.tla": modelTLA, "m.cfg": checkCfg, "switches/named.cfg": namedCfg, "chart.mmd": chartMmd,
 	})
 	refusedBy(t, err, "Spec")
 	f, _ := fault.As(err)
-	if f.Code != fault.RuleNoSwitch {
+	if f.Code != fault.RuleNoVariant {
 		t.Fatalf("code = %s", f.Code)
 	}
 	if rules, _ := f.Args[1].([]string); !slices.Equal(rules, []string{"LonelyRule"}) {
@@ -81,13 +81,38 @@ func TestSelectRefusesAModelWithNoChart(t *testing.T) {
 	}
 }
 
-func TestSelectRecordsAModelWithSwitchesAndChart(t *testing.T) {
+func TestSelectRecordsAModelWithOldVariantFolderAndChart(t *testing.T) {
 	e := newRunEnv(t)
 	err := e.selectModel(t, map[string]string{
 		"m.tla": modelTLA, "m.cfg": checkCfg, "switches/named.cfg": namedCfg, "switches/lonely.cfg": lonelyCfg, "chart.mmd": chartMmd,
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSelectReadsVariantConfigsUnderVariants(t *testing.T) {
+	e := newRunEnv(t)
+	err := e.selectModel(t, map[string]string{
+		"m.tla": modelTLA, "m.cfg": checkCfg, "variants/named.cfg": namedCfg, "variants/lonely.cfg": lonelyCfg, "chart.mmd": chartMmd,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSelectRefusalNamesTheVariantsFolder(t *testing.T) {
+	e := newRunEnv(t)
+	err := e.selectModel(t, map[string]string{
+		"m.tla": modelTLA, "m.cfg": checkCfg, "variants/named.cfg": namedCfg, "chart.mmd": chartMmd,
+	})
+	refusedBy(t, err, "Spec")
+	f, _ := fault.As(err)
+	if f.Code != fault.RuleNoVariant {
+		t.Fatalf("code = %s", f.Code)
+	}
+	if dir, _ := f.Args[2].(string); !strings.HasSuffix(dir, "/specs/variants/") {
+		t.Fatalf("folder = %v", f.Args[2])
 	}
 }
 
@@ -99,9 +124,9 @@ func TestSelectRecordsASpecWithNoModel(t *testing.T) {
 	}
 }
 
-func TestUnswitchedKeepsRuleOrder(t *testing.T) {
+func TestUnnamedKeepsRuleOrder(t *testing.T) {
 	m := Model{Rules: []string{"A", "B", "C"}, Named: []string{"B"}}
-	if got := strings.Join(m.Unswitched(), ","); got != "A,C" {
-		t.Fatalf("unswitched = %s", got)
+	if got := strings.Join(m.Unnamed(), ","); got != "A,C" {
+		t.Fatalf("unnamed = %s", got)
 	}
 }

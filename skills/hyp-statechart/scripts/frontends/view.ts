@@ -55,7 +55,7 @@ const isPlainObject = (v: unknown): v is { [key: string]: unknown } => {
 
 const isString = (v: unknown) => typeof v === "string";
 
-const VIEW_EXPORTS = ["state", "step", "group", "colors", "title"];
+const VIEW_EXPORTS = ["state", "step", "print", "group", "colors", "title"];
 
 type Inspect = (value: unknown, options: { breakLength: number }) => string;
 
@@ -80,6 +80,7 @@ export function checkView(
   };
   const state = pick("state", "a function", isFunction);
   const step = pick("step", "a function", isFunction);
+  const print = pick("print", "a function", isFunction);
   const group = pick("group", "a function", isFunction);
   const exported = pick("colors", "a plain object", isPlainObject);
   const title = pick("title", "a string", isString);
@@ -111,6 +112,9 @@ export function checkView(
     step:
       step &&
       ((action: string, from: Vars, to: Vars) => step(action, jsonVars(from), jsonVars(to))),
+    print:
+      print &&
+      ((action: string, from: Vars, to: Vars) => print(action, jsonVars(from), jsonVars(to))),
     group: named,
     colors,
     title,
