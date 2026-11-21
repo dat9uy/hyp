@@ -126,23 +126,10 @@ The issue is the owner's record, not a rule for the runner:
     - Draft the model after the owner consents to the words and lines and
       before the examples are final, so that what the tool predicts can still
       change the examples.
-    - Run the tool on the check config. It writes one variant config per
-      variant under `specs/variants/`, prints each rule no variant breaks as
-      not shown to fail, prints a walk of the model for each example, and
-      predicts from the model alone whether each example is met under each
-      variant.
-    - Try each variant the tool predicts to meet every example: write it as a
-      patch and run each example on it with `hyp try G LINE/EXAMPLE
-      --worktree`.
-    - For each other variant, try one example the tool predicts to fail on
-      that variant's patch: one spot check for each other variant.
-    - Give the tool what `hyp try` printed: the verdict line of each tried
-      example goes in `specs/tried/<variant>/<line>/<example>.txt`, and the
-      tool's report sets each tried cell beside its prediction.
-    - Where a tried verdict differs from its prediction, fix the model, not an
-      example, and run the tool again.
-    - Say so in one line of the hand-off for each tried verdict that differed
-      from its prediction, and what you fixed in the model.
+    - The hyp-statechart skill owns how to run the tool, how to try each
+      variant as a patch with `hyp try G LINE/EXAMPLE --worktree`, and what
+      its part of the hand-off holds. Follow it there; this step adds only
+      what you ask the owner.
     - For each tried variant that meets every example and prints something
       else on a step no example takes, ask the owner one question in plain
       English, at the example level and with no model word: show the case, what
@@ -204,8 +191,9 @@ numbered with their words, and "Not covered" with each decision no example
 checks. Before the record PR, the issues already hold those decisions and the
 "Not covered" items they own.
 
-A runner works from the Goal: what `hyp status G --role runner` prints, the
-placed examples and the model in the spec folder, with the run rules. If a
+A runner works from the Goal: what `hyp status G --role runner` prints, which
+holds the Goal's words, lines and placed examples, and the model in the spec
+folder, with the run rules. If a
 runner reads the hand-off, it is background, and no "Not covered" item is a
 task.
 
