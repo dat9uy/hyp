@@ -1,0 +1,10 @@
+-- words --
+Reading: on the first place, a line holds no example, so `hyp place G` places none of the set and names that line (not: it places the rest and the Goal stays written).
+-- run --
+hyp place "$G" 2>&1; echo "place exit $?"; hyp status "$G" | head -1
+-- floor: contains --
+line-2
+-- floor: contains --
+place exit 1
+-- floor: contains --
+G  written  runs: 0 of 3 used

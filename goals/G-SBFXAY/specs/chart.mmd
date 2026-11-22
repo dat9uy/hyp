@@ -1,0 +1,39 @@
+---
+title: "hyp G-SBFXAY: the grill places a Goal's whole example set"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: written
+    lg1: open
+    lg2: selected
+  }
+  class lg0 orange
+  class lg1 teal
+  class lg2 purple
+  state "Written" as s0 {
+    s1: nothing placed yet
+    s2: set refused
+    [*] --> s1
+  }
+  state "Open" as s3 {
+    s4: set placed
+    s5: set refused
+    [*] --> s4
+  }
+  state "Selected" as s6 {
+    s7: set placed
+    s8: set refused
+  }
+  [*] --> s0
+  s1 --> s2: the grill places the set [a cause to refuse]
+  s4 --> s5: the grill places the set [a cause to refuse]
+  s4 --> s7: a candidate is selected
+  s5 --> s4: the grill places the set
+  s5 --> s8: a candidate is selected
+  s0 --> s3: the grill places the set
+  class s1 orange
+  class s2 orange
+  class s4 teal
+  class s5 teal
+  class s7 purple
+  class s8 purple

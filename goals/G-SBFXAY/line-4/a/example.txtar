@@ -1,0 +1,8 @@
+-- words --
+Reading: after a place and a run, a `hyp place G` with no example changed is refused, and the runs used stay 1 of 3 (not: it places again and restarts the budget).
+-- run --
+hyp place "$G" 2>&1; echo "place exit $?"; hyp status "$G" | head -1
+-- floor: contains --
+place exit 1
+-- floor: contains --
+G  open  runs: 1 of 3 used

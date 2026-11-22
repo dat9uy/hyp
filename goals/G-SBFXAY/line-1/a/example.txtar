@@ -1,0 +1,8 @@
+-- words --
+Reading: every example of a set agrees with its line about H0, so one `hyp place G` places the whole set and the Goal is open.
+-- run --
+hyp place "$G" 2>&1; echo "place exit $?"; hyp status "$G" | head -1
+-- floor: contains --
+place exit 0
+-- floor: contains --
+G  open  runs: 0 of 3 used

@@ -1,0 +1,6 @@
+-- words --
+Reading: the old form `hyp place G LINE/EXAMPLE` is refused as a bad argument.
+-- run --
+hyp place "$G" line-1/a >/dev/null 2>&1; echo "place exit $?"
+-- floor: contains --
+place exit 2

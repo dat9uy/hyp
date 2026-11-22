@@ -1,0 +1,86 @@
+#!/bin/sh
+# Build hyp from the subject, rebuild a small git repo whose store was written
+# the old way by H0's hyp (one landed Goal, G-1SWG76: its two examples placed
+# one at a time, both lines run on one commit, selected, landed), and run the
+# example's run section in it. Fixed names, emails
+# and dates give the same commit and tree hashes on every run, so the events in
+# $HYP_EXAMPLE/input/tree name the commits this repo holds. Print the run's
+# stdout, then a last line "exit N" with its exit code.
+set -eu
+in=$HYP_EXAMPLE/input
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/bin" "$work/home" "$work/repo"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2
+
+export HOME="$work/home" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_AUTHOR_DATE=2026-01-01T00:00:00Z
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid GIT_COMMITTER_DATE=2026-01-01T00:00:00Z
+export PATH="$work/bin:$PATH"
+G=G-1SWG76
+cd "$work/repo"
+
+# H0 of G-1SWG76.
+git init -q -b main .
+printf 'hello\n' > greet.txt
+git add greet.txt && git commit -q -m base
+
+# The owner records the Goal.
+mkdir -p .tree/events .tree/outputs
+cp "$in/tree/.gitattributes" .tree/.gitattributes
+head -n 1 "$in/tree/events/owner.jsonl" > .tree/events/owner.jsonl
+git add .tree && git commit -q -m "record $G"
+
+# The grill writes one example on each line, with the generic Probe.
+mk() { # line example floor-op floor-text words
+  d=goals/$G/$1/$2
+  mkdir -p "$d/probe"
+  printf -- '-- words --\n%s\n-- run --\ncat greet.txt\n-- floor: %s --\n%s\n' "$5" "$3" "$4" > "$d/example.txtar"
+  cat > "$d/probe/run" <<'RUN'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+RUN
+  chmod 755 "$d/probe/run"
+}
+mk line-1 a contains bye "greet.txt prints bye"
+mk line-2 a contains hello "greet.txt still prints hello"
+mkdir -p "goals/$G/specs"
+printf 'greet.txt says bye and still holds hello.\n' > "goals/$G/specs/spec.txt"
+git add goals && git commit -q -m "examples of $G"
+
+# The grill placed each example with its own place, the old way.
+cp "$in/tree/events/grill.jsonl" .tree/events/grill.jsonl
+for o in 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; do
+  cp "$in/tree/outputs/$o" .tree/outputs/
+done
+git add .tree && git commit -q -m "place examples of $G"
+
+# The commit the runner ran both lines on.
+printf 'bye\nhello\n' > greet.txt
+git add greet.txt && git commit -q -m "greet says bye"
+
+# The runner's runs and select, and the owner's land.
+cp "$in/tree/events/owner.jsonl" .tree/events/owner.jsonl
+cp "$in/tree/events/runner-t.jsonl" .tree/events/runner-t.jsonl
+cp "$in/tree/outputs/"* .tree/outputs/
+git add .tree && git commit -q -m "run, select and land $G"
+git log --format='%H %T' >&2
+
+export G HYP_ACTOR=owner
+unset HYP_ROLE 2>/dev/null || true
+tmp=$work/out
+set +e
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+set -e
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"

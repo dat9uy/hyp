@@ -1,0 +1,10 @@
+-- words --
+Reading: one example of three disagrees with its line about H0, so `hyp place G` places none of the set and names that example (not: it places the two that agree).
+-- run --
+hyp place "$G" 2>&1; echo "place exit $?"; hyp status "$G" | head -1
+-- floor: contains --
+line-1/b
+-- floor: contains --
+place exit 1
+-- floor: contains --
+G  written  runs: 0 of 3 used

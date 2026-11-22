@@ -1,0 +1,10 @@
+-- words --
+Reading: one new example is not committed and a committed new version of another example changes its run, so `hyp place G` places none of the set and names both.
+-- run --
+hyp place "$G" 2>&1; echo "place exit $?"
+-- floor: contains --
+line-1/runchange
+-- floor: contains --
+line-2/uncommitted
+-- floor: contains --
+place exit 1
