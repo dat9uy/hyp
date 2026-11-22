@@ -10,6 +10,14 @@ verdict: met, exit 0
 skill folder hyp-grill: yes
 -- ceiling --
 not in this clone's trace
+-- floor: contains --
+a file beside SKILL.md that SKILL.md names: yes
+-- floor: contains --
+rule decision-is-words-line-or-example: yes
+-- floor: contains --
+stderr, 0 bytes
+-- ceiling --
+run again in this clone
 -- input/.tree/.gitattributes --
 events/*.jsonl merge=union
 -- input/.tree/events/grill.jsonl --

@@ -1,10 +1,14 @@
 -- words --
 Reading: in a fresh clone of a selected Goal, a try of the missing cell saves it, and `hyp status G` then prints it marked as run again in this clone.
 -- run --
-hyp try "$G" line-1/a --worktree >/dev/null 2>&1; echo "try exit $?"; hyp status "$G"
+hyp try "$G" line-1/a --worktree >/dev/null 2>&1; echo "try exit $?"; echo "other changes: $(git status --porcelain --untracked-files=all | grep -c .)"; hyp status "$G"; echo "marks in A: $(cd "$CLONE_A" && hyp status "$G" | grep -c 'run again in this clone')"
 -- floor: contains --
 try exit 0
 -- floor: contains --
+other changes: 0
+-- floor: contains --
 run again in this clone
+-- floor: contains --
+marks in A: 0
 -- ceiling --
 not in this clone's trace

@@ -1,8 +1,10 @@
 -- words --
 Reading: in a fresh clone of the record branch, a runner runs every line of an open Goal and selects a candidate met on every line.
 -- run --
-hyp run HEAD "$G/line-1" >/dev/null 2>&1; echo "run exit $?"; hyp select "$G" "$ROW" >/dev/null 2>&1; echo "select exit $?"
+hyp run HEAD "$G/line-1" >/dev/null 2>&1; echo "run exit $?"; hyp select "$G" "$ROW" >/dev/null 2>&1; echo "select exit $?"; hyp status "$G" | head -n 1
 -- floor: contains --
 run exit 0
 -- floor: contains --
 select exit 0
+-- floor: contains --
+G  selected

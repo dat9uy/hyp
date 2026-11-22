@@ -8,3 +8,5 @@ G  selected
 not in this clone's trace
 -- floor: contains --
 hyp try G line-1/a
+-- ceiling --
+verdict: met

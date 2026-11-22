@@ -1,0 +1,12 @@
+-- words --
+Reading: hyp warns only when the selected commit is on no branch or tag: while the branch holds it, `hyp status` prints no warning; once the branch is deleted, `hyp status G` warns.
+-- run --
+echo "warnings before: $(hyp status | grep -c 'on no branch or tag')"; git branch -D cand >/dev/null 2>&1; echo "branch deleted: $?"; hyp status "$G"
+-- floor: contains --
+warnings before: 0
+-- floor: contains --
+branch deleted: 0
+-- floor: contains --
+G  selected
+-- floor: contains --
+on no branch or tag

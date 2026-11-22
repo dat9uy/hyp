@@ -1,6 +1,8 @@
 -- words --
 Reading: clone A ran one Hypothesis of an open Goal; in a fresh clone B, `hyp status G` prints `runs: 0 of 3 used`.
 -- run --
-hyp status "$G"
+hyp status "$G"; echo "A: $(cd "$CLONE_A" && hyp status "$G" | head -n 1)"
 -- floor: contains --
 G  open  runs: 0 of 3 used
+-- floor: contains --
+A: G  open  runs: 1 of 3 used

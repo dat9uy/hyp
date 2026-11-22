@@ -1,12 +1,20 @@
 -- words --
 Reading: after `hyp place G`, the grill's events file under `.tree/` holds one new line, and `.tree/` holds no cell and no output.
 -- run --
-hyp place "$G" >/dev/null 2>&1; echo "place exit $?"; echo "grill lines: $(wc -l < .tree/events/grill.jsonl | tr -d ' ')"; git status --porcelain --untracked-files=all .tree; grep -o '"verdict"' .tree/events/grill.jsonl | head -n 1
+hyp place "$G" >/dev/null 2>&1; echo "place exit $?"; echo "grill lines: $(wc -l < .tree/events/grill.jsonl | tr -d ' ')"; grep -q "$EXHASH" .tree/events/grill.jsonl && echo "place names the example hash"; echo "other changes: $(git status --porcelain --untracked-files=all | grep -vc 'grill.jsonl$')"; git status --porcelain --untracked-files=all .tree; grep -o '"verdict"\|"output"\|"stderr"' .tree/events/grill.jsonl | sort -u
 -- floor: contains --
 place exit 0
 -- floor: contains --
 grill lines: 1
+-- floor: contains --
+place names the example hash
+-- floor: contains --
+other changes: 0
 -- ceiling --
 .tree/outputs/
 -- ceiling --
 "verdict"
+-- ceiling --
+"output"
+-- ceiling --
+"stderr"

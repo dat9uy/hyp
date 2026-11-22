@@ -1,10 +1,14 @@
 -- words --
 Reading: after `hyp select`, the runner's events file holds one line, the select, and it names the commit and the example hash it was judged by.
 -- run --
-hyp select "$G" "$ROW" >/dev/null 2>&1; echo "select exit $?"; echo "runner lines: $(wc -l < .tree/events/runner.jsonl | tr -d ' ')"; grep '"type":"select"' .tree/events/runner.jsonl | grep "$COMMIT" | grep -q "$EXHASH" && echo "select names the commit and the example hash"
+hyp select "$G" "$ROW" >/dev/null 2>&1; echo "select exit $?"; echo "runner lines: $(wc -l < .tree/events/runner.jsonl | tr -d ' ')"; grep '"type":"select"' .tree/events/runner.jsonl | grep "$COMMIT" | grep -q "$EXHASH" && echo "select names the commit and the example hash"; grep -o '"verdict"\|"output"' .tree/events/runner.jsonl | sort -u
 -- floor: contains --
 select exit 0
 -- floor: contains --
 runner lines: 1
 -- floor: contains --
 select names the commit and the example hash
+-- ceiling --
+"verdict"
+-- ceiling --
+"output"
