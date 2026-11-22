@@ -1,0 +1,52 @@
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G
+probe-writer may:
+  the Probe writer's contract, for the Probe of one example:
+    1. Read the line, its example and H0.
+    2. Write and commit only that example's probe folder, goals/G/<line>/<example>/probe.
+    3. Start from the generic Probe and write new code only when it cannot run the example.
+    4. Run the example on H0 with hyp try and return its output.
+    5. Write no event.
+  the generic Probe, probe/run:
+    #!/bin/sh
+    # Run the example's run section in the subject copy (the working directory),
+    # print its stdout, then a last line "exit N" with its exit code.
+    tmp=$(mktemp) || exit 1
+    sh -c "$HYP_RUN" >"$tmp"
+    code=$?
+    cat "$tmp"
+    if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+    echo "exit $code"
+    rm -f "$tmp"
+  tasks, one for each line:
+    line-1 (gap): the Probe of each example of line-1; check it with: hyp try G line-1/<example>
+runner may:
+  hyp run <commit> G/line-1
+
+The Goal asks:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a @1
+
+hash: 937b45521e7120ee8cf7873010735f86ba922963
+placed: by grill at 2026-11-22T14:53:22.805262Z
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 80 bytes:
+
+```
+-- words --
+Fixture line-1/a.
+-- run --
+cat greet.txt
+-- floor: contains --
+bye
+```

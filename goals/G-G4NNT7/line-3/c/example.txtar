@@ -1,0 +1,12 @@
+-- words --
+Reading: in a fresh clone of a selected Goal, the try line `hyp status G` prints, run as printed, runs the missing cell again, and `hyp status G` then prints it marked as run again in this clone.
+-- run --
+line=$(hyp status "$G" | grep -o 'hyp try .*' | head -n 1); echo "try line: $line"; sh -c "$line" >/dev/null 2>&1; echo "try exit $?"; hyp status "$G"
+-- floor: contains --
+try line: hyp try
+-- floor: contains --
+try exit 0
+-- floor: contains --
+run again in this clone
+-- ceiling --
+not in this clone's trace

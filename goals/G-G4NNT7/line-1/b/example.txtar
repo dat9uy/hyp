@@ -1,0 +1,12 @@
+-- words --
+Reading: after `hyp place G`, git holds no cell of H0, and `hyp status G` in the same clone prints H0's verdict at place from the clone's trace.
+-- run --
+hyp place "$G" >/dev/null 2>&1; echo "place exit $?"; echo "cells in git: $(cat .tree/events/*.jsonl | grep -c '"verdict"')"; hyp status "$G"
+-- floor: contains --
+place exit 0
+-- floor: contains --
+cells in git: 0
+-- floor: contains --
+verdict on H0 at place: failed
+-- ceiling --
+not in this clone's trace

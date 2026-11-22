@@ -1,0 +1,10 @@
+-- words --
+Reading: in a fresh clone of the record branch, a runner's select of a candidate that fails a line is refused, and the Goal stays open.
+-- run --
+hyp run HEAD "$G/line-1" >/dev/null 2>&1; echo "run exit $?"; hyp select "$G" "$ROW" >/dev/null 2>&1; echo "select exit $?"; hyp status "$G" | head -n 1
+-- floor: contains --
+run exit 0
+-- floor: contains --
+select exit 1
+-- floor: contains --
+G  open

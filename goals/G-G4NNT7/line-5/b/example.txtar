@@ -1,0 +1,10 @@
+-- words --
+Reading: the return of `hyp land G` warns when the selected commit is on no branch or tag, also when a squash merge left a commit on main with the same subject hash.
+-- run --
+hyp land "$G"; echo "land exit $?"
+-- floor: contains --
+G  landed
+-- floor: contains --
+on no branch or tag
+-- floor: contains --
+land exit 0

@@ -1,0 +1,14 @@
+-- words --
+Reading: after `hyp run` of a line, nothing under `.tree/` changed.
+-- run --
+hyp run HEAD "$G/line-1" >/dev/null 2>&1; echo "run exit $?"; echo "other changes: $(git status --porcelain --untracked-files=all | grep -c .)"; git status --porcelain --untracked-files=all .tree; hyp status "$G" | head -n 1
+-- floor: contains --
+run exit 0
+-- floor: contains --
+other changes: 0
+-- floor: contains --
+runs: 1 of 3 used
+-- ceiling --
+.tree/events/
+-- ceiling --
+.tree/outputs/

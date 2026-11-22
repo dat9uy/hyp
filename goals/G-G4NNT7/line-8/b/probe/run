@@ -1,0 +1,85 @@
+#!/bin/sh
+# Probe of G-G4NNT7 line-8/b. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with a test Goal and
+# fixture examples, does this example's setup, then runs the example's run
+# section in the test store with $G set to the test Goal. It prints the run's
+# stdout with the test Goal's id replaced by "G", then a last line "exit N".
+# Setup output goes to stderr. A build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+{
+  echo '-- words --'
+  echo "Fixture line-1/a."
+  echo '-- run --'
+  echo 'cat greet.txt'
+  echo '-- floor: contains --'
+  echo 'bye'
+} >"$d/example.txtar"
+cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+chmod +x "$d/probe/run"
+git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
+
+echo "setup: hyp place $G" >&2
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+git checkout -q -b record >&2 || fail "branch record"
+git add -A && git commit -q -m "place $G" >&2 || git status >&2
+
+# Clone B: a fresh clone of the record branch, so its trace is empty.
+clone="$work/clone-b"
+git clone -q -b record "$repo" "$clone" >&2 || fail "git clone"
+cd "$clone" || fail "cd clone"
+echo hi >greet.txt
+mkdir -p "goals/$G/specs" && echo "Greet says bye." >"goals/$G/specs/spec.md" || fail "spec"
+git add -A && git commit -q -m candidate >&2 || fail "commit candidate"
+# The candidate's subject hash: its tree without the top-level goals and .tree.
+ROW=$(git ls-tree HEAD | awk -F'\t' '$2 != "goals" && $2 != ".tree"' | git mktree) || fail "subject hash"
+[ -n "$ROW" ] || fail "empty subject hash"
+export ROW G HYP_ACTOR=runner HYP_ROLE=runner
+out="$work/out"
+sh -c "$HYP_RUN" >"$out"
+code=$?
+sed "s/$G/G/g" "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+echo "exit $code"
+exit 0
