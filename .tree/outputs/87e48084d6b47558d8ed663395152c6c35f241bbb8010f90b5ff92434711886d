@@ -1,0 +1,33 @@
+setup: hyp place G-QBDCWP
+placed G-QBDCWP: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-QBDCWP is open
+G-QBDCWP  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-QBDCWP
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-QBDCWP/line-1
+setup: exit 0
+setup: hyp run: ran G-QBDCWP line-1 at f9bd75976988a8d2db7c8c843fe5766840f9d18d
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-QBDCWP  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-QBDCWP 5932e94ab05ef26f462c78040a41abdd5b4fc884
+grill may:
+  hyp place G-QBDCWP
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-QBDCWP 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-QBDCWP/line-1
+setup: ROW=5932e94ab05ef26f462c78040a41abdd5b4fc884 COMMIT=f9bd75976988a8d2db7c8c843fe5766840f9d18d EXHASH=937b45521e7120ee8cf7873010735f86ba922963

@@ -1,0 +1,36 @@
+setup: hyp place G-688T0Y
+placed G-688T0Y: 2 examples
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+line-2/a @1  hash: fc7f7d836700c4d57614c1f68dd4c9a8b11d0eb2  H0: met (exit 0)
+G-688T0Y is open
+G-688T0Y  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-688T0Y
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-688T0Y/line-1
+  hyp run <commit> G-688T0Y/line-2
+setup: exit 0
+setup: hyp run ddc72cd36cf58a4091c97e50027d87aff5b98594 G-688T0Y/line-1
+ran G-688T0Y line-1 at ddc72cd36cf58a4091c97e50027d87aff5b98594
+row: eb18381703fbedc7f19d1023b675b53f36e640db
+line-1/a failed (exit 0, output 8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4)
+  words: Fixture line-1/a.
+G-688T0Y  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-688T0Y
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-688T0Y/line-1
+  hyp run <commit> G-688T0Y/line-2
+setup: exit 0

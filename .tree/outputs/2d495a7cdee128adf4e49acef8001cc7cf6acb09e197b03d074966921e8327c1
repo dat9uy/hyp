@@ -1,0 +1,3 @@
+select exit 0
+runner lines: 1
+select names the commit and the example hash

@@ -1,0 +1,48 @@
+setup: hyp place G-RX475Z
+placed G-RX475Z: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-RX475Z is open
+G-RX475Z  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-RX475Z
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-RX475Z/line-1
+setup: hyp select G-RX475Z 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-RX475Z: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 00628a4765b695e1278bca38a9cd53578c7a79a0
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-RX475Z  selected  runs: 1 of 3 used
+stop: selected, by select 01M81ZQ0W77NRTBJT31WPDA4JZ at 2026-11-22T15:59:04.583344Z
+waits: owner
+owner may:
+  hyp land G-RX475Z
+  hyp unselect G-RX475Z
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+Squash commit -- not updating HEAD
+Deleted branch cand (was 7abcc41).

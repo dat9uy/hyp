@@ -1,0 +1,18 @@
+setup: hyp place G-APM3B5
+placed G-APM3B5: 2 examples
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+line-2/a @1  hash: fc7f7d836700c4d57614c1f68dd4c9a8b11d0eb2  H0: met (exit 0)
+G-APM3B5 is open
+G-APM3B5  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-APM3B5
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-APM3B5/line-1
+  hyp run <commit> G-APM3B5/line-2
+setup: exit 0

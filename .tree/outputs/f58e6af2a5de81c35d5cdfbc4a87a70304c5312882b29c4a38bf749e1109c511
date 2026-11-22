@@ -1,0 +1,13 @@
+G  selected  runs: 1 of 3 used
+stop: selected, by select 01M81ZPX67P4RTKAARVT2SMKTS at 2026-11-22T15:59:00.807777Z
+warning: the selected commit 9fde80c0c00e2ba8a3f741fdc78d60335e007fac is on no branch or tag of this clone; keep a branch or tag on it, or git gc may remove it
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

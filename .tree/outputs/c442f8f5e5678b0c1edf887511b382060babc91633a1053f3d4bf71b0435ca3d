@@ -1,0 +1,25 @@
+G  selected  runs: 0 of 3 used
+stop: selected, by select 01M81ZPGP0EYXCW7C86G48X90M at 2026-11-22T15:58:48.000029Z
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: not in this clone's trace; run it again with: hyp try G line-1/a --commit 8ab49185da690077d950e9049d2ab0c8760012b2
+
+selected commit: 8ab49185da690077d950e9049d2ab0c8760012b2
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884

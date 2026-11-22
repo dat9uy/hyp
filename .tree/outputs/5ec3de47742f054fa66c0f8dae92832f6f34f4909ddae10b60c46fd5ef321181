@@ -1,0 +1,35 @@
+try line: hyp try G line-1/a --commit b7d73bc4c324382b591973a2eb455ef48a6c6fdc
+try exit 0
+G  selected  runs: 0 of 3 used
+stop: selected, by select 01M81ZPM2143AD7NFJCY7SCGRD at 2026-11-22T15:58:51.457423Z
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0, run again in this clone
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: b7d73bc4c324382b591973a2eb455ef48a6c6fdc
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884

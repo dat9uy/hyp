@@ -1,0 +1,64 @@
+setup: hyp place G-TM7804
+placed G-TM7804: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-TM7804 is open
+G-TM7804  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-TM7804
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-TM7804/line-1
+setup: exit 0
+ran G-TM7804 line-1 at c3927ad0145e5aec510df5c3f5e23139cdfcf693
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-TM7804  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-TM7804 5932e94ab05ef26f462c78040a41abdd5b4fc884
+grill may:
+  hyp place G-TM7804
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-TM7804 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-TM7804/line-1
+setup: hyp select G-TM7804 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-TM7804: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: c3927ad0145e5aec510df5c3f5e23139cdfcf693
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-TM7804  selected  runs: 1 of 3 used
+stop: selected, by select 01M81ZPREPP37VT88JNM48HXM0 at 2026-11-22T15:58:55.958342Z
+waits: owner
+owner may:
+  hyp land G-TM7804
+  hyp unselect G-TM7804
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
