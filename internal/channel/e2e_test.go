@@ -48,7 +48,7 @@ func TestOneGoalEndToEnd(t *testing.T) {
 	}
 	goal := fields[1]
 
-	// the grill commits one example per line and places each
+	// the grill commits one example per line and places the set
 	for key, txtar := range map[string]string{"line-1/a": wholeTitle, "line-2/a": shortTitle} {
 		dir := filepath.Join("goals", goal, key)
 		if err := os.MkdirAll(filepath.Join(r.Dir, dir), 0o755); err != nil {
@@ -63,10 +63,8 @@ func TestOneGoalEndToEnd(t *testing.T) {
 	testutil.Git(t, r.Dir, "commit", "-q", "-m", "examples")
 	t.Setenv("HYP_ACTOR", "grill-1")
 	t.Setenv("HYP_ROLE", "grill")
-	for _, key := range []string{"line-1/a", "line-2/a"} {
-		if code, out, errs := run(t, "place", goal, key); code != 0 {
-			t.Fatalf("place %s: code %d, stdout %q, stderr %q", key, code, out, errs)
-		}
+	if code, out, errs := run(t, "place", goal); code != 0 {
+		t.Fatalf("place: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, out, _ = run(t, "status")
 	if !strings.Contains(out, goal+"  open  runs: 0 of 3 used\nstop: none\n") {

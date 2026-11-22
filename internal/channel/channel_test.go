@@ -185,8 +185,8 @@ func TestPlaceRecordsExit0(t *testing.T) {
 	r := inRepo(t)
 	goal := goalWithExample(t, r, true)
 	before := testutil.Snapshot(t, r.Dir)
-	code, out, errs := run(t, "place", goal, "line-1/a")
-	if code != 0 || !strings.Contains(out, "placed "+goal+" line-1/a @1") || !strings.Contains(out, "H0: failed (exit 0)") || !strings.Contains(out, goal+" is open") {
+	code, out, errs := run(t, "place", goal)
+	if code != 0 || !strings.Contains(out, "placed "+goal+": 1 example\nline-1/a @1  hash: ") || !strings.Contains(out, "H0: failed (exit 0)") || !strings.Contains(out, goal+" is open") {
 		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	if testutil.Snapshot(t, r.Dir) != before {
@@ -198,7 +198,7 @@ func TestPlaceFlagsMayFollowThePositionals(t *testing.T) {
 	r := inRepo(t)
 	goal := goalWithExample(t, r, true)
 	t.Setenv("HYP_ROLE", "runner")
-	code, out, errs := run(t, "place", goal, "line-1/a", "--role", "grill", "--why", "first")
+	code, out, errs := run(t, "place", goal, "--role", "grill", "--why", "first")
 	if code != 0 {
 		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
 	}
@@ -207,12 +207,12 @@ func TestPlaceFlagsMayFollowThePositionals(t *testing.T) {
 func TestPlaceRefusalExit1(t *testing.T) {
 	r := inRepo(t)
 	goal := goalWithExample(t, r, false)
-	code, out, errs := run(t, "place", goal, "line-1/a")
+	code, out, errs := run(t, "place", goal)
 	if code != 1 || !strings.HasPrefix(out, goal+"  written  runs: 0 of 3 used\n") || !strings.Contains(errs, "Committed") {
 		t.Fatalf("code %d, stdout %q, stderr %q; want the refusal on stderr and the state block on stdout", code, out, errs)
 	}
 	t.Setenv("HYP_ROLE", "runner")
-	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 1 || !strings.Contains(errs, "Grill places") {
+	if code, _, errs := run(t, "place", goal); code != 1 || !strings.Contains(errs, "Grill places") {
 		t.Fatalf("runner: code %d, stderr %q", code, errs)
 	}
 }
@@ -222,20 +222,18 @@ func TestPlaceBadArgumentsExit2(t *testing.T) {
 	goal := goalWithExample(t, r, true)
 	for _, args := range [][]string{
 		{"place"},
-		{"place", goal},
-		{"place", goal, "line-1/a", "extra"},
+		{"place", goal, "line-1/a"}, // the old form, one example per place
 		{"place", goal, "line-1"},
-		{"place", "G-NOPE00", "line-1/a"},
-		{"place", goal, "line-9/a"},
-		{"place", goal, "line-1/a", "--bogus"},
-		{"place", goal, "line-1/a", "--why", strings.Repeat("x", 601)},
+		{"place", "G-NOPE00"},
+		{"place", goal, "--bogus"},
+		{"place", goal, "--why", strings.Repeat("x", 601)},
 	} {
 		if code, _, errs := run(t, args...); code != 2 {
 			t.Errorf("%v: code %d, stderr %q; want 2", args, code, errs)
 		}
 	}
 	t.Setenv("HYP_ROLE", "")
-	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 2 || !strings.Contains(errs, "role") {
+	if code, _, errs := run(t, "place", goal); code != 2 || !strings.Contains(errs, "role") {
 		t.Fatalf("no role: code %d, stderr %q", code, errs)
 	}
 }
@@ -243,7 +241,7 @@ func TestPlaceBadArgumentsExit2(t *testing.T) {
 func TestPlaceWithoutStoreExit1(t *testing.T) {
 	inRepo(t)
 	t.Setenv("HYP_ROLE", "grill")
-	if code, _, errs := run(t, "place", "G-AAAAAA", "line-1/a"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
+	if code, _, errs := run(t, "place", "G-AAAAAA"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
 		t.Fatalf("code %d, stderr %q", code, errs)
 	}
 }
@@ -254,7 +252,7 @@ func TestPlaceProbeFailureExit3(t *testing.T) {
 	r.WriteExec(t, filepath.Join("goals", goal, "line-1", "a", "probe", "run"), "#!/bin/sh\nexit 7\n")
 	testutil.Git(t, r.Dir, "add", "-A")
 	testutil.Git(t, r.Dir, "commit", "-q", "-m", "example")
-	if code, _, errs := run(t, "place", goal, "line-1/a"); code != 3 {
+	if code, _, errs := run(t, "place", goal); code != 3 {
 		t.Fatalf("code %d, stderr %q; want 3", code, errs)
 	}
 }
@@ -265,7 +263,7 @@ func placed(t *testing.T) (r *testutil.Repo, goal, commit string) {
 	t.Helper()
 	r = inRepo(t)
 	goal = goalWithExample(t, r, true)
-	if code, out, errs := run(t, "place", goal, "line-1/a"); code != 0 {
+	if code, out, errs := run(t, "place", goal); code != 0 {
 		t.Fatalf("place: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	commit = r.Commit(t, map[string]string{"x.go": "package x"})

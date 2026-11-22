@@ -74,11 +74,12 @@ commands:
            [--from G] [--why TEXT]
                                          record a Goal; with G, replace a Goal
                                          that is still written
-  place G LINE/EXAMPLE [--why TEXT]      place the example folder
-                                         goals/G/LINE/EXAMPLE on a line of Goal G;
-                                         a line may hold more than one example,
-                                         and until G is selected status offers
-                                         a place on each of its lines
+  place G [--why TEXT]                   place the whole example set of Goal G:
+                                         every folder goals/G/LINE/EXAMPLE, each
+                                         run on H0; it places the set only when
+                                         every example agrees with its line, and
+                                         otherwise places none and names each
+                                         cause
   run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
                                          Goal G on COMMIT and record the Result
   try G LINE/EXAMPLE [--worktree]        run the example folder goals/G/LINE/EXAMPLE
@@ -337,10 +338,10 @@ func place(c *call, args []string, stdout, stderr io.Writer) error {
 		return flagsFailed("place", err)
 	}
 	c.declare(o.Actor, o.Role)
-	if len(positional) != 2 {
+	if len(positional) != 1 {
 		return fault.BadArg(codePlaceArgs, len(positional))
 	}
-	o.Goal, o.Key = positional[0], positional[1]
+	o.Goal = positional[0]
 	if err := checkWhy(o.Why); err != nil {
 		return err
 	}

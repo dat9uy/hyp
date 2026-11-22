@@ -14,12 +14,13 @@ _Avoid_: database, index (hyp keeps no table, [spec §5](state-machine.md#5-calc
 One JSON line in `.tree/events/<actor>.jsonl`. Only hyp writes it, and it is only appended ([spec §1](state-machine.md#1-names-and-locations), [spec §3](state-machine.md#3-events)). Every table and state comes from the events.
 _Avoid_: entry, record (alone)
 
-The nine event types ([spec §3](state-machine.md#3-events)):
+The ten event types ([spec §3](state-machine.md#3-events)):
 
 | Event | Records |
 |---|---|
 | `goal.add` | a Goal, or a Draft replace of a written Goal |
-| `example.place` | a placement of an example, with H0's cell |
+| `examples.place` | a place of the example set: each example it changed, with H0's cell |
+| `example.place` | the old form, one example per event; replay reads it, no act writes it |
 | `result.record` | a Result: the cells of one line on one commit |
 | `result.retract` | a retract of a Result |
 | `select` | the select of a candidate row |
@@ -172,7 +173,7 @@ The git tree hash of an example's `probe/` folder. The example hash already cove
 The Probe that `skills/hyp-grill/probe/run` ships. It runs `$HYP_RUN` in the subject and prints its stdout, then `exit N`. The grill copies it into an example and writes a new Probe only when the example needs one.
 
 **Placement**:
-The act `place G LINE/EXAMPLE` and its `example.place` event. It records the example hash and H0's cell for the example. The latest placement of an example key is the current one ([spec §3](state-machine.md#3-events), [spec §5](state-machine.md#5-calculated-tables)).
+One example of a place: the act `place G`, which places the Goal's whole example set, and its `examples.place` event. The event records the example hash and H0's cell for each example the place changed. A log written before G-SBFXAY holds `example.place` events, one placement each. The latest placement of an example key is the current one ([spec §3](state-machine.md#3-events), [spec §5](state-machine.md#5-calculated-tables)).
 
 **Version** (of an example):
 `@1`, `@2` …: the count of distinct hashes placed on one example key. A new version only adds floors or ceilings. A changed input, `run`, `external` section or Probe is a new example key ([spec §6](state-machine.md#6-states), [spec §7](state-machine.md#7-guards), Adds only).
@@ -182,7 +183,7 @@ _Avoid_: edit, revision
 The re-grill's placement of a new version of an example, which adds a floor or a ceiling. It moves the budget's boundary ([spec §7](state-machine.md#7-guards), Adds only; [spec §11](state-machine.md#11-budget-and-stops)).
 
 **Example-changing placement**:
-A placement that writes a new example key, or a new hash on a key. The latest one sets the boundary of the budget ([spec §11](state-machine.md#11-budget-and-stops)).
+A place that writes a new example key, or a new hash on a key; a place that changes no example is refused. The latest one sets the boundary of the budget, one boundary for the whole set ([spec §11](state-machine.md#11-budget-and-stops)).
 
 ## Rows, Results and candidates
 
@@ -355,7 +356,7 @@ An act whose table and git guards hold now. hyp prints each one as a ready comma
 ## Guards and refusals
 
 **Guard**:
-A named rule an act must meet. A refusal names the first guard that fails, in the act's order, with exit 1 ([spec §7](state-machine.md#7-guards)).
+A named rule an act must meet. A refusal names the first guard that fails, in the act's order, with exit 1; a place that places none of the set names every cause, each with its guard ([spec §7](state-machine.md#7-guards)).
 _Avoid_: check, validation, rule (alone)
 
 | Guard | Holds when |
@@ -367,8 +368,9 @@ _Avoid_: check, validation, rule (alone)
 | Goal's actor | the actor added the Goal, for an owner's select, a land, an unselect and a reset |
 | Grill places | the act's role is grill, for a place |
 | Kind | H0 gives the verdict the line's kind needs |
-| Committed | the example folder on disk equals its committed bytes |
-| Adds only | a new version only adds floors or ceilings, and its hash is new on its key |
+| Whole set | for a place: every line holds an example folder, every example placed before still has its folder, and every folder name is an example name |
+| Committed | each example folder on disk equals its committed bytes |
+| Adds only | a new version only adds floors or ceilings, its hash is new on its key, and a place changes at least one example |
 | Leaf only | the commit is H0, or no row of the Goal descends from it |
 | Bytes | the commit exists |
 | Stable | a repeat on the same bytes gives the same verdict |

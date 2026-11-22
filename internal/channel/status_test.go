@@ -82,7 +82,7 @@ func keepStoreOut(t *testing.T, dir string) {
 }
 
 // newFx adds a one-line gap Goal on a base whose counter reads bad, as the
-// owner, commits the example folders and places each as the grill. It leaves
+// owner, commits the example folders and places the set as the grill. It leaves
 // the environment as the runner.
 func newFx(t *testing.T, examples map[string]string) *fx {
 	t.Helper()
@@ -112,9 +112,9 @@ func newFx(t *testing.T, examples map[string]string) *fx {
 	testutil.Git(t, r.Dir, "commit", "-q", "--allow-empty", "-m", "examples")
 	t.Setenv("HYP_ACTOR", "grill-1")
 	t.Setenv("HYP_ROLE", "grill")
-	for key := range examples {
-		if code, out, errs := run(t, "place", f.goal, key); code != 0 {
-			t.Fatalf("place %s: code %d, stdout %q, stderr %q", key, code, out, errs)
+	if len(examples) > 0 {
+		if code, out, errs := run(t, "place", f.goal); code != 0 {
+			t.Fatalf("place: code %d, stdout %q, stderr %q", code, out, errs)
 		}
 	}
 	t.Setenv("HYP_ACTOR", "runner-1")
@@ -302,7 +302,7 @@ func TestEveryWriteEndsWithStateBlock(t *testing.T) {
 	}
 	t.Setenv("HYP_ACTOR", "grill-1")
 	t.Setenv("HYP_ROLE", "grill")
-	if code, out, _ := run(t, "place", f.goal, "line-1/a"); code != 1 || !block.MatchString(out) {
+	if code, out, _ := run(t, "place", f.goal); code != 1 || !block.MatchString(out) {
 		t.Fatalf("place on a selected Goal: code %d, stdout:\n%s", code, out)
 	}
 }

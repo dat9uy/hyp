@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -32,40 +33,70 @@ type PlaceOpts struct {
 	Role         string
 	Why          string
 	Goal         string // the Goal's id
-	Key          string // LINE/EXAMPLE, for example line-3/a
 	ProbeTimeout time.Duration
 
-	// afterProbe, when set, runs after the Probe and before the second check;
+	// afterProbe, when set, runs after the Probes and before the second check;
 	// a test uses it to land an event between the two checks.
 	afterProbe func()
 }
 
-// PlaceReport is what place returns.
+// PlaceReport is what place returns: every example the place changed, in key
+// order, and the Goal's state after it.
 type PlaceReport struct {
-	Goal    string
+	Goal   string
+	Placed []PlacedRow
+	State  string
+}
+
+// PlacedRow is one example a place changed.
+type PlacedRow struct {
 	Key     string
 	Version int
 	Hash    string
 	Verdict string // H0's verdict
 	Exit    int    // the exit code of the run on H0
-	State   string // the Goal's state after the placement
 }
 
-// checked is what the guards that need no Probe found.
-type checked struct {
-	goal      *tables.Goal
-	line      tables.Line
-	hash      string // the example folder's tree hash
-	probeHash string // the tree hash of its probe/ folder
-	ex        example.Example
+// SetCause is one reason a place places none of the set: the example key, or
+// the line key for a line that holds no example, and the guard's refusal.
+type SetCause struct {
+	Key string
+	Err error
 }
 
-// Place records an example placement, or refuses with the first failing
-// guard of the state machine, section 8: Not landed (always holds), Selected,
-// Grill places, Committed, Adds only, then Kind. Everything but Kind is checked
-// before the Probe runs, so a refusal that needs no Probe costs no Probe run;
-// the Probe runs with the lock released, and every guard is checked again
-// under the lock before the event is appended.
+// SetFacts is what a refusal that places none of the set shows: the Goal and
+// every cause, in key order.
+type SetFacts struct {
+	Goal   string
+	Causes []SetCause
+}
+
+// change is one example of the set that a place writes: a new example key,
+// or a new version of a placed one.
+type change struct {
+	key, line, name string
+	hash            string // the example folder's tree hash
+	probeHash       string // the tree hash of its probe/ folder
+	ex              example.Example
+	lineRow         tables.Line
+}
+
+// scan is what the guards that need no Probe found for the whole set.
+type scan struct {
+	goal    *tables.Goal
+	changes []change // in key order
+	causes  []SetCause
+}
+
+// Place places the Goal's whole example set: every example folder under
+// goals/G/<line>/, for each line of the Goal. It records one examples.place
+// event that holds every example the set changed, or places none of the set
+// and names every cause. The guards of the state machine, section 8, in
+// order: Not landed, not Selected and Grill places for the Goal; then, for
+// the set, Whole set, Committed and Adds only, which need no Probe; then Kind,
+// which runs each changed example on H0. A set that changes no example is
+// refused by Adds only. The Probes run with the lock released, and every guard
+// is checked again under the lock before the event is appended.
 func Place(o PlaceOpts) (PlaceReport, error) {
 	if err := CheckActor(o.Actor, o.Role); err != nil {
 		return PlaceReport{}, err
@@ -73,74 +104,99 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
 		return PlaceReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
 	}
-	lineKey, name, ok := strings.Cut(o.Key, "/")
-	if !ok || !lineKeyRe.MatchString(lineKey) || !exampleNameRe.MatchString(name) {
-		return PlaceReport{}, fault.BadArg(fault.BadExampleKey, o.Key)
-	}
 	root, err := logstore.TopLevel(o.Dir)
 	if err != nil {
 		return PlaceReport{}, err
 	}
 
-	var first checked
+	var first scan
 	err = logstore.WithLock(root, func(evs []events.Event) error {
 		var err error
-		first, err = checkPlace(root, o, evs, lineKey, name)
-		return err
+		first, err = scanSet(root, o, evs)
+		if err != nil {
+			return err
+		}
+		return first.refusal()
 	})
 	if err != nil {
 		return PlaceReport{}, err
 	}
 
-	out, err := probe.Run(probe.Opts{Repo: root, Commit: first.goal.Base, ExampleHash: first.hash, Timeout: o.ProbeTimeout})
-	if err != nil {
-		return PlaceReport{}, err
+	type measured struct {
+		out     probe.Out
+		verdict example.Verdict
 	}
-	verdict := example.Compare(out.Stdout, first.ex)
-	// The outputs are stored only once every guard holds, just before the
-	// event that names them: a refused place leaves no file behind.
-	outHash, errHash := logstore.Hash(out.Stdout), logstore.Hash(out.Stderr)
+	runs := make([]measured, len(first.changes))
+	for i, c := range first.changes {
+		out, err := probe.Run(probe.Opts{Repo: root, Commit: first.goal.Base, ExampleHash: c.hash, Timeout: o.ProbeTimeout})
+		if err != nil {
+			return PlaceReport{}, err
+		}
+		runs[i] = measured{out: out, verdict: example.Compare(out.Stdout, c.ex)}
+	}
 	if o.afterProbe != nil {
 		o.afterProbe()
 	}
 
 	var rep PlaceReport
 	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
-		ev := events.Event{Type: events.TypeExamplePlace, Why: o.Why}
-		again, err := checkPlace(root, o, evs, lineKey, name)
+		ev := events.Event{Type: events.TypeExamplesPlace, Why: o.Why}
+		again, err := scanSet(root, o, evs)
 		if err != nil {
 			return ev, err
 		}
-		switch {
-		case again.hash != first.hash:
-			return ev, fault.Refuse(fault.GuardCommitted, fault.ChangedWhileProbe, o.Key, first.hash, again.hash)
-		case again.goal.Base != first.goal.Base:
+		if err := again.refusal(); err != nil {
+			return ev, err
+		}
+		if again.goal.Base != first.goal.Base {
 			return ev, fault.Refuse(fault.GuardKind, fault.H0MovedWhilePlacing, again.goal.ID, first.goal.Base, again.goal.Base)
 		}
-		if string(verdict) != tables.Needs(again.line.Kind) {
-			return ev, fault.Refuse(fault.GuardKind, fault.WrongVerdictOnH0, KindFacts{
-				Line: again.line, Verdict: string(verdict), Out: out,
-				Floors: again.ex.Floors, Ceilings: again.ex.Ceilings,
-			})
+		if !sameChanges(first.changes, again.changes) {
+			return ev, fault.Refuse(fault.GuardCommitted, fault.SetChangedWhileProbe, again.goal.ID)
 		}
-		payload, err := json.Marshal(events.ExamplePlace{
-			Role: o.Role, Line: lineKey, Example: name, Hash: again.hash,
-			H0: events.Cell{
-				Commit: again.goal.Base, RowTree: again.goal.BaseTree, Probe: again.probeHash,
-				Output: outHash, Stderr: errHash, Exit: out.Exit, Verdict: string(verdict),
-			},
-		})
+		var causes []SetCause
+		for i, c := range again.changes {
+			if string(runs[i].verdict) != tables.Needs(c.lineRow.Kind) {
+				causes = append(causes, SetCause{Key: c.key, Err: fault.Refuse(fault.GuardKind, fault.WrongVerdictOnH0, KindFacts{
+					Line: c.lineRow, Verdict: string(runs[i].verdict), Out: runs[i].out,
+					Floors: c.ex.Floors, Ceilings: c.ex.Ceilings,
+				})})
+			}
+		}
+		if len(causes) > 0 {
+			return ev, setRefusal(again.goal.ID, causes)
+		}
+		p := events.ExamplesPlace{Role: o.Role}
+		var outs [][]byte
+		for i, c := range again.changes {
+			out := runs[i].out
+			p.Examples = append(p.Examples, events.PlacedExample{
+				Line: c.line, Example: c.name, Hash: c.hash,
+				H0: events.Cell{
+					Commit: again.goal.Base, RowTree: again.goal.BaseTree, Probe: c.probeHash,
+					Output: logstore.Hash(out.Stdout), Stderr: logstore.Hash(out.Stderr),
+					Exit: out.Exit, Verdict: string(runs[i].verdict),
+				},
+			})
+			outs = append(outs, out.Stdout, out.Stderr)
+		}
+		payload, err := json.Marshal(p)
 		if err != nil {
-			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeExamplePlace, err)
+			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeExamplesPlace, err)
 		}
 		ev.Node, ev.Payload = again.goal.EventID, payload
-		if err := tables.GuardPlace(tables.Replay(evs), ev); err != nil {
+		if err := tables.GuardPlaceSet(tables.Replay(evs), ev); err != nil {
 			return ev, err
 		}
-		if err := putOutputs(root, out.Stdout, out.Stderr); err != nil {
+		// The outputs are stored only once every guard holds, just before the
+		// event that names them: a refused place leaves no file behind.
+		if err := putOutputs(root, outs...); err != nil {
 			return ev, err
 		}
-		rep = PlaceReport{Goal: again.goal.ID, Key: o.Key, Hash: again.hash, Verdict: string(verdict), Exit: out.Exit}
+		rep.Goal = again.goal.ID
+		for i, c := range again.changes {
+			rep.Placed = append(rep.Placed, PlacedRow{Key: c.key, Hash: c.hash, Verdict: string(runs[i].verdict), Exit: runs[i].out.Exit})
+		}
 		return ev, nil
 	})
 	if err != nil {
@@ -152,64 +208,177 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	}
 	if g := tables.Replay(evs).Goals[ev.Node]; g != nil {
 		rep.State = g.State
-		if cur, ok := g.Current(o.Key); ok {
-			rep.Version = cur.Version
+		for i := range rep.Placed {
+			if cur, ok := g.Current(rep.Placed[i].Key); ok {
+				rep.Placed[i].Version = cur.Version
+			}
 		}
 	}
 	return rep, nil
 }
 
-// checkPlace runs the guards that need no Probe, in the order of the state
-// machine: Selected, Grill places, Committed, then Adds only. An unknown Goal or
-// line is a bad argument.
-func checkPlace(root string, o PlaceOpts, evs []events.Event, lineKey, name string) (checked, error) {
+// refusal is the refusal of a scan that found a cause, or that changes no
+// example; nil when the set may go on to its Probes.
+func (s scan) refusal() error {
+	if len(s.causes) > 0 {
+		return setRefusal(s.goal.ID, s.causes)
+	}
+	if len(s.changes) == 0 {
+		return fault.Refuse(fault.GuardAddsOnly, fault.SetUnchanged, s.goal.ID)
+	}
+	return nil
+}
+
+// setRefusal is the refusal of a place that places none of the set. Its guard
+// is the first cause's, so a caller that reads one guard reads the first one
+// the state machine checks.
+func setRefusal(goal string, causes []SetCause) error {
+	return fault.Refuse(fault.GuardOf(causes[0].Err), fault.SetNotPlaced, SetFacts{Goal: goal, Causes: causes})
+}
+
+// sameChanges reports whether two scans found the same changes, by key and
+// hash.
+func sameChanges(a, b []change) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i].key != b[i].key || a[i].hash != b[i].hash {
+			return false
+		}
+	}
+	return true
+}
+
+// scanSet runs the guards that need no Probe: Not landed, not Selected and
+// Grill places for the Goal, which refuse at once; then, for every line of the
+// Goal, Whole set, Committed and Adds only on each example folder, which it
+// collects as causes so a refusal names every one. An unknown Goal is a bad
+// argument.
+func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
 	t := tables.Replay(evs)
 	g, err := t.Find(o.Goal)
 	if err != nil {
-		return checked{}, err
-	}
-	var c checked
-	c.goal = g
-	for _, l := range g.Lines {
-		if l.Key == lineKey {
-			c.line = l
-		}
-	}
-	if c.line.Key == "" {
-		return checked{}, fault.BadArg(fault.NoLine, g.ID, lineKey)
+		return scan{}, err
 	}
 	if err := tables.GuardNotLanded(g); err != nil {
-		return checked{}, err
+		return scan{}, err
 	}
 	if err := tables.GuardNotSelected(g); err != nil {
-		return checked{}, err
+		return scan{}, err
 	}
 	if err := tables.GuardGrillPlaces(o.Role); err != nil {
-		return checked{}, err
+		return scan{}, err
 	}
-	if c.hash, err = committedHash(root, path.Join("goals", g.ID, lineKey, name)); err != nil {
-		return checked{}, err
+	s := scan{goal: g}
+	for _, l := range g.Lines {
+		lineDir := path.Join("goals", g.ID, l.Key)
+		names, err := exampleNames(root, lineDir)
+		if err != nil {
+			return scan{}, err
+		}
+		for _, p := range g.Placed() {
+			if p.Line == l.Key && !slices.Contains(names, p.Example) {
+				s.causes = append(s.causes, SetCause{Key: p.Key, Err: fault.Refuse(fault.GuardWholeSet, fault.PlacedFolderGone, p.Key, path.Join(lineDir, p.Example))})
+			}
+		}
+		if len(names) == 0 {
+			s.causes = append(s.causes, SetCause{Key: l.Key, Err: fault.Refuse(fault.GuardWholeSet, fault.LineHoldsNoExample, l.Key, lineDir)})
+			continue
+		}
+		for _, name := range names {
+			key := l.Key + "/" + name
+			c, changed, err := checkExample(root, g, l, name)
+			if err != nil {
+				if fault.KindOf(err) != fault.Refusal {
+					return scan{}, err
+				}
+				s.causes = append(s.causes, SetCause{Key: key, Err: err})
+				continue
+			}
+			if changed {
+				s.changes = append(s.changes, c)
+			}
+		}
+	}
+	sort.SliceStable(s.causes, func(i, j int) bool { return s.causes[i].Key < s.causes[j].Key })
+	return s, nil
+}
+
+// exampleNames lists the example folders of a line folder, on disk and at
+// HEAD, sorted: a folder on disk that is not committed and a folder committed
+// but gone from disk are both examples of the set, and Committed refuses
+// them.
+func exampleNames(root, lineDir string) ([]string, error) {
+	seen := map[string]bool{}
+	entries, err := os.ReadDir(filepath.Join(root, filepath.FromSlash(lineDir)))
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fault.EnvFault(fault.ReadFolder, lineDir, err)
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			seen[e.Name()] = true
+		}
+	}
+	code, out, err := gitread.GitExit(root, "rev-parse", "--verify", "HEAD:"+lineDir)
+	if err != nil {
+		return nil, err
+	}
+	if code == 0 {
+		committed, err := gitread.RootEntries(root, strings.TrimSpace(string(out)))
+		if err != nil {
+			return nil, err
+		}
+		for _, e := range committed {
+			if e.Type == "tree" {
+				seen[e.Name] = true
+			}
+		}
+	}
+	names := make([]string, 0, len(seen))
+	for n := range seen {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names, nil
+}
+
+// checkExample runs the guards that need no Probe on one example folder of
+// the set: its name, Committed, then Adds only. It reports whether the folder
+// changes the set: a new example key or a new hash on a placed one.
+func checkExample(root string, g *tables.Goal, l tables.Line, name string) (change, bool, error) {
+	rel := path.Join("goals", g.ID, l.Key, name)
+	if !exampleNameRe.MatchString(name) {
+		return change{}, false, fault.Refuse(fault.GuardWholeSet, fault.NotAnExampleName, rel)
+	}
+	c := change{key: l.Key + "/" + name, line: l.Key, name: name, lineRow: l}
+	var err error
+	if c.hash, err = committedHash(root, rel); err != nil {
+		return change{}, false, err
+	}
+	cur, placed := g.Current(c.key)
+	if placed && cur.Hash == c.hash {
+		return change{}, false, nil
 	}
 	if c.ex, c.probeHash, err = readExample(root, c.hash); err != nil {
-		return checked{}, err
+		return change{}, false, err
 	}
-	key := lineKey + "/" + name
-	if err := tables.GuardAddsOnlyTable(g, key, c.hash); err != nil {
-		return checked{}, err
+	if err := tables.GuardAddsOnlyTable(g, c.key, c.hash); err != nil {
+		return change{}, false, err
 	}
-	if cur, ok := g.Current(key); ok {
+	if placed {
 		old, oldProbe, err := readExample(root, cur.Hash)
 		if err != nil {
-			return checked{}, err
+			return change{}, false, err
 		}
 		if err := sameBesidesExample(root, cur.Hash, c.hash); err != nil {
-			return checked{}, err
+			return change{}, false, err
 		}
 		if err := example.AddsOnly(old, c.ex, oldProbe, c.probeHash); err != nil {
-			return checked{}, err
+			return change{}, false, err
 		}
 	}
-	return c, nil
+	return c, true, nil
 }
 
 // committedHash is the Committed guard: the folder's tree hash computed from

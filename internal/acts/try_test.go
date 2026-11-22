@@ -50,12 +50,14 @@ func (e *runEnv) h0Cell(t *testing.T, key string) events.Cell {
 	var c events.Cell
 	found := false
 	for _, ev := range e.placements(t) {
-		var p events.ExamplePlace
+		var p events.ExamplesPlace
 		if err := json.Unmarshal(ev.Payload, &p); err != nil {
 			t.Fatal(err)
 		}
-		if p.Line+"/"+p.Example == key {
-			c, found = p.H0, true
+		for _, x := range p.Examples {
+			if x.Line+"/"+x.Example == key {
+				c, found = x.H0, true
+			}
 		}
 	}
 	if !found {
@@ -88,7 +90,7 @@ func TestTryOnH0ShowsWhatPlaceRecords(t *testing.T) {
 
 	testutil.Git(t, e.root, "add", "goals")
 	testutil.Git(t, e.root, "commit", "-q", "-m", "example b")
-	if _, err := e.place("line-1/b"); err != nil {
+	if _, err := e.place(); err != nil {
 		t.Fatal(err)
 	}
 	c := e.h0Cell(t, "line-1/b")
@@ -109,7 +111,7 @@ func TestTryWorktreeShowsWhatRunRecords(t *testing.T) {
 	ex := "-- words --\nw\n-- run --\ncat counter extra ignored gone 2>/dev/null; echo warn >&2\n-- floor: contains --\nok\n"
 	e.write(t, "line-1/c", ex, fixtureProbe)
 	e.commit(t)
-	if _, err := e.place("line-1/c"); err != nil {
+	if _, err := e.place(); err != nil {
 		t.Fatal(err)
 	}
 	e.r.Commit(t, map[string]string{".gitignore": "ignored\n", "gone": "gone\n"})

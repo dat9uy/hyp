@@ -164,13 +164,9 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 		add(Ready{Role: "owner", Act: ActLand})
 	}
 
-	// grill: one place line per line of the Goal, whether the line holds an
-	// example or not. A further example on a placed line passes every guard
-	// that reads the tables and git, as a first one does; a selected Goal
-	// returned above.
-	for _, l := range g.Lines {
-		add(Ready{Role: "grill", Act: ActPlace, Line: l.Key})
-	}
+	// grill: one place line, for the Goal's whole example set. A selected
+	// Goal returned above.
+	add(Ready{Role: "grill", Act: ActPlace})
 
 	// runner
 	switch {

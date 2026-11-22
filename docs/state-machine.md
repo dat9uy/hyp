@@ -81,17 +81,18 @@ Every event is one JSON line with this envelope (with `v` = 2):
 | `id` | The event's ULID. |
 | `ts` | hyp's time, RFC 3339 UTC. |
 | `actor` | The actor; equal to the events file's base name. |
-| `type` | One of the nine types below. |
+| `type` | One of the ten types below. |
 | `node` | The id the event is about: the Goal's `goal.add` id, the Result's `result.record` id for `result.retract`, or the event's own id for `read`. |
 | `payload` | The type's payload, parsed strictly: an unknown field does not parse. |
 | `why` | The actor's short reason, optional. |
 
-The nine events:
+The ten events:
 
 | Event | Written by | `node` | Payload |
 |---|---|---|---|
 | `goal.add` | `add goal` | its own id; a Draft replace names the replaced Goal's id | role, words, H0 commit, H0 subject hash, budget (3), `from` Goal or empty, lines: key, text, kind |
-| `example.place` | `place` | the Goal | role, line key, example name, the example hash, and H0's cell: H0 commit, H0 subject hash, Probe hash, output hash, stderr hash, exit code, verdict |
+| `examples.place` | `place` | the Goal | role, and for each example the place changed: line key, example name, the example hash, and H0's cell: H0 commit, H0 subject hash, Probe hash, output hash, stderr hash, exit code, verdict |
+| `example.place` | `place` before G-SBFXAY; no act writes it now | the Goal | role, line key, example name, the example hash, and H0's cell, as `examples.place` holds it for one example |
 | `result.record` | `run` | the Goal | role, line key, commit, subject hash, `refused` (empty, or `Stable` with the differing example keys), and per example: example key, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
 | `result.retract` | `retract` | the Result | role |
 | `select` | `select` | the Goal | role, commit, subject hash |
@@ -127,10 +128,14 @@ Goal, Result or row, and no guard reads it. A `read` line that an earlier hyp
 wrote into the log stays there: replay parses it as before, and `show` prints
 it with its outputs from `.tree/outputs/`.
 
-`example.place` carries H0's cell for the example it places, with the fields of
-a Result's cell. So one placement is one line, and a crash
-cannot leave a placement without its H0 verdict: a new example runs on H0 as
-part of the act that adds it. That cell is live on
+`examples.place` carries H0's cell for each example it places, with the fields
+of a Result's cell. So one place of the whole set is one line, and a crash
+leaves the whole set placed or none of it, and never a placement without its
+H0 verdict: a new example runs on H0 as part of the act that adds it. Built by
+Goal G-SBFXAY (#312), which replaced `example.place`, one event per example.
+A log that holds `example.place` events replays them as before: each places
+its one example and starts a new budget, so every Goal recorded before keeps
+its state, stop, runs and allowed acts. A placed example's H0 cell is live on
 H0's row like a Result's cell; it is not a Result and cannot be retracted. It
 is live only while its subject hash equals the Goal's H0 subject hash: after a
 Draft replace that changes the base it reads `not run`, as every cell of a
@@ -186,15 +191,17 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
 - **Which guards replay checks again.** Only the guards that read the tables:
   Draft, Whole lines, Not landed, Grill places, Open, Goal's actor, Budget, Stable,
   Selected, Owner lands, Owner unselects, New cell and Own Result, the table
-  half of Adds only (the hash
-  is new on its key), the table half of Candidate (the row is met on every
+  half of Adds only (each hash
+  is new on its key; an `examples.place` names at least one example and each
+  key once, and when one of its examples fails, the whole event is refused at
+  replay and places none of the set), the table half of Candidate (the row is met on every
   line, and the role is runner or owner; the leaf mark and the one-or-two count
   read git and are trusted as written), and the table half of Stop (the stop a
   land names is one of the three; `selected` needs a select and the other two
   need none; that the candidates or the budget held reads git and is trusted
   as written). The guards that read disk, git objects, the moving git state
-  or a Probe (Committed, Kind, Bytes, Leaf only, Spec, Own path, and the content
-  half of Adds only) are trusted as written. From landed is not checked again:
+  or a Probe (Whole set, Committed, Kind, Bytes, Leaf only, Spec, Own path, and
+  the content half of Adds only) are trusted as written. From landed is not checked again:
   a log written before land existed holds Goals that cite a Goal that is not
   landed, and it replays as it was. Cost: two clones that
   each adjust one example key merge to @2 and @3, and @3 was checked against @1
@@ -306,10 +313,11 @@ Goal. Owner said: "I find coupling `land` to the merge action is the bad idea".
 
 ### Example: placed `@1 → @2 → …`
 
-An example key is placed when its first `example.place` is written. Each later
-placement of a different hash on the same key is the next version. A placement
-of the hash already current changes nothing and is refused (Adds only: no
-new version). A version changes only floors and ceilings; a changed input, run,
+An example key is placed by the first place whose event names it. Each later
+place that names a different hash on the same key places the next version. A
+place names only the examples it changes; a place that changes no example is
+refused (Adds only: no new version). A placed example stays in the set: its
+folder may gain floors and ceilings, and is never removed (Whole set). A version changes only floors and ceilings; a changed input, run,
 `external` section or Probe is a new example key (§7). The old versions are history; their cells are no longer live.
 
 ### Result: `recorded → retracted`
@@ -345,9 +353,17 @@ the first guard that fails, in the act's order (§8).
 - **Grill places** — Only the grill places an example; the runner never places.
   Query: the act's role `== grill`.
 - **Kind** — H0 gives the verdict the line's kind needs under the example's
-  Probe: a gap example fails on H0, a guard example is met on H0. Query: run the
-  Probe on H0's commit (§10), compare (§9), read the verdict.
-- **Committed** — The example folder's bytes on disk equal the committed bytes.
+  Probe: a gap example fails on H0, a guard example is met on H0. `place`
+  checks it on every example the place changes. Query: run the Probe on H0's
+  commit (§10), compare (§9), read the verdict.
+- **Whole set** — The example set of a place is every folder under
+  `goals/<G>/<line>/`, on disk or committed at HEAD, for each line of the
+  Goal; `goals/<G>/specs/` and every other folder are not in it. Every line
+  holds at least one example folder, every example key placed before still
+  has its folder, and every folder's name is an example name
+  (`^[a-z0-9][a-z0-9-]{0,39}$`). Query: read the line folders on disk and at
+  HEAD, and the Placements table. Built by Goal G-SBFXAY (#312).
+- **Committed** — Each example folder's bytes on disk equal the committed bytes.
   Query: the folder's example hash computed from disk (§13) equals
   `git rev-parse HEAD:goals/<G>/<line>/<example>`, and the committed folder
   holds an `example.txtar` that parses by §9; the refusal names the file and
@@ -478,7 +494,7 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | Act | Role | Guards, in order | Writes |
 |---|---|---|---|
 | `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines, From landed (with `--from`) | `goal.add` |
-| `place G LINE/EXAMPLE` | grill | Not landed, not Selected, Grill places, Committed, Adds only, Kind | `example.place` |
+| `place G` | grill | Not landed, not Selected, Grill places, then for the whole set: Whole set, Committed, Adds only, Kind | `examples.place` |
 | `run COMMIT LINE` | runner | Not landed, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
 | `select G HASH` | runner, or owner | Not landed, not Selected, Candidate, New cell (runner only), Goal's actor (owner only), Spec, Own path | `select` |
 | `land G` | owner | Not landed, Owner lands, Goal's actor, Stop | `land` |
@@ -498,8 +514,24 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   spec committed after the last run is not in that commit: the runner runs one
   line on the spec commit first. Its subject is the same Hypothesis, so it costs no
   budget, and Stable checks the repeat.
-- `place` checks Committed and Adds only before it runs the Probe for Kind, so a
-  refusal that needs no Probe costs no Probe run.
+- `place G` places the Goal's whole example set (Whole set, §7) in one act.
+  It checks Whole set, Committed and Adds only on every example folder before
+  it runs any Probe, so a refusal that needs no Probe costs no Probe run. Then
+  it runs each example that the place changes, a new example key or a new
+  version, on H0 for Kind. It places the set only when every guard holds on
+  every example: one `examples.place` event names every changed example with
+  its H0 cell. Otherwise it places none of the set, exit 1, and its refusal
+  names every cause it found, each under its example key (or its line key for
+  a line that holds no example) with its guard: "none of the example set of G
+  is placed; N causes:". The causes that need no Probe are reported without
+  running a Probe; Kind causes are reported once every Probe ran. A place
+  that changes no example is refused by Adds only ("no example of G changed
+  since its last place"), and so it restarts no budget; a change under
+  `goals/<G>/specs/` alone is no change. Its report is `placed G: N examples`,
+  then one line per changed example with its version, hash and H0's verdict
+  and exit code, then the Goal's state. `place G LINE/EXAMPLE`, the old form,
+  is a bad argument, exit 2. An example placed before keeps its H0 cell: a
+  place does not run it again. Built by Goal G-SBFXAY (#312).
 - `run` checks every guard that needs no Probe before it runs a Probe; Stable is
   checked on the outputs.
 - `land G` ends a Goal at its stop. It records one `land` event that names
@@ -794,9 +826,9 @@ hash equals its committed hash.
 - **Budget**: at most three Hypotheses run, H0 never counted, since the
   boundary. The unit is the Hypothesis, one subject hash, not the commit. Three
   is fixed for every Goal.
-- **The boundary** is the latest of: the latest `example.place` that changed an
-  example (defined below), the latest `budget.reset`, and the latest
-  `unselect`. Before any, it is the Goal's start.
+- **The boundary** is the latest of: the latest place that changed an example
+  (an `examples.place`, or an old `example.place`; defined below), the latest
+  `budget.reset`, and the latest `unselect`. Before any, it is the Goal's start.
 - Every return prints `runs: N of 3 used`, where N counts Hypotheses. The last
   run warns:
   `last run: after this, G stops for the owner.`
@@ -848,9 +880,10 @@ warning prints in the state block while `runs: 2 of 3 used`, before the third
 Hypothesis's first run.
 Owner accepted, 2026-11-19.
 
-An example-changing placement is one that writes a new example
-key or a new hash on an existing key. A placement of the current hash changes
-nothing (refused by Adds only).
+An example-changing place is one that writes a new example key or a new hash
+on an existing key; every `examples.place` is one, since a place that changes
+no example is refused (Adds only). One place starts one budget, however many
+examples it names.
 Owner accepted, 2026-11-19.
 
 ## 12. The return shape and exit codes
@@ -871,8 +904,7 @@ waits: none
 owner may:
   (none)
 grill may:
-  hyp place G-NXHHVA line-1/<example>
-  hyp place G-NXHHVA line-2/<example>
+  hyp place G-NXHHVA
 probe-writer may:
   (none)
 runner may:
@@ -883,18 +915,12 @@ runner may:
 - The roles print in the order of §2: owner, grill, probe-writer, runner. A
   role with no allowed act prints `(none)`. Only acts the binary has are
   printed.
-- **One place line per line.** While the Goal is written or open, at any stop
-  but `selected`, the grill's block holds one ready place line for each current
-  line of the Goal, in the order of its lines: `hyp place G <line>/<example>`
-  with the line key filled in, whether the line holds an example or not. A
-  further example on a line that holds one passes the same guards as a first
-  one (§8), so hyp offers it. A line a Draft replace removed is not offered.
-  Once the Goal is selected the grill may place nothing, and prints `(none)`.
-  This is line 1 of Goal G-1908D1: "The grill's allowed acts list every place
-  that the guards allow, including a further example on a line that already
-  holds one, as ready command lines". It replaces the blank
-  `hyp place G <line>/<example>` that this block printed once every line held
-  an example. Owner decided, 2026-11-19 (G-1908D1, decision 3).
+- **One place line.** While the Goal is written or open, at any stop but
+  `selected`, the grill's block holds one ready place line, `hyp place G`,
+  which places the whole example set (§8). Once the Goal is selected the grill
+  may place nothing, and prints `(none)`. This is line 5 of Goal G-SBFXAY
+  (#312). It replaces the one place line per line, `hyp place G
+  <line>/<example>`, of Goal G-1908D1.
 - **The run on the spec commit.** An open Goal with one candidate that fails
   Spec or Own path on its commit (§7) offers the runner
   `hyp run <commit> G/<line>` for every line that holds an example, also when
@@ -1011,8 +1037,9 @@ of the landed Goal hold the chart (#247).
 
 `place` and `run` check their guards under the lock, release
 it, run the Probes, take the lock again, check every guard again and append; a
-second check that fails refuses with exit 1. When the placement or H0's base
-changed while the Probes ran, the refusal is named Open and says what changed. Allowed acts are calculated from
+second check that fails refuses with exit 1. When the example set or H0's base
+changed while the Probes ran, the refusal says what changed: Committed for the
+set, Kind for H0's base, Open for a run. Allowed acts are calculated from
 the guards that read only the tables and git; Kind and Stable are checked when
 the act runs.
 Owner accepted, 2026-11-19.

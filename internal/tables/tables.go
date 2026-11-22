@@ -62,8 +62,8 @@ type Goal struct {
 	Land       *Land                  // the Goal's land, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
 
-	// epoch counts the example-changing placements so far: the budget counts
-	// the Results recorded in the current epoch.
+	// epoch counts the example-changing places so far, and the unselects: the
+	// budget counts the Results recorded in the current epoch.
 	epoch int
 }
 
@@ -430,11 +430,11 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 	return nil
 }
 
-// GuardPlace is the git-free check of an example.place event, called by Replay
-// at the event's place in the merge order: not Selected, Grill places and the
-// table half of Adds only. The place act calls the same three guards in spec
-// order around the guards that read git. Not landed always holds. ev.Node is
-// the goal.add event id of the Goal.
+// GuardPlace is the git-free check of an old-form example.place event, which
+// a log written before the whole-set place holds; Replay calls it at the
+// event's place in the merge order: not Selected, Grill places and the table
+// half of Adds only. Not landed always holds. ev.Node is the goal.add event id
+// of the Goal.
 func GuardPlace(t Tables, ev events.Event) error {
 	var p events.ExamplePlace
 	if err := events.Decode(ev, &p); err != nil {
@@ -456,20 +456,75 @@ func GuardPlace(t Tables, ev events.Event) error {
 	return GuardAddsOnlyTable(g, p.Line+"/"+p.Example, p.Hash)
 }
 
-// place applies a placement the guards allowed. The version is the count of
-// the hashes the key has held, this one included.
-func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
+// GuardPlaceSet is the git-free check of an examples.place event, called by
+// the place act and by Replay at the event's place in the merge order: not
+// Selected, Grill places, and for each example of the set the table half of
+// Adds only. The set names at least one example, each key once. Not landed
+// always holds. ev.Node is the goal.add event id of the Goal.
+func GuardPlaceSet(t Tables, ev events.Event) error {
+	var p events.ExamplesPlace
+	if err := events.Decode(ev, &p); err != nil {
+		return fault.Refuse(fault.GuardGrillPlaces, fault.PayloadInvalid, err)
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
+	}
+	if err := GuardNotLanded(g); err != nil {
+		return err
+	}
+	if err := GuardNotSelected(g); err != nil {
+		return err
+	}
+	if err := GuardGrillPlaces(p.Role); err != nil {
+		return err
+	}
+	if len(p.Examples) == 0 {
+		return fault.Refuse(fault.GuardAddsOnly, fault.SetUnchanged, g.ID)
+	}
+	seen := map[string]bool{}
+	for _, x := range p.Examples {
+		key := x.Line + "/" + x.Example
+		if seen[key] {
+			return fault.Refuse(fault.GuardAddsOnly, fault.KeyTwiceInSet, key)
+		}
+		seen[key] = true
+		if err := GuardAddsOnlyTable(g, key, x.Hash); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// addPlacement adds one placement the guards allowed. The version is the
+// count of the hashes the key has held, this one included.
+func (g *Goal) addPlacement(ev events.Event, line, name, hash string, h0 events.Cell) {
 	if g.Placements == nil {
 		g.Placements = map[string][]Placement{}
 	}
-	key := p.Line + "/" + p.Example
+	key := line + "/" + name
 	// GuardAddsOnlyTable refused every hash the key held, so this one is new.
 	version := len(g.Placements[key]) + 1
-	g.epoch++ // a new example key or a new hash on a key starts a new budget
 	g.Placements[key] = append(g.Placements[key], Placement{
-		Key: key, Line: p.Line, Example: p.Example, Hash: p.Hash, Version: version,
-		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: p.H0,
+		Key: key, Line: line, Example: name, Hash: hash, Version: version,
+		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: h0,
 	})
+}
+
+// place applies an old-form placement of one example. A new example key or a
+// new hash on a key starts a new budget.
+func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
+	g.addPlacement(ev, p.Line, p.Example, p.Hash, p.H0)
+	g.epoch++
+}
+
+// placeSet applies a place of a set: every example it names, and one new
+// budget for the whole set.
+func (g *Goal) placeSet(ev events.Event, p events.ExamplesPlace) {
+	for _, x := range p.Examples {
+		g.addPlacement(ev, x.Line, x.Example, x.Hash, x.H0)
+	}
+	g.epoch++
 }
 
 // Replay applies the events in order. An event that fails a guard replay
@@ -495,6 +550,18 @@ func Replay(evs []events.Event) Tables {
 			}
 			g := t.Goals[ev.Node]
 			g.place(ev, p)
+			g.refresh()
+		case events.TypeExamplesPlace:
+			if err := GuardPlaceSet(t, ev); err != nil {
+				refuse(ev, err)
+				continue
+			}
+			var p events.ExamplesPlace
+			if err := events.Decode(ev, &p); err != nil {
+				continue // GuardPlaceSet decoded it already
+			}
+			g := t.Goals[ev.Node]
+			g.placeSet(ev, p)
 			g.refresh()
 		case events.TypeResultRecord:
 			replayResult(&t, ev, refuse)

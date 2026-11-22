@@ -41,7 +41,9 @@ type runEnv struct {
 }
 
 // newRunEnv makes a Goal with one gap line on a base whose counter reads bad,
-// and places line-1/a, a gap example that fails there.
+// and places line-1/a, a gap example that fails there. A Goal with more lines
+// gets line-1/a placed the old way, one example per event, as a log written
+// before the whole-set place holds it: it stays written.
 func newRunEnv(t *testing.T, lines ...LineInput) *runEnv {
 	t.Helper()
 	if len(lines) == 0 {
@@ -59,8 +61,44 @@ func newRunEnv(t *testing.T, lines ...LineInput) *runEnv {
 		t.Fatal(err)
 	}
 	e := &runEnv{placeEnv: &placeEnv{r: r, goal: rep.Goal, root: r.Dir}, base: base}
-	e.add(t, "line-1/a", counterEx)
+	if len(lines) == 1 {
+		e.add(t, "line-1/a", counterEx)
+	} else {
+		e.write(t, "line-1/a", counterEx, markProbe)
+		e.commit(t)
+		e.placeOldForm(t, "line-1/a")
+	}
 	return e
+}
+
+// placeOldForm places one committed example with an example.place event, the
+// form a log written before the whole-set place holds. H0's cell is the one
+// try shows for it.
+func (e *placeEnv) placeOldForm(t *testing.T, key string) {
+	t.Helper()
+	tr, err := Try(TryOpts{Dir: e.root, Goal: e.goal, Key: key, ProbeTimeout: 20 * time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	line, name, _ := strings.Cut(key, "/")
+	_, tb := e.log(t)
+	g := tb.ByID(e.goal)
+	payload, err := json.Marshal(events.ExamplePlace{
+		Role: "grill", Line: line, Example: name, Hash: tr.Hash,
+		H0: events.Cell{Commit: g.Base, RowTree: g.BaseTree, Probe: tr.ProbeHash, Output: tr.OutHash,
+			Stderr: tr.ErrHash, Exit: tr.Out.Exit, Verdict: tr.Verdict},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := putOutputs(e.root, tr.Out.Stdout, tr.Out.Stderr); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := logstore.Append(e.root, "grill-1", func([]events.Event) (events.Event, error) {
+		return events.Event{Type: events.TypeExamplePlace, Node: g.EventID, Payload: payload}, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // add commits an example folder and places it.
@@ -68,7 +106,7 @@ func (e *runEnv) add(t *testing.T, key, txtar string) {
 	t.Helper()
 	e.write(t, key, txtar, markProbe)
 	e.commit(t)
-	if _, err := e.place(key); err != nil {
+	if _, err := e.place(); err != nil {
 		t.Fatalf("place %s: %v", key, err)
 	}
 }
@@ -411,7 +449,7 @@ func TestRunChecksAgainAfterTheProbes(t *testing.T) {
 		// a new version of the example lands while the Probes run
 		e.write(t, "line-1/a", counterEx+"-- ceiling --\nnever\n", markProbe)
 		e.commit(t)
-		if _, err := e.place("line-1/a"); err != nil {
+		if _, err := e.place(); err != nil {
 			t.Errorf("the placement that lands between the checks failed: %v", err)
 		}
 	}
@@ -495,7 +533,7 @@ func TestRunRefusedAfterTheProbesStoresNoOutput(t *testing.T) {
 	o.afterProbe = func() {
 		e.write(t, "line-1/a", counterEx+"-- ceiling --\nnever\n", markProbe)
 		e.commit(t)
-		if _, err := e.place("line-1/a"); err != nil {
+		if _, err := e.place(); err != nil {
 			t.Errorf("the placement that lands between the checks failed: %v", err)
 		}
 	}
