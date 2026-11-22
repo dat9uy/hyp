@@ -89,6 +89,7 @@ cd "$clone" || fail "cd clone"
 # --- end of setup ---
 
 export G HYP_ACTOR=reader HYP_ROLE=reader
+export CLONE_A="$repo"
 out="$work/out"
 sh -c "$HYP_RUN" >"$out"
 code=$?
