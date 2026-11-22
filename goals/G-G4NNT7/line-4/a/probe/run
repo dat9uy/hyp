@@ -1,5 +1,5 @@
 #!/bin/sh
-# Probe of G-G4NNT7 line-4/a. The working directory is a copy of the subject.
+# Probe of G-G4NNT7 line-4/a and line-3/c (same setup). The working directory is a copy of the subject.
 # It builds hyp from the subject, makes a test store with a test Goal and
 # fixture examples, does this example's setup, then runs the example's run
 # section in the test store with $G set to the test Goal. It prints the run's
@@ -93,6 +93,7 @@ sel=$(git rev-parse HEAD)
 
 # Clone B: a fresh clone with its own empty trace (HOME is the same, the
 # clone's path differs), at the commit that holds the select.
+CLONE_A="$repo"; export CLONE_A
 git clone -q "$repo" "$work/cloneB" >&2 || fail "git clone"
 cd "$work/cloneB" || fail "cd cloneB"
 git checkout -q "$sel" >&2 || fail "checkout select"

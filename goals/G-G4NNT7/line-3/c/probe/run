@@ -1,0 +1,109 @@
+#!/bin/sh
+# Probe of G-G4NNT7 line-3/c and line-4/a (same setup).
+# It builds hyp from the subject, makes a test store with a test Goal and
+# fixture examples, does this example's setup, then runs the example's run
+# section in the test store with $G set to the test Goal. It prints the run's
+# stdout with the test Goal's id replaced by "G", then a last line "exit N".
+# Setup output goes to stderr. A build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') ||
+  fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+# fixture LINE NAME FLOOR [RUN]: write the example folder goals/$G/LINE/NAME
+# with the generic Probe. On the test Goal's H0, greet.txt says hello.
+fixture() {
+  d="goals/$G/$1/$2"
+  mkdir -p "$d/probe" || fail "mkdir $d"
+  {
+    echo '-- words --'
+    echo "Fixture $1/$2."
+    echo '-- run --'
+    echo "${4:-cat greet.txt}"
+    echo '-- floor: contains --'
+    echo "$3"
+  } >"$d/example.txtar"
+  cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+  chmod +x "$d/probe/run"
+}
+
+commit() { git add -A && git commit -q -m "$1" >&2 || fail "commit $1"; }
+
+# grill ARGS: a hyp act of the setup as the grill. A refused act does not stop
+# the Probe: the run shows what the build under test does.
+grill() { echo "setup: hyp $*" >&2; HYP_ACTOR=grill HYP_ROLE=grill hyp "$@" >&2; echo "setup: exit $?" >&2; }
+
+# --- this example's setup ---
+# Clone A: the grill places line-1/a; the runner runs a candidate that says bye
+# on line-1 and selects it; everything, .tree/ included, is committed.
+fixture line-1 a bye
+commit fixtures
+grill place "$G"
+commit placed
+git checkout -q -b cand >&2 || fail "checkout cand"
+echo bye >greet.txt
+mkdir -p "goals/$G/specs" && echo "Spec of the test Goal." >"goals/$G/specs/spec.md" || fail "spec"
+git add -A && git commit -q -m candidate >&2 || fail "commit candidate"
+cand=$(git rev-parse HEAD)
+runner() { echo "setup: hyp $*" >&2; HYP_ACTOR=runner HYP_ROLE=runner hyp "$@" >&2; echo "setup: exit $?" >&2; }
+runout=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$cand" "$G/line-1" 2>&1)
+echo "$runout" >&2
+hash=$(printf '%s\n' "$runout" | sed -n 's/^row: //p' | head -n 1)
+[ -n "$hash" ] || fail "no row in: $runout"
+runner select "$G" "$hash"
+git add -A && git commit -q -m "select" >&2 || fail "commit select"
+sel=$(git rev-parse HEAD)
+
+# Clone B: a fresh clone with its own empty trace (HOME is the same, the
+# clone's path differs), at the commit that holds the select.
+CLONE_A="$repo"; export CLONE_A
+git clone -q "$repo" "$work/cloneB" >&2 || fail "git clone"
+cd "$work/cloneB" || fail "cd cloneB"
+git checkout -q "$sel" >&2 || fail "checkout select"
+# --- end of setup ---
+
+export G HYP_ACTOR=reader HYP_ROLE=
+out="$work/out"
+sh -c "$HYP_RUN" >"$out"
+code=$?
+sed "s/$G/G/g" "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+echo "exit $code"
+exit 0
