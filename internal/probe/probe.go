@@ -43,6 +43,9 @@ type Opts struct {
 type Out struct {
 	Stdout, Stderr []byte
 	Exit           int
+	// RowTree is, for a run with Worktree, the tree hash of the subject it
+	// copied: the row tree a commit of every change would have.
+	RowTree string
 }
 
 var exitLineRe = regexp.MustCompile(`^exit (0|[1-9][0-9]*)$`)
@@ -83,6 +86,13 @@ func Run(o Opts) (Out, error) {
 	for _, p := range []string{"goals", ".tree"} {
 		if err := os.RemoveAll(filepath.Join(subject, p)); err != nil {
 			return Out{}, fault.EnvFault(fault.ProbeTemp, name, err)
+		}
+	}
+	rowTree := ""
+	if o.Worktree {
+		// before the Probe runs, which may write in the subject
+		if rowTree, err = gitread.DirTreeHash(subject); err != nil {
+			return Out{}, err
 		}
 	}
 	if o.ExampleDir != "" {
@@ -161,7 +171,7 @@ func Run(o Opts) (Out, error) {
 	if !ok {
 		return Out{}, fault.EnvFault(fault.ProbeNoExitLine, name)
 	}
-	return Out{Stdout: body, Stderr: stderr.Bytes(), Exit: code}, nil
+	return Out{Stdout: body, Stderr: stderr.Bytes(), Exit: code, RowTree: rowTree}, nil
 }
 
 // splitExitLine splits the last line "exit N" off out. It returns the bytes

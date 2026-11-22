@@ -57,6 +57,25 @@ func HasCommit(dir, rev string) (bool, error) {
 	return code == 0, nil
 }
 
+// refsForm is the one for-each-ref form hyp runs, with the commit after
+// --contains: the first branch, remote branch or tag that holds it.
+var refsForm = []string{"--count=1", "--format=%(refname)", "--contains", "refs/heads", "refs/remotes", "refs/tags"}
+
+// OnRef reports whether a branch, a remote branch or a tag of the clone at
+// dir holds commit. A commit the clone lacks is on none.
+func OnRef(dir, commit string) (bool, error) {
+	if ok, err := HasCommit(dir, commit); err != nil || !ok {
+		return false, err
+	}
+	args := append([]string{"for-each-ref"}, refsForm[:3]...)
+	args = append(append(args, commit), refsForm[3:]...)
+	out, err := Git(dir, args...)
+	if err != nil {
+		return false, err
+	}
+	return len(bytes.TrimSpace(out)) > 0, nil
+}
+
 // IsAncestor reports whether a is an ancestor of b, or b itself. A commit
 // the clone lacks is an environment error.
 func IsAncestor(dir, a, b string) (bool, error) {

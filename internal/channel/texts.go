@@ -79,6 +79,8 @@ var words = map[fault.Code]string{
 
 	// run and select
 	fault.NoCommit:        "run needs a COMMIT",
+	fault.BadCommit:       "%s is not a commit of this clone",
+	fault.TryTwoSubjects:  "try runs on one subject: give --worktree or --commit, not both",
 	fault.BadGoalLine:     "%s is not <Goal>/<line>, for example G-NXHHVA/line-1",
 	fault.GoalVanished:    "Goal %s vanished from the log",
 	fault.NotACommit:      "%s is not a commit",
@@ -187,6 +189,7 @@ var words = map[fault.Code]string{
 	fault.RowNotLeaf:        "row %s is not a leaf; a commit of another row descends from it",
 	fault.RowNotMet:         "row %s is not met on every line",
 	fault.RowNotMetOnGoal:   "row %s is not met on every line of %s",
+	fault.JudgedNotCurrent:  "the select names examples that are not the current placements of %s",
 	fault.NotGoalsActor:     "%s was added by %s, not %s; only that actor acts for the owner",
 	fault.NoGoalToReplace:   "no Goal %s to replace",
 	fault.NotWritten:        "%s is %s; only a written Goal may be replaced",

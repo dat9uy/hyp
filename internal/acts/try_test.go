@@ -2,7 +2,6 @@ package acts
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -12,6 +11,8 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/logstore"
+	"github.com/dat9uy/hyp/internal/tables"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -44,26 +45,24 @@ func (e *runEnv) try(key string, worktree bool) (TryReport, error) {
 	return Try(TryOpts{Dir: e.root, Goal: e.goal, Key: key, Worktree: worktree, ProbeTimeout: 20 * time.Second})
 }
 
-// h0Cell returns H0's cell of the latest placement of key.
+// h0Cell returns H0's cell of the current placement of key, as the place
+// saved it in the clone's trace.
 func (e *runEnv) h0Cell(t *testing.T, key string) events.Cell {
 	t.Helper()
-	var c events.Cell
-	found := false
-	for _, ev := range e.placements(t) {
-		var p events.ExamplesPlace
-		if err := json.Unmarshal(ev.Payload, &p); err != nil {
-			t.Fatal(err)
-		}
-		for _, x := range p.Examples {
-			if x.Line+"/"+x.Example == key {
-				c, found = x.H0, true
-			}
-		}
+	evs, _, err := logstore.All(e.root)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if !found {
-		t.Fatalf("no placement of %s", key)
+	g, err := tables.Replay(evs).Find(e.goal)
+	if err != nil {
+		t.Fatal(err)
 	}
-	return c
+	c, ok := g.SavedCell(key, g.BaseTree)
+	if !ok {
+		t.Fatalf("no saved H0 cell of %s", key)
+	}
+	return events.Cell{Commit: c.Commit, RowTree: c.RowTree, Probe: c.Probe, Output: c.Output,
+		Stderr: c.Stderr, Exit: c.Exit, Verdict: c.Verdict}
 }
 
 // An example folder nobody committed runs on H0 while the checkout holds an

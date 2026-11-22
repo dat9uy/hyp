@@ -128,7 +128,7 @@ owner may:
   hyp select G-YNGYCD 1051b308294c7006204f0f3a6dc0b29e0f253b02
   hyp select G-YNGYCD 4082e81ad23e01e00ecbf43e916b7624feaa6add
   hyp land G-YNGYCD
-outputs: each cell shows at most 60 characters of the output's first line; all its bytes are in .tree/outputs/<hash>
+outputs: each cell shows at most 60 characters of the output's first line; all its bytes are in ~/.hyp/traces/<key>/outputs/<hash>, or in .tree/outputs/<hash> for an older log
   row b73ce8eb02bc4ea2f6747ed4074aca68f17a4c3a
     line-1/a  failed  exit 0  3c6ac18a67305bf96690d803fc1843912c72a2f2f2edabd2159133a62933f7f6  15 bytes: greeting: hello
     line-2/a  met  exit 0  3c6ac18a67305bf96690d803fc1843912c72a2f2f2edabd2159133a62933f7f6  15 bytes: greeting: hello
@@ -160,7 +160,7 @@ owner may:
     line-1/a  failed  exit 0  783603eb11e541b41f39290571f2901c1e180b375f1ef7ae339c62d98d192a96  14 bytes: total: 2
 ```
 
-A cell shows only the first line. The last row prints `total: 2`, but its 14 bytes hold a second line, and the `floor: equals` fails on it. Open `.tree/outputs/<hash>` to read every byte. Then choose:
+A cell shows only the first line. The last row prints `total: 2`, but its 14 bytes hold a second line, and the `floor: equals` fails on it. Open the output file the header names to read every byte. Then choose:
 
 - **The example is wrong.** Have the grill re-grill it. A new version of an example only adds a floor or a ceiling. A changed run, input or Probe is a new example key. Each such placement moves the boundary, so the runner gets three new Hypotheses. A floor that fails a build you accept is too strict. A new version cannot loosen it, and the example stays in the set, so its line can never be met: land the Goal, as below.
 - **The Goal is wrong.** Land it, and add a new Goal with `--from G`.

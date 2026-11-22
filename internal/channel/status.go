@@ -3,6 +3,7 @@ package channel
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/dat9uy/hyp"
 	"github.com/dat9uy/hyp/internal/acts"
+	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
@@ -64,6 +66,9 @@ func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o Blo
 		b.WriteString("not read at replay:\n")
 		for _, l := range unread {
 			where := filepath.Join(".tree", "events", l.File)
+			if l.Trace {
+				where = filepath.Join("trace", "events", l.File)
+			}
 			if l.Line > 0 {
 				where = fmt.Sprintf("%s line %d", where, l.Line)
 			}
@@ -82,6 +87,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	fmt.Fprintf(b, "stop: %s\n", stopText(st.Stop, st.Cause))
 	if g.Land != nil {
 		fmt.Fprintf(b, "landed: by %s, land %s at %s\n", g.Land.Actor, g.Land.ID, g.Land.Time)
+	}
+	if g.Select != nil && !onRef(repo, g.Select.Commit) {
+		fmt.Fprintf(b, "warning: the selected commit %s is on no branch or tag of this clone; keep a branch or tag on it, or git gc may remove it\n", g.Select.Commit)
 	}
 	fmt.Fprintf(b, "waits: %s\n", st.Waits)
 	for _, row := range st.Rows {
@@ -125,6 +133,13 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	case st.Stop == acts.StopTwoCandidates || st.Stop == acts.StopBudgetUsed:
 		outputsTable(b, g, repo, st.Rows)
 	}
+}
+
+// onRef reports whether a branch, remote branch or tag of the clone holds
+// commit. A git failure warns of nothing.
+func onRef(repo, commit string) bool {
+	ok, err := gitread.OnRef(repo, commit)
+	return ok || err != nil
 }
 
 // probeWriter is the probe-writer block of a written or open Goal in
@@ -180,7 +195,7 @@ func orUnknown(hash string) string {
 // size, its hash and the start of its first line as the bytes are; the whole
 // output is the file of that hash.
 func outputsTable(b *strings.Builder, g *tables.Goal, repo string, rows []tables.Row) {
-	fmt.Fprintf(b, "outputs: each cell shows at most %d characters of the output's first line; all its bytes are in .tree/outputs/<hash>\n", maxCell)
+	fmt.Fprintf(b, "outputs: each cell shows at most %d characters of the output's first line; all its bytes are in %s/<hash>, or in .tree/outputs/<hash> for an older log\n", maxCell, traceOutputs(repo))
 	for _, row := range rows {
 		fmt.Fprintf(b, "  row %s\n", row.RowTree)
 		cells := g.LiveCells(row.RowTree)
@@ -194,6 +209,22 @@ func outputsTable(b *strings.Builder, g *tables.Goal, repo string, rows []tables
 			fmt.Fprintf(b, "    %s  %s  exit %d  %s  %s\n", c.Key, c.Verdict, c.Exit, c.Output, cellText(repo, c.Output))
 		}
 	}
+}
+
+// traceOutputs is the outputs folder of the clone's trace, with $HOME written
+// as ~, where the outputs of this clone's runs are.
+func traceOutputs(repo string) string {
+	tr, err := logstore.TraceOf(repo)
+	if err != nil {
+		return "the outputs folder of this clone's trace"
+	}
+	dir := tr.Outputs()
+	if home := os.Getenv("HOME"); home != "" {
+		if rel, err := filepath.Rel(home, dir); err == nil && !strings.HasPrefix(rel, "..") {
+			dir = filepath.Join("~", rel)
+		}
+	}
+	return dir
 }
 
 // cellText is one cell of the outputs table: the output's size, then the
@@ -219,6 +250,23 @@ func cellText(repo, hash string) string {
 	return fmt.Sprintf("%d bytes: %s", size, data)
 }
 
+// h0Text is the verdict on H0 of a placement in hyp status G: from git in an
+// older log, else from the clone's trace, where the place saved it or a try
+// ran it again; a cell the trace lacks prints the try line that saves it.
+func h0Text(g *tables.Goal, p tables.Placement) string {
+	if p.HasH0 {
+		return fmt.Sprintf("verdict on H0 at place: %s, exit %d\n", p.H0.Verdict, p.H0.Exit)
+	}
+	c, ok := g.SavedCell(p.Key, g.BaseTree)
+	switch {
+	case !ok:
+		return "verdict on H0 at place: " + notInTrace(g, p.Key, "") + "\n"
+	case c.Again:
+		return fmt.Sprintf("verdict on H0: %s, exit %d%s\n", c.Verdict, c.Exit, againMark(true))
+	}
+	return fmt.Sprintf("verdict on H0 at place: %s, exit %d\n", c.Verdict, c.Exit)
+}
+
 // askText is what a written or open Goal asks: its words, each line's key,
 // kind and text, and under each line every placed example with its version,
 // hash, verdict on H0 at place and its example.txtar byte for byte, which
@@ -237,7 +285,7 @@ func askText(repo string, g *tables.Goal) string {
 			n++
 			fmt.Fprintf(&b, "\n### %s @%d\n\n", p.Key, p.Version)
 			fmt.Fprintf(&b, "hash: %s\nplaced: by %s at %s\n", p.Hash, p.Actor, p.Time)
-			fmt.Fprintf(&b, "verdict on H0 at place: %s, exit %d\n", p.H0.Verdict, p.H0.Exit)
+			b.WriteString(h0Text(g, p))
 			data, err := acts.ExampleFile(repo, p.Hash)
 			if err != nil {
 				fmt.Fprintf(&b, "\nexample.txtar: not readable here: %s\n", bodyText(err, repo))

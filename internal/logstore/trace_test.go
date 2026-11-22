@@ -156,3 +156,41 @@ func TestGoneTraces(t *testing.T) {
 		t.Fatalf("the live clone's trace was removed: %v", err)
 	}
 }
+
+// AppendTrace writes to the clone's trace, never to .tree/, and All reads
+// both in one merge order, leaving the trace's reads out.
+func TestAllMergesTheStoreAndTheTrace(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"a": "a\n"})
+	if err := Create(r.Dir); err != nil {
+		t.Fatal(err)
+	}
+	ev := func(typ string) func([]events.Event) (events.Event, error) {
+		return func([]events.Event) (events.Event, error) {
+			return events.Event{Type: typ, Payload: []byte(`{"role":"owner"}`)}, nil
+		}
+	}
+	inGit, err := Append(r.Dir, "a", ev(events.TypeUnselect))
+	if err != nil {
+		t.Fatal(err)
+	}
+	inTrace, err := AppendTrace(r.Dir, "a", ev(events.TypeBudgetReset))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tr, err := TraceOf(r.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := tr.Append("a", events.Event{Type: events.TypeRead, Payload: []byte(`{}`)}); err != nil {
+		t.Fatal(err)
+	}
+	stored, _, err := Events(r.Dir)
+	if err != nil || len(stored) != 1 || stored[0].ID != inGit.ID {
+		t.Fatalf("store = %+v, %v; want only the event appended to git", stored, err)
+	}
+	all, _, err := All(r.Dir)
+	if err != nil || len(all) != 2 || all[0].ID != inGit.ID || all[1].ID != inTrace.ID {
+		t.Fatalf("All = %+v, %v; want the git event then the trace event, no read", all, err)
+	}
+}

@@ -187,9 +187,22 @@ func TestRunRecordsResultWithCells(t *testing.T) {
 	if cell.Probe == "" || cell.Stderr != sha("") {
 		t.Fatalf("cell = %+v, want the Probe hash and the stderr hash", cell)
 	}
-	out, err := os.ReadFile(logstore.OutputPath(e.root, cell.Output))
+	out, _, err := logstore.ReadOutput(e.root, cell.Output, 0)
 	if err != nil || string(out) != "ok" {
 		t.Fatalf("stored output = %q, %v; want the stdout with one newline dropped", out, err)
+	}
+	// The Result and its outputs are in the clone's trace: git sees nothing.
+	if _, err := os.Stat(logstore.OutputPath(e.root, cell.Output)); !os.IsNotExist(err) {
+		t.Fatalf("output in .tree/outputs: %v, want none", err)
+	}
+	stored, _, err := logstore.Events(e.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ev := range stored {
+		if ev.Type == events.TypeResultRecord {
+			t.Fatalf("a Result in .tree/: %+v", ev)
+		}
 	}
 	if g := e.goalRow(t); g.Verdict("line-1/a", res[0].RowTree) != "met" {
 		t.Fatalf("the cell is not live on its row")
@@ -312,8 +325,8 @@ func TestRunRepeatDifferingVerdictRefused(t *testing.T) {
 		t.Fatalf("err = %v, want it to name line-1/b", err)
 	}
 	// The second output stays, and the Result is marked refused.
-	if _, statErr := os.Stat(logstore.OutputPath(e.root, sha("2"))); statErr != nil {
-		t.Fatalf("the second output file is gone: %v", statErr)
+	if _, _, readErr := logstore.ReadOutput(e.root, sha("2"), 0); readErr != nil {
+		t.Fatalf("the second output file is gone: %v", readErr)
 	}
 	res := e.results(t)
 	if len(res) != 2 || res[1].Refused != "Stable" || len(res[1].Differing) != 1 || res[1].Differing[0] != "line-1/b" {

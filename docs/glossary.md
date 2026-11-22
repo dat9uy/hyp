@@ -19,18 +19,19 @@ The ten event types ([spec §3](state-machine.md#3-events)):
 | Event | Records |
 |---|---|
 | `goal.add` | a Goal, or a Draft replace of a written Goal |
-| `examples.place` | a place of the example set: each example it changed, with H0's cell |
+| `examples.place` | a place of the example set: each example it changed, by its hash; H0's cells go to the trace |
 | `example.place` | the old form, one example per event; replay reads it, no act writes it |
-| `result.record` | a Result: the cells of one line on one commit |
+| `result.record` | a Result: the cells of one line on one commit; it goes into the trace |
 | `result.retract` | a retract of a Result |
-| `select` | the select of a candidate row |
+| `select` | the select of a candidate row; it names the examples it was judged by |
 | `budget.reset` | a reset of the budget's boundary |
 | `land` | the owner's land of a Goal at a stop; it names the stop and the act that caused it |
 | `unselect` | the owner's unselect of a selected Goal, which puts it back to open |
 | `read` | what hyp printed to an actor; it goes into the trace, never into the log |
+| `cells.save` | cells measured outside a run: H0's cells of a place, or a cell a try ran again; only the trace holds it |
 
 **Log**:
-The events of `.tree/events/`: every act that changes a Goal. The log is not the trace ([spec §8](state-machine.md#8-acts), "The trace is not the log").
+The events of `.tree/events/`: the owner's acts, the place of each example set and the select. Every cell, Result and output is in the trace ([spec §8](state-machine.md#8-acts), "Git keeps the acts; the trace keeps the evidence"). The log is not the trace ([spec §8](state-machine.md#8-acts), "The trace is not the log").
 _Avoid_: trace (for the log)
 
 **Union merge**:
@@ -51,10 +52,10 @@ A table that replay calculates in memory: Goals, Lines, Placements, Results, Cel
 _Avoid_: projection (a v1 word), cache
 
 **Output**:
-A file `.tree/outputs/<sha256>` that holds the bytes a Probe printed. A cell holds its hash. Equal outputs are stored once ([spec §5](state-machine.md#5-calculated-tables)). For the compare, the output is the stdout of `run` with one final newline dropped ([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
+A file `outputs/<sha256>` of the clone's trace that holds the bytes a Probe printed; an older log keeps its outputs under `.tree/outputs/`. A cell holds its hash. Equal outputs are stored once ([spec §5](state-machine.md#5-calculated-tables)). For the compare, the output is the stdout of `run` with one final newline dropped ([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
 
 **Trace**:
-What hyp printed to each actor, kept as `read` events and output files in `$HOME/.hyp/traces/<key>/` ([spec §1](state-machine.md#1-names-and-locations)). Every worktree of one clone shares one trace. No commit carries it. `show ACTOR` prints it ([spec §8](state-machine.md#8-acts)).
+What hyp printed to each actor, kept as `read` events and output files in `$HOME/.hyp/traces/<key>/` ([spec §1](state-machine.md#1-names-and-locations)), and the evidence of the clone's acts: every Result, every saved cell and their outputs. A reader in another clone fills a cell its trace lacks by running the example again with the `try` line `hyp status G` prints, which marks it `run again in this clone`. Every worktree of one clone shares one trace. No commit carries it. `show ACTOR` prints it ([spec §8](state-machine.md#8-acts)).
 _Avoid_: log (the log holds only the acts that change a Goal); trace for a run of commands (a v1 meaning)
 
 **Read** (event):

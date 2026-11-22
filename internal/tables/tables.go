@@ -37,7 +37,30 @@ type Placement struct {
 	Time    string
 	Actor   string
 	EventID string
-	H0      events.Cell // H0's cell, written by the placement
+	// PlacedOn is the row tree of H0 the place ran the example on, and its
+	// Kind check held there: the place is in git, so every clone reads it.
+	PlacedOn string
+	// H0 is H0's cell as an older place wrote it into git, when HasH0. A
+	// place hyp writes now keeps H0's cell in the clone's trace (Saved).
+	H0    events.Cell
+	HasH0 bool
+}
+
+// Saved is a row of the Saved table: a cell of a cells.save in the clone's
+// trace, measured outside a run. Again marks a cell that a try ran again in
+// this clone because the trace lacked it.
+type Saved struct {
+	ID      string // the cells.save event id
+	Key     string // line-3/a
+	Hash    string
+	Commit  string
+	RowTree string
+	Probe   string
+	Output  string
+	Stderr  string
+	Exit    int
+	Verdict string
+	Again   bool
 }
 
 // Line is a row of the Lines table.
@@ -61,6 +84,7 @@ type Goal struct {
 	Select     *Select                // the Goal's current select, or nil
 	Land       *Land                  // the Goal's land, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
+	Saved      []Saved                // the trace's saved cells, in merge order
 
 	// epoch counts the example-changing places so far, and the unselects: the
 	// budget counts the Results recorded in the current epoch.
@@ -74,6 +98,7 @@ type Select struct {
 	RowTree string
 	Time    string
 	Actor   string
+	Judged  []events.Judged // the examples the select names; none in an older select
 }
 
 // Unselect is a row of the Unselects table: the owner's unselect of a
@@ -296,24 +321,45 @@ type LiveCell struct {
 	Exit    int
 	Verdict string
 	Result  string // the result.record event id
+	Saved   bool   // a cell of a cells.save
+	Again   bool   // a saved cell a try ran again in this clone
 }
 
 // LiveCells is the one query for the live cells of a Goal on the row with
-// rowTree, in the order they were made: a placement's H0 cell first, then the
-// cells of the Results in merge order. The open state, Stable and Rows all
-// read it. A placement's H0 cell lives on H0's row, and only while its row
-// tree is the Goal's H0 row tree. A cell whose example hash is not the current
-// placement's, or whose key's line the Goal no longer lists, is history.
+// rowTree, in the order they were made: a placement's H0 cell first (from
+// git in an older log, else saved in the trace by the place), then the cells
+// of the Results in merge order, then the cells a try ran again. The open
+// state, Stable and Rows all read it. A placement's H0 cell lives on H0's
+// row, and only while its row tree is the Goal's H0 row tree. A cell whose
+// example hash is not the current placement's, or whose key's line the Goal
+// no longer lists, is history.
 func (g *Goal) LiveCells(rowTree string) []LiveCell {
 	var out []LiveCell
 	if rowTree == g.BaseTree {
 		for _, p := range g.Placed() {
-			if p.H0.RowTree == g.BaseTree {
+			if p.HasH0 && p.H0.RowTree == g.BaseTree {
 				out = append(out, LiveCell{Key: p.Key, Hash: p.Hash, Probe: p.H0.Probe, Output: p.H0.Output,
 					Stderr: p.H0.Stderr, Exit: p.H0.Exit, Verdict: p.H0.Verdict})
 			}
 		}
 	}
+	saved := func(again bool) {
+		for _, c := range g.Saved {
+			if c.Again != again || c.RowTree != rowTree {
+				continue
+			}
+			p, ok := g.Current(c.Key)
+			if !ok || p.Hash != c.Hash {
+				continue
+			}
+			if _, ok := g.line(p.Line); !ok {
+				continue
+			}
+			out = append(out, LiveCell{Key: c.Key, Hash: c.Hash, Probe: c.Probe, Output: c.Output,
+				Stderr: c.Stderr, Exit: c.Exit, Verdict: c.Verdict, Saved: true, Again: c.Again})
+		}
+	}
+	saved(false)
 	for _, r := range g.Results {
 		if r.Retracted || r.Refused != "" || r.RowTree != rowTree {
 			continue
@@ -330,6 +376,7 @@ func (g *Goal) LiveCells(rowTree string) []LiveCell {
 				Stderr: c.Stderr, Exit: c.Exit, Verdict: c.Verdict, Result: r.ID})
 		}
 	}
+	saved(true)
 	return out
 }
 
@@ -359,13 +406,17 @@ func Needs(kind string) string {
 }
 
 // isOpen reports whether every line has a placed example and every current
-// placement has a live cell on H0's row with the verdict its line's kind
-// needs.
+// placement gives H0 the verdict its line's kind needs. A place hyp writes now
+// checked Kind on the row tree it names, and git keeps it, so a placement
+// placed on H0's row tree gives that verdict in every clone, whatever the
+// clone's trace holds. An older placement, or one whose H0 a Draft replace
+// moved, reads its live cell on H0's row.
 func (g *Goal) isOpen() bool {
 	placed := map[string]bool{}
 	for _, p := range g.Placed() {
 		l, _ := g.line(p.Line)
-		if g.H0Verdict(p.Key) != Needs(l.Kind) {
+		held := !p.HasH0 && p.PlacedOn != "" && p.PlacedOn == g.BaseTree
+		if !held && g.H0Verdict(p.Key) != Needs(l.Kind) {
 			return false
 		}
 		placed[p.Line] = true
@@ -498,23 +549,27 @@ func GuardPlaceSet(t Tables, ev events.Event) error {
 
 // addPlacement adds one placement the guards allowed. The version is the
 // count of the hashes the key has held, this one included.
-func (g *Goal) addPlacement(ev events.Event, line, name, hash string, h0 events.Cell) {
+func (g *Goal) addPlacement(ev events.Event, line, name, hash string, h0 *events.Cell, placedOn string) {
 	if g.Placements == nil {
 		g.Placements = map[string][]Placement{}
 	}
 	key := line + "/" + name
 	// GuardAddsOnlyTable refused every hash the key held, so this one is new.
 	version := len(g.Placements[key]) + 1
-	g.Placements[key] = append(g.Placements[key], Placement{
+	p := Placement{
 		Key: key, Line: line, Example: name, Hash: hash, Version: version,
-		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: h0,
-	})
+		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, PlacedOn: placedOn,
+	}
+	if h0 != nil {
+		p.H0, p.HasH0, p.PlacedOn = *h0, true, h0.RowTree
+	}
+	g.Placements[key] = append(g.Placements[key], p)
 }
 
 // place applies an old-form placement of one example. A new example key or a
 // new hash on a key starts a new budget.
 func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
-	g.addPlacement(ev, p.Line, p.Example, p.Hash, p.H0)
+	g.addPlacement(ev, p.Line, p.Example, p.Hash, &p.H0, "")
 	g.epoch++
 }
 
@@ -522,7 +577,7 @@ func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
 // budget for the whole set.
 func (g *Goal) placeSet(ev events.Event, p events.ExamplesPlace) {
 	for _, x := range p.Examples {
-		g.addPlacement(ev, x.Line, x.Example, x.Hash, x.H0)
+		g.addPlacement(ev, x.Line, x.Example, x.Hash, x.H0, p.RowTree)
 	}
 	g.epoch++
 }
@@ -573,6 +628,8 @@ func Replay(evs []events.Event) Tables {
 			replayLand(&t, ev, refuse)
 		case events.TypeUnselect:
 			replayUnselect(&t, ev, refuse)
+		case events.TypeCellsSave:
+			replaySaved(&t, ev, refuse)
 		case events.TypeRead:
 			var p events.Read
 			if err := events.Decode(ev, &p); err != nil {
@@ -586,6 +643,54 @@ func Replay(evs []events.Event) Tables {
 		}
 	}
 	return t
+}
+
+// replaySaved adds the cells of a cells.save to the Saved table of its Goal.
+// It has no guard: a saved cell uses no run and changes no state, and a cell
+// whose example hash is no longer current is history, as a Result's is.
+func replaySaved(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	var p events.CellsSave
+	if err := events.Decode(ev, &p); err != nil {
+		refuse(ev, fault.Refuse(fault.NoGuard, fault.PayloadInvalid, err))
+		return
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		refuse(ev, fault.Refuse(fault.NoGuard, fault.NoGoal, GoalID(ev.Node)))
+		return
+	}
+	for _, c := range p.Cells {
+		g.Saved = append(g.Saved, Saved{
+			ID: ev.ID, Key: c.Line + "/" + c.Example, Hash: c.Hash, Commit: p.Commit, RowTree: p.RowTree,
+			Probe: c.Probe, Output: c.Output, Stderr: c.Stderr, Exit: c.Exit, Verdict: c.Verdict, Again: p.Again,
+		})
+	}
+}
+
+// SavedCell is the cell the trace saved for key on the row with rowTree
+// under the current example hash: the place's own first, else the first a
+// try ran again. ok is false when the trace holds none.
+func (g *Goal) SavedCell(key, rowTree string) (Saved, bool) {
+	p, ok := g.Current(key)
+	if !ok {
+		return Saved{}, false
+	}
+	var again *Saved
+	for i, c := range g.Saved {
+		if c.Key != key || c.Hash != p.Hash || c.RowTree != rowTree {
+			continue
+		}
+		if !c.Again {
+			return c, true
+		}
+		if again == nil {
+			again = &g.Saved[i]
+		}
+	}
+	if again != nil {
+		return *again, true
+	}
+	return Saved{}, false
 }
 
 // replayResult adds a Result the run guards allow at its place in the merge
@@ -667,7 +772,7 @@ func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 		return // GuardSelect decoded it already
 	}
 	g := t.Goals[ev.Node]
-	g.Select = &Select{ID: ev.ID, Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
+	g.Select = &Select{ID: ev.ID, Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor, Judged: p.Examples}
 	g.State = StateSelected
 }
 

@@ -83,6 +83,7 @@ func TestGitAllowsEveryReadForm(t *testing.T) {
 		{"diff-tree", "-r", "--name-only", "a", "b"},
 		{"diff-tree", "-r", "-c", "--name-only", "a"},
 		{"ls-files", "-z", "--cached", "--others", "--exclude-standard"},
+		{"for-each-ref", "--count=1", "--format=%(refname)", "--contains", "abc", "refs/heads", "refs/remotes", "refs/tags"},
 	} {
 		if err := allowed(args); err != nil {
 			t.Errorf("git %v refused: %v", args, err)
@@ -197,5 +198,20 @@ func TestGitStdinInPartialCloneFetchesNothing(t *testing.T) {
 	}
 	if after := testutil.Snapshot(t, clone); after != before {
 		t.Fatal("a batch read in a partial clone changed .git")
+	}
+}
+
+// for-each-ref is allowed in its one form only: a ref it may write, such as
+// --sort or a commit that is a flag, is refused.
+func TestGitAllowsOnlyTheOneRefsForm(t *testing.T) {
+	for _, args := range [][]string{
+		{"for-each-ref"},
+		{"for-each-ref", "--count=1", "--format=%(refname)", "--contains", "--merged", "refs/heads", "refs/remotes", "refs/tags"},
+		{"for-each-ref", "--count=1", "--format=%(refname)", "--contains", "abc", "refs/heads"},
+		{"for-each-ref", "--sort=refname", "--format=%(refname)", "--contains", "abc", "refs/heads", "refs/remotes", "refs/tags"},
+	} {
+		if err := allowed(args); err == nil {
+			t.Errorf("git %v allowed", args)
+		}
 	}
 }

@@ -82,13 +82,17 @@ commands:
                                          cause
   run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
                                          Goal G on COMMIT and record the Result
-  try G LINE/EXAMPLE [--worktree]        run the example folder goals/G/LINE/EXAMPLE
-                                         as it is on disk, on H0, or with
-                                         --worktree on this checkout's files
+  try G LINE/EXAMPLE [--worktree | --commit COMMIT]
+                                         run the example folder goals/G/LINE/EXAMPLE
+                                         as it is on disk, on H0, on COMMIT, or
+                                         with --worktree on this checkout's files
                                          with what is not committed, and print
                                          its output, stderr, exit code and
                                          verdict as place and run would record
-                                         them; records nothing and uses no run
+                                         them; writes nothing to git and uses no
+                                         run; it saves the cell in the clone's
+                                         trace only when hyp status shows that
+                                         cell as not in this clone's trace
   select G HASH [--why TEXT]             select the candidate row of Goal G whose
                                          subject hash is HASH; the report is the
                                          PR body
@@ -503,10 +507,12 @@ func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("try", flag.ContinueOnError)
 	var o acts.TryOpts
 	fs.BoolVar(&o.Worktree, "worktree", false, "")
+	fs.StringVar(&o.Commit, "commit", "", "")
 	positional, role, err := readFlagsWith(c, "try", args, fs)
 	if err != nil {
 		return err
 	}
+	o.Actor, o.Role = c.actor, c.role
 	if len(positional) != 2 {
 		return fault.BadArg(codeTryArgs, len(positional))
 	}
@@ -597,7 +603,7 @@ func readStoreLines(dir string) (tables.Tables, []logstore.LineError, string, er
 	if err := logstore.Find(root); err != nil {
 		return tables.Tables{}, nil, "", err
 	}
-	evs, unread, err := logstore.Events(root)
+	evs, unread, err := logstore.All(root)
 	if err != nil {
 		return tables.Tables{}, nil, "", err
 	}

@@ -86,9 +86,9 @@ func (e *placeEnv) place() (PlaceReport, error) { return Place(e.opts()) }
 // log returns the store's events and the tables they replay to.
 func (e *placeEnv) log(t *testing.T) ([]events.Event, tables.Tables) {
 	t.Helper()
-	evs, errs, err := logstore.Events(e.root)
+	evs, errs, err := logstore.All(e.root)
 	if err != nil || len(errs) != 0 {
-		t.Fatalf("Events: %v %v", errs, err)
+		t.Fatalf("All: %v %v", errs, err)
 	}
 	return evs, tables.Replay(evs)
 }
@@ -176,21 +176,30 @@ func TestPlaceGapExampleFailingOnH0Records(t *testing.T) {
 		t.Fatalf("event = %+v payload = %+v", pl[0], p)
 	}
 	x := p.Examples[0]
-	if x.Line != "line-1" || x.Example != "a" || x.Hash != hash {
-		t.Fatalf("example = %+v", x)
+	if x.Line != "line-1" || x.Example != "a" || x.Hash != hash || x.H0 != nil {
+		t.Fatalf("example = %+v, want the hash and no H0 cell in git", x)
 	}
+	if p.Commit != g.Base || p.RowTree != g.BaseTree {
+		t.Fatalf("place names H0 %s %s, want %s %s", p.Commit, p.RowTree, g.Base, g.BaseTree)
+	}
+	// H0's cell and its outputs are in the clone's trace, not in git.
 	probeHash := testutil.Git(t, e.root, "rev-parse", "HEAD:goals/"+e.goal+"/line-1/a/probe")
-	if x.H0.Commit != g.Base || x.H0.RowTree != g.BaseTree || x.H0.Probe != probeHash || x.H0.Verdict != "failed" || x.H0.Exit != 0 {
-		t.Fatalf("H0 cell = %+v, want commit %s row tree %s probe %s", x.H0, g.Base, g.BaseTree, probeHash)
+	c, ok := g.SavedCell("line-1/a", g.BaseTree)
+	if !ok || c.Again || c.Commit != g.Base || c.Probe != probeHash || c.Verdict != "failed" || c.Exit != 0 {
+		t.Fatalf("saved H0 cell = %+v %v, want commit %s probe %s failed", c, ok, g.Base, probeHash)
 	}
-	if out, err := os.ReadFile(logstore.OutputPath(e.root, x.H0.Output)); err != nil || string(out) != "hi" {
-		t.Fatalf("output file = %q, %v; want hi", out, err)
+	if out, _, err := logstore.ReadOutput(e.root, c.Output, 0); err != nil || string(out) != "hi" {
+		t.Fatalf("output = %q, %v; want hi", out, err)
 	}
-	if out, err := os.ReadFile(logstore.OutputPath(e.root, x.H0.Stderr)); err != nil || len(out) != 0 {
-		t.Fatalf("stderr file = %q, %v; want empty", out, err)
+	if out, _, err := logstore.ReadOutput(e.root, c.Stderr, 0); err != nil || len(out) != 0 {
+		t.Fatalf("stderr = %q, %v; want empty", out, err)
 	}
-	if len(tb.RefusedAtReplay) != 0 || len(evs) != 2 {
-		t.Fatalf("log = %d events, refused at replay %+v", len(evs), tb.RefusedAtReplay)
+	if _, err := os.Stat(logstore.OutputPath(e.root, c.Output)); !os.IsNotExist(err) {
+		t.Fatalf("output in .tree/outputs: %v, want none", err)
+	}
+	stored, _, err := logstore.Events(e.root)
+	if err != nil || len(tb.RefusedAtReplay) != 0 || len(evs) != 3 || len(stored) != 2 {
+		t.Fatalf("log = %d events, %d in git, refused at replay %+v, %v", len(evs), len(stored), tb.RefusedAtReplay, err)
 	}
 }
 

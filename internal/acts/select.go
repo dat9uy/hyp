@@ -88,7 +88,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err := tables.GuardOwnPath(g, changes); err != nil {
 			return ev, err
 		}
-		payload, err := json.Marshal(events.Select{Role: o.Role, Commit: commit, RowTree: row.RowTree})
+		payload, err := json.Marshal(events.Select{Role: o.Role, Commit: commit, RowTree: row.RowTree, Examples: g.JudgedSet()})
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeSelect, err)
 		}
@@ -102,7 +102,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 	if err != nil {
 		return SelectReport{}, err
 	}
-	evs, _, err := logstore.Events(root)
+	evs, _, err := logstore.All(root)
 	if err != nil {
 		return SelectReport{}, err
 	}

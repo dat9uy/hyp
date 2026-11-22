@@ -24,10 +24,12 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The ten event types. All but read change the state machine; read is the
+// The eleven event types. All but read change the state machine; read is the
 // trace of what hyp printed to an actor, and changes no state. example.place
 // is the old form of a place, one example per event: hyp writes
-// examples.place, and replays both.
+// examples.place, and replays both. Git keeps goal.add, examples.place,
+// select, land and unselect; the clone's trace keeps result.record,
+// cells.save and read, and an older log keeps them in git too.
 const (
 	TypeGoalAdd       = "goal.add"
 	TypeExamplePlace  = "example.place"
@@ -39,12 +41,13 @@ const (
 	TypeLand          = "land"
 	TypeUnselect      = "unselect"
 	TypeRead          = "read"
+	TypeCellsSave     = "cells.save"
 )
 
 var types = map[string]bool{
 	TypeGoalAdd: true, TypeExamplePlace: true, TypeExamplesPlace: true, TypeResultRecord: true,
 	TypeResultRetract: true, TypeSelect: true, TypeBudgetReset: true,
-	TypeLand: true, TypeUnselect: true, TypeRead: true,
+	TypeLand: true, TypeUnselect: true, TypeRead: true, TypeCellsSave: true,
 }
 
 // The kind of a line: a gap line must fail on H0, a guard line must be met.
@@ -92,19 +95,49 @@ type ExamplePlace struct {
 }
 
 // ExamplesPlace is the payload of examples.place: every example of the set
-// that the place changed, each with H0's cell. One place is one event, so a
-// crash leaves the whole set placed or none of it.
+// that the place changed. One place is one event, so a crash leaves the whole
+// set placed or none of it. hyp writes the commit and row tree of H0 the set
+// was run on, and each example's hash; H0's cells go to the clone's trace as
+// a cells.save. An older place holds each example's H0 cell and no row tree.
 type ExamplesPlace struct {
 	Role     string          `json:"role"`
+	Commit   string          `json:"commit,omitempty"`
+	RowTree  string          `json:"row_tree,omitempty"`
 	Examples []PlacedExample `json:"examples"`
 }
 
-// PlacedExample is one example of an examples.place event.
+// PlacedExample is one example of an examples.place event. H0 is set only in
+// an older place.
 type PlacedExample struct {
 	Line    string `json:"line"`
 	Example string `json:"example"`
 	Hash    string `json:"hash"`
-	H0      Cell   `json:"h0"`
+	H0      *Cell  `json:"h0,omitempty"`
+}
+
+// CellsSave is the payload of cells.save, an event of the clone's trace only:
+// cells measured outside a run, on the row with RowTree. The place saves H0's
+// cell of each example it placed, and Again is false; a try of a cell the
+// trace lacked saves it, and Again is true. A cells.save uses no run of the
+// budget and changes no state.
+type CellsSave struct {
+	Role    string      `json:"role"`
+	Commit  string      `json:"commit"`
+	RowTree string      `json:"row_tree"`
+	Again   bool        `json:"again"`
+	Cells   []SavedCell `json:"cells"`
+}
+
+// SavedCell is one cell of a cells.save.
+type SavedCell struct {
+	Line    string `json:"line"`
+	Example string `json:"example"`
+	Hash    string `json:"hash"`
+	Probe   string `json:"probe"`
+	Output  string `json:"output"`
+	Stderr  string `json:"stderr"`
+	Exit    int    `json:"exit"`
+	Verdict string `json:"verdict"`
 }
 
 // ExampleCell is the cell of one example in a Result.
@@ -135,11 +168,20 @@ type ResultRetract struct {
 	Role string `json:"role"`
 }
 
-// Select is the payload of select.
+// Select is the payload of select. Examples names each example the row was
+// judged by, with its hash: the current placements when the select ran. An
+// older select names none, and its Results are in git.
 type Select struct {
-	Role    string `json:"role"`
-	Commit  string `json:"commit"`
-	RowTree string `json:"row_tree"`
+	Role     string   `json:"role"`
+	Commit   string   `json:"commit"`
+	RowTree  string   `json:"row_tree"`
+	Examples []Judged `json:"examples,omitempty"`
+}
+
+// Judged is one example a select names: its key and the hash it held.
+type Judged struct {
+	Key  string `json:"key"`
+	Hash string `json:"hash"`
 }
 
 // Land is the payload of land: the stop the land ends, and the event of the
@@ -176,7 +218,7 @@ type Read struct {
 }
 
 // ParseLine parses one line of an events file. It refuses an unknown field, a
-// version other than 2 and a type outside the nine.
+// version other than 2 and a type outside the eleven.
 func ParseLine(b []byte) (Event, error) {
 	var e Event
 	if err := strictDecode(b, &e); err != nil {

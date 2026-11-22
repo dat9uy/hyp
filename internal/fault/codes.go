@@ -44,6 +44,8 @@ const (
 
 	// run
 	NoCommit         Code = "no-commit"          // no values
+	BadCommit        Code = "bad-commit"         // commit
+	TryTwoSubjects   Code = "try-two-subjects"   // no values
 	BadGoalLine      Code = "bad-goal-line"      // the LINE argument
 	GoalVanished     Code = "goal-vanished"      // Goal
 	NotACommit       Code = "not-a-commit"       // commit
@@ -153,6 +155,7 @@ const (
 	RowNotLeaf        Code = "row-not-leaf"         // row tree
 	RowNotMet         Code = "row-not-met"          // row tree
 	RowNotMetOnGoal   Code = "row-not-met-on-goal"  // row tree, Goal
+	JudgedNotCurrent  Code = "judged-not-current"   // Goal
 	NotGoalsActor     Code = "not-goals-actor"      // Goal, its actor, the act's actor
 	NoGoalToReplace   Code = "no-goal-to-replace"   // Goal
 	NotWritten        Code = "not-written"          // Goal, state

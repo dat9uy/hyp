@@ -68,11 +68,18 @@ func runText(rep acts.RunReport) string {
 func tryText(rep acts.TryReport) string {
 	var b strings.Builder
 	on := "H0 " + rep.Commit
-	if rep.Worktree {
+	switch {
+	case rep.Worktree:
 		on = "this checkout's files: HEAD " + rep.Commit + " and every change not committed"
+	case rep.OnCommit:
+		on = "commit " + rep.Commit
 	}
 	fmt.Fprintf(&b, "tried %s %s on %s\n", rep.ID, rep.Key, on)
-	b.WriteString("nothing is recorded: no event, no output file, no run of the budget\n")
+	if rep.Saved {
+		fmt.Fprintf(&b, "saved in this clone's trace: the cell of %s on row %s, which the trace lacked, marked as run again in this clone; nothing in git, no run of the budget\n", rep.Key, rep.RowTree)
+	} else {
+		b.WriteString("nothing is recorded: no event, no output file, no run of the budget\n")
+	}
 	fmt.Fprintf(&b, "example: %s as it is on disk, hash %s, probe %s\n", rep.Folder, rep.Hash, or(rep.ProbeHash, "(none)"))
 	fmt.Fprintf(&b, "words: %s\n", rep.Words)
 	fmt.Fprintf(&b, "verdict: %s, exit %d\n", rep.Verdict, rep.Out.Exit)
@@ -199,11 +206,17 @@ func prBody(root string, g *tables.Goal) string {
 			}
 			fmt.Fprintf(&b, "\n### %s: %s\n\n", p.Key, words)
 			c, ok := live[p.Key]
-			if !ok {
+			switch {
+			case !ok && len(g.Select.Judged) > 0:
+				// the select names this example: its cell was measured in the
+				// runner's clone, whose trace this clone does not have
+				fmt.Fprintf(&b, "verdict: %s\n", notInTrace(g, p.Key, "--commit "+g.Select.Commit))
+				continue
+			case !ok:
 				b.WriteString("verdict: not run\n")
 				continue
 			}
-			fmt.Fprintf(&b, "verdict: %s, exit %d\n", c.Verdict, c.Exit)
+			fmt.Fprintf(&b, "verdict: %s, exit %d%s\n", c.Verdict, c.Exit, againMark(c.Again))
 			prStored(&b, root, "output", c.Output)
 			prStored(&b, root, "stderr", c.Stderr)
 		}
@@ -211,6 +224,24 @@ func prBody(root string, g *tables.Goal) string {
 	prCharts(&b, root, g)
 	fmt.Fprintf(&b, "\nselected commit: %s\nselected row: %s\n", g.Select.Commit, tree)
 	return b.String()
+}
+
+// notInTrace is a cell the clone's trace lacks, with the ready try line that
+// runs it again and saves it; flags are the try line's flags after the key.
+func notInTrace(g *tables.Goal, key, flags string) string {
+	line := "hyp try " + g.ID + " " + key
+	if flags != "" {
+		line += " " + flags
+	}
+	return "not in this clone's trace; run it again with: " + line
+}
+
+// againMark marks a cell a try ran again in this clone.
+func againMark(again bool) string {
+	if again {
+		return ", run again in this clone"
+	}
+	return ""
 }
 
 // prCharts prints each chart (.mmd) of the selected commit's spec folder as

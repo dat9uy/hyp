@@ -124,6 +124,15 @@ func GuardSelect(t Tables, ev events.Event) error {
 	if !selectRole(p.Role) {
 		return fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, p.Role)
 	}
+	if len(p.Examples) > 0 {
+		// The select names the examples it was judged by: the runner's clone
+		// checked Candidate and New cell on its trace, which git does not
+		// keep. Every clone checks that the set it names is the current one.
+		if err := GuardJudgedSet(g, p.Examples); err != nil {
+			return err
+		}
+		return GuardGoalActor(g, ev.Actor, p.Role)
+	}
 	if !g.metEverywhere(p.RowTree) {
 		return fault.Refuse(fault.GuardCandidate, fault.RowNotMetOnGoal, p.RowTree, g.ID)
 	}
@@ -131,6 +140,32 @@ func GuardSelect(t Tables, ev events.Event) error {
 		return err
 	}
 	return GuardGoalActor(g, ev.Actor, p.Role)
+}
+
+// JudgedSet is the set a select names: every current placement, by key and
+// hash, in key order.
+func (g *Goal) JudgedSet() []events.Judged {
+	var out []events.Judged
+	for _, p := range g.Placed() {
+		out = append(out, events.Judged{Key: p.Key, Hash: p.Hash})
+	}
+	return out
+}
+
+// GuardJudgedSet is the git half of Candidate for a select that names its
+// examples: they are the Goal's current placements, each key once at its
+// current hash.
+func GuardJudgedSet(g *Goal, judged []events.Judged) error {
+	want := g.JudgedSet()
+	if len(want) != len(judged) {
+		return fault.Refuse(fault.GuardCandidate, fault.JudgedNotCurrent, g.ID)
+	}
+	for i := range want {
+		if want[i] != judged[i] {
+			return fault.Refuse(fault.GuardCandidate, fault.JudgedNotCurrent, g.ID)
+		}
+	}
+	return nil
 }
 
 // UnstableCell is one example a Stable refusal found unstable: the tree, and

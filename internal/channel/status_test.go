@@ -128,6 +128,8 @@ func (f *fx) leaf(t *testing.T, files map[string]string) string {
 	testutil.Git(t, f.r.Dir, "checkout", "-q", "--detach", f.base)
 	c := f.r.Commit(t, files)
 	testutil.Git(t, f.r.Dir, "checkout", "-q", "main")
+	// a candidate is on a branch, as a runner's commit is
+	testutil.Git(t, f.r.Dir, "branch", "cand-"+c[:12], c)
 	return c
 }
 

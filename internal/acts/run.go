@@ -107,7 +107,8 @@ func Run(o RunOpts) (RunReport, error) {
 
 	var rep RunReport
 	var stable error
-	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	// A Result stays in the clone's trace: git keeps no cell and no output.
+	ev, err := logstore.AppendTrace(root, o.Actor, func(evs []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeResultRecord, Why: o.Why}
 		again, err := checkRun(root, o, evs, goalName, lineKey)
 		if err != nil {
@@ -141,7 +142,7 @@ func Run(o RunOpts) (RunReport, error) {
 	if err != nil {
 		return RunReport{}, err
 	}
-	evs, _, err := logstore.Events(root)
+	evs, _, err := logstore.All(root)
 	if err != nil {
 		return RunReport{}, err
 	}

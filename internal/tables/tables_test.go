@@ -459,7 +459,7 @@ func placeSetEv(t *testing.T, id string, xs ...[4]string) events.Event {
 	p := events.ExamplesPlace{Role: "grill"}
 	for _, x := range xs {
 		p.Examples = append(p.Examples, events.PlacedExample{Line: x[0], Example: x[1], Hash: x[2],
-			H0: events.Cell{Commit: "c", RowTree: "t", Probe: "p", Output: "o", Stderr: "e", Exit: 0, Verdict: x[3]}})
+			H0: &events.Cell{Commit: "c", RowTree: "t", Probe: "p", Output: "o", Stderr: "e", Exit: 0, Verdict: x[3]}})
 	}
 	b, err := json.Marshal(p)
 	if err != nil {

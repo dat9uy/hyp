@@ -264,7 +264,7 @@ full: the owner may read only the last message, not the status before it.
 The re-grill reviews a Goal against its lines, from what builds really
 printed, at each stop for the owner: `Selected`, `Two candidates` and
 `Budget used`. Read the table of outputs `hyp status G` prints and each
-output under `.tree/outputs/`; a met output matters as much as a failed one.
+output file its header names; a met output matters as much as a failed one.
 
 - **Discover ceilings.** In each met output, look for text the line's words
   forbid that its floors let through. Show the owner the example, its floors

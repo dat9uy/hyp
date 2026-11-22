@@ -49,7 +49,7 @@ From Specification by Example, hyp keeps concrete examples as plain data that th
 |---|---|
 | The examples run as tests after the build. | **Each example runs on H0 first.** `hyp place` refuses a gap example that is met on H0, or a guard example that fails there. `hyp try` shows that verdict before the place, and records nothing. |
 | The agent decides after the run whether the evidence is a proof. | **The verdict is set before the run.** An example states literal floors and ceilings. Nobody reads the output to decide. |
-| The agent runs each command, and its report is the record. | **hyp runs the Probe.** hyp runs the example's Probe on a fresh copy of the commit's subject. It stores each output under `.tree/outputs/` by its sha256. |
+| The agent runs each command, and its report is the record. | **hyp runs the Probe.** hyp runs the example's Probe on a fresh copy of the commit's subject. It stores each output in the clone's trace by its sha256; git keeps only the acts. |
 | A check can become easier so that it passes. | **An example only becomes stricter.** A new version only adds floors or ceilings. A changed command, input or Probe is a new example. |
 | A rerun can give a new answer. | **Two runs on the same bytes give one verdict.** hyp refuses a rerun whose verdict differs, keeps the first verdict, and lists the example as `unstable`. |
 

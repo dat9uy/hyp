@@ -28,7 +28,9 @@ Goal.
   resolved), which every worktree of the clone shares. The folder holds
   `events/<actor>.jsonl`, `outputs/<sha256>` and a file `clone` that names the
   common directory. It is not the log: no git command sees it, and no commit
-  carries it (§8, "The trace is not the log"). Reads that an earlier hyp
+  carries it (§8, "The trace is not the log"). It also keeps the evidence of
+  the clone's acts: every cell, Result and output (§8, "Git keeps the acts;
+  the trace keeps the evidence"). Reads that an earlier hyp
   wrote under `~/.local/state/hyp` are let go: `show` does not print them, and
   hyp never reads, moves or removes that folder; the owner removes it by hand
   (record PR #238, decision 8).
@@ -81,25 +83,30 @@ Every event is one JSON line with this envelope (with `v` = 2):
 | `id` | The event's ULID. |
 | `ts` | hyp's time, RFC 3339 UTC. |
 | `actor` | The actor; equal to the events file's base name. |
-| `type` | One of the ten types below. |
+| `type` | One of the eleven types below. |
 | `node` | The id the event is about: the Goal's `goal.add` id, the Result's `result.record` id for `result.retract`, or the event's own id for `read`. |
 | `payload` | The type's payload, parsed strictly: an unknown field does not parse. |
 | `why` | The actor's short reason, optional. |
 
-The ten events:
+The eleven events. Git keeps `goal.add`, `examples.place`, `select`, `land`
+and `unselect`; the clone's trace keeps `result.record`, `cells.save` and
+`read` (§8, "Git keeps the acts; the trace keeps the evidence"). An older log
+keeps `result.record` and the old forms below in git, and replay reads them
+there.
 
 | Event | Written by | `node` | Payload |
 |---|---|---|---|
 | `goal.add` | `add goal` | its own id; a Draft replace names the replaced Goal's id | role, words, H0 commit, H0 subject hash, budget (3), `from` Goal or empty, lines: key, text, kind |
-| `examples.place` | `place` | the Goal | role, and for each example the place changed: line key, example name, the example hash, and H0's cell: H0 commit, H0 subject hash, Probe hash, output hash, stderr hash, exit code, verdict |
+| `examples.place` | `place`, into git | the Goal | role, H0 commit, H0 subject hash, and for each example the place changed: line key, example name, the example hash. An older `examples.place` holds H0's cell for each example instead of the H0 commit and subject hash: H0 commit, H0 subject hash, Probe hash, output hash, stderr hash, exit code, verdict |
 | `example.place` | `place` before G-SBFXAY; no act writes it now | the Goal | role, line key, example name, the example hash, and H0's cell, as `examples.place` holds it for one example |
-| `result.record` | `run` | the Goal | role, line key, commit, subject hash, `refused` (empty, or `Stable` with the differing example keys), and per example: example key, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
+| `result.record` | `run`, into the trace; in git in an older log | the Goal | role, line key, commit, subject hash, `refused` (empty, or `Stable` with the differing example keys), and per example: example key, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
 | `result.retract` | `retract` | the Result | role |
-| `select` | `select` | the Goal | role, commit, subject hash |
+| `select` | `select`, into git | the Goal | role, commit, subject hash, and the examples the row was judged by: each current example key with its hash. An older `select` names no example |
 | `budget.reset` | `reset` | the Goal | role |
 | `land` | `land` | the Goal | role, the stop it ends (`selected`, `two candidates` or `budget used`), and `cause`: the id of the event of the act that caused that stop |
 | `unselect` | `unselect` | the Goal | role |
 | `read` | every command that names an actor, in a repository with a store, into the trace, never into the log (§8) | its own id | role (empty when the command declared none of the four), the command's arguments, exit code, stdout hash, stderr hash |
+| `cells.save` | `place` and `try`, into the trace only | the Goal | role, commit, subject hash, `again` (false for the cells of a place, true for a cell `try` ran again), and per cell: line key, example name, example hash, Probe hash, output hash, stderr hash, exit code, verdict |
 
 The **Probe hash** is the git tree hash of the example's `probe/` folder. The
 example hash already covers it; it is kept on the cell so hyp can show which
@@ -128,11 +135,16 @@ Goal, Result or row, and no guard reads it. A `read` line that an earlier hyp
 wrote into the log stays there: replay parses it as before, and `show` prints
 it with its outputs from `.tree/outputs/`.
 
-`examples.place` carries H0's cell for each example it places, with the fields
-of a Result's cell. So one place of the whole set is one line, and a crash
-leaves the whole set placed or none of it, and never a placement without its
-H0 verdict: a new example runs on H0 as part of the act that adds it. Built by
-Goal G-SBFXAY (#312), which replaced `example.place`, one event per example.
+`examples.place` names every example it places by its hash, with the H0 commit
+and subject hash the set ran on. So one place of the whole set is one line,
+and a crash leaves the whole set placed or none of it: a new example runs on
+H0 as part of the act that adds it. Built by Goal G-SBFXAY (#312), which
+replaced `example.place`, one event per example. H0's cell of each example
+goes to the trace as a `cells.save` (Goal G-G4NNT7, #313).
+
+`cells.save` holds cells measured outside a run, and only the trace holds it.
+It uses no run of the budget, changes no state and has no guard: a saved cell
+whose example hash is no longer current is history, as a Result's cell is.
 A log that holds `example.place` events replays them as before: each places
 its one example and starts a new budget, so every Goal recorded before keeps
 its state, stop, runs and allowed acts. A placed example's H0 cell is live on
@@ -174,17 +186,30 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   `run` record and writes nothing to the log is
   `goals/G-CJWT9T/specs/try.tla`.
 - **Outputs of an act.** `place` and `run` hash their Probes' outputs when
-  the Probes end, and write the output files only under the lock, after every
-  guard held again and just before the event that names them. So a refused
-  act leaves no output file, and a crash before the event leaves output files
-  no event names, which are harmless. `try` (§8) hashes its outputs the same
-  way and writes no output file.
+  the Probes end, and write the output files into the clone's trace only under
+  the store's lock, after every guard held again and just before the event
+  that names them. So a refused act leaves no output file, and a crash before
+  the event leaves output files no event names, which are harmless. `try`
+  (§8) hashes its outputs the same way, and writes them only when it saves a
+  missing cell.
+- **Place across git and the trace.** `place` appends its `examples.place` to
+  git first, then its `cells.save` to the trace. A crash between them leaves
+  the set placed with H0's cells not in this clone's trace: `status G` prints
+  each such cell as not in this clone's trace, with the `try` line that saves
+  it (§8).
+- **Ids across git and the trace.** An act checks its guards against the
+  events of git and of the clone's trace in one merge order, under the store's
+  lock, and its event takes an id after every event it read, in git or in the
+  trace. So a `select` in git sorts after the Results it was checked against,
+  and a Result in the trace after the place it ran.
 - **Merged log.** Two clones that each passed their guards can merge into a log
   that breaks one, for example a fourth Hypothesis in one budget. Replay checks
   every event at its place in the merge order. An event whose guards fail there
   is skipped, listed under "refused at replay" in `status`, and never deleted: a
   guard that a merged log breaks shows when hyp replays it. Output files are named by their hash, so they never conflict in a
-  merge. A `read` has no guard, so replay keeps every `read` whose payload
+  merge. Replay reads git's events and the clone's trace in one merge order,
+  so the Results and cells a clone sees are its own: another clone's runs are
+  in that clone's trace. A `read` has no guard, so replay keeps every `read` whose payload
   parses, an old one in the log as well as one in the trace. The trace is
   never merged: a clone's agents share one trace folder, and git carries none
   of it.
@@ -195,7 +220,10 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   is new on its key; an `examples.place` names at least one example and each
   key once, and when one of its examples fails, the whole event is refused at
   replay and places none of the set), the table half of Candidate (the row is met on every
-  line, and the role is runner or owner; the leaf mark and the one-or-two count
+  line, and the role is runner or owner; for a `select` that names its
+  examples, the examples it names are the current placements, each key at its
+  current hash, and the met rows are trusted as written, since the Results are
+  in the runner's trace; the leaf mark and the one-or-two count
   read git and are trusted as written), and the table half of Stop (the stop a
   land names is one of the three; `selected` needs a select and the other two
   need none; that the candidates or the budget held reads git and is trusted
@@ -236,7 +264,8 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 |---|---|---|
 | Goals | Goal id | words, H0 commit, H0 subject hash, budget, actor (of the first `goal.add`; a Draft replace keeps it), `from`, state (§6) |
 | Lines | Goal, line key | text, kind (`gap` or `guard`) |
-| Placements | Goal, example key | example hash, version `@n` (count of distinct hashes placed on that key, in order), time, actor; the latest is current |
+| Placements | Goal, example key | example hash, version `@n` (count of distinct hashes placed on that key, in order), time, actor, the H0 subject hash it was placed on; the latest is current |
+| Saved | Goal, `cells.save` id, example key | example hash, commit, subject hash, Probe hash, output hash, stderr hash, exit code, verdict, `again`; from the clone's trace |
 | Results | Result id | Goal, line key, commit, subject hash, actor, role, time, retracted, refused by Stable |
 | Cells | Result, example hash | example key, Probe hash, output hash, stderr hash, exit code, verdict (`met` or `failed`) |
 | Rows | Goal, row key | the commits it was seen at; leaf (from git); per example key, the verdict of its live cell under the current placement, or `not run` |
@@ -246,9 +275,13 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 | Reads | actor, read id | time, role, command, exit code, stdout hash, stderr hash; from the clone's trace and from the old `read` lines of the log; an actor's reads are in id order, oldest first |
 
 - A cell is **live** when its Result is not retracted, not refused by Stable,
-  and its example hash is the current placement's hash for its example key.
-- **Outputs.** An output is a file named by its sha256 under
-  `.tree/outputs/<sha256>`; the cell holds the hash. Equal outputs are stored
+  and its example hash is the current placement's hash for its example key. A
+  saved cell is live under the same rule on its row; on one row the place's
+  own H0 cell comes first, then the Results' cells, then the cells `try` ran
+  again.
+- **Outputs.** An output is a file named by its sha256 in the clone's trace,
+  `outputs/<sha256>`; an older log keeps its outputs under
+  `.tree/outputs/<sha256>`, and hyp reads both. The cell holds the hash. Equal outputs are stored
   once, and "same bytes" is a compare of two hashes. hyp writes the file before
   the event that names it. Owner said, 2026-11-19: "File by sha256".
 - **Cell key.** A cell is keyed by its Result and the example's hash, not by
@@ -494,15 +527,15 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 | Act | Role | Guards, in order | Writes |
 |---|---|---|---|
 | `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines, From landed (with `--from`) | `goal.add` |
-| `place G` | grill | Not landed, not Selected, Grill places, then for the whole set: Whole set, Committed, Adds only, Kind | `examples.place` |
-| `run COMMIT LINE` | runner | Not landed, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
+| `place G` | grill | Not landed, not Selected, Grill places, then for the whole set: Whole set, Committed, Adds only, Kind | `examples.place`, in git; `cells.save` of H0's cells, in the trace |
+| `run COMMIT LINE` | runner | Not landed, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record`, in the trace |
 | `select G HASH` | runner, or owner | Not landed, not Selected, Candidate, New cell (runner only), Goal's actor (owner only), Spec, Own path | `select` |
 | `land G` | owner | Not landed, Owner lands, Goal's actor, Stop | `land` |
 | `unselect G` | owner | Not landed, Owner unselects, Goal's actor, Selected | `unselect` |
 | `reset G` | owner | Not landed, Goal's actor | `budget.reset` |
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
 | `status [G] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
-| `try G LINE/EXAMPLE [--worktree] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
+| `try G LINE/EXAMPLE [--worktree \| --commit COMMIT] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace, and a `cells.save` when it saves a missing cell |
 | `show ACTOR` | any | none | nothing in the repository; a `read` in the trace |
 | `prune [--remove]` | any | none | nothing in the repository; a `read` in the trace; with `--remove`, removes the trace folders it lists |
 
@@ -520,7 +553,7 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   it runs each example that the place changes, a new example key or a new
   version, on H0 for Kind. It places the set only when every guard holds on
   every example: one `examples.place` event names every changed example with
-  its H0 cell. Otherwise it places none of the set, exit 1, and its refusal
+  its hash, and the trace saves each one's H0 cell. Otherwise it places none of the set, exit 1, and its refusal
   names every cause it found, each under its example key (or its line key for
   a line that holds no example) with its guard: "none of the example set of G
   is placed; N causes:". The causes that need no Probe are reported without
@@ -604,12 +637,56 @@ before it prints and `show` prints the trace, stands.
 
 - **What a command leaves in the repository.** A read, a refusal and a bad
   argument leave no file of the repository changed, added or removed. A
-  recorded act leaves its own event and the output files that event names.
+  recorded act in git leaves its own event, and no output file: `run` leaves
+  nothing in the repository, and `place` leaves one line.
   The first `add goal` also creates the store (§8, no `init`). A run that
   Stable refuses is exit 1 and still records its `result.record` marked
   refused, with the outputs it names (§7): it is the one refusal that is also a
   recorded act. hyp never hides a file from git to meet this rule: it writes
   no `.gitignore`, no `info/exclude` and no index flag.
+**Git keeps the acts; the trace keeps the evidence.** Git keeps only the
+owner's acts, the place of each example set and the select. Every cell,
+Result and output stays in the clone's trace, as a cache that a reader fills
+by running an example again. This is Goal G-G4NNT7 (#313):
+
+- `place G` writes to `.tree/` one line, its `examples.place`, which names the
+  example set's hashes and the H0 it ran on. H0's cells and outputs go to the
+  trace as a `cells.save`.
+- `run` writes nothing under `.tree/`: its `result.record` and outputs go to
+  the trace. `select` writes one line that names the commit, its subject hash
+  and the hash of each example it was judged by.
+- **State from git.** A place in git checked Kind on the H0 subject hash it
+  names, so while that is the Goal's H0 the placement gives the verdict its
+  line needs in every clone, and the Goal opens from git alone. A select that
+  names its examples selects the Goal in every clone whose current placements
+  are those examples. A placement on another H0, after a Draft replace, needs
+  a live cell on H0's row, as before.
+- **Budget per clone.** The budget counts the Hypotheses in the clone's own
+  trace (and the Results an older log keeps in git). A fresh clone of an open
+  Goal prints `runs: 0 of 3 used`, whatever other clones ran.
+- **A missing cell.** In a clone whose trace lacks a cell that `status G`
+  would print, it prints that the cell is not in this clone's trace and the
+  ready `try` line that runs it again: `hyp try G LINE/EXAMPLE` for H0's cell
+  of an open Goal (under `The Goal asks:`, as `verdict on H0 at place: not in
+  this clone's trace; run it again with: …`), and `hyp try G LINE/EXAMPLE
+  --commit C` with the selected commit for a cell of the PR body (as
+  `verdict: not in this clone's trace; run it again with: …`).
+- **Run again.** A `try` of a missing cell saves that cell in the clone's
+  trace as a `cells.save` with `again`, and `status G` then prints it marked
+  `run again in this clone`. Other clones show no mark: the mark is in this
+  clone's trace only.
+- **The selected commit on no ref.** Every state block of a Goal with a
+  select (`status`, `status G`, and the return of `select` and `land`) prints
+  `warning: the selected commit C is on no branch or tag of this clone; …`
+  when no branch, remote branch or tag holds C (`git for-each-ref --count=1
+  --format=%(refname) --contains C refs/heads refs/remotes refs/tags`), also
+  when another commit with the same subject hash is on one, as a squash merge
+  leaves. A commit the clone lacks is on no ref.
+- **An older log stays as it was.** A landed Goal whose place, run, select and
+  land are lines of git prints its PR body with each verdict and output, as
+  before: replay reads its cells from git and its outputs from
+  `.tree/outputs/`.
+
 - **Where the trace lives** is outside every worktree and the git directory
   (§1), so it needs no git state (§13). Its key is the clone's git common
   directory, so every worktree of one clone reads one trace, and `show`
@@ -661,7 +738,11 @@ before it prints and `show` prints the trace, stands.
     prunes is read from `$HOME/.hyp`. Owner said, 2026-11-19: "for
     consistency". Outside a git repository it is exit 3, as every command.
 - **`try G LINE/EXAMPLE`** shows an example's output, stderr, exit code and
-  verdict as `place` and `run` would record them, and records nothing. It is
+  verdict as `place` and `run` would record them, and records nothing in git.
+  It saves one thing in the clone's trace: the cell it measured, when the
+  folder on disk is the current placement, the subject's hash is H0's or the
+  selected row's, and the trace holds no live cell of that example there
+  (Goal G-G4NNT7, "Run again"). It is
   line 1 of Goal G-CJWT9T: "An agent can see an example's output, stderr,
   exit code and verdict, as hyp would record them, on H0 or on an uncommitted
   change, without a commit, without recording anything in the log, and
@@ -675,6 +756,9 @@ before it prints and `show` prints the trace, stands.
     disk, never from git, so Committed is not checked.
   - Without `--worktree` the subject is H0's commit, extracted by hash as
     `place` extracts it (§10): an edit in the checkout does not reach it.
+    With `--commit C` it is the commit C of this clone, extracted the same
+    way; a C this clone lacks is exit 2, and `--commit` with `--worktree` is
+    exit 2.
     With `--worktree` the subject is the files of this checkout as a commit
     of every change would hold them: each file git tracks or would add
     (`git ls-files -z --cached --others --exclude-standard`, §13), with its
@@ -683,13 +767,16 @@ before it prints and `show` prints the trace, stands.
     folder in that list, a submodule or a nested repository, is refused,
     exit 1, as an extracted submodule is (§13).
   - The Probe runs as §10 says, and the compare is §9's. hyp hashes the
-    output and the stderr as `place` and `run` do, and writes no output file.
-  - It prints where it ran (H0's commit, or HEAD's commit and every change
-    not committed), the line `nothing is recorded: no event, no output file,
-    no run of the budget`, the folder's example hash on disk and its Probe hash,
+    output and the stderr as `place` and `run` do, and writes the output files
+    into the trace only when it saves the cell.
+  - It prints where it ran (H0's commit, the commit named, or HEAD's commit
+    and every change not committed), the line `nothing is recorded: no event,
+    no output file, no run of the budget`, or when it saved a missing cell
+    `saved in this clone's trace: the cell of K on row R, which the trace
+    lacked, marked as run again in this clone; nothing in git, no run of the
+    budget`, the folder's example hash on disk and its Probe hash,
     the example's words, `verdict: V, exit N`, and the output and the stderr
-    as byte blocks (§12) labelled with the sha256 each would have under
-    `.tree/outputs/`. Then the Goal's state block, which `--role` filters as
+    as byte blocks (§12) labelled with the sha256 each output file has. Then the Goal's state block, which `--role` filters as
     in `status`.
   - It is a read: it checks no guard, so it runs in every state of the Goal,
     `selected` included, and no state block lists it as an allowed act (§12
@@ -868,7 +955,8 @@ At "Two candidates" and "Budget used" the state block adds an `outputs:` table:
 rows by examples. Each cell shows the verdict, the exit code, the output's
 hash, its size in bytes and at most 60 characters of its first line, as hyp
 holds them: no quotes and no escapes are added (§12, Values as held). Its full
-bytes are under `.tree/outputs/` by hash.
+bytes are in the output file of that hash: in the clone's trace, or under
+`.tree/outputs/` for an older log.
 
 hyp prints the table, not a reading of it: no distance, no summary line. The
 leaves' statecharts at a stop are a later v2 Goal.
@@ -931,6 +1019,9 @@ runner may:
   candidate had no stop, no wait and no allowed act (#229).
 - A refusal prints to stderr, then the state block to stdout. A report prints
   only on exit 0. Exit 2 and exit 3 print no state block.
+- **The selected commit on no ref.** The state block of a Goal with a select
+  prints, below its `stop:` (and `landed:`) line, the warning of §8 when the
+  selected commit is on no branch or tag of this clone.
 - **The record of a landed Goal.** `status G` and the return of `land` print
   the state block of a landed Goal, then the record of its decision: the PR
   body when the Goal has a select, or the table of outputs (§11) when it has
