@@ -715,7 +715,7 @@ An example is one txtar file, `example.txtar`. Each section starts with a line
 
 | Section | Holds | Count |
 |---|---|---|
-| `words` | The owner's sentence for this example. hyp prints it. | exactly one |
+| `words` | The reading of the line the owner chose for this example: the part or meaning of the line it checks, in plain words. hyp prints it. A new reading is a new example key. | exactly one |
 | `input/<path>` | A file the run uses, written at `<path>`. | zero or more |
 | `run` | The command the Probe runs on the subject. | exactly one |
 | `floor: contains` | A literal the output must contain. | one or more floors in total |

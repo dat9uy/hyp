@@ -108,6 +108,10 @@ The owner's one sentence that states the Goal, given as `--words TEXT` ([spec §
 One claim of a Goal, with a key `line-N`, a text and a kind: gap or guard. A Goal has one to ten lines and at least one gap line ([spec §7](state-machine.md#7-guards), Whole lines; [spec §8](state-machine.md#8-acts)). A line is **met** on a row when every placed example of the line is met there ([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
 _Avoid_: acceptance criterion, requirement; limit (a v1 word)
 
+**Reading** (of a line):
+One part or one meaning of a line's words that an example checks. The grill shows the owner each reading as a case with the output it expects; where a model exists, each variant that no example separates is one more reading, shown as the model's print and the variant's print. The owner chooses which readings the line means, and each chosen reading is one example, whose `words` section holds it. A new reading is a new example key ([spec §9](state-machine.md#9-the-example-file-and-the-compare)).
+_Avoid_: interpretation, test idea, direction (alone)
+
 **Gap line**:
 A line that is false on H0 and that the build must make true. Each of its examples must fail on H0 ([spec §6](state-machine.md#6-states), [spec §7](state-machine.md#7-guards), Kind).
 

@@ -91,11 +91,24 @@ record branch so that every runner commit holds it:
    - one part for each variant that no example separates, naming its rules,
      the step no example takes and what the model and the variant print there.
 
+   The chart has a budget of 500 states, counted by TLC on the config as
+   written; above it the tool draws only the bug paths, or no chart when no
+   rule breaks. Never make the checked model smaller to fit the budget, such
+   as by dropping a cause, an action or a rule: the rules would then hold on
+   fewer states than the hand-off claims. Write a second config, such as
+   `chart.cfg`, with smaller constants for the chart, and keep both configs.
+   hyp reads every `.cfg` outside `variants/` as a check config, so the chart
+   config lists only rules of the check config. A run on any config of the
+   spec folder rewrites `specs/variants/` from that config, so run the check
+   config last, or run it again after the chart config, so that the variant
+   configs come from the check config.
+
    [references/tool.md](references/tool.md) says how to label the chart with a
    view module and how to read the report.
-7. **Commit the chart in the spec folder.** Copy `chart.mmd` that the tool wrote
-   for the check config to `goals/<G>/specs/chart.mmd`, beside the model and its
-   configs. The select report prints every chart of the spec folder, so the
+7. **Commit the chart in the spec folder.** Copy the `chart.mmd` the tool wrote
+   to `goals/<G>/specs/chart.mmd`, beside the model and its configs: the check
+   config's chart, or the chart config's when the check config is over the
+   budget. The select report prints every chart of the spec folder, so the
    owner reads it in the PR.
 
 ## Try what the tool predicts
@@ -122,8 +135,14 @@ uses runs of the budget and can stop the Goal at `Two candidates`.
    one line of the hand-off.
 5. When a tried patch meets every example, the examples do not separate the two
    builds. The grill asks the owner one plain question about it, at the example
-   level: the case, what each build prints, and which output is wanted. A
-   prediction alone, never tried, never reaches the owner.
+   level: the case, what each build prints, and which output is wanted.
+
+Before the examples exist, a prediction may reach the owner only as a
+direction: the grill shows the step no example takes, with what the model and
+the variant print there, each marked "model print, not built", and the owner
+chooses the wanted output. It is never a verdict: the example written from
+that choice is tried on H0 with `hyp try` before it is placed and must agree
+with its line, and a model result never counts at select.
 
 Remove each patch when you are done; the record branch holds the model, its
 configs, the tried verdicts and the examples.
@@ -138,6 +157,8 @@ Add to the grill's hand-off:
 - one line for each tried verdict that differed from its prediction, and what
   was fixed in the model;
 - each rule left out of the check config, and why;
+- when a chart config exists, the config and the state count behind each
+  result;
 - what the model leaves out;
 - the command that makes the chart again.
 
