@@ -1,0 +1,8 @@
+-- words --
+Reading: an example placed before is removed from its folder, so the next `hyp place G` places none of the set and names that example (not: it drops it from the set).
+-- run --
+hyp place "$G" 2>&1; echo "place exit $?"
+-- floor: contains --
+line-1/b
+-- floor: contains --
+place exit 1

@@ -1,0 +1,13 @@
+-- words --
+Reading: while the Goal is written and while it is open, the grill's allowed acts show one ready place line, `hyp place G` (not: one place line per line).
+-- run --
+hyp status "$G" | head -1; hyp status "$G" --role grill | awk '/^grill may:/{f=1;next} f&&/^  /{if(/hyp place/)print;next} {f=0}'; hyp place "$G" >/dev/null 2>&1; hyp status "$G" | head -1; hyp status "$G" --role grill | awk '/^grill may:/{f=1;next} f&&/^  /{if(/hyp place/)print;next} {f=0}'
+-- floor: contains --
+G  written  runs: 0 of 3 used
+  hyp place G
+
+-- floor: contains --
+G  open  runs: 0 of 3 used
+  hyp place G
+-- ceiling --
+hyp place G line-
