@@ -163,6 +163,9 @@ example checks. A reading is one part or one meaning of a line's words. Ask in
 two rounds: first the readings of every line, then, after you write the
 floors, the split and ceiling questions.
 
+While a question is open, each message that ends your turn repeats it in
+full: the owner may read only the last message, not the status before it.
+
 1. **Show the readings of each line, and let the owner choose.** Start the
    part of the message for each Goal line with one line that gives its key and
    words, and put its readings under it. Each reading shows a case, what the
