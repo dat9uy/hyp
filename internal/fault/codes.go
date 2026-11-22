@@ -23,17 +23,24 @@ const (
 	BaseNotHere   Code = "base-not-here"   // base
 
 	// place
-	BadExampleKey       Code = "bad-example-key"        // key
-	ChangedWhileProbe   Code = "changed-while-probe"    // key, from hash, to hash
-	H0MovedWhilePlacing Code = "h0-moved-while-placing" // Goal, from commit, to commit
-	NotAFolder          Code = "not-a-folder"           // path
-	FolderOnDisk        Code = "folder-on-disk"         // cause
-	NotCommitted        Code = "not-committed"          // path
-	DiskNotCommitted    Code = "disk-not-committed"     // path
-	DiffersAt           Code = "differs-at"             // path, first differing path
-	ObjectMissing       Code = "object-missing"         // hash
-	NoExampleTxtar      Code = "no-example-txtar"       // hash
-	WrongVerdictOnH0    Code = "wrong-verdict-on-h0"    // acts.KindFacts
+	BadExampleKey        Code = "bad-example-key"         // key
+	SetNotPlaced         Code = "set-not-placed"          // acts.SetFacts
+	SetUnchanged         Code = "set-unchanged"           // Goal
+	SetChangedWhileProbe Code = "set-changed-while-probe" // Goal
+	KeyTwiceInSet        Code = "key-twice-in-set"        // key
+	LineHoldsNoExample   Code = "line-holds-no-example"   // line key, folder
+	PlacedFolderGone     Code = "placed-folder-gone"      // key, folder
+	NotAnExampleName     Code = "not-an-example-name"     // folder
+	ChangedWhileProbe    Code = "changed-while-probe"     // key, from hash, to hash
+	H0MovedWhilePlacing  Code = "h0-moved-while-placing"  // Goal, from commit, to commit
+	NotAFolder           Code = "not-a-folder"            // path
+	FolderOnDisk         Code = "folder-on-disk"          // cause
+	NotCommitted         Code = "not-committed"           // path
+	DiskNotCommitted     Code = "disk-not-committed"      // path
+	DiffersAt            Code = "differs-at"              // path, first differing path
+	ObjectMissing        Code = "object-missing"          // hash
+	NoExampleTxtar       Code = "no-example-txtar"        // hash
+	WrongVerdictOnH0     Code = "wrong-verdict-on-h0"     // acts.KindFacts
 
 	// run
 	NoCommit         Code = "no-commit"          // no values

@@ -24,11 +24,14 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The nine event types. All but read change the state machine; read is the
-// trace of what hyp printed to an actor, and changes no state.
+// The ten event types. All but read change the state machine; read is the
+// trace of what hyp printed to an actor, and changes no state. example.place
+// is the old form of a place, one example per event: hyp writes
+// examples.place, and replays both.
 const (
 	TypeGoalAdd       = "goal.add"
 	TypeExamplePlace  = "example.place"
+	TypeExamplesPlace = "examples.place"
 	TypeResultRecord  = "result.record"
 	TypeResultRetract = "result.retract"
 	TypeSelect        = "select"
@@ -39,7 +42,7 @@ const (
 )
 
 var types = map[string]bool{
-	TypeGoalAdd: true, TypeExamplePlace: true, TypeResultRecord: true,
+	TypeGoalAdd: true, TypeExamplePlace: true, TypeExamplesPlace: true, TypeResultRecord: true,
 	TypeResultRetract: true, TypeSelect: true, TypeBudgetReset: true,
 	TypeLand: true, TypeUnselect: true, TypeRead: true,
 }
@@ -82,6 +85,22 @@ type Cell struct {
 // ExamplePlace is the payload of example.place.
 type ExamplePlace struct {
 	Role    string `json:"role"`
+	Line    string `json:"line"`
+	Example string `json:"example"`
+	Hash    string `json:"hash"`
+	H0      Cell   `json:"h0"`
+}
+
+// ExamplesPlace is the payload of examples.place: every example of the set
+// that the place changed, each with H0's cell. One place is one event, so a
+// crash leaves the whole set placed or none of it.
+type ExamplesPlace struct {
+	Role     string          `json:"role"`
+	Examples []PlacedExample `json:"examples"`
+}
+
+// PlacedExample is one example of an examples.place event.
+type PlacedExample struct {
 	Line    string `json:"line"`
 	Example string `json:"example"`
 	Hash    string `json:"hash"`

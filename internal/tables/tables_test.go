@@ -451,3 +451,64 @@ func TestAddsOnlyTableRefusesAnEarlierHash(t *testing.T) {
 		t.Fatalf("placing @1 again after @2: %v, want an Adds only refusal", err)
 	}
 }
+
+// placeSetEv is an examples.place event on the Goal id1 by the grill, each
+// example given as line, example, hash and H0's verdict.
+func placeSetEv(t *testing.T, id string, xs ...[4]string) events.Event {
+	t.Helper()
+	p := events.ExamplesPlace{Role: "grill"}
+	for _, x := range xs {
+		p.Examples = append(p.Examples, events.PlacedExample{Line: x[0], Example: x[1], Hash: x[2],
+			H0: events.Cell{Commit: "c", RowTree: "t", Probe: "p", Output: "o", Stderr: "e", Exit: 0, Verdict: x[3]}})
+	}
+	b, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return events.Event{V: 2, ID: id, TS: "2026-11-22T00:00:00Z", Actor: "g", Type: events.TypeExamplesPlace, Node: id1, Payload: b}
+}
+
+// TestPlaceSetPlacesEveryExampleAtOnce: one examples.place event places each
+// example it names, opens the Goal, and starts one budget for the set.
+func TestPlaceSetPlacesEveryExampleAtOnce(t *testing.T) {
+	goal := goalAdd(t, id1, "", "w", gap, guard)
+	tb := Replay([]events.Event{goal, placeSetEv(t, idP1,
+		[4]string{"line-1", "a", hashA, "failed"}, [4]string{"line-1", "b", hashB, "failed"}, [4]string{"line-2", "a", hashC, "met"})})
+	g := tb.Goals[id1]
+	if len(tb.RefusedAtReplay) != 0 || len(g.Placed()) != 3 || g.State != StateOpen || g.epoch != 1 {
+		t.Fatalf("refused %+v, placed %+v, state %s, epoch %d; want three placed, open, one budget",
+			tb.RefusedAtReplay, g.Placed(), g.State, g.epoch)
+	}
+	// a later set holds only what changed: a new version of line-1/a
+	tb = Replay([]events.Event{goal,
+		placeSetEv(t, idP1, [4]string{"line-1", "a", hashA, "failed"}, [4]string{"line-2", "a", hashC, "met"}),
+		placeSetEv(t, idP2, [4]string{"line-1", "a", hashB, "failed"})})
+	g = tb.Goals[id1]
+	if cur, _ := g.Current("line-1/a"); cur.Version != 2 || cur.Hash != hashB || g.epoch != 2 {
+		t.Fatalf("line-1/a = %+v, epoch %d; want @2 and a second budget", cur, g.epoch)
+	}
+	// an old-form example.place and a set replay in one log
+	tb = Replay([]events.Event{goal, placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+		placeSetEv(t, idP2, [4]string{"line-2", "a", hashC, "met"})})
+	if g := tb.Goals[id1]; len(tb.RefusedAtReplay) != 0 || g.State != StateOpen {
+		t.Fatalf("mixed log: refused %+v, state %s", tb.RefusedAtReplay, g.State)
+	}
+}
+
+// TestReplayRefusesABadSet: a set with no example, a key twice, or a hash the
+// key held is refused whole at replay, and places nothing.
+func TestReplayRefusesABadSet(t *testing.T) {
+	goal := goalAdd(t, id1, "", "w", gap)
+	first := placeSetEv(t, idP1, [4]string{"line-1", "a", hashA, "failed"})
+	for name, ev := range map[string]events.Event{
+		"empty":     placeSetEv(t, idP2),
+		"key twice": placeSetEv(t, idP2, [4]string{"line-1", "b", hashB, "failed"}, [4]string{"line-1", "b", hashC, "failed"}),
+		"held hash": placeSetEv(t, idP2, [4]string{"line-1", "b", hashB, "failed"}, [4]string{"line-1", "a", hashA, "failed"}),
+	} {
+		tb := Replay([]events.Event{goal, first, ev})
+		g := tb.Goals[id1]
+		if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != idP2 || len(g.Placed()) != 1 || g.epoch != 1 {
+			t.Errorf("%s: refused %+v, placed %+v, epoch %d; want the set refused whole", name, tb.RefusedAtReplay, g.Placed(), g.epoch)
+		}
+	}
+}

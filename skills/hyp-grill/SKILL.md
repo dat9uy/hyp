@@ -234,8 +234,14 @@ floors, the split and ceiling questions.
    guard example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
    verdict, exit code, output and stderr. It records nothing and uses no run.
    When the verdict is not the one the line needs, fix the example and try
-   again. Then commit the folder and place it, with the place line
-   `hyp status G --role grill` prints for that line.
+   again. When every line holds its examples, commit the folders and place
+   the whole set with the one place line `hyp status G --role grill` prints,
+   `hyp place G`. hyp runs each new or changed example on H0 and places the
+   set only when every example gives its line's verdict there. Otherwise it
+   places none of the set and names each example that disagrees, each line
+   that holds no example and each folder it cannot place, with the guard that
+   refused it. Fix every cause and place again. A placed example stays in the
+   set: never remove its folder.
 9. **Stop when the Goal has enough.** The Goal has enough when every line
    holds an example that gives its line's verdict on H0 (`hyp status G` shows
    the Goal `open`), and every variant of the model is separated by an example
@@ -267,8 +273,8 @@ The re-grill reviews a Goal against its line, not against the build that met it.
   of outputs `hyp status G` prints. If an example let a build pass that the
   line does not mean, or failed one it does, the fix is an example: a new
   version of an example may only add a floor or a ceiling; a changed `run`,
-  input or Probe is a new example key. A placement that changes an example moves
-  the budget's boundary.
+  input or Probe is a new example key. A place that changes an example moves
+  the budget's boundary; a place that changes no example is refused.
 - **After a select**, the Goal refuses every place. When the review finds a
   gap that an example on an existing line can hold, the owner unselects the
   Goal first. The Goal is then open again, its rows and verdicts stay, and you

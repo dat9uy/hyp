@@ -169,7 +169,7 @@ hyp add goal --base HEAD --words "<one sentence>" \
   --line "guard:<what the build must keep true>"
 ```
 
-The first `hyp add goal` makes the store, `.tree/`, at the top level of the repository. Commit `.tree/` with the work. The grill then places each example with the line that `hyp status <Goal> --role grill` prints.
+The first `hyp add goal` makes the store, `.tree/`, at the top level of the repository. Commit `.tree/` with the work. The grill then places the whole example set with the one place line that `hyp status <Goal> --role grill` prints, `hyp place <Goal>`.
 
 **5. Run the Goal.** Give a runner session [run-rules.md](skills/hyp-grill/run-rules.md) and `HYP_ROLE=runner`. The runner runs only the lines that `hyp status <Goal> --role runner` prints. When hyp stops the Goal for you, `hyp status` shows why, and `hyp help` lists every command.
 

@@ -4,7 +4,7 @@ waits: owner
 owner may:
   hyp land G-XXXXXX
 grill may:
-  hyp place G-XXXXXX line-1/<example>
+  hyp place G-XXXXXX
 probe-writer may:
   (none)
 runner may:

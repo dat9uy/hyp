@@ -60,16 +60,22 @@ var words = map[fault.Code]string{
 	fault.BaseNotHere:   "--base %s is not a commit of this repository",
 
 	// place
-	fault.BadExampleKey:       "%s is not LINE/EXAMPLE, for example line-1/a (an example name matches ^[a-z0-9][a-z0-9-]{0,39}$)",
-	fault.ChangedWhileProbe:   "%s changed from %s to %s while the Probe ran; place it again",
-	fault.H0MovedWhilePlacing: "H0 of %s moved from %s to %s while the Probe ran; place it again",
-	fault.NotAFolder:          "%s is not a folder on disk",
-	fault.FolderOnDisk:        "%s",
-	fault.NotCommitted:        "%s is not committed at HEAD",
-	fault.DiskNotCommitted:    "%s on disk is not the folder committed at HEAD",
-	fault.DiffersAt:           "%s differs from HEAD at %s",
-	fault.ObjectMissing:       "object %s not in this clone",
-	fault.NoExampleTxtar:      "example folder %s has no example.txtar",
+	fault.BadExampleKey:        "%s is not LINE/EXAMPLE, for example line-1/a (an example name matches ^[a-z0-9][a-z0-9-]{0,39}$)",
+	fault.SetUnchanged:         "no example of %s changed since its last place; there is nothing to place",
+	fault.SetChangedWhileProbe: "the example set of %s changed while the Probes ran; place it again",
+	fault.KeyTwiceInSet:        "%s is twice in one place",
+	fault.LineHoldsNoExample:   "%s holds no example: %s has no example folder",
+	fault.PlacedFolderGone:     "%s was placed, and its folder %s is gone; a placed example stays in the set",
+	fault.NotAnExampleName:     "%s is not an example folder: an example name matches ^[a-z0-9][a-z0-9-]{0,39}$",
+	fault.ChangedWhileProbe:    "%s changed from %s to %s while the Probe ran; place it again",
+	fault.H0MovedWhilePlacing:  "H0 of %s moved from %s to %s while the Probe ran; place it again",
+	fault.NotAFolder:           "%s is not a folder on disk",
+	fault.FolderOnDisk:         "%s",
+	fault.NotCommitted:         "%s is not committed at HEAD",
+	fault.DiskNotCommitted:     "%s on disk is not the folder committed at HEAD",
+	fault.DiffersAt:            "%s differs from HEAD at %s",
+	fault.ObjectMissing:        "object %s not in this clone",
+	fault.NoExampleTxtar:       "example folder %s has no example.txtar",
 
 	// run and select
 	fault.NoCommit:        "run needs a COMMIT",
@@ -209,7 +215,7 @@ var words = map[fault.Code]string{
 	codeUnknownCommand: "unknown command %s",
 	codeAddWhat:        "add what? only add goal exists",
 	codeFlags:          "%s: %s",
-	codePlaceArgs:      "place takes a Goal and LINE/EXAMPLE, for example: hyp place G-NXHHVA line-1/a; got %d arguments",
+	codePlaceArgs:      "place takes one Goal and places its whole example set, for example: hyp place G-NXHHVA; got %d arguments",
 	codeRunArgs:        "run takes COMMIT and <Goal>/<line>, for example: hyp run 4df2b9e G-NXHHVA/line-3; got %d arguments",
 	codeSelectArgs:     "select takes a Goal and a subject hash, for example: hyp select G-NXHHVA 4df2b9e...; got %d arguments",
 	codeStatusArgs:     "status takes at most one Goal, got %d",
@@ -231,7 +237,7 @@ var words = map[fault.Code]string{
 
 // shaped are the codes whose values do not fit one format: bodyText prints
 // each with a function of its own, kindText and stableText.
-var shaped = map[fault.Code]bool{fault.WrongVerdictOnH0: true, fault.VerdictsDiffered: true}
+var shaped = map[fault.Code]bool{fault.WrongVerdictOnH0: true, fault.VerdictsDiffered: true, fault.SetNotPlaced: true}
 
 // failText is the text hyp prints for err: "refused: " and the guard for a
 // refusal, then the words of its code with its values. root is the git top
@@ -251,6 +257,10 @@ func bodyText(err error, root string) string {
 	e, ok := fault.As(err)
 	if !ok {
 		return err.Error()
+	}
+	if e.Code == fault.SetNotPlaced {
+		// each cause names its own guard
+		return setText(e.Args, root)
 	}
 	var text string
 	if format, ok := words[e.Code]; e.Code == fault.WrongVerdictOnH0 {
@@ -315,6 +325,30 @@ func kindText(args []any) string {
 	}
 	for _, c := range f.Ceilings {
 		writeBlock(&b, "ceiling", []byte(c), int64(len(c)))
+	}
+	return strings.TrimSuffix(b.String(), "\n")
+}
+
+// setText is the refusal of a place that places none of the set: the count
+// of causes, then each cause under its example key, or its line key for a
+// line that holds no example, with its guard and words.
+func setText(args []any, root string) string {
+	if len(args) != 1 {
+		return "(" + string(fault.SetNotPlaced) + ")"
+	}
+	f, ok := args[0].(acts.SetFacts)
+	if !ok || len(f.Causes) == 0 {
+		return "(" + string(fault.SetNotPlaced) + ")"
+	}
+	causes := f.Causes
+	var b strings.Builder
+	plural := "s"
+	if len(causes) == 1 {
+		plural = ""
+	}
+	fmt.Fprintf(&b, "none of the example set of %v is placed; %d cause%s:\n", f.Goal, len(causes), plural)
+	for _, c := range causes {
+		fmt.Fprintf(&b, "%s: %s\n", c.Key, bodyText(c.Err, root))
 	}
 	return strings.TrimSuffix(b.String(), "\n")
 }

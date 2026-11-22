@@ -30,9 +30,21 @@ func addGoalText(rep acts.Report) string {
 	return b.String()
 }
 
+// placeText is the report of a place: each example the place changed, with
+// its version, hash and verdict on H0, then the Goal's state.
 func placeText(rep acts.PlaceReport) string {
-	return fmt.Sprintf("placed %s %s @%d\nhash: %s\nH0: %s (exit %d)\n%s is %s\n",
-		rep.Goal, rep.Key, rep.Version, rep.Hash, rep.Verdict, rep.Exit, rep.Goal, rep.State)
+	var b strings.Builder
+	n := len(rep.Placed)
+	plural := "s"
+	if n == 1 {
+		plural = ""
+	}
+	fmt.Fprintf(&b, "placed %s: %d example%s\n", rep.Goal, n, plural)
+	for _, p := range rep.Placed {
+		fmt.Fprintf(&b, "%s @%d  hash: %s  H0: %s (exit %d)\n", p.Key, p.Version, p.Hash, p.Verdict, p.Exit)
+	}
+	fmt.Fprintf(&b, "%s is %s\n", rep.Goal, rep.State)
+	return b.String()
 }
 
 // runText is the report of a run: the commit and row, and for each example
@@ -109,7 +121,7 @@ func readyText(r acts.Ready) string {
 	case acts.ActAddGoal:
 		return "hyp add goal " + r.Goal + " --base <commit> --words <words> --line <kind>:<text>"
 	case acts.ActPlace:
-		return "hyp place " + r.Goal + " " + r.Line + "/<example>"
+		return "hyp place " + r.Goal
 	case acts.ActRun:
 		return "hyp run " + or(shortCommit(r.Commit), "<commit>") + " " + r.Goal + "/" + r.Line
 	case acts.ActSelect:
