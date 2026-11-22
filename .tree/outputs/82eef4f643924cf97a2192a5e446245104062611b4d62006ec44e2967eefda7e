@@ -1,0 +1,4 @@
+select exit 0
+runner lines: 2
+"output"
+"verdict"
