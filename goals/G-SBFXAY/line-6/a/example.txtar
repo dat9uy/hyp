@@ -1,0 +1,40 @@
+-- words --
+Reading: a log written the old way, with one landed Goal whose examples were placed one at a time, prints the same `hyp status G` after this change as on H0.
+-- input/tree/.gitattributes --
+events/*.jsonl merge=union
+
+-- input/tree/events/owner.jsonl --
+{"v":2,"id":"01M81NV2ECX6WTZM6KDT1SWG76","ts":"2026-11-22T13:06:31.50048Z","actor":"owner","type":"goal.add","node":"01M81NV2ECX6WTZM6KDT1SWG76","payload":{"role":"owner","words":"greet.txt says bye","base":"18bf70ee0e575054f95174c682baae4db9c75770","base_tree":"56ef077a153a22a552fb32288831d723bbc3e26c","budget":3,"from":"","lines":[{"key":"line-1","text":"greet.txt says bye","kind":"gap"},{"key":"line-2","text":"greet.txt still holds hello","kind":"guard"}]},"why":""}
+{"v":2,"id":"01M81NV5DM98SG8X0GKQJWEF11","ts":"2026-11-22T13:06:34.548212Z","actor":"owner","type":"land","node":"01M81NV2ECX6WTZM6KDT1SWG76","payload":{"role":"owner","stop":"selected","cause":"01M81NV52N64BG3KM310EZQW6R"},"why":""}
+
+-- input/tree/events/grill.jsonl --
+{"v":2,"id":"01M81NV2T2KCSZHEBDEBP8TYMN","ts":"2026-11-22T13:06:31.874594Z","actor":"grill","type":"example.place","node":"01M81NV2ECX6WTZM6KDT1SWG76","payload":{"role":"grill","line":"line-1","example":"a","hash":"198c41be2b3954687c986cf97ac790fabb60428a","h0":{"commit":"18bf70ee0e575054f95174c682baae4db9c75770","row_tree":"56ef077a153a22a552fb32288831d723bbc3e26c","probe":"3a7334686c13a115e2636e07896004970fafea34","output":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","stderr":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","exit":0,"verdict":"failed"}},"why":""}
+{"v":2,"id":"01M81NV31ZJQZG5WYNC5SDRZ0Q","ts":"2026-11-22T13:06:32.12789Z","actor":"grill","type":"example.place","node":"01M81NV2ECX6WTZM6KDT1SWG76","payload":{"role":"grill","line":"line-2","example":"a","hash":"8d9d0e2b5ae3415a0bd1f73fda2a8363ff98ba78","h0":{"commit":"18bf70ee0e575054f95174c682baae4db9c75770","row_tree":"56ef077a153a22a552fb32288831d723bbc3e26c","probe":"3a7334686c13a115e2636e07896004970fafea34","output":"2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824","stderr":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","exit":0,"verdict":"met"}},"why":""}
+
+-- input/tree/events/runner-t.jsonl --
+{"v":2,"id":"01M81NV3KD85T1CP8K748DMP3M","ts":"2026-11-22T13:06:32.685585Z","actor":"runner-t","type":"result.record","node":"01M81NV2ECX6WTZM6KDT1SWG76","payload":{"role":"runner","line":"line-1","commit":"70f8b4d539e69a856bead3159e1766a003840e7b","row_tree":"1aed784c7bf9b2ad57a931403c69814edf2b4e5b","refused":"","cells":[{"example":"a","hash":"198c41be2b3954687c986cf97ac790fabb60428a","probe":"3a7334686c13a115e2636e07896004970fafea34","output":"6375944653487eb7b2eba183d62496d107873842a47ca2b2992d57c6ace43e5b","stderr":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","exit":0,"verdict":"met"}]},"why":""}
+{"v":2,"id":"01M81NV43GMY9MR091PSE9NAYG","ts":"2026-11-22T13:06:33.200296Z","actor":"runner-t","type":"result.record","node":"01M81NV2ECX6WTZM6KDT1SWG76","payload":{"role":"runner","line":"line-2","commit":"70f8b4d539e69a856bead3159e1766a003840e7b","row_tree":"1aed784c7bf9b2ad57a931403c69814edf2b4e5b","refused":"","cells":[{"example":"a","hash":"8d9d0e2b5ae3415a0bd1f73fda2a8363ff98ba78","probe":"3a7334686c13a115e2636e07896004970fafea34","output":"6375944653487eb7b2eba183d62496d107873842a47ca2b2992d57c6ace43e5b","stderr":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","exit":0,"verdict":"met"}]},"why":""}
+{"v":2,"id":"01M81NV52N64BG3KM310EZQW6R","ts":"2026-11-22T13:06:34.197024Z","actor":"runner-t","type":"select","node":"01M81NV2ECX6WTZM6KDT1SWG76","payload":{"role":"runner","commit":"70f8b4d539e69a856bead3159e1766a003840e7b","row_tree":"1aed784c7bf9b2ad57a931403c69814edf2b4e5b"},"why":""}
+
+-- input/tree/outputs/2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824 --
+hello
+-- input/tree/outputs/6375944653487eb7b2eba183d62496d107873842a47ca2b2992d57c6ace43e5b --
+bye
+hello
+-- input/tree/outputs/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855 --
+
+-- run --
+hyp status "$G" | sed '/^$/,$d'
+-- floor: equals --
+G-1SWG76  landed  runs: 1 of 3 used
+stop: selected, by select 01M81NV52N64BG3KM310EZQW6R at 2026-11-22T13:06:34.197024Z
+landed: by owner, land 01M81NV5DM98SG8X0GKQJWEF11 at 2026-11-22T13:06:34.548212Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
