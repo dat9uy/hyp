@@ -74,6 +74,8 @@ grill() { echo "setup: hyp $*" >&2; HYP_ACTOR=grill HYP_ROLE=grill hyp "$@" >&2;
 fixture line-1 a bye
 commit fixtures
 # --- end of setup ---
+EXHASH=$(git rev-parse "HEAD:goals/$G/line-1/a") || fail "example hash"
+export EXHASH
 
 export G HYP_ACTOR=grill HYP_ROLE=grill
 out="$work/out"
