@@ -1,0 +1,10 @@
+-- words --
+Reading: in a fresh clone of an open Goal, H0's cell is missing, so `hyp status G` says it is not in this clone's trace and prints the try line.
+-- run --
+hyp status "$G"
+-- floor: contains --
+line-1/a
+-- floor: contains --
+not in this clone's trace
+-- floor: contains --
+hyp try G line-1/a

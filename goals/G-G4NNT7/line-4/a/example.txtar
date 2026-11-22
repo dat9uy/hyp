@@ -1,0 +1,10 @@
+-- words --
+Reading: in a fresh clone of a selected Goal, a try of the missing cell saves it, and `hyp status G` then prints it marked as run again in this clone.
+-- run --
+hyp try "$G" line-1/a --worktree >/dev/null 2>&1; echo "try exit $?"; hyp status "$G"
+-- floor: contains --
+try exit 0
+-- floor: contains --
+run again in this clone
+-- ceiling --
+not in this clone's trace

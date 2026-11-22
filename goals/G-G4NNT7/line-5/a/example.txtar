@@ -1,0 +1,8 @@
+-- words --
+Reading: `hyp status`, the list of every Goal, warns under a selected Goal whose selected commit's branch was deleted.
+-- run --
+hyp status
+-- floor: contains --
+G  selected
+-- floor: contains --
+on no branch or tag
