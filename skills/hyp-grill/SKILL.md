@@ -68,12 +68,20 @@ The issue is the owner's record, not a rule for the runner:
 
 ## How to grill
 
-1. **Read the event and the store.** Read the issue or event that points at the
-   change, `hyp help`, and `hyp status`. Restate the problem in the owner's
-   terms, with no mechanism in it. When the Goal you draft will cite a landed
-   Goal with `--from`, read `hyp status` of that Goal: it prints what that
-   Goal decided, its words, lines, examples and their verdicts. Read it there,
-   not from the store's files.
+1. **Read the event, the store and what the issue touches, then confirm the
+   problem once.** Read the issue or event that points at the change,
+   `hyp help`, `hyp status`, and the spec sections and code the issue touches.
+   When the Goal you draft will cite a landed Goal with `--from`, read
+   `hyp status` of that Goal: it prints what that Goal decided, its words,
+   lines, examples and their verdicts. Read it there, not from the store's
+   files. Then, before you draft words or lines:
+   - Name each case the issue leaves open and ask it as a product question.
+     Ask only the open cases, not every case you can think of.
+   - Show the problem restated in the owner's terms with no mechanism in it,
+     what is out of scope (name the sibling issues that own it), and a preview
+     of what the owner would do and see when the change is done, marked
+     "not built".
+   - Ask once whether this matches. Draft nothing the owner has not confirmed.
 2. **Ask product questions only.** Ask what the owner wants to be true, never
    how to build it: the file layout, the command shape and the names inside the
    build are the runner's to choose, and the owner vetoes them at merge.
@@ -126,20 +134,21 @@ The issue is the owner's record, not a rule for the runner:
     The statechart tool, not you, says which rules each variant breaks and
     which examples each variant would meet:
     - Draft the model after the owner consents to the words and lines and
-      before the examples are final, so that what the tool predicts can still
-      change the examples.
+      before the examples are final, so that the variants the tool reports can
+      still give the examples their direction.
     - The hyp-statechart skill owns how to run the tool, how to try each
       variant as a patch with `hyp try G LINE/EXAMPLE --worktree`, and what
       its part of the hand-off holds. Follow it there; this step adds only
       what you ask the owner.
-    - For each tried variant that meets every example and prints something
-      else on a step no example takes, ask the owner one question in plain
-      English, at the example level and with no model word: show the case, what
-      each build prints for it, and ask which output is wanted.
+    - Before the examples exist, each variant that no example separates is a
+      reading of a line ("How to grill the examples", step 1).
+    - After the examples are placed, for each tried variant that meets every
+      example and prints something else on a step no example takes, ask the
+      owner one question in plain English, at the example level and with no
+      model word: show the case, what each build prints for it, and ask which
+      output is wanted.
     - When the owner answers "either output is fine", list the case under
       "Not covered". Otherwise place an example that separates the two builds.
-    - A prediction alone, never tried, never reaches the owner: only a tried
-      variant does.
     - Stop trying a variant at its first failed example. A variant that fails
       one example meets not every example, so its other tries teach nothing.
 
@@ -148,51 +157,71 @@ The issue is the owner's record, not a rule for the runner:
 
 ## How to grill the examples
 
-Use this when the Goal is recorded and its lines need examples. The owner's
-answers are the examples: you write them down, you do not design them. The
-grill takes two rounds of questions, in this order: first the open question
-about every line, then, after you write the floors, the split and ceiling
-questions.
+Use this when the Goal is recorded and its lines need examples. You propose
+the examples; the owner chooses their direction: which reading of each line an
+example checks. A reading is one part or one meaning of a line's words. Ask in
+two rounds: first the readings of every line, then, after you write the
+floors, the split and ceiling questions.
 
-1. **Ask the open question about each line.** Ask, for each line, exactly
-   "What would you do, and what would you see?" Name the line, by its key and
-   words, with its question. Offer no draft and no options, and ask nothing yet
-   about ceilings or splits.
-2. **The answer is the example.** What the owner does is the `run`, in the
-   owner's words (for example `sh greet.sh`). What the owner sees, the want,
-   is the floor, as a literal. Write the example from the answer. Do not read
-   it back to the owner and do not ask the owner to accept it.
-3. **Two things to see is two rules.** When one line's answer names two
-   separate things to see (for example a list and a count), warn that the line
-   combines two rules, and propose to split it into two lines. Ask the owner
-   whether to split; the owner decides. Raise a split only after the owner's
-   answer names two things, never in advance. A split changes the lines, so the
-   owner records it while the Goal is `written`. When the owner keeps one
-   line, its example holds a floor for each thing.
+1. **Show the readings of each line, and let the owner choose.** Start the
+   part of the message for each Goal line with one line that gives its key and
+   words, and put its readings under it. Each reading shows a case, what the
+   owner would do, and the output it expects, so that the owner chooses between
+   outputs, not between descriptions:
+   - **Where a model exists**, each variant that no example separates is one
+     reading of the line its rules come from. Show the case as two outputs,
+     the model's print and the variant's print, each marked "model print, not
+     built", and ask which output is wanted.
+   - **A line no variant reaches** gets its readings from its words: name the
+     parts or meanings the line can check, show beside each the output you
+     expect, marked "not built", and ask which readings the line means. A
+     reading in words alone is not enough to write a floor from.
+
+   A model print is a direction, never a verdict: the example written from the
+   choice is still tried on H0 before it is placed (step 8), and a model result
+   never counts at select. Use plain English and no model word other than the
+   "model print, not built" mark.
+2. **Write one example per chosen reading.** Its `words` section is the
+   reading in the exact words the owner picked, so the select report says what
+   each example checks. Its `run` is the command the owner would type (for
+   example `sh greet.sh`). Write floors and ceilings from the part where the
+   two outputs differ, as short literals: a model print is a guess at the real
+   text, so a long literal copied from it fails on bytes the owner never chose.
+   When the owner answers "either output is fine", write no example for that
+   reading and list it under "Not covered". The choice is the decision: do not
+   ask the owner to approve the file again.
+3. **Two things to see is two rules.** When the readings the owner chose for
+   one line are separate things to see (for example a list and a count), warn
+   that the line combines two rules, and propose to split it into two lines.
+   Ask the owner whether to split; the owner decides. Raise a split only after
+   the owner's choice names two things, never in advance. A split changes the
+   lines, so the owner records it while the Goal is `written`. When the owner
+   keeps one line, it holds one example per reading.
 4. **Ask the ceiling question about each line.** After you write a line's
-   floor, read aloud the line's "must never" words, quoted exactly as the line
+   floors, read aloud the line's "must never" words, quoted exactly as the line
    has them (for example: line-1 says "never prints hello"), and ask: "What
    could a wrong build print that this floor still lets through?" Ask it word
    for word, for every line, also a line with no "never" words. Each wrong
    output the owner names becomes a `ceiling` section of that line's example.
-   When the owner names none, the example has no ceiling. Ask the split and
-   ceiling questions after the owner answered the open questions.
+   When the owner names none, the example has no ceiling.
 5. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
-   `example.txtar` and a `probe/` folder. The `example.txtar` sections are
-   `words` (the owner's sentence), `run` (the command run on the subject),
+   `example.txtar` and a `probe/` folder. A new reading is a new example key,
+   never a new version of an existing one. The `example.txtar` sections are
+   `words` (the reading the owner chose), `run` (the command run on the subject),
    `input/<path>` files, and at least one `floor: contains` or `floor: equals`,
    with any `ceiling`. Floors and ceilings are literals, byte for byte.
 6. **Give the generic Probe to each example it can run.** The generic Probe,
    [probe/run](probe/run), runs `$HYP_RUN` in a copy of the subject, prints its
-   stdout, then a last line `exit N`. It can run an example when the owner's
+   stdout, then a last line `exit N`. It can run an example when the example's
    command, run in a plain copy of the subject, shows what the owner sees.
    Copy it with `cp` into the example's `probe/run`, byte for byte, and keep it
    executable.
-7. **Hand every other example to a Probe writer.** When the owner's answer
-   names a state to set up before the command (for example "in a git
-   repository with three commits"), the generic Probe cannot run it. Then:
-   - Write and commit the `example.txtar`. Its `run` stays the owner's command,
-     word for word; the setup goes in the Probe, never in the `run`.
+7. **Hand every other example to a Probe writer.** When the reading needs a
+   state set up before the command (for example "in a git repository with
+   three commits"), the generic Probe cannot run it. Then:
+   - Write and commit the `example.txtar`. Its `run` stays the command the
+     owner would type, word for word; the setup goes in the Probe, never in
+     the `run`.
    - Write no Probe code for it yourself. Start a Probe writer: an agent
      whose prompt is the probe-writer block that
      `hyp status G --role probe-writer` prints, copied word for word, followed
@@ -207,8 +236,10 @@ questions.
    When the verdict is not the one the line needs, fix the example and try
    again. Then commit the folder and place it, with the place line
    `hyp status G --role grill` prints for that line.
-9. **Stop when the Goal has enough.** Once every line has an example that
-   gives its line's verdict on H0, `hyp status G` shows the Goal `open`. Then
+9. **Stop when the Goal has enough.** The Goal has enough when every line
+   holds an example that gives its line's verdict on H0 (`hyp status G` shows
+   the Goal `open`), and every variant of the model is separated by an example
+   or the owner said either output is fine (listed under "Not covered"). Then
    stop asking: say "This is enough.", and give the hand-off.
    Ask no further question and offer no more examples; more examples come only
    from real outputs.
@@ -272,6 +303,8 @@ until the owner unselects.
 
 - `hyp status G` shows the Goal `open`, and every placed example gives its
   line's verdict on H0.
+- Every variant of the model is separated by an example, or the owner said
+  either output is fine and it is listed under "Not covered".
 - Each decision of the owner is the words, a line or an example, or is listed
   under "Not covered".
 - The issue you grill holds each decision of the owner in the owner's words,
