@@ -23,9 +23,9 @@
 (*   SpecsInSet        counts a model edit as a change of the set          *)
 (*   PerLineOffer      keeps one place line per line in the grill's block  *)
 (* Left out: line-6 (old Goals keep their status) is about the stored log, *)
-(* not a step. Committed and Adds only are checked as before, and no cheap *)
-(* build of a set place drops them: line-3's examples check them, and this *)
-(* model holds them out of Causes to keep the chart small.                 *)
+(* not a step. The causes "not committed" and "not adds only" are the      *)
+(* constant ExtraCauses: place_set.cfg checks every rule with them, and    *)
+(* chart.cfg leaves them out only to draw the whole chart.                 *)
 (***************************************************************************)
 EXTENDS Naturals, FiniteSets
 
@@ -36,9 +36,10 @@ CONSTANTS
     DropMissing,
     RePlaceUnchanged,
     SpecsInSet,
-    PerLineOffer
+    PerLineOffer,
+    ExtraCauses   \* {"not committed", "not adds only"} in place_set.cfg
 
-Causes == {"disagrees", "empty line", "missing"}
+Causes == {"disagrees", "empty line", "missing"} \cup ExtraCauses
 
 VARIABLES
     open,        \* the Goal is open: a whole set is placed with every line full
