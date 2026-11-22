@@ -161,7 +161,9 @@ Use this when the Goal is recorded and its lines need examples. You propose
 the examples; the owner chooses their direction: which reading of each line an
 example checks. A reading is one part or one meaning of a line's words. Ask in
 two rounds: first the readings of every line, then, after you write the
-floors, the split and ceiling questions.
+floors, the split question. Ask no question about ceilings: a ceiling is text
+a build really printed, from H0 here (step 7) or from candidates at the
+re-grill.
 
 While a question is open, each message that ends your turn repeats it in
 full: the owner may read only the last message, not the status before it.
@@ -181,15 +183,19 @@ full: the owner may read only the last message, not the status before it.
      reading in words alone is not enough to write a floor from.
 
    A model print is a direction, never a verdict: the example written from the
-   choice is still tried on H0 before it is placed (step 8), and a model result
+   choice is still tried on H0 before it is placed (step 7), and a model result
    never counts at select. Use plain English and no model word other than the
    "model print, not built" mark.
 2. **Write one example per chosen reading.** Its `words` section is the
    reading in the exact words the owner picked, so the select report says what
    each example checks. Its `run` is the command the owner would type (for
-   example `sh greet.sh`). Write floors and ceilings from the part where the
-   two outputs differ, as short literals: a model print is a guess at the real
-   text, so a long literal copied from it fails on bytes the owner never chose.
+   example `sh greet.sh`). Write floors from the part where the wanted output
+   differs from the other, as short literals: a model print is a guess at the
+   real text, so a long literal copied from it fails on bytes the owner never
+   chose. Never copy the rejected output into a ceiling: a wrong build prints
+   the same fault in other words. A rejected case the owner wants checked is
+   its own example (for example "on a branch, no warning"), whose ceiling
+   reuses a literal the owner wants elsewhere, such as a sibling's floor.
    When the owner answers "either output is fine", write no example for that
    reading and list it under "Not covered". The choice is the decision: do not
    ask the owner to approve the file again.
@@ -200,26 +206,19 @@ full: the owner may read only the last message, not the status before it.
    the owner's choice names two things, never in advance. A split changes the
    lines, so the owner records it while the Goal is `written`. When the owner
    keeps one line, it holds one example per reading.
-4. **Ask the ceiling question about each line.** After you write a line's
-   floors, read aloud the line's "must never" words, quoted exactly as the line
-   has them (for example: line-1 says "never prints hello"), and ask: "What
-   could a wrong build print that this floor still lets through?" Ask it word
-   for word, for every line, also a line with no "never" words. Each wrong
-   output the owner names becomes a `ceiling` section of that line's example.
-   When the owner names none, the example has no ceiling.
-5. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
+4. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
    `example.txtar` and a `probe/` folder. A new reading is a new example key,
    never a new version of an existing one. The `example.txtar` sections are
    `words` (the reading the owner chose), `run` (the command run on the subject),
    `input/<path>` files, and at least one `floor: contains` or `floor: equals`,
    with any `ceiling`. Floors and ceilings are literals, byte for byte.
-6. **Give the generic Probe to each example it can run.** The generic Probe,
+5. **Give the generic Probe to each example it can run.** The generic Probe,
    [probe/run](probe/run), runs `$HYP_RUN` in a copy of the subject, prints its
    stdout, then a last line `exit N`. It can run an example when the example's
    command, run in a plain copy of the subject, shows what the owner sees.
    Copy it with `cp` into the example's `probe/run`, byte for byte, and keep it
    executable.
-7. **Hand every other example to a Probe writer.** When the reading needs a
+6. **Hand every other example to a Probe writer.** When the reading needs a
    state set up before the command (for example "in a git repository with
    three commits"), the generic Probe cannot run it. Then:
    - Write and commit the `example.txtar`. Its `run` stays the command the
@@ -233,11 +232,14 @@ full: the owner may read only the last message, not the status before it.
    - The Probe writer commits the example's `probe/` folder and returns the
      output of `hyp try`. Start no Probe writer for an example the generic
      Probe can run.
-8. **Run `hyp try` before you place.** A gap example must fail on H0 and a
+7. **Run `hyp try` before you place.** A gap example must fail on H0 and a
    guard example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
    verdict, exit code, output and stderr. It records nothing and uses no run.
    When the verdict is not the one the line needs, fix the example and try
-   again. When every line holds its examples, commit the folders and place
+   again. A gap example's H0 output shows the behaviour the line wants gone:
+   text of it that a half-fixed build could still print becomes a ceiling,
+   copied byte for byte. Name each such ceiling in the hand-off with its H0
+   text; the owner may drop it. When every line holds its examples, commit the folders and place
    the whole set with the one place line `hyp status G --role grill` prints,
    `hyp place G`. hyp runs each new or changed example on H0 and places the
    set only when every example gives its line's verdict there. Otherwise it
@@ -245,45 +247,55 @@ full: the owner may read only the last message, not the status before it.
    that holds no example and each folder it cannot place, with the guard that
    refused it. Fix every cause and place again. A placed example stays in the
    set: never remove its folder.
-9. **Stop when the Goal has enough.** The Goal has enough when every line
+8. **Stop when the Goal has enough.** The Goal has enough when every line
    holds an example that gives its line's verdict on H0 (`hyp status G` shows
    the Goal `open`), and every variant of the model is separated by an example
    or the owner said either output is fine (listed under "Not covered"). Then
    stop asking: say "This is enough.", and give the hand-off.
    Ask no further question and offer no more examples; more examples come only
    from real outputs.
-10. **Report the surfaces no example covers.** List every surface each line
-    reaches: each file, output or command where the line's words can be true
-    or false. Each surface that no example covers goes under "Not covered" in
-    the hand-off. Listing a surface is not a question to the owner.
+9. **Report the surfaces no example covers.** List every surface each line
+   reaches: each file, output or command where the line's words can be true
+   or false. Each surface that no example covers goes under "Not covered" in
+   the hand-off. Listing a surface is not a question to the owner.
 
 ## How to re-grill
 
-The re-grill reviews a Goal against its line, not against the build that met it.
+The re-grill reviews a Goal against its lines, from what builds really
+printed, at each stop for the owner: `Selected`, `Two candidates` and
+`Budget used`. Read the table of outputs `hyp status G` prints and each
+output under `.tree/outputs/`; a met output matters as much as a failed one.
 
-- **When the owner reports something odd**, run `hyp status G` to see the
-  Goal's lines, then ask the owner, as a question, to state the odd thing in
-  one of two forms, quoted in your question: "On input X, I must see Y." or "On input X,
-  I must never see Y." You may read the candidate's outputs to find what
-  looks off, but ask for the statement before you propose a fix.
+- **Discover ceilings.** In each met output, look for text the line's words
+  forbid that its floors let through. Show the owner the example, its floors
+  and that output, and ask whether the text must never appear. A kept one
+  becomes a ceiling, copied byte for byte from the output, as a new version
+  of that example.
+- **Review floors.** When a build met an example but its output is not what
+  the line means, the floor is too loose: add a floor or a ceiling, as a new
+  version. When a surface the line reaches has no example, add a new example
+  key. When a build the owner accepts fails only on a floor, the floor is too
+  strict. A version cannot loosen it, a placed folder is never removed, and a
+  line is met only when every example is met, so the Goal ends: the owner
+  lands it, and a new Goal with `--from G` holds the corrected example.
+
+Every kept finding is a place, and a place restarts the budget: tell the
+owner this cost before they keep it. At the `Selected` stop the owner first
+unselects; the rows and verdicts stay. A changed `run`, input or Probe is a
+new example key, and a place that changes no example is refused.
+
+- **When the owner reports something odd**, ask the owner, as a question, to
+  state it in one of two forms, quoted in your question: "On input X, I must
+  see Y." or "On input X, I must never see Y." You may read the candidate's
+  outputs to find what looks off, but ask for the statement before you
+  propose a fix.
 - **Then compare Y with the lines' words.** When a line's words already ask
   for Y or forbid it, propose an adjust: a new version of that line's example
   that adds Y as a floor (must see) or as a ceiling (must never see). When Y
-  needs words that no line has, propose a new Goal. Use the words "an adjust"
-  or "a new Goal" in the proposal. The owner decides. An adjust of a selected
-  Goal waits for the owner's unselect (see "After a select").
-- **At a stop for the owner** (`Two candidates`, `Budget used`), read the table
-  of outputs `hyp status G` prints. If an example let a build pass that the
-  line does not mean, or failed one it does, the fix is an example: a new
-  version of an example may only add a floor or a ceiling; a changed `run`,
-  input or Probe is a new example key. A place that changes an example moves
-  the budget's boundary; a place that changes no example is refused.
-- **After a select**, the Goal refuses every place. When the review finds a
-  gap that an example on an existing line can hold, the owner unselects the
-  Goal first. The Goal is then open again, its rows and verdicts stay, and you
-  place the new example as at any other stop. A gap that needs a new line is a
-  new Goal: the owner lands this Goal, and the new Goal cites it. A new line
-  is always a new Goal, never an edit of an open one.
+  needs words that no line has, propose a new Goal: the owner lands this
+  Goal, and the new Goal cites it. A new line is always a new Goal, never an
+  edit of an open one. Use the words "an adjust" or "a new Goal" in the
+  proposal. The owner decides.
 - Use `hyp show <actor>` to read exactly what hyp printed to the runner.
 
 ## Hand-off

@@ -162,7 +162,7 @@ owner may:
 
 A cell shows only the first line. The last row prints `total: 2`, but its 14 bytes hold a second line, and the `floor: equals` fails on it. Open `.tree/outputs/<hash>` to read every byte. Then choose:
 
-- **The example is wrong.** Have the grill re-grill it. A new version of an example only adds a floor or a ceiling. A changed run, input or Probe is a new example key. Each such placement moves the boundary, so the runner gets three new Hypotheses.
+- **The example is wrong.** Have the grill re-grill it. A new version of an example only adds a floor or a ceiling. A changed run, input or Probe is a new example key. Each such placement moves the boundary, so the runner gets three new Hypotheses. A floor that fails a build you accept is too strict. A new version cannot loosen it, and the example stays in the set, so its line can never be met: land the Goal, as below.
 - **The Goal is wrong.** Land it, and add a new Goal with `--from G`.
 
 The spec also gives you a reset of the budget, but hyp does not have it yet.
