@@ -1,0 +1,6 @@
+-- words --
+An old place's output: `hyp status G` prints none of the bytes of an H0 output that exists only under `.tree/outputs/`.
+-- run --
+hyp status G
+-- floor: contains --
+bytes from .tree/outputs/ printed: no

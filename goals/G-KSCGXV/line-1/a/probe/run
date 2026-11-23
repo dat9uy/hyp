@@ -1,0 +1,141 @@
+#!/bin/sh
+# Probe of G-KSCGXV line-1/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store (clone A) with a test
+# Goal (one gap line, one fixture example with the generic Probe, placed),
+# runs one Hypothesis that meets it, selects it, lands the Goal as owner and
+# commits the events. It makes a fresh clone B with `git clone` (its trace is
+# empty) and runs the example's run section in clone A and in clone B with G
+# replaced by the test Goal. It prints clone B's stdout with the Goal id
+# replaced by "G", four summary lines, and a last line "exit N", the exit code
+# of the run section in clone B. Setup output goes to stderr. A build or
+# store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# commit_staged MESSAGE: stage everything, commit only when something is
+# staged.
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+commit_staged goal || fail "commit goal"
+
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+{
+  echo '-- words --'
+  echo "Fixture line-1/a."
+  echo '-- run --'
+  echo "cat greet.txt"
+  echo '-- floor: contains --'
+  echo "bye"
+} >"$d/example.txtar"
+cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+chmod +x "$d/probe/run"
+mkdir -p "goals/$G/specs" && echo spec >"goals/$G/specs/spec.txt" || fail "spec"
+git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
+echo "setup: hyp place $G" >&2
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+commit_staged placed || fail "commit placed"
+
+# One Hypothesis h1 whose greet.txt says bye, run on line-1 by the runner.
+git checkout -q -b h1 main >&2 || fail "checkout h1"
+echo bye >greet.txt
+git add -A && git commit -q -m h1 >&2 || fail "commit h1"
+c=$(git rev-parse HEAD)
+git checkout -q main >&2 || fail "checkout main"
+echo "setup: hyp run h1" >&2
+ran=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1") || fail "hyp run h1 failed: $ran"
+printf '%s\n' "$ran" >&2
+row=$(printf '%s\n' "$ran" | sed -n 's/^row: //p' | head -n 1)
+[ -n "$row" ] || fail "no row in: $ran"
+commit_staged "events of h1" || fail "commit events of h1"
+
+echo "setup: hyp select" >&2
+HYP_ACTOR=runner HYP_ROLE=runner hyp select "$G" "$row" --why 'h1 meets line-1' >&2 ||
+  fail "hyp select failed"
+commit_staged "select" || fail "commit select"
+echo "setup: hyp land" >&2
+HYP_ACTOR=owner HYP_ROLE=owner hyp land "$G" --why 'done' >&2 || fail "hyp land failed"
+commit_staged "land" || fail "commit land"
+
+git clone -q "$repo" "$work/cloneB" >&2 || fail "git clone"
+
+export HYP_ACTOR=reader HYP_ROLE=reader
+run=$(printf '%s' "$HYP_RUN" | sed -e "s#\([ ]\)G\([/ ]\)#\1$G\2#g" -e "s# G\$# $G#")
+outA="$work/outA"
+outB="$work/outB"
+(cd "$repo" && sh -c "$run") >"$outA" 2>/dev/null
+(cd "$work/cloneB" && sh -c "$run") >"$outB" 2>/dev/null
+code=$?
+
+sel=$(sed -n 's/.*select event \([^ ]*\).*/\1/p' "$outA" | head -n 1)
+normA="$work/normA"
+normB="$work/normB"
+sed -e "s/$G/G/g" -e "s#$work/[^ ]*#PATH#g" "$outA" >"$normA"
+sed -e "s/$G/G/g" -e "s#$work/[^ ]*#PATH#g" "$outB" >"$normB"
+
+cat "$normB"
+if [ -n "$(tail -c 1 "$outB")" ]; then echo; fi
+
+if cmp -s "$normA" "$normB"; then same=yes; else same=no; fi
+
+# Select event id: the id after "by select" in clone A's stop line. The block
+# of an example runs from its "### " heading to the next "## " heading or the
+# line "selected commit:".
+selid=$(sed -n 's/^stop: selected, by select \([A-Z0-9]*\) .*/\1/p' "$outA" | head -n 1)
+names=yes
+for o in "$outA" "$outB"; do
+  blocks=$(awk '/^### /{on=1} /^selected commit:/{on=0} on' "$o")
+  if [ -z "$selid" ] || [ -z "$blocks" ]; then names=no; continue; fi
+  printf '%s\n' "$blocks" | grep -q "$selid" || names=no
+done
+
+if grep -qE '^  hyp try |hyp try G' "$outA" "$outB" ||
+  grep -q "hyp try $G" "$outA" "$outB"; then try=yes; else try=no; fi
+if grep -q '^output,' "$outA" "$outB"; then blk=yes; else blk=no; fi
+
+echo "same status in clone A and clone B: $same"
+echo "each example names the select: $names"
+echo "hyp try line: $try"
+echo "output block: $blk"
+echo "exit $code"
+exit 0

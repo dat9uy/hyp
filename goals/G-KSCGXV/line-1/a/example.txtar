@@ -1,0 +1,14 @@
+-- words --
+Every clone prints an ended Goal's examples the same, as met by its select.
+-- run --
+hyp status G
+-- floor: contains --
+same status in clone A and clone B: yes
+-- floor: contains --
+each example names the select: yes
+-- floor: contains --
+hyp try line: no
+-- floor: contains --
+output block: no
+-- ceiling --
+not in this clone's trace

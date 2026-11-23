@@ -1,0 +1,8 @@
+-- words --
+No clone prints a runs count for an ended Goal.
+-- run --
+hyp status G
+-- floor: contains --
+runs count in clone A: no
+-- floor: contains --
+runs count in clone B: no

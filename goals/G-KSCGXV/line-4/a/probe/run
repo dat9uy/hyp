@@ -1,0 +1,132 @@
+#!/bin/sh
+# Probe of G-KSCGXV line-4/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store (clone A) with a test
+# Goal (one gap line, one fixture example with the generic Probe, placed),
+# then rewrites the place event so that H0's cell names an output, as an
+# earlier hyp wrote it, and stores that output (with a marker) only under
+# .tree/outputs/. It runs two Hypotheses, so the Goal stops with its table of
+# outputs, and runs the example's run section in that clone with G replaced
+# by the test Goal.
+# It prints the run's stdout with the test Goal's id replaced by "G", then
+# "bytes from .tree/outputs/ printed: yes|no" and a last line "exit N", the
+# exit code of the run section. Setup output goes to stderr. A build or
+# store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+marker=MARKER-OLD-OUTPUT-7Q
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+commit_staged goal || fail "commit goal"
+
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+{
+  echo '-- words --'
+  echo "Fixture line-1/a."
+  echo '-- run --'
+  echo "cat greet.txt"
+  echo '-- floor: contains --'
+  echo "bye"
+} >"$d/example.txtar"
+cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+chmod +x "$d/probe/run"
+git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
+echo "setup: hyp place $G" >&2
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+commit_staged placed || fail "commit placed"
+
+# Make the place event an older hyp's: H0's cell names an output whose file
+# is only under .tree/outputs/.
+old="$work/old-output"
+printf '%s\nhello\n' "$marker" >"$old"
+sha=$(shasum -a 256 "$old" | cut -d' ' -f1)
+[ -n "$sha" ] || fail "no sha256"
+mkdir -p .tree/outputs && cp "$old" ".tree/outputs/$sha" || fail "write output"
+n=0
+for f in .tree/events/*.jsonl; do
+  grep -q '"type":"examples\{0,1\}\.place"' "$f" || continue
+  sed "/\"type\":\"examples\{0,1\}\.place\"/s/\"h0\":{/\"h0\":{\"output\":\"$sha\",/" "$f" >"$f.new" &&
+    mv "$f.new" "$f" || fail "rewrite $f"
+  n=$((n + 1))
+done
+[ "$n" -gt 0 ] || fail "no place event found"
+grep -q "\"output\":\"$sha\"" .tree/events/*.jsonl || fail "place not rewritten"
+git add -A && git commit -q -m "old-form place" >&2 || fail "commit old-form place"
+
+# hyp_run NAME TEXT: a commit on branch NAME from main whose greet.txt is
+# TEXT, run on line-1 by the runner; its events are committed on main. Two
+# met Hypotheses make the stop that prints the table of outputs, H0's row
+# first.
+hyp_run() {
+  git checkout -q -b "$1" main >&2 || fail "checkout $1"
+  echo "$2" >greet.txt
+  git add -A && git commit -q -m "$1" >&2 || fail "commit $1"
+  c=$(git rev-parse HEAD)
+  git checkout -q main >&2 || fail "checkout main"
+  echo "setup: hyp run $1" >&2
+  HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1" >&2 ||
+    fail "hyp run $1 failed"
+  commit_staged "events of $1" || fail "commit events of $1"
+}
+hyp_run h1 bye
+hyp_run h2 "bye bye"
+
+# The run section runs in this clone, whose trace holds the outputs of the two
+# runs but not the old output: that is only under .tree/outputs/.
+[ -f ".tree/outputs/$sha" ] || fail "output not stored"
+export G HYP_ACTOR=reader HYP_ROLE=reader
+run=$(printf '%s' "$HYP_RUN" | sed -e "s#\([ ]\)G\([/ ]\)#\1$G\2#g" -e "s# G\$# $G#")
+out="$work/out"
+sh -c "$run" >"$out"
+code=$?
+sed "s/$G/G/g" "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+if grep -q "$marker" "$out"; then
+  echo "bytes from .tree/outputs/ printed: yes"
+else
+  echo "bytes from .tree/outputs/ printed: no"
+fi
+echo "exit $code"
+exit 0

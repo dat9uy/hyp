@@ -1,0 +1,8 @@
+-- words --
+hyp spec: it says nothing about what an earlier hyp stored in git.
+-- run --
+hyp spec
+-- floor: contains --
+mentions an earlier hyp: no
+-- ceiling --
+it still reads the outputs an earlier hyp stored there

@@ -1,0 +1,127 @@
+#!/bin/sh
+# Probe of G-KSCGXV line-3/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store (clone A) with a test
+# Goal (one gap line, one fixture example with the generic Probe, placed),
+# and makes fresh clone B of clone A with `git clone`. It runs the example's
+# run section in clone B: output 1. It then runs one Hypothesis in clone A,
+# copies that Result's event line from A's trace into git's .tree/events/ (as
+# an older hyp wrote it), commits it, makes fresh clone C and runs the run
+# section there: output 2. It prints output 2 with the test Goal's id
+# replaced by "G", a line saying whether the two outputs are byte-equal after
+# the Goal id and the clone paths are replaced, then a last line "exit N", the
+# exit code of the run section in clone C. Setup output goes to stderr. A
+# build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# commit_staged MESSAGE: stage everything, commit only when something is
+# staged (a build that writes nothing leaves nothing to commit).
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/cloneA"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+commit_staged goal || fail "commit goal"
+
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+{
+  echo '-- words --'
+  echo "Fixture line-1/a."
+  echo '-- run --'
+  echo "cat greet.txt"
+  echo '-- floor: contains --'
+  echo "bye"
+} >"$d/example.txtar"
+cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+chmod +x "$d/probe/run"
+git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
+echo "setup: hyp place $G" >&2
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+commit_staged placed || fail "commit placed"
+
+# run_in DIR OUT: run the run section in clone DIR with G replaced by the test
+# Goal; OUT gets its stdout with the Goal id and the clone paths replaced by
+# fixed words. Returns the exit code of the run section.
+run_in() {
+  cd "$1" || fail "cd $1"
+  export G HYP_ACTOR=reader HYP_ROLE=reader
+  run=$(printf '%s' "$HYP_RUN" | sed -e "s#\([ ]\)G\([/ ]\)#\1$G\2#g" -e "s# G\$# $G#")
+  sh -c "$run" >"$2.raw"
+  rc=$?
+  sed -e "s/$G/G/g" -e "s#$work/clone[A-Z]#CLONE#g" "$2.raw" >"$2"
+  cd "$repo" || fail "cd repo"
+  return $rc
+}
+
+git clone -q "$repo" "$work/cloneB" >&2 || fail "git clone B"
+run_in "$work/cloneB" "$work/out1"
+
+# One Hypothesis in clone A. hyp stores its Result in A's trace.
+git checkout -q -b h1 main >&2 || fail "checkout h1"
+echo bye >greet.txt
+git add -A && git commit -q -m h1 >&2 || fail "commit h1"
+c=$(git rev-parse HEAD)
+git checkout -q main >&2 || fail "checkout main"
+echo "setup: hyp run h1" >&2
+HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1" >&2 || fail "hyp run h1 failed"
+commit_staged "events of h1" || fail "commit events of h1"
+
+# Copy the Result's event line from A's trace into git, as an older hyp
+# wrote it.
+: >"$work/results.jsonl"
+for f in "$HOME"/.hyp/traces/*/events/*.jsonl; do
+  [ -f "$f" ] || continue
+  grep '"result.record"' "$f" >>"$work/results.jsonl"
+done
+[ -s "$work/results.jsonl" ] || fail "no result.record in the trace of clone A"
+mkdir -p .tree/events || fail "mkdir events"
+cat "$work/results.jsonl" >>.tree/events/runner.jsonl || fail "append result"
+commit_staged "result.record in git" || fail "commit result"
+
+git clone -q "$repo" "$work/cloneC" >&2 || fail "git clone C"
+run_in "$work/cloneC" "$work/out2"
+code=$?
+cat "$work/out2"
+if [ -n "$(tail -c 1 "$work/out2")" ]; then echo; fi
+if cmp -s "$work/out1" "$work/out2"; then same=yes; else same=no; fi
+echo "same output with and without the event in git: $same"
+echo "exit $code"
+exit 0
