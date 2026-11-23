@@ -1,0 +1,35 @@
+---
+title: "hyp G-KSCGXV, an ended Goal reads the same in every clone"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: open
+    lg1: selected
+    lg2: ended
+  }
+  class lg0 teal
+  class lg1 purple
+  class lg2 blue
+  s0: Open
+  s1: Run in clone A
+  s2: Run in clone A, git holds an older hyp's Result
+  s3: Selected
+  s4: Ended
+  s5: Selected, git holds an older hyp's Result
+  s6: Ended, git holds an older hyp's Result
+  [*] --> s0
+  s0 --> s1: the runner runs a line in clone A
+  s1 --> s2: an older hyp's Result line is in git
+  s1 --> s3: the runner selects
+  s2 --> s5: the runner selects
+  s3 --> s4: the owner lands
+  s3 --> s5: an older hyp's Result line is in git
+  s4 --> s6: an older hyp's Result line is in git
+  s5 --> s6: the owner lands
+  class s0 teal
+  class s1 teal
+  class s2 teal
+  class s3 purple
+  class s4 blue
+  class s5 purple
+  class s6 blue
