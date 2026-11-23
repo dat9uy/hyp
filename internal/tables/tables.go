@@ -64,6 +64,7 @@ type Goal struct {
 	Land       *Land                  // the Goal's land, or nil
 	Close      *Close                 // the Goal's close, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
+	Findings   []*Finding             // its findings, in merge order, from the clone's trace
 
 	// seen lists the ids of the Goal's events that replay applied, in merge
 	// order: the snapshot an end names.
@@ -178,7 +179,8 @@ type Read struct {
 type Tables struct {
 	Goals           map[string]*Goal // by EventID
 	results         map[string]*Result
-	Reads           map[string][]Read // by actor, in merge order
+	findings        map[string]*Finding // by finding.add event id
+	Reads           map[string][]Read   // by actor, in merge order
 	RefusedAtReplay []Refused
 }
 
@@ -711,7 +713,7 @@ func goalOf(t Tables, ev events.Event) string {
 }
 
 func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
-	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}, Reads: map[string][]Read{}}
+	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}, findings: map[string]*Finding{}, Reads: map[string][]Read{}}
 	refuse := func(ev events.Event, err error) {
 		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Err: err})
 	}
@@ -763,6 +765,8 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 			replayClose(&t, ev, refuse)
 		case events.TypeUnselect:
 			replayUnselect(&t, ev, refuse)
+		case events.TypeFindingAdd, events.TypeFindingFold, events.TypeFindingRefute:
+			replayFinding(&t, ev, refuse)
 		case events.TypeRead:
 			var p events.Read
 			if err := events.Decode(ev, &p); err != nil {

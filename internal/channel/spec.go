@@ -30,15 +30,16 @@ func specText() string {
 	for _, s := range spec.States {
 		fmt.Fprintf(&b, "  %s  holds when: %s\n", s.Name, s.Holds)
 		fmt.Fprintf(&b, "  %s  allows: %s\n", s.Name, orNone(s.Allows))
-		var stops []string
-		for _, st := range s.Stops {
-			what := st.Act
-			if st.When != "" {
-				what += ", " + st.When
-			}
-			stops = append(stops, fmt.Sprintf("%s (guard %s)", what, st.Guard))
-		}
-		fmt.Fprintf(&b, "  %s  does not allow: %s\n", s.Name, strings.Join(stops, "; "))
+		fmt.Fprintf(&b, "  %s  does not allow: %s\n", s.Name, stopsText(s.Stops))
+	}
+
+	b.WriteString("\nfinding states: each state of a finding, when it holds, the acts it allows,\n")
+	b.WriteString("and each act it does not allow with the guard that stops that act; a finding's\n")
+	b.WriteString("state changes no Goal's state\n")
+	for _, s := range spec.FindingStates {
+		fmt.Fprintf(&b, "  %s  holds when: %s\n", s.Name, s.Holds)
+		fmt.Fprintf(&b, "  %s  allows: %s\n", s.Name, orNone(s.Allows))
+		fmt.Fprintf(&b, "  %s  does not allow: %s\n", s.Name, stopsText(s.Stops))
 	}
 
 	b.WriteString("\nacts: each command, its usage, its roles, the states that allow it, its\n")
@@ -46,6 +47,11 @@ func specText() string {
 	for _, c := range spec.Commands {
 		if c.Bare {
 			fmt.Fprintf(&b, "  %s  usage: %s  roles: any, a read with no actor  guards: none  writes: nothing\n", c.Name, c.Usage())
+			continue
+		}
+		if c.Any {
+			fmt.Fprintf(&b, "  %s  usage: %s  roles: any actor, with any role or none  states: every state of the Goal  guards in order: %s  writes: %s\n",
+				c.Name, c.Usage(), orNone(guardNames(c.Guards)), c.Writes)
 			continue
 		}
 		if len(c.Roles) == 0 {
@@ -94,6 +100,31 @@ func specText() string {
 		}
 	}
 	return b.String()
+}
+
+// stopsText is the acts a state does not allow, each with the guard that
+// stops it, or none.
+func stopsText(stops []spec.Stop) string {
+	var out []string
+	for _, st := range stops {
+		what := st.Act
+		if st.When != "" {
+			what += ", " + st.When
+		}
+		out = append(out, fmt.Sprintf("%s (guard %s)", what, st.Guard))
+	}
+	if len(out) == 0 {
+		return "none"
+	}
+	return strings.Join(out, "; ")
+}
+
+func guardNames(gs []fault.Guard) []string {
+	var out []string
+	for _, g := range gs {
+		out = append(out, string(g))
+	}
+	return out
 }
 
 func yesNo(b bool) string {

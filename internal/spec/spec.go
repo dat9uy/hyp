@@ -27,6 +27,10 @@ const (
 	ActLand     = "land"
 	ActUnselect = "unselect"
 	ActClose    = "close"
+
+	ActFindingAdd    = "finding add"
+	ActFindingFold   = "finding fold"
+	ActFindingRefute = "finding refute"
 )
 
 // The states of a Goal.
@@ -37,6 +41,13 @@ const (
 	StateEnded    = "ended"
 )
 
+// The states of a finding.
+const (
+	FindingNotFolded = "not folded"
+	FindingFolded    = "folded"
+	FindingRefuted   = "refuted"
+)
+
 // Command is the entry of one command: an act that writes an event, or a read.
 type Command struct {
 	Name   string
@@ -45,6 +56,7 @@ type Command struct {
 	Guards []fault.Guard // the guards it checks, in order; a refusal names the first that fails
 	Writes string        // the event it writes
 	Bare   bool          // a read that needs no actor and leaves no trace
+	Any    bool          // an act on a finding: any actor runs it, with any role or none, on a Goal in any state
 }
 
 // Usage is the command's usage line: the first line of its help block, up to
@@ -123,6 +135,25 @@ var Commands = []Command{
                                          budget starts again, and the runner
                                          selects again only after a run that
                                          records a new cell
+`},
+	{Name: ActFindingAdd, Any: true,
+		Guards: nil, Writes: "finding.add, in the trace",
+		Help: `  finding add G --fact TEXT --evidence TEXT [--why TEXT]
+                                         record a finding on Goal G, in any
+                                         state: a fact an agent found and a
+                                         pointer to its evidence; it prints the
+                                         finding's id
+`},
+	{Name: ActFindingFold, Any: true,
+		Guards: []fault.Guard{fault.GuardIssue, fault.GuardNotRefuted}, Writes: "finding.fold, in the trace",
+		Help: `  finding fold F [F ...] --issue N [--why TEXT]
+                                         fold one or more findings into issue
+                                         #N; a folded finding may be folded
+                                         again into another issue
+`},
+	{Name: ActFindingRefute, Any: true,
+		Guards: []fault.Guard{fault.GuardNotRefuted}, Writes: "finding.refute, in the trace",
+		Help: `  finding refute F [--why TEXT]          refute finding F; refuted is final
 `},
 	{Name: "status",
 		Help: `  status [G] [--role ROLE]               print the state of every Goal, or of G:
@@ -206,6 +237,21 @@ var States = []State{
 			{ActLand, "", fault.GuardNotEnded},
 			{ActUnselect, "", fault.GuardNotEnded},
 			{ActClose, "", fault.GuardNotEnded},
+		}},
+}
+
+// FindingStates are the entries of the three states of a finding. A
+// finding's state changes no Goal's state: its events are in the clone's
+// trace, and a Goal lands, closes or ends with findings in any state.
+var FindingStates = []State{
+	{Name: FindingNotFolded, Holds: "a finding.add exists, and no fold or refute names it",
+		Allows: []string{ActFindingFold, ActFindingRefute}},
+	{Name: FindingFolded, Holds: "a fold names it and no refute does; it reads folded into #N, the issue of its latest fold",
+		Allows: []string{ActFindingFold, ActFindingRefute}},
+	{Name: FindingRefuted, Holds: "a refute names it; refuted is final",
+		Stops: []Stop{
+			{ActFindingFold, "", fault.GuardNotRefuted},
+			{ActFindingRefute, "", fault.GuardNotRefuted},
 		}},
 }
 
@@ -300,10 +346,14 @@ var Guards = []Guard{
 		[]fault.Code{fault.NotOwnerUnselect, fault.PayloadInvalid}, "yes"},
 	{fault.GuardOwnResult, "only the actor that ran a Result retracts it; the Result and its retract are in the same clone's trace",
 		[]fault.Code{fault.NotOwnResult}, "yes: a retract is in the trace of the clone that holds its Result"},
+	{fault.GuardIssue, "a fold names the issue it folds into, by its number, a whole number above zero",
+		[]fault.Code{fault.NoIssue}, "yes"},
+	{fault.GuardNotRefuted, "a refuted finding takes no fold and no refute",
+		[]fault.Code{fault.Refuted}, "yes: a finding and its fold or refute are in the same clone's trace"},
 	{fault.NoGuard, "a file hyp reads breaks a rule of its form, or the act names what the store does not hold",
 		[]fault.Code{fault.NoStore, fault.EventVersion, fault.EventType, fault.PayloadDecode, fault.PayloadInvalid, fault.TrailingData,
 			fault.IDNotULID, fault.ActorNotFile, fault.NoIDAfter, fault.NoGoalToPlace, fault.NoGoalToRun, fault.NoGoalToSelect,
-			fault.NoGoalToLand, fault.NoGoalToClose, fault.NoGoalToUnselect, fault.NoResultToRetract, fault.NoExampleTxtar,
+			fault.NoGoalToLand, fault.NoGoalToClose, fault.NoGoalToUnselect, fault.NoResultToRetract, fault.NoGoalForFinding, fault.NoFinding, fault.FoldNoFinding, fault.NoExampleTxtar,
 			fault.TextBeforeFirst, fault.SecondSection, fault.ExternalNotName, fault.InputOutside, fault.InputTwice,
 			fault.UnknownSection, fault.NoSection, fault.Submodule, fault.EntryLeaves, fault.NotFileOrDir, fault.ReadFolder}, "yes"},
 }
@@ -356,8 +406,13 @@ var Rules = []Rule{
 		"An end names its snapshot, the Goal's events stored in git that replay applied when the owner ended it; an event of a kind an end freezes that the snapshot does not name is stopped by Not ended.",
 	}},
 	{"ids, actors and roles", []string{
-		"An event id is a ULID; a Goal id is G- and the last six characters of its goal.add id, a Result id R- and six.",
-		"An actor matches ^[a-z0-9][a-z0-9-]{0,39}$ and names its events file; a write act needs a role: owner, grill, probe-writer or runner.",
+		"An event id is a ULID; a Goal id is G- and the last six characters of its goal.add id, a Result id R- and six, a finding id F- and six of its finding.add id.",
+		"An actor matches ^[a-z0-9][a-z0-9-]{0,39}$ and names its events file; a write act needs a role: owner, grill, probe-writer or runner. An act on a finding needs only an actor, and records the role it declared when it is one of the four.",
+	}},
+	{"findings", []string{
+		"A finding is a fact an agent found on a Goal, with a pointer to its evidence. Any agent adds one on a Goal in any state, ended included, folds it into an issue or refutes it.",
+		"Its events are in the clone's trace and never in git: they change no file under .tree/ and no Goal's state, and an end's snapshot names none of them.",
+		"hyp status G prints each finding of G with its fact, its evidence and its state: not folded, folded into #N or refuted.",
 	}},
 	{"the subject", []string{
 		"A commit's subject is its tree without the top-level entries goals and .tree; its git tree hash is the subject hash, one Hypothesis, one row.",

@@ -14,7 +14,7 @@ _Avoid_: database, index (hyp keeps no table)
 One JSON line in `.tree/events/<actor>.jsonl`. Only hyp writes it, and it is only appended. Every table and state comes from the events.
 _Avoid_: entry, record (alone)
 
-The eleven event types, each with where it is stored in `hyp spec`:
+The fourteen event types, each with where it is stored in `hyp spec`:
 
 | Event | Records |
 |---|---|
@@ -29,6 +29,9 @@ The eleven event types, each with where it is stored in `hyp spec`:
 | `close` | the owner's close of a Goal at any stop or none; it names the snapshot |
 | `unselect` | the owner's unselect of a selected Goal, which puts it back to open |
 | `read` | what hyp printed to an actor; it goes into the trace, never into the log |
+| `finding.add` | a finding on a Goal in any state; it goes into the trace, never into the log |
+| `finding.fold` | a fold of one or more findings into an issue; it goes into the trace |
+| `finding.refute` | a refute of a finding; it goes into the trace |
 
 **Log**:
 The events of `.tree/events/`: every act that changes a Goal. The log is not the trace.
@@ -225,6 +228,10 @@ A Hypothesis with nothing below it in the Hypothesis tree: none of its row's com
 **Result**:
 The record of one `run`: one line of one Goal on one commit, with one cell per placed example. Its id is `R-…`. A retracted Result is never deleted.
 _Avoid_: finding, outcome
+
+**Finding**:
+A fact an agent found on a Goal, with a pointer to its evidence, such as a Result id. Its id is `F-…`. Any agent adds one with `hyp finding add`, on a Goal in any state, and folds it into an issue or refutes it. `hyp status G` prints each finding with its state: `not folded`, `folded into #N` or `refuted`. Its events are in the trace, so a finding changes no Goal's state (`hyp spec`, findings).
+_Avoid_: Result (a finding is not the record of a run)
 
 **Cell**:
 One example's record on one Result: the example key and hash, the Probe hash, the output and stderr hashes, the exit code and the verdict.
@@ -465,7 +472,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](https://githu
 |---|---|---|
 | Tree | The view of one Goal and every node under it, kept as events in a store. | No node tree. "Tree" means only the Hypothesis tree: a Goal's Hypotheses by git ancestry. |
 | Store | `.tree/`, found by a walk up from the current directory to the repository root. | Store, at the git top level. |
-| Event | A v1 line (`v` = 1) with a type from the v1 set. | Event, with `v` = 2 and eleven types. |
+| Event | A v1 line (`v` = 1) with a type from the v1 set. | Event, with `v` = 2 and fourteen types. |
 | Replay, Projection | The derivation of every status, and what it returns. | Replay and the calculated tables. |
 | Goal | A node `G-` with no parent; its lines never change after its add; complete when every live top-level question is answered. | Goal, with states written, open, selected and ended; a Draft replace may change a written Goal. |
 | End, Ended | The owner's terminal act on a Goal, and its state. | Land and close: the owner's acts `land` and `close`, and the state `ended`. |

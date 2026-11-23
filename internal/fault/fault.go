@@ -50,6 +50,8 @@ const (
 	GuardOwnPath     Guard = "Own path"
 	GuardSelected    Guard = "Selected"
 	GuardOwnResult   Guard = "Own Result"
+	GuardIssue       Guard = "Issue"
+	GuardNotRefuted  Guard = "Not refuted"
 	NoGuard          Guard = "" // a refusal that no guard names
 )
 

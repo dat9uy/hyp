@@ -38,6 +38,8 @@ const (
 	codeCloseArgs      fault.Code = "close-args"      // count
 	codeUnselectArgs   fault.Code = "unselect-args"   // count
 	codeSpecArgs       fault.Code = "spec-args"       // count
+	codeFindingWhat    fault.Code = "finding-what"    // no values
+	codeFindingArgs    fault.Code = "finding-args"    // act, count
 )
 
 // words is the text of every code: a format whose verbs name the code's
@@ -217,6 +219,14 @@ var words = map[fault.Code]string{
 	fault.NotOwnerUnselect:  "only the owner unselects a Goal; the role is %s",
 	fault.NoSelect:          "%s is %s and has no select; only a selected Goal is unselected",
 	fault.NoGoalToUnselect:  "no Goal %s to unselect",
+	fault.NoGoalForFinding:  "no Goal %s to add a finding to",
+	fault.NoFinding:         "no finding %s",
+	fault.FindingTwice:      "%s matches %d findings; give the finding.add event id",
+	fault.NoIssue:           "a fold names the issue it folds into: --issue N, a whole number above zero",
+	fault.Refuted:           "%s is refuted; a refuted finding takes no fold and no refute",
+	fault.FoldNoFinding:     "the fold names no finding",
+	fault.EmptyFact:         "finding add needs --fact TEXT",
+	fault.EmptyEvidence:     "finding add needs --evidence TEXT, a pointer to the evidence",
 	fault.NoNewCell:         "%s was unselected by %s, and no run since recorded a new cell: an example version or a row that had not run before the unselect; the runner selects again after such a run, the owner at any time",
 
 	// the channel's own
@@ -238,6 +248,8 @@ var words = map[fault.Code]string{
 	codeStateBlock:     "state block: %s",
 	codeNeedsActor:     "%s needs an actor (--actor or $HYP_ACTOR): hyp records what it prints to each actor",
 	codePruneArgs:      "prune takes no argument but --remove; got %d arguments",
+	codeFindingWhat:    "finding what? finding add, finding fold or finding refute",
+	codeFindingArgs:    "%s takes the arguments its usage in hyp help names; got %d arguments",
 	codeLandArgs:       "land takes one Goal, for example: hyp land G-NXHHVA; got %d arguments",
 	codeCloseArgs:      "close takes one Goal, for example: hyp close G-NXHHVA; got %d arguments",
 	codeUnselectArgs:   "unselect takes one Goal, for example: hyp unselect G-NXHHVA; got %d arguments",
