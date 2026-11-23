@@ -1,0 +1,25 @@
+#!/bin/sh
+# Probe of G-KSCGXV line-4/b. The working directory is a copy of the subject.
+# It builds hyp from the subject, runs the example's run section with that hyp
+# first on PATH, prints its stdout, then "mentions an earlier hyp: yes|no" and
+# a last line "exit N", the exit code of the run section. A build failure
+# exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+# Build before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || exit 3
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || exit 3
+export HOME="$work/home"
+mkdir -p "$HOME" || exit 3
+export PATH="$work/bin:$PATH"
+
+out="$work/out"
+sh -c "$HYP_RUN" >"$out"
+code=$?
+cat "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+if grep -qi 'earlier hyp' "$out"; then echo "mentions an earlier hyp: yes"; else echo "mentions an earlier hyp: no"; fi
+echo "exit $code"
+exit 0
