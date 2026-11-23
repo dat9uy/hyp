@@ -1,0 +1,32 @@
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 35f384932cbc7dfaea07b4414e0bf9a733c31b3f
+selected row: HASH
+G  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FW3XQ1KH8H6BP0WVXBYHZ at 2026-11-23T06:00:43.191305Z
+waits: owner
+warning: the selected commit 35f384932cbc7dfaea07b4414e0bf9a733c31b3f is on no branch or tag of this clone; push it or keep a branch on it, or git may lose it
+owner may:
+  hyp land G
+  hyp unselect G
+  hyp close G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

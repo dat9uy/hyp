@@ -1,0 +1,67 @@
+setup: hyp place
+placed G-DGXT6N: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-DGXT6N is open
+G-DGXT6N  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-DGXT6N
+grill may:
+  hyp place G-DGXT6N
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-DGXT6N/line-1
+setup: hyp run
+ran G-DGXT6N line-1 at 45865767b645e266fb4125d353336cf6ca6eba6d
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-DGXT6N  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-DGXT6N 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-DGXT6N
+grill may:
+  hyp place G-DGXT6N
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-DGXT6N 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-DGXT6N/line-1
+setup: hyp select
+# G-DGXT6N: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 45865767b645e266fb4125d353336cf6ca6eba6d
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-DGXT6N  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FW07QHQA0J2CQ7PCFCYQX at 2026-11-23T06:00:39.415724Z
+waits: owner
+owner may:
+  hyp land G-DGXT6N
+  hyp unselect G-DGXT6N
+  hyp close G-DGXT6N
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+Deleted branch cand (was bb40619).
+setup: run: hyp status G-DGXT6N

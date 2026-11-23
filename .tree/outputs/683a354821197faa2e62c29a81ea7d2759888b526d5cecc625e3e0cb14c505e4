@@ -1,0 +1,136 @@
+setup: hyp place G-29NN83
+placed G-29NN83: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-29NN83 is open
+G-29NN83  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-29NN83
+grill may:
+  hyp place G-29NN83
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-29NN83/line-1
+setup: hyp run
+ran G-29NN83 line-1 at 1d384a972ac1b12711ffab7883773a79d664b343
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-29NN83  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-29NN83 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-29NN83
+grill may:
+  hyp place G-29NN83
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-29NN83 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-29NN83/line-1
+setup: hyp select
+# G-29NN83: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 1d384a972ac1b12711ffab7883773a79d664b343
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-29NN83  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FVHN8Q0FG2XET7M2QTBH9 at 2026-11-23T06:00:24.48812Z
+waits: owner
+owner may:
+  hyp land G-29NN83
+  hyp unselect G-29NN83
+  hyp close G-29NN83
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+G-29NN83  selected  runs: 0 of 3 used
+stop: selected, by select 01M83FVHN8Q0FG2XET7M2QTBH9 at 2026-11-23T06:00:24.48812Z
+waits: owner
+owner may:
+  hyp land G-29NN83
+  hyp unselect G-29NN83
+  hyp close G-29NN83
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-29NN83: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: not in this clone's trace; run it again in this clone with:
+  hyp try G-29NN83 line-1/a --commit 1d384a972ac1b12711ffab7883773a79d664b343
+
+selected commit: 1d384a972ac1b12711ffab7883773a79d664b343
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+setup: hyp try G-29NN83 line-1/a --commit 1d384a972ac1b12711ffab7883773a79d664b343
+tried G-29NN83 line-1/a on commit 1d384a972ac1b12711ffab7883773a79d664b343, row 5932e94ab05ef26f462c78040a41abdd5b4fc884
+saved: this clone's trace lacked this cell; it holds it now, marked as run again in this clone; no event and no run of the budget is recorded
+example: goals/G-29NN83/line-1/a as it is on disk, hash 937b45521e7120ee8cf7873010735f86ba922963, probe 3a7334686c13a115e2636e07896004970fafea34
+words: Fixture line-1/a.
+verdict: met, exit 0
+output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8, 3 bytes:
+bye
+stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, 0 bytes
+G-29NN83  selected  runs: 0 of 3 used
+stop: selected, by select 01M83FVHN8Q0FG2XET7M2QTBH9 at 2026-11-23T06:00:24.48812Z
+waits: owner
+owner may:
+  hyp land G-29NN83
+  hyp unselect G-29NN83
+  hyp close G-29NN83
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-29NN83: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0, run again in this clone
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 1d384a972ac1b12711ffab7883773a79d664b343
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+setup: exit 0

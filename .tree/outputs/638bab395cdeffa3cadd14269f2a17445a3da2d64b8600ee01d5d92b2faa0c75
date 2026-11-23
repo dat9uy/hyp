@@ -1,0 +1,14 @@
+G  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FVWMTS6ZP17HCTM7BHNAY at 2026-11-23T06:00:35.738292Z
+waits: owner
+warning: the selected commit eca019ca0b34d5c306fe172f45268e49a5df38fc is on no branch or tag of this clone; push it or keep a branch on it, or git may lose it
+owner may:
+  hyp land G
+  hyp unselect G
+  hyp close G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

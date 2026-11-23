@@ -1,0 +1,17 @@
+placed G: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G is open
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+events files changed under .tree: 1
+new files under .tree/outputs: 0
+the place line names no output

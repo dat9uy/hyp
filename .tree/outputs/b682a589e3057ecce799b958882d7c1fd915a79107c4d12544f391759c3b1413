@@ -1,0 +1,35 @@
+setup: hyp place
+placed G-Z0FCAP: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-Z0FCAP is open
+G-Z0FCAP  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-Z0FCAP
+grill may:
+  hyp place G-Z0FCAP
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-Z0FCAP/line-1
+setup: hyp run
+ran G-Z0FCAP line-1 at 35f384932cbc7dfaea07b4414e0bf9a733c31b3f
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-Z0FCAP  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-Z0FCAP 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-Z0FCAP
+grill may:
+  hyp place G-Z0FCAP
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-Z0FCAP 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-Z0FCAP/line-1
+Deleted branch cand (was 35f3849).
+setup: run: hyp select G-Z0FCAP 5932e94ab05ef26f462c78040a41abdd5b4fc884
