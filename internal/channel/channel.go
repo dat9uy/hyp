@@ -23,6 +23,7 @@ import (
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/logstore"
+	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
@@ -61,68 +62,50 @@ func buildSuffix(settings []debug.BuildSetting) string {
 	return " " + rev
 }
 
-const usage = `usage: hyp <command> [flags]
+// usageHead and usageTail frame the commands' help blocks in hyp help; each
+// block is the command's entry in the spec (internal/spec).
+const usageHead = `usage: hyp <command> [flags]
 
-Every command but help and version needs an actor (--actor or $HYP_ACTOR).
-An act that writes also needs a role (--role or $HYP_ROLE): owner, grill,
-probe-writer or runner. hyp records what it prints to each actor in the trace,
-one folder per clone under ~/.hyp/traces; hyp show prints it. hyp writes
-nothing under ~/.local and does not read $XDG_STATE_HOME.
+Every command but help, spec and version needs an actor (--actor or
+$HYP_ACTOR). An act that writes also needs a role (--role or $HYP_ROLE):
+owner, grill, probe-writer or runner. hyp records what it prints to each actor
+in the trace, one folder per clone under ~/.hyp/traces; hyp show prints it.
+hyp writes nothing under ~/.local and does not read $XDG_STATE_HOME.
 
 commands:
-  add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
-           [--from G] [--why TEXT]
-                                         record a Goal; with G, replace a Goal
-                                         that is still written
-  place G [--why TEXT]                   place the whole example set of Goal G:
-                                         every folder goals/G/LINE/EXAMPLE, each
-                                         run on H0; it places the set only when
-                                         every example agrees with its line, and
-                                         otherwise places none and names each
-                                         cause
-  run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
-                                         Goal G on COMMIT and record the Result
-  try G LINE/EXAMPLE [--worktree]        run the example folder goals/G/LINE/EXAMPLE
-                                         as it is on disk, on H0, or with
-                                         --worktree on this checkout's files
-                                         with what is not committed, and print
-                                         its output, stderr, exit code and
-                                         verdict as place and run would record
-                                         them; records nothing and uses no run
-  select G HASH [--why TEXT]             select the candidate row of Goal G whose
-                                         subject hash is HASH; the report is the
-                                         PR body
-  land G [--why TEXT]                    the owner lands Goal G at its stop: the
-                                         Goal ends, and its events up to the
-                                         land are the snapshot that a later
-                                         Goal's --from cites
-  close G [--why TEXT]                   the owner closes Goal G at any stop or
-                                         none: the Goal ends as a land ends it,
-                                         and a later Goal's --from cites it
-  unselect G [--why TEXT]                the owner unselects Goal G: G is open
-                                         again with its rows and cells, its
-                                         budget starts again, and the runner
-                                         selects again only after a run that
-                                         records a new cell
-  status [G] [--role ROLE]               print the state of every Goal, or of G:
-                                         its stop, its waits and the allowed
-                                         acts as ready command lines; of a
-                                         written or open G, also its words,
-                                         lines and placed examples
-  show ACTOR                             print every output hyp printed to
-                                         ACTOR, byte for byte, oldest first
-  prune [--remove]                       list the traces under ~/.hyp/traces of
-                                         repositories that no longer exist;
-                                         with --remove, remove those traces
-  help                                   print this text
-  version                                print the hyp version
-
-exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
-3 environment problem
 `
 
-// commands are the top-level command names, sorted.
-var commands = []string{"add", "close", "help", "land", "place", "prune", "run", "select", "show", "status", "try", "unselect", "version"}
+// usage is the text of hyp help: the help block of every command's entry,
+// then the exit codes' entries.
+var usage = func() string {
+	var b strings.Builder
+	b.WriteString(usageHead)
+	for _, c := range spec.Commands {
+		b.WriteString(c.Help)
+	}
+	b.WriteString("\nexit codes:")
+	for i, e := range spec.Exits {
+		sep := ","
+		if i == len(spec.Exits)-1 {
+			sep = ""
+		}
+		fmt.Fprintf(&b, " %d %s%s", e.Code, e.Name, sep)
+	}
+	b.WriteString("\n")
+	return b.String()
+}()
+
+// commands are the top-level command names, sorted: the first word of each
+// command's entry in the spec.
+var commands = func() []string {
+	var out []string
+	for _, c := range spec.Commands {
+		name, _, _ := strings.Cut(c.Name, " ")
+		out = append(out, name)
+	}
+	slices.Sort(out)
+	return slices.Compact(out)
+}()
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -187,13 +170,7 @@ func exitCode(err error) int {
 	if err == nil {
 		return 0
 	}
-	switch fault.KindOf(err) {
-	case fault.Refusal:
-		return 1
-	case fault.BadArguments:
-		return 2
-	}
-	return 3
+	return spec.ExitCode(fault.KindOf(err))
 }
 
 func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
@@ -207,6 +184,13 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return nil
 	case "help", "-h", "--help":
 		fmt.Fprint(stdout, usage)
+		return nil
+	case "spec":
+		if len(args) > 1 {
+			fmt.Fprint(stderr, usage)
+			return fault.BadArg(codeSpecArgs, len(args)-1)
+		}
+		fmt.Fprint(stdout, specText())
 		return nil
 	case "place":
 		return place(c, args[1:], stdout, stderr)

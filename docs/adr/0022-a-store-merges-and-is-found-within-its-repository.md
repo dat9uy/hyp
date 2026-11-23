@@ -2,7 +2,7 @@
 status: accepted; holds in part in v2, see the note below
 ---
 
-In v2 this part holds: an events file merges by union ([state-machine.md §1](../state-machine.md#1-names-and-locations)), replay orders events by id, then actor, then line bytes ([§4](../state-machine.md#4-merge-order-crash-and-merged-log)), and a new id sorts after the newest ([§2](../state-machine.md#2-ids-actors-and-roles)). Discovery and `hyp init` are v1 only: the v2 store is at the git top level, and with no store a command is exit 1 ([§8](../state-machine.md#8-acts)). The store cut is v1 only.
+In v2 this part holds: an events file merges by union (`hyp spec`), replay orders events by id, then actor, then line bytes ([§4](../state-machine.md#4-merge-order-crash-and-merged-log)), and a new id sorts after the newest ([§2](../state-machine.md#2-ids-actors-and-roles)). Discovery and `hyp init` are v1 only: the v2 store is at the git top level, and with no store a command is exit 1 ([§8](../state-machine.md#8-acts)). The store cut is v1 only.
 
 Amends [ADR 0020](0020-one-store-holds-many-goals.md) (one store holds many Goals).
 

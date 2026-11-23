@@ -25,9 +25,9 @@ type CloseReport struct {
 }
 
 // Close records the owner's close of a Goal that is not ended, at any stop
-// or none, or refuses with the first failing guard of the state machine,
-// section 8: Not ended, Owner closes, then Goal's actor. Like a land, the
-// close ends the Goal and names its snapshot. It checks no commit. Everything
+// or none, or refuses with the first failing guard, in the order its entry
+// in hyp spec names: Not ended, Owner closes, then Goal's actor. Like a land,
+// the close ends the Goal and names its snapshot. It checks no commit. Everything
 // is checked under the lock.
 func Close(o CloseOpts) (CloseReport, error) {
 	if err := CheckActor(o.Actor, o.Role); err != nil {

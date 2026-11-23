@@ -1,0 +1,37 @@
+G-DR449G: hyp spec
+
+The change adds no state, act or event to hyp. It moves the rules out of
+docs/state-machine.md into entries the binary acts on and prints. A Goal still
+moves written, open, selected, ended as before, so the spec is this text and
+not a model: there is no new state to chart.
+
+The entries
+- internal/events: events.Kinds, one entry per event type: its home (git or
+  trace), the Goal its node names, whether an end freezes it, and the act that
+  writes it.
+- internal/spec: spec.Commands (usage block, roles, guards in order, event
+  written), spec.States (when each holds, the acts hyp status may offer in it,
+  the acts it does not allow and the guard of each), spec.Guards (rule and
+  refusal codes), spec.Exits, spec.Rules (store, merge order, ids, subject,
+  budget and stops, example file, Probe).
+
+What hyp acts on
+- logstore: the store writes only an event whose kind is stored in git, the
+  trace only one whose kind is stored in the trace (code event-home, exit 3).
+- tables: replay freezes an event at an end only when its kind's entry says
+  an end freezes it.
+- acts: AllowedFor offers an act only in a state whose entry allows it.
+- channel: hyp help prints each command's help block from its entry; the exit
+  code of a failure is the code of its kind's entry; hyp spec prints every
+  entry.
+
+What go test checks
+- every pair of guard and code hyp refuses with is in a guard entry, and no
+  entry names a pair hyp never refuses with;
+- each state stops an act only by a guard that act checks;
+- hyp help and hyp spec print each command's usage from the same entry;
+- the store and the trace each refuse an event of the other's kind.
+
+Docs: docs/state-machine.md is removed. The glossary and principles keep words
+and reasons, the owner guide keeps how to use the skills and the flow, and
+none names a Goal id or an issue number.

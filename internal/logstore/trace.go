@@ -99,5 +99,5 @@ func (t Trace) Append(actor string, ev events.Event) (events.Event, error) {
 		return events.Event{}, err
 	}
 	defer unlock()
-	return appendLocked(t.Dir, actor, func([]events.Event) (events.Event, error) { return ev, nil })
+	return appendLocked(t.Dir, actor, events.HomeTrace, func([]events.Event) (events.Event, error) { return ev, nil })
 }

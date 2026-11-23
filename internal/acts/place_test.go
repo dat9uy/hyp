@@ -17,7 +17,7 @@ import (
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
-// fixtureProbe is the Probe of the state machine, section 10.
+// fixtureProbe is the Probe of the Probe contract in hyp spec.
 const fixtureProbe = `#!/bin/sh
 o=$(mktemp); sh -c "$HYP_RUN" >"$o"; c=$?; cat "$o"; [ -s "$o" ] && [ -n "$(tail -c1 "$o")" ] && echo; rm -f "$o"; echo "exit $c"
 `

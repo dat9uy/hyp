@@ -37,6 +37,7 @@ const (
 	codeLandArgs       fault.Code = "land-args"       // count
 	codeCloseArgs      fault.Code = "close-args"      // count
 	codeUnselectArgs   fault.Code = "unselect-args"   // count
+	codeSpecArgs       fault.Code = "spec-args"       // count
 )
 
 // words is the text of every code: a format whose verbs name the code's
@@ -149,6 +150,7 @@ var words = map[fault.Code]string{
 	fault.FileWrite:    "write %s: %s",
 	fault.FileSync:     "sync %s: %s",
 	fault.StoreOutput:  "store output: %s",
+	fault.EventHome:    "a %s event is not stored in the %s: its entry in hyp spec names another place",
 
 	// the trace
 	fault.NoTraceFolder: "no folder for the trace: $HOME is not an absolute path",
@@ -236,6 +238,7 @@ var words = map[fault.Code]string{
 	codeLandArgs:       "land takes one Goal, for example: hyp land G-NXHHVA; got %d arguments",
 	codeCloseArgs:      "close takes one Goal, for example: hyp close G-NXHHVA; got %d arguments",
 	codeUnselectArgs:   "unselect takes one Goal, for example: hyp unselect G-NXHHVA; got %d arguments",
+	codeSpecArgs:       "spec takes no argument; got %d",
 	codeTryArgs:        "try takes a Goal and LINE/EXAMPLE, for example: hyp try G-NXHHVA line-1/a; got %d arguments",
 	codeNotRecorded:    "could not record what this command printed, so hyp prints nothing of it: %s",
 }

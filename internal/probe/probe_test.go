@@ -11,7 +11,7 @@ import (
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
-// fixtureProbe is the Probe of the state machine, section 10: it prints the
+// fixtureProbe is the Probe of the Probe contract in hyp spec: it prints the
 // stdout of run, a newline when that stdout lacks one, then "exit N".
 const fixtureProbe = `#!/bin/sh
 o=$(mktemp); sh -c "$HYP_RUN" >"$o"; c=$?; cat "$o"; [ -s "$o" ] && [ -n "$(tail -c1 "$o")" ] && echo; rm -f "$o"; echo "exit $c"

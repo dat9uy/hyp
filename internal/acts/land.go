@@ -28,7 +28,7 @@ type LandReport struct {
 }
 
 // Land records the owner's land of a Goal at a stop, or refuses with the
-// first failing guard of the state machine, section 8: Not ended, Owner
+// first failing guard, in the order its entry in hyp spec names: Not ended, Owner
 // lands, Goal's actor, then Stop. The land ends the Goal and names its
 // snapshot: the Goal's events replay applied, which later Goals cite and which
 // replay holds the ended Goal to in every clone. It

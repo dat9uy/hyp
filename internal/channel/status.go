@@ -22,15 +22,14 @@ type BlockOpts struct {
 	Ask    bool   // a written or open Goal prints what it asks: hyp status G
 }
 
-// roles are the roles a block lists, in the order of the state machine,
-// section 2.
+// roles are the roles a block lists, in the order of the roles in hyp help.
 var roles = []string{"owner", "grill", "probe-writer", "runner"}
 
 // maxCell is how many runes of one output's first line the outputs table
 // shows.
 const maxCell = 60
 
-// StateBlock is the state block of section 12: for each Goal its state, runs
+// StateBlock is the state block: for each Goal its state, runs
 // used, stop with the act that caused it and what it waits for, the allowed acts of every role as ready
 // command lines, a marked split line, the Results Stable refused, and, while
 // the Goal is selected, the PR body; at a stop with no select, the table of

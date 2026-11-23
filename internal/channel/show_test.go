@@ -250,9 +250,12 @@ func TestShowKeepsReadsInTheLog(t *testing.T) {
 		t.Fatal(err)
 	}
 	payload, _ := json.Marshal(events.Read{Role: "runner", Command: []string{"status"}, Stdout: hash, Stderr: empty})
-	if _, err := logstore.Append(f.r.Dir, "runner-1", func([]events.Event) (events.Event, error) {
-		return events.Event{Type: events.TypeRead, Payload: payload}, nil
-	}); err != nil {
+	// hyp no longer writes a read to the log (its kind is stored in the
+	// trace), so the test writes the line an earlier hyp wrote.
+	line, _ := json.Marshal(events.Event{V: events.Version, ID: "01K0000000000000000000READ", TS: "2026-01-01T00:00:00Z",
+		Actor: "runner-1", Type: events.TypeRead, Node: "01K0000000000000000000READ", Payload: payload})
+	file := filepath.Join(f.r.Dir, ".tree", "events", "runner-1.jsonl")
+	if err := os.WriteFile(file, append(line, '\n'), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, now, _ := run(t, "status")

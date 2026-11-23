@@ -2,12 +2,15 @@ package channel
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 
+	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -143,7 +146,7 @@ func TestV1CommandGone(t *testing.T) {
 
 func TestCommandsAreSorted(t *testing.T) {
 	got := Commands()
-	if !slices.Equal(got, []string{"add", "close", "help", "land", "place", "prune", "run", "select", "show", "status", "try", "unselect", "version"}) {
+	if !slices.Equal(got, []string{"add", "close", "help", "land", "place", "prune", "run", "select", "show", "spec", "status", "try", "unselect", "version"}) {
 		t.Fatalf("Commands = %v", got)
 	}
 }
@@ -323,5 +326,37 @@ func TestRunWithoutStoreExit1(t *testing.T) {
 	t.Setenv("HYP_ROLE", "runner")
 	if code, _, errs := run(t, "run", "HEAD", "G-AAAAAA/line-1"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
 		t.Fatalf("code %d, stderr %q", code, errs)
+	}
+}
+
+// TestHelpAndSpecShareEachEntry: hyp help prints each command's help block
+// from its entry, and hyp spec prints each command's usage line from the same
+// entry, and each exit code its entry gives.
+func TestHelpAndSpecShareEachEntry(t *testing.T) {
+	_, help, _ := run(t, "help")
+	code, out, _ := run(t, "spec")
+	if code != 0 {
+		t.Fatalf("hyp spec: code %d", code)
+	}
+	for _, c := range spec.Commands {
+		if !strings.Contains(help, c.Help) {
+			t.Errorf("hyp help lacks the block of %s", c.Name)
+		}
+		if !strings.Contains(out, "  "+c.Name+"  usage: "+c.Usage()+"  ") {
+			t.Errorf("hyp spec lacks the usage of %s: %s", c.Name, c.Usage())
+		}
+	}
+	for _, e := range spec.Exits {
+		if !strings.Contains(out, fmt.Sprintf("  exit %d  %s: ", e.Code, e.Name)) {
+			t.Errorf("hyp spec lacks exit %d", e.Code)
+		}
+	}
+	for _, k := range events.Kinds {
+		if !strings.Contains(out, "  "+k.Type+"  stored in "+k.Home+"  ") {
+			t.Errorf("hyp spec lacks where %s is stored", k.Type)
+		}
+	}
+	if code, _, _ := run(t, "spec", "extra"); code != 2 {
+		t.Errorf("hyp spec extra: code %d, want 2", code)
 	}
 }

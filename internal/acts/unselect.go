@@ -27,7 +27,7 @@ type UnselectReport struct {
 }
 
 // Unselect records the owner's unselect of a selected Goal, or refuses with
-// the first failing guard of the state machine, section 8: Not ended, Owner
+// the first failing guard, in the order its entry in hyp spec names: Not ended, Owner
 // unselects, Goal's actor, then Selected (the Goal has a select). The Goal is
 // open again: its Results and cells stay, the budget starts again, and the
 // runner selects again only once a run records a new cell (New cell). Every

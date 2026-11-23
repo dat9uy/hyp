@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	"github.com/dat9uy/hyp/internal/gitread"
+	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
@@ -15,15 +16,15 @@ const (
 	StopBudgetUsed    = tables.StopBudgetUsed
 )
 
-// The acts a ready line names.
+// The acts a ready line names: the acts of the spec's state entries.
 const (
-	ActAddGoal  = "add goal"
-	ActPlace    = "place"
-	ActRun      = "run"
-	ActSelect   = "select"
-	ActLand     = "land"
-	ActUnselect = "unselect"
-	ActClose    = "close"
+	ActAddGoal  = spec.ActAddGoal
+	ActPlace    = spec.ActPlace
+	ActRun      = spec.ActRun
+	ActSelect   = spec.ActSelect
+	ActLand     = spec.ActLand
+	ActUnselect = spec.ActUnselect
+	ActClose    = spec.ActClose
 )
 
 // Ready is one allowed act a role may run, with every key hyp knows. A key
@@ -56,7 +57,7 @@ type Standing struct {
 }
 
 // Stand calculates the standing of a Goal: its rows and candidates, and the
-// stop of section 11 with the act that caused it. A landed Goal keeps the stop
+// stop with the act that caused it. A landed Goal keeps the stop
 // its land names; an ended Goal waits for no one. repo is the git top level.
 func Stand(g *tables.Goal, repo string) Standing {
 	anc := gitread.Ancestry{Dir: repo}
@@ -115,7 +116,7 @@ func causeOf(g *tables.Goal, id string) Cause {
 	return Cause{ID: id}
 }
 
-// budgetUsed reports the stop of section 11: three trees counted, the third
+// budgetUsed reports the stop Budget used: three trees counted, the third
 // with a live cell for every placed example. The caller checks no candidate.
 func budgetUsed(g *tables.Goal) bool {
 	counted := g.CountedTrees()
@@ -141,11 +142,16 @@ func Allowed(t tables.Tables, repo string) []Ready {
 	return out
 }
 
-// AllowedFor lists the allowed acts of one Goal. It checks every guard that
-// reads only the tables and git; Kind and Stable need a Probe run and are
-// checked when the act runs. Acts the binary lacks are never listed. Within a
-// role the lines keep the order of the Goal's lines.
+// AllowedFor lists the allowed acts of one Goal: only acts its state's entry
+// in the spec allows (spec.States), and of those only the ones whose guards
+// that read only the tables and git hold; Kind and Stable need a Probe run
+// and are checked when the act runs. Acts the binary lacks are never listed.
+// Within a role the lines keep the order of the Goal's lines.
 func AllowedFor(g *tables.Goal, repo string) []Ready {
+	return slices.DeleteFunc(allowedFor(g, repo), func(r Ready) bool { return !spec.Allows(g.State, r.Act) })
+}
+
+func allowedFor(g *tables.Goal, repo string) []Ready {
 	if g.State == tables.StateEnded {
 		return nil
 	}
@@ -195,7 +201,7 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 	return orderRoles(out)
 }
 
-// roleOrder is the order roles print in: the order section 2 names them.
+// roleOrder is the order roles print in: the order of the roles in hyp help.
 var roleOrder = []string{"owner", "grill", "probe-writer", "runner"}
 
 func orderRoles(ls []Ready) []Ready {

@@ -6,7 +6,8 @@ This file is for any agent or person who changes hyp. It says how the repository
 
 - **hyp**, the binary: `cmd/hyp` and `internal/`. It stores each Goal as append-only events under `.tree/events/`, one file per actor, and calculates every state from them.
 - **Two skills**: `skills/hyp-grill`, which grills and re-grills a Goal and ships the runner's run rules as its part `run-rules.md`, and `skills/hyp-statechart`, with which the grill writes a Goal's model, its switches and its chart, and which ships the statechart tool (MIT) with its license and source.
-- **Docs** in `docs/`: the rules in [state-machine.md](docs/state-machine.md); the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md).
+- **The spec** is `hyp spec`: it prints every event kind, state, act, guard and exit code, from the entries in `internal/spec` and `internal/events` that the binary acts on.
+- **Docs** in `docs/`: the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md).
 - **Test data** under `internal/*/testdata`. Records made before the public release stay in the private development history.
 
 Install the binary as [install.md](docs/install.md) describes.
@@ -25,7 +26,7 @@ The split exists for four reasons:
 3. **Self-review has no rule of its own.** Its examples give their line's verdict on H0 before they count, like the examples of every Goal.
 4. **Visibility is a separate question.** Every item in this repository is public, so "private" never needs to mean "self-review".
 
-Three rules keep the boundary honest: a concept stays core when self-review is what tests it; a self-review Goal does not make the concepts it uses self-review; and self-review invents no concept and no rule of its own: its examples give their line's verdict on H0 before they count, like every Goal's ([state-machine.md](docs/state-machine.md) §7, Kind). There are exactly two scopes. An item that fits neither has not been split far enough. Every item on `main` today is core.
+Three rules keep the boundary honest: a concept stays core when self-review is what tests it; a self-review Goal does not make the concepts it uses self-review; and self-review invents no concept and no rule of its own: its examples give their line's verdict on H0 before they count, like every Goal's (the guard Kind in `hyp spec`). There are exactly two scopes. An item that fits neither has not been split far enough. Every item on `main` today is core.
 
 ## Before you change anything
 
@@ -39,7 +40,7 @@ hyp is changed the way it asks its users to decide things: with a Goal whose gap
 
 1. **A real event points at hyp.** In a real run a refusal or a warning fires, a Goal reaches a stop it cannot leave, `hyp status` lists an event under `refused at replay`, or the owner flags a run. A change is never proposed on speculation.
 2. **An issue names the event and its scope.**
-3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, and gap and guard lines. The grill places one or more examples on each line with `hyp place`, each run on H0 to show it gives the verdict its line needs. The rules are in [state-machine.md](docs/state-machine.md).
+3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, and gap and guard lines. The grill places one or more examples on each line with `hyp place`, each run on H0 to show it gives the verdict its line needs. The rules are in `hyp spec`.
 4. **The runner runs and selects.** `hyp run` runs a line on a commit, within a budget of three Hypotheses, and `hyp select` records the one candidate that is met on every line and holds a spec. The select's report is the PR body, and `hyp status` prints the allowed acts of each role as ready command lines. Every change is a Goal.
 5. **The change passes its gate.**
    - A failure that can be detected from the log or from git goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.
@@ -56,11 +57,11 @@ hyp is changed the way it asks its users to decide things: with a Goal whose gap
 
 ## Rules
 
-- An example is self-contained: its Probe reads nothing outside itself except the subject and the environment variables its `external` section names. A fixed input that is not the subject is an `input/<path>` section of the example. A new version of an example only adds a floor or a ceiling; any other change is a new example key ([state-machine.md](docs/state-machine.md) §7 and §10).
+- An example is self-contained: its Probe reads nothing outside itself except the subject and the environment variables its `external` section names. A fixed input that is not the subject is an `input/<path>` section of the example. A new version of an example only adds a floor or a ceiling; any other change is a new example key (the guard Adds only and the Probe rule in `hyp spec`).
 - Name a binary by its sha256, not by the commit it was built from.
-- hyp exits 1 for a rule refusal, 2 for bad arguments and 3 for an environment problem, such as a missing tool or a Probe that failed or timed out ([state-machine.md](docs/state-machine.md) §12).
+- hyp exits 1 for a rule refusal, 2 for bad arguments and 3 for an environment problem, such as a missing tool or a Probe that failed or timed out (the exit codes in `hyp spec`).
 - Skill text cites no ADR and no file under `docs/`: the skills are copied into other repositories without them. A skill states its rule inline, and the ADR behind it names the skill file. Removing such a citation is a product fix.
-- A state machine has one spec, and a change to the machine updates that spec in the same PR. Every spec states the states or statuses, what is stored and what is derived, the events or steps with what each state refuses and its exit code, and what happens on a crash or a merged log.
+- hyp has one spec: its entries in `internal/spec` and `internal/events`, which the binary acts on and `hyp spec` prints. A change to a rule changes its entry in the same PR, and no doc restates the rule. The entries state each state and what it allows, each event kind with where it is stored and whether an end freezes it, each act with its roles and its guards in order, each guard with its codes, each exit code, and the rules of the store, the merge order, the budget, the example file and the Probe.
 - A PR whose events file conflicts on GitHub is merged locally first: GitHub does not run the union merge that the store's `.tree/.gitattributes` names, so take main's `.tree/.gitattributes` (`git checkout origin/main -- .tree/.gitattributes`), commit it if it changed, then run `git merge origin/main`, and push. Without that commit, `git merge` stops because the checked-out file would be overwritten.
 - Write "Part of #N", never a closing keyword, next to an issue that stays open.
 - An issue that closes with its goal not met gets a new issue first, as a placeholder that states the unmet goal, and its closing comment names that issue. A goal is never held only in a closed issue.

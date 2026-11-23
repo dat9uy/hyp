@@ -1,5 +1,5 @@
 // Package example parses an example file and compares a Probe's output with
-// it by the fixed rule of the state machine, section 9.
+// it by the fixed rule of the example file in hyp spec.
 package example
 
 import (

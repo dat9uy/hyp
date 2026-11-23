@@ -91,7 +91,7 @@ type scan struct {
 // Place places the Goal's whole example set: every example folder under
 // goals/G/<line>/, for each line of the Goal. It records one examples.place
 // event that holds every example the set changed, or places none of the set
-// and names every cause. The guards of the state machine, section 8, in
+// and names every cause. The guards its entry in hyp spec names, in
 // order: Not landed, not Selected and Grill places for the Goal; then, for
 // the set, Whole set, Committed and Adds only, which need no Probe; then Kind,
 // which runs each changed example on H0. A set that changes no example is

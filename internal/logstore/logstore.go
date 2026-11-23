@@ -310,7 +310,7 @@ func WithLock(root string, f func([]events.Event) error) error {
 }
 
 // Append takes the store's lock, reads every event, calls build with them,
-// and writes the event build returns as one fsynced line to
+// and writes, when the event's kind is stored in git, the event build returns as one fsynced line to
 // .tree/events/<actor>.jsonl. V, ID, TS and Actor are filled in here, and Node
 // too when build left it empty: a new Goal's goal.add names itself. An error
 // from build is returned unchanged and nothing is written, not even the file.
@@ -323,12 +323,14 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 		return events.Event{}, err
 	}
 	defer unlock()
-	return appendLocked(treeDir(root), actor, build)
+	return appendLocked(treeDir(root), actor, events.HomeGit, build)
 }
 
 // appendLocked is Append for the folder of events base, whose lock the
 // caller holds.
-func appendLocked(base, actor string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
+// home is where base is: an event whose kind's entry names another home is
+// not written (events.Kinds).
+func appendLocked(base, actor, home string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
 	evs, _, err := eventsOf(base)
 	if err != nil {
 		return events.Event{}, err
@@ -336,6 +338,9 @@ func appendLocked(base, actor string, build func([]events.Event) (events.Event, 
 	ev, err := build(evs)
 	if err != nil {
 		return ev, err
+	}
+	if k, ok := events.KindOf(ev.Type); !ok || k.Home != home {
+		return ev, fault.EnvFault(fault.EventHome, ev.Type, home)
 	}
 	if n := utf8.RuneCountInString(ev.Why); n > MaxWhy {
 		return ev, fault.BadArg(fault.WhyTooLong, n, MaxWhy)

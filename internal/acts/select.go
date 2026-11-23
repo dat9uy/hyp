@@ -32,8 +32,8 @@ type SelectReport struct {
 	Selected *tables.Goal // the Goal as the log holds it after the select
 }
 
-// Select records a select, or refuses with the first failing guard of the
-// state machine, section 8: Not landed (always holds), Selected, Candidate,
+// Select records a select, or refuses with the first failing guard, in the
+// order its entry in hyp spec names: Not landed (always holds), Selected, Candidate,
 // New cell (for the runner), Goal's actor (for the owner), Spec, then Own
 // path. Spec and Own path read the
 // commit of the row's latest Result in merge order, which is the commit the

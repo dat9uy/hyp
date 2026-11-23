@@ -119,7 +119,7 @@ Four roles act. The actor and the role are declared by the agent, and a guard th
 | **probe-writer** | Writes Probe code for an example. Records no event. | none that writes |
 | **runner** | Builds commits, runs each line on them, and selects the one candidate. | `hyp run`, `hyp select` |
 
-hyp itself is not a role. It runs each Probe, calculates each state, and refuses an act whose guard fails, with exit 1 and the guard's name. `hyp status`, `hyp try`, `hyp show` and `hyp prune` are reads: they record nothing in the repository. The spec also states `reset` and `retract`, which later Goals will build.
+hyp itself is not a role. It runs each Probe, calculates each state, and refuses an act whose guard fails, with exit 1 and the guard's name. `hyp status`, `hyp try`, `hyp show` and `hyp prune` are reads: they record nothing in the repository. `hyp spec` also names `reset` and `retract`, which later Goals will build.
 
 ### Example: G-H7GGGK
 
@@ -177,7 +177,7 @@ The first `hyp add goal` makes the store, `.tree/`, at the top level of the repo
 
 ## Read next
 
-- [docs/state-machine.md](docs/state-machine.md): the one spec of every rule. When another page differs from it, the spec wins.
+- `hyp spec`: the one spec of every rule, printed by the binary from the entries it acts on. When a page differs from it, `hyp spec` wins.
 - [docs/glossary.md](docs/glossary.md): the words hyp uses.
 - [docs/owner-guide.md](docs/owner-guide.md): what the owner sees and answers.
 - [docs/principles.md](docs/principles.md): why hyp is shaped the way it is.
