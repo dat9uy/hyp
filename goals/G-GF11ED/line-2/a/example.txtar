@@ -8,3 +8,5 @@ land exit 0
 G  ended
 -- floor: contains --
 landed: by owner
+-- ceiling --
+G  landed
