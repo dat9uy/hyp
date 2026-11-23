@@ -236,11 +236,11 @@ func TestShowAcrossWorktrees(t *testing.T) {
 	}
 }
 
-// TestShowKeepsReadsInTheLog: a read event an earlier hyp wrote into the log
-// still replays, and show prints it beside the trace's reads, oldest first.
-func TestShowKeepsReadsInTheLog(t *testing.T) {
+// TestShowReadsNoReadInTheLog: a read event in git's .tree/events is not
+// read: show prints only the reads of the clone's trace, and nothing about it.
+func TestShowReadsNoReadInTheLog(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
-	old := "what an earlier hyp printed\n"
+	old := "what a read in git names\n"
 	hash, err := logstore.PutOutput(f.r.Dir, []byte(old))
 	if err != nil {
 		t.Fatal(err)
@@ -250,8 +250,8 @@ func TestShowKeepsReadsInTheLog(t *testing.T) {
 		t.Fatal(err)
 	}
 	payload, _ := json.Marshal(events.Read{Role: "runner", Command: []string{"status"}, Stdout: hash, Stderr: empty})
-	// hyp no longer writes a read to the log (its kind is stored in the
-	// trace), so the test writes the line an earlier hyp wrote.
+	// hyp writes no read to the log (its kind is stored in the trace), so
+	// the test writes the line itself.
 	line, _ := json.Marshal(events.Event{V: events.Version, ID: "01K0000000000000000000READ", TS: "2026-01-01T00:00:00Z",
 		Actor: "runner-1", Type: events.TypeRead, Node: "01K0000000000000000000READ", Payload: payload})
 	file := filepath.Join(f.r.Dir, ".tree", "events", "runner-1.jsonl")
@@ -260,8 +260,7 @@ func TestShowKeepsReadsInTheLog(t *testing.T) {
 	}
 	_, now, _ := run(t, "status")
 	code, shown, _ := run(t, "show", "runner-1")
-	at := strings.Index(shown, old)
-	if code != 0 || at < 0 || !strings.Contains(shown[at:], now) || !strings.HasPrefix(shown, "runner-1: 2 reads") {
+	if code != 0 || strings.Contains(shown, old) || !strings.Contains(shown, now) || !strings.HasPrefix(shown, "runner-1: 1 read,") {
 		t.Fatalf("show: code %d:\n%s", code, shown)
 	}
 }

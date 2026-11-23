@@ -77,8 +77,15 @@ func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o Blo
 
 func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	st := acts.Stand(g, repo)
-	fmt.Fprintf(b, "%s  %s  runs: %d of %d used\n", g.ID, g.State, st.Used, tables.MaxHypotheses)
-	if st.Stop == acts.StopNone && st.Used == tables.MaxHypotheses-1 {
+	ended := g.State == tables.StateEnded
+	// an ended Goal prints no runs count: the runs are in each clone's trace,
+	// and an ended Goal reads the same in every clone
+	if ended {
+		fmt.Fprintf(b, "%s  %s\n", g.ID, g.State)
+	} else {
+		fmt.Fprintf(b, "%s  %s  runs: %d of %d used\n", g.ID, g.State, st.Used, tables.MaxHypotheses)
+	}
+	if !ended && st.Stop == acts.StopNone && st.Used == tables.MaxHypotheses-1 {
 		fmt.Fprintf(b, "last run: after this, %s stops for the owner.\n", g.ID)
 	}
 	fmt.Fprintf(b, "stop: %s\n", stopText(st.Stop, st.Cause))
@@ -93,6 +100,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 		fmt.Fprintf(b, "warning: the selected commit %s is on no branch or tag of this clone; push it or keep a branch on it, or git may lose it\n", g.Select.Commit)
 	}
 	for _, row := range st.Rows {
+		if ended {
+			break
+		}
 		for _, line := range g.SplitLines(row.RowTree) {
 			fmt.Fprintf(b, "split: %s on row %s\n", line, row.RowTree)
 		}
@@ -118,7 +128,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 			b.WriteString("  (none)\n")
 		}
 	}
-	unstable(b, g)
+	if !ended {
+		unstable(b, g)
+	}
 	if o.Ask && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
 		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
 	}
@@ -199,6 +211,10 @@ func outputsTable(b *strings.Builder, g *tables.Goal, repo string, rows []tables
 				continue
 			}
 			c := cells[i]
+			if !logstore.HasOutput(repo, c.Output) {
+				fmt.Fprintf(b, "    %s  %s  exit %d  output not in this clone's trace\n", c.Key, c.Verdict, c.Exit)
+				continue
+			}
 			fmt.Fprintf(b, "    %s  %s  exit %d  %s  %s\n", c.Key, c.Verdict, c.Exit, c.Output, cellText(repo, c.Output))
 		}
 	}
@@ -227,13 +243,12 @@ func cellText(repo, hash string) string {
 	return fmt.Sprintf("%d bytes: %s", size, data)
 }
 
-// h0Cell says what this clone's trace holds of H0's cell of a placement whose
-// place names no output: nothing to add when it holds the outputs the place
-// measured; a cell a try ran again, with a warning when its verdict differs
+// h0Cell says what this clone's trace holds of H0's cell of a placement:
+// nothing to add when it holds the outputs the place measured; a cell a try ran again, with a warning when its verdict differs
 // from the verdict git holds; or that the trace lacks it, with the ready try
 // line that runs it again.
 func h0Cell(b *strings.Builder, g *tables.Goal, p tables.Placement) {
-	if p.H0.Output != "" || p.H0.RowTree != g.BaseTree {
+	if p.H0.RowTree != g.BaseTree {
 		return
 	}
 	tc, ok := g.TraceCell(p.Hash, g.BaseTree)

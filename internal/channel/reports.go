@@ -180,13 +180,18 @@ func fence(text string) string {
 // with its kind, each placed example with its words, output, stderr, exit
 // code and verdict on the selected row, and the selected commit and row. A
 // split line is marked. It reads only the tables, the stored outputs and the
-// example folders.
+// example folders. An ended Goal's body reads git alone: each placed example
+// is met by the select, with no output, so it reads the same in every clone.
 func prBody(root string, g *tables.Goal) string {
 	if g == nil || g.Select == nil {
 		return ""
 	}
 	tree := g.Select.RowTree
-	split := g.SplitLines(tree)
+	ended := g.State == tables.StateEnded
+	var split []string
+	if !ended {
+		split = g.SplitLines(tree)
+	}
 	live := map[string]tables.LiveCell{}
 	for _, c := range g.LiveCells(tree) {
 		if _, ok := live[c.Key]; !ok {
@@ -212,6 +217,10 @@ func prBody(root string, g *tables.Goal) string {
 				words = "(example " + p.Hash + " is not readable here: " + bodyText(err, root) + ")"
 			}
 			fmt.Fprintf(&b, "\n### %s: %s\n\n", p.Key, words)
+			if ended {
+				fmt.Fprintf(&b, "verdict: met, by select %s at %s\n", g.Select.ID, g.Select.Time)
+				continue
+			}
 			c, ok := live[p.Key]
 			if !ok {
 				tc, tried := g.TraceCell(p.Hash, tree)

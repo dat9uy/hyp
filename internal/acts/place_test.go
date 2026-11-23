@@ -687,7 +687,7 @@ func TestPlaceCurrentVersionMissingFromCloneIsEnvironment(t *testing.T) {
 // outputFiles lists the files of the store's outputs folder.
 func outputFiles(t *testing.T, root string) []string {
 	t.Helper()
-	entries, err := os.ReadDir(logstore.OutputsDir(root))
+	entries, err := os.ReadDir(filepath.Join(root, ".tree", "outputs"))
 	if err != nil && !os.IsNotExist(err) {
 		t.Fatal(err)
 	}

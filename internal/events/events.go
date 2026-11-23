@@ -73,8 +73,8 @@ func (k Kind) Home() string {
 // Kinds are the entries of the eleven event types, in the order hyp spec
 // prints them. A Result changes no Goal's state: the state is calculated from
 // the places, selects and ends alone, so a clone that holds no Result replays
-// the same state. A result.record that an earlier hyp wrote into git is still
-// replayed from there.
+// the same state. hyp reads an event of a kind that changes no Goal's state
+// only from the trace, never from git.
 var Kinds = []Kind{
 	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces", true, "add goal"},
 	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
@@ -125,9 +125,9 @@ type GoalAdd struct {
 }
 
 // Cell is H0's verdict on an example, written by the placement that adds it.
-// A place names no output: H0's outputs go to the clone's trace. Output and
-// Stderr are set only in a place an earlier hyp wrote, whose outputs are under
-// .tree/outputs.
+// A place names no output: H0's outputs go to the clone's trace. hyp reads
+// no output by the Output and Stderr of a place; they stay in the type so
+// that the place events that name them still decode.
 type Cell struct {
 	Commit  string `json:"commit"`
 	RowTree string `json:"row_tree"`

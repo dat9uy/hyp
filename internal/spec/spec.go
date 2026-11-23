@@ -346,7 +346,7 @@ type Rule struct {
 var Rules = []Rule{
 	{"the store", []string{
 		"The store is .tree/ at the git top level: .tree/events/<actor>.jsonl, one file per actor, appended only. It holds the events of every kind that changes a Goal's state, and nothing else.",
-		"The first add goal creates it; .tree/.gitattributes merges the events files by union. hyp writes nothing under .tree/outputs/; it still reads the outputs an earlier hyp stored there, and the result.record events an earlier hyp wrote into git.",
+		"The first add goal creates it; .tree/.gitattributes merges the events files by union. hyp reads from .tree/ only the events of the kinds that change a Goal's state, and no output.",
 		"The trace is $HOME/.hyp/traces/<sha256 of the clone's git common directory>/: events/<actor>.jsonl holds the events of every kind that changes no Goal's state, outputs/<sha256> every output, and cells/ H0's cells of the places and the cells a try ran again. Every command that names an actor records there what hyp printed to it, before it prints.",
 		"The trace is a cache of this clone: a clone that lacks a cell prints that the cell is not in this clone's trace, with the ready hyp try line that runs it again, and a try of a missing cell saves it there.",
 	}},
