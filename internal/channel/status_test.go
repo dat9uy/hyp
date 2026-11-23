@@ -415,9 +415,13 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 	if !strings.Contains(one, f.goal+"  ended\n") || !strings.Contains(one, "selected row: ") {
 		t.Fatalf("status G of a landed Goal lacks its PR body:\n%s", one)
 	}
-	_, all, _ := run(t, "status")
+	_, all, _ := run(t, "status", "--all")
 	if !strings.Contains(all, f.goal+"  ended\n") || strings.Contains(all, "selected row: ") {
-		t.Fatalf("status of every Goal prints a landed Goal's record:\n%s", all)
+		t.Fatalf("status --all prints a landed Goal's record:\n%s", all)
+	}
+	_, work, _ := run(t, "status")
+	if strings.Contains(work, f.goal) || work != "no Goal is in work.\n1 ended Goal not shown; hyp status --all lists every Goal.\n" {
+		t.Fatalf("status of the Goals in work prints an ended Goal:\n%s", work)
 	}
 	if code, _, _ := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 1 {
 		t.Fatalf("a second land: code %d, want 1", code)

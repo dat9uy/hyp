@@ -20,6 +20,7 @@ type BlockOpts struct {
 	Role   string // filter the allowed acts to one role; empty for all four
 	NoBody bool   // leave the PR body out: the report above already printed it
 	Ask    bool   // a written or open Goal prints what it asks: hyp status G
+	All    bool   // with no Goal, list ended Goals too: hyp status --all
 }
 
 // roles are the roles a block lists, in the order of the roles in hyp help.
@@ -36,13 +37,24 @@ const maxCell = 60
 // outputs. A selected or ended Goal prints its PR body only when o names it:
 // the list of every Goal prints its state block alone. Events refused at replay close it,
 // then the lines of the events files that replay could not read: such a line
-// names no Goal, so every block lists all of them. repo is the git top level.
+// names no Goal, so every block lists all of them. The list of every Goal
+// leaves out the blocks of ended Goals unless o.All is set, and ends with a
+// line that counts them; the events of an ended Goal that replay refused are
+// still listed. repo is the git top level.
 func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o BlockOpts) string {
 	var b strings.Builder
 	shown := map[string]bool{}
+	inWork, hidden := 0, 0
 	for _, g := range tables.SortedGoals(t) {
 		if o.Goal != "" && g.EventID != o.Goal && g.ID != o.Goal {
 			continue
+		}
+		if o.Goal == "" && !o.All && g.State == tables.StateEnded {
+			hidden++
+			continue
+		}
+		if g.State != tables.StateEnded {
+			inWork++
 		}
 		shown[g.EventID] = true
 		goalBlock(&b, g, repo, o)
@@ -72,7 +84,21 @@ func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o Blo
 			fmt.Fprintf(&b, "  %s: %s\n", where, bodyText(l.Err, repo))
 		}
 	}
+	if hidden > 0 {
+		if inWork == 0 {
+			b.WriteString("no Goal is in work.\n")
+		}
+		fmt.Fprintf(&b, "%s not shown; hyp status --all lists every Goal.\n", endedCount(hidden))
+	}
 	return b.String()
+}
+
+// endedCount is "1 ended Goal" or "N ended Goals".
+func endedCount(n int) string {
+	if n == 1 {
+		return "1 ended Goal"
+	}
+	return fmt.Sprintf("%d ended Goals", n)
 }
 
 func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {

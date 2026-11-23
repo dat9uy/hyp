@@ -156,11 +156,14 @@ var Commands = []Command{
 		Help: `  finding refute F [--why TEXT]          refute finding F; refuted is final
 `},
 	{Name: "status",
-		Help: `  status [G] [--role ROLE]               print the state of every Goal, or of G:
-                                         its stop, its waits and the allowed
-                                         acts as ready command lines; of a
-                                         written or open G, also its words,
-                                         lines and placed examples
+		Help: `  status [G] [--role ROLE] [--all]       print the state of every Goal in work,
+                                         or of G: its stop, its waits and the
+                                         allowed acts as ready command lines;
+                                         of a written or open G, also its
+                                         words, lines and placed examples.
+                                         With no G, the blocks of ended Goals
+                                         are left out and a last line counts
+                                         them; --all prints them too
 `},
 	{Name: "show",
 		Help: `  show ACTOR                             print every output hyp printed to

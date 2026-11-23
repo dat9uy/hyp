@@ -1,0 +1,16 @@
+---
+title: "hyp G-MH24W6, hyp status lists the Goals in work and counts the ended ones"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: work
+    lg1: ended
+  }
+  class lg0 teal
+  class lg1 blue
+  s0: no Goal ended
+  s1: every Goal ended
+  [*] --> s0
+  s0 --> s1: Move
+  class s0 teal
+  class s1 blue

@@ -475,14 +475,17 @@ func readFlagsWith(c *call, command string, args []string, fs *flag.FlagSet) (po
 }
 
 func statusCmd(c *call, args []string, stdout io.Writer) error {
-	positional, role, err := readFlags(c, "status", args)
+	fs := flag.NewFlagSet("status", flag.ContinueOnError)
+	var all bool
+	fs.BoolVar(&all, "all", false, "")
+	positional, role, err := readFlagsWith(c, "status", args, fs)
 	if err != nil {
 		return err
 	}
 	if len(positional) > 1 {
 		return fault.BadArg(codeStatusArgs, len(positional))
 	}
-	o := BlockOpts{Role: role}
+	o := BlockOpts{Role: role, All: all}
 	if len(positional) == 1 {
 		o.Goal, o.Ask = positional[0], true
 	}
