@@ -1,0 +1,26 @@
+#!/bin/sh
+# Probe of G-SZ39PG line-5/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, runs the example's run section (hyp spec)
+# with that binary and prints its stdout as is. The last line is "exit N",
+# the exit code of the run section. A build failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export PATH="$work/bin:$PATH"
+
+out="$work/out"
+sh -c "$HYP_RUN" >"$out" 2>"$work/err"
+code=$?
+cat "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+echo "exit $code"
+exit 0
