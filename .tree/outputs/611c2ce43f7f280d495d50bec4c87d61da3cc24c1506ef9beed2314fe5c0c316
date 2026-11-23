@@ -1,0 +1,83 @@
+setup: hyp place G-2PDE9B
+placed G-2PDE9B: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-2PDE9B is open
+G-2PDE9B  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-2PDE9B
+grill may:
+  hyp place G-2PDE9B
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-2PDE9B/line-1
+setup: hyp run h1
+ran G-2PDE9B line-1 at eaee4f8d71c1e1d1e0fd10bd00468f0115fb3da6
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-2PDE9B  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-2PDE9B
+grill may:
+  hyp place G-2PDE9B
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-2PDE9B/line-1
+G-2PDE9B  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-2PDE9B
+grill may:
+  hyp place G-2PDE9B
+probe-writer may:
+  the Probe writer's contract, for the Probe of one example:
+    1. Read the line, its example and H0.
+    2. Write and commit only that example's probe folder, goals/G-2PDE9B/<line>/<example>/probe.
+    3. Start from the generic Probe and write new code only when it cannot run the example.
+    4. Run the example on H0 with hyp try and return its output.
+    5. Write no event.
+  the generic Probe, probe/run:
+    #!/bin/sh
+    # Run the example's run section in the subject copy (the working directory),
+    # print its stdout, then a last line "exit N" with its exit code.
+    tmp=$(mktemp) || exit 1
+    sh -c "$HYP_RUN" >"$tmp"
+    code=$?
+    cat "$tmp"
+    if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+    echo "exit $code"
+    rm -f "$tmp"
+  tasks, one for each line:
+    line-1 (gap): the Probe of each example of line-1; check it with: hyp try G-2PDE9B line-1/<example>
+runner may:
+  hyp run <commit> G-2PDE9B/line-1
+
+The Goal asks:
+
+# G-2PDE9B: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a @1
+
+hash: 937b45521e7120ee8cf7873010735f86ba922963
+placed: by grill at 2026-11-23T05:08:34.095015Z
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 80 bytes:
+
+```
+-- words --
+Fixture line-1/a.
+-- run --
+cat greet.txt
+-- floor: contains --
+bye
+```

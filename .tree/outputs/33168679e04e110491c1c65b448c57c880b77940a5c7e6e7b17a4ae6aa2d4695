@@ -1,0 +1,46 @@
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): the subject keeps keep.txt.
+
+### line-2/a: Fixture line-2/a.
+
+verdict: met, exit 0
+
+output, 4 bytes:
+
+```
+keep
+```
+
+stderr, 0 bytes
+
+selected commit: b29bd14de51549f6348f5965f907a6456c8ae0fc
+selected row: HASH
+G  selected  runs: 1 of 3 used
+stop: selected, by select ID at TIME
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+  hyp close G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+G is selected
