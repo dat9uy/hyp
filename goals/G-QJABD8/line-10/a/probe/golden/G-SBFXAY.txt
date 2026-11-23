@@ -1,0 +1,442 @@
+G-SBFXAY  ended  runs: 1 of 3 used
+stop: selected, by select 01M81Q9CSA7SZA67ZA0WMA7F6A at 2026-11-22T13:31:49.418536Z
+landed: by owner, land 01M81QFAZC03Z8TCW4MBRYSZH0 at 2026-11-22T13:35:04.172701Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-SBFXAY: The grill places a Goal's whole example set with one `hyp place G`, and the set counts only when every example agrees with its line about H0.
+
+## line-1 (gap): `hyp place G` places every example under `goals/G/<line>/` in one act, and only when each example agrees with its line about H0: a gap example fails on H0, a guard example is met on H0.
+
+### line-1/a: (example 077af5fef34edd394e5e4f8a3a2c8c0e8ca7818d is not readable here: object 077af5fef34edd394e5e4f8a3a2c8c0e8ca7818d not in this clone)
+
+verdict: met, exit 0
+
+output, 419 bytes:
+
+```
+placed G: 2 examples
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+line-2/a @1  hash: fc7f7d836700c4d57614c1f68dd4c9a8b11d0eb2  H0: met (exit 0)
+G is open
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+place exit 0
+G  open  runs: 0 of 3 used
+```
+
+stderr, 0 bytes
+
+## line-2 (gap): When an example disagrees with its line about H0, `hyp place G` places none of the set and names each example that disagrees, in its line's words.
+
+### line-2/a: (example be0d1ae2764d19fda1903077eb53bdde12ed351b is not readable here: object be0d1ae2764d19fda1903077eb53bdde12ed351b not in this clone)
+
+verdict: met, exit 0
+
+output, 478 bytes:
+
+```
+hyp: refused: none of the example set of G is placed; 1 cause:
+line-1/b: Kind: line-1 is a gap line, so its example must fail on H0; it is met
+H0 output, exit 0, 5 bytes:
+hello
+H0 stderr, 0 bytes
+floor: contains, 5 bytes:
+hello
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  (none)
+place exit 1
+G  written  runs: 0 of 3 used
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example 98791fb3421dcc569cc1d0a0fc0afbce726258c6 is not readable here: object 98791fb3421dcc569cc1d0a0fc0afbce726258c6 not in this clone)
+
+verdict: met, exit 0
+
+output, 619 bytes:
+
+```
+hyp: refused: none of the example set of G is placed; 2 causes:
+line-1/b: Kind: line-1 is a gap line, so its example must fail on H0; it is met
+H0 output, exit 0, 5 bytes:
+hello
+H0 stderr, 0 bytes
+floor: contains, 5 bytes:
+hello
+line-2/b: Kind: line-2 is a guard line, so its example must be met on H0; it is failed
+H0 output, exit 0, 5 bytes:
+hello
+H0 stderr, 0 bytes
+floor: contains, 3 bytes:
+bye
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  (none)
+place exit 1
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): `hyp place G` places none of the set, and names each cause, when a line holds no example, when an example placed before is missing, when an example is not committed, or when a new version changes more than its floors and ceilings.
+
+### line-3/a: (example 72cc7b7dddbe9b33697aac74f4e84508568aa9f0 is not readable here: object 72cc7b7dddbe9b33697aac74f4e84508568aa9f0 not in this clone)
+
+verdict: met, exit 0
+
+output, 394 bytes:
+
+```
+hyp: refused: none of the example set of G is placed; 1 cause:
+line-2: Whole set: line-2 holds no example: goals/G/line-2 has no example folder
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  (none)
+place exit 1
+G  written  runs: 0 of 3 used
+```
+
+stderr, 0 bytes
+
+### line-3/b: (example b8186c2fd3cc198f540ce7920e7c918d7e824aee is not readable here: object b8186c2fd3cc198f540ce7920e7c918d7e824aee not in this clone)
+
+verdict: met, exit 0
+
+output, 382 bytes:
+
+```
+hyp: refused: none of the example set of G is placed; 1 cause:
+line-1/b: Whole set: line-1/b was placed, and its folder goals/G/line-1/b is gone; a placed example stays in the set
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+place exit 1
+```
+
+stderr, 543 bytes:
+
+```
+setup: hyp place G-C77RPH
+placed G-C77RPH: 3 examples
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+line-1/b @1  hash: 203090fc98f51d2ffb76a508b9746c6d8250d5a1  H0: failed (exit 0)
+line-2/a @1  hash: fc7f7d836700c4d57614c1f68dd4c9a8b11d0eb2  H0: met (exit 0)
+G-C77RPH is open
+G-C77RPH  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-C77RPH
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-C77RPH/line-1
+  hyp run <commit> G-C77RPH/line-2
+setup: exit 0
+```
+
+### line-3/c: (example 1d5702178d60a1548500752cbfaad80528476467 is not readable here: object 1d5702178d60a1548500752cbfaad80528476467 not in this clone)
+
+verdict: met, exit 0
+
+output, 483 bytes:
+
+```
+hyp: refused: none of the example set of G is placed; 2 causes:
+line-1/runchange: Adds only: the run section differs from the current version; a change there is a new example key, not a new version
+line-2/uncommitted: Committed: goals/G/line-2/uncommitted is not committed at HEAD
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+place exit 1
+```
+
+stderr, 470 bytes:
+
+```
+setup: hyp place G-74BYGV
+placed G-74BYGV: 2 examples
+line-1/runchange @1  hash: 44727b1557e615ea2b1fbff18f69c79d1e8ac394  H0: failed (exit 0)
+line-2/a @1  hash: fc7f7d836700c4d57614c1f68dd4c9a8b11d0eb2  H0: met (exit 0)
+G-74BYGV is open
+G-74BYGV  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-74BYGV
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-74BYGV/line-1
+  hyp run <commit> G-74BYGV/line-2
+setup: exit 0
+```
+
+## line-4 (gap): A `hyp place G` that changes no example is refused, and only a place that changed the set restarts the budget; a change under `goals/G/specs/` alone is no change.
+
+### line-4/a: (example 0b23b6c678653bd0fd7d0030c0422f48870fef34 is not readable here: object 0b23b6c678653bd0fd7d0030c0422f48870fef34 not in this clone)
+
+verdict: met, exit 0
+
+output, 326 bytes:
+
+```
+hyp: refused: Adds only: no example of G changed since its last place; there is nothing to place
+G  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+place exit 1
+G  open  runs: 1 of 3 used
+```
+
+stderr, 1001 bytes:
+
+```
+setup: hyp place G-TXVA9E
+placed G-TXVA9E: 2 examples
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+line-2/a @1  hash: fc7f7d836700c4d57614c1f68dd4c9a8b11d0eb2  H0: met (exit 0)
+G-TXVA9E is open
+G-TXVA9E  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-TXVA9E
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-TXVA9E/line-1
+  hyp run <commit> G-TXVA9E/line-2
+setup: exit 0
+setup: hyp run 886897bba844134b3f6ba8d7b9831dc7afd0f9aa G-TXVA9E/line-1
+ran G-TXVA9E line-1 at 886897bba844134b3f6ba8d7b9831dc7afd0f9aa
+row: 3ed5c9c24799a0de11bff1c23d519c92ae626c02
+line-1/a failed (exit 0, output 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824)
+  words: Fixture line-1/a.
+G-TXVA9E  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-TXVA9E
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-TXVA9E/line-1
+  hyp run <commit> G-TXVA9E/line-2
+setup: exit 0
+```
+
+### line-4/b: (example a5e4b19977e18ab4e952d29c86ec3ab5e1c2bf27 is not readable here: object a5e4b19977e18ab4e952d29c86ec3ab5e1c2bf27 not in this clone)
+
+verdict: met, exit 0
+
+output, 326 bytes:
+
+```
+hyp: refused: Adds only: no example of G changed since its last place; there is nothing to place
+G  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+place exit 1
+G  open  runs: 1 of 3 used
+```
+
+stderr, 1001 bytes:
+
+```
+setup: hyp place G-AK9Z25
+placed G-AK9Z25: 2 examples
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+line-2/a @1  hash: fc7f7d836700c4d57614c1f68dd4c9a8b11d0eb2  H0: met (exit 0)
+G-AK9Z25 is open
+G-AK9Z25  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-AK9Z25
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-AK9Z25/line-1
+  hyp run <commit> G-AK9Z25/line-2
+setup: exit 0
+setup: hyp run e0b11ae6d4df4a8eaf161c4ecee7644a67ccd01f G-AK9Z25/line-1
+ran G-AK9Z25 line-1 at e0b11ae6d4df4a8eaf161c4ecee7644a67ccd01f
+row: 3ed5c9c24799a0de11bff1c23d519c92ae626c02
+line-1/a failed (exit 0, output 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824)
+  words: Fixture line-1/a.
+G-AK9Z25  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-AK9Z25
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-AK9Z25/line-1
+  hyp run <commit> G-AK9Z25/line-2
+setup: exit 0
+```
+
+## line-5 (gap): While the Goal is written or open, the grill's allowed acts show one ready place line, `hyp place G`; the form `hyp place G LINE/EXAMPLE` is refused as a bad argument.
+
+### line-5/a: (example d4ca656d08449f02c140c751c5935fe0b0bb9599 is not readable here: object d4ca656d08449f02c140c751c5935fe0b0bb9599 not in this clone)
+
+verdict: met, exit 0
+
+output, 84 bytes:
+
+```
+G  written  runs: 0 of 3 used
+  hyp place G
+G  open  runs: 0 of 3 used
+  hyp place G
+```
+
+stderr, 0 bytes
+
+### line-5/b: (example 4e39176ab8ac3805128ef90610211f93a8ab5cda is not readable here: object 4e39176ab8ac3805128ef90610211f93a8ab5cda not in this clone)
+
+verdict: met, exit 0
+
+output, 12 bytes:
+
+```
+place exit 2
+```
+
+stderr, 0 bytes
+
+## line-6 (guard): Every Goal recorded before this change keeps the state, stop, runs and allowed acts `hyp status` prints for it.
+
+### line-6/a: (example 14ec1db2db14de6e8e2f11ebb51be1062a51d12b is not readable here: object 14ec1db2db14de6e8e2f11ebb51be1062a51d12b not in this clone)
+
+verdict: met, exit 0
+
+output, 300 bytes:
+
+```
+G-1SWG76  landed  runs: 1 of 3 used
+stop: selected, by select 01M81NV52N64BG3KM310EZQW6R at 2026-11-22T13:06:34.197024Z
+landed: by owner, land 01M81NV5DM98SG8X0GKQJWEF11 at 2026-11-22T13:06:34.548212Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+```
+
+stderr, 492 bytes:
+
+```
+bc6a1d0979696c2016f2fe38871b5637876ae94b d101e8248f7ac2d3b38547bc59f25aab1b00318a
+70f8b4d539e69a856bead3159e1766a003840e7b cb53fe21f3e07b3275ad4a07a6a9d31e37824d51
+af3d6b5db4322b5b390e83a616a0a628faa6cbd4 2c9496fec37cf1f4c87b99045c4d38d6b7436672
+a93e1dad77da96ee62818b0ff2f13fc9e8dbc2fb ab5531587d6cba6342225546bbd0d59ac5becd79
+e534cb3a1b4920d5d5238f9db6ef1e24b2a2b863 d822414ed6d17a1de03cbdcb31cfeb7ffa1d8b37
+18bf70ee0e575054f95174c682baae4db9c75770 56ef077a153a22a552fb32288831d723bbc3e26c
+```
+
+## Chart
+
+not readable here: git ls-tree -r -z 459da93a244110af4249c2080eb7e5ba2cec9962 goals/G-SBFXAY/specs/: exit 128: fatal: not a tree object
+
+selected commit: 459da93a244110af4249c2080eb7e5ba2cec9962
+selected row: d2fa93c54370b073c4959a3fe1a0f9d8bac77428

@@ -1,0 +1,8 @@
+-- words --
+The guards that read cells (Candidate and New cell) print "checked at replay: no".
+-- run --
+hyp spec
+-- floor: contains --
+Candidate is not checked at replay
+-- floor: contains --
+New cell is not checked at replay

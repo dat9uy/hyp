@@ -1,0 +1,8 @@
+-- words --
+`hyp spec` prints a "checked at replay" field for every guard.
+-- run --
+hyp spec
+-- floor: contains --
+every guard says whether replay checks it
+-- ceiling --
+a guard says nothing

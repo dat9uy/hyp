@@ -1,0 +1,16 @@
+placed G-3FDQC0 line-2/a @1
+hash: aae86cf8f1a8af5084695ace84a997c6e2213a4c
+H0: met (exit 0)
+G-3FDQC0 is open
+G-3FDQC0  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-3FDQC0 <line>/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-3FDQC0/line-1
+  hyp run <commit> G-3FDQC0/line-2

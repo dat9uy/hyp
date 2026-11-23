@@ -1,0 +1,8 @@
+-- words --
+`hyp spec` says `result.record` is stored in the trace.
+-- run --
+hyp spec
+-- floor: contains --
+result.record is stored in trace
+-- ceiling --
+result.record is stored in git

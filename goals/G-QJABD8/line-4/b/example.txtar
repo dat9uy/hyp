@@ -1,0 +1,8 @@
+-- words --
+Clone A ran once. A fresh clone B prints `runs: 0 of 3 used`.
+-- run --
+hyp status G
+-- floor: contains --
+runs: 0 of 3 used
+-- ceiling --
+runs: 1 of 3 used

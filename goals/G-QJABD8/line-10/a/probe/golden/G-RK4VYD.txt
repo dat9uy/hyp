@@ -1,0 +1,113 @@
+G-RK4VYD  ended  runs: 1 of 3 used
+stop: selected, by select 01M7SMKQSS6193AFXSG6QJKN83 at 2026-11-19T10:11:07.193553Z
+landed: by owner, land 01M7YS8SGC0M6SWW2MWNV6ME6P at 2026-11-21T10:08:43.532714Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-RK4VYD: Keep the trace in hyp's own folder, and let the owner clean it
+
+## line-1 (gap): hyp keeps the trace under ~/.hyp/trace or something similar, and does not hijack the ~/.local folder.
+
+### line-1/a: (example 5a9b56da17be03f13a015854c1ae8a61b6651a16 is not readable here: object 5a9b56da17be03f13a015854c1ae8a61b6651a16 not in this clone)
+
+verdict: met, exit 0
+
+output, 431 bytes:
+
+```
+owner: hyp status: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp run HEAD G/line-1: exit 1, names the Goal: yes, stderr: yes
+owner: hyp status G-AAAAAA: exit 2, names the Goal: no, stderr: yes
+owner: hyp show owner: exit 0
+hyp show owner holds the owner's read byte for byte: yes
+files under ~/.hyp: some
+files under ~/.local: none
+after ~/.hyp is moved away, hyp show owner still holds that read: no
+changes git sees: none
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example 024f40a1681eb20150ae1f2b5ad16e4e1ebfbc7b is not readable here: object 024f40a1681eb20150ae1f2b5ad16e4e1ebfbc7b not in this clone)
+
+verdict: met, exit 0
+
+output, 212 bytes:
+
+```
+owner: hyp status: exit 0, names the Goal: yes
+hyp show owner holds the owner's read byte for byte: yes
+files under ~/.hyp: some
+files under $XDG_STATE_HOME: none
+files under ~/.local: none
+changes git sees: none
+```
+
+stderr, 0 bytes
+
+## line-2 (gap): The owner can see and remove the traces of repositories that no longer exist.
+
+### line-2/a: (example a7799f3ee1f40cc58db7c628e168f2042e31c855 is not readable here: object a7799f3ee1f40cc58db7c628e168f2042e31c855 not in this clone)
+
+verdict: met, exit 0
+
+output, 178 bytes:
+
+```
+owner: hyp prune: exit 0, names the deleted repository: yes, names the live repository: no
+files under ~/.hyp that hold the deleted repository's read: some
+changes git sees: none
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example 7fa5abe927e66b1cd5f1933a6412c993ac918c4d is not readable here: object 7fa5abe927e66b1cd5f1933a6412c993ac918c4d not in this clone)
+
+verdict: met, exit 0
+
+output, 453 bytes:
+
+```
+before: files under ~/.hyp that hold the deleted repository's read: some
+owner: hyp prune --remove: exit 0, names the deleted repository: yes, names the live repository: no
+after: files under ~/.hyp that hold the deleted repository's read: none
+owner: hyp prune: exit 0, names the deleted repository: no
+hyp show runner in the live repository holds its read byte for byte: yes
+the old trace folder under ~/.local is unchanged: yes
+changes git sees: none
+```
+
+stderr, 0 bytes
+
+## line-3 (guard): The owner can read an agent's reads from any git worktree of the clone the agent used, before its branch merges.
+
+### line-3/a: (example 0c3e1b7ee034738a4eb628ccca7dd01f52900761 is not readable here: object 0c3e1b7ee034738a4eb628ccca7dd01f52900761 not in this clone)
+
+verdict: met, exit 0
+
+output, 214 bytes:
+
+```
+runner, in its worktree: hyp status: exit 0, names the Goal: yes
+runner's branch has a new commit: no
+owner, in the main checkout: hyp show runner: exit 0
+the owner's view holds the runner's read byte for byte: yes
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 3dd9a3a5e8602012b80ff12aea368bc641de1417 goals/G-RK4VYD/specs/: exit 128: fatal: not a tree object
+
+selected commit: 3dd9a3a5e8602012b80ff12aea368bc641de1417
+selected row: 35ddbf3aebbf91a0052dbeea9b79242efb066bc0

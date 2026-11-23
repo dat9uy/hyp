@@ -1,0 +1,4 @@
+unselect exit: 0
+state after unselect: open
+owner's select of the old row exit: 0
+Results in the log: 1

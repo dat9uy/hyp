@@ -1,0 +1,6 @@
+-- words --
+The same warning appears in `hyp status` (the list), not only in `status G`.
+-- run --
+hyp status
+-- floor: contains --
+on no branch or tag

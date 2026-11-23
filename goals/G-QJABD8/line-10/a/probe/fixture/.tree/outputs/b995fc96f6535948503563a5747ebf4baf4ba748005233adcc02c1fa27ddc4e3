@@ -1,0 +1,12 @@
+open; hyp place G line-3/a returns:
+grill may:
+  hyp place G <line>/<example>
+open; hyp status G:
+grill may:
+  hyp place G <line>/<example>
+open; hyp run H0 G/line-1 returns:
+grill may:
+  hyp place G <line>/<example>
+selected; hyp status G:
+grill may:
+  (none)

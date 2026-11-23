@@ -1,0 +1,245 @@
+G-SCAXYW  ended  runs: 1 of 3 used
+stop: selected, by select 01M7YPQZMGKMQ609F2Q4T689MC at 2026-11-21T09:24:35.600784Z
+landed: by owner, land 01M7YQM8K9Z78M4KB3R5HRCPHB at 2026-11-21T09:40:02.281419Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-SCAXYW: The statechart tool, not the grill, says which rules each variant breaks and which examples each variant would meet; the grill tries what the tool predicts, and only a tried variant that meets every example reaches the owner, as one plain question.
+
+## line-1 (gap): The statechart tool writes one variant config per variant that lists exactly the rules that variant breaks, and prints each rule that no variant breaks as not shown to fail.
+
+### line-1/a: (example ddb046ddb154cb280022393aa84f386f48065482 is not readable here: object ddb046ddb154cb280022393aa84f386f48065482 not in this clone)
+
+verdict: met, exit 0
+
+output, 434 bytes:
+
+```
+BlankBeside: EveryLineNamesItsKey OneLinePerLineWhileOpen
+OfferGoneLines: OneLinePerLineWhileOpen OneLinePerLineWhileWritten
+OldH0: EveryAllowedPlaceOffered EveryLineNamesItsKey OneLinePerLineWhileOpen OneLinePerLineWhileWritten
+OnlyWhenWritten: EveryAllowedPlaceOffered OneLinePerLineWhileOpen
+PlaceWhenSelected: NothingOnceSelected
+TypeOK printed as not shown to fail: yes
+a rule some variant breaks printed as not shown to fail: no
+```
+
+stderr, 0 bytes
+
+## line-2 (gap): For each example of a Goal, the tool prints a walk of the model along which the model's prints give an output that meets the example's floors and ceilings, or says that no walk of the model does.
+
+### line-2/a: (example 440c619bb9d070df332c3d95b240ab6695e6fbc6 is not readable here: object 440c619bb9d070df332c3d95b240ab6695e6fbc6 not in this clone)
+
+verdict: met, exit 0
+
+output, 84 bytes:
+
+```
+walk of line-1/a printed, a press then a look: yes
+line-1/a said to have no walk: no
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example ae0b2c6f8fc498b864917e2a428c36a76096497c is not readable here: object ae0b2c6f8fc498b864917e2a428c36a76096497c not in this clone)
+
+verdict: met, exit 0
+
+output, 34 bytes:
+
+```
+line-1/a said to have no walk: yes
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): For each example and each variant, the tool prints whether the example is met under that variant, from the model alone and with no patch, and for each variant it prints the examples that separate it, or none.
+
+### line-3/a: (example c2f87a5a9a8c57f5baa4c986ebf2708995427028 is not readable here: object c2f87a5a9a8c57f5baa4c986ebf2708995427028 not in this clone)
+
+verdict: met, exit 0
+
+output, 190 bytes:
+
+```
+line-1/a: OfferGoneLines met, OldH0 fail
+line-1/b: OfferGoneLines met, OldH0 fail
+line-1/c: OfferGoneLines met, OldH0 fail
+separated by: OfferGoneLines none; OldH0 line-1/a line-1/b line-1/c
+```
+
+stderr, 0 bytes
+
+### line-3/b: (example 6d3ec892afd6d96d829e305e71fc4e02c176fe94 is not readable here: object 6d3ec892afd6d96d829e305e71fc4e02c176fe94 not in this clone)
+
+verdict: met, exit 0
+
+output, 86 bytes:
+
+```
+line-1/a: SlowPress fail, NeverOff met
+separated by: SlowPress line-1/a; NeverOff none
+```
+
+stderr, 0 bytes
+
+## line-4 (gap): The report holds a rules table (rule, source, broken by, an example sees it break), an examples by variants table with predicted and tried cells and a separated-by row, and one part for each variant that no example separates, naming its rules, the step no example takes and the two prints; when the grill gives the tool the verdicts `hyp try --worktree` printed on a variant's patch, each tried cell sits beside its prediction and each cell where they differ is named.
+
+### line-4/a: (example 9688b199df35197cdfde1d31bacfedd01e1c8012 is not readable here: object 9688b199df35197cdfde1d31bacfedd01e1c8012 not in this clone)
+
+verdict: met, exit 0
+
+output, 523 bytes:
+
+```
+rules table header: yes
+OnePressTurnsOn row: line-1, broken by SlowPress, seen: yes
+LampFollowsPresses row: line-2, broken by both, seen: yes
+line-1/a: SlowPress fail met, NeverOff met met
+line-3/a: SlowPress met, NeverOff met met
+separated by: SlowPress line-1/a; NeverOff none
+the differing cell is named: yes
+a NeverOff cell named as differing: no
+NeverOff part names LampFollowsPresses: yes
+NeverOff part names press: yes
+NeverOff part names lamp: on: yes
+NeverOff part names lamp: off: yes
+a gap part for SlowPress: no
+```
+
+stderr, 0 bytes
+
+## line-5 (gap): Each rule of the model names its source: a line of the Goal, an owner decision, or model only. The tool lists each rule with no source and each line of the Goal that no rule names.
+
+### line-5/a: (example 3e4b4ce40cc6c697172bf9209ccc7257631575c8 is not readable here: object 3e4b4ce40cc6c697172bf9209ccc7257631575c8 not in this clone)
+
+verdict: met, exit 0
+
+output, 141 bytes:
+
+```
+SaidIsKnown listed with no source: yes
+a tagged rule listed with no source: no
+line-3 listed with no rule: yes
+line-1 listed with no rule: no
+```
+
+stderr, 0 bytes
+
+## line-6 (gap): A user of hyp in another repository can have the grill draft the model after the owner consents to the words and lines and before the examples are final, try with `hyp try --worktree` each variant the tool predicts to meet every example and one predicted-fail example of each other variant, and fix the model, not an example, where a try differs from its prediction, saying so in one line of the hand-off.
+
+### line-6/a: (example 91623be430c1f3a85a5474a05d7f20ff98e7811d is not readable here: object 91623be430c1f3a85a5474a05d7f20ff98e7811d not in this clone)
+
+verdict: met, exit 0
+
+output, 250 bytes:
+
+```
+skill folder hyp-grill: yes
+rule model-after-consent-before-examples: yes
+rule try-each-variant-predicted-to-meet-every-example: yes
+rule one-spot-check-per-other-variant: yes
+rule fix-the-model-not-the-example: yes
+rule one-line-in-the-hand-off: yes
+```
+
+stderr, 0 bytes
+
+## line-7 (gap): A user of hyp in another repository gets from the grill one plain-English question, at the example level and with no model word, for each tried variant that meets every example and prints something else on a step no example takes; a case the owner answers "either output is fine" goes under Not covered.
+
+### line-7/a: (example c676af157063b19b4e0e5967c8591a9a30f035d6 is not readable here: object c676af157063b19b4e0e5967c8591a9a30f035d6 not in this clone)
+
+verdict: met, exit 0
+
+output, 260 bytes:
+
+```
+skill folder hyp-grill: yes
+rule one-question-per-tried-variant-that-meets-every-example: yes
+rule the-question-is-plain-english-with-no-model-word: yes
+rule either-output-is-fine-goes-under-not-covered: yes
+rule a-prediction-alone-never-reaches-the-owner: yes
+```
+
+stderr, 0 bytes
+
+## line-8 (gap): hyp, the glossary, the spec and both skills say "variant" where they said "switch": select reads variant configs from `specs/variants/`, and its refusal names variant configs.
+
+### line-8/a: (example 67628b7b8c477157e01bbcb3f92288368aa4be8f is not readable here: object 67628b7b8c477157e01bbcb3f92288368aa4be8f not in this clone)
+
+verdict: met, exit 0
+
+output, 198 bytes:
+
+```
+a rule no variant config names: select exit 1
+the refusal names LonelyRule: yes
+the refusal names the variants folder: yes
+the refusal says switch: no
+every rule named under variants/: select exit 0
+```
+
+stderr, 0 bytes
+
+### line-8/b: (example 75cb70d2862c8a7f3d597268953028fc745a2344 is not readable here: object 75cb70d2862c8a7f3d597268953028fc745a2344 not in this clone)
+
+verdict: met, exit 0
+
+output, 159 bytes:
+
+```
+skill and doc pages that say switch: none
+Go files of hyp that say switch: none
+the glossary has an entry Variant config: yes
+the spec says variant config: yes
+```
+
+stderr, 0 bytes
+
+## line-9 (guard): A commit whose spec folder holds its variant configs under `specs/switches/` is selected or refused as before.
+
+### line-9/a: (example fecc5b119e4b83886c7285efc405e138000f67f7 is not readable here: object fecc5b119e4b83886c7285efc405e138000f67f7 not in this clone)
+
+verdict: met, exit 0
+
+output, 135 bytes:
+
+```
+every rule named under switches/: select exit 0
+a rule no config under switches/ names: select exit 1
+the refusal names LonelyRule: yes
+```
+
+stderr, 0 bytes
+
+## line-10 (guard): A commit whose spec folder holds no model is selected as before, and hyp runs no model checker and reads no model report.
+
+### line-10/a: (example 6d68b9ad506919550ee3e6fa0afa2ab14f41141e is not readable here: object 6d68b9ad506919550ee3e6fa0afa2ab14f41141e not in this clone)
+
+verdict: met, exit 0
+
+output, 102 bytes:
+
+```
+a text spec only: select exit 0
+a model and its report: select exit 0
+the select prints the report: no
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 9edbdd91a702c7f37a4544669f9e8f88eb361d26 goals/G-SCAXYW/specs/: exit 128: fatal: not a tree object
+
+selected commit: 9edbdd91a702c7f37a4544669f9e8f88eb361d26
+selected row: 42b364c73ea80ea37b53cc42e084884444ff82cc
