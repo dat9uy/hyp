@@ -1,0 +1,8 @@
+-- words --
+After the owner closes a Goal, `hyp add goal --from G` records a new Goal that cites it.
+-- run --
+hyp add goal --from "$G" --base HEAD --words 'Greet again.' --line 'gap:the subject says hi.'; echo "add exit $?"
+-- floor: contains --
+add exit 0
+-- floor: contains --
+recorded G-

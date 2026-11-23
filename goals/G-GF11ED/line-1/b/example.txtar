@@ -1,0 +1,10 @@
+-- words --
+On an open Goal, a close by the runner role, and a close by an owner-role actor that did not add the Goal, are each refused, and the Goal stays open.
+-- run --
+HYP_ACTOR=runner HYP_ROLE=runner hyp close "$G"; echo "runner close exit $?"; HYP_ACTOR=someone HYP_ROLE=owner hyp close "$G"; echo "other actor close exit $?"; hyp status "$G"
+-- floor: contains --
+runner close exit 1
+-- floor: contains --
+other actor close exit 1
+-- floor: contains --
+G  open

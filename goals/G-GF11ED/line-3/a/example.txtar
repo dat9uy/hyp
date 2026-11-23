@@ -1,0 +1,10 @@
+-- words --
+A runner in clone B runs a line, then the owner closes the Goal in clone A, then A merges B's log: status in A lists B's run under refused at replay, and the closed Goal keeps the rows the owner saw.
+-- run --
+hyp status "$G"
+-- floor: contains --
+G  ended
+-- floor: contains --
+closed: by owner
+-- floor: contains --
+refused at replay
