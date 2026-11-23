@@ -1,0 +1,8 @@
+-- words --
+After a place, `git status` under `.tree/` shows one changed events file and no new file under `.tree/outputs/`.
+-- run --
+hyp place G
+-- floor: contains --
+events files changed under .tree: 1
+-- floor: contains --
+new files under .tree/outputs: 0

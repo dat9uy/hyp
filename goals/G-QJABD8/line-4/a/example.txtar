@@ -1,0 +1,6 @@
+-- words --
+After `hyp run`, nothing under `.tree/` has changed.
+-- run --
+hyp run COMMIT G/line-1
+-- floor: contains --
+changed under .tree: none

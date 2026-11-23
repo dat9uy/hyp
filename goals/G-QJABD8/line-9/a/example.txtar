@@ -1,0 +1,8 @@
+-- words --
+A runner in a fresh clone of the record branch runs every line and selects a candidate.
+-- run --
+hyp select G HASH
+-- floor: contains --
+is selected
+-- ceiling --
+refused
