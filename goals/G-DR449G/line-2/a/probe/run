@@ -1,0 +1,172 @@
+#!/bin/sh
+# Probe of G-DR449G line-2/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with a test Goal and a
+# fixture example, runs the example's run section ($HYP_RUN, `hyp spec`) once
+# in the written state and keeps its stdout, then brings the test Goal through
+# written, open, selected and ended. In each state it tries every act of hyp on
+# a disposable copy of the store, checks each refusal against the spec lines of
+# that state, and checks each ready command line of `hyp status` against the
+# same lines. It prints the spec, two verdict lines, then "exit N" with the
+# exit code of the run section. Setup output goes to stderr. A build or store
+# failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') ||
+  fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+# fixture LINE NAME FLOOR [RUN]: write the example folder goals/$G/LINE/NAME
+# with the generic Probe. On the test Goal's H0, greet.txt says hello.
+fixture() {
+  d="goals/$G/$1/$2"
+  mkdir -p "$d/probe" || fail "mkdir $d"
+  {
+    echo '-- words --'
+    echo "Fixture $1/$2."
+    echo '-- run --'
+    echo "${4:-cat greet.txt}"
+    echo '-- floor: contains --'
+    echo "$3"
+  } >"$d/example.txtar"
+  cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+  chmod +x "$d/probe/run"
+}
+
+commit() { git add -A && git commit -q -m "$1" >&2 || fail "commit $1"; }
+
+# act ROLE ARGS: a hyp act of the setup. Output goes to stderr. A refused act
+# does not stop the Probe: the checks show what the build under test does.
+act() { r=$1; shift; echo "setup: hyp $*" >&2; HYP_ACTOR=$r HYP_ROLE=$r hyp "$@" >&2; echo "setup: exit $?" >&2; }
+
+# candidate BRANCH: a commit on BRANCH, from the current commit, where
+# greet.txt says bye and the spec is present; the current branch comes back.
+candidate() {
+  here=$(git rev-parse --abbrev-ref HEAD)
+  git checkout -q -b "$1" >&2 || fail "branch $1"
+  echo bye >greet.txt
+  mkdir -p "goals/$G/specs" && echo "The subject says bye." >"goals/$G/specs/spec.md" || fail "spec"
+  git add -A && git commit -q -m "candidate $1" >&2 || fail "commit candidate"
+  git rev-parse HEAD >"$work/$1.hash"
+  git checkout -q "$here" >&2 || fail "checkout $here"
+}
+
+# snap STATE: keep the repository and HOME of STATE for the disposable tries.
+snap() {
+  mkdir -p "$work/snap-$1" && cp -R "$repo" "$work/snap-$1/repo" && cp -R "$HOME" "$work/snap-$1/home" ||
+    fail "snapshot $1"
+}
+
+export G HYP_ACTOR=owner HYP_ROLE=owner
+
+fixture line-1 a bye
+commit fixtures
+
+# The run section of this example, once, in the written state.
+spec="$work/spec.out"
+sh -c "$HYP_RUN" >"$spec" 2>/dev/null
+specexit=$?
+
+candidate cand0
+cand0=$(cat "$work/cand0.hash")
+snap written
+
+act grill place "$G"
+commit placed
+candidate cand
+cand=$(cat "$work/cand.hash")
+snap open
+
+row=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$cand" "$G/line-1" 2>/dev/null | sed -n 's/^row: //p')
+[ -n "$row" ] || echo "setup: no row" >&2
+act runner select "$G" "${row:-none}"
+commit select
+snap selected
+
+act owner land "$G"
+commit land
+snap ended
+
+# try STATE ROLE ARGS: run one act on a disposable copy of STATE; print the
+# guard name of a refusal, or nothing when the act is not refused.
+try() {
+  st=$1; r=$2; shift 2
+  rm -rf "$work/try" && mkdir -p "$work/try" &&
+    cp -R "$work/snap-$st/repo" "$work/try/repo" && cp -R "$work/snap-$st/home" "$work/try/home" || fail "copy $st"
+  (
+    cd "$work/try/repo" && HOME="$work/try/home" HYP_ACTOR=$r HYP_ROLE=$r hyp "$@" 2>&1 >/dev/null
+  ) | sed -n 's/^hyp: refused: \([^:]*\):.*/\1/p' | head -n 1
+}
+
+# specline STATE ACT GUARD: succeeds when a spec line names STATE, ACT and GUARD.
+specline() {
+  grep -iw -- "$1" "$spec" | grep -F -- "$2" | grep -qF -- "$3"
+}
+
+bad1="$work/bad1"; bad2="$work/bad2"; : >"$bad1"; : >"$bad2"
+
+for st in written open selected ended; do
+  case $st in written) c=$cand0 ;; *) c=$cand ;; esac
+  for a in "place grill" "run runner" "select runner" "land owner" "unselect owner" "close owner"; do
+    set -- $a
+    case $1 in
+      place|land|unselect|close) guard=$(try "$st" "$2" "$1" "$G") ;;
+      run) guard=$(try "$st" "$2" run "$c" "$G/line-1") ;;
+      select) guard=$(try "$st" "$2" select "$G" "${row:-none}") ;;
+    esac
+    echo "try: $st $1 -> ${guard:-not refused}" >&2
+    [ -n "$guard" ] || continue
+    specline "$st" "$1" "$guard" || echo "disagrees: $st $1 refused by $guard" >>"$bad1"
+  done
+  # The ready command lines of hyp status.
+  offered=$(cd "$work/snap-$st/repo" && HOME="$work/snap-$st/home" HYP_ACTOR=owner HYP_ROLE=owner \
+    hyp status "$G" 2>/dev/null | sed -n 's/^  hyp \([a-z]*\) .*/\1/p')
+  for a in $offered; do
+    echo "offered: $st $a" >&2
+    if grep -iw -- "$st" "$spec" | grep -F -- "$a" | grep -qi 'refus'; then
+      echo "disagrees: $st offers $a" >>"$bad2"
+    fi
+  done
+done
+
+cat "$spec"
+if [ -n "$(tail -c 1 "$spec")" ]; then echo; fi
+if [ -s "$bad1" ]; then sort -u "$bad1"; else echo "every refusal names the guard hyp spec names"; fi
+if [ -s "$bad2" ]; then sort -u "$bad2"; else echo "hyp status offers only acts hyp spec allows"; fi
+echo "exit $specexit"
+exit 0
