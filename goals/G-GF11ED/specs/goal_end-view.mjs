@@ -37,13 +37,41 @@ export const step = (action, from, to) => {
   return action;
 };
 
+const word = (v) =>
+  v.endBy !== "none" ? "ended" : v.selected ? "selected" : v.placed ? "open" : "written";
+
+// The state block hyp prints after an act or a status, read from the state.
+const block = (v, o) => {
+  const lines = [`G  ${o.state || word(v)}`];
+  if (o.endLine) lines.push(o.endLine);
+  const bCounts = o.rows >= 0 ? o.rows - (v.runA ? 1 : 0) > 0 : false;
+  if (v.runB === "merged" && v.endBy !== "none" && !bCounts) lines.push("refused at replay");
+  if (v.endBy === "none") lines.push("owner may:", "  hyp close G");
+  return lines;
+};
+
 export const print = (action, from, to) => {
   const o = to.out;
-  if (o.refused) return `${o.cmd}: refused: ${o.refused}`;
-  if (o.cmd === "run in B" || o.cmd === "merge" || o.cmd === "none") return "";
-  if (o.cmd === "add goal --from") return "recorded G2";
-  const lines = [`G  ${o.state}`];
-  if (o.endLine) lines.push(o.endLine);
-  if (o.rows >= 0) lines.push(`rows: ${o.rows}`);
-  return lines.join("\n");
+  switch (o.cmd) {
+    case "close":
+      if (o.refused) return `${o.by} close exit 1`;
+      return [...block(to, o), "close exit 0"].join("\n");
+    case "land":
+      if (o.refused) return [...block(to, o), "land exit 1"].join("\n");
+      return [...block(to, o), "land exit 0"].join("\n");
+    case "run":
+      return o.refused ? "run exit 1" : "run exit 0";
+    case "add goal --from":
+      return o.refused ? "add exit 1" : "recorded G-NEW\nadd exit 0";
+    case "status, old log":
+      return o.refused ? "refused at replay" : [
+        "stop: selected, by select 01M7S4F7Y677ZNGG9Y0QQJMWSX",
+        "landed: by owner, land 01M7YS8QZ3D2XNPY6EC2XAEKMS",
+        "verdict: met, exit 0"].join("\n");
+    case "status G":
+    case "select":
+    case "place":
+      return block(to, o).join("\n");
+  }
+  return "";
 };

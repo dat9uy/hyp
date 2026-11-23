@@ -83,7 +83,7 @@ Init ==
 
 \* The grill places the example set.
 GrillPlaces ==
-    /\ ~placed /\ ~Ended
+    /\ ~placed /\ ~Ended /\ ~oldLand
     /\ placed' = TRUE
     /\ out' = [Status("place") EXCEPT !.state = "open"]
     /\ UNCHANGED <<runA, selected, runB, bEarly, endBy, rowsAtEnd, oldLand, bSeen>>
@@ -124,7 +124,7 @@ LogsMerge ==
 Closes(role) ==
     /\ ~Ended
     /\ IF role # "owner" /\ ~CloseAnyRole
-       THEN /\ out' = Refused("close", "Owner closes")
+       THEN /\ out' = [Refused("close", "Owner closes") EXCEPT !.by = role]
             /\ UNCHANGED <<endBy, rowsAtEnd>>
        ELSE IF CloseNeedsStop /\ ~selected
        THEN /\ out' = Refused("close", "Stop")
@@ -161,7 +161,7 @@ AddFrom ==
 \* A log written before close existed, holding a land that names no
 \* snapshot, is replayed.
 OldLogReplays ==
-    /\ ~oldLand
+    /\ ~oldLand /\ ~placed
     /\ oldLand' = TRUE
     /\ out' = IF OldLandsRefused
               THEN Refused("status, old log", "refused at replay")
@@ -180,7 +180,7 @@ Next ==
     \/ RunnerSelects
     \/ RunnerRunsB
     \/ LogsMerge
-    \/ \E r \in {"owner", "runner"} : Closes(r)
+    \/ \E r \in {"owner", "runner", "other actor"} : Closes(r)
     \/ OwnerLands
     \/ AddFrom
     \/ OldLogReplays
