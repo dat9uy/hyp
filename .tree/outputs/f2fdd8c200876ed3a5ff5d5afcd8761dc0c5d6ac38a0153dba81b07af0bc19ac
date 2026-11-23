@@ -1,0 +1,18 @@
+disagrees: ended close refused by Not ended
+disagrees: ended land refused by Not ended
+disagrees: ended place refused by Not ended
+disagrees: ended run refused by Not ended
+disagrees: ended select refused by Not ended
+disagrees: ended unselect refused by Not ended
+disagrees: open land refused by Stop
+disagrees: open place refused by Adds only
+disagrees: open select refused by Candidate
+disagrees: open unselect refused by Selected
+disagrees: selected place refused by Selected
+disagrees: selected run refused by Selected
+disagrees: selected select refused by Selected
+disagrees: written land refused by Stop
+disagrees: written run refused by Open
+disagrees: written select refused by Candidate
+disagrees: written unselect refused by Selected
+hyp status offers only acts hyp spec allows
