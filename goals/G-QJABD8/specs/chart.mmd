@@ -1,0 +1,78 @@
+---
+title: "hyp G-QJABD8: git keeps the events that change a Goal's stateﬂ°°59¶ß the trace keeps the evidence"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: written
+    lg1: open
+    lg2: selected
+    lg3: landed
+  }
+  class lg0 orange
+  class lg1 teal
+  class lg2 purple
+  class lg3 blue
+  state "Written" as s0 {
+    s1: B ran nothing
+    [*] --> s1
+  }
+  state "Open" as s2 {
+    s3: B ran nothing
+    s4: B ran a cell again
+    s5: B ran the candidate
+    [*] --> s3
+  }
+  state "Selected" as s6 {
+    s7: B ran nothing
+    s8: B ran nothing, selected commit on no ref
+    s9: B ran a cell again
+    s10: B ran the candidate
+    s11: B ran a cell again, selected commit on no ref
+    s12: B ran the candidate, selected commit on no ref
+  }
+  state "Landed" as s13 {
+    s14: B ran nothing
+    s15: B ran nothing, selected commit on no ref
+    s16: B ran a cell again
+    s17: B ran the candidate
+    s18: B ran a cell again, selected commit on no ref
+    s19: B ran the candidate, selected commit on no ref
+  }
+  [*] --> s0
+  s1 --> s2: the grill places the set
+  s3 --> s4: a reader in B runs the try line
+  s3 --> s5: a runner runs a line
+  s5 --> s4: a reader in B runs the try line
+  s3 --> s7: the runner selects
+  s4 --> s9: the runner selects
+  s7 --> s8: the selected commit's branch goes
+  s7 --> s9: a reader in B runs the try line
+  s7 --> s14: the owner lands
+  s5 --> s10: the runner selects
+  s8 --> s15: the owner lands
+  s9 --> s11: the selected commit's branch goes
+  s9 --> s16: the owner lands
+  s10 --> s12: the selected commit's branch goes
+  s10 --> s17: the owner lands
+  s14 --> s15: the selected commit's branch goes
+  s14 --> s16: a reader in B runs the try line
+  s11 --> s18: the owner lands
+  s12 --> s19: the owner lands
+  s16 --> s18: the selected commit's branch goes
+  s17 --> s19: the selected commit's branch goes
+  class s1 orange
+  class s3 teal
+  class s4 teal
+  class s5 teal
+  class s7 purple
+  class s8 purple
+  class s9 purple
+  class s10 purple
+  class s11 purple
+  class s12 purple
+  class s14 blue
+  class s15 blue
+  class s16 blue
+  class s17 blue
+  class s18 blue
+  class s19 blue
