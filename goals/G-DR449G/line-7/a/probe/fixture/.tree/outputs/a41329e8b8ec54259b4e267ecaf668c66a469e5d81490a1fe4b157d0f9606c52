@@ -1,3 +1,0 @@
-setup: hyp place G-8KFNDG
-hyp: place takes a Goal and LINE/EXAMPLE, for example: hyp place G-NXHHVA line-1/a; got 1 arguments
-setup: exit 2

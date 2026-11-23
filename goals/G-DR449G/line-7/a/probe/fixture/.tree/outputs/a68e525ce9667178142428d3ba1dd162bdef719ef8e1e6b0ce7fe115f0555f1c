@@ -1,4 +1,0 @@
-first select exit: 1
-the refusal names LonelyRule: yes
-the refusal names NamedRule: no
-select once a switch config names LonelyRule, exit: 0

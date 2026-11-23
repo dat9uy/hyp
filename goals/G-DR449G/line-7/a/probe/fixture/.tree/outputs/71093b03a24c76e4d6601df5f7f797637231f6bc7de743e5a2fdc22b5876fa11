@@ -1,9 +1,0 @@
-owner: hyp status: exit 0, names the Goal: yes, stderr: no
-runner-1: hyp run HEAD G/line-1: exit 1, names the Goal: yes, stderr: yes
-owner: hyp status G-AAAAAA: exit 2, names the Goal: no, stderr: yes
-owner: hyp show owner: exit 0
-hyp show owner holds the owner's read byte for byte: yes
-files under ~/.hyp: some
-files under ~/.local: none
-after ~/.hyp is moved away, hyp show owner still holds that read: no
-changes git sees: none

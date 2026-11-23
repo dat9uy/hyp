@@ -1,7 +1,0 @@
-select exit: 0
-selected: the select return holds the chart: no
-selected: hyp status holds the chart: no
-selected: hyp status G holds the chart: no
-selected: hyp status G --role owner holds the chart: no
-landed: the land return holds the chart: no
-landed: hyp status G holds the chart: no

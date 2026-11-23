@@ -1,6 +1,0 @@
-skill folder hyp-grill: yes
-rule model-after-consent-before-examples: no
-rule try-each-variant-predicted-to-meet-every-example: no
-rule one-spot-check-per-other-variant: no
-rule fix-the-model-not-the-example: no
-rule one-line-in-the-hand-off: no

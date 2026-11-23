@@ -1,5 +1,0 @@
-skill folder hyp-grill: yes
-rule one-question-per-tried-variant-that-meets-every-example: yes
-rule the-question-is-plain-english-with-no-model-word: yes
-rule either-output-is-fine-goes-under-not-covered: yes
-rule a-prediction-alone-never-reaches-the-owner: yes

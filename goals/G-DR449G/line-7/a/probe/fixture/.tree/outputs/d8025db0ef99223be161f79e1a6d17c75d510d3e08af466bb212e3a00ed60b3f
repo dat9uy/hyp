@@ -1,6 +1,0 @@
-unselect exit: 0
-runner's select at once exit: 1
-log unchanged: yes
-rerun on the old row exit: 0
-runner's select after the rerun exit: 1
-owner's select exit: 0

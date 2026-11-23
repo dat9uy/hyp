@@ -1,7 +1,0 @@
-runs before: 1 of 3
-unselect line: none
-unselect exit: none
-runs after unselect: 1 of 3
-run exits: 1 1 1
-runs after three runs: 1 of 3
-stop: selected
