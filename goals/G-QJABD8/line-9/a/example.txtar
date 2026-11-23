@@ -3,6 +3,8 @@ A runner in a fresh clone of the record branch runs every line and selects a can
 -- run --
 hyp select G HASH
 -- floor: contains --
-is selected
+selected row: HASH
+-- floor: contains --
+G  selected  runs:
 -- ceiling --
 refused

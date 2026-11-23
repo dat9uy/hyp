@@ -6,3 +6,5 @@ hyp status G
 not in this clone's trace
 -- floor: contains --
 hyp try G line-1/a
+-- ceiling --
+output, 3 bytes:
