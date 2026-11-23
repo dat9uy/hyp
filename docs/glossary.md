@@ -405,7 +405,7 @@ _Avoid_: error (exit 1 is a rule, not a fault)
 ## What hyp prints
 
 **State block**:
-The part of a return that shows a Goal. It holds the state, `runs: N of 3 used`, the stop, the waits and each role's allowed acts. `--role` filters it to one role.
+The part of a return that shows a Goal. It holds the state, `runs: N of 3 used` while the Goal has not ended, the stop, the waits and each role's allowed acts. An ended Goal prints no runs count: the runs are in each clone's trace, and an ended Goal reads the same in every clone. `--role` filters it to one role.
 
 **Report**:
 The part of a return that says what was recorded, or which guard refused and why.

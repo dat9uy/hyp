@@ -412,15 +412,53 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 		t.Fatalf("land: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, one, _ := run(t, "status", f.goal)
-	if !strings.Contains(one, f.goal+"  ended  ") || !strings.Contains(one, "selected row: ") {
+	if !strings.Contains(one, f.goal+"  ended\n") || !strings.Contains(one, "selected row: ") {
 		t.Fatalf("status G of a landed Goal lacks its PR body:\n%s", one)
 	}
 	_, all, _ := run(t, "status")
-	if !strings.Contains(all, f.goal+"  ended  ") || strings.Contains(all, "selected row: ") {
+	if !strings.Contains(all, f.goal+"  ended\n") || strings.Contains(all, "selected row: ") {
 		t.Fatalf("status of every Goal prints a landed Goal's record:\n%s", all)
 	}
 	if code, _, _ := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 1 {
 		t.Fatalf("a second land: code %d, want 1", code)
+	}
+}
+
+// TestEndedGoalReadsTheSameInEveryClone: status G of a landed Goal prints
+// each placed example as met by the select, with no runs count, no output and
+// no try line, and prints the same bytes in a fresh clone whose trace is
+// empty.
+func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
+	testutil.Git(t, f.r.Dir, "tag", "h1", c)
+	if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
+		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	_, out, _ := run(t, "status")
+	if code, out, errs := run(t, selectLine(t, out)[1:]...); code != 0 {
+		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if code, out, errs := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 0 {
+		t.Fatalf("land: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	// the fixture keeps .tree/ out of git; this test commits the store
+	testutil.Git(t, f.r.Dir, "add", "-f", ".tree")
+	testutil.Git(t, f.r.Dir, "commit", "-q", "-m", "events")
+	_, here, _ := run(t, "status", f.goal)
+	for _, bad := range []string{"runs:", "output, ", "hyp try", "not in this clone's trace"} {
+		if strings.Contains(here, bad) {
+			t.Fatalf("status G of a landed Goal prints %q:\n%s", bad, here)
+		}
+	}
+	if !strings.Contains(here, "verdict: met, by select ") {
+		t.Fatalf("status G of a landed Goal names no select:\n%s", here)
+	}
+	other := filepath.Join(t.TempDir(), "clone")
+	testutil.Git(t, f.r.Dir, "clone", "-q", f.r.Dir, other)
+	t.Chdir(other)
+	if _, there, _ := run(t, "status", f.goal); there != here {
+		t.Fatalf("status G differs in a fresh clone:\n%s\nthere:\n%s", here, there)
 	}
 }
 

@@ -361,11 +361,9 @@ func (g *Goal) LiveCells(rowTree string) []LiveCell {
 	if rowTree == g.BaseTree {
 		for _, p := range g.Placed() {
 			if p.H0.RowTree == g.BaseTree {
-				c := LiveCell{Key: p.Key, Hash: p.Hash, Probe: p.H0.Probe, Output: p.H0.Output,
-					Stderr: p.H0.Stderr, Exit: p.H0.Exit, Verdict: p.H0.Verdict}
-				if c.Output != "" {
-					c.By = logstore.CellByPlace // an earlier hyp named H0's outputs in git
-				} else if tc, ok := g.TraceCell(p.Hash, g.BaseTree); ok {
+				// the outputs are the trace's alone, whatever the place names
+				c := LiveCell{Key: p.Key, Hash: p.Hash, Probe: p.H0.Probe, Exit: p.H0.Exit, Verdict: p.H0.Verdict}
+				if tc, ok := g.TraceCell(p.Hash, g.BaseTree); ok {
 					c.Output, c.Stderr, c.By = tc.Output, tc.Stderr, tc.By
 				}
 				out = append(out, c)

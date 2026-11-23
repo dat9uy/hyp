@@ -56,7 +56,7 @@ func (t Trace) Outputs() string { return outputsIn(t.Dir) }
 
 // Events returns the trace's events in merge order, and the lines that could
 // not be used. A trace folder not yet written holds no event.
-func (t Trace) Events() ([]events.Event, []LineError, error) { return eventsOf(t.Dir) }
+func (t Trace) Events() ([]events.Event, []LineError, error) { return eventsOf("", t.Dir) }
 
 // create makes the trace folder, and names the clone it belongs to in a file
 // clone beside events/ and outputs/, for a person who finds the folder.

@@ -189,3 +189,28 @@ func TestEventGoesWhereItsKindSays(t *testing.T) {
 		t.Errorf("the read went to git: %v", err)
 	}
 }
+
+// TestGitHoldsOnlyStateEvents: an event of a kind the trace keeps, written
+// into git's .tree/events, is not read: Events and Load return only the
+// events of the kinds that change a Goal's state, and report no line.
+func TestGitHoldsOnlyStateEvents(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"a": "a"})
+	if err := Create(r.Dir); err != nil {
+		t.Fatal(err)
+	}
+	lines := `{"v":2,"id":"01K00000000000000000000001","ts":"2026-01-01T00:00:00Z","actor":"runner-1","type":"close","node":"01K00000000000000000000001","payload":{"role":"owner"},"why":""}
+{"v":2,"id":"01K00000000000000000000002","ts":"2026-01-01T00:00:00Z","actor":"runner-1","type":"result.record","node":"01K00000000000000000000001","payload":{"role":"runner"},"why":""}
+{"v":2,"id":"01K00000000000000000000003","ts":"2026-01-01T00:00:00Z","actor":"runner-1","type":"read","node":"01K00000000000000000000003","payload":{"role":"runner"},"why":""}
+`
+	if err := os.WriteFile(filepath.Join(r.Dir, ".tree", "events", "runner-1.jsonl"), []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for name, read := range map[string]func(string) ([]events.Event, []LineError, error){"Events": Events, "Load": Load} {
+		evs, bad, err := read(r.Dir)
+		if err != nil || len(bad) != 0 || len(evs) != 1 || evs[0].Type != events.TypeClose {
+			t.Errorf("%s = %+v, %v, %v; want the close alone", name, evs, bad, err)
+		}
+	}
+}
