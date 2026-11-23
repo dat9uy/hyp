@@ -65,7 +65,9 @@ chmod +x "$d/probe/run"
 git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
 echo "setup: hyp place $G" >&2
 HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
-git add -A && git commit -q -m placed >&2 || fail "commit placed"
+git add -A >&2 || fail "stage placed"
+git diff --cached --quiet ||
+  git commit -q -m placed >&2 || fail "commit placed"
 
 # Hypothesis NAME TEXT: a commit on branch NAME from main whose greet.txt is
 # TEXT, run on line-1 from main by the runner; its events are committed on
@@ -79,7 +81,9 @@ hyp_run() {
   echo "setup: hyp run $1" >&2
   HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1" >&2 ||
     fail "hyp run $1 failed"
-  git add -A && git commit -q -m "events of $1" >&2 || fail "commit events of $1"
+  git add -A >&2 || fail "stage events of $1"
+  git diff --cached --quiet ||
+    git commit -q -m "events of $1" >&2 || fail "commit events of $1"
 }
 
 hyp_run h1 hi1
