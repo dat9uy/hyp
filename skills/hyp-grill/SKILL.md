@@ -17,9 +17,9 @@ line or an example, and every decision that no example checks is reported.
 
 - The owner has a real event (a refusal, a warning, a stop, a flagged run) and
   wants the change it points at held as a Goal.
-- hyp stopped a Goal for the owner (`Two candidates` or `Budget used`), or a
-  selected Goal is to be reviewed: that is the re-grill, in
-  [re-grill.md](re-grill.md).
+- hyp stopped a Goal for the owner (`Two candidates` or `Budget used`), a
+  selected Goal is to be reviewed, or a runner reports a placed example that
+  no build can meet: that is the re-grill, in [re-grill.md](re-grill.md).
 - A runner needs the run rules: give it [run-rules.md](run-rules.md), the run
   part of this skill. It is a part of this skill, not a second skill.
 - Not for: writing or running the build itself. The runner does that.
@@ -233,10 +233,12 @@ full: the owner may read only the last message, not the status before it.
 
 ## How to re-grill
 
-At a stop for the owner (`Selected`, `Two candidates`, `Budget used`), or when
-a selected Goal is reviewed, follow [re-grill.md](re-grill.md): it reviews the
+At a stop for the owner (`Selected`, `Two candidates`, `Budget used`), when a
+selected Goal is reviewed, or when a runner reports a placed example that no
+build can meet, follow [re-grill.md](re-grill.md): it reviews the
 Goal from what builds really printed, finds ceilings and loose floors, and
-turns each kept finding into an adjust or a new Goal.
+turns each kept finding into an adjust or a new Goal. It also says when a Goal
+must end because an example is wrong, and what happens to that Goal's builds.
 
 ## Hand-off
 
