@@ -1,7 +1,0 @@
-before: files under ~/.hyp that hold the deleted repository's read: some
-owner: hyp prune --remove: exit 0, names the deleted repository: yes, names the live repository: no
-after: files under ~/.hyp that hold the deleted repository's read: none
-owner: hyp prune: exit 0, names the deleted repository: no
-hyp show runner in the live repository holds its read byte for byte: yes
-the old trace folder under ~/.local is unchanged: yes
-changes git sees: none

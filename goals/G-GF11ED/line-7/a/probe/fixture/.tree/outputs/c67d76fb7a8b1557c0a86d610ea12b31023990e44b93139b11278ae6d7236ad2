@@ -1,8 +1,0 @@
-runner-1: hyp status: exit 0, names the Goal: yes, stderr: no
-reviewer: hyp status: exit 0, names the Goal: yes, stderr: no
-runner-1: hyp show runner-1: exit 0, names the Goal: yes, stderr: no
-reviewer: hyp status G: exit 0, names the Goal: yes, stderr: no
-changes git sees:
-none
-HEAD moved: no
-files git is told to skip: 0

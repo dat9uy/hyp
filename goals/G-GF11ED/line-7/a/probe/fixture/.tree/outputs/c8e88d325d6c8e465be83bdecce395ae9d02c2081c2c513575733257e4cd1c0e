@@ -1,4 +1,0 @@
-runner: hyp run HEAD G/line-1: exit 1, state block names the Goal: yes
-owner: hyp show runner: exit 0
-the owner's view holds the runner's refusal byte for byte: yes
-the owner's view holds the runner's state block byte for byte: yes

@@ -1,5 +1,0 @@
-a rule no variant config names: select exit 1
-the refusal names LonelyRule: yes
-the refusal names the variants folder: no
-the refusal says switch: yes
-every rule named under variants/: select exit 1

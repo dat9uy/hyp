@@ -1,6 +1,0 @@
-unselect line: none
-unselect exit: none
-place of a new version exit: 1
-runner's select after the place exit: 1
-run on the old row exit: 1
-runner's select after the run exit: 1

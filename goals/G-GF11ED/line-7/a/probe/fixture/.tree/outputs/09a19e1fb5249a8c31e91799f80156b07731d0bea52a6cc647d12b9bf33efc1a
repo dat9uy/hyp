@@ -1,5 +1,0 @@
-open, hyp status G: missing nothing
-open, hyp status G --role owner: missing nothing
-open, hyp status G --role grill: missing nothing
-open, hyp status G --role probe-writer: missing nothing
-open, hyp status G --role runner: missing nothing

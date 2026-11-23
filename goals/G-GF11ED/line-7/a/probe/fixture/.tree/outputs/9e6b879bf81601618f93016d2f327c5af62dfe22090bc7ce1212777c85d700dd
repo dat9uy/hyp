@@ -1,5 +1,0 @@
-stop: two candidates
-waits: owner
-runner's select exit: 1
-owner's select exit: 0
-state: selected
