@@ -1,0 +1,4 @@
+skill files read: yes
+rule stop-at-first-failed-example: yes
+rule try-predicted-fail-first: yes
+rule with-no-prediction-source-lines-first: yes

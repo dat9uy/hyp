@@ -1,0 +1,8 @@
+owner: hyp status: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp status G-9V74J9: exit 0, names the Goal: yes, stderr: no
+changes git sees:
+ M .tree/events/owner.jsonl
+?? .tree/events/runner-1.jsonl
+?? .tree/outputs/f2c1e42200bf70b79428a7655d0e59f87c266a304b3e21375c5896ab3bbf15aa
+HEAD moved: no
+files git is told to skip: 0

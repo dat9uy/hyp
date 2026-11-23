@@ -1,0 +1,226 @@
+setup: event goal.add in git (.tree/events/owner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/owner.jsonl)
+setup: hyp place G-PVZF5G
+placed G-PVZF5G: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-PVZF5G is open
+G-PVZF5G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-PVZF5G
+grill may:
+  hyp place G-PVZF5G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-PVZF5G/line-1
+setup: exit 0
+setup: event examples.place in git (.tree/events/grill.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/grill.jsonl)
+setup: hyp run c8233872a8c5cfa9d710895a18aa842b22f50888 G-PVZF5G/line-1
+setup: event result.record in git (.tree/events/runner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/runner.jsonl)
+setup: hyp select G-PVZF5G 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-PVZF5G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: c8233872a8c5cfa9d710895a18aa842b22f50888
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-PVZF5G  selected  runs: 1 of 3 used
+stop: selected, by select 01M83773119B89ZK8BM2832K9T at 2026-11-23T03:29:25.537692Z
+waits: owner
+owner may:
+  hyp land G-PVZF5G
+  hyp unselect G-PVZF5G
+  hyp close G-PVZF5G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+setup: event select in git (.tree/events/runner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/runner.jsonl)
+setup: hyp unselect G-PVZF5G
+unselected G-PVZF5G
+undid: select 01M83773119B89ZK8BM2832K9T at 2026-11-23T03:29:25.537692Z, commit c8233872a8c5cfa9d710895a18aa842b22f50888, row 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-PVZF5G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-PVZF5G 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-PVZF5G
+grill may:
+  hyp place G-PVZF5G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-PVZF5G/line-1
+setup: exit 0
+setup: event unselect in git (.tree/events/owner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/owner.jsonl)
+setup: hyp run ee7e36d89dc6e4a5178cc8dc578995712f07ddf1 G-PVZF5G/line-1
+setup: event result.record in git (.tree/events/runner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/runner.jsonl)
+setup: hyp select G-PVZF5G 823625b57322f3b6ff2f9bfe167b08ec7c104d2b
+# G-PVZF5G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 7 bytes:
+
+```
+bye bye
+```
+
+stderr, 0 bytes
+
+selected commit: ee7e36d89dc6e4a5178cc8dc578995712f07ddf1
+selected row: 823625b57322f3b6ff2f9bfe167b08ec7c104d2b
+G-PVZF5G  selected  runs: 1 of 3 used
+stop: selected, by select 01M8377568M417WPNZ13V504BN at 2026-11-23T03:29:27.752483Z
+waits: owner
+owner may:
+  hyp land G-PVZF5G
+  hyp unselect G-PVZF5G
+  hyp close G-PVZF5G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+setup: event select in git (.tree/events/runner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/runner.jsonl)
+setup: hyp land G-PVZF5G
+landed G-PVZF5G
+stop: selected, by select 01M8377568M417WPNZ13V504BN at 2026-11-23T03:29:27.752483Z
+G-PVZF5G  ended  runs: 1 of 3 used
+stop: selected, by select 01M8377568M417WPNZ13V504BN at 2026-11-23T03:29:27.752483Z
+landed: by owner, land 01M83775M923PN1JPT306VZNRJ at 2026-11-23T03:29:28.201491Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-PVZF5G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 7 bytes:
+
+```
+bye bye
+```
+
+stderr, 0 bytes
+
+selected commit: ee7e36d89dc6e4a5178cc8dc578995712f07ddf1
+selected row: 823625b57322f3b6ff2f9bfe167b08ec7c104d2b
+setup: exit 0
+setup: event land in git (.tree/events/owner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/owner.jsonl)
+error: Your local changes to the following files would be overwritten by checkout:
+	.tree/events/owner.jsonl
+	.tree/events/runner.jsonl
+Please commit your changes or stash them before you switch branches.
+Aborting
+setup: event goal.add in git (.tree/events/owner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/owner.jsonl)
+setup: hyp place G-68VMTW
+hyp: refused: none of the example set of G-68VMTW is placed; 1 cause:
+line-1/a: Kind: line-1 is a gap line, so its example must fail on H0; it is met
+H0 output, exit 0, 7 bytes:
+bye bye
+H0 stderr, 0 bytes
+floor: contains, 3 bytes:
+bye
+G-68VMTW  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-68VMTW --base <commit> --words <words> --line <kind>:<text>
+  hyp close G-68VMTW
+grill may:
+  hyp place G-68VMTW
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 1
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/grill.jsonl)
+setup: hyp close G-68VMTW
+closed G-68VMTW
+G-68VMTW  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M83776MMKJCE8XZ53Z5ZFVNB at 2026-11-23T03:29:29.236075Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+setup: event close in git (.tree/events/owner.jsonl)
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/owner.jsonl)
+setup: hyp status
+G-PVZF5G  ended  runs: 1 of 3 used
+stop: selected, by select 01M8377568M417WPNZ13V504BN at 2026-11-23T03:29:27.752483Z
+landed: by owner, land 01M83775M923PN1JPT306VZNRJ at 2026-11-23T03:29:28.201491Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+G-68VMTW  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M83776MMKJCE8XZ53Z5ZFVNB at 2026-11-23T03:29:29.236075Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+setup: event read in trace (/var/folders/ny/nm74vlxj7x58vfdl491vhhx40000gn/T/tmp.8Sf2hwdJXx/home/.hyp/traces/bcdca3af04788e29d3f7798642e32d68ba2a6721852db6d93d16d6252d162b22/events/owner.jsonl)

@@ -1,0 +1,13 @@
+owner: hyp add goal G --base HEAD --words Say hello. --line gap:hyp says hello. --line gap:hyp says hello again.: exit 0, names the Goal: yes, stderr: no
+grill: hyp place G line-1/a: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp run HEAD G/line-1: exit 0, names the Goal: yes, stderr: no
+lines added to the log:
+.tree/events/grill.jsonl example.place
+.tree/events/owner.jsonl goal.add
+.tree/events/runner-1.jsonl result.record
+new outputs that no added line names:
+none
+other changes:
+none
+HEAD moved: no
+files git is told to skip: 0

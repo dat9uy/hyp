@@ -1,0 +1,285 @@
+G-M66KKY  ended  runs: 1 of 3 used
+stop: selected, by select 01M7W5XB38W6M3E1Q8WWEKN4ZF at 2026-11-20T09:51:56.520191Z
+landed: by owner, land 01M7W6K9RV33NZC2XKYNJ12TX3 at 2026-11-20T10:03:56.059819Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-M66KKY: A Goal's stop and its land are two events: a stop ends the runs, and the owner's land ends the Goal as a fixed snapshot that later Goals build on.
+
+## line-1 (gap): After a Goal reaches a stop, the owner lands it with one act that hyp status prints. The act records one land event in the log, which names the stop it ends, whether or not the change was merged. A land by another role, or on a Goal with no stop, is refused.
+
+### line-1/a: (example 2686a84bfc5f81caa78c0645eddb9ad1229316b5 is not readable here: object 2686a84bfc5f81caa78c0645eddb9ad1229316b5 not in this clone)
+
+verdict: met, exit 0
+
+output, 62 bytes:
+
+```
+land exit: 0
+new events: 1
+land event: yes
+names the stop: yes
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example bd3cd5f9870e79ba2f9491e6b87c77e3757cff60 is not readable here: object bd3cd5f9870e79ba2f9491e6b87c77e3757cff60 not in this clone)
+
+verdict: met, exit 0
+
+output, 154 bytes:
+
+```
+budget used, land exit: 0
+new events: 1
+land event: yes
+names the stop: yes
+two candidates, land exit: 0
+new events: 1
+land event: yes
+names the stop: yes
+```
+
+stderr, 0 bytes
+
+### line-1/c: (example f1a4c2cd779444e4202397079c56bd028a54a015 is not readable here: object f1a4c2cd779444e4202397079c56bd028a54a015 not in this clone)
+
+verdict: met, exit 0
+
+output, 158 bytes:
+
+```
+land line printed: yes
+runner's land exit: 1
+log unchanged: yes
+grill's land exit: 1
+log unchanged: yes
+land on a Goal with no stop exit: 1
+log unchanged: yes
+```
+
+stderr, 0 bytes
+
+## line-2 (gap): hyp status shows a stop as an event: which stop, the act that caused it, and when.
+
+### line-2/a: (example 043f43c00e1a6020442adb13de17c56cf5cc1e2d is not readable here: object 043f43c00e1a6020442adb13de17c56cf5cc1e2d not in this clone)
+
+verdict: met, exit 0
+
+output, 123 bytes:
+
+```
+hyp status G: act yes, id yes, date yes
+hyp status: act yes, id yes, date yes
+the select returns: act yes, id yes, date yes
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example af6e7d8e7af0656bfc40224b937d115cd52cdbbb is not readable here: object af6e7d8e7af0656bfc40224b937d115cd52cdbbb not in this clone)
+
+verdict: met, exit 0
+
+output, 77 bytes:
+
+```
+hyp status G: act yes, id yes, date yes
+hyp status: act yes, id yes, date yes
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): A landed Goal prints the record of its decision, the PR body or with no select the table of outputs, in hyp status G and in the land act's return; hyp status for every Goal prints only its state block.
+
+### line-3/a: (example 2d2eb6c3bd6fda54062567064c133e0515b935bc is not readable here: object 2d2eb6c3bd6fda54062567064c133e0515b935bc not in this clone)
+
+verdict: met, exit 0
+
+output, 83 bytes:
+
+```
+land exit: 0
+hyp status G prints the PR body: yes
+the land returns the PR body: yes
+```
+
+stderr, 0 bytes
+
+### line-3/b: (example 9f194cd421a5018f03bf0852aad6db0381118037 is not readable here: object 9f194cd421a5018f03bf0852aad6db0381118037 not in this clone)
+
+verdict: met, exit 0
+
+output, 101 bytes:
+
+```
+land exit: 0
+hyp status G prints the table of outputs: yes
+the land returns the table of outputs: yes
+```
+
+stderr, 0 bytes
+
+### line-3/c: (example 83075e0886d1874f801c981149385b4d69cc94da is not readable here: object 83075e0886d1874f801c981149385b4d69cc94da not in this clone)
+
+verdict: met, exit 0
+
+output, 121 bytes:
+
+```
+land exits: 0 0
+hyp status lists both Goals: yes
+hyp status prints a PR body: no
+hyp status prints a table of outputs: no
+```
+
+stderr, 0 bytes
+
+## line-4 (gap): After a select, hyp status shows the Goal waiting for the owner, and prints the land line among the owner's acts.
+
+### line-4/a: (example 741703bfca471e4b8eb219570096753157aeac8f is not readable here: object 741703bfca471e4b8eb219570096753157aeac8f not in this clone)
+
+verdict: met, exit 0
+
+output, 87 bytes:
+
+```
+the select returns: waits owner, land line yes
+hyp status G: waits owner, land line yes
+```
+
+stderr, 0 bytes
+
+## line-5 (gap): A landed Goal is fixed: hyp refuses place, run, select and a second land on it.
+
+### line-5/a: (example 9c82be2fb33269341a8c01aeb5a9a8b31e4e9ef8 is not readable here: object 9c82be2fb33269341a8c01aeb5a9a8b31e4e9ef8 not in this clone)
+
+verdict: met, exit 0
+
+output, 151 bytes:
+
+```
+land exit: 0
+place exit: 1
+run exit: 1
+select exit: 1
+second land exit: 1
+log unchanged: yes
+budget used, land exit: 0
+place exit: 1
+log unchanged: yes
+```
+
+stderr, 0 bytes
+
+### line-5/b: (example 31aefe6a202e46298bf2778787822b8b7d02ef47 is not readable here: object 31aefe6a202e46298bf2778787822b8b7d02ef47 not in this clone)
+
+verdict: met, exit 0
+
+output, 89 bytes:
+
+```
+land exit: 0
+place in the clone exit: 0
+merge exit: 0
+the place is refused at replay: yes
+```
+
+stderr, 0 bytes
+
+## line-6 (gap): hyp add goal --from G is refused unless G is landed.
+
+### line-6/a: (example 8f043c9ee891ab3c0a657af0d8de8f92442ca8ac is not readable here: object 8f043c9ee891ab3c0a657af0d8de8f92442ca8ac not in this clone)
+
+verdict: met, exit 0
+
+output, 79 bytes:
+
+```
+from an open Goal: 1
+from a selected Goal: 1
+land exit: 0
+from a landed Goal: 0
+```
+
+stderr, 0 bytes
+
+## line-7 (gap): The glossary and the spec describe land as the owner's event that ends a Goal, not as a check of a commit, and say what the snapshot is, when it is read and what for.
+
+### line-7/a: (example 053d7303e3bb8665d3cc1ff5732351e391d3e175 is not readable here: object 053d7303e3bb8665d3cc1ff5732351e391d3e175 not in this clone)
+
+verdict: met, exit 0
+
+output, 166 bytes:
+
+```
+the acts table: land, owner, built: yes
+the Land entry is built: yes
+the Land entry names the snapshot: yes
+the Land entry checks no commit: yes
+a Snapshot entry: yes
+```
+
+stderr, 0 bytes
+
+### line-7/b: (example 89cbdf549bfab98d3151028c865ebbb607c0c101 is not readable here: object 89cbdf549bfab98d3151028c865ebbb607c0c101 not in this clone)
+
+verdict: met, exit 0
+
+output, 134 bytes:
+
+```
+the acts table gives land to the owner: yes
+no Same change guard: yes
+the spec names the snapshot: yes
+--from needs a landed Goal: yes
+```
+
+stderr, 0 bytes
+
+## line-8 (guard): A selected Goal that is not landed still refuses place, run and a second select.
+
+### line-8/a: (example 747eda915970ddc7f9338a9304fa676f59bc199e is not readable here: object 747eda915970ddc7f9338a9304fa676f59bc199e not in this clone)
+
+verdict: met, exit 0
+
+output, 59 bytes:
+
+```
+place exit: 1
+run exit: 1
+select exit: 1
+log unchanged: yes
+```
+
+stderr, 0 bytes
+
+## line-9 (guard): A log written before land existed, in which a Goal cites a Goal that is not landed, replays with nothing refused.
+
+### line-9/a: (example 8d0c317948388967e84e247829287270e9638973 is not readable here: object 8d0c317948388967e84e247829287270e9638973 not in this clone)
+
+verdict: met, exit 0
+
+output, 30 bytes:
+
+```
+Goals: 2
+refused at replay: no
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z a3a533203de1362123c9e66dc05f64b2b1186bb9 goals/G-M66KKY/specs/: exit 128: fatal: not a tree object
+
+selected commit: a3a533203de1362123c9e66dc05f64b2b1186bb9
+selected row: 9e8fb6876e87761b97d67efd9812d4db79a28f5b

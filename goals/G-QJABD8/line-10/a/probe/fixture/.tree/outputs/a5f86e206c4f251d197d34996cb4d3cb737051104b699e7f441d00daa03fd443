@@ -1,0 +1,25 @@
+G1  ended  runs: 1 of 3 used
+stop: selected, by select 01M8377WJG3YGHMA6BHZNTDNE3 at 2026-11-23T03:29:51.696287Z
+landed: by owner, land 01M8377WS3EMQ0ETY3YBMNE84B at 2026-11-23T03:29:51.907256Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+G2  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M8377XGSQJE81QVGMVW7YQSF at 2026-11-23T03:29:52.665033Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+same states as the clone that ran the acts

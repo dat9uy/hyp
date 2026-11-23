@@ -1,0 +1,15 @@
+setup: hyp place G-XGRM6Z
+placed G-XGRM6Z: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-XGRM6Z is open
+G-XGRM6Z  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-XGRM6Z
+grill may:
+  hyp place G-XGRM6Z
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-XGRM6Z/line-1

@@ -1,0 +1,68 @@
+G-CJWT9T  ended  runs: 1 of 3 used
+stop: selected, by select 01M7T73J81QY2CTVBS9GAVCSC7 at 2026-11-19T15:34:20.161338Z
+landed: by owner, land 01M7YS8T6VS7T5BBEGN5WHHTCB at 2026-11-21T10:08:44.251163Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-CJWT9T: See a verdict before it is recorded
+
+## line-1 (gap): An agent can see an example's output, stderr, exit code and verdict, as hyp would record them, on H0 or on an uncommitted change, without a commit, without recording anything in the log, and without using a Hypothesis.
+
+### line-1/a: (example 1c84576d60d5911c4500894549e85e9cf62305e3 is not readable here: object 1c84576d60d5911c4500894549e85e9cf62305e3 not in this clone)
+
+verdict: met, exit 0
+
+output, 588 bytes:
+
+```
+grill: hyp try G line-1/a: exit 0
+grill: hyp try G line-2/a: exit 0
+files the tries changed: none
+line-1/a: hyp recorded a cell: yes
+line-1/a: try showed the output hyp recorded: yes
+line-1/a: try showed the stderr hyp recorded: yes
+line-1/a: try showed the exit code hyp recorded: yes
+line-1/a: try showed the verdict hyp recorded, failed: yes
+line-2/a: hyp recorded a cell: yes
+line-2/a: try showed the output hyp recorded: yes
+line-2/a: try showed the stderr hyp recorded: yes
+line-2/a: try showed the exit code hyp recorded: yes
+line-2/a: try showed the verdict hyp recorded, met: yes
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example cd1ff3ee40b6ff740e9c865813cde68510ca1475 is not readable here: object cd1ff3ee40b6ff740e9c865813cde68510ca1475 not in this clone)
+
+verdict: met, exit 0
+
+output, 344 bytes:
+
+```
+runner-1: hyp try G line-1/a --worktree: exit 0
+files try changed: none
+after try: runs: 0 of 3 used
+line-1/a: hyp recorded a cell: yes
+line-1/a: try showed the output hyp recorded: yes
+line-1/a: try showed the stderr hyp recorded: yes
+line-1/a: try showed the exit code hyp recorded: yes
+line-1/a: try showed the verdict hyp recorded, met: yes
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z db5a94a9c1a16e2ac21599e84b46db4d7b20cbb9 goals/G-CJWT9T/specs/: exit 128: fatal: not a tree object
+
+selected commit: db5a94a9c1a16e2ac21599e84b46db4d7b20cbb9
+selected row: f7d8356ed6cc7d3358889f28f96a09cdfec39003

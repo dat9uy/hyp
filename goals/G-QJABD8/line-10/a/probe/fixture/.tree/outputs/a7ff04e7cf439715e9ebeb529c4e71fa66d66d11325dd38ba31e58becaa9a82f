@@ -1,0 +1,6 @@
+unselect line: none
+unselect exit: none
+run on the merge exit: 1
+select exit: 1
+the select names the merge: no
+state: selected

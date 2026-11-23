@@ -1,0 +1,100 @@
+#!/bin/sh
+# Probe of G-QJABD8 line-8/a. The working directory is a copy of the subject.
+# It builds hyp from the subject and makes a test repository, clone A: a test
+# Goal of one gap line with one fixture example and the generic Probe, placed.
+# There a runner commits a change that meets the line and a spec, runs hyp run
+# on it and selects its row, and the store is committed on the branch run/<G>.
+# A fresh clone B of that branch, whose trace is empty, runs the example's run
+# section with G replaced. It prints the run section's stdout with the Goal id
+# as G, the row's hash as HASH, the selected commit as COMMIT and the select's
+# id and time as ID and TIME, then a last line "exit N".
+# Setup output goes to stderr. A build or setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+# Clone A: the Goal, its example, the place, the run and the select.
+a="$work/a"
+mkdir -p "$a" && cd "$a" || fail "mkdir a"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add -A && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') ||
+  fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git checkout -q -b "run/$G" >&2 || fail "branch run/$G"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+{
+  echo '-- words --'
+  echo "Fixture line-1/a."
+  echo '-- run --'
+  echo "cat greet.txt"
+  echo '-- floor: contains --'
+  echo "bye"
+} >"$d/example.txtar"
+cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+chmod +x "$d/probe/run"
+git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+git add -A && git commit -q -m placed >&2 || fail "commit placed"
+
+mkdir -p "goals/$G/specs" || fail "mkdir specs"
+echo "The subject says bye." >"goals/$G/specs/spec.md"
+echo bye >greet.txt
+git add -A && git commit -q -m "feat: say bye" >&2 || fail "commit change"
+commit=$(git rev-parse HEAD) || fail "rev-parse"
+HYP_ACTOR=runner HYP_ROLE=runner hyp run "$commit" "$G/line-1" >&2 ||
+  fail "hyp run failed"
+# The subject hash: the commit's tree without the top-level goals and .tree.
+HASH=$(git ls-tree "$commit" | grep -v -E '	(goals|\.tree)$' | git mktree) ||
+  fail "subject hash"
+HYP_ACTOR=runner HYP_ROLE=runner hyp select "$G" "$HASH" >&2 ||
+  fail "hyp select failed"
+git add -A && git commit -q -m "chore: record the run and the select" >&2 ||
+  fail "commit events"
+
+# Clone B: a fresh clone of the run branch, so its trace is empty.
+b="$work/b"
+git clone -q --branch "run/$G" "$a" "$b" >&2 || fail "git clone"
+cd "$b" || fail "cd b"
+export HYP_ACTOR=owner HYP_ROLE=owner
+
+run=$(printf '%s\n' "$HYP_RUN" | sed -e "s/ G\$/ $G/" -e "s/ G / $G /g")
+out="$work/out"
+sh -c "$run" >"$out"
+code=$?
+sed -e "s/$G/G/g" -e "s/$HASH/HASH/g" -e "s/$commit/COMMIT/g" -e 's/by select [0-9A-Z]* at [^ ]*$/by select ID at TIME/' "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+echo "exit $code"
+exit 0
