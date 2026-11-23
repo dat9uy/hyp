@@ -1,0 +1,6 @@
+-- words --
+Every Goal has ended and an events file holds a line hyp cannot read: `hyp status` still lists it under "not read at replay".
+-- run --
+hyp status
+-- floor: contains --
+not read at replay:

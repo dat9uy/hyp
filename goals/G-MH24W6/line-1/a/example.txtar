@@ -1,0 +1,10 @@
+-- words --
+One open Goal and one landed Goal: `hyp status` prints no block of the landed Goal.
+-- run --
+hyp status
+-- floor: contains --
+open  runs:
+-- ceiling --
+landed: by owner
+-- ceiling --
+  ended

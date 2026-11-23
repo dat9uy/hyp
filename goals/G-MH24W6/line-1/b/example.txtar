@@ -1,0 +1,10 @@
+-- words --
+One open Goal and one closed Goal: `hyp status` prints no block of the closed Goal.
+-- run --
+hyp status
+-- floor: contains --
+open  runs:
+-- ceiling --
+closed: by owner
+-- ceiling --
+  ended

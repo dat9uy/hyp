@@ -1,0 +1,10 @@
+-- words --
+One written, one open, one selected and one landed Goal: `hyp status` prints the blocks of the written, open and selected Goals.
+-- run --
+hyp status
+-- floor: contains --
+written  runs:
+-- floor: contains --
+open  runs:
+-- floor: contains --
+selected  runs:

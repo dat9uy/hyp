@@ -1,0 +1,8 @@
+-- words --
+No Goal has ended: `hyp status` prints no count line.
+-- run --
+hyp status
+-- floor: contains --
+open  runs:
+-- ceiling --
+ended Goals

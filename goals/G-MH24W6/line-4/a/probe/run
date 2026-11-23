@@ -1,0 +1,21 @@
+#!/bin/sh
+# Probe of G-MH24W6 line-4/a. The working directory is a copy of the subject.
+# It builds hyp from the subject into a temporary folder put first on PATH, runs
+# the example's run ($HYP_RUN), and prints only the lines that describe the
+# status command (the status usage line and its continuation lines), then a
+# last line "exit N". Setup output goes to stderr. A build failure exits 3.
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/bin" || exit 3
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || { echo "probe: go build failed" >&2; exit 3; }
+PATH="$work/bin:$PATH"
+export PATH
+sh -c "$HYP_RUN" >"$work/out"
+code=$?
+# A usage line starts with two spaces and a word; a continuation line starts with more spaces.
+awk '
+  /^  status( |$)/ { on=1; print; next }
+  on && /^   / { print; next }
+  { on=0 }
+' "$work/out"
+echo "exit $code"

@@ -1,0 +1,8 @@
+-- words --
+One open Goal and two ended Goals: `hyp status` ends with a line that counts the 2 hidden Goals and names `hyp status --all`.
+-- run --
+hyp status
+-- floor: contains --
+2 ended Goals
+-- floor: contains --
+hyp status --all

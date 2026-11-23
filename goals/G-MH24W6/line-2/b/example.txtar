@@ -1,0 +1,10 @@
+-- words --
+Every Goal has ended: `hyp status` says that no Goal is in work, and gives the count line.
+-- run --
+hyp status
+-- floor: contains --
+Goal is in work
+-- floor: contains --
+2 ended Goals
+-- floor: contains --
+hyp status --all
