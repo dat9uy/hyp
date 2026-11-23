@@ -1,0 +1,7 @@
+unselect exit: 0
+state after unselect: open
+grill may place: yes
+place exit: 0
+run exit: 0
+select exit: 0
+state after select: selected

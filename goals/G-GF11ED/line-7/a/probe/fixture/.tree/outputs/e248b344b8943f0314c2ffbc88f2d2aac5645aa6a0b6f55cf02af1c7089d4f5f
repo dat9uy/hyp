@@ -1,0 +1,10 @@
+no example, hyp status G: missing nothing
+no example, hyp status G --role owner: missing nothing
+no example, hyp status G --role grill: missing nothing
+no example, hyp status G --role probe-writer: missing nothing
+no example, hyp status G --role runner: missing nothing
+placed, hyp status G: missing nothing
+placed, hyp status G --role owner: missing nothing
+placed, hyp status G --role grill: missing nothing
+placed, hyp status G --role probe-writer: missing nothing
+placed, hyp status G --role runner: missing nothing

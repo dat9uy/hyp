@@ -1,0 +1,13 @@
+grill: hyp try G line-1/a: exit 2
+grill: hyp try G line-2/a: exit 2
+files the tries changed: none
+line-1/a: hyp recorded a cell: yes
+line-1/a: try showed the output hyp recorded: no
+line-1/a: try showed the stderr hyp recorded: no
+line-1/a: try showed the exit code hyp recorded: no
+line-1/a: try showed the verdict hyp recorded, failed: no
+line-2/a: hyp recorded a cell: yes
+line-2/a: try showed the output hyp recorded: no
+line-2/a: try showed the stderr hyp recorded: no
+line-2/a: try showed the exit code hyp recorded: no
+line-2/a: try showed the verdict hyp recorded, met: no

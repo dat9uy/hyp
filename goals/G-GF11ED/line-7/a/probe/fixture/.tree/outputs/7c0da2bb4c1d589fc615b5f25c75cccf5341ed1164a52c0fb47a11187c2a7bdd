@@ -1,0 +1,6 @@
+owner: hyp status: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp status G-9V74J9: exit 0, names the Goal: yes, stderr: no
+changes git sees:
+none
+HEAD moved: no
+files git is told to skip: 0

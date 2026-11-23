@@ -1,0 +1,27 @@
+usage: hyp <command> [flags]
+
+An act that writes needs an actor (--actor or $HYP_ACTOR) and a role
+(--role or $HYP_ROLE): owner, grill, probe-writer or runner.
+
+commands:
+  add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
+           [--from G] [--why TEXT]
+                                         record a Goal; with G, replace a Goal
+                                         that is still written
+  place G LINE/EXAMPLE [--why TEXT]      place the example folder
+                                         goals/G/LINE/EXAMPLE on a line of Goal G
+  run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
+                                         Goal G on COMMIT and record the Result
+  select G TREE [--why TEXT]             select the candidate row TREE of Goal G;
+                                         the report is the PR body
+  status [G] [--role ROLE]               print the state of every Goal, or of G:
+                                         its stop, its waits and the allowed
+                                         acts as ready command lines
+  help                                   print this text
+  version                                print the hyp version
+
+exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
+3 environment problem
+hyp: unknown command "show"
+
+the owner's view holds the runner's last read byte for byte: no

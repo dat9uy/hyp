@@ -1,0 +1,4 @@
+unselect exit: 0
+select line after the unselect: no
+run on the new row exit: 0
+select line after the run: yes

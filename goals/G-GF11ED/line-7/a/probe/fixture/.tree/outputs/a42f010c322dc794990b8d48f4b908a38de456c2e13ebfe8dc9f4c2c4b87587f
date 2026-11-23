@@ -1,0 +1,8 @@
+runner-1: hyp try G line-1/a --worktree: exit 2
+files try changed: none
+after try: runs: 0 of 3 used
+line-1/a: hyp recorded a cell: yes
+line-1/a: try showed the output hyp recorded: no
+line-1/a: try showed the stderr hyp recorded: no
+line-1/a: try showed the exit code hyp recorded: no
+line-1/a: try showed the verdict hyp recorded, met: no

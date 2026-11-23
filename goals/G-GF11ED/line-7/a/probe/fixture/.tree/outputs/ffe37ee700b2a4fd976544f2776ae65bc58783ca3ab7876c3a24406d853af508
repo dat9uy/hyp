@@ -1,0 +1,6 @@
+owner: hyp status: exit 0, names the Goal: yes
+hyp show owner holds the owner's read byte for byte: yes
+files under ~/.hyp: some
+files under $XDG_STATE_HOME: none
+files under ~/.local: none
+changes git sees: none

@@ -1,0 +1,25 @@
+-- words --
+When an example's words hold a quote, hyp run prints those words to the runner as the owner wrote them, never re-quoted.
+-- input/probe-run --
+#!/bin/sh
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+repo=$(mktemp -d) && cd "$repo" && git init -q && git -c user.name=owner -c user.email=owner@example.invalid commit -q --allow-empty -m base || exit 91
+g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Say hello.' --line 'gap:hyp says hello.' | sed -n 's/^recorded //p') && [ -n "$g" ] || exit 92
+e="goals/$g/line-1/a" && mkdir -p "$e/probe" && cp "$HYP_EXAMPLE/input/probe-run" "$e/probe/run" && chmod +x "$e/probe/run" || exit 93
+printf -- '-- words --\nThe owner says "hello" to hyp.\n-- run --\necho bye\n-- floor: equals --\nhello\n' > "$e/example.txtar" || exit 94
+git add -A && git -c user.name=owner -c user.email=owner@example.invalid commit -q -m example || exit 95
+HYP_ACTOR=grill HYP_ROLE=grill "$bin/hyp" place "$g" line-1/a >/dev/null || exit 96
+HYP_ACTOR=runner HYP_ROLE=runner "$bin/hyp" run "$(git rev-parse HEAD)" "$g/line-1" 2>&1
+-- floor: contains --
+The owner says "hello" to hyp.
+-- ceiling --
+\"

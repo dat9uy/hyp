@@ -1,0 +1,55 @@
+---
+title: "hyp's channel: what the runner gets, what the owner's show holds"
+---
+stateDiagram-v2
+  direction LR
+  state "Legend" as legend {
+    lg0: same
+    lg1: differs
+    lg2: Breaks ShowHoldsNothingTheRunnerDidNotGet or ShowLacksNothingTheRunnerGot in some cases
+    lg3: Path to the ShowHoldsNothingTheRunnerDidNotGet or ShowLacksNothingTheRunnerGot bug
+  }
+  class lg0 teal
+  class lg1 orange
+  class lg2 mayBreak
+  class lg3 bugPath
+  state "At the same time" as all {
+    state "Command" as r0 {
+      s0: No command running
+      s1: Output written, held back
+      s2: Trace recorded, not yet printed
+      [*] --> s0
+      s0 --> s1: a guard refuses the runner or the runner runs hyp status
+      s1 --> s0: hyp crashes before the trace or the trace cannot be written#59; hyp prints only a notice
+      s1 --> s2: hyp records the trace
+      s2 --> s0: hyp prints the output or hyp crashes after the trace
+    }
+    --
+    state "Owner's show" as r1 {
+      s3: Show holds what the runner got
+      s4: Runner got a notice show lacks
+      s5: Show is one read ahead
+      s6: Show holds a read the runner never got
+      [*] --> s3
+      s3 --> s4: the trace cannot be written#59; hyp prints only a notice [when Output written, held back]
+      s3 --> s5: hyp records the trace [when Output written, held back]
+      s5 --> s3: hyp prints the output
+      s5 --> s6: hyp crashes after the trace
+      s6 --> s4: the trace cannot be written#59; hyp prints only a notice [when Output written, held back]
+    }
+  }
+  classDef mayBreak fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06
+  class s0 mayBreak
+  class s0 bugPath
+  class s1 bugPath
+  class s2 bugPath
+  class s3 teal
+  class s3 bugPath
+  class s4 orange
+  class s4 mayBreak
+  class s4 bugPath
+  class s5 teal
+  class s5 bugPath
+  class s6 orange
+  class s6 mayBreak
+  class s6 bugPath
