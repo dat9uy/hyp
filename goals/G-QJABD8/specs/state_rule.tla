@@ -94,7 +94,7 @@ Print(cmd, c, l, s, p, rch, same, h0, cand, withRecord) ==
         tv == IF sel THEN cand[c] ELSE h0[c]
     IN [cmd |-> cmd, clone |-> c, state |-> st, git |-> GitState(l, s, p),
         refused |-> refused, lost |-> lost,
-        runs |-> IF st = "open" THEN Runs(c) ELSE -1,
+        runs |-> Runs(c),
         warn |-> sel /\ ~rch /\ ~(SameSubjectQuiet /\ same)
                  /\ ~(WarnOnlyStatusG /\ cmd # "status G"),
         cell |-> IF withRecord /\ st # "written" THEN Cell(tv) ELSE "",
@@ -241,7 +241,7 @@ PlaceNamesVerdict == ~out.lost
 RunWritesNothingInGit == ~gitResult
 
 \* source: line-4
-BudgetPerClone == (out.runs # -1 /\ runs[out.clone] = 0) => out.runs = 0
+BudgetPerClone == (out.state # "" /\ runs[out.clone] = 0) => out.runs = 0
 
 \* source: line-5
 MissingHasTryLine == out.trace = "none" => out.cell = "missing, try line"
