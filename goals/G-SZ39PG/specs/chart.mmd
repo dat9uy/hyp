@@ -1,0 +1,64 @@
+---
+title: "hyp G-SZ39PG, a finding hangs on its Goal and is folded into an issue or refuted"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: open
+    lg1: selected
+    lg2: ended
+  }
+  class lg0 teal
+  class lg1 purple
+  class lg2 blue
+  state "Goal open" as s0 {
+    s1: no finding
+    s2: not folded
+    s3: folded
+    s4: refuted
+    [*] --> s1
+  }
+  state "Goal selected" as s5 {
+    s6: no finding
+    s7: not folded
+    s8: folded
+    s9: refuted
+  }
+  state "Goal landed" as s10 {
+    s11: no finding
+    s12: not folded
+    s13: folded
+    s14: refuted
+  }
+  [*] --> s0
+  s1 --> s6: the runner selects
+  s1 --> s2: an agent adds a finding
+  s6 --> s11: the owner lands
+  s6 --> s7: an agent adds a finding
+  s2 --> s3: an agent folds into an issue
+  s2 --> s7: the runner selects
+  s2 --> s4: an agent refutes a finding
+  s3 --> s8: the runner selects
+  s3 --> s4: an agent refutes a finding
+  s11 --> s12: an agent adds a finding
+  s7 --> s8: an agent folds into an issue
+  s7 --> s12: the owner lands
+  s7 --> s9: an agent refutes a finding
+  s4 --> s9: the runner selects
+  s8 --> s13: the owner lands
+  s8 --> s9: an agent refutes a finding
+  s12 --> s13: an agent folds into an issue
+  s12 --> s14: an agent refutes a finding
+  s9 --> s14: the owner lands
+  s13 --> s14: an agent refutes a finding
+  class s1 teal
+  class s2 teal
+  class s3 teal
+  class s4 teal
+  class s6 purple
+  class s7 purple
+  class s8 purple
+  class s9 purple
+  class s11 blue
+  class s12 blue
+  class s13 blue
+  class s14 blue
