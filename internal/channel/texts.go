@@ -35,6 +35,7 @@ const (
 	codePruneArgs      fault.Code = "prune-args"      // count
 	codeTryArgs        fault.Code = "try-args"        // count
 	codeLandArgs       fault.Code = "land-args"       // count
+	codeCloseArgs      fault.Code = "close-args"      // count
 	codeUnselectArgs   fault.Code = "unselect-args"   // count
 )
 
@@ -199,12 +200,15 @@ var words = map[fault.Code]string{
 	fault.EarlierVersion:    "%s was version @%d of %s; an earlier version never comes back",
 	fault.NoResultToRetract: "no Result %s to retract",
 	fault.NotOwnResult:      "%s was run by %s, not %s",
-	fault.Landed:            "%s is landed; a landed Goal takes no write",
+	fault.Ended:             "%s is ended; an ended Goal takes no write",
+	fault.NotInSnapshot:     "the end of %s, %s, does not name this event: it was written in another clone before the end and reached this log after it, so the ended Goal keeps what the owner saw",
+	fault.NotOwnerClose:     "only the owner closes a Goal; the role is %s",
+	fault.NoGoalToClose:     "no Goal %s to close",
 	fault.NotOwner:          "only the owner lands a Goal; the role is %s",
 	fault.NoStop:            "%s has no stop; the owner lands a Goal once it is selected, has two candidates or has used its budget",
 	fault.NoGoalToLand:      "no Goal %s to land",
 	fault.StopNotHeld:       "the land names the stop %s, which %s does not hold",
-	fault.FromNotLanded:     "%s is %s; --from cites only a landed Goal",
+	fault.FromNotEnded:      "%s is %s; --from cites only an ended Goal",
 	fault.NotOwnerUnselect:  "only the owner unselects a Goal; the role is %s",
 	fault.NoSelect:          "%s is %s and has no select; only a selected Goal is unselected",
 	fault.NoGoalToUnselect:  "no Goal %s to unselect",
@@ -230,6 +234,7 @@ var words = map[fault.Code]string{
 	codeNeedsActor:     "%s needs an actor (--actor or $HYP_ACTOR): hyp records what it prints to each actor",
 	codePruneArgs:      "prune takes no argument but --remove; got %d arguments",
 	codeLandArgs:       "land takes one Goal, for example: hyp land G-NXHHVA; got %d arguments",
+	codeCloseArgs:      "close takes one Goal, for example: hyp close G-NXHHVA; got %d arguments",
 	codeUnselectArgs:   "unselect takes one Goal, for example: hyp unselect G-NXHHVA; got %d arguments",
 	codeTryArgs:        "try takes a Goal and LINE/EXAMPLE, for example: hyp try G-NXHHVA line-1/a; got %d arguments",
 	codeNotRecorded:    "could not record what this command printed, so hyp prints nothing of it: %s",

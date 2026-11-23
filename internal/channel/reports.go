@@ -95,6 +95,11 @@ func landText(rep acts.LandReport) string {
 	return fmt.Sprintf("landed %s\nstop: %s\n", rep.Goal, stopText(rep.Stop, rep.Cause))
 }
 
+// closeText is the report of a close: the Goal, now ended.
+func closeText(rep acts.CloseReport) string {
+	return fmt.Sprintf("closed %s\n", rep.Goal)
+}
+
 // unselectText is the report of an unselect: the Goal, open again, and the
 // select it undid.
 func unselectText(rep acts.UnselectReport) string {
@@ -130,6 +135,8 @@ func readyText(r acts.Ready) string {
 		return "hyp land " + r.Goal
 	case acts.ActUnselect:
 		return "hyp unselect " + r.Goal
+	case acts.ActClose:
+		return "hyp close " + r.Goal
 	}
 	return "hyp " + r.Act + " " + r.Goal
 }

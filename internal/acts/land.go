@@ -28,9 +28,10 @@ type LandReport struct {
 }
 
 // Land records the owner's land of a Goal at a stop, or refuses with the
-// first failing guard of the state machine, section 8: Not landed, Owner
-// lands, Goal's actor, then Stop. The land ends the Goal: its events up to
-// the land, and the outputs they name, are the snapshot later Goals cite. It
+// first failing guard of the state machine, section 8: Not ended, Owner
+// lands, Goal's actor, then Stop. The land ends the Goal and names its
+// snapshot: the Goal's events replay applied, which later Goals cite and which
+// replay holds the ended Goal to in every clone. It
 // checks no commit and does not need a merge. Everything is checked under the
 // lock.
 func Land(o LandOpts) (LandReport, error) {
@@ -52,7 +53,7 @@ func Land(o LandOpts) (LandReport, error) {
 		if err != nil {
 			return ev, err
 		}
-		if err := tables.GuardNotLanded(g); err != nil {
+		if err := tables.GuardNotEnded(g); err != nil {
 			return ev, err
 		}
 		if err := tables.GuardOwnerLands(o.Role); err != nil {
@@ -65,7 +66,7 @@ func Land(o LandOpts) (LandReport, error) {
 		if st.Stop == StopNone {
 			return ev, fault.Refuse(fault.GuardStop, fault.NoStop, g.ID)
 		}
-		payload, err := json.Marshal(events.Land{Role: o.Role, Stop: st.Stop, Cause: st.Cause.ID})
+		payload, err := json.Marshal(events.Land{Role: o.Role, Stop: st.Stop, Cause: st.Cause.ID, Seen: g.Seen()})
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeLand, err)
 		}

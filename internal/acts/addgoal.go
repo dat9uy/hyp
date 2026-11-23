@@ -128,12 +128,13 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 			return ev, err
 		}
 		if o.From != "" {
-			// From landed is the act's guard only: replay does not check
+			// From ended is the act's guard only: replay does not check
 			// it, so a log written before land, whose Goal cites a Goal
-			// that is not landed, replays as it was.
+			// that is not ended, replays as it was. A landed and a closed
+			// Goal are both ended.
 			cited, _ := t.Find(o.From)
-			if cited.State != tables.StateLanded {
-				return ev, fault.Refuse(fault.GuardFromLanded, fault.FromNotLanded, cited.ID, cited.State)
+			if cited.State != tables.StateEnded {
+				return ev, fault.Refuse(fault.GuardFromEnded, fault.FromNotEnded, cited.ID, cited.State)
 			}
 		}
 		rep = Report{Replaced: o.Goal != "", Words: o.Words, Base: base, BaseTree: baseTree, Lines: lines}

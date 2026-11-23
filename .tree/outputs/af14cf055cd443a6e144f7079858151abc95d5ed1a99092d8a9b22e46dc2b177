@@ -1,0 +1,14 @@
+closed G
+G  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M834C9HER6QW1P3NGDAM127Z at 2026-11-23T02:39:50.31895Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+close exit 0

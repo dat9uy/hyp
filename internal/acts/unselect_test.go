@@ -108,7 +108,7 @@ func TestUnselectRefusals(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = Unselect(e2.unselectOpts("owner-1", "owner"))
-	refusedBy(t, err, "Not landed")
+	refusedBy(t, err, "Not ended")
 	if e.count(t, events.TypeUnselect) != 1 || e2.count(t, events.TypeUnselect) != 0 {
 		t.Fatal("a refused unselect wrote an event")
 	}

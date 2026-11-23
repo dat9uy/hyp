@@ -58,7 +58,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err != nil {
 			return ev, err
 		}
-		if err := tables.GuardNotLanded(g); err != nil {
+		if err := tables.GuardNotEnded(g); err != nil {
 			return ev, err
 		}
 		if err := tables.GuardNotSelected(g); err != nil {

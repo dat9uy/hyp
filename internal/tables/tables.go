@@ -13,7 +13,7 @@ const (
 	StateWritten  = "written"
 	StateOpen     = "open"
 	StateSelected = "selected"
-	StateLanded   = "landed"
+	StateEnded    = "ended"
 )
 
 // The stops of a Goal (section 11). A land event names one of the three.
@@ -60,7 +60,12 @@ type Goal struct {
 	Results    []*Result              // in merge order, refused ones included
 	Select     *Select                // the Goal's current select, or nil
 	Land       *Land                  // the Goal's land, or nil
+	Close      *Close                 // the Goal's close, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
+
+	// seen lists the ids of the Goal's events that replay applied, in merge
+	// order: the snapshot an end names.
+	seen []string
 
 	// epoch counts the example-changing places so far, and the unselects: the
 	// budget counts the Results recorded in the current epoch.
@@ -99,6 +104,29 @@ type Land struct {
 	Cause string
 	Time  string
 	Actor string
+}
+
+// Close is a row of the Closes table: the owner's close of a Goal, which ends
+// it at any stop or none.
+type Close struct {
+	ID    string // the close event id
+	Time  string
+	Actor string
+}
+
+// Seen is the snapshot an end of the Goal names: the ids of the Goal's
+// events that replay applied, in merge order.
+func (g *Goal) Seen() []string { return slices.Clone(g.seen) }
+
+// EndID is the id of the land or close that ended the Goal, or empty.
+func (g *Goal) EndID() string {
+	switch {
+	case g.Land != nil:
+		return g.Land.ID
+	case g.Close != nil:
+		return g.Close.ID
+	}
+	return ""
 }
 
 // Result is a row of the Results table.
@@ -378,10 +406,10 @@ func (g *Goal) isOpen() bool {
 	return len(g.Lines) > 0
 }
 
-// refresh recalculates the Goal's state. A selected or landed Goal stays so.
+// refresh recalculates the Goal's state. A selected or ended Goal stays so.
 func (g *Goal) refresh() {
 	switch {
-	case g.State == StateSelected, g.State == StateLanded:
+	case g.State == StateSelected, g.State == StateEnded:
 	case g.isOpen():
 		g.State = StateOpen
 	default:
@@ -389,10 +417,11 @@ func (g *Goal) refresh() {
 	}
 }
 
-// GuardNotLanded refuses every write to a landed Goal: the land ends it.
-func GuardNotLanded(g *Goal) error {
-	if g.State == StateLanded {
-		return fault.Refuse(fault.GuardNotLanded, fault.Landed, g.ID)
+// GuardNotEnded refuses every write to an ended Goal: a land or a close ends
+// it.
+func GuardNotEnded(g *Goal) error {
+	if g.State == StateEnded {
+		return fault.Refuse(fault.GuardNotEnded, fault.Ended, g.ID)
 	}
 	return nil
 }
@@ -444,7 +473,7 @@ func GuardPlace(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
 	}
-	if err := GuardNotLanded(g); err != nil {
+	if err := GuardNotEnded(g); err != nil {
 		return err
 	}
 	if err := GuardNotSelected(g); err != nil {
@@ -470,7 +499,7 @@ func GuardPlaceSet(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
 	}
-	if err := GuardNotLanded(g); err != nil {
+	if err := GuardNotEnded(g); err != nil {
 		return err
 	}
 	if err := GuardNotSelected(g); err != nil {
@@ -530,12 +559,116 @@ func (g *Goal) placeSet(ev events.Event, p events.ExamplesPlace) {
 // Replay applies the events in order. An event that fails a guard replay
 // checks again is skipped and kept in RefusedAtReplay; it is never deleted
 // from the log. A read event changes no Goal: it adds a row to Reads.
+//
+// An end, a land or a close, names its snapshot: the Goal's events replay
+// applied when the owner ended it. An event of that Goal ahead of the end in
+// the merge order that the snapshot does not name was written in another
+// clone before the end and merged after it: Not ended refuses it, so the
+// ended Goal holds what the owner saw in every clone. A land written before
+// close existed names no snapshot and refuses nothing. The snapshot used is
+// that of the end replay applies; an end that replay refuses names none, so
+// Replay drops it and replays again.
 func Replay(evs []events.Event) Tables {
+	dropped := map[string]bool{}
+	for {
+		snaps := snapshots(evs, dropped)
+		t := replayWith(evs, snaps)
+		again := false
+		for node, s := range snaps {
+			if g := t.Goals[node]; g == nil || g.EndID() != evs[s.at].ID {
+				dropped[evs[s.at].ID] = true
+				again = true
+			}
+		}
+		if !again {
+			return t
+		}
+	}
+}
+
+// snapshot is the snapshot an end names: the end's place in the merge order
+// and the ids it names.
+type snapshot struct {
+	at   int
+	seen map[string]bool
+}
+
+// snapshots finds, for each Goal, its first end in the merge order that is
+// not dropped, and keeps it when it names a snapshot. Every later end of the
+// Goal fails Not ended.
+func snapshots(evs []events.Event, dropped map[string]bool) map[string]snapshot {
+	out := map[string]snapshot{}
+	first := map[string]bool{}
+	for i, ev := range evs {
+		if dropped[ev.ID] || first[ev.Node] {
+			continue
+		}
+		var seen []string
+		switch ev.Type {
+		case events.TypeLand:
+			var p events.Land
+			if events.Decode(ev, &p) != nil {
+				continue
+			}
+			seen = p.Seen
+		case events.TypeClose:
+			var p events.Close
+			if events.Decode(ev, &p) != nil {
+				continue
+			}
+			seen = p.Seen
+		default:
+			continue
+		}
+		first[ev.Node] = true
+		if seen == nil {
+			continue
+		}
+		s := snapshot{at: i, seen: map[string]bool{}}
+		for _, id := range seen {
+			s.seen[id] = true
+		}
+		out[ev.Node] = s
+	}
+	return out
+}
+
+// goalOf is the goal.add event id of the Goal an event changes, or empty for
+// an event that changes none or that adds a new Goal.
+func goalOf(t Tables, ev events.Event) string {
+	switch ev.Type {
+	case events.TypeGoalAdd:
+		if ev.Node == ev.ID {
+			return ""
+		}
+		return ev.Node
+	case events.TypeExamplePlace, events.TypeExamplesPlace, events.TypeResultRecord,
+		events.TypeSelect, events.TypeUnselect:
+		return ev.Node
+	case events.TypeResultRetract:
+		if r, ok := t.results[ev.Node]; ok {
+			for _, g := range t.Goals {
+				if slices.Contains(g.Results, r) {
+					return g.EventID
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}, Reads: map[string][]Read{}}
 	refuse := func(ev events.Event, err error) {
 		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Err: err})
 	}
-	for _, ev := range evs {
+	for i, ev := range evs {
+		if node := goalOf(t, ev); node != "" {
+			if s, ok := snaps[node]; ok && i < s.at && !s.seen[ev.ID] {
+				refuse(ev, fault.Refuse(fault.GuardNotEnded, fault.NotInSnapshot, GoalID(node), evs[s.at].ID))
+				continue
+			}
+		}
 		switch ev.Type {
 		case events.TypeGoalAdd:
 			replayGoalAdd(&t, ev, refuse)
@@ -550,6 +683,7 @@ func Replay(evs []events.Event) Tables {
 			}
 			g := t.Goals[ev.Node]
 			g.place(ev, p)
+			g.seen = append(g.seen, ev.ID)
 			g.refresh()
 		case events.TypeExamplesPlace:
 			if err := GuardPlaceSet(t, ev); err != nil {
@@ -562,6 +696,7 @@ func Replay(evs []events.Event) Tables {
 			}
 			g := t.Goals[ev.Node]
 			g.placeSet(ev, p)
+			g.seen = append(g.seen, ev.ID)
 			g.refresh()
 		case events.TypeResultRecord:
 			replayResult(&t, ev, refuse)
@@ -571,6 +706,8 @@ func Replay(evs []events.Event) Tables {
 			replaySelect(&t, ev, refuse)
 		case events.TypeLand:
 			replayLand(&t, ev, refuse)
+		case events.TypeClose:
+			replayClose(&t, ev, refuse)
 		case events.TypeUnselect:
 			replayUnselect(&t, ev, refuse)
 		case events.TypeRead:
@@ -610,6 +747,7 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 	}
 	g.Results = append(g.Results, r)
 	t.results[ev.ID] = r
+	g.seen = append(g.seen, ev.ID)
 	g.refresh()
 }
 
@@ -628,6 +766,7 @@ func replayRetract(t *Tables, ev events.Event, refuse func(events.Event, error))
 	r.Retracted = true
 	for _, g := range t.Goals {
 		if slices.Contains(g.Results, r) {
+			g.seen = append(g.seen, ev.ID)
 			g.refresh()
 		}
 	}
@@ -644,12 +783,14 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 	}
 	if g, ok := t.Goals[ev.Node]; ok && ev.Node != ev.ID {
 		g.Words, g.Base, g.BaseTree, g.From, g.Lines = p.Words, p.Base, p.BaseTree, p.From, p.Lines
+		g.seen = append(g.seen, ev.ID)
 		g.refresh()
 		return
 	}
 	t.Goals[ev.ID] = &Goal{
 		ID: GoalID(ev.ID), EventID: ev.ID, Words: p.Words, Base: p.Base, BaseTree: p.BaseTree,
 		Budget: p.Budget, Actor: ev.Actor, From: p.From, State: StateWritten, Lines: p.Lines,
+		seen: []string{ev.ID},
 	}
 }
 
@@ -668,6 +809,7 @@ func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 	}
 	g := t.Goals[ev.Node]
 	g.Select = &Select{ID: ev.ID, Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
+	g.seen = append(g.seen, ev.ID)
 	g.State = StateSelected
 }
 
@@ -694,7 +836,7 @@ func GuardLand(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToLand, GoalID(ev.Node))
 	}
-	if err := GuardNotLanded(g); err != nil {
+	if err := GuardNotEnded(g); err != nil {
 		return err
 	}
 	if err := GuardOwnerLands(p.Role); err != nil {
@@ -725,7 +867,49 @@ func replayLand(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 	}
 	g := t.Goals[ev.Node]
 	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor}
-	g.State = StateLanded
+	g.State = StateEnded
+}
+
+// GuardOwnerCloses refuses a close by any role but the owner.
+func GuardOwnerCloses(role string) error {
+	if role != "owner" {
+		return fault.Refuse(fault.GuardOwnerClose, fault.NotOwnerClose, role)
+	}
+	return nil
+}
+
+// GuardClose is the check of a close event, called by the close act and by
+// Replay at the event's place in the merge order: Not ended, Owner closes,
+// then Goal's actor. A close needs no stop. Every guard reads only the
+// tables. ev.Node is the goal.add event id.
+func GuardClose(t Tables, ev events.Event) error {
+	var p events.Close
+	if err := events.Decode(ev, &p); err != nil {
+		return fault.Refuse(fault.GuardOwnerClose, fault.PayloadInvalid, err)
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToClose, GoalID(ev.Node))
+	}
+	if err := GuardNotEnded(g); err != nil {
+		return err
+	}
+	if err := GuardOwnerCloses(p.Role); err != nil {
+		return err
+	}
+	return GuardGoalActor(g, ev.Actor, p.Role)
+}
+
+// replayClose applies a close the guards allow: the Goal is ended, and keeps
+// its rows, verdicts and select as they were.
+func replayClose(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardClose(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	g := t.Goals[ev.Node]
+	g.Close = &Close{ID: ev.ID, Time: ev.TS, Actor: ev.Actor}
+	g.State = StateEnded
 }
 
 // GuardOwnerUnselects refuses an unselect by any role but the owner.
@@ -758,7 +942,7 @@ func GuardUnselect(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToUnselect, GoalID(ev.Node))
 	}
-	if err := GuardNotLanded(g); err != nil {
+	if err := GuardNotEnded(g); err != nil {
 		return err
 	}
 	if err := GuardOwnerUnselects(p.Role); err != nil {
@@ -790,6 +974,7 @@ func replayUnselect(t *Tables, ev events.Event, refuse func(events.Event, error)
 	})
 	g.Select = nil
 	g.State = StateOpen
+	g.seen = append(g.seen, ev.ID)
 	g.epoch++ // the unselect starts a new budget
 	g.refresh()
 }

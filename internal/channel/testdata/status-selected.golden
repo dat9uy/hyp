@@ -4,6 +4,7 @@ waits: owner
 owner may:
   hyp land G-XXXXXX
   hyp unselect G-XXXXXX
+  hyp close G-XXXXXX
 grill may:
   (none)
 probe-writer may:

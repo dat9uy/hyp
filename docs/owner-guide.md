@@ -9,15 +9,15 @@ An agent that builds a change can also say when the change is done. hyp takes th
 - **You state what must be true, before any build.** The Goal's words and lines, against the base commit H0, are the only wants the agents work toward. An agent can show you a gap and ask you. Only your act adds a want.
 - **An example counts only if it can fail.** hyp runs each example on H0 before it accepts the example. So a verdict on a build can show a real change from H0.
 - **Verdicts are calculated, not argued.** A literal compare of the output gives `met` or `failed`. When a verdict seems wrong to you, the fix is a better example, not a discussion.
-- **You decide at the stops.** hyp stops the loop and waits for you. Only you choose between two candidates, accept a build with a merge, and end a Goal with a land.
+- **You decide at the stops.** hyp stops the loop and waits for you. Only you choose between two candidates, accept a build with a merge, and end a Goal with a land or a close.
 
 You read examples and their outputs, not code. You read code only at the merge, where you can reject how the build works.
 
-Four roles act: owner, grill, Probe writer and runner. hyp is not a role: it runs each Probe, calculates each state and refuses an act that breaks a rule. Only the actor that added a Goal can select for the owner, unselect or land that Goal. hyp does not authenticate actors, so this rule catches an honest mistake, not a lie.
+Four roles act: owner, grill, Probe writer and runner. hyp is not a role: it runs each Probe, calculates each state and refuses an act that breaks a rule. Only the actor that added a Goal can select for the owner, unselect, land or close that Goal. hyp does not authenticate actors, so this rule catches an honest mistake, not a lie.
 
 ## The life of a Goal
 
-A Goal is `written`, `open`, `selected` or `landed`. hyp calculates the state from the events, and you never set it:
+A Goal is `written`, `open`, `selected` or `ended`. hyp calculates the state from the events, and you never set it:
 
 ```mermaid
 stateDiagram-v2
@@ -25,9 +25,12 @@ stateDiagram-v2
   written --> open: the grill places an example on each line
   open --> selected: a select
   selected --> open: you unselect
-  open --> landed: you land at Two candidates or Budget used
-  selected --> landed: you land
-  landed --> [*]
+  open --> ended: you land at Two candidates or Budget used
+  selected --> ended: you land
+  written --> ended: you close
+  open --> ended: you close
+  selected --> ended: you close
+  ended --> [*]
 ```
 
 **1. The grill asks, and you answer.** A real event, such as a refusal or a run you flag, starts an issue. A session with the [hyp-grill](../skills/hyp-grill/SKILL.md) skill asks you questions about that issue. It asks only what you want to be true, never how to build it. Each question gives options with a short label and a description of what each option makes the runner build. You pick by the label, and the label is the text that the grill records. When you correct a draft, the grill shows it again and waits for your consent. The grill writes each of your decisions to the issue, in your words. A record cites only an issue, a PR or a commit.
@@ -85,7 +88,7 @@ selected row: 8326335b3416ae83ee1cab190b66a82965950e89
 - **`stop:`** names the stop, the act that caused it, its event id and its time. It is `none` when the Goal has no stop.
 - **`waits:`** is `grill` while the Goal is written, `owner` at a stop, and `none` otherwise.
 - **`<role> may:`** lists each act that a role may take now, as a command line ready to run. `--role owner` shows only your acts.
-- **`landed:`** follows `stop:` on a landed Goal, for example `landed: by owner, land 01M7WJSTFC9FX8WGA0CRM50H4M at 2026-11-20T13:37:12.684825Z`.
+- **`landed:`** follows `stop:` on a landed Goal, for example `landed: by owner, land 01M7WJSTFC9FX8WGA0CRM50H4M at 2026-11-20T13:37:12.684825Z`. On a closed Goal the line is `closed: by owner, close ID at TIME`.
 
 The block can hold more lines:
 
@@ -183,12 +186,17 @@ Each Hypothesis and verdict stays, and the budget starts again. The grill then r
 
 **After the land, the Goal takes no write.** A gap that you find later is a new Goal, with `--from G`.
 
+## When you will not go on with a Goal
+
+`hyp close G` ends a Goal that is not ended, at any stop or none. `hyp status G --role owner` prints it among your acts on every such Goal. The closed Goal prints `ended` and a line `closed: by owner, close ID at TIME`, keeps its rows and verdicts as they were, and takes no write. A later Goal can cite it with `--from G`, as it cites a landed one.
+
+A land and a close each name the Goal's events you saw when you ended it. A run that another clone wrote before your end and that reaches your log only after it is listed under `refused at replay`, so the ended Goal shows the same rows and verdicts in every clone.
+
 ## What hyp does not have yet
 
 Each item below is in the spec but not in the binary. `hyp help` lists every command that the binary has, and `hyp status` offers only those.
 
 - **`reset`**, which gives the budget back with no example change. `hyp help` does not list it, and `hyp reset` prints the usage, exit 2.
 - **`retract`**, which takes back a wrong run. `hyp help` does not list it, so each verdict of a wrong run stays.
-- **An end for a Goal with no stop.** `land` needs a stop, so a Goal that never reaches one stays open ([spec §14](state-machine.md#14-deferred)).
 - **A chart of each Hypothesis at a stop.** At Two candidates and Budget used you read only the `outputs:` table ([spec §11](state-machine.md#11-budget-and-stops)).
 - **A runner that hyp starts.** You start the runner session yourself. The grill can write its prompt when you ask.

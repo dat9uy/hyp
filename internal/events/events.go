@@ -24,7 +24,7 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The ten event types. All but read change the state machine; read is the
+// The eleven event types. All but read change the state machine; read is the
 // trace of what hyp printed to an actor, and changes no state. example.place
 // is the old form of a place, one example per event: hyp writes
 // examples.place, and replays both.
@@ -37,6 +37,7 @@ const (
 	TypeSelect        = "select"
 	TypeBudgetReset   = "budget.reset"
 	TypeLand          = "land"
+	TypeClose         = "close"
 	TypeUnselect      = "unselect"
 	TypeRead          = "read"
 )
@@ -44,7 +45,7 @@ const (
 var types = map[string]bool{
 	TypeGoalAdd: true, TypeExamplePlace: true, TypeExamplesPlace: true, TypeResultRecord: true,
 	TypeResultRetract: true, TypeSelect: true, TypeBudgetReset: true,
-	TypeLand: true, TypeUnselect: true, TypeRead: true,
+	TypeLand: true, TypeClose: true, TypeUnselect: true, TypeRead: true,
 }
 
 // The kind of a line: a gap line must fail on H0, a guard line must be met.
@@ -142,13 +143,23 @@ type Select struct {
 	RowTree string `json:"row_tree"`
 }
 
-// Land is the payload of land: the stop the land ends, and the event of the
-// act that caused that stop (a select, or the result.record of the run after
-// which the stop held).
+// Land is the payload of land: the stop the land ends, the event of the act
+// that caused that stop (a select, or the result.record of the run after
+// which the stop held), and the snapshot: the ids of the Goal's events that
+// replay applied when the owner landed. A land written before close existed
+// names no snapshot.
 type Land struct {
-	Role  string `json:"role"`
-	Stop  string `json:"stop"`
-	Cause string `json:"cause"`
+	Role  string   `json:"role"`
+	Stop  string   `json:"stop"`
+	Cause string   `json:"cause"`
+	Seen  []string `json:"seen,omitempty"`
+}
+
+// Close is the payload of close: the owner's act that ends a Goal that is
+// not ended, at any stop or none, and the snapshot as a land names it.
+type Close struct {
+	Role string   `json:"role"`
+	Seen []string `json:"seen"`
 }
 
 // Unselect is the payload of unselect: the owner's act that puts a selected
@@ -176,7 +187,7 @@ type Read struct {
 }
 
 // ParseLine parses one line of an events file. It refuses an unknown field, a
-// version other than 2 and a type outside the nine.
+// version other than 2 and a type outside the closed set.
 func ParseLine(b []byte) (Event, error) {
 	var e Event
 	if err := strictDecode(b, &e); err != nil {
