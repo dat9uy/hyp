@@ -1,0 +1,17 @@
+internal/acts/addgoal.go
+internal/acts/allowed.go
+internal/acts/place.go
+internal/acts/run.go
+internal/acts/select.go
+internal/events/events.go
+internal/example/compare.go
+internal/example/txtar.go
+internal/gitread/gitread.go
+internal/gitread/read.go
+internal/gitread/treehash.go
+internal/herr/herr.go
+internal/logstore/logstore.go
+internal/probe/probe.go
+internal/tables/rows.go
+internal/tables/select.go
+internal/tables/tables.go

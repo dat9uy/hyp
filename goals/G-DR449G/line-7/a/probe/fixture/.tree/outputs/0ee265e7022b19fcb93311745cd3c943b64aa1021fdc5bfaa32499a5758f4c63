@@ -1,0 +1,3 @@
+a text spec only: select exit 0
+a model and its report: select exit 0
+the select prints the report: no

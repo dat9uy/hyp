@@ -1,0 +1,11 @@
+land line: none
+land exit: none
+place exit: 1
+run exit: 1
+select exit: 1
+second land exit: none
+log unchanged: yes
+land line: none
+budget used, land exit: none
+place exit: 0
+log unchanged: no

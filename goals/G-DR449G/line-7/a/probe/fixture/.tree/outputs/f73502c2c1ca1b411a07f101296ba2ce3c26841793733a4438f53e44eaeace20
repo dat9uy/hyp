@@ -1,0 +1,8 @@
+runner-1: hyp run HEAD G/line-1: exit 1, names the Goal: yes, stderr: yes
+runner-1: hyp select G 4b825dc642cb6eb9a060e54bf8d69288fbee4904: exit 1, names the Goal: yes, stderr: yes
+grill: hyp place G line-1/a: exit 1, names the Goal: yes, stderr: yes
+owner: hyp status G-AAAAAA: exit 2, names the Goal: no, stderr: yes
+changes git sees:
+none
+HEAD moved: no
+files git is told to skip: 0

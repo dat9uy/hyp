@@ -1,0 +1,8 @@
+unselect line: none
+unselect exit: none
+state after unselect: selected
+grill may place: no
+place exit: 1
+run exit: 1
+select exit: 1
+state after select: selected

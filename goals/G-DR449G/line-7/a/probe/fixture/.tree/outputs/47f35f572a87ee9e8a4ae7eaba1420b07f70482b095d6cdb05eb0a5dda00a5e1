@@ -1,0 +1,28 @@
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+
+The Goal asks:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a @1
+
+hash: 937b45521e7120ee8cf7873010735f86ba922963
+placed: by grill at 2026-11-23T02:39:54.638895Z
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 80 bytes:
+
+```
+-- words --
+Fixture line-1/a.
+-- run --
+cat greet.txt
+-- floor: contains --
+bye
+```

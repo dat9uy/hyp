@@ -1,0 +1,71 @@
+setup: hyp place G-W9RFM1
+placed G-W9RFM1: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-W9RFM1 is open
+G-W9RFM1  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-W9RFM1
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-W9RFM1/line-1
+usage: hyp <command> [flags]
+
+Every command but help and version needs an actor (--actor or $HYP_ACTOR).
+An act that writes also needs a role (--role or $HYP_ROLE): owner, grill,
+probe-writer or runner. hyp records what it prints to each actor in the trace,
+one folder per clone under ~/.hyp/traces; hyp show prints it. hyp writes
+nothing under ~/.local and does not read $XDG_STATE_HOME.
+
+commands:
+  add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
+           [--from G] [--why TEXT]
+                                         record a Goal; with G, replace a Goal
+                                         that is still written
+  place G [--why TEXT]                   place the whole example set of Goal G:
+                                         every folder goals/G/LINE/EXAMPLE, each
+                                         run on H0; it places the set only when
+                                         every example agrees with its line, and
+                                         otherwise places none and names each
+                                         cause
+  run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
+                                         Goal G on COMMIT and record the Result
+  try G LINE/EXAMPLE [--worktree]        run the example folder goals/G/LINE/EXAMPLE
+                                         as it is on disk, on H0, or with
+                                         --worktree on this checkout's files
+                                         with what is not committed, and print
+                                         its output, stderr, exit code and
+                                         verdict as place and run would record
+                                         them; records nothing and uses no run
+  select G HASH [--why TEXT]             select the candidate row of Goal G whose
+                                         subject hash is HASH; the report is the
+                                         PR body
+  land G [--why TEXT]                    the owner lands Goal G at its stop: the
+                                         Goal ends, and its events up to the
+                                         land are the snapshot that a later
+                                         Goal's --from cites
+  unselect G [--why TEXT]                the owner unselects Goal G: G is open
+                                         again with its rows and cells, its
+                                         budget starts again, and the runner
+                                         selects again only after a run that
+                                         records a new cell
+  status [G] [--role ROLE]               print the state of every Goal, or of G:
+                                         its stop, its waits and the allowed
+                                         acts as ready command lines; of a
+                                         written or open G, also its words,
+                                         lines and placed examples
+  show ACTOR                             print every output hyp printed to
+                                         ACTOR, byte for byte, oldest first
+  prune [--remove]                       list the traces under ~/.hyp/traces of
+                                         repositories that no longer exist;
+                                         with --remove, remove those traces
+  help                                   print this text
+  version                                print the hyp version
+
+exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
+3 environment problem
+hyp: unknown command close

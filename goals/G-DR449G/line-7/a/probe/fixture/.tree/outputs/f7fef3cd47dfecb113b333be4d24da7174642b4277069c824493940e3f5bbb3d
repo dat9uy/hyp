@@ -1,0 +1,280 @@
+== written, status G
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-ID --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+probe-writer may:
+runner may:
+  (none)
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== written, status G --role owner
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-ID --base <commit> --words <words> --line <kind>:<text>
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== written, status G --role grill
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== written, status G --role runner
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+runner may:
+  (none)
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== open, status G
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+probe-writer may:
+runner may:
+  hyp run <commit> G-ID/line-1
+  hyp run <commit> G-ID/line-2
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```
+== open, status G --role owner
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```
+== open, status G --role grill
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```
+== open, status G --role runner
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+runner may:
+  hyp run <commit> G-ID/line-1
+  hyp run <commit> G-ID/line-2
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```

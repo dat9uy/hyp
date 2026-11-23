@@ -1,0 +1,17 @@
+skill folder hyp-grill: no
+rule option-label-is-the-recorded-text: no
+rule option-description-says-the-build: no
+rule correction-is-not-consent: no
+rule missing-name-is-proposed-for-veto: no
+rule form-question-names-every-state-and-command: no
+rule surfaces-before-examples: no
+rule hyp-try-before-place: no
+cites a file under docs/: no
+cites an ADR: no
+cites a file under plans/: no
+cites an issue of this repository by number: no
+cites a Goal of this repository: no
+links that leave the skill folder or do not resolve: none
+hyp commands the skill shows in code: none
+hyp commands that hyp help does not list: none
+a file of the skill works as the generic Probe: no

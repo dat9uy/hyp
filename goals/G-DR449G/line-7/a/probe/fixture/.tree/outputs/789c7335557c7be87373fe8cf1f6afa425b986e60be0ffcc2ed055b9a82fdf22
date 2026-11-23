@@ -1,0 +1,3 @@
+owner: hyp prune: exit 2, names the deleted repository: no, names the live repository: no
+files under ~/.hyp that hold the deleted repository's read: none
+changes git sees: none

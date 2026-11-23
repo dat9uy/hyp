@@ -1,0 +1,10 @@
+H0 moved; hyp add goal G returns:
+grill may:
+  hyp place G line-3/<example>
+H0 moved; hyp place G line-3/a returns:
+grill may:
+  hyp place G <line>/<example>
+every line holds an example, and the Goal is: written
+hyp status G:
+grill may:
+  hyp place G <line>/<example>
