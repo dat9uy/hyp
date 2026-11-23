@@ -18,7 +18,8 @@ line or an example, and every decision that no example checks is reported.
 - The owner has a real event (a refusal, a warning, a stop, a flagged run) and
   wants the change it points at held as a Goal.
 - hyp stopped a Goal for the owner (`Two candidates` or `Budget used`), or a
-  selected Goal is to be reviewed: that is the re-grill.
+  selected Goal is to be reviewed: that is the re-grill, in
+  [re-grill.md](re-grill.md).
 - A runner needs the run rules: give it [run-rules.md](run-rules.md), the run
   part of this skill. It is a part of this skill, not a second skill.
 - Not for: writing or running the build itself. The runner does that.
@@ -129,31 +130,10 @@ The issue is the owner's record, not a rule for the runner:
    `git branch -m` once hyp prints it.
 10. **Draft the model with `/hyp-statechart`.** When the change moves through
     states, write the Goal's model on the record branch with the
-    hyp-statechart skill, which ships with hyp: a TLA+ spec in
-    `goals/<G>/specs/`, one variant per potential Hypothesis, and the chart.
-    The statechart tool, not you, says which rules each variant breaks and
-    which examples each variant would meet:
-    - Draft the model after the owner consents to the words and lines and
-      before the examples are final, so that the variants the tool reports can
-      still give the examples their direction.
-    - The hyp-statechart skill owns how to run the tool, how to try each
-      variant as a patch with `hyp try G LINE/EXAMPLE --worktree`, and what
-      its part of the hand-off holds. Follow it there; this step adds only
-      what you ask the owner.
-    - Before the examples exist, each variant that no example separates is a
-      reading of a line ("How to grill the examples", step 1).
-    - After the examples are placed, for each tried variant that meets every
-      example and prints something else on a step no example takes, ask the
-      owner one question in plain English, at the example level and with no
-      model word: show the case, what each build prints for it, and ask which
-      output is wanted.
-    - When the owner answers "either output is fine", list the case under
-      "Not covered". Otherwise place an example that separates the two builds.
-    - Stop trying a variant at its first failed example. A variant that fails
-      one example meets not every example, so its other tries teach nothing.
-
-    At select, hyp refuses a model that has a rule no variant config names, or
-    no chart; a spec folder with no model is selected as before.
+    hyp-statechart skill, which ships with hyp, after the owner consents to
+    the words and lines and before the examples are final. Follow
+    [model.md](model.md) for when to draft it and what to ask the owner about
+    each variant the statechart tool reports.
 
 ## How to grill the examples
 
@@ -220,25 +200,10 @@ full: the owner may read only the last message, not the status before it.
    executable.
 6. **Hand every other example to a Probe writer.** When the reading needs a
    state set up before the command (for example "in a git repository with
-   three commits"), the generic Probe cannot run it. Then:
-   - Write and commit the `example.txtar`. Its `run` stays the command the
-     owner would type, word for word; the setup goes in the Probe, never in
-     the `run`.
-   - Write no Probe code for it yourself. Start a Probe writer: an agent
-     whose prompt is the probe-writer block that
-     `hyp status G --role probe-writer` prints, copied word for word, followed
-     by the example's key (for example `line-2/a`), its words and the setup it
-     needs. Probe writers run in parallel, each in a worktree of its own,
-     and the record branch stays checked out in the owner's checkout, so
-     also tell it to commit on a branch made from the record branch before
-     it writes, for `line-2/a`:
-     `git checkout -b probe/<G>-line-2-a record/<G>`.
-   - The Probe writer commits the example's `probe/` folder and returns the
-     commit and the output of `hyp try`. In the owner's checkout, bring each
-     commit onto the record branch with `git cherry-pick`; each touches only
-     its own folder, so the picks do not conflict. Then do step 7 there,
-     because the writer's `hyp try` ran on its own branch. Start no Probe
-     writer for an example the generic Probe can run.
+   three commits"), the generic Probe cannot run it. Follow
+   [probe-writers.md](probe-writers.md): write no Probe code yourself, start a
+   Probe writer from the block `hyp status G --role probe-writer` prints, and
+   bring its commit onto the record branch.
 7. **Run `hyp try` before you place.** A gap example must fail on H0 and a
    guard example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
    verdict, exit code, output and stderr. It records nothing and uses no run.
@@ -268,44 +233,10 @@ full: the owner may read only the last message, not the status before it.
 
 ## How to re-grill
 
-The re-grill reviews a Goal against its lines, from what builds really
-printed, at each stop for the owner: `Selected`, `Two candidates` and
-`Budget used`. Read the table of outputs `hyp status G` prints and each
-output it names, in the trace of the clone that ran it; where this clone's
-trace lacks a cell, run the `hyp try` line `hyp status G` prints for it. A
-met output matters as much as a failed one.
-
-- **Discover ceilings.** In each met output, look for text the line's words
-  forbid that its floors let through. Show the owner the example, its floors
-  and that output, and ask whether the text must never appear. A kept one
-  becomes a ceiling, copied byte for byte from the output, as a new version
-  of that example.
-- **Review floors.** When a build met an example but its output is not what
-  the line means, the floor is too loose: add a floor or a ceiling, as a new
-  version. When a surface the line reaches has no example, add a new example
-  key. When a build the owner accepts fails only on a floor, the floor is too
-  strict. A version cannot loosen it, a placed folder is never removed, and a
-  line is met only when every example is met, so the Goal ends: the owner
-  lands it, and a new Goal with `--from G` holds the corrected example.
-
-Every kept finding is a place, and a place restarts the budget: tell the
-owner this cost before they keep it. At the `Selected` stop the owner first
-unselects; the rows and verdicts stay. A changed `run`, input or Probe is a
-new example key, and a place that changes no example is refused.
-
-- **When the owner reports something odd**, ask the owner, as a question, to
-  state it in one of two forms, quoted in your question: "On input X, I must
-  see Y." or "On input X, I must never see Y." You may read the candidate's
-  outputs to find what looks off, but ask for the statement before you
-  propose a fix.
-- **Then compare Y with the lines' words.** When a line's words already ask
-  for Y or forbid it, propose an adjust: a new version of that line's example
-  that adds Y as a floor (must see) or as a ceiling (must never see). When Y
-  needs words that no line has, propose a new Goal: the owner lands this
-  Goal, and the new Goal cites it. A new line is always a new Goal, never an
-  edit of an open one. Use the words "an adjust" or "a new Goal" in the
-  proposal. The owner decides.
-- Use `hyp show <actor>` to read exactly what hyp printed to the runner.
+At a stop for the owner (`Selected`, `Two candidates`, `Budget used`), or when
+a selected Goal is reviewed, follow [re-grill.md](re-grill.md): it reviews the
+Goal from what builds really printed, finds ceilings and loose floors, and
+turns each kept finding into an adjust or a new Goal.
 
 ## Hand-off
 
@@ -345,6 +276,11 @@ until the owner unselects.
 ## Resources
 
 - [run-rules.md](run-rules.md): the run part. Give it to the runner of the Goal.
+- [re-grill.md](re-grill.md): the re-grill, at a stop for the owner.
+- [model.md](model.md): drafting the Goal's model and asking about its
+  variants.
+- [probe-writers.md](probe-writers.md): handing an example the generic Probe
+  cannot run to a Probe writer.
 - The hyp-statechart skill, beside this one: the model, its variants and its
   chart, with the statechart tool.
 - [probe/run](probe/run): the generic Probe, a POSIX `sh` script. hyp runs it
