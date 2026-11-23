@@ -1,0 +1,106 @@
+#!/bin/sh
+# Probe of G-QJABD8 line-7/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with a test Goal (one gap
+# line, one fixture example with the generic Probe, placed), then has a runner run and select a commit on a branch, deletes the branch, and runs the example's run section as the owner.
+# The run section's G and HASH are replaced by the test Goal and the row's
+# subject hash; its stdout is printed with them replaced back, then a last line
+# "exit N". Setup output goes to stderr. A build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+commit() { git add -A && git commit -q -m "$1" >&2 || fail "commit $1"; }
+step() { echo "setup: $*" >&2; }
+
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+{
+  echo '-- words --'
+  echo "Fixture line-1/a."
+  echo '-- run --'
+  echo "cat greet.txt"
+  echo '-- floor: contains --'
+  echo "bye"
+} >"$d/example.txtar"
+cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+chmod +x "$d/probe/run"
+# A select needs a spec file in the selected commit.
+mkdir -p "goals/$G/specs" && echo spec >"goals/$G/specs/spec.txt" || fail "spec"
+commit fixtures
+step "hyp place"
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+commit placed
+
+# A runner runs a commit on branch cand that meets the example.
+git checkout -q -b cand >&2 || fail "checkout cand"
+echo bye >greet.txt
+commit candidate
+row=$(git rev-parse HEAD)
+step "hyp run"
+ran=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$row" "$G/line-1") || fail "hyp run: $ran"
+printf '%s\n' "$ran" >&2
+HASH=$(printf '%s\n' "$ran" | sed -n 's/^row: //p' | head -n 1)
+[ -n "$HASH" ] || fail "no row in: $ran"
+step "hyp select"
+HYP_ACTOR=runner HYP_ROLE=runner hyp select "$G" "$HASH" >&2 || fail "hyp select failed"
+
+# Keep .tree as it is now, delete cand, and commit .tree on main only, so the
+# run commit is on no branch or tag (the subject excludes goals/ and .tree/).
+git add -A && git commit -q -m events >&2 # nothing may be left unstaged
+cp -R .tree "$work/tree-copy" || fail "copy .tree"
+git checkout -q main >&2 || fail "checkout main"
+git branch -D cand >&2 || fail "delete cand"
+rm -rf .tree && cp -R "$work/tree-copy" .tree || fail "restore .tree"
+commit "events on main"
+reach=$(git for-each-ref --contains "$row")
+[ -z "$reach" ] || fail "run commit still reachable: $reach"
+
+export G HASH HYP_ACTOR=owner HYP_ROLE=owner
+run=$(printf '%s\n' "$HYP_RUN" |
+  sed -e "s/\([^A-Za-z0-9-]\)G\([^A-Za-z0-9-]\)/\1$G\2/g" \
+    -e "s/\([^A-Za-z0-9-]\)G\$/\1$G/" -e "s/HASH/$HASH/g")
+step "run: $run"
+out="$work/out"
+sh -c "$run" >"$out"
+code=$?
+sed -e "s/$G/G/g" -e "s/$HASH/HASH/g" "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+echo "exit $code"
+exit 0
