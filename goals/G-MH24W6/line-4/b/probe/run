@@ -1,0 +1,16 @@
+#!/bin/sh
+# Probe of G-MH24W6 line-4/b. The working directory is a copy of the subject.
+# It builds hyp from the subject into a temporary folder put first on PATH, runs
+# the example's run ($HYP_RUN), and prints only the line that starts
+# "  status  usage:" (the status usage in the spec), then a last line "exit N".
+# Setup output goes to stderr. A build failure exits 3.
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/bin" || exit 3
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || { echo "probe: go build failed" >&2; exit 3; }
+PATH="$work/bin:$PATH"
+export PATH
+sh -c "$HYP_RUN" >"$work/out"
+code=$?
+grep '^  status  usage:' "$work/out"
+echo "exit $code"
