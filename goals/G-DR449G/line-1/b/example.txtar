@@ -1,0 +1,10 @@
+-- words --
+In two clones, a run merged after the owner's close is refused at replay, and the line of `hyp spec` that names the run's event kind says an end freezes it.
+-- run --
+hyp spec
+-- floor: contains --
+refused at replay
+-- floor: contains --
+the run's event kind is frozen by an end in hyp spec
+-- ceiling --
+disagrees

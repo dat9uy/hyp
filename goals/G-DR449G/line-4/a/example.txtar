@@ -1,0 +1,10 @@
+-- words --
+`docs/` holds no `state-machine.md`, and the README and AGENTS.md each name `hyp spec`.
+-- run --
+ls docs; echo "readme names hyp spec: $(grep -c 'hyp spec' README.md)"; echo "agents names hyp spec: $(grep -c 'hyp spec' AGENTS.md)"
+-- floor: contains --
+glossary.md
+-- ceiling --
+state-machine.md
+-- ceiling --
+names hyp spec: 0

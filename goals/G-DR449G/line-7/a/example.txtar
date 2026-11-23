@@ -1,0 +1,12 @@
+-- words --
+In a copy of hyp's own log, `hyp status` prints the same state line for each of its 17 Goals as it prints today.
+-- run --
+hyp status | grep -E '^G-'
+-- floor: contains --
+G-9XX4KB  ended  runs: 1 of 3 used
+-- floor: contains --
+G-SBFXAY  ended  runs: 1 of 3 used
+-- floor: contains --
+G-G4NNT7  ended  runs: 0 of 3 used
+-- floor: contains --
+G-GF11ED  ended  runs: 1 of 3 used

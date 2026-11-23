@@ -1,0 +1,10 @@
+-- words --
+Every act's usage line in `hyp help` is on the line of `hyp spec` that names the act, and `hyp spec` gives an exit code for a refusal, a bad argument and an environment fault that matches the exit code hyp returns for each.
+-- run --
+hyp spec
+-- floor: contains --
+every usage line in hyp help is in hyp spec
+-- floor: contains --
+every exit code agrees with hyp spec
+-- ceiling --
+disagrees
