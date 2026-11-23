@@ -228,10 +228,17 @@ full: the owner may read only the last message, not the status before it.
      whose prompt is the probe-writer block that
      `hyp status G --role probe-writer` prints, copied word for word, followed
      by the example's key (for example `line-2/a`), its words and the setup it
-     needs.
+     needs. Probe writers run in parallel, each in a worktree of its own,
+     and the record branch stays checked out in the owner's checkout, so
+     also tell it to commit on a branch made from the record branch before
+     it writes, for `line-2/a`:
+     `git checkout -b probe/<G>-line-2-a record/<G>`.
    - The Probe writer commits the example's `probe/` folder and returns the
-     output of `hyp try`. Start no Probe writer for an example the generic
-     Probe can run.
+     commit and the output of `hyp try`. In the owner's checkout, bring each
+     commit onto the record branch with `git cherry-pick`; each touches only
+     its own folder, so the picks do not conflict. Then do step 7 there,
+     because the writer's `hyp try` ran on its own branch. Start no Probe
+     writer for an example the generic Probe can run.
 7. **Run `hyp try` before you place.** A gap example must fail on H0 and a
    guard example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
    verdict, exit code, output and stderr. It records nothing and uses no run.
