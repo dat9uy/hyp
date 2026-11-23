@@ -35,7 +35,11 @@ G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head 
 [ -n "$G" ] || fail "no Goal id in: $added"
 git add -A && git commit -q -m goal >&2 || fail "commit goal"
 
-commit() { git add -A && git commit -q -m "$1" >&2 || fail "commit $1"; }
+# Commit only when something is staged: a build may write nothing into git.
+commit() {
+  git add -A || fail "add $1"
+  git diff --cached --quiet || git commit -q -m "$1" >&2 || fail "commit $1"
+}
 step() { echo "setup: $*" >&2; }
 
 d="goals/$G/line-1/a"
@@ -81,11 +85,13 @@ HASH=$(printf '%s\n' "$ran" | sed -n 's/^row: //p' | head -n 1)
 
 # Keep .tree as it is now, delete cand, and commit .tree on main only, so the
 # run commit is on no branch or tag (the subject excludes goals/ and .tree/).
-git add -A && git commit -q -m events >&2 # nothing may be left unstaged
-cp -R .tree "$work/tree-copy" || fail "copy .tree"
+commit events # nothing may be left unstaged
+mkdir -p "$work/tree-copy" || fail "mkdir tree-copy"
+[ ! -d .tree ] || cp -R .tree "$work/tree-copy/" || fail "copy .tree"
 git checkout -q main >&2 || fail "checkout main"
 git branch -D cand >&2 || fail "delete cand"
-rm -rf .tree && cp -R "$work/tree-copy" .tree || fail "restore .tree"
+rm -rf .tree
+[ ! -d "$work/tree-copy/.tree" ] || cp -R "$work/tree-copy/.tree" .tree || fail "restore .tree"
 commit "events on main"
 reach=$(git for-each-ref --contains "$row")
 [ -z "$reach" ] || fail "run commit still reachable: $reach"
