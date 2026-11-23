@@ -1,0 +1,118 @@
+#!/bin/sh
+# Probe of G-DR449G line-3/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with a test Goal (one gap
+# line, one fixture example with the generic Probe, placed), runs the example's
+# run section there and prints its stdout, then checks that every usage line of
+# `hyp help` is in `hyp spec` and that the exit codes hyp returns for a
+# refusal, a bad argument and an environment fault are the ones `hyp spec`
+# gives. The last line is "exit N", the exit code of the run section. Setup
+# output goes to stderr. A build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') ||
+  fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+{
+  echo '-- words --'
+  echo "Fixture line-1/a."
+  echo '-- run --'
+  echo "cat greet.txt"
+  echo '-- floor: contains --'
+  echo "bye"
+} >"$d/example.txtar"
+cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+chmod +x "$d/probe/run"
+git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
+echo "setup: hyp place $G" >&2
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+git add -A && git commit -q -m placed >&2 || fail "commit placed"
+
+export G HYP_ACTOR=owner HYP_ROLE=owner
+out="$work/out"
+sh -c "$HYP_RUN" >"$out" 2>"$work/spec.err"
+code=$?
+sed "s/$G/G/g" "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+
+# Usage check: the usage text of each command in hyp help is the part after
+# the two leading spaces and before the run of spaces that starts the
+# description. Each must be in a line of hyp spec.
+hyp help 2>/dev/null |
+  sed -n '/^commands:/,/^exit codes:/s/^  \([^ ].*\)$/\1/p' |
+  sed -e 's/   *.*$//' >"$work/usage"
+bad=0
+if [ ! -s "$work/usage" ]; then
+  bad=1
+  echo "disagrees: usage (none found in hyp help)"
+fi
+while IFS= read -r u; do
+  [ -n "$u" ] || continue
+  if ! grep -F -q -- "$u" "$out"; then
+    bad=1
+    echo "disagrees: usage $u"
+  fi
+done <"$work/usage"
+[ "$bad" = 0 ] && echo "every usage line in hyp help is in hyp spec"
+
+# Exit code check: cause a refusal, a bad argument and an environment fault.
+# The guard is on stderr; the exit code is what hyp returns.
+hyp land "$G" >/dev/null 2>"$work/e1"
+c1=$?
+hyp place >/dev/null 2>"$work/e2"
+c2=$?
+mkdir "$work/nogit" || fail "mkdir nogit"
+(cd "$work/nogit" && hyp status >/dev/null 2>"$work/e3")
+c3=$?
+bad=0
+agree() { # CODE KIND
+  if ! grep -E -q "exit $1.*$2|$2.*exit $1" "$out"; then
+    bad=1
+    echo "disagrees: exit $1"
+  fi
+}
+agree "$c1" refusal
+agree "$c2" argument
+agree "$c3" environment
+[ "$bad" = 0 ] && echo "every exit code agrees with hyp spec"
+
+echo "exit $code"
+exit 0
