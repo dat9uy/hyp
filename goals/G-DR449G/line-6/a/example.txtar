@@ -1,0 +1,10 @@
+-- words --
+In a fresh clone with an empty trace, `hyp status` prints the same Goal states as the clone that ran the acts, and nothing refused at replay.
+-- run --
+hyp status
+-- floor: contains --
+same states as the clone that ran the acts
+-- ceiling --
+refused at replay
+-- ceiling --
+differs

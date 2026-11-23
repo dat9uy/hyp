@@ -1,0 +1,112 @@
+setup: hyp place G-2PEQGJ
+placed G-2PEQGJ: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-2PEQGJ is open
+G-2PEQGJ  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-2PEQGJ
+grill may:
+  hyp place G-2PEQGJ
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-2PEQGJ/line-1
+setup: hyp select G-2PEQGJ 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-2PEQGJ: Greet one.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: d725692774fd9922ce7ce1333923aa768b866b18
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-2PEQGJ  selected  runs: 1 of 3 used
+stop: selected, by select 01M835KYZ4YM3RRNJEPNPRH8ZM at 2026-11-23T03:01:30.212453Z
+waits: owner
+owner may:
+  hyp land G-2PEQGJ
+  hyp unselect G-2PEQGJ
+  hyp close G-2PEQGJ
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: hyp land G-2PEQGJ
+landed G-2PEQGJ
+stop: selected, by select 01M835KYZ4YM3RRNJEPNPRH8ZM at 2026-11-23T03:01:30.212453Z
+G-2PEQGJ  ended  runs: 1 of 3 used
+stop: selected, by select 01M835KYZ4YM3RRNJEPNPRH8ZM at 2026-11-23T03:01:30.212453Z
+landed: by owner, land 01M835KZ5BDFBB5XF4SYC4CTT8 at 2026-11-23T03:01:30.411419Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-2PEQGJ: Greet one.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: d725692774fd9922ce7ce1333923aa768b866b18
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+setup: hyp place G-23TBJ5
+placed G-23TBJ5: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-23TBJ5 is open
+G-23TBJ5  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-23TBJ5
+grill may:
+  hyp place G-23TBJ5
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-23TBJ5/line-1
+setup: hyp close G-23TBJ5
+closed G-23TBJ5
+G-23TBJ5  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M835KZSYNNK2QSXN768BKDMG at 2026-11-23T03:01:31.070415Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

@@ -1,0 +1,12 @@
+-- words --
+`owner-guide.md` names the flow in order: hyp-grill, then run, then land, close or re-grill, and has no list of what hyp does not have yet.
+-- run --
+grep -o -E 'hyp-grill|re-grill|What hyp does not have yet' docs/owner-guide.md | sort -u; grep -c -E '\bclose\b' docs/owner-guide.md | sed 's/^/close named: /'
+-- floor: contains --
+hyp-grill
+-- floor: contains --
+re-grill
+-- ceiling --
+What hyp does not have yet
+-- ceiling --
+close named: 0

@@ -1,0 +1,173 @@
+#!/bin/sh
+# Probe of G-DR449G line-1/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with a test Goal and
+# fixture examples, does this example's setup, then runs the example's run
+# section in the test store with $G set to the test Goal. It prints the run's
+# stdout with the test Goal's id replaced by "G", then a last line "exit N".
+# Setup output goes to stderr. A build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') ||
+  fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+# fixture LINE NAME FLOOR [RUN]: write the example folder goals/$G/LINE/NAME
+# with the generic Probe. On the test Goal's H0, greet.txt says hello.
+fixture() {
+  d="goals/$G/$1/$2"
+  mkdir -p "$d/probe" || fail "mkdir $d"
+  {
+    echo '-- words --'
+    echo "Fixture $1/$2."
+    echo '-- run --'
+    echo "${4:-cat greet.txt}"
+    echo '-- floor: contains --'
+    echo "$3"
+  } >"$d/example.txtar"
+  cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+  chmod +x "$d/probe/run"
+}
+
+commit() { git add -A && git commit -q -m "$1" >&2 || fail "commit $1"; }
+
+# grill ARGS: a hyp act of the setup as the grill. A refused act does not stop
+# the Probe: the run shows what the build under test does.
+grill() { echo "setup: hyp $*" >&2; HYP_ACTOR=grill HYP_ROLE=grill hyp "$@" >&2; echo "setup: exit $?" >&2; }
+
+# --- this example's setup ---
+# act ROLE ARGS: a hyp act of the setup. A refused act is logged and does not
+# stop the Probe.
+act() { r=$1; shift; echo "setup: hyp $*" >&2; HYP_ACTOR=$r HYP_ROLE=$r hyp "$@" >&2; echo "setup: exit $?" >&2; return 0; }
+
+# Every event line now in the repository (git) or in the clone's trace (trace),
+# as "home<TAB>file<TAB>line".
+snap() {
+  { find .tree/events -type f 2>/dev/null | while read -r f; do
+      awk -v f="$f" '{print "git\t" f "\t" $0}' "$f"; done
+    find "$HOME/.hyp/traces" -type f 2>/dev/null | while read -r f; do
+      awk -v f="$f" '{print "trace\t" f "\t" $0}' "$f"; done
+  } | sort
+}
+seen="$work/seen"; : >"$seen"
+: >"$work/before"
+# after: record the type and home of each event line the last act added.
+after() {
+  snap >"$work/now"
+  comm -13 "$work/before" "$work/now" | while IFS="$(printf '\t')" read -r home f line; do
+    t=$(printf '%s\n' "$line" | sed -n 's/.*"type": *"\([^"]*\)".*/\1/p' | head -n 1)
+    [ -n "$t" ] || continue
+    echo "setup: event $t in $home ($f)" >&2
+    echo "$t $home" >>"$seen"
+  done
+  cp "$work/now" "$work/before"
+}
+
+after   # the add goal of the scaffolding
+fixture line-1 a bye
+commit fixtures
+act grill place "$G"
+after
+commit placed
+
+git checkout -q -b cand >&2 || fail "branch cand"
+echo bye >greet.txt
+mkdir -p "goals/$G/specs" && echo "The subject says bye." >"goals/$G/specs/spec.md" || fail "spec"
+git add -A && git commit -q -m candidate >&2 || fail "commit candidate"
+cand=$(git rev-parse HEAD)
+echo "setup: hyp run $cand $G/line-1" >&2
+row=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$cand" "$G/line-1" | sed -n 's/^row: //p')
+after
+[ -n "$row" ] || echo "setup: no row" >&2
+act runner select "$G" "$row"
+after
+act owner unselect "$G"
+after
+# A new cell: a second candidate commit with another subject.
+echo "bye bye" >greet.txt
+git add -A && git commit -q -m candidate2 >&2 || fail "commit candidate2"
+cand2=$(git rev-parse HEAD)
+echo "setup: hyp run $cand2 $G/line-1" >&2
+row2=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$cand2" "$G/line-1" | sed -n 's/^row: //p')
+after
+[ -n "$row2" ] || row2=$row
+act runner select "$G" "$row2"
+after
+act owner land "$G"
+after
+
+# A second test Goal: place, then close.
+git checkout -q main >&2
+G1=$G
+added2=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet again.' \
+  --line 'gap:the subject says bye.') || echo "setup: add goal 2 refused" >&2
+G2=$(printf '%s\n' "$added2" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+after
+if [ -n "$G2" ]; then
+  G=$G2
+  fixture line-1 a bye
+  commit fixtures2
+  act grill place "$G2"
+  after
+  act owner close "$G2"
+  after
+fi
+G=$G1
+# A read: any command that names an actor.
+act owner status
+after
+# --- end of setup ---
+
+export G HYP_ACTOR=owner HYP_ROLE=owner
+out="$work/out"
+sh -c "$HYP_RUN" >"$out" 2>/dev/null
+code=$?
+cat "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+bad=0
+for kind in $(sort -u "$seen" | tr ' ' ','); do
+  t=${kind%,*}; home=${kind#*,}
+  if ! grep -F "$t" "$out" | grep -qw "$home"; then
+    echo "disagrees: $t stored in $home"
+    bad=1
+  fi
+done
+[ "$bad" = 0 ] || true
+if [ "$bad" = 0 ]; then echo "every event kind is stored where hyp spec says"; fi
+echo "exit $code"
+exit 0

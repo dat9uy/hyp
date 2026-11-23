@@ -1,0 +1,10 @@
+-- words --
+A test Goal moves through written, open, selected and ended; in each state every act refused is refused by the guard the state's line of `hyp spec` names, and `hyp status` offers only acts that line allows.
+-- run --
+hyp spec
+-- floor: contains --
+every refusal names the guard hyp spec names
+-- floor: contains --
+hyp status offers only acts hyp spec allows
+-- ceiling --
+disagrees

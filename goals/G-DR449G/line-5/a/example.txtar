@@ -1,0 +1,6 @@
+-- words --
+No doc under `docs/`, ADRs aside, names a Goal id or an issue number.
+-- run --
+echo "matches: $(grep -r -h -o -E 'G-[0-9A-Z]{6}|#[0-9]+' docs --include='*.md' --exclude-dir=adr | wc -l | tr -d ' ')."
+-- floor: contains --
+matches: 0.
