@@ -14,6 +14,14 @@ trap 'rm -rf "$work"' EXIT
 
 fail() { echo "probe: $*" >&2; exit 3; }
 
+# commit_staged MESSAGE: stage everything, commit only when something is
+# staged (a build that writes nothing leaves nothing to commit).
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
 # Build hyp from the subject before HOME changes: the Go cache is under HOME.
 mkdir -p "$work/bin" || fail "mkdir"
 CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
@@ -36,7 +44,7 @@ added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.'
   --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
 G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
 [ -n "$G" ] || fail "no Goal id in: $added"
-git add -A && git commit -q -m goal >&2 || fail "commit goal"
+commit_staged goal || fail "commit goal"
 
 d="goals/$G/line-1/a"
 mkdir -p "$d/probe" || fail "mkdir $d"
@@ -64,7 +72,7 @@ chmod +x "$d/probe/run"
 git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
 echo "setup: hyp place $G" >&2
 HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
-git add -A && git commit -q -m placed >&2 || fail "commit placed"
+commit_staged placed || fail "commit placed"
 
 # Hypothesis NAME TEXT: a commit on branch NAME from main whose greet.txt is
 # TEXT, run on line-1 from main by the runner; its events are committed on
@@ -78,7 +86,7 @@ hyp_run() {
   echo "setup: hyp run $1" >&2
   HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1" >&2 ||
     fail "hyp run $1 failed"
-  git add -A && git commit -q -m "events of $1" >&2 || fail "commit events of $1"
+  commit_staged "events of $1" || fail "commit events of $1"
 }
 
 hyp_run h1 bye
