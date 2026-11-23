@@ -1,0 +1,35 @@
+G  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FVRWE9AW995X15Y1YVN2A at 2026-11-23T06:00:31.886536Z
+waits: owner
+warning: the selected commit c40444db2110be2d17c5e50617bd6dc0f0fb19d2 is on no branch or tag of this clone; push it or keep a branch on it, or git may lose it
+owner may:
+  hyp land G
+  hyp unselect G
+  hyp close G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: c40444db2110be2d17c5e50617bd6dc0f0fb19d2
+selected row: HASH

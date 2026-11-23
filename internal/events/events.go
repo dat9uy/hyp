@@ -24,10 +24,8 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The eleven event types. All but read change the state machine; read is the
-// trace of what hyp printed to an actor, and changes no state. example.place
-// is the old form of a place, one example per event: hyp writes
-// examples.place, and replays both.
+// The eleven event types. example.place is the old form of a place, one
+// example per event: hyp writes examples.place, and replays both.
 const (
 	TypeGoalAdd       = "goal.add"
 	TypeExamplePlace  = "example.place"
@@ -48,32 +46,47 @@ const (
 	HomeTrace = "trace" // the clone's trace folder under $HOME/.hyp/traces
 )
 
-// Kind is the entry of one event type: where it is stored, which Goal it
-// belongs to, and whether an end freezes it. hyp acts on these entries: the
-// store writes an event only where its entry says, replay freezes an event
-// only when its entry says so, and hyp spec prints them.
+// Kind is the entry of one event type: whether it changes a Goal's state,
+// which Goal it belongs to, and whether an end freezes it. One rule stores
+// every kind: a kind that changes a Goal's state is stored in git, so every
+// clone replays the same Goal states from git, and every other kind is stored
+// in the clone's trace. hyp acts on these entries: the store writes an event
+// only where its entry says, replay freezes an event only when its entry says
+// so, and hyp spec prints them.
 type Kind struct {
-	Type   string
-	Home   string // HomeGit or HomeTrace
-	Goal   string // the Goal the event belongs to, as its node names it
-	Frozen bool   // an end of its Goal refuses it at replay when the end's snapshot does not name it
-	Writer string // the act that writes it
+	Type    string
+	Changes bool   // it changes a Goal's state: written, open, selected or ended
+	Goal    string // the Goal the event belongs to, as its node names it
+	Frozen  bool   // an end of its Goal refuses it at replay when the end's snapshot does not name it
+	Writer  string // the act that writes it
+}
+
+// Home is where the kind is stored: git when it changes a Goal's state, else
+// the clone's trace.
+func (k Kind) Home() string {
+	if k.Changes {
+		return HomeGit
+	}
+	return HomeTrace
 }
 
 // Kinds are the entries of the eleven event types, in the order hyp spec
-// prints them.
+// prints them. A Result changes no Goal's state: the state is calculated from
+// the places, selects and ends alone, so a clone that holds no Result replays
+// the same state. A result.record that an earlier hyp wrote into git is still
+// replayed from there.
 var Kinds = []Kind{
-	{TypeGoalAdd, HomeGit, "the Goal it adds, or the written Goal it replaces", true, "add goal"},
-	{TypeExamplePlace, HomeGit, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
-	{TypeExamplesPlace, HomeGit, "the Goal its node names", true, "place"},
-	{TypeResultRecord, HomeGit, "the Goal its node names", true, "run"},
-	{TypeResultRetract, HomeGit, "the Goal of the Result its node names", true, "retract, not built"},
-	{TypeSelect, HomeGit, "the Goal its node names", true, "select"},
-	{TypeBudgetReset, HomeGit, "the Goal its node names", false, "reset, not built"},
-	{TypeLand, HomeGit, "the Goal its node names; it ends the Goal", false, "land"},
-	{TypeClose, HomeGit, "the Goal its node names; it ends the Goal", false, "close"},
-	{TypeUnselect, HomeGit, "the Goal its node names", true, "unselect"},
-	{TypeRead, HomeTrace, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
+	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces", true, "add goal"},
+	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
+	{TypeExamplesPlace, true, "the Goal its node names", true, "place"},
+	{TypeResultRecord, false, "the Goal its node names", false, "run"},
+	{TypeResultRetract, false, "the Goal of the Result its node names", false, "retract, not built"},
+	{TypeSelect, true, "the Goal its node names", true, "select"},
+	{TypeBudgetReset, true, "the Goal its node names", false, "reset, not built"},
+	{TypeLand, true, "the Goal its node names; it ends the Goal", false, "land"},
+	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
+	{TypeUnselect, true, "the Goal its node names", true, "unselect"},
+	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
 }
 
 // KindOf returns the entry of an event type, and false for a type outside the
@@ -111,13 +124,16 @@ type GoalAdd struct {
 	Lines    []Line `json:"lines"`
 }
 
-// Cell is a cell of H0's row, written by the placement that adds an example.
+// Cell is H0's verdict on an example, written by the placement that adds it.
+// A place names no output: H0's outputs go to the clone's trace. Output and
+// Stderr are set only in a place an earlier hyp wrote, whose outputs are under
+// .tree/outputs.
 type Cell struct {
 	Commit  string `json:"commit"`
 	RowTree string `json:"row_tree"`
 	Probe   string `json:"probe"`
-	Output  string `json:"output"`
-	Stderr  string `json:"stderr"`
+	Output  string `json:"output,omitempty"`
+	Stderr  string `json:"stderr,omitempty"`
 	Exit    int    `json:"exit"`
 	Verdict string `json:"verdict"`
 }
@@ -132,7 +148,7 @@ type ExamplePlace struct {
 }
 
 // ExamplesPlace is the payload of examples.place: every example of the set
-// that the place changed, each with H0's cell. One place is one event, so a
+// that the place changed, each with its hash and H0's verdict. One place is one event, so a
 // crash leaves the whole set placed or none of it.
 type ExamplesPlace struct {
 	Role     string          `json:"role"`
@@ -214,7 +230,7 @@ type BudgetReset struct {
 
 // Read is the payload of read: what hyp printed to the event's actor for one
 // command. Command is the command's arguments after "hyp"; Stdout and Stderr
-// name the bytes it printed, stored under .tree/outputs/ by their sha256.
+// name the bytes it printed, stored in the trace's outputs/ by their sha256.
 // Role is the role the command declared, or empty for a read that declared
 // none.
 type Read struct {

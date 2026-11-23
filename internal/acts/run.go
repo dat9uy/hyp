@@ -141,7 +141,7 @@ func Run(o RunOpts) (RunReport, error) {
 	if err != nil {
 		return RunReport{}, err
 	}
-	evs, _, err := logstore.Events(root)
+	evs, _, err := logstore.Load(root)
 	if err != nil {
 		return RunReport{}, err
 	}

@@ -6,36 +6,21 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
-// shownRead is one read show prints, and the outputs folder that holds its
-// bytes: the trace's, or for a read an earlier hyp wrote into the log, the
-// store's.
+// shownRead is one read show prints.
 type shownRead struct {
 	tables.Read
-	outputs string
 }
 
 // readsOf returns every read of actor, oldest first: the reads of the clone's
 // trace, and the read events an earlier hyp wrote into the log, which the log
-// keeps.
+// keeps. log replays both.
 func readsOf(root, actor string, log tables.Tables) ([]shownRead, error) {
 	var out []shownRead
 	for _, r := range log.Reads[actor] {
-		out = append(out, shownRead{r, logstore.OutputsDir(root)})
-	}
-	tr, err := logstore.TraceOf(root)
-	if err != nil {
-		return nil, err
-	}
-	evs, _, err := tr.Events()
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range tables.Replay(evs).Reads[actor] {
-		out = append(out, shownRead{r, tr.Outputs()})
+		out = append(out, shownRead{r})
 	}
 	slices.SortStableFunc(out, func(a, b shownRead) int { return strings.Compare(a.ID, b.ID) })
 	return out, nil
@@ -64,8 +49,8 @@ func showText(root, actor string, reads []shownRead) string {
 		}
 		fmt.Fprintf(&b, "\nread %d of %d: %s at %s, role %s, exit %d\n", i+1, len(reads), r.ID, r.Time, role, r.Exit)
 		fmt.Fprintf(&b, "command: hyp %s\n", strings.Join(r.Command, " "))
-		writeStoredIn(&b, root, r.outputs, "stderr", r.Stderr, 0)
-		writeStoredIn(&b, root, r.outputs, "stdout", r.Stdout, 0)
+		writeStored(&b, root, "stderr", r.Stderr, 0)
+		writeStored(&b, root, "stdout", r.Stdout, 0)
 	}
 	return b.String()
 }

@@ -97,6 +97,10 @@ func permits(cmd string, rest []string) bool {
 	case "diff-tree":
 		pos, ok := split(rest, "--name-only", "-r", "-z", "-c")
 		return ok && (len(pos) == 1 || len(pos) == 2) && noDash(pos)
+	case "for-each-ref":
+		// one fixed form: the first branch or tag that contains a commit
+		return len(rest) == len(refsForm)+1 && slices.Equal(rest[:3], refsForm[:3]) &&
+			noDash(rest[3:4]) && slices.Equal(rest[4:], refsForm[3:])
 	case "ls-files":
 		// one fixed form: the files of the checkout a commit of every
 		// change would hold
@@ -137,4 +141,20 @@ func contains(ss []string, s string) bool {
 		}
 	}
 	return false
+}
+
+// refsForm is the one for-each-ref form hyp reads with, the commit going
+// after --contains.
+var refsForm = []string{"--count=1", "--format=%(refname)", "--contains", "refs/heads", "refs/remotes", "refs/tags"}
+
+// OnARef reports whether a branch, a remote branch or a tag of the clone at
+// dir contains commit.
+func OnARef(dir, commit string) (bool, error) {
+	args := append([]string{"for-each-ref"}, refsForm[:3]...)
+	args = append(append(args, commit), refsForm[3:]...)
+	out, err := Git(dir, args...)
+	if err != nil {
+		return false, err
+	}
+	return len(strings.TrimSpace(string(out))) > 0, nil
 }

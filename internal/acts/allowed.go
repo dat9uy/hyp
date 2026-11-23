@@ -272,3 +272,16 @@ func selectable(g *tables.Goal, repo string, c tables.Row) bool {
 	changes, err := gitread.OwnChange(repo, commit, g.Base)
 	return err == nil && tables.GuardOwnPath(g, changes) == nil
 }
+
+// OnNoRef reports whether commit is in this clone and on no branch or tag:
+// no ref under refs/heads, refs/remotes or refs/tags contains it. Another
+// commit with the same subject hash on a branch does not count: git keeps
+// the commit a select names only while a ref reaches it. A commit this clone
+// lacks is not reported: this clone cannot tell where it is.
+func OnNoRef(repo, commit string) bool {
+	if ok, err := (gitread.Ancestry{Dir: repo}).HasCommit(commit); err != nil || !ok {
+		return false
+	}
+	on, err := gitread.OnARef(repo, commit)
+	return err == nil && !on
+}

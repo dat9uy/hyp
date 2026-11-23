@@ -47,9 +47,10 @@ var (
 // base name, the line number (0 when the file could not be read to its end)
 // and why.
 type LineError struct {
-	File string
-	Line int
-	Err  error
+	File  string
+	Line  int
+	Err   error
+	Trace bool // the file is in the clone's trace, not in .tree/events
 }
 
 // A folder of events is a folder that holds events/<actor>.jsonl and
@@ -82,10 +83,11 @@ func TopLevel(start string) (string, error) {
 	return root, nil
 }
 
-// Create makes .tree/events, .tree/outputs and .tree/.gitattributes under
-// root. It changes nothing that exists.
+// Create makes .tree/events and .tree/.gitattributes under root. It changes
+// nothing that exists. hyp writes no output under .tree/: the outputs are in
+// the clone's trace.
 func Create(root string) error {
-	for _, d := range []string{eventsDir(root), outputsDir(root)} {
+	for _, d := range []string{eventsDir(root)} {
 		if err := os.MkdirAll(d, 0o755); err != nil {
 			return fault.EnvFault(fault.CreateStore, err)
 		}
@@ -156,38 +158,6 @@ func idAfter(t time.Time, last string) string {
 	return ""
 }
 
-// At names one event of the files mergeOrder reads: its actor and its index
-// in that actor's file.
-type At struct {
-	Actor string
-	Index int
-}
-
-// mergeOrder orders the events of per-actor files by id, then by actor (the
-// file name without .jsonl), whatever the line order inside a file: a file
-// that git merged with the union driver holds both branches' lines in any
-// order, and replays the same. tie, which must not be nil, orders two events
-// with the same id and actor; the store passes one that compares their line
-// bytes, so file order decides nothing. It returns positions in files.
-func mergeOrder(files map[string][]events.Event, tie func(a, b At) int) []At {
-	var out []At
-	for name, evs := range files {
-		for i := range evs {
-			out = append(out, At{name, i})
-		}
-	}
-	slices.SortFunc(out, func(a, b At) int {
-		if c := strings.Compare(files[a.Actor][a.Index].ID, files[b.Actor][b.Index].ID); c != 0 {
-			return c
-		}
-		if c := strings.Compare(a.Actor, b.Actor); c != 0 {
-			return c
-		}
-		return tie(a, b)
-	})
-	return out
-}
-
 // parseFile reads the events of one file, name being the file's base name.
 // A line that does not parse, whose id is not a ULID or whose actor is not
 // the file's actor is returned as a LineError and skipped.
@@ -225,45 +195,81 @@ func parseFile(name string, data []byte) ([]events.Event, [][]byte, []LineError)
 }
 
 // Events returns every event of the store in merge order, and the lines that
-// could not be used. A torn last line is one of them, never an error.
+// could not be used. A torn last line is one of them, never an error. It
+// reads .tree/events alone; Load adds the clone's trace.
 func Events(root string) ([]events.Event, []LineError, error) {
 	return eventsOf(treeDir(root))
 }
 
-// eventsOf is Events for the folder of events base. A folder with no events
-// folder holds no event.
-func eventsOf(base string) ([]events.Event, []LineError, error) {
-	paths, err := filepath.Glob(filepath.Join(eventsIn(base), "*.jsonl"))
+// Load returns every event of the store and of the clone's trace in one merge
+// order, and the lines of either that could not be used: git holds the events
+// that change a Goal's state, the trace the Results and reads of this clone.
+func Load(root string) ([]events.Event, []LineError, error) {
+	tr, err := TraceOf(root)
 	if err != nil {
-		return nil, nil, fault.EnvFault(fault.ReadEvents, err)
+		return nil, nil, err
 	}
-	files := map[string][]events.Event{}
-	raw := map[string][][]byte{}
+	return eventsOf(treeDir(root), tr.Dir)
+}
+
+// eventsOf returns the events of the folders of events bases in one merge
+// order. The first base is the store's; the others are the trace's. A folder
+// with no events folder holds no event.
+func eventsOf(bases ...string) ([]events.Event, []LineError, error) {
+	var all []line
 	var lineErrs []LineError
-	for _, p := range paths {
-		data, err := os.ReadFile(p)
+	for i, base := range bases {
+		paths, err := filepath.Glob(filepath.Join(eventsIn(base), "*.jsonl"))
 		if err != nil {
 			return nil, nil, fault.EnvFault(fault.ReadEvents, err)
 		}
-		name := filepath.Base(p)
-		evs, lines, errs := parseFile(name, data)
-		actor := strings.TrimSuffix(name, ".jsonl")
-		files[actor], raw[actor] = evs, lines
-		lineErrs = append(lineErrs, errs...)
+		for _, p := range paths {
+			data, err := os.ReadFile(p)
+			if err != nil {
+				return nil, nil, fault.EnvFault(fault.ReadEvents, err)
+			}
+			name := filepath.Base(p)
+			evs, lines, errs := parseFile(name, data)
+			for j := range errs {
+				errs[j].Trace = i > 0
+			}
+			lineErrs = append(lineErrs, errs...)
+			for j := range evs {
+				all = append(all, line{evs[j], lines[j]})
+			}
+		}
 	}
-	order := mergeOrder(files, func(a, b At) int { return bytes.Compare(raw[a.Actor][a.Index], raw[b.Actor][b.Index]) })
-	// A union merge can keep one line twice; the copy holds no second event.
-	out := make([]events.Event, 0, len(order))
-	var prev []byte
-	for i, at := range order {
-		line := raw[at.Actor][at.Index]
-		if i > 0 && bytes.Equal(line, prev) {
+	return mergeLines(all), lineErrs, nil
+}
+
+// line is one event and the bytes of its line.
+type line struct {
+	ev  events.Event
+	raw []byte
+}
+
+// mergeLines orders events by id, then by actor, then by line bytes, whatever
+// the file or the line order inside a file: a file that git merged with the
+// union driver holds both branches' lines in any order, and replays the same.
+// A union merge can keep one line twice; the copy holds no second event.
+func mergeLines(all []line) []events.Event {
+	slices.SortStableFunc(all, func(a, b line) int {
+		if c := strings.Compare(a.ev.ID, b.ev.ID); c != 0 {
+			return c
+		}
+		if c := strings.Compare(a.ev.Actor, b.ev.Actor); c != 0 {
+			return c
+		}
+		return bytes.Compare(a.raw, b.raw)
+	})
+	out := make([]events.Event, 0, len(all))
+	for i, l := range all {
+		if i > 0 && bytes.Equal(l.raw, all[i-1].raw) {
 			continue
 		}
-		prev = line
-		out = append(out, files[at.Actor][at.Index])
+		out = append(out, l.ev)
 	}
-	return out, lineErrs, nil
+	return out
 }
 
 // lock takes the store's directory lock and returns the function that
@@ -293,43 +299,85 @@ func lockDir(base string) (unlock func(), err error) {
 	}, nil
 }
 
-// WithLock takes the same directory lock as Append, reads every event, calls
-// f with them and releases the lock. It writes nothing: an act uses it to
-// check its guards before it runs a Probe, which must not hold the lock.
+// WithLock takes the same locks as Append, reads every event of the store
+// and of the clone's trace, calls f with them and releases the locks. It
+// writes nothing: an act uses it to check its guards before it runs a Probe,
+// which must not hold the locks.
 func WithLock(root string, f func([]events.Event) error) error {
-	unlock, err := lock(root)
+	tr, unlock, err := lockBoth(root)
 	if err != nil {
 		return err
 	}
 	defer unlock()
-	evs, _, err := Events(root)
+	evs, _, err := eventsOf(treeDir(root), tr.Dir)
 	if err != nil {
 		return err
 	}
 	return f(evs)
 }
 
-// Append takes the store's lock, reads every event, calls build with them,
-// and writes, when the event's kind is stored in git, the event build returns as one fsynced line to
-// .tree/events/<actor>.jsonl. V, ID, TS and Actor are filled in here, and Node
-// too when build left it empty: a new Goal's goal.add names itself. An error
-// from build is returned unchanged and nothing is written, not even the file.
+// lockBoth takes the store's lock, then the lock of the clone's trace, which
+// it creates.
+func lockBoth(root string) (Trace, func(), error) {
+	tr, err := TraceOf(root)
+	if err != nil {
+		return Trace{}, nil, err
+	}
+	unlockStore, err := lock(root)
+	if err != nil {
+		return Trace{}, nil, err
+	}
+	if err := tr.create(); err != nil {
+		unlockStore()
+		return Trace{}, nil, err
+	}
+	unlockTrace, err := lockDir(tr.Dir)
+	if err != nil {
+		unlockStore()
+		return Trace{}, nil, err
+	}
+	return tr, func() { unlockTrace(); unlockStore() }, nil
+}
+
+// Append takes the store's lock and the trace's, reads every event of both,
+// calls build with them, and writes the event build returns as one fsynced
+// line where its kind's entry says (events.Kinds): .tree/events/<actor>.jsonl
+// for a kind that changes a Goal's state, the trace's events/<actor>.jsonl
+// for every other kind. V, ID, TS and Actor are filled in here, and Node too
+// when build left it empty: a new Goal's goal.add names itself. An error from
+// build is returned unchanged and nothing is written, not even the file.
 func Append(root, actor string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
 	if !ValidActor(actor) {
 		return events.Event{}, fault.BadArg(fault.BadActor, actor)
 	}
-	unlock, err := lock(root)
+	tr, unlock, err := lockBoth(root)
 	if err != nil {
 		return events.Event{}, err
 	}
 	defer unlock()
-	return appendLocked(treeDir(root), actor, events.HomeGit, build)
+	evs, _, err := eventsOf(treeDir(root), tr.Dir)
+	if err != nil {
+		return events.Event{}, err
+	}
+	ev, err := build(evs)
+	if err != nil {
+		return ev, err
+	}
+	k, ok := events.KindOf(ev.Type)
+	if !ok {
+		return ev, fault.EnvFault(fault.EventHome, ev.Type, "")
+	}
+	base := treeDir(root)
+	if k.Home() == events.HomeTrace {
+		base = tr.Dir
+	}
+	return writeEvent(base, actor, k.Home(), evs, ev)
 }
 
-// appendLocked is Append for the folder of events base, whose lock the
-// caller holds.
-// home is where base is: an event whose kind's entry names another home is
-// not written (events.Kinds).
+// appendLocked appends the event build returns to the folder of events
+// base, whose lock the caller holds, reading only the events there. home is
+// where base is: an event whose kind's entry names another home is not
+// written (events.Kinds).
 func appendLocked(base, actor, home string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
 	evs, _, err := eventsOf(base)
 	if err != nil {
@@ -339,7 +387,13 @@ func appendLocked(base, actor, home string, build func([]events.Event) (events.E
 	if err != nil {
 		return ev, err
 	}
-	if k, ok := events.KindOf(ev.Type); !ok || k.Home != home {
+	return writeEvent(base, actor, home, evs, ev)
+}
+
+// writeEvent writes ev as one fsynced line to the actor's file in the folder
+// of events base, with an id after every id of evs.
+func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (events.Event, error) {
+	if k, ok := events.KindOf(ev.Type); !ok || k.Home() != home {
 		return ev, fault.EnvFault(fault.EventHome, ev.Type, home)
 	}
 	if n := utf8.RuneCountInString(ev.Why); n > MaxWhy {
@@ -395,11 +449,19 @@ func appendLocked(base, actor, home string, build func([]events.Event) (events.E
 	return ev, nil
 }
 
-// OutputsDir is the store's outputs folder.
+// OutputsDir is the store's outputs folder, which holds the outputs an
+// earlier hyp wrote there. hyp reads it and writes no new file to it.
 func OutputsDir(root string) string { return outputsDir(root) }
 
-// OutputPath is where the output named hex is stored.
-func OutputPath(root, hex string) string { return filepath.Join(outputsDir(root), hex) }
+// OutputPath is where PutOutput stores the output named hex: the clone's
+// trace's outputs/<hex>.
+func OutputPath(root, hex string) string {
+	tr, err := TraceOf(root)
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(tr.Outputs(), hex)
+}
 
 // Hash is the name an output with bytes b is stored under: its sha256.
 func Hash(b []byte) string {
@@ -407,11 +469,16 @@ func Hash(b []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// PutOutput stores b under .tree/outputs/<sha256> and returns the hash. Equal
-// bytes are stored once. It is called before the event that names the hash is
-// appended, so a crash leaves a file no event names, which is harmless.
+// PutOutput stores b in the clone's trace under outputs/<sha256> and returns
+// the hash. Equal bytes are stored once. It is called before the event that
+// names the hash is appended, so a crash leaves a file no event names, which
+// is harmless.
 func PutOutput(root string, b []byte) (string, error) {
-	return putOutputIn(outputsDir(root), b)
+	tr, err := TraceOf(root)
+	if err != nil {
+		return "", err
+	}
+	return tr.PutOutput(b)
 }
 
 // putOutputIn is PutOutput for the outputs folder dir.
@@ -448,8 +515,14 @@ func putOutputIn(dir string, b []byte) (string, error) {
 }
 
 // ReadOutput reads the stored output named hex: at most max bytes when max
-// is positive, and the size of the whole file.
+// is positive, and the size of the whole file. It reads the clone's trace,
+// then .tree/outputs, where an earlier hyp stored outputs.
 func ReadOutput(root, hex string, max int) (data []byte, size int64, err error) {
+	if tr, terr := TraceOf(root); terr == nil {
+		if _, serr := os.Stat(filepath.Join(tr.Outputs(), hex)); serr == nil {
+			return ReadOutputIn(tr.Outputs(), hex, max)
+		}
+	}
 	return ReadOutputIn(outputsDir(root), hex, max)
 }
 

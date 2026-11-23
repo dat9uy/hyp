@@ -1,0 +1,67 @@
+setup: hyp place
+placed G-TWJ5VH: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-TWJ5VH is open
+G-TWJ5VH  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-TWJ5VH
+grill may:
+  hyp place G-TWJ5VH
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-TWJ5VH/line-1
+setup: hyp run
+ran G-TWJ5VH line-1 at eca019ca0b34d5c306fe172f45268e49a5df38fc
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-TWJ5VH  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-TWJ5VH 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-TWJ5VH
+grill may:
+  hyp place G-TWJ5VH
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-TWJ5VH 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-TWJ5VH/line-1
+setup: hyp select
+# G-TWJ5VH: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: eca019ca0b34d5c306fe172f45268e49a5df38fc
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-TWJ5VH  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FVWMTS6ZP17HCTM7BHNAY at 2026-11-23T06:00:35.738292Z
+waits: owner
+owner may:
+  hyp land G-TWJ5VH
+  hyp unselect G-TWJ5VH
+  hyp close G-TWJ5VH
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+Deleted branch cand (was bb7b671).
+setup: run: hyp status

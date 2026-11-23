@@ -492,6 +492,7 @@ func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("try", flag.ContinueOnError)
 	var o acts.TryOpts
 	fs.BoolVar(&o.Worktree, "worktree", false, "")
+	fs.StringVar(&o.Commit, "commit", "", "")
 	positional, role, err := readFlagsWith(c, "try", args, fs)
 	if err != nil {
 		return err
@@ -586,11 +587,11 @@ func readStoreLines(dir string) (tables.Tables, []logstore.LineError, string, er
 	if err := logstore.Find(root); err != nil {
 		return tables.Tables{}, nil, "", err
 	}
-	evs, unread, err := logstore.Events(root)
+	t, unread, err := acts.ReadTables(root)
 	if err != nil {
 		return tables.Tables{}, nil, "", err
 	}
-	return tables.Replay(evs), unread, root, nil
+	return t, unread, root, nil
 }
 
 // blockFor reads the store under dir and prints its state block. A Goal named

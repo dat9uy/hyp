@@ -1,0 +1,27 @@
+G  selected  runs: 0 of 3 used
+stop: selected, by select ID at TIME
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+  hyp close G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: not in this clone's trace; run it again in this clone with:
+  hyp try G line-1/a --commit COMMIT
+
+selected commit: COMMIT
+selected row: HASH

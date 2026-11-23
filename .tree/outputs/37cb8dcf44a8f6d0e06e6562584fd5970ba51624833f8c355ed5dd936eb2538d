@@ -1,0 +1,67 @@
+setup: hyp place
+placed G-CTQ3B0: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-CTQ3B0 is open
+G-CTQ3B0  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-CTQ3B0
+grill may:
+  hyp place G-CTQ3B0
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-CTQ3B0/line-1
+setup: hyp run
+ran G-CTQ3B0 line-1 at c40444db2110be2d17c5e50617bd6dc0f0fb19d2
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-CTQ3B0  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-CTQ3B0 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-CTQ3B0
+grill may:
+  hyp place G-CTQ3B0
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-CTQ3B0 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-CTQ3B0/line-1
+setup: hyp select
+# G-CTQ3B0: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: c40444db2110be2d17c5e50617bd6dc0f0fb19d2
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-CTQ3B0  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FVRWE9AW995X15Y1YVN2A at 2026-11-23T06:00:31.886536Z
+waits: owner
+owner may:
+  hyp land G-CTQ3B0
+  hyp unselect G-CTQ3B0
+  hyp close G-CTQ3B0
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+Deleted branch cand (was 235ec81).
+setup: run: hyp status G-CTQ3B0

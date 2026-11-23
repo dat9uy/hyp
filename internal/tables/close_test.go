@@ -75,26 +75,35 @@ func TestReplayCloseGuardsAgain(t *testing.T) {
 
 func TestEndHoldsItsSnapshotAfterAMerge(t *testing.T) {
 	add, place := goalAdd(t, id1, "", "w", gap), placeEv(t, idP1, "line-1", "a", hashA, "failed")
-	// clone B's run sorts in ahead of A's close, which did not see it
-	runB := run(t, "rB", "failed")
-	tb := Replay([]events.Event{add, place, runB, closeEv(t, "a", "owner", ids(add, place)...)})
-	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != runB.ID ||
+	// clone B's place of a new example sorts in ahead of A's close, which did
+	// not see it
+	placeB := placeEv(t, idP2, "line-1", "b", hashB, "failed")
+	tb := Replay([]events.Event{add, place, placeB, closeEv(t, "a", "owner", ids(add, place)...)})
+	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != placeB.ID ||
 		guardOf(tb.RefusedAtReplay[0].Err) != string(fault.GuardNotEnded) {
-		t.Fatalf("refused at replay: %+v, want B's run by Not ended", tb.RefusedAtReplay)
+		t.Fatalf("refused at replay: %+v, want B's place by Not ended", tb.RefusedAtReplay)
 	}
-	if g := tb.Goals[id1]; len(g.Results) != 0 || g.State != StateEnded {
-		t.Fatalf("Goal = %+v, want ended with no Result", g)
+	if g := tb.Goals[id1]; len(g.Placed()) != 1 || g.State != StateEnded {
+		t.Fatalf("Goal = %+v, want ended with A's place only", g)
 	}
 
-	// a land names its snapshot the same way
+	// a land names its snapshot the same way, and names only events stored in
+	// git: a Result is in the trace of the clone that ran it, which no end
+	// freezes
 	runA, sel := run(t, "r1", "met"), selectEv(t, "x", "runner", "commit-r1", "r1")
-	runB = run(t, "rB", "failed")
-	tb = Replay([]events.Event{add, place, runB, runA, sel, landSeen(t, sel.ID, ids(add, place, runA, sel)...)})
-	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != runB.ID {
-		t.Fatalf("refused at replay: %+v, want B's run", tb.RefusedAtReplay)
+	runB := run(t, "rB", "failed")
+	tb = Replay([]events.Event{add, place, placeB, runB, runA, sel, landSeen(t, sel.ID, ids(add, place, sel)...)})
+	if len(tb.RefusedAtReplay) != 1 || tb.RefusedAtReplay[0].EventID != placeB.ID {
+		t.Fatalf("refused at replay: %+v, want B's place", tb.RefusedAtReplay)
 	}
-	if g := tb.Goals[id1]; len(g.Results) != 1 || g.Results[0].ID != runA.ID || g.Land == nil {
-		t.Fatalf("Goal = %+v, want landed with only A's run", g)
+	g := tb.Goals[id1]
+	if len(g.Results) != 2 || g.Land == nil {
+		t.Fatalf("Goal = %+v, want landed with both Results", g)
+	}
+	for _, id := range g.Seen() {
+		if id == runA.ID || id == runB.ID {
+			t.Fatalf("snapshot %v names a Result", g.Seen())
+		}
 	}
 }
 

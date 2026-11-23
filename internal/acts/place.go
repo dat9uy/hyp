@@ -166,19 +166,24 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		if len(causes) > 0 {
 			return ev, setRefusal(again.goal.ID, causes)
 		}
+		// git holds each example's hash and H0's verdict; H0's outputs and
+		// cell go to the clone's trace, a cache a reader fills again with try.
 		p := events.ExamplesPlace{Role: o.Role}
 		var outs [][]byte
+		var cells []logstore.Cell
 		for i, c := range again.changes {
 			out := runs[i].out
-			p.Examples = append(p.Examples, events.PlacedExample{
-				Line: c.line, Example: c.name, Hash: c.hash,
-				H0: events.Cell{
-					Commit: again.goal.Base, RowTree: again.goal.BaseTree, Probe: c.probeHash,
-					Output: logstore.Hash(out.Stdout), Stderr: logstore.Hash(out.Stderr),
-					Exit: out.Exit, Verdict: string(runs[i].verdict),
-				},
-			})
+			h0 := events.Cell{
+				Commit: again.goal.Base, RowTree: again.goal.BaseTree, Probe: c.probeHash,
+				Exit: out.Exit, Verdict: string(runs[i].verdict),
+			}
+			p.Examples = append(p.Examples, events.PlacedExample{Line: c.line, Example: c.name, Hash: c.hash, H0: h0})
 			outs = append(outs, out.Stdout, out.Stderr)
+			cells = append(cells, logstore.Cell{
+				Hash: c.hash, RowTree: h0.RowTree, Commit: h0.Commit, Probe: h0.Probe,
+				Output: logstore.Hash(out.Stdout), Stderr: logstore.Hash(out.Stderr),
+				Exit: h0.Exit, Verdict: h0.Verdict, By: logstore.CellByPlace,
+			})
 		}
 		payload, err := json.Marshal(p)
 		if err != nil {
@@ -188,9 +193,12 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		if err := tables.GuardPlaceSet(tables.Replay(evs), ev); err != nil {
 			return ev, err
 		}
-		// The outputs are stored only once every guard holds, just before the
-		// event that names them: a refused place leaves no file behind.
+		// The outputs and cells are stored only once every guard holds, just
+		// before the event: a refused place leaves no file behind.
 		if err := putOutputs(root, outs...); err != nil {
+			return ev, err
+		}
+		if err := putCells(root, cells...); err != nil {
 			return ev, err
 		}
 		rep.Goal = again.goal.ID
@@ -202,7 +210,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	if err != nil {
 		return PlaceReport{}, err
 	}
-	evs, _, err := logstore.Events(root)
+	evs, _, err := logstore.Load(root)
 	if err != nil {
 		return PlaceReport{}, err
 	}
@@ -358,7 +366,15 @@ func checkExample(root string, g *tables.Goal, l tables.Line, name string) (chan
 	}
 	cur, placed := g.Current(c.key)
 	if placed && cur.Hash == c.hash {
-		return change{}, false, nil
+		if cur.H0.RowTree == g.BaseTree {
+			return change{}, false, nil
+		}
+		// A replace moved H0 since the place: the same version is measured
+		// again on the new H0, and git then holds its verdict there.
+		if c.ex, c.probeHash, err = readExample(root, c.hash); err != nil {
+			return change{}, false, err
+		}
+		return c, true, nil
 	}
 	if c.ex, c.probeHash, err = readExample(root, c.hash); err != nil {
 		return change{}, false, err
@@ -502,12 +518,29 @@ func sameBesidesExample(root, oldHash, newHash string) error {
 	return nil
 }
 
-// putOutputs stores each output under .tree/outputs by its sha256. An act
+// putOutputs stores each output in the clone's trace by its sha256. An act
 // calls it under the lock, after its guards held and before it appends the
 // event that names the outputs.
 func putOutputs(root string, outs ...[]byte) error {
 	for _, b := range outs {
 		if _, err := logstore.PutOutput(root, b); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// putCells saves each cell in the clone's trace.
+func putCells(root string, cells ...logstore.Cell) error {
+	if len(cells) == 0 {
+		return nil
+	}
+	tr, err := logstore.TraceOf(root)
+	if err != nil {
+		return err
+	}
+	for _, c := range cells {
+		if err := tr.PutCell(c); err != nil {
 			return err
 		}
 	}

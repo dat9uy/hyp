@@ -61,18 +61,25 @@ func runText(rep acts.RunReport) string {
 	return b.String()
 }
 
-// tryText is the report of try: where the example ran, that nothing was
-// recorded, the example folder as it is on disk, then its verdict, exit code,
-// output and stderr as the cell place or run would record holds them, each
-// output under the name it would have in .tree/outputs.
+// tryText is the report of try: where the example ran, what it saved, the
+// example folder as it is on disk, then its verdict, exit code, output and
+// stderr as the cell place or run would record holds them, each output under
+// the name it has in the trace's outputs.
 func tryText(rep acts.TryReport) string {
 	var b strings.Builder
 	on := "H0 " + rep.Commit
-	if rep.Worktree {
+	switch {
+	case rep.Worktree:
 		on = "this checkout's files: HEAD " + rep.Commit + " and every change not committed"
+	case !rep.H0:
+		on = "commit " + rep.Commit + ", row " + rep.RowTree
 	}
 	fmt.Fprintf(&b, "tried %s %s on %s\n", rep.ID, rep.Key, on)
-	b.WriteString("nothing is recorded: no event, no output file, no run of the budget\n")
+	if rep.Saved {
+		b.WriteString("saved: this clone's trace lacked this cell; it holds it now, marked as run again in this clone; no event and no run of the budget is recorded\n")
+	} else {
+		b.WriteString("nothing is recorded: no event, no output file, no run of the budget\n")
+	}
 	fmt.Fprintf(&b, "example: %s as it is on disk, hash %s, probe %s\n", rep.Folder, rep.Hash, or(rep.ProbeHash, "(none)"))
 	fmt.Fprintf(&b, "words: %s\n", rep.Words)
 	fmt.Fprintf(&b, "verdict: %s, exit %d\n", rep.Verdict, rep.Out.Exit)
@@ -207,7 +214,19 @@ func prBody(root string, g *tables.Goal) string {
 			fmt.Fprintf(&b, "\n### %s: %s\n\n", p.Key, words)
 			c, ok := live[p.Key]
 			if !ok {
-				b.WriteString("verdict: not run\n")
+				tc, tried := g.TraceCell(p.Hash, tree)
+				if !tried {
+					// git holds the select, which every placed example met;
+					// this clone's trace holds no Result of it
+					fmt.Fprintf(&b, "verdict: not in this clone's trace; run it again in this clone with:\n  %s\n", tryLine(g, p.Key, g.Select.Commit))
+					continue
+				}
+				fmt.Fprintf(&b, "verdict: %s, exit %d, run again in this clone\n", tc.Verdict, tc.Exit)
+				if tc.Verdict != "met" {
+					fmt.Fprintf(&b, "warning: %s gave two verdicts on the selected row: met at the select, in this clone: %s\n", p.Key, tc.Verdict)
+				}
+				prStored(&b, root, "output", tc.Output)
+				prStored(&b, root, "stderr", tc.Stderr)
 				continue
 			}
 			fmt.Fprintf(&b, "verdict: %s, exit %d\n", c.Verdict, c.Exit)
@@ -218,6 +237,15 @@ func prBody(root string, g *tables.Goal) string {
 	prCharts(&b, root, g)
 	fmt.Fprintf(&b, "\nselected commit: %s\nselected row: %s\n", g.Select.Commit, tree)
 	return b.String()
+}
+
+// tryLine is the ready hyp try line that runs the cell of key again in this
+// clone: on H0 when commit is empty, else on commit.
+func tryLine(g *tables.Goal, key, commit string) string {
+	if commit == "" {
+		return "hyp try " + g.ID + " " + key
+	}
+	return "hyp try " + g.ID + " " + key + " --commit " + commit
 }
 
 // prCharts prints each chart (.mmd) of the selected commit's spec folder as

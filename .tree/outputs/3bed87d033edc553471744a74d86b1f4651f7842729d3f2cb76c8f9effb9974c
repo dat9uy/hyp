@@ -1,0 +1,65 @@
+setup: hyp place G-2BZQB4
+placed G-2BZQB4: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-2BZQB4 is open
+G-2BZQB4  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-2BZQB4
+grill may:
+  hyp place G-2BZQB4
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-2BZQB4/line-1
+setup: hyp run
+ran G-2BZQB4 line-1 at f28ea860a6ddf33a656c8a64786146f7bbd31bf5
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-2BZQB4  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-2BZQB4 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-2BZQB4
+grill may:
+  hyp place G-2BZQB4
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-2BZQB4 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-2BZQB4/line-1
+setup: hyp select
+# G-2BZQB4: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: f28ea860a6ddf33a656c8a64786146f7bbd31bf5
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-2BZQB4  selected  runs: 1 of 3 used
+stop: selected, by select 01M83FVBJ9MPBJ25WA380J8B0P at 2026-11-23T06:00:18.249042Z
+waits: owner
+owner may:
+  hyp land G-2BZQB4
+  hyp unselect G-2BZQB4
+  hyp close G-2BZQB4
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

@@ -159,8 +159,9 @@ func TestEveryEventKindHasOneEntry(t *testing.T) {
 			t.Errorf("event type %s has two entries", k.Type)
 		}
 		seen[k.Type] = true
-		if k.Home != events.HomeGit && k.Home != events.HomeTrace {
-			t.Errorf("event type %s is stored in %q", k.Type, k.Home)
+		// one rule stores every kind: git when it changes a Goal's state
+		if want := map[bool]string{true: events.HomeGit, false: events.HomeTrace}[k.Changes]; k.Home() != want {
+			t.Errorf("event type %s is stored in %q, want %q", k.Type, k.Home(), want)
 		}
 	}
 }

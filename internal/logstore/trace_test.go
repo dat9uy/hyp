@@ -157,8 +157,9 @@ func TestGoneTraces(t *testing.T) {
 	}
 }
 
-// TestEventGoesWhereItsKindSays: the store writes only an event whose kind's
-// entry names git, and the trace only one whose entry names the trace.
+// TestEventGoesWhereItsKindSays: Append writes an event where its kind's
+// entry says, git for a kind that changes a Goal's state and the trace for
+// every other kind, and the trace takes only a kind its entry names.
 func TestEventGoesWhereItsKindSays(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	r := testutil.NewRepo(t)
@@ -167,18 +168,24 @@ func TestEventGoesWhereItsKindSays(t *testing.T) {
 		t.Fatal(err)
 	}
 	read := events.Event{Type: events.TypeRead, Payload: []byte(`{"role":"","command":["status"],"exit":0,"stdout":"","stderr":""}`)}
-	if _, err := Append(r.Dir, "runner-1", func([]events.Event) (events.Event, error) { return read, nil }); fault.CodeOf(err) != fault.EventHome {
-		t.Errorf("a read in git: %v, want %s", err, fault.EventHome)
+	if _, err := Append(r.Dir, "runner-1", func([]events.Event) (events.Event, error) { return read, nil }); err != nil {
+		t.Fatalf("a read: %v", err)
 	}
 	tr, err := TraceOf(r.Dir)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if evs, _, err := tr.Events(); err != nil || len(evs) != 1 || evs[0].Type != events.TypeRead {
+		t.Errorf("the trace holds %+v, %v; want the read", evs, err)
+	}
+	if evs, _, err := Load(r.Dir); err != nil || len(evs) != 1 {
+		t.Errorf("Load = %d events, %v; want the read", len(evs), err)
 	}
 	reset := events.Event{Type: events.TypeBudgetReset, Node: "x", Payload: []byte(`{"role":"owner"}`)}
 	if _, err := tr.Append("owner-1", reset); fault.CodeOf(err) != fault.EventHome {
 		t.Errorf("a budget.reset in the trace: %v, want %s", err, fault.EventHome)
 	}
 	if _, err := os.Stat(filepath.Join(r.Dir, ".tree", "events", "runner-1.jsonl")); !os.IsNotExist(err) {
-		t.Errorf("the refused read left a file: %v", err)
+		t.Errorf("the read went to git: %v", err)
 	}
 }
