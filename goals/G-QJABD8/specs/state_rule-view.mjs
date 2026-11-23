@@ -1,6 +1,6 @@
 // The view of state_rule.tla: what each command prints in clone A or B.
 
-export const title = "hyp G-QJABD8: git keeps the events that change a Goal's state; the trace keeps the evidence";
+export const title = "hyp G-QJABD8, git keeps the events that change a Goal state and the trace keeps the evidence";
 
 const goal = (v) => (v.landed ? "Landed" : v.gitSelect ? "Selected" : v.gitPlace ? "Open" : "Written");
 
