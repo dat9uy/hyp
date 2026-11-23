@@ -1,0 +1,6 @@
+-- words --
+Nothing printed changes: `hyp status G` prints the same bytes whether git's `.tree/events/` holds a `result.record` or not.
+-- run --
+hyp status G
+-- floor: contains --
+same output with and without the event in git: yes
