@@ -1,0 +1,145 @@
+G-D2MVSR  ended  runs: 1 of 3 used
+stop: selected, by select 01M7Z6GTVDXBDF4R37W32G24SR at 2026-11-21T14:00:18.541234Z
+landed: by owner, land 01M7Z7R62NNS220C6XTM1S8W9P at 2026-11-21T14:21:47.989625Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-D2MVSR: A grill that follows the hyp-grill skill makes the moves the owner agreed for v2: in the first grill, in the re-grill, and when it tries variants and hands an example to the Probe writer.
+
+## line-1 (gap): In a first grill of a written Goal's examples, the grill asks for each line "What would you do, and what would you see?" and makes the owner's answer that line's example, without reading it back for approval; when an answer has two things to see, it warns that the line combines two rules and proposes a split, which the owner decides; it writes the floor from the want, reads the line's "must never" words aloud and asks "What could a wrong build print that this floor still lets through?", and each wrong output the owner names becomes a ceiling; and once every line has an example that gives its line's verdict on H0, it stops asking and says the Goal has enough.
+
+### line-1/a: (example 374b6269d8c5200e8028fad87324f6734ccf15fe is not readable here: object 374b6269d8c5200e8028fad87324f6734ccf15fe not in this clone)
+
+verdict: met, exit 0
+
+output, 1379 bytes:
+
+```
+try 1: the grill ran: yes
+try 1: asks the open question about line-1: yes
+try 1: asks the open question about line-2: yes
+try 1: proposes a split after the two-thing answer: yes
+try 1: reads "never prints hello" aloud: yes
+try 1: asks the ceiling question: yes
+try 1: a line-1 example has a ceiling with goodbye: yes
+try 1: the Goal is open: yes
+try 1: says enough at the end: yes
+try 1: asks nothing at the end: yes
+try 1: asks for approval of an example: no
+try 2: the grill ran: yes
+try 2: asks the open question about line-1: yes
+try 2: asks the open question about line-2: yes
+try 2: proposes a split after the two-thing answer: yes
+try 2: reads "never prints hello" aloud: yes
+try 2: asks the ceiling question: yes
+try 2: a line-1 example has a ceiling with goodbye: yes
+try 2: the Goal is open: yes
+try 2: says enough at the end: yes
+try 2: asks nothing at the end: yes
+try 2: asks for approval of an example: no
+try 3: the grill ran: yes
+try 3: asks the open question about line-1: yes
+try 3: asks the open question about line-2: yes
+try 3: proposes a split after the two-thing answer: yes
+try 3: reads "never prints hello" aloud: yes
+try 3: asks the ceiling question: yes
+try 3: a line-1 example has a ceiling with goodbye: yes
+try 3: the Goal is open: yes
+try 3: says enough at the end: yes
+try 3: asks nothing at the end: yes
+try 3: asks for approval of an example: no
+```
+
+stderr, 0 bytes
+
+## line-2 (gap): In a re-grill at a stop, when the owner reports something odd, the grill asks the owner to state it as "on input X, I must see Y" or "I must never see Y", and proposes an adjust when a line's words already ask for Y or forbid it, and a new Goal when Y needs new words.
+
+### line-2/a: (example 4c130c4e1054c5e64ddf27d50e9eafec1940606f is not readable here: object 4c130c4e1054c5e64ddf27d50e9eafec1940606f not in this clone)
+
+verdict: met, exit 0
+
+output, 485 bytes:
+
+```
+try 1: the grill ran: yes
+try 1: asks for the form "on input X, I must see Y" before the owner states it: yes
+try 1: after the statement, proposes an adjust: yes
+try 2: the grill ran: yes
+try 2: asks for the form "on input X, I must see Y" before the owner states it: yes
+try 2: after the statement, proposes an adjust: yes
+try 3: the grill ran: yes
+try 3: asks for the form "on input X, I must see Y" before the owner states it: yes
+try 3: after the statement, proposes an adjust: yes
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example 4366f6352f4de2460979130c4a9de75b34397c1a is not readable here: object 4366f6352f4de2460979130c4a9de75b34397c1a not in this clone)
+
+verdict: met, exit 0
+
+output, 488 bytes:
+
+```
+try 1: the grill ran: yes
+try 1: asks for the form "on input X, I must see Y" before the owner states it: yes
+try 1: after the statement, proposes a new Goal: yes
+try 2: the grill ran: yes
+try 2: asks for the form "on input X, I must see Y" before the owner states it: yes
+try 2: after the statement, proposes a new Goal: yes
+try 3: the grill ran: yes
+try 3: asks for the form "on input X, I must see Y" before the owner states it: yes
+try 3: after the statement, proposes a new Goal: yes
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): When the grill tries a Goal's variants, it stops trying a variant at its first failed example. When the generic Probe cannot run an example, the grill hands that example to a Probe writer that it starts with what hyp status G prints for the Probe writer, and writes no new Probe code itself; an example the generic Probe can run gets the generic Probe.
+
+### line-3/b: (example 2a1f55312a2048f19441b7dca42b4968c787b389 is not readable here: object 2a1f55312a2048f19441b7dca42b4968c787b389 not in this clone)
+
+verdict: met, exit 0
+
+output, 905 bytes:
+
+```
+try 1: the grill ran: yes
+try 1: starts a Probe writer for line-2 with the printed contract: yes
+try 1: starts a Probe writer for line-1: no
+try 1: writes line-2 Probe code itself: no
+try 1: line-2's run is the owner's command: yes
+try 1: line-1 has the generic Probe: yes
+try 1: the Goal is open: yes
+try 2: the grill ran: yes
+try 2: starts a Probe writer for line-2 with the printed contract: yes
+try 2: starts a Probe writer for line-1: no
+try 2: writes line-2 Probe code itself: no
+try 2: line-2's run is the owner's command: yes
+try 2: line-1 has the generic Probe: yes
+try 2: the Goal is open: yes
+try 3: the grill ran: yes
+try 3: starts a Probe writer for line-2 with the printed contract: yes
+try 3: starts a Probe writer for line-1: no
+try 3: writes line-2 Probe code itself: no
+try 3: line-2's run is the owner's command: yes
+try 3: line-1 has the generic Probe: yes
+try 3: the Goal is open: yes
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 3379f8a5ff96da7fbc7d965a671bd1d301cdc18a goals/G-D2MVSR/specs/: exit 128: fatal: not a tree object
+
+selected commit: 3379f8a5ff96da7fbc7d965a671bd1d301cdc18a
+selected row: 4ab8bb73c31ca8ce147ab32ccc75c281999dd697

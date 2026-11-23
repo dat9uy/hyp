@@ -1,0 +1,168 @@
+G-3FDQC0  ended  runs: 1 of 3 used
+stop: selected, by select 01M7SGSPHWSYYX0F201HKJYEQC at 2026-11-19T09:04:28.220377Z
+landed: by owner, land 01M7YS8RNPM2E0ZWNY7Z78HGCA at 2026-11-21T10:08:42.678744Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-3FDQC0: Take reads back out of the log
+
+## line-1 (gap): When multiple agents, or owner read when running `hyp status`, the line was added, which make unintended code changes
+
+### line-1/a: (example 342fc459ba6e35a69b3d7da77f4340dfc6b3ce54 is not readable here: object 342fc459ba6e35a69b3d7da77f4340dfc6b3ce54 not in this clone)
+
+verdict: met, exit 0
+
+output, 321 bytes:
+
+```
+owner: hyp status: exit 0, names the Goal: yes, stderr: no
+owner: hyp status G: exit 0, names the Goal: yes, stderr: no
+owner: hyp status --role owner: exit 0, names the Goal: yes, stderr: no
+owner: hyp show owner: exit 0, names the Goal: yes, stderr: no
+changes git sees:
+none
+HEAD moved: no
+files git is told to skip: 0
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example b10144026f606f218a751529e4740485d481401a is not readable here: object b10144026f606f218a751529e4740485d481401a not in this clone)
+
+verdict: met, exit 0
+
+output, 323 bytes:
+
+```
+runner-1: hyp status: exit 0, names the Goal: yes, stderr: no
+reviewer: hyp status: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp show runner-1: exit 0, names the Goal: yes, stderr: no
+reviewer: hyp status G: exit 0, names the Goal: yes, stderr: no
+changes git sees:
+none
+HEAD moved: no
+files git is told to skip: 0
+```
+
+stderr, 0 bytes
+
+### line-1/c: (example f4495b3b7c23ef3d7ef1c9a4fcf85c5acb5990c2 is not readable here: object f4495b3b7c23ef3d7ef1c9a4fcf85c5acb5990c2 not in this clone)
+
+verdict: met, exit 0
+
+output, 384 bytes:
+
+```
+runner-1: hyp run HEAD G/line-1: exit 1, names the Goal: yes, stderr: yes
+runner-1: hyp select G 4b825dc642cb6eb9a060e54bf8d69288fbee4904: exit 1, names the Goal: yes, stderr: yes
+grill: hyp place G line-1/a: exit 1, names the Goal: yes, stderr: yes
+owner: hyp status G-AAAAAA: exit 2, names the Goal: no, stderr: yes
+changes git sees:
+none
+HEAD moved: no
+files git is told to skip: 0
+```
+
+stderr, 0 bytes
+
+### line-1/d: (example 19f7802c9d1c57c3aa5fcfa7a21329480208cddd is not readable here: object 19f7802c9d1c57c3aa5fcfa7a21329480208cddd not in this clone)
+
+verdict: met, exit 0
+
+output, 541 bytes:
+
+```
+owner: hyp add goal G --base HEAD --words Say hello. --line gap:hyp says hello. --line gap:hyp says hello again.: exit 0, names the Goal: yes, stderr: no
+grill: hyp place G line-1/a: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp run HEAD G/line-1: exit 0, names the Goal: yes, stderr: no
+lines added to the log:
+.tree/events/grill.jsonl example.place
+.tree/events/owner.jsonl goal.add
+.tree/events/runner-1.jsonl result.record
+new outputs that no added line names:
+none
+other changes:
+none
+HEAD moved: no
+files git is told to skip: 0
+```
+
+stderr, 0 bytes
+
+### line-1/e: (example 5d703e0e37a1c4173a726e4f1f50f28a847effc5 is not readable here: object 5d703e0e37a1c4173a726e4f1f50f28a847effc5 not in this clone)
+
+verdict: met, exit 0
+
+output, 196 bytes:
+
+```
+owner: hyp status: exit 0, names the Goal: yes, stderr: no
+runner-1: hyp status G-9V74J9: exit 0, names the Goal: yes, stderr: no
+changes git sees:
+none
+HEAD moved: no
+files git is told to skip: 0
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): The owner can read exactly what the agent read.
+
+### line-2/a: (example aae86cf8f1a8af5084695ace84a997c6e2213a4c is not readable here: object aae86cf8f1a8af5084695ace84a997c6e2213a4c not in this clone)
+
+verdict: met, exit 0
+
+output, 138 bytes:
+
+```
+runner: hyp status: exit 0, names the Goal: yes
+owner: hyp show runner: exit 0
+the owner's view holds the runner's read byte for byte: yes
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example afb7617428993647e19099b1b613734719da3b6a is not readable here: object afb7617428993647e19099b1b613734719da3b6a not in this clone)
+
+verdict: met, exit 0
+
+output, 231 bytes:
+
+```
+runner: hyp run HEAD G/line-1: exit 1, state block names the Goal: yes
+owner: hyp show runner: exit 0
+the owner's view holds the runner's refusal byte for byte: yes
+the owner's view holds the runner's state block byte for byte: yes
+```
+
+stderr, 0 bytes
+
+### line-2/c: (example 2ecaf6b5c50e89e2a4159fe2120156ab02c8612b is not readable here: object 2ecaf6b5c50e89e2a4159fe2120156ab02c8612b not in this clone)
+
+verdict: met, exit 0
+
+output, 193 bytes:
+
+```
+runner, in its worktree: hyp status: exit 0, names the Goal: yes
+owner, in the main checkout after the merge: hyp show runner: exit 0
+the owner's view holds the runner's read byte for byte: yes
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z b3a3664980352ffe409410e66940b1044b796ff6 goals/G-3FDQC0/specs/: exit 128: fatal: not a tree object
+
+selected commit: b3a3664980352ffe409410e66940b1044b796ff6
+selected row: caec7bf2efd1acd5db269106541128b44c02ed76

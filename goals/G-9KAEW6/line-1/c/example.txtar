@@ -1,0 +1,8 @@
+-- words --
+On every event kind's line of `hyp spec`, "changes a Goal's state: yes" goes with "stored in git", and "no" goes with "stored in trace".
+-- run --
+hyp spec
+-- floor: contains --
+every kind that changes a Goal's state is stored in git, and every other kind in the trace
+-- ceiling --
+disagrees

@@ -1,0 +1,3 @@
+hyp status G: act yes, id yes, date yes
+hyp status: act yes, id yes, date yes
+the select returns: act yes, id yes, date yes

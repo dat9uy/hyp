@@ -1,0 +1,15 @@
+hyp: refused: none of the example set of G is placed; 1 cause:
+line-2: Whole set: line-2 holds no example: goals/G/line-2 has no example folder
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  (none)
+place exit 1
+G  written  runs: 0 of 3 used

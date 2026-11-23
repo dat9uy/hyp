@@ -1,0 +1,74 @@
+#!/bin/sh
+# Probe of G-9KAEW6 line-10/a. The working directory is a copy of the subject.
+# probe/fixture/.tree is a copy of hyp's own store from the branch
+# record/G-9KAEW6, and probe/golden/<G>.txt is the stdout of `hyp status <G>`
+# for each Goal that store lists as landed, recorded once with H0's binary
+# (hyp built at da86fbb) in this same setup. The Probe builds hyp from the
+# subject, puts the store in a new git repository and, for every Goal that
+# `hyp status` lists as ended by a land, runs the example's run section with G
+# replaced and compares its stdout byte for byte with the golden. A Goal ended
+# by a close is left out. It prints "<G>: same" or "<G>: differs" for each
+# landed Goal and for each golden whose Goal is not listed as landed, then
+# "every landed Goal prints as on the base" when all are the same, else
+# "a landed Goal differs", then a last line "exit N" with the first non-zero
+# exit code of the run section, else 0. A build or setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+# A fixed actor: the goldens were recorded as this actor.
+export HYP_ACTOR=owner
+unset HYP_ROLE
+
+probe="$HYP_EXAMPLE/probe"
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+cp -R "$probe/fixture/.tree" .tree || fail "copy .tree"
+git init -q -b main >&2 || fail "git init"
+git add -A >&2 && git commit -q -m store >&2 || fail "git commit"
+
+hyp status >"$work/all" 2>"$work/all.err" || fail "hyp status: $(cat "$work/all.err")"
+awk '/^G-[A-Z0-9]+  /{g=$1} /^landed: /{print g}' "$work/all" >"$work/landed"
+[ -s "$work/landed" ] || fail "hyp status lists no landed Goal"
+# A golden whose Goal is not listed as landed also differs.
+for f in "$probe"/golden/*.txt; do
+  g=$(basename "$f" .txt)
+  grep -q -x -F "$g" "$work/landed" || echo "$g" >>"$work/landed"
+done
+
+code=0
+bad=0
+while IFS= read -r g; do
+  run=$(printf '%s\n' "$HYP_RUN" | sed -e "s/ G\$/ $g/" -e "s/ G / $g /g")
+  sh -c "$run" >"$work/out" 2>/dev/null
+  c=$?
+  [ "$code" = 0 ] && code=$c
+  if [ -f "$probe/golden/$g.txt" ] && cmp -s "$work/out" "$probe/golden/$g.txt"; then
+    echo "$g: same"
+  else
+    bad=1
+    echo "$g: differs"
+  fi
+done <"$work/landed"
+
+if [ "$bad" = 0 ]; then
+  echo "every landed Goal prints as on the base"
+else
+  echo "a landed Goal differs"
+fi
+echo "exit $code"
+exit 0

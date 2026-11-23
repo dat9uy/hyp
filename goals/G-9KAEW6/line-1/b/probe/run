@@ -1,0 +1,53 @@
+#!/bin/sh
+# Probe of G-9KAEW6 line-1/b. The working directory is a copy of the subject.
+# It builds hyp from the subject, runs the example's run section (hyp spec)
+# with that binary and prints its stdout, then says from the row of
+# result.record whether it is stored in git or in the trace.
+# The last line is "exit N", the exit code of the run section. Setup output
+# goes to stderr. A build or setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export PATH="$work/bin:$PATH"
+
+out="$work/out"
+sh -c "$HYP_RUN" >"$out" 2>"$work/err"
+code=$?
+cat "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+
+# The event-kind rows of the events: block, one per line: "name<TAB>row".
+# A row starts with two spaces and a non-space; the block ends at the first
+# blank line. The name is the text before the row's first run of two spaces.
+awk '
+/^events:/ { inb = 1; next }
+inb && /^$/ { exit }
+inb && /^  [^ ]/ {
+  row = substr($0, 3)
+  name = row; sub(/  .*$/, "", name)
+  print name "\t" row
+}
+' "$out" >"$work/rows"
+
+row=$(awk -F '\t' '$1 == "result.record" { print $2; exit }' "$work/rows")
+if [ -z "$row" ]; then
+  echo "result.record: no row"
+elif printf '%s\n' "$row" | grep -q 'stored in trace'; then
+  echo "result.record is stored in trace"
+elif printf '%s\n' "$row" | grep -q 'stored in git'; then
+  echo "result.record is stored in git"
+else
+  echo "result.record: no storage field"
+fi
+
+echo "exit $code"
+exit 0

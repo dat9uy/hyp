@@ -1,0 +1,6 @@
+-- words --
+In the clone that placed, `hyp status G` still prints H0's output, read from the trace.
+-- run --
+hyp status G
+-- floor: contains --
+H0's output is in this clone's trace

@@ -1,0 +1,207 @@
+== select returns
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+G  selected  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+== hyp status G, selected
+G  selected  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+== land returns
+landed G
+stop: selected, by select ULID at TIME
+G  landed  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+landed: by owner, land ULID at TIME
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+== hyp status G, landed
+G  landed  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+landed: by owner, land ULID at TIME
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH

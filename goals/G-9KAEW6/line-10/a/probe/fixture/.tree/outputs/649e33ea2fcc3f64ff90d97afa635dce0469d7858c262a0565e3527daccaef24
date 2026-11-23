@@ -1,0 +1,20 @@
+hyp: refused: none of the example set of G is placed; 1 cause:
+line-1/b: Kind: line-1 is a gap line, so its example must fail on H0; it is met
+H0 output, exit 0, 5 bytes:
+hello
+H0 stderr, 0 bytes
+floor: contains, 5 bytes:
+hello
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  (none)
+place exit 1
+G  written  runs: 0 of 3 used

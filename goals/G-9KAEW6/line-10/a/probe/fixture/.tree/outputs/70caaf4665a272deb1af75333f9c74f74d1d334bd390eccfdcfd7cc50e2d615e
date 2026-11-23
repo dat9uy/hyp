@@ -1,0 +1,86 @@
+# G-9XX4KB: The communication channel: the owner knows what the agent read, and that what it read reflects hyp's state machine correctly.
+
+## line-1 (gap): The communication channel, which is used for `hyp` to communicate with agent, is one block of code, defined with Go as code that has a boundary, such as one Go module, one object or one state machine.
+
+### line-1/a: Outside internal/channel, no Go file of a package the hyp binary is built from writes text that hyp prints to the agent.
+
+verdict: met, exit 0
+
+output, 0 bytes
+
+stderr, 0 bytes
+
+## line-2 (gap): The owner can read exactly what the agent read.
+
+### line-2/a: After a runner reads hyp status and stops, and the owner then changes the log, the owner runs hyp show runner and reads the exact bytes that runner last read, never a fresh status and never a re-quoted copy.
+
+verdict: met, exit 0
+
+output, 489 bytes:
+
+```
+runner: 1 read, oldest first
+
+read 1 of 1: 01M7S4DZ7AZR4G55WKXF0FNY7Q at 2026-11-19T05:28:20.970106Z, role runner, exit 0
+command: hyp status
+stderr, 0 bytes
+stdout, 246 bytes:
+G-J3MA1E  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-J3MA1E --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G-J3MA1E line-1/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+
+the owner's view holds the runner's last read byte for byte: yes
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): hyp tells the owner and the agent something its state doesn't hold.
+
+### line-3/a: When an example's words hold a quote, hyp run prints those words to the runner as the owner wrote them, never re-quoted.
+
+verdict: met, exit 0
+
+output, 447 bytes:
+
+```
+ran G-8KR8KE line-1 at cc8e5fd9b9cd89e277bfcd5415c72de6a36e0eff
+row: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+line-1/a failed (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: The owner says "hello" to hyp.
+G-8KR8KE  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-8KR8KE <line>/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-8KR8KE/line-1
+```
+
+stderr, 0 bytes
+
+selected commit: 7004da196362522b25f407c022cc0483ae3f944b
+selected row: 8548a3f5ad9b380cac2c42e74036251969e025b4
+G-9XX4KB  selected  runs: 1 of 3 used
+stop: selected
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

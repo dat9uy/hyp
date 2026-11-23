@@ -1,0 +1,16 @@
+disagrees: usage add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
+disagrees: usage place G [--why TEXT]
+disagrees: usage run COMMIT G/LINE [--why TEXT]
+disagrees: usage try G LINE/EXAMPLE [--worktree]
+disagrees: usage select G HASH [--why TEXT]
+disagrees: usage land G [--why TEXT]
+disagrees: usage close G [--why TEXT]
+disagrees: usage unselect G [--why TEXT]
+disagrees: usage status [G] [--role ROLE]
+disagrees: usage show ACTOR
+disagrees: usage prune [--remove]
+disagrees: usage help
+disagrees: usage version
+disagrees: exit 1
+disagrees: exit 2
+disagrees: exit 3

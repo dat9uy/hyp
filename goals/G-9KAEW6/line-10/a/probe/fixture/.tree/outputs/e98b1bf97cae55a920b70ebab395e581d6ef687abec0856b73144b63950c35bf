@@ -1,0 +1,35 @@
+warnings before: 0
+branch deleted: 0
+G  selected  runs: 1 of 3 used
+stop: selected, by select 01M81VZ9X0KY62WPY2XDV5H859 at 2026-11-22T14:53:41.664781Z
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 5dd167c6e6bf9ac9a0d43978a08debf725d4ba0b
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884

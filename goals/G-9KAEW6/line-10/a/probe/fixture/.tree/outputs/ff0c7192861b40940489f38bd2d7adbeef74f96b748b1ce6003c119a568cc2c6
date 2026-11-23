@@ -1,0 +1,8 @@
+unselect line printed: yes
+runner-1 runner: exit 1
+log unchanged: yes
+grill grill: exit 1
+log unchanged: yes
+owner-2 owner: exit 1
+log unchanged: yes
+owner owner: exit 0

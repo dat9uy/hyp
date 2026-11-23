@@ -1,0 +1,97 @@
+G-HKKGFK  ended  runs: 1 of 3 used
+stop: selected, by select 01M7YWAAFAE5BAV218QJXHNZ6C at 2026-11-21T11:01:59.402345Z
+landed: by owner, land 01M7YWDDXNG41EPJSJJZNPQPY0 at 2026-11-21T11:03:41.237789Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-HKKGFK: The grill stops trying a variant at its first failed example, and the statechart report counts that failed try as separating the variant.
+
+## line-1 (gap): For each variant, the statechart report counts an example as separating it when the example's tried verdict on the variant's patch is a fail, or when the example was not tried and the tool predicts it to fail; a tried met stands over a predicted fail.
+
+### line-1/a: (example e8c0a68abc4ee299260056f9e0b655eb66a2c44d is not readable here: object e8c0a68abc4ee299260056f9e0b655eb66a2c44d not in this clone)
+
+verdict: met, exit 0
+
+output, 133 bytes:
+
+```
+separated by: NeverOff line-2/a
+LampFollowsPresses row, broken by NeverOff, seen: yes
+a part saying no example separates NeverOff: no
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example 218e47d8658c13dc33f08f1882fefa0964838549 is not readable here: object 218e47d8658c13dc33f08f1882fefa0964838549 not in this clone)
+
+verdict: met, exit 0
+
+output, 47 bytes:
+
+```
+separated by: SlowPress line-1/b; NeverOff none
+```
+
+stderr, 0 bytes
+
+## line-2 (gap): The hyp-grill and hyp-statechart skills tell the grill to stop trying a variant at its first failed example, and to try first the example the tool predicts the variant to fail, or, with no prediction, the examples on the source lines of the rules it breaks; no skill file keeps a rule to try a predicted-fail example once more as a spot check.
+
+### line-2/a: (example 2063a18a9884493936abb40e4bda2931851774ee is not readable here: object 2063a18a9884493936abb40e4bda2931851774ee not in this clone)
+
+verdict: met, exit 0
+
+output, 143 bytes:
+
+```
+skill files read: yes
+rule stop-at-first-failed-example: yes
+rule try-predicted-fail-first: yes
+rule with-no-prediction-source-lines-first: yes
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example e178398906143ef0fc07d0c930d3dca0f7cb58e7 is not readable here: object e178398906143ef0fc07d0c930d3dca0f7cb58e7 not in this clone)
+
+verdict: met, exit 0
+
+output, 90 bytes:
+
+```
+skill files read: yes
+skill files that hold a rule to try a predicted fail once more: none
+```
+
+stderr, 0 bytes
+
+## line-3 (guard): A variant whose every tried verdict is met, and on which the tool predicts no untried example to fail, is still reported as separated by none, with its part naming the rules it breaks.
+
+### line-3/a: (example 933f66e5a8269030637132f6295b36bb72f2acdb is not readable here: object 933f66e5a8269030637132f6295b36bb72f2acdb not in this clone)
+
+verdict: met, exit 0
+
+output, 115 bytes:
+
+```
+separated by: NeverOff none
+a part saying no example separates NeverOff: yes
+the part names LampFollowsPresses: yes
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 168370436dea73a778c74d8b6c42d79266b59a71 goals/G-HKKGFK/specs/: exit 128: fatal: not a tree object
+
+selected commit: 168370436dea73a778c74d8b6c42d79266b59a71
+selected row: dbae43df6fd71ccbf702a0240c7b862e45116ca2
