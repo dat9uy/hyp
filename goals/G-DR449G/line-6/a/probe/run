@@ -1,0 +1,136 @@
+#!/bin/sh
+# Probe of G-DR449G line-6/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes clone A with two test Goals (the first
+# placed, run, selected and landed, the second placed and closed by the owner),
+# clones A to clone B with an empty trace (its own HOME), runs the example's
+# run section in both with HYP_ACTOR=owner, and prints B's stdout with the Goal
+# ids replaced by G1 and G2. It then prints "same states as the clone that ran
+# the acts" when the state lines of A and B are equal, else "differs:" and both
+# lines, then a last line "exit N" with B's exit code. Setup output goes to
+# stderr. A build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+
+newgoal() {
+  out=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base "$2" --words "$1" \
+    --line 'gap:the subject says bye.') || fail "hyp add goal: $out"
+  printf '%s\n' "$out" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1
+}
+base=$(git rev-parse HEAD)
+G=$(newgoal 'Greet one.' "$base")
+[ -n "$G" ] || fail "no Goal id"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+# fixture GOAL LINE NAME FLOOR: write the example folder goals/GOAL/LINE/NAME
+# with the generic Probe. On the test Goal's H0, greet.txt says hello.
+fixture() {
+  d="goals/$1/$2/$3"
+  mkdir -p "$d/probe" || fail "mkdir $d"
+  {
+    echo '-- words --'
+    echo "Fixture $2/$3."
+    echo '-- run --'
+    echo "cat greet.txt"
+    echo '-- floor: contains --'
+    echo "$4"
+  } >"$d/example.txtar"
+  cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+  chmod +x "$d/probe/run"
+}
+
+commit() { git add -A && git commit -q -m "$1" >&2 || fail "commit $1"; }
+
+# act ROLE ARGS: a hyp act of the setup. Output goes to stderr.
+act() { r=$1; shift; echo "setup: hyp $*" >&2; HYP_ACTOR=$r HYP_ROLE=$r hyp "$@" >&2 || fail "hyp $* failed"; }
+
+# --- this example's setup ---
+fixture "$G" line-1 a bye
+commit fixtures
+act grill place "$G"
+commit placed
+
+# Goal 1: run on a candidate where greet.txt says bye, select, land.
+git checkout -q -b cand >&2 || fail "branch cand"
+echo bye >greet.txt
+mkdir -p "goals/$G/specs" && echo "The subject says bye." >"goals/$G/specs/spec.md" || fail "spec"
+git add -A && git commit -q -m candidate >&2 || fail "commit candidate"
+cand=$(git rev-parse HEAD)
+row=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$cand" "$G/line-1" | sed -n 's/^row: //p') || fail "hyp run"
+[ -n "$row" ] || fail "no row"
+act runner select "$G" "$row"
+act owner land "$G"
+commit acts
+git checkout -q main >&2 || fail "checkout main"
+git merge -q --ff-only cand >&2 || fail "merge cand"
+
+# Goal 2: added on the same base as Goal 1, placed and closed by the owner.
+G2=$(newgoal 'Greet two.' "$base")
+[ -n "$G2" ] || fail "no second Goal id"
+fixture "$G2" line-1 a bye
+commit fixtures2
+act grill place "$G2"
+act owner close "$G2"
+commit acts2
+
+# Clone B with its own empty HOME, so its trace is empty.
+clone="$work/cloneB"
+git clone -q "$repo" "$clone" >&2 || fail "git clone"
+homeA=$HOME
+homeB="$work/homeB"
+mkdir -p "$homeB" || fail "mkdir homeB"
+# --- end of setup ---
+
+export HYP_ACTOR=owner HYP_ROLE=owner
+outA="$work/outA"
+outB="$work/outB"
+(cd "$repo" && HOME=$homeA sh -c "$HYP_RUN" >"$outA" 2>&1)
+(cd "$clone" && HOME=$homeB sh -c "$HYP_RUN" >"$outB" 2>&1)
+code=$?
+sed "s/$G/G1/g; s/$G2/G2/g" "$outA" >"$work/a.txt"
+sed "s/$G/G1/g; s/$G2/G2/g" "$outB" >"$work/b.txt"
+cat "$work/b.txt"
+if [ -n "$(tail -c 1 "$work/b.txt")" ]; then echo; fi
+grep '^G[12] ' "$work/a.txt" | sort >"$work/sa.txt"
+grep '^G[12] ' "$work/b.txt" | sort >"$work/sb.txt"
+if cmp -s "$work/sa.txt" "$work/sb.txt" && [ -s "$work/sb.txt" ]; then
+  echo "same states as the clone that ran the acts"
+else
+  echo "differs:"
+  cat "$work/sa.txt"
+  cat "$work/sb.txt"
+fi
+echo "exit $code"
+exit 0
