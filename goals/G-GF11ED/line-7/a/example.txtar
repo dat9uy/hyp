@@ -1,0 +1,14 @@
+-- words --
+hyp's own log, written before close existed, replays with nothing refused: G-9XX4KB keeps its stop, its land and its verdicts.
+-- run --
+hyp status G-9XX4KB
+-- floor: contains --
+stop: selected, by select 01M7S4F7Y677ZNGG9Y0QQJMWSX
+-- floor: contains --
+landed: by owner, land 01M7YS8QZ3D2XNPY6EC2XAEKMS
+-- floor: contains --
+verdict: met, exit 0
+-- ceiling --
+refused at replay
+-- ceiling --
+not read at replay

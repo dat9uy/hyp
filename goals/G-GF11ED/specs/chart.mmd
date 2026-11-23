@@ -1,0 +1,73 @@
+---
+title: "hyp G-GF11ED: the owner ends a Goal with land or close"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: written
+    lg1: open
+    lg2: selected
+    lg3: ended
+  }
+  class lg0 orange
+  class lg1 teal
+  class lg2 purple
+  class lg3 blue
+  state "Written" as s0 {
+    s1: B ran nothing
+    [*] --> s1
+  }
+  state "Ended by close" as s2 {
+    s3: B ran nothing
+    s4: B ran, not merged
+    s5: B's run merged
+  }
+  state "Open" as s6 {
+    s7: B ran nothing
+    s8: B ran, not merged
+    s9: B's run merged
+    [*] --> s7
+  }
+  state "Selected" as s10 {
+    s11: B ran nothing
+    s12: B ran, not merged
+    s13: B's run merged
+  }
+  state "Ended by land" as s14 {
+    s15: B ran nothing
+    s16: B ran, not merged
+    s17: B's run merged
+  }
+  [*] --> s0
+  s1 --> s3: the owner closes
+  s1 --> s6: the grill places the set
+  s7 --> s3: the owner closes
+  s7 --> s8: a runner in B runs a line
+  s3 --> s4: a runner in B runs a line
+  s8 --> s4: the owner closes
+  s8 --> s9: the logs of A and B merge
+  s7 --> s11: the runner selects
+  s4 --> s5: the logs of A and B merge
+  s9 --> s5: the owner closes
+  s8 --> s12: the runner selects
+  s11 --> s3: the owner closes
+  s11 --> s15: the owner lands
+  s9 --> s13: the runner selects
+  s12 --> s4: the owner closes
+  s12 --> s16: the owner lands
+  s12 --> s13: the logs of A and B merge
+  s16 --> s17: the logs of A and B merge
+  s13 --> s5: the owner closes
+  s13 --> s17: the owner lands
+  class s1 orange
+  class s3 blue
+  class s4 blue
+  class s5 blue
+  class s7 teal
+  class s8 teal
+  class s9 teal
+  class s11 purple
+  class s12 purple
+  class s13 purple
+  class s15 blue
+  class s16 blue
+  class s17 blue

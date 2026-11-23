@@ -1,0 +1,6 @@
+-- words --
+After the owner closes an open Goal, a run of a line by the runner is refused.
+-- run --
+HYP_ACTOR=runner HYP_ROLE=runner hyp run "$CAND" "$G/line-1"; echo "run exit $?"
+-- floor: contains --
+run exit 1

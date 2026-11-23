@@ -1,0 +1,12 @@
+-- words --
+A runner in clone B runs a line before the select in clone A, then the owner lands the Goal in A, then A merges B's log: status in A lists B's run under refused at replay, and the landed Goal keeps the rows the owner saw.
+-- run --
+hyp status "$G"
+-- floor: contains --
+G  ended
+-- floor: contains --
+landed: by owner
+-- floor: contains --
+refused at replay
+-- ceiling --
+G  landed

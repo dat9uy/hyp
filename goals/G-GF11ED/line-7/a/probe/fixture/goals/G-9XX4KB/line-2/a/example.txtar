@@ -1,0 +1,17 @@
+-- words --
+After a runner reads hyp status and stops, and the owner then changes the log, the owner runs hyp show runner and reads the exact bytes that runner last read, never a fresh status and never a re-quoted copy.
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+repo=$(mktemp -d) && cd "$repo" && git init -q && git -c user.name=owner -c user.email=owner@example.invalid commit -q --allow-empty -m base || exit 91
+g=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Say hello.' --line 'gap:hyp says hello.' | sed -n 's/^recorded //p') && [ -n "$g" ] || exit 92
+read=$(HYP_ACTOR=runner HYP_ROLE=runner "$bin/hyp" status; printf x); read=${read%x}
+HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal "$g" --base HEAD --words 'Say hello twice.' --line 'gap:hyp says hello.' --line 'gap:hyp says hello again.' >/dev/null || exit 93
+HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" add goal --base HEAD --words 'Say goodbye.' --line 'gap:hyp says goodbye.' >/dev/null || exit 94
+view=$(HYP_ACTOR=owner HYP_ROLE=owner "$bin/hyp" show runner 2>&1; printf x); view=${view%x}
+printf '%s\n' "$view"
+case "$view" in *"$read"*) echo "the owner's view holds the runner's last read byte for byte: yes" ;; *) echo "the owner's view holds the runner's last read byte for byte: no" ;; esac
+-- floor: contains --
+the owner's view holds the runner's last read byte for byte: yes
+-- ceiling --
+\n

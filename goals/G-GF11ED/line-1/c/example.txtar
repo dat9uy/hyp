@@ -1,0 +1,6 @@
+-- words --
+On an open Goal, `hyp status G --role owner` prints the close act among the owner's acts as a ready command line.
+-- run --
+hyp status "$G" --role owner
+-- floor: contains --
+hyp close G

@@ -1,0 +1,8 @@
+-- words --
+On an open Goal with placed examples and no runs, the owner's land is refused, and the Goal stays open.
+-- run --
+hyp land "$G"; echo "land exit $?"
+-- floor: contains --
+land exit 1
+-- floor: contains --
+G  open

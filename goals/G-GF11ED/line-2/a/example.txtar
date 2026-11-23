@@ -1,0 +1,12 @@
+-- words --
+The owner lands a selected Goal: the land prints `ended` and a line naming the land by the owner.
+-- run --
+hyp land "$G"; echo "land exit $?"
+-- floor: contains --
+land exit 0
+-- floor: contains --
+G  ended
+-- floor: contains --
+landed: by owner
+-- ceiling --
+G  landed
