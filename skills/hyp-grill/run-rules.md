@@ -46,8 +46,9 @@ Run the hyp Goal <G> as its runner.
    rewrite away a commit you ran.
 5. **Leave the examples as the grill placed them.** An example that seems wrong
    goes to the owner; it is not yours to edit.
-6. **Commit only what your acts wrote.** Add the event lines and output files
-   your own acts wrote, each by name.
+6. **Commit only what your acts wrote.** Add the event lines your own acts
+   wrote under `.tree/events/`, each by name. hyp keeps Results and outputs
+   in the clone's trace, so a run leaves nothing to commit.
 7. **Select when hyp offers it.** When hyp offers one candidate, select it.
    You run a rival, a second commit with `hyp run` that uses runs of the
    budget, only after the owner unselects the Goal; a second candidate then
