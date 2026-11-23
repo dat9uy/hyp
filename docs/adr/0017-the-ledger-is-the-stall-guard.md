@@ -2,7 +2,7 @@
 status: accepted; holds in part in v2, see the note below. Amended by ADR 0018, on the v1 branch: unjudged is a refusal, not a mark
 ---
 
-In v2 this part holds: nothing scores a round. At a stop hyp prints the table of outputs and no reading of it ([state-machine.md §11](../state-machine.md#11-budget-and-stops)). The ledger and its items are v1 only.
+In v2 this part holds: nothing scores a round. At a stop hyp prints the table of outputs and no reading of it (`hyp spec`). The ledger and its items are v1 only.
 
 # The ledger is the stall guard
 

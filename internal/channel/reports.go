@@ -169,7 +169,7 @@ func fence(text string) string {
 	return bar + "\n" + text + bar + "\n"
 }
 
-// prBody is the PR body of a selected Goal (section 12): its words, each line
+// prBody is the PR body of a selected Goal : its words, each line
 // with its kind, each placed example with its words, output, stderr, exit
 // code and verdict on the selected row, and the selected commit and row. A
 // split line is marked. It reads only the tables, the stored outputs and the

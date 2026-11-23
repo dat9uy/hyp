@@ -156,3 +156,29 @@ func TestGoneTraces(t *testing.T) {
 		t.Fatalf("the live clone's trace was removed: %v", err)
 	}
 }
+
+// TestEventGoesWhereItsKindSays: the store writes only an event whose kind's
+// entry names git, and the trace only one whose entry names the trace.
+func TestEventGoesWhereItsKindSays(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"a": "a"})
+	if err := Create(r.Dir); err != nil {
+		t.Fatal(err)
+	}
+	read := events.Event{Type: events.TypeRead, Payload: []byte(`{"role":"","command":["status"],"exit":0,"stdout":"","stderr":""}`)}
+	if _, err := Append(r.Dir, "runner-1", func([]events.Event) (events.Event, error) { return read, nil }); fault.CodeOf(err) != fault.EventHome {
+		t.Errorf("a read in git: %v, want %s", err, fault.EventHome)
+	}
+	tr, err := TraceOf(r.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reset := events.Event{Type: events.TypeBudgetReset, Node: "x", Payload: []byte(`{"role":"owner"}`)}
+	if _, err := tr.Append("owner-1", reset); fault.CodeOf(err) != fault.EventHome {
+		t.Errorf("a budget.reset in the trace: %v, want %s", err, fault.EventHome)
+	}
+	if _, err := os.Stat(filepath.Join(r.Dir, ".tree", "events", "runner-1.jsonl")); !os.IsNotExist(err) {
+		t.Errorf("the refused read left a file: %v", err)
+	}
+}

@@ -19,7 +19,7 @@ import (
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
-// markProbe is the Probe of the state machine, section 10, that also touches
+// markProbe is the Probe of the Probe contract in hyp spec, that also touches
 // the file MARKER_FILE names, so a test sees whether a Probe ran.
 const markProbe = `#!/bin/sh
 [ -n "$MARKER_FILE" ] && touch "$MARKER_FILE"

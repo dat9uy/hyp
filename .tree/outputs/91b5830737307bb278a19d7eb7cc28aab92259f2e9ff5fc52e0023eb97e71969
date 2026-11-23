@@ -1,0 +1,112 @@
+setup: hyp place G-EF4CNT
+placed G-EF4CNT: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-EF4CNT is open
+G-EF4CNT  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-EF4CNT
+grill may:
+  hyp place G-EF4CNT
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-EF4CNT/line-1
+setup: hyp select G-EF4CNT 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-EF4CNT: Greet one.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 9ba38d3e2b128421eadbf51b9e5b7905d4479859
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-EF4CNT  selected  runs: 1 of 3 used
+stop: selected, by select 01M8377WJG3YGHMA6BHZNTDNE3 at 2026-11-23T03:29:51.696287Z
+waits: owner
+owner may:
+  hyp land G-EF4CNT
+  hyp unselect G-EF4CNT
+  hyp close G-EF4CNT
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: hyp land G-EF4CNT
+landed G-EF4CNT
+stop: selected, by select 01M8377WJG3YGHMA6BHZNTDNE3 at 2026-11-23T03:29:51.696287Z
+G-EF4CNT  ended  runs: 1 of 3 used
+stop: selected, by select 01M8377WJG3YGHMA6BHZNTDNE3 at 2026-11-23T03:29:51.696287Z
+landed: by owner, land 01M8377WS3EMQ0ETY3YBMNE84B at 2026-11-23T03:29:51.907256Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-EF4CNT: Greet one.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 9ba38d3e2b128421eadbf51b9e5b7905d4479859
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+setup: hyp place G-YVG49T
+placed G-YVG49T: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-YVG49T is open
+G-YVG49T  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-YVG49T
+grill may:
+  hyp place G-YVG49T
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-YVG49T/line-1
+setup: hyp close G-YVG49T
+closed G-YVG49T
+G-YVG49T  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M8377XGSQJE81QVGMVW7YQSF at 2026-11-23T03:29:52.665033Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

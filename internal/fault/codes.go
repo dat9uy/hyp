@@ -114,6 +114,7 @@ const (
 	FileWrite    Code = "file-write"     // path, cause
 	FileSync     Code = "file-sync"      // path, cause
 	StoreOutput  Code = "store-output"   // cause
+	EventHome    Code = "event-home"     // event type, the home written to
 
 	// the trace
 	NoTraceFolder Code = "no-trace-folder" // no values

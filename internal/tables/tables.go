@@ -6,17 +6,18 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/spec"
 )
 
 // Goal state names.
 const (
-	StateWritten  = "written"
-	StateOpen     = "open"
-	StateSelected = "selected"
-	StateEnded    = "ended"
+	StateWritten  = spec.StateWritten
+	StateOpen     = spec.StateOpen
+	StateSelected = spec.StateSelected
+	StateEnded    = spec.StateEnded
 )
 
-// The stops of a Goal (section 11). A land event names one of the three.
+// The stops of a Goal. A land event names one of the three.
 const (
 	StopSelected      = "selected"
 	StopTwoCandidates = "two candidates"
@@ -633,17 +634,18 @@ func snapshots(evs []events.Event, dropped map[string]bool) map[string]snapshot 
 	return out
 }
 
-// goalOf is the goal.add event id of the Goal an event changes, or empty for
-// an event that changes none or that adds a new Goal.
+// goalOf is the goal.add event id of the Goal an event changes, when its
+// kind's entry says an end freezes it (events.Kinds), or empty for an event
+// that changes no Goal, that adds a new Goal, or that no end freezes.
 func goalOf(t Tables, ev events.Event) string {
+	if k, ok := events.KindOf(ev.Type); !ok || !k.Frozen {
+		return ""
+	}
 	switch ev.Type {
 	case events.TypeGoalAdd:
 		if ev.Node == ev.ID {
 			return ""
 		}
-		return ev.Node
-	case events.TypeExamplePlace, events.TypeExamplesPlace, events.TypeResultRecord,
-		events.TypeSelect, events.TypeUnselect:
 		return ev.Node
 	case events.TypeResultRetract:
 		if r, ok := t.results[ev.Node]; ok {
@@ -653,8 +655,9 @@ func goalOf(t Tables, ev events.Event) string {
 				}
 			}
 		}
+		return ""
 	}
-	return ""
+	return ev.Node
 }
 
 func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {

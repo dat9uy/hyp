@@ -42,10 +42,49 @@ const (
 	TypeRead          = "read"
 )
 
-var types = map[string]bool{
-	TypeGoalAdd: true, TypeExamplePlace: true, TypeExamplesPlace: true, TypeResultRecord: true,
-	TypeResultRetract: true, TypeSelect: true, TypeBudgetReset: true,
-	TypeLand: true, TypeClose: true, TypeUnselect: true, TypeRead: true,
+// Where an event kind is stored.
+const (
+	HomeGit   = "git"   // the store's .tree/events/, which git tracks and merges
+	HomeTrace = "trace" // the clone's trace folder under $HOME/.hyp/traces
+)
+
+// Kind is the entry of one event type: where it is stored, which Goal it
+// belongs to, and whether an end freezes it. hyp acts on these entries: the
+// store writes an event only where its entry says, replay freezes an event
+// only when its entry says so, and hyp spec prints them.
+type Kind struct {
+	Type   string
+	Home   string // HomeGit or HomeTrace
+	Goal   string // the Goal the event belongs to, as its node names it
+	Frozen bool   // an end of its Goal refuses it at replay when the end's snapshot does not name it
+	Writer string // the act that writes it
+}
+
+// Kinds are the entries of the eleven event types, in the order hyp spec
+// prints them.
+var Kinds = []Kind{
+	{TypeGoalAdd, HomeGit, "the Goal it adds, or the written Goal it replaces", true, "add goal"},
+	{TypeExamplePlace, HomeGit, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
+	{TypeExamplesPlace, HomeGit, "the Goal its node names", true, "place"},
+	{TypeResultRecord, HomeGit, "the Goal its node names", true, "run"},
+	{TypeResultRetract, HomeGit, "the Goal of the Result its node names", true, "retract, not built"},
+	{TypeSelect, HomeGit, "the Goal its node names", true, "select"},
+	{TypeBudgetReset, HomeGit, "the Goal its node names", false, "reset, not built"},
+	{TypeLand, HomeGit, "the Goal its node names; it ends the Goal", false, "land"},
+	{TypeClose, HomeGit, "the Goal its node names; it ends the Goal", false, "close"},
+	{TypeUnselect, HomeGit, "the Goal its node names", true, "unselect"},
+	{TypeRead, HomeTrace, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
+}
+
+// KindOf returns the entry of an event type, and false for a type outside the
+// closed set.
+func KindOf(typ string) (Kind, bool) {
+	for _, k := range Kinds {
+		if k.Type == typ {
+			return k, true
+		}
+	}
+	return Kind{}, false
 }
 
 // The kind of a line: a gap line must fail on H0, a guard line must be met.
@@ -196,7 +235,7 @@ func ParseLine(b []byte) (Event, error) {
 	if e.V != Version {
 		return Event{}, fault.Refuse(fault.NoGuard, fault.EventVersion, e.V, Version)
 	}
-	if !types[e.Type] {
+	if _, ok := KindOf(e.Type); !ok {
 		return Event{}, fault.Refuse(fault.NoGuard, fault.EventType, e.Type)
 	}
 	return e, nil

@@ -59,7 +59,7 @@ type runChecked struct {
 }
 
 // Run records one Result for every placed example of a line on a commit, or
-// refuses with the first failing guard of the state machine, section 8: Not
+// refuses with the first failing guard, in the order its entry in hyp spec names: Not
 // ended (always holds), Selected, Bytes, Open (not for H0), Own path, Leaf
 // only, Budget, then Stable. Everything but Stable is checked before a Probe
 // runs, so a refused run costs nothing; the Probes run with the lock

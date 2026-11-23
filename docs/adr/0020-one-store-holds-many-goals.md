@@ -2,7 +2,7 @@
 status: accepted; holds in part in v2, see the note below. Amended 2026-11-13 by ADR 0022: an events file merges by union, replay orders events by id then actor, discovery stops at the repository root
 ---
 
-In v2 this part holds: one store holds every Goal of the repository ([state-machine.md §1](../state-machine.md#1-names-and-locations)), and a Goal's lines come with its `goal.add`, at most ten ([§3](../state-machine.md#3-events), [§7](../state-machine.md#7-guards), Whole lines). The subject as a base plus a patch, cites, and the `answer` and `checkpoint` events are v1 only; `add goal --from` replaces cites ([§8](../state-machine.md#8-acts)).
+In v2 this part holds: one store holds every Goal of the repository (`hyp spec`), and a Goal's lines come with its `goal.add`, at most ten ([§3](../state-machine.md#3-events), [§7](../state-machine.md#7-guards), Whole lines). The subject as a base plus a patch, cites, and the `answer` and `checkpoint` events are v1 only; `add goal --from` replaces cites ([§8](../state-machine.md#8-acts)).
 
 # One store holds many Goals
 

@@ -2,7 +2,7 @@
 status: accepted; holds in part in v2, see the note below
 ---
 
-In v2 this part holds: a Goal's lines are frozen once it opens, and a new line is a new Goal ([state-machine.md §7](../state-machine.md#7-guards), Draft and Adds only). Confirm, Dossier, Lapse, refer and accept are v1 only.
+In v2 this part holds: a Goal's lines are frozen once it opens, and a new line is a new Goal (`hyp spec`, Draft and Adds only). Confirm, Dossier, Lapse, refer and accept are v1 only.
 
 # Scope change folds into Goal lines
 

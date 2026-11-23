@@ -1,0 +1,119 @@
+setup: hyp place G-GR7QJM
+placed G-GR7QJM: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-GR7QJM is open
+G-GR7QJM  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-GR7QJM
+grill may:
+  hyp place G-GR7QJM
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-GR7QJM/line-1
+setup: exit 0
+setup: hyp select G-GR7QJM 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-GR7QJM: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: eee67ed85d4e02414754e221ded29bf859f3ac76
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-GR7QJM  selected  runs: 1 of 3 used
+stop: selected, by select 01M8377EFTTHGKQTGGVFXMFM7W at 2026-11-23T03:29:37.274808Z
+waits: owner
+owner may:
+  hyp land G-GR7QJM
+  hyp unselect G-GR7QJM
+  hyp close G-GR7QJM
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+setup: hyp land G-GR7QJM
+landed G-GR7QJM
+stop: selected, by select 01M8377EFTTHGKQTGGVFXMFM7W at 2026-11-23T03:29:37.274808Z
+G-GR7QJM  ended  runs: 1 of 3 used
+stop: selected, by select 01M8377EFTTHGKQTGGVFXMFM7W at 2026-11-23T03:29:37.274808Z
+landed: by owner, land 01M8377EQG7X4MY50YZKQS61KA at 2026-11-23T03:29:37.520576Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-GR7QJM: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: eee67ed85d4e02414754e221ded29bf859f3ac76
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+setup: exit 0
+try: written place -> not refused
+try: written run -> Open
+try: written select -> Candidate
+try: written land -> Stop
+try: written unselect -> Selected
+try: written close -> not refused
+offered: written add
+offered: written close
+offered: written place
+try: open place -> Adds only
+try: open run -> not refused
+try: open select -> Candidate
+try: open land -> Stop
+try: open unselect -> Selected
+try: open close -> not refused
+offered: open close
+offered: open place
+offered: open run
+try: selected place -> Selected
+try: selected run -> Selected
+try: selected select -> Selected
+try: selected land -> not refused
+try: selected unselect -> not refused
+try: selected close -> not refused
+offered: selected land
+offered: selected unselect
+offered: selected close
+try: ended place -> Not ended
+try: ended run -> Not ended
+try: ended select -> Not ended
+try: ended land -> Not ended
+try: ended unselect -> Not ended
+try: ended close -> Not ended

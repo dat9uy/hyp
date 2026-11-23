@@ -19,8 +19,8 @@ const (
 	Environment
 )
 
-// Guard is the name of a guard of the state machine, as docs/state-machine.md
-// section 7 names it. It is data: a Stable refusal stores it in the log.
+// Guard is the name of a guard, as its entry in internal/spec names it and
+// hyp spec prints it. It is data: a Stable refusal stores it in the log.
 type Guard string
 
 // The guards.
@@ -50,7 +50,7 @@ const (
 	GuardOwnPath     Guard = "Own path"
 	GuardSelected    Guard = "Selected"
 	GuardOwnResult   Guard = "Own Result"
-	NoGuard          Guard = "" // a refusal that no guard of section 7 names
+	NoGuard          Guard = "" // a refusal that no guard names
 )
 
 // Code names one failure. Its value is an identifier, never text for the
