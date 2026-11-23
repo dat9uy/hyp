@@ -1,0 +1,115 @@
+hyp spec: the one spec of hyp. hyp acts on each entry below, so a change to a
+rule is a change to its entry.
+
+events: each kind, where it is stored, the Goal it belongs to, whether an end
+freezes it, and the act that writes it
+  goal.add  stored in git  Goal: the Goal it adds, or the written Goal it replaces  frozen by an end: yes  written by: add goal
+  example.place  stored in git  Goal: the Goal its node names; the old form of a place, replayed and no longer written  frozen by an end: yes  written by: none
+  examples.place  stored in git  Goal: the Goal its node names  frozen by an end: yes  written by: place
+  result.record  stored in git  Goal: the Goal its node names  frozen by an end: yes  written by: run
+  result.retract  stored in git  Goal: the Goal of the Result its node names  frozen by an end: yes  written by: retract, not built
+  select  stored in git  Goal: the Goal its node names  frozen by an end: yes  written by: select
+  budget.reset  stored in git  Goal: the Goal its node names  frozen by an end: no  written by: reset, not built
+  land  stored in git  Goal: the Goal its node names; it ends the Goal  frozen by an end: no  written by: land
+  close  stored in git  Goal: the Goal its node names; it ends the Goal  frozen by an end: no  written by: close
+  unselect  stored in git  Goal: the Goal its node names  frozen by an end: yes  written by: unselect
+  read  stored in trace  Goal: none: it is what hyp printed to an actor, and changes no Goal  frozen by an end: no  written by: every command that names an actor
+
+states: each state, when it holds, the acts hyp status may offer in it, and
+each act it does not allow with the guard that stops that act
+  written  holds when: a goal.add exists, and the Goal is not open
+  written  allows: add goal, place, run, close
+  written  does not allow: run, on a commit that is not H0 (guard Open); select, no row is met yet (guard Candidate); land, a written Goal has no stop (guard Stop); unselect, the Goal has no select (guard Selected)
+  open  holds when: every line holds a placed example, and every current example gives on H0 the verdict its line's kind needs
+  open  allows: place, run, select, land, close
+  open  does not allow: add goal, a replace (guard Draft); select, a row that is not a candidate (guard Candidate); select, the runner's, after an unselect with no new cell since (guard New cell); land, while the Goal has no stop (guard Stop); unselect, the Goal has no select (guard Selected)
+  selected  holds when: the Goal has a select that no unselect undid, and no end
+  selected  allows: land, unselect, close
+  selected  does not allow: add goal, a replace (guard Draft); add goal, --from G (guard From ended); place (guard Selected); run (guard Selected); select (guard Selected)
+  ended  holds when: the Goal has a land or a close
+  ended  allows: none
+  ended  does not allow: add goal, a replace (guard Draft); place (guard Not ended); run (guard Not ended); select (guard Not ended); land (guard Not ended); unselect (guard Not ended); close (guard Not ended)
+
+acts: each command, its usage, its roles, the states that allow it, its
+guards in order, and what it writes
+  add goal  usage: add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]  roles: owner  states: written  guards in order: Draft, Whole lines, From ended  writes: goal.add; a new Goal is in no state before it
+  place  usage: place G [--why TEXT]  roles: grill  states: written, open  guards in order: Not ended, Selected, Grill places, Whole set, Committed, Adds only, Kind  writes: examples.place
+  run  usage: run COMMIT G/LINE [--why TEXT]  roles: runner  states: written, open  guards in order: Not ended, Selected, Bytes, Open, Own path, Leaf only, Budget, Stable  writes: result.record
+  try  usage: try G LINE/EXAMPLE [--worktree]  roles: any, a read  guards: none  writes: a read event in the trace
+  select  usage: select G HASH [--why TEXT]  roles: runner, owner  states: open  guards in order: Not ended, Selected, Candidate, New cell, Goal's actor, Spec, Own path  writes: select
+  land  usage: land G [--why TEXT]  roles: owner  states: open, selected  guards in order: Not ended, Owner lands, Goal's actor, Stop  writes: land
+  close  usage: close G [--why TEXT]  roles: owner  states: written, open, selected  guards in order: Not ended, Owner closes, Goal's actor  writes: close
+  unselect  usage: unselect G [--why TEXT]  roles: owner  states: selected  guards in order: Not ended, Owner unselects, Goal's actor, Selected  writes: unselect
+  status  usage: status [G] [--role ROLE]  roles: any, a read  guards: none  writes: a read event in the trace
+  show  usage: show ACTOR  roles: any, a read  guards: none  writes: a read event in the trace
+  prune  usage: prune [--remove]  roles: any, a read  guards: none  writes: a read event in the trace
+  spec  usage: spec  roles: any, a read with no actor  guards: none  writes: nothing
+  help  usage: help  roles: any, a read with no actor  guards: none  writes: nothing
+  version  usage: version  roles: any, a read with no actor  guards: none  writes: nothing
+
+guards: each guard, its rule, and the codes of the refusals it gives, each
+with exit 1
+  Draft  rule: before the Goal opens, add goal G may replace it; after, its words and lines are frozen; a new Goal always passes  codes: no-goal-to-replace, not-written  exit 1
+  Whole lines  rule: every line has a kind, gap or guard; the Goal has one to ten lines and at least one gap line  codes: too-many-lines, bad-line-kind, no-gap-line, payload-invalid  exit 1
+  From ended  rule: add goal --from G cites only an ended Goal, landed or closed; checked by the act only, never at replay  codes: from-not-ended  exit 1
+  Not ended  rule: no write after the owner's land or close ends the Goal; replay also stops an event of the Goal ahead of the end that the end's snapshot does not name  codes: ended, not-in-snapshot  exit 1
+  Selected  rule: place, run and select need the Goal to have no select; unselect needs it to have one  codes: has-select, no-select, payload-invalid  exit 1
+  Grill places  rule: only the grill places an example  codes: not-grill, payload-invalid  exit 1
+  Whole set  rule: the set of a place is every folder goals/G/LINE/EXAMPLE; every line holds an example folder, every placed example keeps its folder, and every folder's name is an example name  codes: line-holds-no-example, placed-folder-gone, not-an-example-name  exit 1
+  Committed  rule: each example folder's bytes on disk equal its bytes committed at HEAD  codes: not-a-folder, folder-on-disk, not-committed, disk-not-committed, differs-at, set-changed-while-probe  exit 1
+  Adds only  rule: a new version of an example only adds floor or ceiling sections; any other change is a new example key; a hash the key held before never comes back; a place that changes no example places nothing  codes: set-unchanged, key-twice-in-set, already-current, earlier-version, section-differs, path-differs, drops-floor, drops-ceiling, adds-nothing  exit 1
+  Kind  rule: H0 gives each changed example the verdict its line's kind needs: a gap example fails, a guard example is met  codes: wrong-verdict-on-h0, h0-moved-while-placing  exit 1
+  Bytes  rule: the commit exists in this clone  codes: commit-not-here, not-a-commit  exit 1
+  Open  rule: the Goal is open, unless the commit's subject hash is H0's; the examples do not change while the Probes run  codes: nothing-placed, not-open, h0-moved-while-run, examples-changed, example-changed  exit 1
+  Own path  rule: the runner's own change of the commit writes no path under goals/X/ of another Goal X  codes: other-goal-path  exit 1
+  Leaf only  rule: a run is on H0, or on a commit that no row of the Goal descends from  codes: ancestor-of-row  exit 1
+  Budget  rule: at most three Hypotheses run since the boundary, H0 never counted  codes: budget-used  exit 1
+  Stable  rule: two runs on the same bytes give one verdict; a run it stops still records its Result, marked, which counts nothing  codes: other-verdict, verdicts-differed, payload-invalid  exit 1
+  Candidate  rule: the row is a candidate, a leaf row met on every line; with two or more candidates only the owner selects  codes: role-cannot-select, no-row, owner-selects-among, row-not-leaf, row-not-met, row-not-met-on-goal, no-result-on-row  exit 1
+  New cell  rule: after an unselect, the runner selects only once a run recorded a cell whose example version, or whose row, had not run before it; the owner selects at any time  codes: no-new-cell  exit 1
+  Goal's actor  rule: only the actor that added the Goal selects for the owner, lands, closes or unselects it  codes: not-goals-actor  exit 1
+  Spec  rule: the selected commit holds a spec under goals/G/specs/; a model there names each rule of its check configs in a variant config, and holds a chart  codes: no-spec, rule-no-variant, no-chart  exit 1
+  Owner lands  rule: only the owner lands a Goal  codes: not-owner  exit 1
+  Stop  rule: a land needs a stop: selected, two candidates or budget used  codes: no-stop, stop-not-held, payload-invalid  exit 1
+  Owner closes  rule: only the owner closes a Goal, at any stop or none  codes: not-owner-close, payload-invalid  exit 1
+  Owner unselects  rule: only the owner unselects a Goal  codes: not-owner-unselect, payload-invalid  exit 1
+  Own Result  rule: only the actor that ran a Result retracts it  codes: not-own-result  exit 1
+  (no guard)  rule: a file hyp reads breaks a rule of its form, or the act names what the store does not hold  codes: no-store, event-version, event-type, payload-decode, payload-invalid, trailing-data, id-not-ulid, actor-not-file, no-id-after, no-goal-to-place, no-goal-to-run, no-goal-to-select, no-goal-to-land, no-goal-to-close, no-goal-to-unselect, no-result-to-retract, no-example-txtar, text-before-first, second-section, external-not-name, input-outside, input-twice, unknown-section, no-section, submodule, entry-leaves, not-file-or-dir, read-folder  exit 1
+  a place that places none of its set gives set-not-placed, with the guard of its first cause  exit 1
+
+exit codes:
+  exit 0  recorded or printed: the act recorded its event, or the read printed
+  exit 1  refusal: a rule of hyp refuses the act, or a file hyp reads breaks a rule; the refusal names its guard
+  exit 2  bad argument: the command line is wrong
+  exit 3  environment problem: I/O, a missing tool, or a Probe that failed or timed out
+
+rules:
+  the store
+    The store is .tree/ at the git top level: .tree/events/<actor>.jsonl, one file per actor, appended only, and .tree/outputs/<sha256>.
+    The first add goal creates it; .tree/.gitattributes merges the events files by union.
+    The trace is $HOME/.hyp/traces/<sha256 of the clone's git common directory>/: every command that names an actor records there what hyp printed to it, before it prints.
+  merge order and replay
+    Replay reads every event by id, then by actor, then by line bytes, and calculates every table and state on every command; no state is stored.
+    Replay checks each event's guards again at its place; an event that fails them is listed under refused at replay and never deleted.
+    An end names its snapshot, the Goal's events replay applied when the owner ended it; an event of a kind an end freezes that the snapshot does not name is stopped by Not ended.
+  ids, actors and roles
+    An event id is a ULID; a Goal id is G- and the last six characters of its goal.add id, a Result id R- and six.
+    An actor matches ^[a-z0-9][a-z0-9-]{0,39}$ and names its events file; a write act needs a role: owner, grill, probe-writer or runner.
+  the subject
+    A commit's subject is its tree without the top-level entries goals and .tree; its git tree hash is the subject hash, one Hypothesis, one row.
+    H0 is the Goal's base commit; a row is a leaf when none of its commits has a descendant among the commits of the Goal's other rows.
+  budget and stops
+    The budget is three Hypotheses since the boundary, H0 never counted; a refused run costs nothing, a retracted Result still counts.
+    The boundary is the latest of the latest place, the latest budget.reset and the latest unselect, else the Goal's start.
+    The stops: selected (a select), two candidates (two or more candidates and no select), budget used (three Hypotheses counted, the third with a live cell for every example, and no candidate).
+    A stop is calculated, never stored; it waits for the owner. At two candidates and budget used the state block adds the table of outputs.
+  the example file
+    An example is goals/G/LINE/EXAMPLE/ with example.txtar and probe/. Its sections: words (one), input/<path> (any), run (one), floor: contains and floor: equals (one or more floors), ceiling (any), external (at most one).
+    One literal per section, byte for byte; a section body's final newline does not count.
+    An example is met when the output holds every floor and contains no ceiling, else failed; a line is met on a row when every placed example of it is met there.
+  the Probe
+    hyp runs probe/run with empty stdin and a 10 minute timeout, in a fresh copy of the commit's subject ($HYP_SUBJECT), with $HYP_EXAMPLE a copy of the example folder and $HYP_RUN the run section.
+    Only PATH, HOME and the names of the external section pass from the environment.
+    The Probe prints the stdout of run, then a last line exit N; the output is the rest, with one final newline dropped. Its stderr is kept beside it and never compared.
+    A Probe that exits non-zero, times out or prints no exit line records nothing: exit 3.
+a guard says nothing about replay: Draft

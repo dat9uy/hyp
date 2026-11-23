@@ -1,0 +1,35 @@
+landed G
+stop: selected, by select 01M839Q9AAX9HZ3713F1E59NPM at 2026-11-23T04:13:13.418519Z
+G  ended  runs: 1 of 3 used
+stop: selected, by select 01M839Q9AAX9HZ3713F1E59NPM at 2026-11-23T04:13:13.418519Z
+landed: by owner, land 01M839Q9MAMGR6XYQTNNGJCG5K at 2026-11-23T04:13:13.738376Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 5d143a114c934d0b7b105a24b53be21e20c65b0e
+selected row: HASH

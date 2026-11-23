@@ -1,0 +1,120 @@
+setup: hyp place G-EDSV22
+placed G-EDSV22: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-EDSV22 is open
+G-EDSV22  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-EDSV22
+grill may:
+  hyp place G-EDSV22
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-EDSV22/line-1
+setup: hyp run
+ran G-EDSV22 line-1 at cf7a6d3e567e7a39fd6b474a7e3ae03ce383bb17
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-EDSV22  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-EDSV22 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-EDSV22
+grill may:
+  hyp place G-EDSV22
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-EDSV22 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-EDSV22/line-1
+setup: hyp select
+# G-EDSV22: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: cf7a6d3e567e7a39fd6b474a7e3ae03ce383bb17
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-EDSV22  selected  runs: 1 of 3 used
+stop: selected, by select 01M839PSKMPTRCP3RFAT2XDYRP at 2026-11-23T04:12:57.332112Z
+waits: owner
+owner may:
+  hyp land G-EDSV22
+  hyp unselect G-EDSV22
+  hyp close G-EDSV22
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+G-EDSV22  selected  runs: 1 of 3 used
+stop: selected, by select 01M839PSKMPTRCP3RFAT2XDYRP at 2026-11-23T04:12:57.332112Z
+waits: owner
+owner may:
+  hyp land G-EDSV22
+  hyp unselect G-EDSV22
+  hyp close G-EDSV22
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-EDSV22: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: cf7a6d3e567e7a39fd6b474a7e3ae03ce383bb17
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+setup: no try line; hyp try G-EDSV22 line-1/a --worktree on the selected commit
+tried G-EDSV22 line-1/a on this checkout's files: HEAD cf7a6d3e567e7a39fd6b474a7e3ae03ce383bb17 and every change not committed
+nothing is recorded: no event, no output file, no run of the budget
+example: goals/G-EDSV22/line-1/a as it is on disk, hash 937b45521e7120ee8cf7873010735f86ba922963, probe 3a7334686c13a115e2636e07896004970fafea34
+words: Fixture line-1/a.
+verdict: met, exit 0
+output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8, 3 bytes:
+bye
+stderr e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855, 0 bytes
+G-EDSV22  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-EDSV22
+grill may:
+  hyp place G-EDSV22
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-EDSV22/line-1
+setup: exit 0

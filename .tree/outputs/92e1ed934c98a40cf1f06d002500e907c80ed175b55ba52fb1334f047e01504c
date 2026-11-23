@@ -1,0 +1,67 @@
+setup: hyp place
+placed G-AAC2AA: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-AAC2AA is open
+G-AAC2AA  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-AAC2AA
+grill may:
+  hyp place G-AAC2AA
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-AAC2AA/line-1
+setup: hyp run
+ran G-AAC2AA line-1 at dff0a8ff81c825d6b4f5412b195483e6191aca46
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-AAC2AA  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-AAC2AA 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-AAC2AA
+grill may:
+  hyp place G-AAC2AA
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-AAC2AA 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-AAC2AA/line-1
+setup: hyp select
+# G-AAC2AA: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: dff0a8ff81c825d6b4f5412b195483e6191aca46
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-AAC2AA  selected  runs: 1 of 3 used
+stop: selected, by select 01M839PX7MJHXFZ5QTVKJHGJKY at 2026-11-23T04:13:01.044339Z
+waits: owner
+owner may:
+  hyp land G-AAC2AA
+  hyp unselect G-AAC2AA
+  hyp close G-AAC2AA
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+Deleted branch cand (was 541584c).
+setup: run: hyp status G-AAC2AA
