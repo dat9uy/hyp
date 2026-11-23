@@ -1,0 +1,8 @@
+-- words --
+Add on a landed Goal: the finding is recorded.
+-- run --
+hyp finding add G --fact "select reaches an old build only by cherry-pick" --evidence R-1
+-- floor: contains --
+recorded on the landed Goal: yes
+-- ceiling --
+recorded on the landed Goal: no

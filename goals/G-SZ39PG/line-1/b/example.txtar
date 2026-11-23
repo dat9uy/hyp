@@ -1,0 +1,8 @@
+-- words --
+Add on a Goal id that does not exist: refused.
+-- run --
+hyp finding add G-NOGOAL --fact "a fact" --evidence R-1
+-- floor: contains --
+refused with exit 1: yes
+-- ceiling --
+recorded F-

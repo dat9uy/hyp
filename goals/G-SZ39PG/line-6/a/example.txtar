@@ -1,0 +1,11 @@
+-- words --
+Add, fold and refute, then git status: nothing under .tree/ changed.
+-- run --
+hyp finding add G --fact "a fact" --evidence R-1
+hyp finding fold F --issue 1
+hyp finding refute F
+git status --short .tree
+-- floor: contains --
+.tree/ changed: no
+-- ceiling --
+.tree/ changed: yes

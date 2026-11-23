@@ -1,0 +1,53 @@
+#!/bin/sh
+# Probe of G-SZ39PG line-2/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test Goal, adds a finding, folds it
+# into #1, then runs hyp status as the owner and prints its stdout with the
+# Goal id replaced by G, then a last line "exit N". Setup output goes to
+# stderr. The finding commands do not exist on H0: their failure is printed
+# and the probe goes on. A build or store failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+step() { echo "setup: $*" >&2; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+export HYP_ACTOR=owner HYP_ROLE=owner
+step "hyp finding add"
+fadd=$(hyp finding add "$G" --fact "a fact" --evidence R-1 2>&1)
+echo "$fadd" >&2
+F=$(printf '%s\n' "$fadd" | grep -o 'F-[A-Za-z0-9]*' | head -n 1)
+step "hyp finding fold"
+hyp finding fold "$F" --issue 1 >&2
+
+out="$work/out"
+hyp status "$G" >"$out"
+code=$?
+sed -e "s/$G/G/g" "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+echo "exit $code"
+exit 0
