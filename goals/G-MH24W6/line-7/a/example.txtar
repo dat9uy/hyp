@@ -1,0 +1,6 @@
+-- words --
+An event of a landed Goal that replay refuses: `hyp status` still lists it under "refused at replay".
+-- run --
+hyp status
+-- floor: contains --
+refused at replay:

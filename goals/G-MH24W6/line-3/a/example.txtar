@@ -1,0 +1,10 @@
+-- words --
+One open, one landed and one closed Goal: `hyp status --all` prints all three blocks.
+-- run --
+hyp status --all
+-- floor: contains --
+open  runs:
+-- floor: contains --
+landed: by owner
+-- floor: contains --
+closed: by owner

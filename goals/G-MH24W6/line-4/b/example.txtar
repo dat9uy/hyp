@@ -1,0 +1,6 @@
+-- words --
+The status usage in `hyp spec` shows `--all`.
+-- run --
+hyp spec
+-- floor: contains --
+--all
