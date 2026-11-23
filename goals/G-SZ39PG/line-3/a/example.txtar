@@ -1,0 +1,8 @@
+-- words --
+Fold with no issue: refused.
+-- run --
+hyp finding fold F
+-- floor: contains --
+fold with no issue refused: yes
+-- ceiling --
+fold with no issue refused: no

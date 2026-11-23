@@ -1,0 +1,8 @@
+-- words --
+The owner lands a selected Goal with a finding not folded: it lands.
+-- run --
+hyp land G
+-- floor: contains --
+land recorded: yes
+-- ceiling --
+land recorded: no

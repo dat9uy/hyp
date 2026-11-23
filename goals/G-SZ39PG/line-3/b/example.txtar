@@ -1,0 +1,8 @@
+-- words --
+Fold F-1, already in #1, into #2: it shows as folded into #2.
+-- run --
+hyp finding fold F --issue 2
+-- floor: contains --
+folded into #2
+-- ceiling --
+folded into #1

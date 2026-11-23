@@ -1,0 +1,6 @@
+-- words --
+Status after an add: the finding shows as not folded.
+-- run --
+hyp status G
+-- floor: contains --
+not folded

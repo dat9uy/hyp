@@ -1,0 +1,14 @@
+-- words --
+Read hyp spec: it lists the three finding kinds, stored in the trace, and the finding states with their acts.
+-- run --
+hyp spec
+-- floor: contains --
+finding.add  changes a Goal's state: no  stored in trace
+-- floor: contains --
+finding.fold  changes a Goal's state: no  stored in trace
+-- floor: contains --
+finding.refute  changes a Goal's state: no  stored in trace
+-- floor: contains --
+not folded
+-- floor: contains --
+refuted

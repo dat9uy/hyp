@@ -1,0 +1,6 @@
+-- words --
+Status after one finding is folded into #1: it shows as folded into #1.
+-- run --
+hyp status G
+-- floor: contains --
+folded into #1

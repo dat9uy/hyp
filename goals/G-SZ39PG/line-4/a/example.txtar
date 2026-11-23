@@ -1,0 +1,10 @@
+-- words --
+Fold a refuted finding into #2: refused, and it stays refuted.
+-- run --
+hyp finding fold F --issue 2
+-- floor: contains --
+fold of a refuted finding refused: yes
+-- floor: contains --
+refuted
+-- ceiling --
+folded into #2
