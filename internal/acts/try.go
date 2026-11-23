@@ -21,6 +21,7 @@ type TryOpts struct {
 	Goal         string // the Goal's id
 	Key          string // LINE/EXAMPLE, for example line-3/a
 	Worktree     bool   // run on the checkout's files, not on H0
+	Commit       string // run on this commit, not on H0
 	ProbeTimeout time.Duration
 }
 
@@ -34,21 +35,28 @@ type TryReport struct {
 	Hash      string // the folder's tree hash on disk
 	ProbeHash string // the tree hash of its probe/ folder on disk
 	Words     string
-	Commit    string // H0's commit, or HEAD's with Worktree
+	Commit    string // H0's commit, the commit named, or HEAD's with Worktree
+	H0        bool   // it ran on H0
 	Worktree  bool
+	RowTree   string // the subject hash it ran on; empty with Worktree
 	Out       probe.Out
 	OutHash   string // the name the output would have under .tree/outputs
 	ErrHash   string // the name the stderr would have under .tree/outputs
 	Verdict   string
+	Saved     bool // the cell was not in this clone's trace, and try saved it there
 }
 
 // Try runs one example's Probe and its compare as place and run do, and
-// records nothing: no event, no output file, no run of the budget. It reads
-// the example folder as it is on disk, committed or not, and runs it on H0's
-// commit, or with Worktree on the files of this checkout as a commit of every
-// change would hold them. It is a read: it checks no guard, so it runs in
-// every state of the Goal. An unknown Goal, line or folder is a bad argument;
-// a Probe that fails is an environment problem, as in place and run.
+// records no event and no run of the budget. It reads the example folder as
+// it is on disk, committed or not, and runs it on H0's commit, on the commit
+// named, or with Worktree on the files of this checkout as a commit of every
+// change would hold them. When the folder is the example's current placed
+// version and this clone's trace lacks its cell on that commit's row, it
+// saves the cell there, marked as run again in this clone: the trace is a
+// cache that a reader fills by running an example again. It is a read: it
+// checks no guard, so it runs in every state of the Goal. An unknown Goal,
+// line or folder is a bad argument; a Probe that fails is an environment
+// problem, as in place and run.
 func Try(o TryOpts) (TryReport, error) {
 	lineKey, name, ok := strings.Cut(o.Key, "/")
 	if !ok || !lineKeyRe.MatchString(lineKey) || !exampleNameRe.MatchString(name) {
@@ -61,11 +69,14 @@ func Try(o TryOpts) (TryReport, error) {
 	if err := logstore.Find(root); err != nil {
 		return TryReport{}, err
 	}
-	evs, _, err := logstore.Events(root)
+	if o.Worktree && o.Commit != "" {
+		return TryReport{}, fault.BadArg(fault.TryWorktreeCommit)
+	}
+	t, _, err := ReadTables(root)
 	if err != nil {
 		return TryReport{}, err
 	}
-	g, err := tables.Replay(evs).Find(o.Goal)
+	g, err := t.Find(o.Goal)
 	if err != nil {
 		return TryReport{}, err
 	}
@@ -90,7 +101,8 @@ func Try(o TryOpts) (TryReport, error) {
 	if err != nil {
 		return TryReport{}, err
 	}
-	rep := TryReport{Goal: g.EventID, ID: g.ID, Key: o.Key, Folder: rel, Words: ex.Words, Commit: g.Base, Worktree: o.Worktree}
+	rep := TryReport{Goal: g.EventID, ID: g.ID, Key: o.Key, Folder: rel, Words: ex.Words, Commit: g.Base, Worktree: o.Worktree,
+		H0: !o.Worktree, RowTree: g.BaseTree}
 	if rep.Hash, err = gitread.DirTreeHash(disk); err != nil {
 		return TryReport{}, err
 	}
@@ -99,14 +111,36 @@ func Try(o TryOpts) (TryReport, error) {
 			return TryReport{}, err
 		}
 	}
-	if o.Worktree {
+	switch {
+	case o.Worktree:
 		if rep.Commit, err = gitread.CommitOf(root, "HEAD"); err != nil {
 			return TryReport{}, err
 		}
+		rep.RowTree = ""
+	case o.Commit != "":
+		if strings.HasPrefix(o.Commit, "-") {
+			return TryReport{}, fault.BadArg(fault.TryNoCommit, o.Commit)
+		}
+		if ok, err := (gitread.Ancestry{Dir: root}).HasCommit(o.Commit); err != nil {
+			return TryReport{}, err
+		} else if !ok {
+			return TryReport{}, fault.BadArg(fault.TryNoCommit, o.Commit)
+		}
+		if rep.Commit, err = gitread.CommitOf(root, o.Commit); err != nil {
+			return TryReport{}, err
+		}
+		if rep.RowTree, err = gitread.RowTree(root, rep.Commit); err != nil {
+			return TryReport{}, err
+		}
+		rep.H0 = rep.RowTree == g.BaseTree
 	}
 
+	run := rep.Commit
+	if o.Worktree {
+		run = g.Base
+	}
 	out, err := probe.Run(probe.Opts{
-		Repo: root, Commit: g.Base, ExampleDir: disk, Worktree: o.Worktree, Timeout: o.ProbeTimeout,
+		Repo: root, Commit: run, ExampleDir: disk, Worktree: o.Worktree, Timeout: o.ProbeTimeout,
 	})
 	if err != nil {
 		return TryReport{}, err
@@ -114,5 +148,64 @@ func Try(o TryOpts) (TryReport, error) {
 	rep.Out = out
 	rep.OutHash, rep.ErrHash = logstore.Hash(out.Stdout), logstore.Hash(out.Stderr)
 	rep.Verdict = string(example.Compare(out.Stdout, ex))
+
+	cur, placed := g.Current(o.Key)
+	if o.Worktree || !placed || cur.Hash != rep.Hash || HasCell(g, o.Key, rep.RowTree) {
+		return rep, nil
+	}
+	tr, err := logstore.TraceOf(root)
+	if err != nil {
+		return TryReport{}, err
+	}
+	for _, b := range [][]byte{out.Stdout, out.Stderr} {
+		if _, err := tr.PutOutput(b); err != nil {
+			return TryReport{}, err
+		}
+	}
+	if err := tr.PutCell(logstore.Cell{
+		Hash: rep.Hash, RowTree: rep.RowTree, Commit: rep.Commit, Probe: rep.ProbeHash,
+		Output: rep.OutHash, Stderr: rep.ErrHash, Exit: out.Exit, Verdict: rep.Verdict, By: logstore.CellByTry,
+	}); err != nil {
+		return TryReport{}, err
+	}
+	rep.Saved = true
 	return rep, nil
+}
+
+// HasCell reports whether this clone holds the cell of the current placement
+// of key on the row with rowTree with its outputs: a live cell of a Result,
+// H0's cell of a place whose outputs this clone holds, or a cell a try saved.
+func HasCell(g *tables.Goal, key, rowTree string) bool {
+	for _, c := range g.LiveCells(rowTree) {
+		if c.Key == key && (c.By != "" || c.Result != "") {
+			return true
+		}
+	}
+	cur, ok := g.Current(key)
+	if !ok {
+		return false
+	}
+	_, ok = g.TraceCell(cur.Hash, rowTree)
+	return ok
+}
+
+// ReadTables reads every event of the store and of the clone's trace and
+// calculates the tables, with the cells the trace keeps as files. It also
+// returns the lines replay could not read.
+func ReadTables(root string) (tables.Tables, []logstore.LineError, error) {
+	evs, unread, err := logstore.Load(root)
+	if err != nil {
+		return tables.Tables{}, nil, err
+	}
+	t := tables.Replay(evs)
+	tr, err := logstore.TraceOf(root)
+	if err != nil {
+		return tables.Tables{}, nil, err
+	}
+	cells, err := tr.Cells()
+	if err != nil {
+		return tables.Tables{}, nil, err
+	}
+	t.UseCells(cells)
+	return t, unread, nil
 }

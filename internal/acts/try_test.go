@@ -12,6 +12,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -57,6 +58,23 @@ func (e *runEnv) h0Cell(t *testing.T, key string) events.Cell {
 		for _, x := range p.Examples {
 			if x.Line+"/"+x.Example == key {
 				c, found = x.H0, true
+				if c.Output != "" || c.Stderr != "" {
+					t.Fatalf("the place of %s names an output in git: %+v", key, c)
+				}
+				// H0's outputs are in the clone's trace, as a cell file
+				tr, err := logstore.TraceOf(e.root)
+				if err != nil {
+					t.Fatal(err)
+				}
+				cells, err := tr.Cells()
+				if err != nil {
+					t.Fatal(err)
+				}
+				tc, ok := cells[logstore.CellKey(x.Hash, x.H0.RowTree)]
+				if !ok || tc.By != logstore.CellByPlace || tc.Verdict != c.Verdict {
+					t.Fatalf("the trace holds no place cell of %s: %+v", key, tc)
+				}
+				c.Output, c.Stderr = tc.Output, tc.Stderr
 			}
 		}
 	}

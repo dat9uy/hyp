@@ -61,6 +61,10 @@ var words = map[fault.Code]string{
 	fault.BaseNotCommit: "--base %s is not a commit",
 	fault.BaseNotHere:   "--base %s is not a commit of this repository",
 
+	// try
+	fault.TryWorktreeCommit: "try takes --worktree or --commit, not both",
+	fault.TryNoCommit:       "--commit %s is not a commit of this clone",
+
 	// place
 	fault.BadExampleKey:        "%s is not LINE/EXAMPLE, for example line-1/a (an example name matches ^[a-z0-9][a-z0-9-]{0,39}$)",
 	fault.SetUnchanged:         "no example of %s changed since its last place; there is nothing to place",
@@ -189,7 +193,6 @@ var words = map[fault.Code]string{
 	fault.OwnerSelectsAmong: "%s has %d candidates; only the owner selects among them",
 	fault.RowNotLeaf:        "row %s is not a leaf; a commit of another row descends from it",
 	fault.RowNotMet:         "row %s is not met on every line",
-	fault.RowNotMetOnGoal:   "row %s is not met on every line of %s",
 	fault.NotGoalsActor:     "%s was added by %s, not %s; only that actor acts for the owner",
 	fault.NoGoalToReplace:   "no Goal %s to replace",
 	fault.NotWritten:        "%s is %s; only a written Goal may be replaced",
@@ -405,15 +408,10 @@ func writeBlock(b *strings.Builder, label string, data []byte, size int64) {
 }
 
 // writeStored writes the stored output named hash as a block, at most max
-// bytes of it, or says why it cannot.
+// bytes of it, or says why it cannot. It reads the clone's trace, then
+// .tree/outputs, where an earlier hyp stored outputs.
 func writeStored(b *strings.Builder, root, label, hash string, max int) {
-	writeStoredIn(b, root, logstore.OutputsDir(root), label, hash, max)
-}
-
-// writeStoredIn is writeStored for the output stored in the outputs folder
-// dir, such as the trace's.
-func writeStoredIn(b *strings.Builder, root, dir, label, hash string, max int) {
-	data, size, err := logstore.ReadOutputIn(dir, hash, max)
+	data, size, err := logstore.ReadOutput(root, hash, max)
 	if err != nil {
 		fmt.Fprintf(b, "%s: not readable here: %s\n", label, bodyText(err, root))
 		return

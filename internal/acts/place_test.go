@@ -86,7 +86,7 @@ func (e *placeEnv) place() (PlaceReport, error) { return Place(e.opts()) }
 // log returns the store's events and the tables they replay to.
 func (e *placeEnv) log(t *testing.T) ([]events.Event, tables.Tables) {
 	t.Helper()
-	evs, errs, err := logstore.Events(e.root)
+	evs, errs, err := logstore.Load(e.root)
 	if err != nil || len(errs) != 0 {
 		t.Fatalf("Events: %v %v", errs, err)
 	}
@@ -183,10 +183,26 @@ func TestPlaceGapExampleFailingOnH0Records(t *testing.T) {
 	if x.H0.Commit != g.Base || x.H0.RowTree != g.BaseTree || x.H0.Probe != probeHash || x.H0.Verdict != "failed" || x.H0.Exit != 0 {
 		t.Fatalf("H0 cell = %+v, want commit %s row tree %s probe %s", x.H0, g.Base, g.BaseTree, probeHash)
 	}
-	if out, err := os.ReadFile(logstore.OutputPath(e.root, x.H0.Output)); err != nil || string(out) != "hi" {
+	// git holds the hash and H0's verdict; H0's outputs are in the trace
+	if x.H0.Output != "" || x.H0.Stderr != "" {
+		t.Fatalf("the place names an output in git: %+v", x.H0)
+	}
+	if _, err := os.Stat(filepath.Join(e.root, ".tree", "outputs")); !os.IsNotExist(err) {
+		t.Fatalf(".tree/outputs: %v, want none", err)
+	}
+	tr, err := logstore.TraceOf(e.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cells, err := tr.Cells()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tc := cells[logstore.CellKey(hash, g.BaseTree)]
+	if out, err := os.ReadFile(logstore.OutputPath(e.root, tc.Output)); err != nil || string(out) != "hi" {
 		t.Fatalf("output file = %q, %v; want hi", out, err)
 	}
-	if out, err := os.ReadFile(logstore.OutputPath(e.root, x.H0.Stderr)); err != nil || len(out) != 0 {
+	if out, err := os.ReadFile(logstore.OutputPath(e.root, tc.Stderr)); err != nil || len(out) != 0 {
 		t.Fatalf("stderr file = %q, %v; want empty", out, err)
 	}
 	if len(tb.RefusedAtReplay) != 0 || len(evs) != 2 {

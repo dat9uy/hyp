@@ -51,9 +51,10 @@ checkout of the `v1` branch as well.
 ### Per-repo setup
 
 hyp has no `init` command. The first `hyp add goal` creates the store, `.tree/`,
-at the top level of the repository. The store holds `events/`, `outputs/` and a
+at the top level of the repository. The store holds `events/` and a
 `.gitattributes` that sets a union merge for the events files. Commit `.tree/`
-with the work it describes.
+with the work it describes. Results and outputs stay in the clone's trace,
+under `$HOME/.hyp/traces/`.
 
 Every command needs an actor, and every act that writes also needs a role:
 

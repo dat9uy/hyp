@@ -17,15 +17,12 @@ func specText() string {
 	b.WriteString("hyp spec: the one spec of hyp. hyp acts on each entry below, so a change to a\n")
 	b.WriteString("rule is a change to its entry.\n")
 
-	b.WriteString("\nevents: each kind, where it is stored, the Goal it belongs to, whether an end\n")
-	b.WriteString("freezes it, and the act that writes it\n")
+	b.WriteString("\nevents: each kind, whether it changes a Goal's state, where it is stored, the\n")
+	b.WriteString("Goal it belongs to, whether an end freezes it, and the act that writes it; a\n")
+	b.WriteString("kind that changes a Goal's state is stored in git, every other kind in the trace\n")
 	for _, k := range events.Kinds {
-		frozen := "no"
-		if k.Frozen {
-			frozen = "yes"
-		}
-		fmt.Fprintf(&b, "  %s  stored in %s  Goal: %s  frozen by an end: %s  written by: %s\n",
-			k.Type, k.Home, k.Goal, frozen, k.Writer)
+		fmt.Fprintf(&b, "  %s  changes a Goal's state: %s  stored in %s  Goal: %s  frozen by an end: %s  written by: %s\n",
+			k.Type, yesNo(k.Changes), k.Home(), k.Goal, yesNo(k.Frozen), k.Writer)
 	}
 
 	b.WriteString("\nstates: each state, when it holds, the acts hyp status may offer in it, and\n")
@@ -52,7 +49,11 @@ func specText() string {
 			continue
 		}
 		if len(c.Roles) == 0 {
-			fmt.Fprintf(&b, "  %s  usage: %s  roles: any, a read  guards: none  writes: a read event in the trace\n", c.Name, c.Usage())
+			writes := "a read event in the trace"
+			if c.Name == "try" {
+				writes += "; the cell, in the trace, when this clone's trace lacks it"
+			}
+			fmt.Fprintf(&b, "  %s  usage: %s  roles: any, a read  guards: none  writes: %s\n", c.Name, c.Usage(), writes)
 			continue
 		}
 		var guards []string
@@ -64,8 +65,8 @@ func specText() string {
 			strings.Join(guards, ", "), c.Writes)
 	}
 
-	b.WriteString("\nguards: each guard, its rule, and the codes of the refusals it gives, each\n")
-	fmt.Fprintf(&b, "with exit %d\n", spec.ExitCode(fault.Refusal))
+	b.WriteString("\nguards: each guard, its rule, whether replay checks it, and the codes of the\n")
+	fmt.Fprintf(&b, "refusals it gives, each with exit %d\n", spec.ExitCode(fault.Refusal))
 	for _, g := range spec.Guards {
 		name := string(g.Name)
 		if g.Name == fault.NoGuard {
@@ -75,7 +76,7 @@ func specText() string {
 		for _, c := range g.Codes {
 			codes = append(codes, string(c))
 		}
-		fmt.Fprintf(&b, "  %s  rule: %s  codes: %s  exit %d\n", name, g.Rule, strings.Join(codes, ", "), spec.ExitCode(fault.Refusal))
+		fmt.Fprintf(&b, "  %s  rule: %s  checked at replay: %s  codes: %s  exit %d\n", name, g.Rule, g.Replay, strings.Join(codes, ", "), spec.ExitCode(fault.Refusal))
 	}
 	fmt.Fprintf(&b, "  a place that places none of its set gives %s, with the guard of its first cause  exit %d\n",
 		fault.SetNotPlaced, spec.ExitCode(fault.Refusal))
@@ -93,6 +94,13 @@ func specText() string {
 		}
 	}
 	return b.String()
+}
+
+func yesNo(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
 }
 
 func orNone(xs []string) string {

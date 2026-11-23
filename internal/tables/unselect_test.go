@@ -78,14 +78,15 @@ func TestReplayUnselectGuardsAgain(t *testing.T) {
 	}
 }
 
-// reselected replays evs after the selected log and its unselect, then a
-// runner's select of row; it reports whether that select was recorded.
-func reselected(t *testing.T, row string, evs ...events.Event) bool {
+// reselected replays evs after the selected log and its unselect, and
+// reports whether New cell lets the runner select again. Replay does not
+// check New cell, which reads the Results of the clone's trace: the select
+// act does.
+func reselected(t *testing.T, _ string, evs ...events.Event) bool {
 	t.Helper()
 	all := append(append(selectedLog(t), unselectEv(t, "a", "owner")), evs...)
-	all = append(all, selectEv(t, "x", "runner", "commit-"+row, row))
 	tb := Replay(all)
-	return tb.Goals[id1].State == StateSelected
+	return GuardNewCell(tb.Goals[id1], "runner") == nil
 }
 
 func TestRunnerReselectsOnlyAfterANewCell(t *testing.T) {
@@ -117,16 +118,19 @@ func TestRunnerReselectRefusedForAnOldVersionOnAnOldRow(t *testing.T) {
 		run(t, "r2", "failed"), run(t, "r1", "met"), v2, run2(t, "r1", "a", hashB),
 		selectEv(t, "x", "runner", "commit-r1", "r1"), unselectEv(t, "a", "owner"),
 		run2(t, "r2", "a", hashB), // the pair is new; its version and its row are not
-		selectEv(t, "x", "runner", "commit-r1", "r1"),
 	}
-	tb := Replay(all)
-	if len(tb.RefusedAtReplay) != 1 || guardOf(tb.RefusedAtReplay[0].Err) != "New cell" {
-		t.Fatalf("refused = %+v, want the runner's select refused by New cell", tb.RefusedAtReplay)
+	g := Replay(all).Goals[id1]
+	if err := GuardNewCell(g, "runner"); err == nil || guardOf(err) != "New cell" {
+		t.Fatalf("GuardNewCell = %v, want the runner's select refused by New cell", err)
 	}
 	// the owner selects at any time
-	all[len(all)-1] = selectEv(t, "a", "owner", "commit-r1", "r1")
-	if tb := Replay(all); tb.Goals[id1].State != StateSelected {
-		t.Fatalf("the owner's select was refused: %+v", tb.RefusedAtReplay)
+	if err := GuardNewCell(g, "owner"); err != nil {
+		t.Fatalf("the owner's select was refused: %v", err)
+	}
+	// replay does not check New cell: a select the act recorded stands
+	all = append(all, selectEv(t, "x", "runner", "commit-r1", "r1"))
+	if tb := Replay(all); tb.Goals[id1].State != StateSelected || len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("replay refused the select: %+v", tb.RefusedAtReplay)
 	}
 }
 

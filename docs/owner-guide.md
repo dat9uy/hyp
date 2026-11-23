@@ -57,7 +57,7 @@ hyp stops the run and waits for you at a stop:
 
 - **Selected.** Read the PR body. Read each output against what you meant, not only its verdict.
 - **Two candidates.** Two builds meet every line. `hyp status G --role owner` prints the outputs of each build and a `hyp select` line for each one. Select the build you want, or have the grill place an example that fails the other.
-- **Budget used.** Three Hypotheses ran and none meets every line. `hyp status G --role owner` prints the outputs table. A cell shows only the start of the first line: open `.tree/outputs/<hash>` to read every byte.
+- **Budget used.** Three Hypotheses ran and none meets every line. `hyp status G --role owner` prints the outputs table. A cell shows only the start of the first line: open `outputs/<hash>` in the trace of the clone that ran it to read every byte.
 
 ### 3. You land, close or re-grill
 

@@ -52,11 +52,11 @@ A table that replay calculates in memory: Goals, Lines, Placements, Results, Cel
 _Avoid_: projection (a v1 word), cache
 
 **Output**:
-A file `.tree/outputs/<sha256>` that holds the bytes a Probe printed. A cell holds its hash. Equal outputs are stored once. For the compare, the output is the stdout of `run` with one final newline dropped.
+A file `outputs/<sha256>` in the clone's trace that holds the bytes a Probe printed. A cell holds its hash. Equal outputs are stored once. A clone that lacks an output runs its example again with `hyp try`. For the compare, the output is the stdout of `run` with one final newline dropped.
 
 **Trace**:
-What hyp printed to each actor, kept as `read` events and output files in `$HOME/.hyp/traces/<key>/`. Every worktree of one clone shares one trace. No commit carries it. `show ACTOR` prints it.
-_Avoid_: log (the log holds only the acts that change a Goal); trace for a run of commands (a v1 meaning)
+The events of every kind that changes no Goal's state, the Results and the `read` events, with the output files and the cells of the clone, in `$HOME/.hyp/traces/<key>/`. Every worktree of one clone shares one trace. No commit carries it: it is a cache, which a reader fills by running an example again. `show ACTOR` prints the reads.
+_Avoid_: log (the log holds only the acts that change a Goal's state); trace for a run of commands (a v1 meaning)
 
 **Read** (event):
 The trace of one command: its role, arguments, exit code and the hashes of its stdout and stderr. hyp writes it before it prints. No guard reads it.

@@ -202,7 +202,7 @@ func TestRowKeyedBySubjectTree(t *testing.T) {
 	}
 }
 
-func TestOpenReadsResultCellsOnH0Row(t *testing.T) {
+func TestRunOnH0DoesNotOpenAGoal(t *testing.T) {
 	// line-2 has no example yet, so the Goal is written and a Draft replace may
 	// move H0 and drop that line.
 	first := []events.Event{goalAdd(t, id1, "", "w", gap, guard), placeEv(t, idP1, "line-1", "a", hashA, "failed")}
@@ -217,13 +217,25 @@ func TestOpenReadsResultCellsOnH0Row(t *testing.T) {
 	if g.State != StateWritten || g.H0Verdict("line-1/a") != NotRun {
 		t.Fatalf("after the replace: state %s, verdict %s; want written and %q", g.State, g.H0Verdict("line-1/a"), NotRun)
 	}
-	// run on H0 measures it: the Result's cell on H0's row reopens the Goal.
+	// A run on H0 shows its cell on H0's row, but a Result is in the trace of
+	// the clone that ran it, so it opens no Goal: the state reads git alone.
 	tb = Replay(append(first, replace, result(t, id1, "line-1", "c2", "t2", cell(hashA, "failed"))))
 	if len(tb.RefusedAtReplay) != 0 {
 		t.Fatalf("refused at replay: %+v", tb.RefusedAtReplay)
 	}
-	if g = tb.Goals[id1]; g.State != StateOpen || g.H0Verdict("line-1/a") != "failed" {
-		t.Fatalf("after run on H0: state %s, verdict %s; want open and failed", g.State, g.H0Verdict("line-1/a"))
+	if g = tb.Goals[id1]; g.State != StateWritten || g.H0Verdict("line-1/a") != "failed" {
+		t.Fatalf("after run on H0: state %s, verdict %s; want written and failed", g.State, g.H0Verdict("line-1/a"))
+	}
+	// The grill places the same version again, measured on the new H0: git
+	// holds its verdict there, and the Goal opens with its version kept.
+	again := placeOn(t, idP3, id1, "g", "grill", "line-1", "a", hashA, "t2", "failed")
+	tb = Replay(append(first, replace, again))
+	if len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("refused at replay: %+v", tb.RefusedAtReplay)
+	}
+	g = tb.Goals[id1]
+	if cur, _ := g.Current("line-1/a"); g.State != StateOpen || cur.Version != 1 {
+		t.Fatalf("after the place again: state %s, version %d; want open and 1", g.State, cur.Version)
 	}
 }
 

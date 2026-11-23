@@ -344,3 +344,23 @@ func TestOwnChangeStopsAtMergeCommit(t *testing.T) {
 		t.Fatalf("own change of H0 = %v", got)
 	}
 }
+
+// TestOnARef: a commit a branch contains is on a ref; once the branch is
+// deleted it is on none, though the clone still holds it.
+func TestOnARef(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"a": "a"})
+	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "side")
+	c := r.Commit(t, map[string]string{"a": "b"})
+	if on, err := OnARef(r.Dir, c); err != nil || !on {
+		t.Fatalf("on branch side: %v, %v; want true", on, err)
+	}
+	testutil.Git(t, r.Dir, "checkout", "-q", "--detach", "HEAD~1")
+	testutil.Git(t, r.Dir, "branch", "-q", "-D", "side")
+	if on, err := OnARef(r.Dir, c); err != nil || on {
+		t.Fatalf("after the branch is deleted: %v, %v; want false", on, err)
+	}
+	if ok, _ := HasCommit(r.Dir, c); !ok {
+		t.Fatal("the clone lost the commit")
+	}
+}

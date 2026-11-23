@@ -102,11 +102,11 @@ func Select(o SelectOpts) (SelectReport, error) {
 	if err != nil {
 		return SelectReport{}, err
 	}
-	evs, _, err := logstore.Events(root)
+	t, _, err := ReadTables(root)
 	if err != nil {
 		return SelectReport{}, err
 	}
-	g := tables.Replay(evs).Goals[ev.Node]
+	g := t.Goals[ev.Node]
 	if g == nil || g.Select == nil {
 		return SelectReport{}, fault.EnvFault(fault.SelectNotInLog, rep.Goal)
 	}

@@ -53,10 +53,12 @@ func TestCreateAtTopLevel(t *testing.T) {
 	if err := Create(root); err != nil {
 		t.Fatal(err)
 	}
-	for _, p := range []string{".tree/events", ".tree/outputs"} {
-		if fi, err := os.Stat(filepath.Join(r.Dir, p)); err != nil || !fi.IsDir() {
-			t.Fatalf("%s missing under the top level: %v", p, err)
-		}
+	if fi, err := os.Stat(filepath.Join(r.Dir, ".tree/events")); err != nil || !fi.IsDir() {
+		t.Fatalf(".tree/events missing under the top level: %v", err)
+	}
+	// hyp writes no output under .tree/: the outputs are in the trace
+	if _, err := os.Stat(filepath.Join(r.Dir, ".tree/outputs")); !os.IsNotExist(err) {
+		t.Fatalf(".tree/outputs: %v, want none", err)
 	}
 	attrs, err := os.ReadFile(filepath.Join(r.Dir, ".tree", ".gitattributes"))
 	if err != nil || string(attrs) != "events/*.jsonl merge=union\n" {
@@ -222,7 +224,7 @@ func TestPutOutputOnceBySha256(t *testing.T) {
 	if a != "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824" {
 		t.Fatalf("hash = %s, want sha256 of hello", a)
 	}
-	files, err := os.ReadDir(filepath.Join(root, ".tree", "outputs"))
+	files, err := os.ReadDir(filepath.Dir(OutputPath(root, a)))
 	if err != nil || len(files) != 1 {
 		t.Fatalf("outputs = %v, %v; want one file", files, err)
 	}

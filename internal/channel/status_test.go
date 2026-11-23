@@ -278,7 +278,7 @@ func TestSplitLineMarked(t *testing.T) {
 
 func TestEveryWriteEndsWithStateBlock(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
-	block := regexp.MustCompile(`(?m)^G-[A-Z0-9]{6}  \w+  runs: \d of 3 used\n(last run: .*\n)?stop: .*\nwaits: .*\nowner may:\n`)
+	block := regexp.MustCompile(`(?m)^G-[A-Z0-9]{6}  \w+  runs: \d of 3 used\n(last run: .*\n)?stop: .*\nwaits: .*\n(warning: .*\n)?owner may:\n`)
 	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
 	_, out, _ := run(t, "run", c, f.goal+"/line-1")
 	at := block.FindStringIndex(out)

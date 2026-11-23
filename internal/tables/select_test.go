@@ -104,8 +104,10 @@ func TestReplaySelectGuardsAgain(t *testing.T) {
 	}{
 		{"owner of the Goal selects a met row", selectEv(t, "a", "owner", "commit-r1", "r1"), true},
 		{"runner selects a met row", selectEv(t, "x", "runner", "commit-r1", "r1"), true},
-		{"a row that is not met", selectEv(t, "a", "runner", "commit-r2", "r2"), false},
-		{"a row no Result names", selectEv(t, "a", "runner", "commit-r9", "r9"), false},
+		// Candidate reads the Results of the clone's trace, which another
+		// clone lacks: the act checks it, and replay keeps the select
+		{"a row that is not met", selectEv(t, "a", "runner", "commit-r2", "r2"), true},
+		{"a row no Result names", selectEv(t, "a", "runner", "commit-r9", "r9"), true},
 		{"owner who did not add the Goal", selectEv(t, "other", "owner", "commit-r1", "r1"), false},
 		{"a role that selects nothing", selectEv(t, "a", "grill", "commit-r1", "r1"), false},
 	}

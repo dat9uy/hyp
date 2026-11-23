@@ -22,6 +22,10 @@ const (
 	BaseNotCommit Code = "base-not-commit" // base
 	BaseNotHere   Code = "base-not-here"   // base
 
+	// try
+	TryWorktreeCommit Code = "try-worktree-commit" // no values
+	TryNoCommit       Code = "try-no-commit"       // commit
+
 	// place
 	BadExampleKey        Code = "bad-example-key"         // key
 	SetNotPlaced         Code = "set-not-placed"          // acts.SetFacts
@@ -153,7 +157,6 @@ const (
 	OwnerSelectsAmong Code = "owner-selects-among"  // Goal, candidates
 	RowNotLeaf        Code = "row-not-leaf"         // row tree
 	RowNotMet         Code = "row-not-met"          // row tree
-	RowNotMetOnGoal   Code = "row-not-met-on-goal"  // row tree, Goal
 	NotGoalsActor     Code = "not-goals-actor"      // Goal, its actor, the act's actor
 	NoGoalToReplace   Code = "no-goal-to-replace"   // Goal
 	NotWritten        Code = "not-written"          // Goal, state

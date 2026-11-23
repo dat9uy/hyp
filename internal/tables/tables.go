@@ -6,6 +6,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/spec"
 )
 
@@ -71,6 +72,11 @@ type Goal struct {
 	// epoch counts the example-changing places so far, and the unselects: the
 	// budget counts the Results recorded in the current epoch.
 	epoch int
+
+	// cells are the cells the clone's trace keeps as files, by
+	// logstore.CellKey: H0's cells of the places, and the cells a try ran
+	// again. Tables.UseCells sets them.
+	cells map[string]logstore.Cell
 }
 
 // Select is a row of the Selects table.
@@ -174,6 +180,22 @@ type Tables struct {
 	results         map[string]*Result
 	Reads           map[string][]Read // by actor, in merge order
 	RefusedAtReplay []Refused
+}
+
+// UseCells gives every Goal the cells the clone's trace keeps as files. H0's
+// cell of a place reads its outputs from them; a cell no Result of this clone
+// holds can be one a try ran again.
+func (t Tables) UseCells(cells map[string]logstore.Cell) {
+	for _, g := range t.Goals {
+		g.cells = cells
+	}
+}
+
+// TraceCell is the cell the clone's trace keeps as a file for the example
+// with hash on the row with rowTree, if any.
+func (g *Goal) TraceCell(hash, rowTree string) (logstore.Cell, bool) {
+	c, ok := g.cells[logstore.CellKey(hash, rowTree)]
+	return c, ok
 }
 
 // GoalID is the Goal id of a goal.add event id.
@@ -325,6 +347,7 @@ type LiveCell struct {
 	Exit    int
 	Verdict string
 	Result  string // the result.record event id
+	By      string // for H0's cell of a place: who saved its outputs in the trace, or empty when this clone's trace lacks them
 }
 
 // LiveCells is the one query for the live cells of a Goal on the row with
@@ -338,8 +361,14 @@ func (g *Goal) LiveCells(rowTree string) []LiveCell {
 	if rowTree == g.BaseTree {
 		for _, p := range g.Placed() {
 			if p.H0.RowTree == g.BaseTree {
-				out = append(out, LiveCell{Key: p.Key, Hash: p.Hash, Probe: p.H0.Probe, Output: p.H0.Output,
-					Stderr: p.H0.Stderr, Exit: p.H0.Exit, Verdict: p.H0.Verdict})
+				c := LiveCell{Key: p.Key, Hash: p.Hash, Probe: p.H0.Probe, Output: p.H0.Output,
+					Stderr: p.H0.Stderr, Exit: p.H0.Exit, Verdict: p.H0.Verdict}
+				if c.Output != "" {
+					c.By = logstore.CellByPlace // an earlier hyp named H0's outputs in git
+				} else if tc, ok := g.TraceCell(p.Hash, g.BaseTree); ok {
+					c.Output, c.Stderr, c.By = tc.Output, tc.Stderr, tc.By
+				}
+				out = append(out, c)
 			}
 		}
 	}
@@ -387,14 +416,25 @@ func Needs(kind string) string {
 	return "failed"
 }
 
+// PlacedVerdict is H0's verdict on the current placement of key as git holds
+// it: the verdict its place recorded, while that place's row tree is the
+// Goal's H0 row tree, else NotRun.
+func (g *Goal) PlacedVerdict(key string) string {
+	if p, ok := g.Current(key); ok && p.H0.RowTree == g.BaseTree {
+		return p.H0.Verdict
+	}
+	return NotRun
+}
+
 // isOpen reports whether every line has a placed example and every current
-// placement has a live cell on H0's row with the verdict its line's kind
-// needs.
+// placement's verdict on H0, as its place recorded it in git, is the one its
+// line's kind needs. It reads no Result: a Result is in the trace of the
+// clone that ran it, and every clone calculates the same state from git.
 func (g *Goal) isOpen() bool {
 	placed := map[string]bool{}
 	for _, p := range g.Placed() {
 		l, _ := g.line(p.Line)
-		if g.H0Verdict(p.Key) != Needs(l.Kind) {
+		if g.PlacedVerdict(p.Key) != Needs(l.Kind) {
 			return false
 		}
 		placed[p.Line] = true
@@ -446,13 +486,18 @@ func GuardGrillPlaces(role string) error {
 
 // GuardAddsOnlyTable refuses a placement of a hash the key has already held,
 // current or earlier: a version only grows, so an old version never comes
-// back. The content half of Adds only reads git and is the act's.
+// back. The current hash may be placed again only to measure it on H0 after
+// a replace moved H0, when its place's row tree is no longer H0's. The
+// content half of Adds only reads git and is the act's.
 func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 	for _, old := range g.Placements[key] {
 		if old.Hash != hash {
 			continue
 		}
 		if cur, _ := g.Current(key); cur.Hash == hash {
+			if cur.H0.RowTree != g.BaseTree {
+				return nil
+			}
 			return fault.Refuse(fault.GuardAddsOnly, fault.AlreadyCurrent, hash, key, cur.Version)
 		}
 		return fault.Refuse(fault.GuardAddsOnly, fault.EarlierVersion, hash, old.Version, key)
@@ -533,8 +578,15 @@ func (g *Goal) addPlacement(ev events.Event, line, name, hash string, h0 events.
 		g.Placements = map[string][]Placement{}
 	}
 	key := line + "/" + name
-	// GuardAddsOnlyTable refused every hash the key held, so this one is new.
-	version := len(g.Placements[key]) + 1
+	// GuardAddsOnlyTable refused every hash the key held but the current one
+	// measured again on a moved H0, which keeps its version.
+	version := 1
+	if cur, ok := g.Current(key); ok {
+		version = cur.Version + 1
+		if cur.Hash == hash {
+			version = cur.Version
+		}
+	}
 	g.Placements[key] = append(g.Placements[key], Placement{
 		Key: key, Line: line, Example: name, Hash: hash, Version: version,
 		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: h0,
@@ -728,10 +780,12 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 	return t
 }
 
-// replayResult adds a Result the run guards allow at its place in the merge
-// order. A Result refused by Stable is kept, marked, and counts for nothing.
+// replayResult adds a Result at its place in the merge order, when the run
+// guards that read only git allow it. A Result is not in the snapshot an end
+// names: the snapshot names only events stored in git. A Result refused by
+// Stable is kept, marked, and counts for nothing.
 func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardRun(*t, ev); err != nil {
+	if err := guardRunAtReplay(*t, ev); err != nil {
 		refuse(ev, err)
 		return
 	}
@@ -750,8 +804,6 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 	}
 	g.Results = append(g.Results, r)
 	t.results[ev.ID] = r
-	g.seen = append(g.seen, ev.ID)
-	g.refresh()
 }
 
 // replayRetract marks a Result retracted. Only the actor that ran it may
@@ -767,12 +819,6 @@ func replayRetract(t *Tables, ev events.Event, refuse func(events.Event, error))
 		return
 	}
 	r.Retracted = true
-	for _, g := range t.Goals {
-		if slices.Contains(g.Results, r) {
-			g.seen = append(g.seen, ev.ID)
-			g.refresh()
-		}
-	}
 }
 
 func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error)) {
