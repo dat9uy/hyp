@@ -146,7 +146,7 @@ func TestV1CommandGone(t *testing.T) {
 
 func TestCommandsAreSorted(t *testing.T) {
 	got := Commands()
-	if !slices.Equal(got, []string{"add", "close", "help", "land", "place", "prune", "run", "select", "show", "spec", "status", "try", "unselect", "version"}) {
+	if !slices.Equal(got, []string{"add", "close", "finding", "help", "land", "place", "prune", "run", "select", "show", "spec", "status", "try", "unselect", "version"}) {
 		t.Fatalf("Commands = %v", got)
 	}
 }

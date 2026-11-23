@@ -212,6 +212,15 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return showCmd(c, args[1:], stdout)
 	case "prune":
 		return pruneCmd(c, args[1:], stdout)
+	case "finding":
+		if len(args) > 1 {
+			switch args[1] {
+			case "add", "fold", "refute":
+				return findingCmd(c, args[1], args[2:], stdout, stderr)
+			}
+		}
+		fmt.Fprint(stderr, usage)
+		return fault.BadArg(codeFindingWhat)
 	case "add":
 		if len(args) > 1 && args[1] == "goal" {
 			return addGoal(c, args[2:], stdout, stderr)
@@ -697,4 +706,61 @@ func unselectCmd(c *call, args []string, stdout, stderr io.Writer) error {
 		return finish(stdout, stderr, c.dir, o.Goal, "", err)
 	}
 	return finish(stdout, stderr, c.dir, rep.Goal, unselectText(rep), nil)
+}
+
+// findingCmd runs an act on a finding: finding add, fold or refute. Any
+// actor runs it, with any role or none; it writes its event to the clone's
+// trace. Its report names each finding with its state, and the state block
+// of the finding's Goal follows it.
+func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) error {
+	command := "finding " + act
+	fs := flag.NewFlagSet(command, flag.ContinueOnError)
+	var o acts.FindingOpts
+	fs.StringVar(&o.Why, "why", "", "")
+	switch act {
+	case "add":
+		fs.StringVar(&o.Fact, "fact", "", "")
+		fs.StringVar(&o.Evidence, "evidence", "", "")
+	case "fold":
+		fs.IntVar(&o.Issue, "issue", 0, "")
+	}
+	positional, _, err := readFlagsWith(c, command, args, fs)
+	if err != nil {
+		return err
+	}
+	o.Actor, o.Role, o.Dir = c.actor, c.role, c.dir
+	if err := checkWhy(o.Why); err != nil {
+		return err
+	}
+	var rep acts.FindingReport
+	goal := ""
+	switch act {
+	case "add":
+		if len(positional) != 1 {
+			return fault.BadArg(codeFindingArgs, command, len(positional))
+		}
+		o.Goal, goal = positional[0], positional[0]
+		rep, err = acts.FindingAdd(o)
+	case "fold":
+		if len(positional) == 0 {
+			return fault.BadArg(codeFindingArgs, command, len(positional))
+		}
+		o.Findings = positional
+		rep, err = acts.FindingFold(o)
+	case "refute":
+		if len(positional) != 1 {
+			return fault.BadArg(codeFindingArgs, command, len(positional))
+		}
+		o.Findings = positional
+		rep, err = acts.FindingRefute(o)
+	}
+	if err != nil {
+		return finish(stdout, stderr, c.dir, goal, "", err)
+	}
+	if len(rep.Goals) == 1 {
+		goal = rep.Goals[0]
+	} else {
+		goal = ""
+	}
+	return finish(stdout, stderr, c.dir, goal, findingText(rep), nil)
 }

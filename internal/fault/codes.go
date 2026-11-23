@@ -182,4 +182,14 @@ const (
 	NoSelect          Code = "no-select"            // Goal, state
 	NoGoalToUnselect  Code = "no-goal-to-unselect"  // Goal
 	NoNewCell         Code = "no-new-cell"          // Goal, unselect id
+
+	// findings
+	NoGoalForFinding Code = "no-goal-for-finding" // Goal
+	NoFinding        Code = "no-finding"          // finding
+	FindingTwice     Code = "finding-twice"       // finding, count
+	NoIssue          Code = "no-issue"            // no values
+	Refuted          Code = "refuted"             // finding
+	FoldNoFinding    Code = "fold-no-finding"     // no values
+	EmptyFact        Code = "empty-fact"          // no values
+	EmptyEvidence    Code = "empty-evidence"      // no values
 )

@@ -8,6 +8,7 @@ import (
 	"github.com/dat9uy/hyp/internal/acts"
 	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/logstore"
+	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
@@ -100,6 +101,26 @@ func or(v, placeholder string) string {
 // act that caused it.
 func landText(rep acts.LandReport) string {
 	return fmt.Sprintf("landed %s\nstop: %s\n", rep.Goal, stopText(rep.Stop, rep.Cause))
+}
+
+// findingText is the report of an act on a finding: each finding it wrote
+// about with its state after the act. The first line names the first
+// finding's id.
+func findingText(rep acts.FindingReport) string {
+	var b strings.Builder
+	for _, f := range rep.Findings {
+		fmt.Fprintf(&b, "recorded %s on %s: %s\n", f.ID, f.Goal, findingStateText(f.State, f.Issue))
+	}
+	return b.String()
+}
+
+// findingStateText is a finding's state as hyp prints it: not folded,
+// folded into #N, or refuted.
+func findingStateText(state string, issue int) string {
+	if state == spec.FindingFolded {
+		return fmt.Sprintf("folded into #%d", issue)
+	}
+	return state
 }
 
 // closeText is the report of a close: the Goal, now ended.

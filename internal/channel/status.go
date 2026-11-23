@@ -131,6 +131,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	if !ended {
 		unstable(b, g)
 	}
+	if o.Goal != "" {
+		findings(b, g)
+	}
 	if o.Ask && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
 		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
 	}
@@ -171,6 +174,28 @@ func probeWriter(b *strings.Builder, g *tables.Goal) {
 	for _, l := range g.Lines {
 		fmt.Fprintf(b, "    %s (%s): the Probe of each example of %s; check it with: hyp try %s %s/<example>\n", l.Key, l.Kind, l.Key, g.ID, l.Key)
 	}
+}
+
+// findings lists every finding of g in this clone's trace, each with its
+// state, its evidence and its fact. Only a block that names its Goal prints
+// them: a fact is an agent's text, which can hold lines that read as Goals of
+// this store. Each line of a fact is indented, so the list ends where the
+// next part of the block starts.
+func findings(b *strings.Builder, g *tables.Goal) {
+	if len(g.Findings) == 0 {
+		return
+	}
+	b.WriteString("findings:\n")
+	for _, f := range g.Findings {
+		fmt.Fprintf(b, "  %s  %s  by %s at %s\n", f.ID, findingStateText(f.State(), f.Issue), f.Actor, f.Time)
+		fmt.Fprintf(b, "    evidence: %s\n", indentText(f.Evidence, "      "))
+		fmt.Fprintf(b, "    fact: %s\n", indentText(f.Fact, "      "))
+	}
+}
+
+// indentText puts indent before every line of s after the first.
+func indentText(s, indent string) string {
+	return strings.ReplaceAll(strings.TrimRight(s, "\n"), "\n", "\n"+indent)
 }
 
 // unstable lists every Result Stable refused: the example, the tree and the

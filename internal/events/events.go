@@ -24,7 +24,7 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The eleven event types. example.place is the old form of a place, one
+// The fourteen event types. example.place is the old form of a place, one
 // example per event: hyp writes examples.place, and replays both.
 const (
 	TypeGoalAdd       = "goal.add"
@@ -38,6 +38,9 @@ const (
 	TypeClose         = "close"
 	TypeUnselect      = "unselect"
 	TypeRead          = "read"
+	TypeFindingAdd    = "finding.add"
+	TypeFindingFold   = "finding.fold"
+	TypeFindingRefute = "finding.refute"
 )
 
 // Where an event kind is stored.
@@ -70,7 +73,7 @@ func (k Kind) Home() string {
 	return HomeTrace
 }
 
-// Kinds are the entries of the eleven event types, in the order hyp spec
+// Kinds are the entries of the fourteen event types, in the order hyp spec
 // prints them. A Result changes no Goal's state: the state is calculated from
 // the places, selects and ends alone, so a clone that holds no Result replays
 // the same state. hyp reads an event of a kind that changes no Goal's state
@@ -87,6 +90,9 @@ var Kinds = []Kind{
 	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
 	{TypeUnselect, true, "the Goal its node names", true, "unselect"},
 	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
+	{TypeFindingAdd, false, "the Goal its node names, in any state, ended included", false, "finding add"},
+	{TypeFindingFold, false, "the Goal of each finding it names", false, "finding fold"},
+	{TypeFindingRefute, false, "the Goal of the finding its node names", false, "finding refute"},
 }
 
 // KindOf returns the entry of an event type, and false for a type outside the
@@ -239,6 +245,29 @@ type Read struct {
 	Exit    int      `json:"exit"`
 	Stdout  string   `json:"stdout"`
 	Stderr  string   `json:"stderr"`
+}
+
+// FindingAdd is the payload of finding.add: a fact an agent found on the
+// Goal its node names, and a pointer to its evidence, such as a Result id, a
+// commit or a path. Role is the role the act declared, or empty.
+type FindingAdd struct {
+	Role     string `json:"role"`
+	Fact     string `json:"fact"`
+	Evidence string `json:"evidence"`
+}
+
+// FindingFold is the payload of finding.fold: the findings it folds, by
+// their finding.add ids, and the number of the issue it folds them into.
+type FindingFold struct {
+	Role     string   `json:"role"`
+	Findings []string `json:"findings"`
+	Issue    int      `json:"issue"`
+}
+
+// FindingRefute is the payload of finding.refute, whose node is the
+// finding.add id of the finding it refutes.
+type FindingRefute struct {
+	Role string `json:"role"`
 }
 
 // ParseLine parses one line of an events file. It refuses an unknown field, a
