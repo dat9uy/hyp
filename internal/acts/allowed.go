@@ -23,6 +23,7 @@ const (
 	ActSelect   = "select"
 	ActLand     = "land"
 	ActUnselect = "unselect"
+	ActClose    = "close"
 )
 
 // Ready is one allowed act a role may run, with every key hyp knows. A key
@@ -30,7 +31,7 @@ const (
 type Ready struct {
 	Goal   string // the Goal id
 	Role   string
-	Act    string // ActAddGoal, ActPlace, ActRun, ActSelect, ActLand or ActUnselect
+	Act    string // ActAddGoal, ActPlace, ActRun, ActSelect, ActLand, ActUnselect or ActClose
 	Line   string // place and run: the line key
 	Commit string // run: the commit, or empty for any leaf
 	Tree   string // select: the candidate's row tree
@@ -56,7 +57,7 @@ type Standing struct {
 
 // Stand calculates the standing of a Goal: its rows and candidates, and the
 // stop of section 11 with the act that caused it. A landed Goal keeps the stop
-// its land names and waits for no one. repo is the git top level.
+// its land names; an ended Goal waits for no one. repo is the git top level.
 func Stand(g *tables.Goal, repo string) Standing {
 	anc := gitread.Ancestry{Dir: repo}
 	st := Standing{Stop: StopNone, Waits: "none", Used: tables.RunsUsed(g), Rows: g.Rows(anc)}
@@ -64,6 +65,16 @@ func Stand(g *tables.Goal, repo string) Standing {
 	switch {
 	case g.Land != nil:
 		st.Stop, st.Cause = g.Land.Stop, causeOf(g, g.Land.Cause)
+	case g.Close != nil && g.Select != nil:
+		st.Stop = StopSelected
+		st.Cause = Cause{Act: ActSelect, ID: g.Select.ID, Time: g.Select.Time}
+	case g.Close != nil:
+		// a closed Goal keeps the stop its rows hold, and waits for no one
+		if len(st.Candidates) >= 2 {
+			st.Stop, st.Cause = StopTwoCandidates, lastRun(g)
+		} else if len(st.Candidates) == 0 && budgetUsed(g) {
+			st.Stop, st.Cause = StopBudgetUsed, lastRun(g)
+		}
 	case g.Select != nil:
 		st.Stop, st.Waits = StopSelected, "owner"
 		st.Cause = Cause{Act: ActSelect, ID: g.Select.ID, Time: g.Select.Time}
@@ -135,12 +146,13 @@ func Allowed(t tables.Tables, repo string) []Ready {
 // checked when the act runs. Acts the binary lacks are never listed. Within a
 // role the lines keep the order of the Goal's lines.
 func AllowedFor(g *tables.Goal, repo string) []Ready {
-	if g.Land != nil {
+	if g.State == tables.StateEnded {
 		return nil
 	}
 	if g.Select != nil {
-		// a selected Goal allows only the owner's land and unselect
-		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand}, {Goal: g.ID, Role: "owner", Act: ActUnselect}}
+		// a selected Goal allows only the owner's land, unselect and close
+		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand}, {Goal: g.ID, Role: "owner", Act: ActUnselect},
+			{Goal: g.ID, Role: "owner", Act: ActClose}}
 	}
 	st := Stand(g, repo)
 	var out []Ready
@@ -163,6 +175,7 @@ func AllowedFor(g *tables.Goal, repo string) []Ready {
 	if st.Stop == StopTwoCandidates || st.Stop == StopBudgetUsed {
 		add(Ready{Role: "owner", Act: ActLand})
 	}
+	add(Ready{Role: "owner", Act: ActClose})
 
 	// grill: one place line, for the Goal's whole example set. A selected
 	// Goal returned above.

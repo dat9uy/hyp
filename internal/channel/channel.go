@@ -96,6 +96,9 @@ commands:
                                          Goal ends, and its events up to the
                                          land are the snapshot that a later
                                          Goal's --from cites
+  close G [--why TEXT]                   the owner closes Goal G at any stop or
+                                         none: the Goal ends as a land ends it,
+                                         and a later Goal's --from cites it
   unselect G [--why TEXT]                the owner unselects Goal G: G is open
                                          again with its rows and cells, its
                                          budget starts again, and the runner
@@ -119,7 +122,7 @@ exit codes: 0 recorded or printed, 1 refused by a rule, 2 bad arguments,
 `
 
 // commands are the top-level command names, sorted.
-var commands = []string{"add", "help", "land", "place", "prune", "run", "select", "show", "status", "try", "unselect", "version"}
+var commands = []string{"add", "close", "help", "land", "place", "prune", "run", "select", "show", "status", "try", "unselect", "version"}
 
 // Commands returns the sorted top-level command names.
 func Commands() []string { return slices.Clone(commands) }
@@ -215,6 +218,8 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return landCmd(c, args[1:], stdout, stderr)
 	case "unselect":
 		return unselectCmd(c, args[1:], stdout, stderr)
+	case "close":
+		return closeCmd(c, args[1:], stdout, stderr)
 	case "status":
 		return statusCmd(c, args[1:], stdout)
 	case "try":
@@ -653,6 +658,33 @@ func finishWith(stdout, stderr io.Writer, dir string, o BlockOpts, report string
 		return &printed{err: err}
 	}
 	return nil
+}
+
+// closeCmd records the owner's close. Its report names the Goal; the state
+// block of the closed Goal below it prints the record of the decision.
+func closeCmd(c *call, args []string, stdout, stderr io.Writer) error {
+	fs := flag.NewFlagSet("close", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	var o acts.CloseOpts
+	actorFlags(fs, &o.Actor, &o.Role, &o.Why)
+	positional, err := parseInterleaved(fs, args)
+	if err != nil {
+		return flagsFailed("close", err)
+	}
+	c.declare(o.Actor, o.Role)
+	if len(positional) != 1 {
+		return fault.BadArg(codeCloseArgs, len(positional))
+	}
+	o.Goal = positional[0]
+	if err := checkWhy(o.Why); err != nil {
+		return err
+	}
+	o.Dir = c.dir
+	rep, err := acts.Close(o)
+	if err != nil {
+		return finish(stdout, stderr, c.dir, o.Goal, "", err)
+	}
+	return finish(stdout, stderr, c.dir, rep.Goal, closeText(rep), nil)
 }
 
 // unselectCmd records the owner's unselect. Its report names the select it

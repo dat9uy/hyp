@@ -412,11 +412,11 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 		t.Fatalf("land: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, one, _ := run(t, "status", f.goal)
-	if !strings.Contains(one, f.goal+"  landed  ") || !strings.Contains(one, "selected row: ") {
+	if !strings.Contains(one, f.goal+"  ended  ") || !strings.Contains(one, "selected row: ") {
 		t.Fatalf("status G of a landed Goal lacks its PR body:\n%s", one)
 	}
 	_, all, _ := run(t, "status")
-	if !strings.Contains(all, f.goal+"  landed  ") || strings.Contains(all, "selected row: ") {
+	if !strings.Contains(all, f.goal+"  ended  ") || strings.Contains(all, "selected row: ") {
 		t.Fatalf("status of every Goal prints a landed Goal's record:\n%s", all)
 	}
 	if code, _, _ := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 1 {

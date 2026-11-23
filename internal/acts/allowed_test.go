@@ -42,8 +42,9 @@ func TestAllowedWrittenGoalGrillMayPlace(t *testing.T) {
 	if got := lines(rl, "runner"); len(got) != 0 {
 		t.Fatalf("runner may %+v, want nothing on a Goal that is not open", got)
 	}
-	if got := lines(rl, "owner"); len(got) != 1 || got[0] != (Ready{Goal: e.goal, Role: "owner", Act: ActAddGoal}) {
-		t.Fatalf("owner may %+v, want the Draft replace", got)
+	if got := lines(rl, "owner"); len(got) != 2 || got[0] != (Ready{Goal: e.goal, Role: "owner", Act: ActAddGoal}) ||
+		got[1] != (Ready{Goal: e.goal, Role: "owner", Act: ActClose}) {
+		t.Fatalf("owner may %+v, want the Draft replace and the close", got)
 	}
 }
 
@@ -54,11 +55,11 @@ func TestAllowedOpenGoalRunnerMayRun(t *testing.T) {
 	if got := lines(rl, "runner"); !slices.Equal(got, []Ready{want}) {
 		t.Fatalf("runner may %+v, want [%+v]", got, want)
 	}
-	if got := lines(rl, "owner"); len(got) != 0 {
-		t.Fatalf("owner may %+v, want nothing on an open Goal with no stop", got)
+	if got := lines(rl, "owner"); !slices.Equal(got, []Ready{{Goal: e.goal, Role: "owner", Act: ActClose}}) {
+		t.Fatalf("owner may %+v, want only the close on an open Goal with no stop", got)
 	}
 	for _, l := range rl {
-		if !slices.Contains([]string{ActAddGoal, ActPlace, ActRun, ActSelect}, l.Act) {
+		if !slices.Contains([]string{ActAddGoal, ActPlace, ActRun, ActSelect, ActClose}, l.Act) {
 			t.Fatalf("allowed %+v, an act the binary lacks", l)
 		}
 	}

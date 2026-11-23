@@ -52,7 +52,7 @@ func TestLandAfterSelectNamesTheSelect(t *testing.T) {
 		t.Fatalf("lands = %d, payload %+v", len(ls), p)
 	}
 	g := e.goalRow(t)
-	if g.State != tables.StateLanded || g.Land == nil || g.Select == nil {
+	if g.State != tables.StateEnded || g.Land == nil || g.Select == nil {
 		t.Fatalf("state = %s, land %+v", g.State, g.Land)
 	}
 	if st := Stand(g, e.root); st.Stop != StopSelected || st.Waits != "none" || st.Cause.ID != sel[0].ID {
@@ -63,11 +63,11 @@ func TestLandAfterSelectNamesTheSelect(t *testing.T) {
 	}
 	// a landed Goal takes no write: Not landed refuses each
 	_, err = Land(e.landOpts("owner-1", "owner"))
-	refusedBy(t, err, "Not landed")
+	refusedBy(t, err, "Not ended")
 	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
-	refusedBy(t, err, "Not landed")
+	refusedBy(t, err, "Not ended")
 	_, err = e.run(commit)
-	refusedBy(t, err, "Not landed")
+	refusedBy(t, err, "Not ended")
 	if len(e.lands(t)) != 1 {
 		t.Fatal("a refused land wrote an event")
 	}
@@ -94,7 +94,7 @@ func TestLandAfterBudgetUsedNamesTheLastRun(t *testing.T) {
 	if rep.Stop != StopBudgetUsed || rep.Cause.Act != ActRun || rep.Cause.ID != last {
 		t.Fatalf("report = %+v, want budget used caused by %s", rep, last)
 	}
-	if g := e.goalRow(t); g.State != tables.StateLanded || g.Select != nil {
+	if g := e.goalRow(t); g.State != tables.StateEnded || g.Select != nil {
 		t.Fatalf("state = %s", g.State)
 	}
 }
@@ -125,9 +125,10 @@ func TestStopWaitsForTheOwnerAfterSelect(t *testing.T) {
 		t.Fatalf("standing = %+v", st)
 	}
 	got := AllowedFor(g, e.root)
-	if len(got) != 2 || got[0].Role != "owner" || got[0].Act != ActLand || got[0].Goal != e.goal ||
-		got[1].Role != "owner" || got[1].Act != ActUnselect || got[1].Goal != e.goal {
-		t.Fatalf("allowed = %+v, want only the owner's land and unselect", got)
+	if len(got) != 3 || got[0].Role != "owner" || got[0].Act != ActLand || got[0].Goal != e.goal ||
+		got[1].Role != "owner" || got[1].Act != ActUnselect || got[1].Goal != e.goal ||
+		got[2].Role != "owner" || got[2].Act != ActClose || got[2].Goal != e.goal {
+		t.Fatalf("allowed = %+v, want only the owner's land, unselect and close", got)
 	}
 }
 
@@ -139,9 +140,9 @@ func TestAddGoalFromNeedsALandedGoal(t *testing.T) {
 		_, err := AddGoal(o)
 		return err
 	}
-	refusedBy(t, from(), "From landed")
+	refusedBy(t, from(), "From ended")
 	e.selected(t)
-	refusedBy(t, from(), "From landed")
+	refusedBy(t, from(), "From ended")
 	if _, err := Land(e.landOpts("owner-1", "owner")); err != nil {
 		t.Fatal(err)
 	}

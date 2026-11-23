@@ -108,7 +108,7 @@ flowchart TD
   B -- "owner: hyp land" --> L
 ```
 
-A Goal is `written`, `open`, `selected` or `landed`, and hyp calculates the state from the events. The select records only a candidate: a leaf Hypothesis that meets every line. With one candidate the runner selects it. With two or more, only the owner selects, and the owner may select a candidate at any time. hyp also refuses a select of a commit with no spec under `goals/<G>/specs/`.
+A Goal is `written`, `open`, `selected` or `ended`, and hyp calculates the state from the events. The select records only a candidate: a leaf Hypothesis that meets every line. With one candidate the runner selects it. With two or more, only the owner selects, and the owner may select a candidate at any time. hyp also refuses a select of a commit with no spec under `goals/<G>/specs/`.
 
 Four roles act. The actor and the role are declared by the agent, and a guard that reads them catches an honest mistake, not a lie.
 

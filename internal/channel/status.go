@@ -34,7 +34,7 @@ const maxCell = 60
 // used, stop with the act that caused it and what it waits for, the allowed acts of every role as ready
 // command lines, a marked split line, the Results Stable refused, and, while
 // the Goal is selected, the PR body; at a stop with no select, the table of
-// outputs. A selected or landed Goal prints its PR body only when o names it:
+// outputs. A selected or ended Goal prints its PR body only when o names it:
 // the list of every Goal prints its state block alone. Events refused at replay close it,
 // then the lines of the events files that replay could not read: such a line
 // names no Goal, so every block lists all of them. repo is the git top level.
@@ -83,6 +83,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	if g.Land != nil {
 		fmt.Fprintf(b, "landed: by %s, land %s at %s\n", g.Land.Actor, g.Land.ID, g.Land.Time)
 	}
+	if g.Close != nil {
+		fmt.Fprintf(b, "closed: by %s, close %s at %s\n", g.Close.Actor, g.Close.ID, g.Close.Time)
+	}
 	fmt.Fprintf(b, "waits: %s\n", st.Waits)
 	for _, row := range st.Rows {
 		for _, line := range g.SplitLines(row.RowTree) {
@@ -115,7 +118,7 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
 	}
 	switch {
-	case o.Goal == "" && (g.Land != nil || st.Stop == acts.StopSelected):
+	case o.Goal == "" && (g.State == tables.StateEnded || st.Stop == acts.StopSelected):
 		// the list of every Goal prints no PR body: an output it quotes can
 		// hold lines that read as Goals of this store
 	case st.Stop == acts.StopSelected:

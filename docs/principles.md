@@ -72,8 +72,9 @@ The four roles are `owner`, `grill`, `probe-writer` and `runner`
 2. **The owner chooses between candidates.** The owner may select at any time,
    and with two or more candidates only the owner selects. Only the actor that
    added the Goal selects for the owner (the guard Goal's actor).
-3. **The owner ends a Goal.** At a stop the owner lands the Goal, and the owner
-   may unselect a selected Goal so that the grill can place again.
+3. **The owner ends a Goal.** At a stop the owner lands the Goal, at any stop
+   or none the owner may close it, and the owner may unselect a selected Goal
+   so that the grill can place again.
 4. **The owner merges.** hyp writes nothing to GitHub. The merge is where the
    owner accepts a build and vetoes its mechanics.
 5. **Only the grill places an example** (the guard Grill places). The grill asks

@@ -64,7 +64,7 @@ func TestReplayUnselectGuardsAgain(t *testing.T) {
 		{"the grill", append(selectedLog(t), unselectEv(t, "g", "grill")), "Owner unselects"},
 		{"an owner who did not add the Goal", append(selectedLog(t), unselectEv(t, "other", "owner")), "Goal's actor"},
 		{"a second unselect", append(selectedLog(t), unselectEv(t, "a", "owner"), unselectEv(t, "a", "owner")), "Selected"},
-		{"a landed Goal", append(selectedLog(t), landEv(t, StopSelected), unselectEv(t, "a", "owner")), "Not landed"},
+		{"a landed Goal", append(selectedLog(t), landEv(t, StopSelected), unselectEv(t, "a", "owner")), "Not ended"},
 	}
 	for _, c := range cases {
 		tb := Replay(c.evs)

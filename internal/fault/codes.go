@@ -165,12 +165,15 @@ const (
 	EarlierVersion    Code = "earlier-version"      // hash, version, key
 	NoResultToRetract Code = "no-result-to-retract" // Result id
 	NotOwnResult      Code = "not-own-result"       // Result id, its actor, the act's actor
-	Landed            Code = "landed"               // Goal
+	Ended             Code = "ended"                // Goal
+	NotInSnapshot     Code = "not-in-snapshot"      // Goal, end event id
+	NotOwnerClose     Code = "not-owner-close"      // role
+	NoGoalToClose     Code = "no-goal-to-close"     // Goal
 	NotOwner          Code = "not-owner"            // role
 	NoStop            Code = "no-stop"              // Goal
 	NoGoalToLand      Code = "no-goal-to-land"      // Goal
 	StopNotHeld       Code = "stop-not-held"        // stop, Goal
-	FromNotLanded     Code = "from-not-landed"      // Goal, state
+	FromNotEnded      Code = "from-not-ended"       // Goal, state
 	NotOwnerUnselect  Code = "not-owner-unselect"   // role
 	NoSelect          Code = "no-select"            // Goal, state
 	NoGoalToUnselect  Code = "no-goal-to-unselect"  // Goal

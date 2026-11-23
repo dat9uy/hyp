@@ -86,7 +86,7 @@ Every event is one JSON line with this envelope (with `v` = 2):
 | `payload` | The type's payload, parsed strictly: an unknown field does not parse. |
 | `why` | The actor's short reason, optional. |
 
-The ten events:
+The eleven events:
 
 | Event | Written by | `node` | Payload |
 |---|---|---|---|
@@ -97,7 +97,8 @@ The ten events:
 | `result.retract` | `retract` | the Result | role |
 | `select` | `select` | the Goal | role, commit, subject hash |
 | `budget.reset` | `reset` | the Goal | role |
-| `land` | `land` | the Goal | role, the stop it ends (`selected`, `two candidates` or `budget used`), and `cause`: the id of the event of the act that caused that stop |
+| `land` | `land` | the Goal | role, the stop it ends (`selected`, `two candidates` or `budget used`), `cause`: the id of the event of the act that caused that stop, and `seen`: the snapshot (§4); a land written before `close` existed has no `seen` |
+| `close` | `close` | the Goal | role, and `seen`: the snapshot (§4) |
 | `unselect` | `unselect` | the Goal | role |
 | `read` | every command that names an actor, in a repository with a store, into the trace, never into the log (§8) | its own id | role (empty when the command declared none of the four), the command's arguments, exit code, stdout hash, stderr hash |
 
@@ -114,6 +115,12 @@ stored events (§11), so the log cannot disagree with itself about it. The land
 names the stop it ends, so a landed Goal keeps that stop. Owner said,
 2026-11-20 (#245): "Stop and land are two different events", and for the stop,
 "1 it is": shown as an event, calculated from the log.
+
+`close` is the owner's other event that ends a Goal (§8, `close`). It was
+added by Goal G-GF11ED (#329), after `unselect`, for a Goal the owner will not
+go on with, at any stop or none. A land and a close are the two **ends** of a
+Goal; each names its snapshot, the ids of the Goal's events that replay
+applied when the owner ended it (§4).
 
 `unselect` is the owner's event that puts a selected Goal back to open (§8,
 `unselect`). It was added by Goal G-VDG87A (#246), after `land`. It names no
@@ -189,8 +196,8 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   never merged: a clone's agents share one trace folder, and git carries none
   of it.
 - **Which guards replay checks again.** Only the guards that read the tables:
-  Draft, Whole lines, Not landed, Grill places, Open, Goal's actor, Budget, Stable,
-  Selected, Owner lands, Owner unselects, New cell and Own Result, the table
+  Draft, Whole lines, Not ended, Grill places, Open, Goal's actor, Budget, Stable,
+  Selected, Owner lands, Owner closes, Owner unselects, New cell and Own Result, the table
   half of Adds only (each hash
   is new on its key; an `examples.place` names at least one example and each
   key once, and when one of its examples fails, the whole event is refused at
@@ -201,9 +208,9 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   need none; that the candidates or the budget held reads git and is trusted
   as written). The guards that read disk, git objects, the moving git state
   or a Probe (Whole set, Committed, Kind, Bytes, Leaf only, Spec, Own path, and
-  the content half of Adds only) are trusted as written. From landed is not checked again:
+  the content half of Adds only) are trusted as written. From ended is not checked again:
   a log written before land existed holds Goals that cite a Goal that is not
-  landed, and it replays as it was. Cost: two clones that
+  ended, and it replays as it was. Cost: two clones that
   each adjust one example key merge to @2 and @3, and @3 was checked against @1
   only. So when
   two clones merge and one Goal holds a fourth counted Hypothesis, the fourth by
@@ -219,10 +226,22 @@ changed H0 subject does, and `run <H0 commit> LINE` measures it.
   the unselect in merge order, with no new cell between them, is refused at
   replay by New cell, even when the clone that wrote it had not seen the
   unselect.
-- **A write after a land in another clone.** A clone that has not merged a
-  land can still place, run or select on that Goal. Once the logs merge, each
-  such event after the land in merge order is refused at replay by Not landed,
-  and `status G` lists it under "refused at replay".
+- **A write after an end in another clone.** A clone that has not merged a
+  land or a close can still place, run or select on that Goal. Once the logs
+  merge, each such event after the end in merge order is refused at replay by
+  Not ended, and `status G` lists it under "refused at replay".
+- **A write before an end in another clone.** Replay orders events by id,
+  which is a time, so a run another clone wrote before the end, and that
+  reached this log only after it, sorts in ahead of the end. The end names its
+  snapshot: the ids of the Goal's events (its `goal.add` events, places,
+  Results, retracts, selects and unselects) that replay applied when the owner
+  ended it. Replay refuses, by Not ended, each event of the Goal ahead of the
+  end that the snapshot does not name, and `status G` lists it under "refused
+  at replay". So an ended Goal holds the rows and verdicts the owner saw, in
+  every clone. The snapshot used is that of the end replay applies: an end
+  that replay refuses holds the Goal to nothing, and replay runs again without
+  it. A land written before `close` existed names no snapshot and refuses
+  nothing, so an old log replays as it was. Built by Goal G-GF11ED (#329).
 - These rules follow from rules already decided: the store of ADR 0020 and
   ADR 0022. Owner said, 2026-11-19: "Why ask me, event
   list is already decided in report".
@@ -243,6 +262,7 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 | Selects | Goal | select id, commit, subject hash, time, actor; the current select only: an unselect removes it |
 | Unselects | Goal, unselect id | the select it undid, time, actor, and what had run before it: the Results recorded up to it and the example versions (key and hash) placed up to it |
 | Lands | Goal | land id, the stop it ends, its cause, time, actor |
+| Closes | Goal | close id, time, actor |
 | Reads | actor, read id | time, role, command, exit code, stdout hash, stderr hash; from the clone's trace and from the old `read` lines of the log; an actor's reads are in id order, oldest first |
 
 - A cell is **live** when its Result is not retracted, not refused by Stable,
@@ -274,13 +294,14 @@ tables in memory. Each guard (§7) is a query over them, or over git.
 
 ## 6. States
 
-Each state is calculated from the tables; none is stored. `landed` wins over
+Each state is calculated from the tables; none is stored. `ended` wins over
 `selected`, and `selected` wins over `open`: a selected Goal is not open.
 
-### Goal: `written → open → selected → landed`
+### Goal: `written → open → selected → ended`
 
 A Goal with no select lands from `open` at the stops Two candidates and Budget
-used (§11), so `open → landed` is a path too. The owner's `unselect` puts a
+used (§11), so `open → ended` is a path too. The owner's `close` ends a Goal
+from any state, so `written → ended` is a path too. The owner's `unselect` puts a
 selected Goal back to `open` (§8), so `selected → open` is a path too, and a
 Goal can be selected again after it.
 
@@ -288,8 +309,8 @@ Goal can be selected again after it.
 |---|---|---|
 | `written` | A `goal.add` exists, and the Goal is not open. | `run` on a Hypothesis other than H0 (**Open**), `select` (**Candidate**: no row is met yet), `land` (**Stop**: a written Goal has no stop), `unselect` (**Selected**: no select) |
 | `open` | Every line has at least one placed example, and every current placement has a live cell on H0's row with the verdict its line's kind needs: `failed` on a gap line, `met` on a guard line. | `add goal G` replace (**Draft**), `land` while the Goal has no stop (**Stop**), `unselect` (**Selected**: no select), a runner's `select` after an unselect with no new cell since (**New cell**) |
-| `selected` | The Goal has a select and no land. | `add goal G` replace (**Draft**); `place`, `run` and a second `select` (**Selected**: the Goal already has a select); `add goal --from G` (**From landed**) |
-| `landed` | The Goal has a land. | every write: `add goal G` replace (**Draft**), `place`, `run`, `select`, `unselect` and a second `land` (**Not landed**) |
+| `selected` | The Goal has a select and no end. | `add goal G` replace (**Draft**); `place`, `run` and a second `select` (**Selected**: the Goal already has a select); `add goal --from G` (**From ended**) |
+| `ended` | The Goal has a land or a close. | every write: `add goal G` replace (**Draft**), `place`, `run`, `select`, `unselect`, `land` and `close` (**Not ended**) |
 
 All refusals are exit 1. A Draft replace that changes the lines leaves existing
 placements on their keys; a placement whose line key is gone is history, and the
@@ -298,18 +319,24 @@ Goal is open again only when the rule above holds.
 `selected` refuses `place`, a second `select` and `run` by a
 guard named for the state, **Selected**, so that no refusal reads "Open" by
 accident: a run after the select counts nothing. The
-owner's `land` and `unselect` are the only writes it allows.
+owner's `land`, `unselect` and `close` are the only writes it allows.
 Owner accepted, 2026-11-19. The re-grill of a selected Goal goes through
 `unselect`: it puts the Goal back to `open`, and then the grill places and
 the runner runs as on any open Goal. Owner said, 2026-11-20 (#245): "that's
 why #246 is needed (unselect)". Built by Goal G-VDG87A (#246).
 
-`landed` ends the Goal. Only the owner lands it, and only at a stop: the Goal
+`ended` is the end of the Goal, by a land or a close. Only the owner lands it, and only at a stop: the Goal
 is done when the owner says so, since a re-grill can still add an example
 inside the Goal. Owner said, 2026-11-20 (#245): "That's why owner is a one who
 decide the `land`". The land is not coupled to a merge: a Goal can land before
 the merge of its change, after it, or with no merge, and a merge never lands a
 Goal. Owner said: "I find coupling `land` to the merge action is the bad idea".
+
+Only the owner closes a Goal, and at any stop or none: a close is the owner's
+decision not to go on, so it waits for nothing. A closed Goal keeps its rows,
+verdicts and select as they were, and prints `ended` with a line naming the
+close. A landed Goal prints `ended` too, with a line naming the land: the line
+says which end it was. Built by Goal G-GF11ED (#329).
 
 ### Example: placed `@1 → @2 → …`
 
@@ -342,10 +369,11 @@ the first guard that fails, in the act's order (§8).
   always passes.
 - **Whole lines** — Every line has a kind, `gap` or `guard`, and the Goal has at
   least one gap line. Query: over the act's own input.
-- **Not landed** — No write after the Goal is landed: the owner's `land` ends it.
-  Checked first by `place`, `run`, `select`, `land` and `unselect`, and by
-  replay. Query:
-  `Lands[G]` does not exist.
+- **Not ended** — No write after the Goal is ended: the owner's `land` or
+  `close` ends it. Checked first by `place`, `run`, `select`, `land`, `close`
+  and `unselect`, and by replay, which also refuses an event ahead of the end
+  that the end's snapshot does not name (§4). Query: `Lands[G]` and
+  `Closes[G]` do not exist.
 - **Open** — The Goal is open. Checked by `run` unless the commit's subject
   hash equals H0's. Query: `Goals[G].state == open`.
 - **Goal's actor** — Only the actor that added the Goal selects for the owner,
@@ -468,6 +496,8 @@ the first guard that fails, in the act's order (§8).
   or already unselected, has no select to undo.
 - **Owner lands** — Only the owner lands a Goal. Query: the act's role
   `== owner`.
+- **Owner closes** — Only the owner closes a Goal. Query: the act's role
+  `== owner`.
 - **Owner unselects** — Only the owner unselects a Goal. Query: the act's
   role `== owner`.
 - **Stop** — The Goal is at a stop (§11): Selected, Two candidates or Budget
@@ -476,10 +506,11 @@ the first guard that fails, in the act's order (§8).
   a commit on a main that moved. That recheck is `unselect` (#246), then a run
   and a select again. Owner said, 2026-11-20 (#245), decision 9: "the problem
   is by design, it affect only H0, right? so why this is complicated?"
-- **From landed** — `add goal --from G` cites only a landed Goal. Query:
-  `Goals[G].state == landed`. Checked by the act only, never at replay (§4).
-  Owner said, 2026-11-20 (#245): "The --from should be the Goal that landed
-  already".
+- **From ended** — `add goal --from G` cites only an ended Goal, landed or
+  closed. Query: `Goals[G].state == ended`. Checked by the act only, never at
+  replay (§4). Owner said, 2026-11-20 (#245): "The --from should be the Goal
+  that landed already"; Goal G-GF11ED (#329) accepts a closed Goal like a
+  landed one.
 - **Own Result** — Only the actor that ran a Result retracts it. Query: the act's
   actor `== Results[R].actor`.
   Owner accepted, 2026-11-19.
@@ -493,13 +524,14 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 
 | Act | Role | Guards, in order | Writes |
 |---|---|---|---|
-| `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines, From landed (with `--from`) | `goal.add` |
-| `place G` | grill | Not landed, not Selected, Grill places, then for the whole set: Whole set, Committed, Adds only, Kind | `examples.place` |
-| `run COMMIT LINE` | runner | Not landed, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
-| `select G HASH` | runner, or owner | Not landed, not Selected, Candidate, New cell (runner only), Goal's actor (owner only), Spec, Own path | `select` |
-| `land G` | owner | Not landed, Owner lands, Goal's actor, Stop | `land` |
-| `unselect G` | owner | Not landed, Owner unselects, Goal's actor, Selected | `unselect` |
-| `reset G` | owner | Not landed, Goal's actor | `budget.reset` |
+| `add goal [G] [--from G] --base H --words TEXT --line KIND:TEXT …` | owner | Draft, Whole lines, From ended (with `--from`) | `goal.add` |
+| `place G` | grill | Not ended, not Selected, Grill places, then for the whole set: Whole set, Committed, Adds only, Kind | `examples.place` |
+| `run COMMIT LINE` | runner | Not ended, not Selected, Bytes, Open (not for H0), Own path, Leaf only, Budget, Stable | `result.record` |
+| `select G HASH` | runner, or owner | Not ended, not Selected, Candidate, New cell (runner only), Goal's actor (owner only), Spec, Own path | `select` |
+| `land G` | owner | Not ended, Owner lands, Goal's actor, Stop | `land` |
+| `close G` | owner | Not ended, Owner closes, Goal's actor | `close` |
+| `unselect G` | owner | Not ended, Owner unselects, Goal's actor, Selected | `unselect` |
+| `reset G` | owner | Not ended, Goal's actor | `budget.reset` |
 | `retract R` | the actor that ran R | Own Result | `result.retract` |
 | `status [G] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
 | `try G LINE/EXAMPLE [--worktree] [--role ROLE]` | any | none | nothing in the repository; a `read` in the trace |
@@ -535,9 +567,9 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 - `run` checks every guard that needs no Probe before it runs a Probe; Stable is
   checked on the outputs.
 - `land G` ends a Goal at its stop. It records one `land` event that names
-  the stop and the event of the act that caused it, whether or not the change
+  the stop, the event of the act that caused it and the snapshot (§4), whether or not the change
   was merged. Its report is `landed G` and the stop as an event (§11), then the
-  state block of the landed Goal, which prints the record of the decision
+  state block of the ended Goal, which prints the record of the decision
   (§12). `status` offers it to the owner at every stop, as `hyp land G`. Built
   by Goal G-M66KKY. The model of its rules, with the cheaper builds each rule
   refuses, is `goals/G-M66KKY/specs/land.tla`.
@@ -560,12 +592,19 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
   whose subject hash is new, then a select. Built by Goal G-VDG87A (#246). The
   model of its rules, with the cheaper builds each rule refuses, is
   `goals/G-VDG87A/specs/unselect.tla`.
-- **The snapshot** of a landed Goal is not a separate thing: it is the Goal's
-  events in the `.tree/` of the commit or checkout being read, up to its land,
-  and the outputs they name. hyp stores nothing more for it, and it holds no
-  code of a Hypothesis, only Results. So each commit shows what it holds: hyp
-  reads a Goal as landed in a checkout only once it holds the Goal's stop and
-  its land, as git shows
+- `close G` ends a Goal that is not ended, at any stop or none. It records one
+  `close` event that names the snapshot (§4). Its report is `closed G`, then
+  the state block of the ended Goal, with the line
+  `closed: by ACTOR, close ID at TIME`. `status` offers it to the owner on
+  every Goal that is not ended, as `hyp close G`. A closed Goal is cited by
+  `--from` like a landed one. Built by Goal G-GF11ED (#329). The model of its
+  rules, with the cheaper builds each rule refuses, is
+  `goals/G-GF11ED/specs/goal_end.tla`.
+- **The snapshot** of an ended Goal is the Goal's events that its end names,
+  in the `.tree/` of the commit or checkout being read, and the outputs they
+  name. The end stores only their ids, and it holds no code of a Hypothesis,
+  only Results. So each commit shows what it holds: hyp reads a Goal as ended
+  in a checkout only once it holds the Goal's events and its end, as git shows
   any branch before a merge. Owner said, 2026-11-20 (#245): "Result only then",
   and "If you want to replay, why not read the tree itself?" It is the owner's
   decision, fixed: what the owner accepted (the words, lines, examples, the
@@ -574,10 +613,10 @@ Common to every act: exit 2 for bad arguments; exit 3 for an environment problem
 
   | When | Who reads | What, and why |
   |---|---|---|
-  | Every hyp command | hyp, in replay | the land event, to calculate `landed` and refuse every write to the Goal (Not landed) |
-  | The return of `land`, and `status G` | any role | the record of the decision: the PR body, or the table of outputs with no select (§12) |
-  | `status` for every Goal | any role | only the state block of a landed Goal, as of a selected one (§12) |
-  | `add goal --from G` | hyp | whether G is landed (From landed) |
+  | Every hyp command | hyp, in replay | the end event, to calculate `ended`, refuse every write to the Goal and every event of it the snapshot does not name (Not ended) |
+  | The return of `land` or `close`, and `status G` | any role | the record of the decision: the PR body, or the table of outputs with no select (§12) |
+  | `status` for every Goal | any role | only the state block of an ended Goal, as of a selected one (§12) |
+  | `add goal --from G` | hyp | whether G is ended (From ended) |
 
 - `reset` and `retract` are specified here and built as later v2 Goals.
 
@@ -729,7 +768,7 @@ Owner accepted, 2026-11-19.
 `add goal` takes the Goal's words as `--words TEXT` (required; owner said,
 2026-11-19: "Accept --words TEXT"), and repeated
 `--line gap:TEXT` and `--line guard:TEXT`, in order; hyp gives the keys `line-1`, `line-2` …. A Draft
-replace is `hyp add goal G …`. `--from G` needs G to be landed (From landed,
+replace is `hyp add goal G …`. `--from G` needs G to be ended (From ended,
 §7), stores only the cited Goal's full `goal.add` id, which no other Goal
 shares, and copies nothing. Whole lines also refuses more than ten lines.
 Owner accepted, 2026-11-19.
@@ -851,12 +890,14 @@ is the latest `result.record` of the Goal in merge order that counts, neither
 retracted nor refused by Stable: only a run adds a row or a cell, so the stop
 held after it. A Goal with no stop prints `stop: none`. A landed Goal prints
 the stop its land names, with that cause, and a line
-`landed: by ACTOR, land ID at TIME`.
+`landed: by ACTOR, land ID at TIME`. A closed Goal prints the stop its rows
+hold, or none, and a line `closed: by ACTOR, close ID at TIME`.
 
 **Each stop waits for the owner**: `waits: owner`, with `hyp land G` among the
-owner's acts. At Selected the owner's acts are `hyp land G` and
-`hyp unselect G`. After a select, the owner reads the PR and lands the Goal, before
-or after the merge. Owner said, 2026-11-20 (#245): "C". A landed Goal waits
+owner's acts. At Selected the owner's acts are `hyp land G`,
+`hyp unselect G` and `hyp close G`. After a select, the owner reads the PR and lands the Goal, before
+or after the merge. Owner said, 2026-11-20 (#245): "C". On every Goal that is
+not ended the owner's acts hold `hyp close G`. An ended Goal waits
 for no one.
 
 Two candidates can happen with one runner: "selects at once" is runner
@@ -931,13 +972,13 @@ runner may:
   candidate had no stop, no wait and no allowed act (#229).
 - A refusal prints to stderr, then the state block to stdout. A report prints
   only on exit 0. Exit 2 and exit 3 print no state block.
-- **The record of a landed Goal.** `status G` and the return of `land` print
-  the state block of a landed Goal, then the record of its decision: the PR
+- **The record of an ended Goal.** `status G` and the return of `land` or `close` print
+  the state block of an ended Goal, then the record of its decision: the PR
   body when the Goal has a select, or the table of outputs (§11) when it has
-  none. A selected Goal that is not landed prints its PR body in `status G`
+  none. A selected Goal that is not ended prints its PR body in `status G`
   too.
 - **The list of every Goal holds no PR body.** `status` for every Goal prints
-  only the state block of a selected or a landed Goal. A PR body quotes each
+  only the state block of a selected or an ended Goal. A PR body quotes each
   output byte for byte at column 0, and an output can hold any text: an
   example that runs `hyp status` in a store of its own prints lines such as
   `G-J3MA1E  written`, which a reader that scans lines takes for Goals of this
@@ -955,7 +996,7 @@ runner may:
   `no example placed`. The example is read from git by its hash, never from
   the files on disk. Only `status G` prints it: `status` for every Goal, the
   return of every act and the return of `try` print the state block alone, and
-  a selected or landed Goal prints its record as above. This is line 1 of Goal
+  a selected or ended Goal prints its record as above. This is line 1 of Goal
   G-X0HY3A: "While a Goal is written or open, `hyp status G`, with or without
   `--role`, prints the Goal's words, each line's key and text, and for each
   placed example its key, words, run, floors, ceilings and its verdict on H0
@@ -971,7 +1012,7 @@ runner may:
   byte, built into the binary, and one task for each line of the Goal, in its
   order, with the `hyp try G <line>/<example>` line that checks it. Everywhere
   else the block prints `(none)`: `status` for every Goal, the return of every
-  act and of `try`, and a selected or landed Goal. This is line 1 of Goal
+  act and of `try`, and a selected or ended Goal. This is line 1 of Goal
   G-GRXA9K.
 - `show ACTOR` prints the trace (§8) and no state block: it shows what the
   actor got, not the state now. `prune` prints its list and no state block:
@@ -1118,7 +1159,7 @@ Deferred by the owner until a real event shows the need:
 - **o11-blind** — whether the Probe writer can be kept from reading the
   candidate. Owner said, 2026-11-18: deferred with o7-actors.
 - **o8-end** — closed by Goal G-M66KKY: the owner's `land` is the act that
-  ends a Goal, at a stop (§8). Not landed refuses every write after it. A Goal
-  that never reaches a stop has no end yet; that waits for a real event, as
-  the owner said: "whether we need an end state + end action for owner will
+  ends a Goal, at a stop (§8). Not ended refuses every write after it. The
+  owner said: "whether we need an end state + end action for owner will
   leave open until we see 'dangling open' goal is the problem later on".
+  Goal G-GF11ED (#329) added `close`, which ends a Goal at any stop or none.
