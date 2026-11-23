@@ -41,6 +41,27 @@ endgoal() {
 }
 
 addgoal 'Open one.'
+# Place one example on the first Goal so that it is open: its Probe is the
+# generic Probe, and the example fails on H0 because greet.txt says hello.
+OPEN=$G
+ex="goals/$OPEN/line-1/a"
+mkdir -p "$ex/probe" || fail "mkdir example"
+printf '%s\n' '-- words --' 'The greeting says bye.' '-- run --' 'cat greet.txt' \
+  '-- floor: contains --' 'bye' >"$ex/example.txtar"
+cat >"$ex/probe/run" <<'PROBE'
+#!/bin/sh
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+PROBE
+chmod +x "$ex/probe/run"
+git add -A && git commit -q -m "example" >&2 || fail "commit example"
+HYP_ROLE=grill hyp place "$OPEN" >&2 || fail "hyp place"
+git add -A && git commit -q -m "place" >&2 || fail "commit place"
 addgoal 'Ended one.'; endgoal
 addgoal 'Ended two.'; endgoal
 
