@@ -21,9 +21,13 @@ type shownRead struct {
 // readsOf returns every read of actor, oldest first: the reads of the clone's
 // trace, and the read events an earlier hyp wrote into the log, which the log
 // keeps.
-func readsOf(root, actor string, log tables.Tables) ([]shownRead, error) {
+func readsOf(root, actor string) ([]shownRead, error) {
+	logEvs, _, err := logstore.StoreEvents(root)
+	if err != nil {
+		return nil, err
+	}
 	var out []shownRead
-	for _, r := range log.Reads[actor] {
+	for _, r := range tables.Replay(logEvs).Reads[actor] {
 		out = append(out, shownRead{r, logstore.OutputsDir(root)})
 	}
 	tr, err := logstore.TraceOf(root)

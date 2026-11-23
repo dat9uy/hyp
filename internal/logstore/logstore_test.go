@@ -17,7 +17,7 @@ import (
 
 func reset(payload string) func([]events.Event) (events.Event, error) {
 	return func([]events.Event) (events.Event, error) {
-		return events.Event{Type: events.TypeBudgetReset, Payload: json.RawMessage(payload)}, nil
+		return events.Event{Type: events.TypeClose, Payload: json.RawMessage(payload)}, nil
 	}
 }
 
@@ -179,7 +179,7 @@ func TestAppendFillsEnvelope(t *testing.T) {
 		t.Fatalf("envelope not filled: %+v", ev)
 	}
 	next, err := Append(root, "a", func([]events.Event) (events.Event, error) {
-		return events.Event{Type: events.TypeBudgetReset, Node: "G-X", Payload: json.RawMessage(`{"role":"owner"}`)}, nil
+		return events.Event{Type: events.TypeClose, Node: "G-X", Payload: json.RawMessage(`{"role":"owner"}`)}, nil
 	})
 	if err != nil || next.Node != "G-X" || next.ID <= ev.ID {
 		t.Fatalf("second event %+v, %v", next, err)
@@ -192,7 +192,7 @@ func TestAppendRefusesBadActorAndLongWhy(t *testing.T) {
 		t.Fatalf("bad actor: %v", err)
 	}
 	_, err := Append(root, "a", func([]events.Event) (events.Event, error) {
-		return events.Event{Type: events.TypeBudgetReset, Payload: json.RawMessage(`{}`), Why: strings.Repeat("é", 601)}, nil
+		return events.Event{Type: events.TypeClose, Payload: json.RawMessage(`{}`), Why: strings.Repeat("é", 601)}, nil
 	})
 	if fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("long why: %v", err)
@@ -222,11 +222,18 @@ func TestPutOutputOnceBySha256(t *testing.T) {
 	if a != "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824" {
 		t.Fatalf("hash = %s, want sha256 of hello", a)
 	}
-	files, err := os.ReadDir(filepath.Join(root, ".tree", "outputs"))
-	if err != nil || len(files) != 1 {
-		t.Fatalf("outputs = %v, %v; want one file", files, err)
+	tr, err := TraceOf(root)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if body, err := os.ReadFile(OutputPath(root, a)); err != nil || string(body) != "hello" {
+	files, err := os.ReadDir(tr.Outputs())
+	if err != nil || len(files) != 1 {
+		t.Fatalf("trace outputs = %v, %v; want one file", files, err)
+	}
+	if files, _ := os.ReadDir(filepath.Join(root, ".tree", "outputs")); len(files) != 0 {
+		t.Fatalf(".tree/outputs = %v; want no file: outputs go to the trace", files)
+	}
+	if body, _, err := ReadOutput(root, a, 0); err != nil || string(body) != "hello" {
 		t.Fatalf("stored %q, %v", body, err)
 	}
 	empty, err := PutOutput(root, nil)
@@ -323,7 +330,7 @@ func TestSameIDAndActorOrdersByLineBytes(t *testing.T) {
 	line := func(why string) string {
 		b, err := json.Marshal(events.Event{
 			V: events.Version, ID: "01M661QG600000000000NXHHVA", TS: "2026-11-19T00:00:00Z", Actor: "a",
-			Type: events.TypeBudgetReset, Node: "01M661QG600000000000NXHHVA", Payload: json.RawMessage(`{"role":"owner"}`), Why: why,
+			Type: events.TypeClose, Node: "01M661QG600000000000NXHHVA", Payload: json.RawMessage(`{"role":"owner"}`), Why: why,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -425,7 +432,7 @@ func TestPutOutputInACloneWithoutOutputsDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("PutOutput without .tree/outputs: %v", err)
 	}
-	if _, err := os.Stat(OutputPath(root, name)); err != nil {
-		t.Fatalf("output file: %v", err)
+	if body, _, err := ReadOutput(root, name, 0); err != nil || string(body) != "hello" {
+		t.Fatalf("output file: %q, %v", body, err)
 	}
 }

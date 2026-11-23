@@ -15,6 +15,7 @@ The Goal asks:
 hash: <hash>
 placed: by grill-1 at <time>
 verdict on H0 at place: failed, exit 0
+H0's output: <hash> 3 bytes: bad
 
 example.txtar, 61 bytes:
 

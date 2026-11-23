@@ -68,11 +68,18 @@ func runText(rep acts.RunReport) string {
 func tryText(rep acts.TryReport) string {
 	var b strings.Builder
 	on := "H0 " + rep.Commit
-	if rep.Worktree {
+	switch {
+	case rep.Worktree:
 		on = "this checkout's files: HEAD " + rep.Commit + " and every change not committed"
+	case rep.Commit != rep.H0:
+		on = "commit " + rep.Commit + ", row " + rep.RowTree
 	}
 	fmt.Fprintf(&b, "tried %s %s on %s\n", rep.ID, rep.Key, on)
-	b.WriteString("nothing is recorded: no event, no output file, no run of the budget\n")
+	if rep.Saved {
+		fmt.Fprintf(&b, "saved in this clone's trace: the cell of %s on row %s, which this clone's trace lacked; no event in git, no run of the budget\n", rep.Key, rep.RowTree)
+	} else {
+		b.WriteString("nothing is recorded: no event, no output file, no run of the budget\n")
+	}
 	fmt.Fprintf(&b, "example: %s as it is on disk, hash %s, probe %s\n", rep.Folder, rep.Hash, or(rep.ProbeHash, "(none)"))
 	fmt.Fprintf(&b, "words: %s\n", rep.Words)
 	fmt.Fprintf(&b, "verdict: %s, exit %d\n", rep.Verdict, rep.Out.Exit)
@@ -205,12 +212,15 @@ func prBody(root string, g *tables.Goal) string {
 				words = "(example " + p.Hash + " is not readable here: " + bodyText(err, root) + ")"
 			}
 			fmt.Fprintf(&b, "\n### %s: %s\n\n", p.Key, words)
-			c, ok := live[p.Key]
+			c, ok := acts.CellOutputs(root, g, p.Key, p.Hash, tree)
 			if !ok {
-				b.WriteString("verdict: not run\n")
+				fmt.Fprintf(&b, "%s\n", missingCell(g, p.Key, g.Select.Commit))
 				continue
 			}
 			fmt.Fprintf(&b, "verdict: %s, exit %d\n", c.Verdict, c.Exit)
+			if c.Again {
+				b.WriteString("run again in this clone: the trace lacked this cell, and a try saved it\n")
+			}
 			prStored(&b, root, "output", c.Output)
 			prStored(&b, root, "stderr", c.Stderr)
 		}
@@ -218,6 +228,17 @@ func prBody(root string, g *tables.Goal) string {
 	prCharts(&b, root, g)
 	fmt.Fprintf(&b, "\nselected commit: %s\nselected row: %s\n", g.Select.Commit, tree)
 	return b.String()
+}
+
+// missingCell is what hyp status prints for a cell whose outputs this
+// clone's trace does not hold, with the ready line that runs it again on
+// commit and saves it in the trace. H0's cell needs no --commit.
+func missingCell(g *tables.Goal, key, commit string) string {
+	try := "hyp try " + g.ID + " " + key
+	if commit != "" && commit != g.Base {
+		try += " --commit " + commit
+	}
+	return "not in this clone's trace; run it again with: " + try
 }
 
 // prCharts prints each chart (.mmd) of the selected commit's spec folder as

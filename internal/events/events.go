@@ -24,16 +24,20 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The eleven event types. All but read change the state machine; read is the
-// trace of what hyp printed to an actor, and changes no state. example.place
-// is the old form of a place, one example per event: hyp writes
-// examples.place, and replays both.
+// The twelve event types. Only the kinds that change a Goal's state are
+// stored in git: goal.add, the places, select, land, close and unselect. The
+// rest are stored in the clone's trace: a Result, the cells a clone keeps of
+// a cell's outputs, a budget reset and a read. example.place is the old form
+// of a place, one example per event: hyp writes examples.place, and replays
+// both. A log written before this rule can hold result.record and read
+// events in git; replay reads them there as it reads them in the trace.
 const (
 	TypeGoalAdd       = "goal.add"
 	TypeExamplePlace  = "example.place"
 	TypeExamplesPlace = "examples.place"
 	TypeResultRecord  = "result.record"
 	TypeResultRetract = "result.retract"
+	TypeCellsCache    = "cells.cache"
 	TypeSelect        = "select"
 	TypeBudgetReset   = "budget.reset"
 	TypeLand          = "land"
@@ -48,32 +52,44 @@ const (
 	HomeTrace = "trace" // the clone's trace folder under $HOME/.hyp/traces
 )
 
-// Kind is the entry of one event type: where it is stored, which Goal it
-// belongs to, and whether an end freezes it. hyp acts on these entries: the
-// store writes an event only where its entry says, replay freezes an event
-// only when its entry says so, and hyp spec prints them.
+// Kind is the entry of one event type: whether it changes a Goal's state,
+// which Goal it belongs to, and whether an end freezes it. Where it is
+// stored follows from the one rule: a kind that changes a Goal's state is
+// stored in git, every other kind in the clone's trace. hyp acts on these
+// entries: the store writes an event only where its entry says, replay
+// freezes an event only when its entry says so, and hyp spec prints them.
 type Kind struct {
-	Type   string
-	Home   string // HomeGit or HomeTrace
-	Goal   string // the Goal the event belongs to, as its node names it
-	Frozen bool   // an end of its Goal refuses it at replay when the end's snapshot does not name it
-	Writer string // the act that writes it
+	Type         string
+	ChangesState bool   // it changes a Goal's state: written, open, selected or ended
+	Goal         string // the Goal the event belongs to, as its node names it
+	Frozen       bool   // an end of its Goal refuses it at replay when the end's snapshot does not name it
+	Writer       string // the act that writes it
 }
 
-// Kinds are the entries of the eleven event types, in the order hyp spec
+// Home is where the kind is stored: git when it changes a Goal's state, else
+// the clone's trace.
+func (k Kind) Home() string {
+	if k.ChangesState {
+		return HomeGit
+	}
+	return HomeTrace
+}
+
+// Kinds are the entries of the twelve event types, in the order hyp spec
 // prints them.
 var Kinds = []Kind{
-	{TypeGoalAdd, HomeGit, "the Goal it adds, or the written Goal it replaces", true, "add goal"},
-	{TypeExamplePlace, HomeGit, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
-	{TypeExamplesPlace, HomeGit, "the Goal its node names", true, "place"},
-	{TypeResultRecord, HomeGit, "the Goal its node names", true, "run"},
-	{TypeResultRetract, HomeGit, "the Goal of the Result its node names", true, "retract, not built"},
-	{TypeSelect, HomeGit, "the Goal its node names", true, "select"},
-	{TypeBudgetReset, HomeGit, "the Goal its node names", false, "reset, not built"},
-	{TypeLand, HomeGit, "the Goal its node names; it ends the Goal", false, "land"},
-	{TypeClose, HomeGit, "the Goal its node names; it ends the Goal", false, "close"},
-	{TypeUnselect, HomeGit, "the Goal its node names", true, "unselect"},
-	{TypeRead, HomeTrace, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
+	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces", true, "add goal"},
+	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
+	{TypeExamplesPlace, true, "the Goal its node names; it names each example's hash and verdict on H0, and no output", true, "place"},
+	{TypeResultRecord, false, "the Goal its node names; its outputs are in the same trace", true, "run"},
+	{TypeResultRetract, false, "the Goal of the Result its node names", true, "retract, not built"},
+	{TypeCellsCache, false, "the Goal its node names; the outputs of cells this clone ran, which status prints", false, "place, for H0's cells; try, for a cell the trace lacks"},
+	{TypeSelect, true, "the Goal its node names", true, "select"},
+	{TypeBudgetReset, false, "the Goal its node names; the budget counts the runs of this clone's trace", false, "reset, not built"},
+	{TypeLand, true, "the Goal its node names; it ends the Goal", false, "land"},
+	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
+	{TypeUnselect, true, "the Goal its node names", true, "unselect"},
+	{TypeRead, false, "none: it is what hyp printed to an actor", false, "every command that names an actor"},
 }
 
 // KindOf returns the entry of an event type, and false for a type outside the
@@ -112,12 +128,15 @@ type GoalAdd struct {
 }
 
 // Cell is a cell of H0's row, written by the placement that adds an example.
+// A place names no output: H0's outputs are in the trace of the clone that
+// placed (CellsCache). A place written before that rule names them, under
+// .tree/outputs/.
 type Cell struct {
 	Commit  string `json:"commit"`
 	RowTree string `json:"row_tree"`
 	Probe   string `json:"probe"`
-	Output  string `json:"output"`
-	Stderr  string `json:"stderr"`
+	Output  string `json:"output,omitempty"`
+	Stderr  string `json:"stderr,omitempty"`
 	Exit    int    `json:"exit"`
 	Verdict string `json:"verdict"`
 }
@@ -168,6 +187,29 @@ type ResultRecord struct {
 	Refused   string        `json:"refused"`
 	Differing []string      `json:"differing,omitempty"`
 	Cells     []ExampleCell `json:"cells"`
+}
+
+// CellsCache is the payload of cells.cache: the outputs of cells this clone
+// ran, which hyp status prints. Again is false for the H0 cells of a place
+// and true for a cell a try ran again because the trace lacked it.
+type CellsCache struct {
+	Role  string       `json:"role"`
+	Again bool         `json:"again"`
+	Cells []CachedCell `json:"cells"`
+}
+
+// CachedCell is one cell of a cells.cache event: the example key and hash, the
+// row and commit it ran on, and what its Probe printed.
+type CachedCell struct {
+	Key     string `json:"key"`
+	Hash    string `json:"hash"`
+	Commit  string `json:"commit"`
+	RowTree string `json:"row_tree"`
+	Probe   string `json:"probe"`
+	Output  string `json:"output"`
+	Stderr  string `json:"stderr"`
+	Exit    int    `json:"exit"`
+	Verdict string `json:"verdict"`
 }
 
 // ResultRetract is the payload of result.retract.

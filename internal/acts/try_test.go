@@ -94,8 +94,12 @@ func TestTryOnH0ShowsWhatPlaceRecords(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := e.h0Cell(t, "line-1/b")
-	if c.Output != rep.OutHash || c.Stderr != rep.ErrHash || c.Exit != rep.Out.Exit || c.Verdict != rep.Verdict || c.Probe != rep.ProbeHash {
+	if c.Exit != rep.Out.Exit || c.Verdict != rep.Verdict || c.Probe != rep.ProbeHash {
 		t.Fatalf("place recorded %+v; try showed %+v", c, rep)
+	}
+	kept, ok := e.goalRow(t).CachedCell("line-1/b", rep.Hash, c.RowTree)
+	if !ok || kept.Output != rep.OutHash || kept.Stderr != rep.ErrHash {
+		t.Fatalf("the trace keeps %+v, %v; try showed %+v", kept, ok, rep)
 	}
 	if cur, ok := e.goalRow(t).Current("line-1/b"); !ok || cur.Hash != rep.Hash {
 		t.Fatalf("placed %+v, try showed hash %s", cur, rep.Hash)

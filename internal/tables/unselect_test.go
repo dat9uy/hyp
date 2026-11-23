@@ -78,14 +78,14 @@ func TestReplayUnselectGuardsAgain(t *testing.T) {
 	}
 }
 
-// reselected replays evs after the selected log and its unselect, then a
-// runner's select of row; it reports whether that select was recorded.
+// reselected replays evs after the selected log and its unselect, and
+// reports whether New cell lets the runner select again. The select act
+// checks New cell; replay does not, since it reads the Results of the trace.
 func reselected(t *testing.T, row string, evs ...events.Event) bool {
 	t.Helper()
 	all := append(append(selectedLog(t), unselectEv(t, "a", "owner")), evs...)
-	all = append(all, selectEv(t, "x", "runner", "commit-"+row, row))
 	tb := Replay(all)
-	return tb.Goals[id1].State == StateSelected
+	return GuardNewCell(tb.Goals[id1], "runner") == nil
 }
 
 func TestRunnerReselectsOnlyAfterANewCell(t *testing.T) {
@@ -119,14 +119,18 @@ func TestRunnerReselectRefusedForAnOldVersionOnAnOldRow(t *testing.T) {
 		run2(t, "r2", "a", hashB), // the pair is new; its version and its row are not
 		selectEv(t, "x", "runner", "commit-r1", "r1"),
 	}
-	tb := Replay(all)
-	if len(tb.RefusedAtReplay) != 1 || guardOf(tb.RefusedAtReplay[0].Err) != "New cell" {
-		t.Fatalf("refused = %+v, want the runner's select refused by New cell", tb.RefusedAtReplay)
+	tb := Replay(all[:len(all)-1])
+	if err := GuardNewCell(tb.Goals[id1], "runner"); guardOf(err) != "New cell" {
+		t.Fatalf("New cell = %v, want the runner's select refused by New cell", err)
 	}
 	// the owner selects at any time
-	all[len(all)-1] = selectEv(t, "a", "owner", "commit-r1", "r1")
-	if tb := Replay(all); tb.Goals[id1].State != StateSelected {
-		t.Fatalf("the owner's select was refused: %+v", tb.RefusedAtReplay)
+	if err := GuardNewCell(tb.Goals[id1], "owner"); err != nil {
+		t.Fatalf("New cell refused the owner: %v", err)
+	}
+	// replay does not check New cell: it reads the Results of the trace, so a
+	// clone whose trace lacks them replays the select the same
+	if tb := Replay(all); tb.Goals[id1].State != StateSelected || len(tb.RefusedAtReplay) != 0 {
+		t.Fatalf("the select was refused at replay: %+v", tb.RefusedAtReplay)
 	}
 }
 

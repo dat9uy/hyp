@@ -157,8 +157,9 @@ func TestGoneTraces(t *testing.T) {
 	}
 }
 
-// TestEventGoesWhereItsKindSays: the store writes only an event whose kind's
-// entry names git, and the trace only one whose entry names the trace.
+// TestEventGoesWhereItsKindSays: Append writes an event to git when its kind
+// changes a Goal's state, and to the clone's trace when it does not; the
+// trace's own append writes only a kind the trace holds.
 func TestEventGoesWhereItsKindSays(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	r := testutil.NewRepo(t)
@@ -166,19 +167,35 @@ func TestEventGoesWhereItsKindSays(t *testing.T) {
 	if err := Create(r.Dir); err != nil {
 		t.Fatal(err)
 	}
-	read := events.Event{Type: events.TypeRead, Payload: []byte(`{"role":"","command":["status"],"exit":0,"stdout":"","stderr":""}`)}
-	if _, err := Append(r.Dir, "runner-1", func([]events.Event) (events.Event, error) { return read, nil }); fault.CodeOf(err) != fault.EventHome {
-		t.Errorf("a read in git: %v, want %s", err, fault.EventHome)
-	}
 	tr, err := TraceOf(r.Dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	reset := events.Event{Type: events.TypeBudgetReset, Node: "x", Payload: []byte(`{"role":"owner"}`)}
-	if _, err := tr.Append("owner-1", reset); fault.CodeOf(err) != fault.EventHome {
-		t.Errorf("a budget.reset in the trace: %v, want %s", err, fault.EventHome)
+	read := events.Event{Type: events.TypeRead, Payload: []byte(`{"role":"","command":["status"],"exit":0,"stdout":"","stderr":""}`)}
+	if _, err := Append(r.Dir, "runner-1", func([]events.Event) (events.Event, error) { return read, nil }); err != nil {
+		t.Fatalf("append a read: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(r.Dir, ".tree", "events", "runner-1.jsonl")); !os.IsNotExist(err) {
-		t.Errorf("the refused read left a file: %v", err)
+		t.Errorf("a read went to git: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(tr.Dir, "events", "runner-1.jsonl")); err != nil {
+		t.Errorf("a read is not in the trace: %v", err)
+	}
+	closeEv := events.Event{Type: events.TypeClose, Node: "x", Payload: []byte(`{"role":"owner","seen":[]}`)}
+	if _, err := Append(r.Dir, "owner-1", func([]events.Event) (events.Event, error) { return closeEv, nil }); err != nil {
+		t.Fatalf("append a close: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(r.Dir, ".tree", "events", "owner-1.jsonl")); err != nil {
+		t.Errorf("a close is not in git: %v", err)
+	}
+	if _, err := tr.Append("owner-2", closeEv); fault.CodeOf(err) != fault.EventHome {
+		t.Errorf("a close in the trace: %v, want %s", err, fault.EventHome)
+	}
+	if _, err := os.Stat(filepath.Join(tr.Dir, "events", "owner-2.jsonl")); !os.IsNotExist(err) {
+		t.Errorf("the refused close left a file: %v", err)
+	}
+	evs, _, err := Events(r.Dir)
+	if err != nil || len(evs) != 2 || evs[0].Type != events.TypeRead || evs[1].Type != events.TypeClose {
+		t.Fatalf("Events reads git and the trace in id order: %+v, %v", evs, err)
 	}
 }

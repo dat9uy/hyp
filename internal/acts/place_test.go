@@ -183,14 +183,25 @@ func TestPlaceGapExampleFailingOnH0Records(t *testing.T) {
 	if x.H0.Commit != g.Base || x.H0.RowTree != g.BaseTree || x.H0.Probe != probeHash || x.H0.Verdict != "failed" || x.H0.Exit != 0 {
 		t.Fatalf("H0 cell = %+v, want commit %s row tree %s probe %s", x.H0, g.Base, g.BaseTree, probeHash)
 	}
-	if out, err := os.ReadFile(logstore.OutputPath(e.root, x.H0.Output)); err != nil || string(out) != "hi" {
+	if x.H0.Output != "" || x.H0.Stderr != "" {
+		t.Fatalf("H0 cell in git names outputs %q %q; the trace keeps them", x.H0.Output, x.H0.Stderr)
+	}
+	c, ok := g.CachedCell("line-1/a", hash, g.BaseTree)
+	if !ok {
+		t.Fatalf("the trace keeps no H0 cell of line-1/a")
+	}
+	if out, _, err := logstore.ReadOutput(e.root, c.Output, 0); err != nil || string(out) != "hi" {
 		t.Fatalf("output file = %q, %v; want hi", out, err)
 	}
-	if out, err := os.ReadFile(logstore.OutputPath(e.root, x.H0.Stderr)); err != nil || len(out) != 0 {
+	if out, _, err := logstore.ReadOutput(e.root, c.Stderr, 0); err != nil || len(out) != 0 {
 		t.Fatalf("stderr file = %q, %v; want empty", out, err)
 	}
-	if len(tb.RefusedAtReplay) != 0 || len(evs) != 2 {
+	// git holds the goal.add and the place; the trace holds H0's cells
+	if len(tb.RefusedAtReplay) != 0 || len(evs) != 3 || evs[2].Type != events.TypeCellsCache {
 		t.Fatalf("log = %d events, refused at replay %+v", len(evs), tb.RefusedAtReplay)
+	}
+	if inGit, _, err := logstore.StoreEvents(e.root); err != nil || len(inGit) != 2 {
+		t.Fatalf("git holds %d events, %v; want the goal.add and the place", len(inGit), err)
 	}
 }
 

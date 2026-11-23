@@ -187,7 +187,7 @@ func TestRunRecordsResultWithCells(t *testing.T) {
 	if cell.Probe == "" || cell.Stderr != sha("") {
 		t.Fatalf("cell = %+v, want the Probe hash and the stderr hash", cell)
 	}
-	out, err := os.ReadFile(logstore.OutputPath(e.root, cell.Output))
+	out, _, err := logstore.ReadOutput(e.root, cell.Output, 0)
 	if err != nil || string(out) != "ok" {
 		t.Fatalf("stored output = %q, %v; want the stdout with one newline dropped", out, err)
 	}
@@ -312,7 +312,7 @@ func TestRunRepeatDifferingVerdictRefused(t *testing.T) {
 		t.Fatalf("err = %v, want it to name line-1/b", err)
 	}
 	// The second output stays, and the Result is marked refused.
-	if _, statErr := os.Stat(logstore.OutputPath(e.root, sha("2"))); statErr != nil {
+	if _, _, statErr := logstore.ReadOutput(e.root, sha("2"), 0); statErr != nil {
 		t.Fatalf("the second output file is gone: %v", statErr)
 	}
 	res := e.results(t)

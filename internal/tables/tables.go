@@ -63,6 +63,7 @@ type Goal struct {
 	Land       *Land                  // the Goal's land, or nil
 	Close      *Close                 // the Goal's close, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
+	Cached     []Cached               // the cells this clone's trace keeps the outputs of, in merge order
 
 	// seen lists the ids of the Goal's events that replay applied, in merge
 	// order: the snapshot an end names.
@@ -146,6 +147,27 @@ type Result struct {
 	Unstable  []UnstableCell // set only on a Result refused by Stable
 	epoch     int            // the Goal's epoch when it was recorded
 	wasH0     bool           // its row tree was H0's when it was recorded
+}
+
+// Cached is a cell whose outputs this clone's trace keeps, from a cells.cache
+// event: H0's cell of a place, or with Again a cell a try ran again because
+// the trace lacked it. It is no Result: it counts for no verdict, row or
+// budget, and hyp status only prints it.
+type Cached struct {
+	events.CachedCell
+	Again bool
+	ID    string // the cells.cache event id
+}
+
+// CachedCell returns the first cell the trace keeps for an example key and
+// hash on the row with rowTree, and false when it keeps none.
+func (g *Goal) CachedCell(key, hash, rowTree string) (Cached, bool) {
+	for _, c := range g.Cached {
+		if c.Key == key && c.Hash == hash && c.RowTree == rowTree {
+			return c, true
+		}
+	}
+	return Cached{}, false
 }
 
 // Refused is an event that failed a guard at its place in the merge order.
@@ -666,6 +688,9 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Err: err})
 	}
 	for i, ev := range evs {
+		if traceOfOtherBranch(t, ev) {
+			continue
+		}
 		if node := goalOf(t, ev); node != "" {
 			if s, ok := snaps[node]; ok && i < s.at && !s.seen[ev.ID] {
 				refuse(ev, fault.Refuse(fault.GuardNotEnded, fault.NotInSnapshot, GoalID(node), evs[s.at].ID))
@@ -705,6 +730,17 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 			replayResult(&t, ev, refuse)
 		case events.TypeResultRetract:
 			replayRetract(&t, ev, refuse)
+		case events.TypeCellsCache:
+			var p events.CellsCache
+			if err := events.Decode(ev, &p); err != nil {
+				refuse(ev, fault.Refuse(fault.NoGuard, fault.PayloadInvalid, err))
+				continue
+			}
+			if g := t.Goals[ev.Node]; g != nil {
+				for _, c := range p.Cells {
+					g.Cached = append(g.Cached, Cached{CachedCell: c, Again: p.Again, ID: ev.ID})
+				}
+			}
 		case events.TypeSelect:
 			replaySelect(&t, ev, refuse)
 		case events.TypeLand:
@@ -728,10 +764,28 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 	return t
 }
 
-// replayResult adds a Result the run guards allow at its place in the merge
-// order. A Result refused by Stable is kept, marked, and counts for nothing.
+// traceOfOtherBranch reports whether ev is of a kind stored in the trace and
+// names a Goal this checkout does not hold: the trace is the clone's, so it
+// keeps the Results and cells of a Goal another branch added. Replay skips
+// such an event; it refuses nothing.
+func traceOfOtherBranch(t Tables, ev events.Event) bool {
+	k, ok := events.KindOf(ev.Type)
+	if !ok || k.Home() != events.HomeTrace || ev.Type == events.TypeRead {
+		return false
+	}
+	if ev.Type == events.TypeResultRetract {
+		_, ok := t.results[ev.Node]
+		return !ok
+	}
+	_, ok = t.Goals[ev.Node]
+	return !ok
+}
+
+// replayResult adds a Result the replay guards of run allow at its place in
+// the merge order. A Result refused by Stable is kept, marked, and counts for
+// nothing.
 func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardRun(*t, ev); err != nil {
+	if err := GuardRunAtReplay(*t, ev); err != nil {
 		refuse(ev, err)
 		return
 	}
@@ -754,16 +808,13 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 	g.refresh()
 }
 
-// replayRetract marks a Result retracted. Only the actor that ran it may
-// retract it (Own Result); a retract that names no Result is skipped.
+// replayRetract marks a Result retracted; a retract that names no Result is
+// skipped. Own Result reads the Result, which the trace holds, so the act
+// checks it and replay does not.
 func replayRetract(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 	r, ok := t.results[ev.Node]
 	if !ok {
 		refuse(ev, fault.Refuse(fault.NoGuard, fault.NoResultToRetract, ev.Node))
-		return
-	}
-	if r.Actor != ev.Actor {
-		refuse(ev, fault.Refuse(fault.GuardOwnResult, fault.NotOwnResult, r.ID, r.Actor, ev.Actor))
 		return
 	}
 	r.Retracted = true
@@ -773,6 +824,16 @@ func replayRetract(t *Tables, ev events.Event, refuse func(events.Event, error))
 			g.refresh()
 		}
 	}
+}
+
+// GuardOwnResult is the Own Result guard of a retract: only the actor that
+// ran a Result retracts it. It reads the Result, which the trace holds, so
+// replay does not check it; the retract act, not built, is to check it.
+func GuardOwnResult(r *Result, actor string) error {
+	if r.Actor != actor {
+		return fault.Refuse(fault.GuardOwnResult, fault.NotOwnResult, r.ID, r.Actor, actor)
+	}
+	return nil
 }
 
 func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error)) {
@@ -797,12 +858,13 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 	}
 }
 
-// replaySelect applies a select the table guards allow at its place in the
-// merge order: not Selected, the table half of Candidate, and Goal's actor for
-// an owner. The git half of Candidate, the leaf mark, and Spec and Own path
-// are trusted as written.
+// replaySelect applies a select the replay guards allow at its place in the
+// merge order: Not ended, not Selected, and Goal's actor for an owner, which
+// read only events stored in git. Candidate and New cell read the Results,
+// which the trace of the clone that ran them holds, and Spec and Own path
+// read the commit: they are trusted as written.
 func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardSelect(*t, ev); err != nil {
+	if err := GuardSelectAtReplay(*t, ev); err != nil {
 		refuse(ev, err)
 		return
 	}

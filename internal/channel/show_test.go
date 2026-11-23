@@ -241,13 +241,12 @@ func TestShowAcrossWorktrees(t *testing.T) {
 func TestShowKeepsReadsInTheLog(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
 	old := "what an earlier hyp printed\n"
-	hash, err := logstore.PutOutput(f.r.Dir, []byte(old))
-	if err != nil {
-		t.Fatal(err)
-	}
-	empty, err := logstore.PutOutput(f.r.Dir, nil)
-	if err != nil {
-		t.Fatal(err)
+	// an earlier hyp stored the outputs of a read under .tree/outputs/
+	hash, empty := logstore.Hash([]byte(old)), logstore.Hash(nil)
+	for name, body := range map[string]string{hash: old, empty: ""} {
+		if err := os.WriteFile(filepath.Join(logstore.OutputsDir(f.r.Dir), name), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	payload, _ := json.Marshal(events.Read{Role: "runner", Command: []string{"status"}, Stdout: hash, Stderr: empty})
 	// hyp no longer writes a read to the log (its kind is stored in the

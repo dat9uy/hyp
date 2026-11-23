@@ -97,6 +97,10 @@ func permits(cmd string, rest []string) bool {
 	case "diff-tree":
 		pos, ok := split(rest, "--name-only", "-r", "-z", "-c")
 		return ok && (len(pos) == 1 || len(pos) == 2) && noDash(pos)
+	case "for-each-ref":
+		// one fixed form: the first branch or tag that contains a commit
+		return len(rest) == 7 && slices.Equal(rest[:3], []string{"--count=1", "--format=%(refname)", "--contains"}) &&
+			noDash(rest[3:4]) && slices.Equal(rest[4:], []string{"refs/heads", "refs/remotes", "refs/tags"})
 	case "ls-files":
 		// one fixed form: the files of the checkout a commit of every
 		// change would hold

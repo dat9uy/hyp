@@ -1,5 +1,6 @@
 G-XXXXXX  selected  runs: 1 of 3 used
 stop: selected, by select <id> at <time>
+warning: the selected commit <hash> is on no branch or tag: git gc can delete it, and a clone of the branches and tags lacks it; push it to a branch or tag
 waits: owner
 owner may:
   hyp land G-XXXXXX

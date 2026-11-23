@@ -485,13 +485,15 @@ func statusCmd(c *call, args []string, stdout io.Writer) error {
 	return nil
 }
 
-// tryCmd runs one example as place and run would, and records nothing. It
-// is a read: it needs an actor, whose trace it leaves, checks no guard, and
-// prints its report and the Goal's state block.
+// tryCmd runs one example as place and run would, and records no event in
+// git. It is a read: it needs an actor, whose trace it leaves, checks no
+// guard, and prints its report and the Goal's state block. A cell the clone's
+// trace lacks it saves there.
 func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	fs := flag.NewFlagSet("try", flag.ContinueOnError)
 	var o acts.TryOpts
 	fs.BoolVar(&o.Worktree, "worktree", false, "")
+	fs.StringVar(&o.Commit, "commit", "", "")
 	positional, role, err := readFlagsWith(c, "try", args, fs)
 	if err != nil {
 		return err
@@ -499,7 +501,7 @@ func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	if len(positional) != 2 {
 		return fault.BadArg(codeTryArgs, len(positional))
 	}
-	o.Goal, o.Key, o.Dir = positional[0], positional[1], c.dir
+	o.Goal, o.Key, o.Dir, o.Actor = positional[0], positional[1], c.dir, c.actor
 	rep, err := acts.Try(o)
 	if err != nil {
 		return finishWith(stdout, stderr, c.dir, BlockOpts{Goal: o.Goal, Role: role}, "", err)
@@ -519,11 +521,11 @@ func showCmd(c *call, args []string, stdout io.Writer) error {
 	if !logstore.ValidActor(actor) {
 		return fault.BadArg(codeShowActor, actor)
 	}
-	t, root, err := readStore(c.dir)
+	_, root, err := readStore(c.dir)
 	if err != nil {
 		return err
 	}
-	reads, err := readsOf(root, actor, t)
+	reads, err := readsOf(root, actor)
 	if err != nil {
 		return err
 	}

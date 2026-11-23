@@ -93,6 +93,10 @@ func TestSelectMakesGoalSelected(t *testing.T) {
 	}
 }
 
+// TestReplaySelectGuardsAgain: replay checks again only the guards of a
+// select that read git: Not ended, Selected and Goal's actor. Candidate and
+// New cell read the Results of the trace, so a row that no Result of this
+// clone names, or that is not met here, is kept as the select act wrote it.
 func TestReplaySelectGuardsAgain(t *testing.T) {
 	base := func() []events.Event {
 		return []events.Event{goalAdd(t, id1, "", "w", gap), placeEv(t, idP1, "line-1", "a", hashA, "failed"), run(t, "r1", "met"), run(t, "r2", "failed")}
@@ -104,10 +108,10 @@ func TestReplaySelectGuardsAgain(t *testing.T) {
 	}{
 		{"owner of the Goal selects a met row", selectEv(t, "a", "owner", "commit-r1", "r1"), true},
 		{"runner selects a met row", selectEv(t, "x", "runner", "commit-r1", "r1"), true},
-		{"a row that is not met", selectEv(t, "a", "runner", "commit-r2", "r2"), false},
-		{"a row no Result names", selectEv(t, "a", "runner", "commit-r9", "r9"), false},
+		{"a row that is not met", selectEv(t, "a", "runner", "commit-r2", "r2"), true},
+		{"a row no Result names", selectEv(t, "a", "runner", "commit-r9", "r9"), true},
 		{"owner who did not add the Goal", selectEv(t, "other", "owner", "commit-r1", "r1"), false},
-		{"a role that selects nothing", selectEv(t, "a", "grill", "commit-r1", "r1"), false},
+		{"a role that selects nothing", selectEv(t, "a", "grill", "commit-r1", "r1"), true},
 	}
 	for _, c := range cases {
 		tb := Replay(append(base(), c.ev))

@@ -101,8 +101,8 @@ func GuardGoalActor(g *Goal, actor, role string) error {
 	return nil
 }
 
-// GuardSelect is the git-free check of a select event, called by Replay at the
-// event's place in the merge order: not Selected, the table half of Candidate
+// GuardSelect is the git-free check of a select event, called by the select
+// act under the lock: not Selected, the table half of Candidate
 // (the row is met on every line), New cell, and Goal's actor. The leaf mark reads git
 // and is trusted as written, as Leaf only is. ev.Node is the goal.add event
 // id.
@@ -128,6 +128,28 @@ func GuardSelect(t Tables, ev events.Event) error {
 		return fault.Refuse(fault.GuardCandidate, fault.RowNotMetOnGoal, p.RowTree, g.ID)
 	}
 	if err := GuardNewCell(g, p.Role); err != nil {
+		return err
+	}
+	return GuardGoalActor(g, ev.Actor, p.Role)
+}
+
+// GuardSelectAtReplay is the check of a select event that Replay makes at
+// the event's place in the merge order: Not ended, not Selected and Goal's
+// actor. Each reads only events stored in git, so every clone replays a
+// select the same, whatever its trace holds.
+func GuardSelectAtReplay(t Tables, ev events.Event) error {
+	var p events.Select
+	if err := events.Decode(ev, &p); err != nil {
+		return fault.Refuse(fault.GuardSelected, fault.PayloadInvalid, err)
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToSelect, GoalID(ev.Node))
+	}
+	if err := GuardNotEnded(g); err != nil {
+		return err
+	}
+	if err := GuardNotSelected(g); err != nil {
 		return err
 	}
 	return GuardGoalActor(g, ev.Actor, p.Role)

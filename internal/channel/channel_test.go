@@ -352,7 +352,7 @@ func TestHelpAndSpecShareEachEntry(t *testing.T) {
 		}
 	}
 	for _, k := range events.Kinds {
-		if !strings.Contains(out, "  "+k.Type+"  stored in "+k.Home+"  ") {
+		if !strings.Contains(out, "  "+k.Type+"  changes a Goal's state: "+yesNo(k.ChangesState)+"  stored in "+k.Home()+"  ") {
 			t.Errorf("hyp spec lacks where %s is stored", k.Type)
 		}
 	}

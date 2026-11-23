@@ -10,6 +10,7 @@ import (
 
 	"github.com/dat9uy/hyp"
 	"github.com/dat9uy/hyp/internal/acts"
+	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
@@ -79,6 +80,9 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 		fmt.Fprintf(b, "last run: after this, %s stops for the owner.\n", g.ID)
 	}
 	fmt.Fprintf(b, "stop: %s\n", stopText(st.Stop, st.Cause))
+	if w := unreachableWarning(g, repo); w != "" {
+		b.WriteString(w)
+	}
 	if g.Land != nil {
 		fmt.Fprintf(b, "landed: by %s, land %s at %s\n", g.Land.Actor, g.Land.ID, g.Land.Time)
 	}
@@ -127,6 +131,22 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	case st.Stop == acts.StopTwoCandidates || st.Stop == acts.StopBudgetUsed:
 		outputsTable(b, g, repo, st.Rows)
 	}
+}
+
+// unreachableWarning is the warning of a selected or landed Goal whose
+// selected commit this clone holds and no branch or tag holds: by its commit,
+// not its subject hash, so another commit with the same subject on a branch
+// does not keep it. git gc can delete such a commit, and a clone of the
+// branches and tags lacks it, so no one there can run its cells again.
+func unreachableWarning(g *tables.Goal, repo string) string {
+	if g.Select == nil || (g.State != tables.StateSelected && g.Land == nil) {
+		return ""
+	}
+	gone, err := gitread.OnNoRef(repo, g.Select.Commit)
+	if err != nil || !gone {
+		return ""
+	}
+	return fmt.Sprintf("warning: the selected commit %s is on no branch or tag: git gc can delete it, and a clone of the branches and tags lacks it; push it to a branch or tag\n", g.Select.Commit)
 }
 
 // probeWriter is the probe-writer block of a written or open Goal in
@@ -182,7 +202,7 @@ func orUnknown(hash string) string {
 // size, its hash and the start of its first line as the bytes are; the whole
 // output is the file of that hash.
 func outputsTable(b *strings.Builder, g *tables.Goal, repo string, rows []tables.Row) {
-	fmt.Fprintf(b, "outputs: each cell shows at most %d characters of the output's first line; all its bytes are in .tree/outputs/<hash>\n", maxCell)
+	fmt.Fprintf(b, "outputs: each cell shows at most %d characters of the output's first line; all its bytes are in this clone's trace, or in .tree/outputs/<hash> for a Result written before the trace\n", maxCell)
 	for _, row := range rows {
 		fmt.Fprintf(b, "  row %s\n", row.RowTree)
 		cells := g.LiveCells(row.RowTree)
@@ -193,7 +213,16 @@ func outputsTable(b *strings.Builder, g *tables.Goal, repo string, rows []tables
 				continue
 			}
 			c := cells[i]
-			fmt.Fprintf(b, "    %s  %s  exit %d  %s  %s\n", c.Key, c.Verdict, c.Exit, c.Output, cellText(repo, c.Output))
+			shown, ok := acts.CellOutputs(repo, g, c.Key, c.Hash, row.RowTree)
+			if !ok {
+				commit := ""
+				if len(row.Commits) > 0 {
+					commit = row.Commits[len(row.Commits)-1]
+				}
+				fmt.Fprintf(b, "    %s  %s  exit %d  %s\n", c.Key, c.Verdict, c.Exit, missingCell(g, c.Key, commit))
+				continue
+			}
+			fmt.Fprintf(b, "    %s  %s  exit %d  %s  %s\n", c.Key, c.Verdict, c.Exit, shown.Output, cellText(repo, shown.Output))
 		}
 	}
 }
@@ -240,6 +269,15 @@ func askText(repo string, g *tables.Goal) string {
 			fmt.Fprintf(&b, "\n### %s @%d\n\n", p.Key, p.Version)
 			fmt.Fprintf(&b, "hash: %s\nplaced: by %s at %s\n", p.Hash, p.Actor, p.Time)
 			fmt.Fprintf(&b, "verdict on H0 at place: %s, exit %d\n", p.H0.Verdict, p.H0.Exit)
+			if c, ok := acts.CellOutputs(repo, g, p.Key, p.Hash, g.BaseTree); ok {
+				label := "H0's output"
+				if c.Again {
+					label += ", run again in this clone"
+				}
+				fmt.Fprintf(&b, "%s: %s %s\n", label, c.Output, cellText(repo, c.Output))
+			} else {
+				fmt.Fprintf(&b, "H0's output: %s\n", missingCell(g, p.Key, ""))
+			}
 			data, err := acts.ExampleFile(repo, p.Hash)
 			if err != nil {
 				fmt.Fprintf(&b, "\nexample.txtar: not readable here: %s\n", bodyText(err, repo))

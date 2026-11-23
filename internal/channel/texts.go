@@ -62,6 +62,8 @@ var words = map[fault.Code]string{
 	fault.BaseNotHere:   "--base %s is not a commit of this repository",
 
 	// place
+	fault.TryWorktreeCommit:    "try takes --worktree or --commit, not both",
+	fault.TryNoCommit:          "%s is not a commit in this clone",
 	fault.BadExampleKey:        "%s is not LINE/EXAMPLE, for example line-1/a (an example name matches ^[a-z0-9][a-z0-9-]{0,39}$)",
 	fault.SetUnchanged:         "no example of %s changed since its last place; there is nothing to place",
 	fault.SetChangedWhileProbe: "the example set of %s changed while the Probes ran; place it again",

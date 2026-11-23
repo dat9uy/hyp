@@ -266,10 +266,31 @@ func GuardStable(g *Goal, line, rowTree string, cells []events.ExampleCell) erro
 	return fault.Refuse(fault.GuardStable, fault.OtherVerdict, g.ID, keys)
 }
 
-// GuardRun is the git-free check of a result.record event, called by Replay at
-// the event's place in the merge order: not Selected, Open, Budget and
-// Stable. The run act calls the same guards in spec order around the guards
-// that read git. A Result already marked refused by Stable is kept and
+// GuardRunAtReplay is the check of a result.record event that Replay makes
+// at the event's place in the merge order: Not ended, not Selected and Open,
+// which read only events stored in git. Budget and Stable read the Results
+// of the clone's trace, and the act alone checks them.
+func GuardRunAtReplay(t Tables, ev events.Event) error {
+	var p events.ResultRecord
+	if err := events.Decode(ev, &p); err != nil {
+		return fault.Refuse(fault.GuardStable, fault.PayloadInvalid, err)
+	}
+	g, ok := t.Goals[ev.Node]
+	if !ok {
+		return fault.Refuse(fault.NoGuard, fault.NoGoalToRun, GoalID(ev.Node))
+	}
+	if err := GuardNotEnded(g); err != nil {
+		return err
+	}
+	if err := GuardNotSelected(g); err != nil {
+		return err
+	}
+	return GuardOpen(g, p.RowTree, p.Line)
+}
+
+// GuardRun is the git-free check of a result.record event, called by the run
+// act under the lock: not Selected, Open, Budget and Stable. The run act
+// calls the same guards in spec order around the guards that read git. A Result already marked refused by Stable is kept and
 // counts for nothing, so it passes Stable. ev.Node is the goal.add event id.
 func GuardRun(t Tables, ev events.Event) error {
 	var p events.ResultRecord

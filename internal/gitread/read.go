@@ -57,6 +57,23 @@ func HasCommit(dir, rev string) (bool, error) {
 	return code == 0, nil
 }
 
+// OnNoRef reports whether commit is a commit this clone holds that no branch
+// or tag holds: no ref under refs/heads, refs/remotes or refs/tags contains
+// it. Such a commit is kept only until git gc, and a clone of the branches
+// and tags lacks it. A commit this clone lacks is not reported: there is
+// nothing here to warn about.
+func OnNoRef(dir, commit string) (bool, error) {
+	if ok, err := HasCommit(dir, commit); err != nil || !ok {
+		return false, err
+	}
+	out, err := Git(dir, "for-each-ref", "--count=1", "--format=%(refname)", "--contains", commit,
+		"refs/heads", "refs/remotes", "refs/tags")
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(string(out)) == "", nil
+}
+
 // IsAncestor reports whether a is an ancestor of b, or b itself. A commit
 // the clone lacks is an environment error.
 func IsAncestor(dir, a, b string) (bool, error) {

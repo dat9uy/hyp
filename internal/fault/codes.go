@@ -22,6 +22,10 @@ const (
 	BaseNotCommit Code = "base-not-commit" // base
 	BaseNotHere   Code = "base-not-here"   // base
 
+	// try
+	TryWorktreeCommit Code = "try-worktree-commit" // no values
+	TryNoCommit       Code = "try-no-commit"       // commit
+
 	// place
 	BadExampleKey        Code = "bad-example-key"         // key
 	SetNotPlaced         Code = "set-not-placed"          // acts.SetFacts
