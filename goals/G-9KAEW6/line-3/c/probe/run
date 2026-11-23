@@ -6,7 +6,7 @@
 # clone that placed, and prints its stdout with the Goal id replaced by G. It
 # then looks in that clone's trace,
 # $HOME/.hyp/traces/<sha256 of the clone's git common dir>/outputs, for a file
-# that holds exactly the bytes of the fixture example's H0 stdout. The last
+# that holds exactly the bytes hyp stores for the fixture example's H0 output. The last
 # line is "exit N", the exit code of the run section. Setup output goes to
 # stderr. A build or store failure exits 3.
 
@@ -77,8 +77,9 @@ code=$?
 sed "s/$G/G/g" "$out"
 if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
 
-# The fixture's H0 stdout: what the generic Probe prints for `cat greet.txt`.
-printf 'hello\nexit 0\n' >"$work/expected"
+# The fixture's H0 output as hyp stores it: the generic Probe prints
+# "hello\nexit 0\n"; hyp drops the last line "exit N" and one final newline.
+printf 'hello' >"$work/expected"
 
 common=$(cd "$(git rev-parse --path-format=absolute --git-common-dir)" && pwd -P) ||
   fail "git common dir"
