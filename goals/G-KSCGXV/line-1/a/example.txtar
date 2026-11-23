@@ -10,3 +10,5 @@ each example names the select: yes
 hyp try line: no
 -- floor: contains --
 output block: no
+-- ceiling --
+not in this clone's trace
