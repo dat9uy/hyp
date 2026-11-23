@@ -1,0 +1,67 @@
+setup: hyp place
+placed G-PV3JK6: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-PV3JK6 is open
+G-PV3JK6  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-PV3JK6
+grill may:
+  hyp place G-PV3JK6
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-PV3JK6/line-1
+setup: hyp run
+ran G-PV3JK6 line-1 at dd584bff9de154ce29bba213b455d3dd46878b16
+row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-PV3JK6  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-PV3JK6 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp close G-PV3JK6
+grill may:
+  hyp place G-PV3JK6
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-PV3JK6 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-PV3JK6/line-1
+setup: hyp select
+# G-PV3JK6: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: dd584bff9de154ce29bba213b455d3dd46878b16
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-PV3JK6  selected  runs: 1 of 3 used
+stop: selected, by select 01M83CX7PG2W8Q3PM1JHT4MD5A at 2026-11-23T05:08:54.096725Z
+waits: owner
+owner may:
+  hyp land G-PV3JK6
+  hyp unselect G-PV3JK6
+  hyp close G-PV3JK6
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+Deleted branch cand (was 9003093).
+setup: run: hyp status G-PV3JK6

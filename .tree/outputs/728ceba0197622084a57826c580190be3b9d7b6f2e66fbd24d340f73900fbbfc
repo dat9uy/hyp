@@ -1,0 +1,50 @@
+placed G-4YH0DR: 2 examples
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+line-2/a @1  hash: 3383e027eacb56bb5561ecc23f9f12948fb8b8a8  H0: met (exit 0)
+G-4YH0DR is open
+G-4YH0DR  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-4YH0DR
+grill may:
+  hyp place G-4YH0DR
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-4YH0DR/line-1
+  hyp run <commit> G-4YH0DR/line-2
+ran G-4YH0DR line-1 at b29bd14de51549f6348f5965f907a6456c8ae0fc
+row: 67292a93e90b6ee25786e36b0abb671ae2865c86
+line-1/a met (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: Fixture line-1/a.
+G-4YH0DR  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-4YH0DR
+grill may:
+  hyp place G-4YH0DR
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-4YH0DR/line-1
+  hyp run <commit> G-4YH0DR/line-2
+ran G-4YH0DR line-2 at b29bd14de51549f6348f5965f907a6456c8ae0fc
+row: 67292a93e90b6ee25786e36b0abb671ae2865c86
+line-2/a met (exit 0, output 6ca7ea2feefc88ecb5ed6356ed963f47dc9137f82526fdd25d618ea626d0803f)
+  words: Fixture line-2/a.
+G-4YH0DR  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp select G-4YH0DR 67292a93e90b6ee25786e36b0abb671ae2865c86
+  hyp close G-4YH0DR
+grill may:
+  hyp place G-4YH0DR
+probe-writer may:
+  (none)
+runner may:
+  hyp select G-4YH0DR 67292a93e90b6ee25786e36b0abb671ae2865c86
+  hyp run <commit> G-4YH0DR/line-1
+  hyp run <commit> G-4YH0DR/line-2

@@ -1,0 +1,8 @@
+-- words --
+A try in clone B gives a different verdict from the one git holds, and `hyp status G` prints both verdicts and a warning that the example gave two verdicts.
+-- run --
+hyp status G
+-- floor: contains --
+two verdicts
+-- floor: contains --
+in this clone: met

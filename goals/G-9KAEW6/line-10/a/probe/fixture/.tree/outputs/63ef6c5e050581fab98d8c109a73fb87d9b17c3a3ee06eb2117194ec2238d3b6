@@ -1,0 +1,15 @@
+setup: hyp place G-H1WJDB
+placed G-H1WJDB: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-H1WJDB is open
+G-H1WJDB  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-H1WJDB
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-H1WJDB/line-1

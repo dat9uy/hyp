@@ -1,0 +1,5 @@
+unselect line: none
+unselect exit: none
+state after unselect: selected
+owner's select of the old row exit: 1
+Results in the log: 1

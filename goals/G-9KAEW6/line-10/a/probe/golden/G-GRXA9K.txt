@@ -1,0 +1,524 @@
+G-GRXA9K  ended  runs: 1 of 3 used
+stop: selected, by select 01M7Z1JKJTSZKA3M3FRTH2H1N8 at 2026-11-21T12:33:53.754858Z
+landed: by owner, land 01M7Z38YEKTTACTWF89E00FV3X at 2026-11-21T13:03:34.355944Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-GRXA9K: hyp prints the Probe writer's contract, so an agent asked to write an example's Probe follows one stated rule instead of guessing.
+
+## line-1 (gap): While a Goal is written or open, hyp status G and hyp status G --role probe-writer print in the probe-writer block the Probe writer's contract, the generic Probe, and one task for each line of the Goal. The contract says: read the line, its example and H0; write and commit only that example's probe folder; start from the generic Probe and write new code only when it cannot run the example; run the example on H0 with hyp try and return its output; write no event.
+
+### line-1/a: (example 437e2fdbc6c980d4304f8aee9c5580c3a65c1ebe is not readable here: object 437e2fdbc6c980d4304f8aee9c5580c3a65c1ebe not in this clone)
+
+verdict: met, exit 0
+
+output, 705 bytes:
+
+```
+== status G
+contract, reads the line, its example and H0: yes
+contract, writes and commits only the probe folder: yes
+contract, starts from the generic Probe: yes
+contract, runs hyp try on H0 and returns its output: yes
+contract, writes no event: yes
+generic Probe printed: yes
+task for line-1: yes
+task for line-2: yes
+write act in block: no
+== status G --role probe-writer
+contract, reads the line, its example and H0: yes
+contract, writes and commits only the probe folder: yes
+contract, starts from the generic Probe: yes
+contract, runs hyp try on H0 and returns its output: yes
+contract, writes no event: yes
+generic Probe printed: yes
+task for line-1: yes
+task for line-2: yes
+write act in block: no
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example ba20fff5f0c3e1b54b6d2f1587baac09968800b9 is not readable here: object ba20fff5f0c3e1b54b6d2f1587baac09968800b9 not in this clone)
+
+verdict: met, exit 0
+
+output, 705 bytes:
+
+```
+== status G
+contract, reads the line, its example and H0: yes
+contract, writes and commits only the probe folder: yes
+contract, starts from the generic Probe: yes
+contract, runs hyp try on H0 and returns its output: yes
+contract, writes no event: yes
+generic Probe printed: yes
+task for line-1: yes
+task for line-2: yes
+write act in block: no
+== status G --role probe-writer
+contract, reads the line, its example and H0: yes
+contract, writes and commits only the probe folder: yes
+contract, starts from the generic Probe: yes
+contract, runs hyp try on H0 and returns its output: yes
+contract, writes no event: yes
+generic Probe printed: yes
+task for line-1: yes
+task for line-2: yes
+write act in block: no
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): What hyp status prints for the owner, the grill and the runner, what hyp status with no Goal prints, and the probe-writer block of a selected or landed Goal stay as they are.
+
+### line-2/a: (example 4a16918d33da1af87693f877c7c7e09b152677b3 is not readable here: object 4a16918d33da1af87693f877c7c7e09b152677b3 not in this clone)
+
+verdict: met, exit 0
+
+output, 4205 bytes:
+
+````
+== written, status G
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-ID --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+probe-writer may:
+runner may:
+  (none)
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== written, status G --role owner
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-ID --base <commit> --words <words> --line <kind>:<text>
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== written, status G --role grill
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== written, status G --role runner
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+runner may:
+  (none)
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+no example placed
+
+## line-2 (guard): greet.txt says hello.
+
+no example placed
+== open, status G
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+probe-writer may:
+runner may:
+  hyp run <commit> G-ID/line-1
+  hyp run <commit> G-ID/line-2
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```
+== open, status G --role owner
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```
+== open, status G --role grill
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```
+== open, status G --role runner
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+runner may:
+  hyp run <commit> G-ID/line-1
+  hyp run <commit> G-ID/line-2
+
+The Goal asks:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 74 bytes:
+
+```
+|-- words --
+a.txt says bye.
+|-- run --
+cat a.txt
+|-- floor: contains --
+bye
+```
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a @1
+
+hash: HASH
+placed: by grill at TIME
+verdict on H0 at place: met, exit 0
+
+example.txtar, 86 bytes:
+
+```
+|-- words --
+greet.txt says hello.
+|-- run --
+cat greet.txt
+|-- floor: contains --
+hello
+```
+````
+
+stderr, 0 bytes
+
+### line-2/b: (example 32694318537a6efd31192927476b3c4670d721bc is not readable here: object 32694318537a6efd31192927476b3c4670d721bc not in this clone)
+
+verdict: met, exit 0
+
+output, 566 bytes:
+
+```
+== status, with one written and one open Goal
+G-ID  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-ID --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+G-ID  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-ID line-1/<example>
+  hyp place G-ID line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-ID/line-1
+  hyp run <commit> G-ID/line-2
+```
+
+stderr, 0 bytes
+
+### line-2/c: (example fba082fa57f187218a0aaed51cf6969d06e4e695 is not readable here: object fba082fa57f187218a0aaed51cf6969d06e4e695 not in this clone)
+
+verdict: met, exit 0
+
+output, 1179 bytes:
+
+````
+== selected, status G
+G-ID  selected  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+waits: owner
+owner may:
+  hyp land G-ID
+  hyp unselect G-ID
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a: a.txt says bye.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a: greet.txt says hello.
+
+verdict: met, exit 0
+
+output, 5 bytes:
+
+```
+hello
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+== landed, status G
+G-ID  landed  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+landed: by owner, land ULID at TIME
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-ID: Say bye in a.txt.
+
+## line-1 (gap): a.txt says bye.
+
+### line-1/a: a.txt says bye.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): greet.txt says hello.
+
+### line-2/a: greet.txt says hello.
+
+verdict: met, exit 0
+
+output, 5 bytes:
+
+```
+hello
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+````
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z e272aaf5d997a4eb6bba6763055eb2b738db5dcf goals/G-GRXA9K/specs/: exit 128: fatal: not a tree object
+
+selected commit: e272aaf5d997a4eb6bba6763055eb2b738db5dcf
+selected row: 0f953acf01280c17e1b23e8813612853fbc10c7f

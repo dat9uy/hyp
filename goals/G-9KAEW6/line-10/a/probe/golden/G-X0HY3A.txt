@@ -1,0 +1,394 @@
+G-X0HY3A  ended  runs: 1 of 3 used
+stop: selected, by select 01M7YSM3516271QZQY2CJ7AZ0X at 2026-11-21T10:14:53.857252Z
+landed: by owner, land 01M7YSVGHD8YY8JGN81XTN85JM at 2026-11-21T10:18:56.941279Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-X0HY3A: Every agent reads from hyp what a written or open Goal asks, and the grill reads what a cited Goal decided, so no agent reads a Goal from the store by hand.
+
+## line-1 (gap): While a Goal is written or open, `hyp status G`, with or without `--role`, prints the Goal's words, each line's key and text, and for each placed example its key, words, run, floors, ceilings and its verdict on H0 at place.
+
+### line-1/a: (example 0c76bad8ca9b20d4321a43497696b4d0d9f578ac is not readable here: object 0c76bad8ca9b20d4321a43497696b4d0d9f578ac not in this clone)
+
+verdict: met, exit 0
+
+output, 519 bytes:
+
+```
+no example, hyp status G: missing nothing
+no example, hyp status G --role owner: missing nothing
+no example, hyp status G --role grill: missing nothing
+no example, hyp status G --role probe-writer: missing nothing
+no example, hyp status G --role runner: missing nothing
+placed, hyp status G: missing nothing
+placed, hyp status G --role owner: missing nothing
+placed, hyp status G --role grill: missing nothing
+placed, hyp status G --role probe-writer: missing nothing
+placed, hyp status G --role runner: missing nothing
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example 6b7b61f46c04ad6d19969428d66aca1a4086f316 is not readable here: object 6b7b61f46c04ad6d19969428d66aca1a4086f316 not in this clone)
+
+verdict: met, exit 0
+
+output, 239 bytes:
+
+```
+open, hyp status G: missing nothing
+open, hyp status G --role owner: missing nothing
+open, hyp status G --role grill: missing nothing
+open, hyp status G --role probe-writer: missing nothing
+open, hyp status G --role runner: missing nothing
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): `hyp status` for every Goal, the return of every act that writes, and `hyp status G` of a selected or landed Goal print what they print on H0.
+
+### line-2/a: (example 32e7aaf9ac8d630b439e948085c063b28730d883 is not readable here: object 32e7aaf9ac8d630b439e948085c063b28730d883 not in this clone)
+
+verdict: met, exit 0
+
+output, 1692 bytes:
+
+```
+== add goal returns
+recorded G
+words: mark-goal-words
+H0: HASH
+line-1 gap: mark-line-one
+line-2 guard: mark-line-two
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+== place line-1/a returns, Goal written
+placed G line-1/a @1
+hash: HASH
+H0: failed (exit 0)
+G is written
+G  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+== place line-2/a returns, Goal open
+placed G line-2/a @1
+hash: HASH
+H0: met (exit 0)
+G is open
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+== run H0 on line-1 returns
+ran G line-1 at HASH
+row: HASH
+line-1/a failed (exit 0, output HASH)
+  words: mark-example-one
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+== hyp status, every Goal
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G line-1/<example>
+  hyp place G line-2/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+  hyp run <commit> G/line-2
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example 5a1b9f7b71536b6d8d8b8388563310ab20756e41 is not readable here: object 5a1b9f7b71536b6d8d8b8388563310ab20756e41 not in this clone)
+
+verdict: met, exit 0
+
+output, 2608 bytes:
+
+````
+== select returns
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+G  selected  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+== hyp status G, selected
+G  selected  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+== land returns
+landed G
+stop: selected, by select ULID at TIME
+G  landed  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+landed: by owner, land ULID at TIME
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+== hyp status G, landed
+G  landed  runs: 1 of 3 used
+stop: selected, by select ULID at TIME
+landed: by owner, land ULID at TIME
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: mark-goal-words
+
+## line-1 (gap): mark-line-one
+
+### line-1/a: mark-example-one
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-one
+```
+
+stderr, 0 bytes
+
+## line-2 (guard): mark-line-two
+
+### line-2/a: mark-example-two
+
+verdict: met, exit 0
+
+output, 42 bytes:
+
+```
+mark-floor-two
+mark-floor-one
+mark-run-two
+```
+
+stderr, 0 bytes
+
+selected commit: HASH
+selected row: HASH
+````
+
+stderr, 0 bytes
+
+## line-3 (gap): When the Goal the grill drafts will cite a landed Goal with `--from`, the grill skill tells the grill to read `hyp status` of that Goal before it drafts the words and lines.
+
+### line-3/a: (example 14d652b52ddef943ccc6935c3ea5ca4dfbc9b2a5 is not readable here: object 14d652b52ddef943ccc6935c3ea5ca4dfbc9b2a5 not in this clone)
+
+verdict: met, exit 0
+
+output, 123 bytes:
+
+```
+step that names --from and hyp status: yes
+step that drafts the words and lines: yes
+the first comes before the second: yes
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z f2ebb83039d9e7bdfbd4dae65c2958b45d5b8969 goals/G-X0HY3A/specs/: exit 128: fatal: not a tree object
+
+selected commit: f2ebb83039d9e7bdfbd4dae65c2958b45d5b8969
+selected row: 58040898eb22653d25e7f48f8899ee4df9cb92fd

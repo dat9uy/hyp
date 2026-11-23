@@ -1,0 +1,136 @@
+setup: hyp place G-4GA34G
+placed G-4GA34G: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-4GA34G is open
+G-4GA34G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-4GA34G
+grill may:
+  hyp place G-4GA34G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-4GA34G/line-1
+setup: hyp run h1
+ran G-4GA34G line-1 at 1f13713e3134969b2f890937d6cfb871006a54fc
+row: f25f7d6961b7994719453731d4c18dc511f7c5ba
+line-1/a failed (exit 0, output fc8edc701a9a956acf1c36513aabc5d3cc66b92c152ae5d29f43020cc1373c80)
+  words: Fixture line-1/a.
+G-4GA34G  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-4GA34G
+grill may:
+  hyp place G-4GA34G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-4GA34G/line-1
+setup: hyp run h2
+ran G-4GA34G line-1 at 9bc7ec6f7cdd91d4af437b30485d937bdf38f900
+row: 44bde39cffcfdfd20912fe1ad7f6bd3710fe31cd
+line-1/a failed (exit 0, output 0251f1ec2880f67631b8d0b3a62cf71a17dfa31858a323e7fc38068fcfaeded0)
+  words: Fixture line-1/a.
+G-4GA34G  open  runs: 2 of 3 used
+last run: after this, G-4GA34G stops for the owner.
+stop: none
+waits: none
+owner may:
+  hyp close G-4GA34G
+grill may:
+  hyp place G-4GA34G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-4GA34G/line-1
+setup: hyp run h3
+ran G-4GA34G line-1 at 75e425f39312e00a0aac04442146c42e6b7b1ab4
+row: 81a4156c10f95ca56331b91091becaa9af5a06ec
+line-1/a failed (exit 0, output 802fdef3d884e0f4789cea870d6a040100488be1be13e9957b6ac53b191ab621)
+  words: Fixture line-1/a.
+G-4GA34G  open  runs: 3 of 3 used
+stop: budget used, by run 01M83CWRSPSSZQERDBEVS8PHX9 at 2026-11-23T05:08:38.838198Z
+waits: owner
+owner may:
+  hyp land G-4GA34G
+  hyp close G-4GA34G
+grill may:
+  hyp place G-4GA34G
+probe-writer may:
+  (none)
+runner may:
+  (none)
+outputs: each cell shows at most 60 characters of the output's first line; all its bytes are in .tree/outputs/<hash>
+  row 56ef077a153a22a552fb32288831d723bbc3e26c
+    line-1/a  failed  exit 0  2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824  5 bytes: hello
+  row f25f7d6961b7994719453731d4c18dc511f7c5ba
+    line-1/a  failed  exit 0  fc8edc701a9a956acf1c36513aabc5d3cc66b92c152ae5d29f43020cc1373c80  3 bytes: hi1
+  row 44bde39cffcfdfd20912fe1ad7f6bd3710fe31cd
+    line-1/a  failed  exit 0  0251f1ec2880f67631b8d0b3a62cf71a17dfa31858a323e7fc38068fcfaeded0  3 bytes: hi2
+  row 81a4156c10f95ca56331b91091becaa9af5a06ec
+    line-1/a  failed  exit 0  802fdef3d884e0f4789cea870d6a040100488be1be13e9957b6ac53b191ab621  3 bytes: hi3
+G-4GA34G  open  runs: 3 of 3 used
+stop: budget used, by run 01M83CWRSPSSZQERDBEVS8PHX9 at 2026-11-23T05:08:38.838198Z
+waits: owner
+owner may:
+  hyp land G-4GA34G
+  hyp close G-4GA34G
+grill may:
+  hyp place G-4GA34G
+probe-writer may:
+  the Probe writer's contract, for the Probe of one example:
+    1. Read the line, its example and H0.
+    2. Write and commit only that example's probe folder, goals/G-4GA34G/<line>/<example>/probe.
+    3. Start from the generic Probe and write new code only when it cannot run the example.
+    4. Run the example on H0 with hyp try and return its output.
+    5. Write no event.
+  the generic Probe, probe/run:
+    #!/bin/sh
+    # Run the example's run section in the subject copy (the working directory),
+    # print its stdout, then a last line "exit N" with its exit code.
+    tmp=$(mktemp) || exit 1
+    sh -c "$HYP_RUN" >"$tmp"
+    code=$?
+    cat "$tmp"
+    if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+    echo "exit $code"
+    rm -f "$tmp"
+  tasks, one for each line:
+    line-1 (gap): the Probe of each example of line-1; check it with: hyp try G-4GA34G line-1/<example>
+runner may:
+  (none)
+
+The Goal asks:
+
+# G-4GA34G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a @1
+
+hash: 937b45521e7120ee8cf7873010735f86ba922963
+placed: by grill at 2026-11-23T05:08:36.79148Z
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 80 bytes:
+
+```
+-- words --
+Fixture line-1/a.
+-- run --
+cat greet.txt
+-- floor: contains --
+bye
+```
+outputs: each cell shows at most 60 characters of the output's first line; all its bytes are in .tree/outputs/<hash>
+  row 56ef077a153a22a552fb32288831d723bbc3e26c
+    line-1/a  failed  exit 0  2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824  5 bytes: hello
+  row f25f7d6961b7994719453731d4c18dc511f7c5ba
+    line-1/a  failed  exit 0  fc8edc701a9a956acf1c36513aabc5d3cc66b92c152ae5d29f43020cc1373c80  3 bytes: hi1
+  row 44bde39cffcfdfd20912fe1ad7f6bd3710fe31cd
+    line-1/a  failed  exit 0  0251f1ec2880f67631b8d0b3a62cf71a17dfa31858a323e7fc38068fcfaeded0  3 bytes: hi2
+  row 81a4156c10f95ca56331b91091becaa9af5a06ec
+    line-1/a  failed  exit 0  802fdef3d884e0f4789cea870d6a040100488be1be13e9957b6ac53b191ab621  3 bytes: hi3

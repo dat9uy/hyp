@@ -1,0 +1,13 @@
+hyp: refused: Stop: G has no stop; the owner lands a Goal once it is selected, has two candidates or has used its budget
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+land exit 1

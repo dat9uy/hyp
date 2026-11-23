@@ -1,0 +1,8 @@
+-- words --
+`hyp spec` prints a "changes a Goal's state" field for every event kind.
+-- run --
+hyp spec
+-- floor: contains --
+every event kind says whether it changes a Goal's state
+-- ceiling --
+an event kind says nothing

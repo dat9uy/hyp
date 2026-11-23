@@ -1,0 +1,6 @@
+-- words --
+The warning still appears when another commit with the same subject hash is on a branch.
+-- run --
+hyp status G
+-- floor: contains --
+on no branch or tag

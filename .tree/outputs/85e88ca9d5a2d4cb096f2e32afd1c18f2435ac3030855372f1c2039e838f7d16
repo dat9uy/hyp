@@ -1,0 +1,13 @@
+G  selected  runs: 1 of 3 used
+stop: selected, by select 01M83CXAWN5KQXEM1H74148WFM at 2026-11-23T05:08:57.365137Z
+waits: owner
+owner may:
+  hyp land G
+  hyp unselect G
+  hyp close G
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)

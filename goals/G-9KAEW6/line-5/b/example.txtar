@@ -1,0 +1,8 @@
+-- words --
+The same for H0's cell of an open Goal.
+-- run --
+hyp status G
+-- floor: contains --
+not in this clone's trace
+-- floor: contains --
+hyp try G line-1/a

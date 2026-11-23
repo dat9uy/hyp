@@ -1,0 +1,22 @@
+-- words --
+`hyp spec` says for every event kind whether it changes a Goal's state, and lists no event kind that the base does not list.
+-- run --
+hyp spec
+-- input/base-kinds.txt --
+goal.add
+example.place
+examples.place
+result.record
+result.retract
+select
+budget.reset
+land
+close
+unselect
+read
+-- floor: contains --
+every event kind says whether it changes a Goal's state
+-- floor: contains --
+every event kind is on the base
+-- ceiling --
+is not on the base

@@ -1,0 +1,832 @@
+G-GF11ED  ended  runs: 1 of 3 used
+stop: selected, by select 01M834DGXT1FTWD7XMDBNY1RRF at 2026-11-23T02:40:30.650481Z
+landed: by owner, land 01M834VPVPJ6ZP552FVGV6VNQB at 2026-11-23T02:48:15.478506Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-GF11ED: The owner ends a Goal with land or close, and an ended Goal holds exactly what it held when the owner ended it, in every clone.
+
+## line-1 (gap): The owner closes a Goal that is not ended with one act hyp status prints, and status then shows it `ended` with a line naming the close, its actor and time; a close by another role or actor is refused.
+
+### line-1/a: (example 04a2db4d219571833a7f081a52d7205e340dec46 is not readable here: object 04a2db4d219571833a7f081a52d7205e340dec46 not in this clone)
+
+verdict: met, exit 0
+
+output, 241 bytes:
+
+```
+closed G
+G  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M834C9HER6QW1P3NGDAM127Z at 2026-11-23T02:39:50.31895Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+close exit 0
+```
+
+stderr, 346 bytes:
+
+```
+setup: hyp place G-NQ78ZF
+placed G-NQ78ZF: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-NQ78ZF is open
+G-NQ78ZF  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-NQ78ZF
+grill may:
+  hyp place G-NQ78ZF
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-NQ78ZF/line-1
+```
+
+### line-1/b: (example 23601d237391993801796c56f315030b1fdab646 is not readable here: object 23601d237391993801796c56f315030b1fdab646 not in this clone)
+
+verdict: met, exit 0
+
+output, 1741 bytes:
+
+````
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+runner close exit 1
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+other actor close exit 1
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+grill may:
+  hyp place G
+probe-writer may:
+  the Probe writer's contract, for the Probe of one example:
+    1. Read the line, its example and H0.
+    2. Write and commit only that example's probe folder, goals/G/<line>/<example>/probe.
+    3. Start from the generic Probe and write new code only when it cannot run the example.
+    4. Run the example on H0 with hyp try and return its output.
+    5. Write no event.
+  the generic Probe, probe/run:
+    #!/bin/sh
+    # Run the example's run section in the subject copy (the working directory),
+    # print its stdout, then a last line "exit N" with its exit code.
+    tmp=$(mktemp) || exit 1
+    sh -c "$HYP_RUN" >"$tmp"
+    code=$?
+    cat "$tmp"
+    if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+    echo "exit $code"
+    rm -f "$tmp"
+  tasks, one for each line:
+    line-1 (gap): the Probe of each example of line-1; check it with: hyp try G line-1/<example>
+runner may:
+  hyp run <commit> G/line-1
+
+The Goal asks:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a @1
+
+hash: 937b45521e7120ee8cf7873010735f86ba922963
+placed: by grill at 2026-11-23T02:39:52.452189Z
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 80 bytes:
+
+```
+-- words --
+Fixture line-1/a.
+-- run --
+cat greet.txt
+-- floor: contains --
+bye
+```
+````
+
+stderr, 528 bytes:
+
+```
+setup: hyp place G-Q3YWPT
+placed G-Q3YWPT: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-Q3YWPT is open
+G-Q3YWPT  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-Q3YWPT
+grill may:
+  hyp place G-Q3YWPT
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-Q3YWPT/line-1
+hyp: refused: Owner closes: only the owner closes a Goal; the role is runner
+hyp: refused: Goal's actor: G-Q3YWPT was added by owner, not someone; only that actor acts for the owner
+```
+
+### line-1/c: (example e4b9f2893de53d56c2daa6cfb7ea15897bca6c45 is not readable here: object e4b9f2893de53d56c2daa6cfb7ea15897bca6c45 not in this clone)
+
+verdict: met, exit 0
+
+output, 410 bytes:
+
+````
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+
+The Goal asks:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a @1
+
+hash: 937b45521e7120ee8cf7873010735f86ba922963
+placed: by grill at 2026-11-23T02:39:54.638895Z
+verdict on H0 at place: failed, exit 0
+
+example.txtar, 80 bytes:
+
+```
+-- words --
+Fixture line-1/a.
+-- run --
+cat greet.txt
+-- floor: contains --
+bye
+```
+````
+
+stderr, 346 bytes:
+
+```
+setup: hyp place G-XGRM6Z
+placed G-XGRM6Z: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-XGRM6Z is open
+G-XGRM6Z  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-XGRM6Z
+grill may:
+  hyp place G-XGRM6Z
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-XGRM6Z/line-1
+```
+
+## line-2 (gap): A landed Goal shows `ended`, with a line naming the land.
+
+### line-2/a: (example b6dca411a4078328ab8e9397ea8c2c503bf41ff5 is not readable here: object b6dca411a4078328ab8e9397ea8c2c503bf41ff5 not in this clone)
+
+verdict: met, exit 0
+
+output, 677 bytes:
+
+````
+landed G
+stop: selected, by select 01M834CHDWJ8R2CBDDWXQ61M69 at 2026-11-23T02:39:58.396409Z
+G  ended  runs: 1 of 3 used
+stop: selected, by select 01M834CHDWJ8R2CBDDWXQ61M69 at 2026-11-23T02:39:58.396409Z
+landed: by owner, land 01M834CHQC6WNEAR8MT4KGXK6S at 2026-11-23T02:39:58.700794Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: f01c97aeb76995628686a1a8c608529ebe6ced57
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+land exit 0
+````
+
+stderr, 969 bytes:
+
+````
+setup: hyp place G-26WE1W
+placed G-26WE1W: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-26WE1W is open
+G-26WE1W  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-26WE1W
+grill may:
+  hyp place G-26WE1W
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-26WE1W/line-1
+setup: hyp select G-26WE1W 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-26WE1W: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: f01c97aeb76995628686a1a8c608529ebe6ced57
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-26WE1W  selected  runs: 1 of 3 used
+stop: selected, by select 01M834CHDWJ8R2CBDDWXQ61M69 at 2026-11-23T02:39:58.396409Z
+waits: owner
+owner may:
+  hyp land G-26WE1W
+  hyp unselect G-26WE1W
+  hyp close G-26WE1W
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+````
+
+## line-3 (gap): After a land or close, a Result or select written in another clone before it that the end does not name is refused at replay and listed under 'refused at replay', so the ended Goal's rows and verdicts are those the owner saw.
+
+### line-3/a: (example 797f83c57b8bdb6f4746f222f84754569121406d is not readable here: object 797f83c57b8bdb6f4746f222f84754569121406d not in this clone)
+
+verdict: met, exit 0
+
+output, 469 bytes:
+
+```
+G  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M834CNR3ZB1MDS011PP1ZRRE at 2026-11-23T02:40:02.819919Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+refused at replay:
+  01M834CMHJX4Q1ZE9RJPBG4C83: Not ended: the end of G, 01M834CNR3ZB1MDS011PP1ZRRE, does not name this event: it was written in another clone before the end and reached this log after it, so the ended Goal keeps what the owner saw
+```
+
+stderr, 1191 bytes:
+
+```
+setup: hyp place G-BM9FE9
+placed G-BM9FE9: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-BM9FE9 is open
+G-BM9FE9  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-BM9FE9
+grill may:
+  hyp place G-BM9FE9
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-BM9FE9/line-1
+setup: exit 0
+setup: hyp run 3a3c7b1406dda9c3805fb0880e099f928d433ca5 G-BM9FE9/line-1
+ran G-BM9FE9 line-1 at 3a3c7b1406dda9c3805fb0880e099f928d433ca5
+row: 3ed5c9c24799a0de11bff1c23d519c92ae626c02
+line-1/a failed (exit 0, output 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824)
+  words: Fixture line-1/a.
+G-BM9FE9  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-BM9FE9
+grill may:
+  hyp place G-BM9FE9
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-BM9FE9/line-1
+setup: exit 0
+setup: hyp close G-BM9FE9 --why done
+closed G-BM9FE9
+G-BM9FE9  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M834CNR3ZB1MDS011PP1ZRRE at 2026-11-23T02:40:02.819919Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+setup: merge exit 0
+```
+
+### line-3/b: (example a9a0ecff1db93683a406749f50069e127c1381fa is not readable here: object a9a0ecff1db93683a406749f50069e127c1381fa not in this clone)
+
+verdict: met, exit 0
+
+output, 820 bytes:
+
+````
+G  ended  runs: 1 of 3 used
+stop: selected, by select 01M834CSX4FM5NM3JJDMCJTXBK at 2026-11-23T02:40:07.07608Z
+landed: by owner, land 01M834CT4C18809S7N0N8CARN3 at 2026-11-23T02:40:07.308643Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 2bf5fde5d485284b181e882c52790bca9b0f3ca7
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+refused at replay:
+  01M834CRB1FY6ERGSBSP9HH55R: Not ended: the end of G, 01M834CT4C18809S7N0N8CARN3, does not name this event: it was written in another clone before the end and reached this log after it, so the ended Goal keeps what the owner saw
+````
+
+stderr, 2108 bytes:
+
+````
+setup: hyp place G-K9XZR9
+placed G-K9XZR9: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-K9XZR9 is open
+G-K9XZR9  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-K9XZR9
+grill may:
+  hyp place G-K9XZR9
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-K9XZR9/line-1
+ran G-K9XZR9 line-1 at aa02544bfa62e46311784c29ca1c2bd1e144bf35
+row: 3ed5c9c24799a0de11bff1c23d519c92ae626c02
+line-1/a failed (exit 0, output 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824)
+  words: Fixture line-1/a.
+G-K9XZR9  open  runs: 1 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-K9XZR9
+grill may:
+  hyp place G-K9XZR9
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-K9XZR9/line-1
+setup: hyp select G-K9XZR9 5932e94ab05ef26f462c78040a41abdd5b4fc884
+# G-K9XZR9: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 2bf5fde5d485284b181e882c52790bca9b0f3ca7
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+G-K9XZR9  selected  runs: 1 of 3 used
+stop: selected, by select 01M834CSX4FM5NM3JJDMCJTXBK at 2026-11-23T02:40:07.07608Z
+waits: owner
+owner may:
+  hyp land G-K9XZR9
+  hyp unselect G-K9XZR9
+  hyp close G-K9XZR9
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: hyp land G-K9XZR9
+landed G-K9XZR9
+stop: selected, by select 01M834CSX4FM5NM3JJDMCJTXBK at 2026-11-23T02:40:07.07608Z
+G-K9XZR9  ended  runs: 1 of 3 used
+stop: selected, by select 01M834CSX4FM5NM3JJDMCJTXBK at 2026-11-23T02:40:07.07608Z
+landed: by owner, land 01M834CT4C18809S7N0N8CARN3 at 2026-11-23T02:40:07.308643Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-K9XZR9: Greet.
+
+## line-1 (gap): the subject says bye.
+
+### line-1/a: Fixture line-1/a.
+
+verdict: met, exit 0
+
+output, 3 bytes:
+
+```
+bye
+```
+
+stderr, 0 bytes
+
+selected commit: 2bf5fde5d485284b181e882c52790bca9b0f3ca7
+selected row: 5932e94ab05ef26f462c78040a41abdd5b4fc884
+````
+
+## line-4 (gap): A closed Goal refuses place, run, select, unselect, land and a second close.
+
+### line-4/a: (example e7cde0df48309534b6ac4d187dc5a6e20e6c3884 is not readable here: object e7cde0df48309534b6ac4d187dc5a6e20e6c3884 not in this clone)
+
+verdict: met, exit 0
+
+output, 231 bytes:
+
+```
+G  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M834CWY12F6FB0AKCZ7QGQ64 at 2026-11-23T02:40:10.177234Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+run exit 1
+```
+
+stderr, 703 bytes:
+
+```
+setup: hyp place G-J3DGKZ
+placed G-J3DGKZ: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-J3DGKZ is open
+G-J3DGKZ  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-J3DGKZ
+grill may:
+  hyp place G-J3DGKZ
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-J3DGKZ/line-1
+setup: hyp close G-J3DGKZ
+closed G-J3DGKZ
+G-J3DGKZ  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M834CWY12F6FB0AKCZ7QGQ64 at 2026-11-23T02:40:10.177234Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+hyp: refused: Not ended: G-J3DGKZ is ended; an ended Goal takes no write
+```
+
+## line-5 (gap): `hyp add goal --from G` accepts a closed Goal like a landed one.
+
+### line-5/a: (example 99d2acdb36cf336fb42745151ea6ded83d1516d6 is not readable here: object 99d2acdb36cf336fb42745151ea6ded83d1516d6 not in this clone)
+
+verdict: met, exit 0
+
+output, 376 bytes:
+
+```
+recorded G-D7Q6TW
+words: Greet again.
+H0: d92a1aaedfda83042bdb5e358c6338e8c940843d
+line-1 gap: the subject says hi.
+G-D7Q6TW  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-D7Q6TW --base <commit> --words <words> --line <kind>:<text>
+  hyp close G-D7Q6TW
+grill may:
+  hyp place G-D7Q6TW
+probe-writer may:
+  (none)
+runner may:
+  (none)
+add exit 0
+```
+
+stderr, 668 bytes:
+
+```
+setup: hyp place G-NCTDS5
+placed G-NCTDS5: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-NCTDS5 is open
+G-NCTDS5  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-NCTDS5
+grill may:
+  hyp place G-NCTDS5
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-NCTDS5/line-1
+setup: exit 0
+setup: hyp close G-NCTDS5 --why the owner is done
+closed G-NCTDS5
+G-NCTDS5  ended  runs: 0 of 3 used
+stop: none
+closed: by owner, close 01M834CZFY6RKASNED04KE87W0 at 2026-11-23T02:40:12.798268Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+setup: exit 0
+```
+
+## line-6 (guard): Land on a Goal whose runs have not stopped is refused.
+
+### line-6/a: (example 61310b4939ee6d4fcfa91ef84709f8543eb71d31 is not readable here: object 61310b4939ee6d4fcfa91ef84709f8543eb71d31 not in this clone)
+
+verdict: met, exit 0
+
+output, 299 bytes:
+
+```
+hyp: refused: Stop: G has no stop; the owner lands a Goal once it is selected, has two candidates or has used its budget
+G  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G
+grill may:
+  hyp place G
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G/line-1
+land exit 1
+```
+
+stderr, 346 bytes:
+
+```
+setup: hyp place G-2WDXYD
+placed G-2WDXYD: 1 example
+line-1/a @1  hash: 937b45521e7120ee8cf7873010735f86ba922963  H0: failed (exit 0)
+G-2WDXYD is open
+G-2WDXYD  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  hyp close G-2WDXYD
+grill may:
+  hyp place G-2WDXYD
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-2WDXYD/line-1
+```
+
+## line-7 (guard): A log written before close existed replays with nothing refused, and each Goal keeps its rows and verdicts.
+
+### line-7/a: (example 36231c5a4b6a42983a5b755ac58bafdb01ec0ebe is not readable here: object 36231c5a4b6a42983a5b755ac58bafdb01ec0ebe not in this clone)
+
+verdict: met, exit 0
+
+output, 2705 bytes:
+
+````
+G-9XX4KB  ended  runs: 1 of 3 used
+stop: selected, by select 01M7S4F7Y677ZNGG9Y0QQJMWSX at 2026-11-19T05:29:02.662495Z
+landed: by owner, land 01M7YS8QZ3D2XNPY6EC2XAEKMS at 2026-11-21T10:08:41.955046Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-9XX4KB: The communication channel: the owner knows what the agent read, and that what it read reflects hyp's state machine correctly.
+
+## line-1 (gap): The communication channel, which is used for `hyp` to communicate with agent, is one block of code, defined with Go as code that has a boundary, such as one Go module, one object or one state machine.
+
+### line-1/a: Outside internal/channel, no Go file of a package the hyp binary is built from writes text that hyp prints to the agent.
+
+verdict: met, exit 0
+
+output, 0 bytes
+
+stderr, 0 bytes
+
+## line-2 (gap): The owner can read exactly what the agent read.
+
+### line-2/a: After a runner reads hyp status and stops, and the owner then changes the log, the owner runs hyp show runner and reads the exact bytes that runner last read, never a fresh status and never a re-quoted copy.
+
+verdict: met, exit 0
+
+output, 489 bytes:
+
+```
+runner: 1 read, oldest first
+
+read 1 of 1: 01M7S4DZ7AZR4G55WKXF0FNY7Q at 2026-11-19T05:28:20.970106Z, role runner, exit 0
+command: hyp status
+stderr, 0 bytes
+stdout, 246 bytes:
+G-J3MA1E  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-J3MA1E --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G-J3MA1E line-1/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+
+the owner's view holds the runner's last read byte for byte: yes
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): hyp tells the owner and the agent something its state doesn't hold.
+
+### line-3/a: When an example's words hold a quote, hyp run prints those words to the runner as the owner wrote them, never re-quoted.
+
+verdict: met, exit 0
+
+output, 447 bytes:
+
+```
+ran G-8KR8KE line-1 at cc8e5fd9b9cd89e277bfcd5415c72de6a36e0eff
+row: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+line-1/a failed (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: The owner says "hello" to hyp.
+G-8KR8KE  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-8KR8KE <line>/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-8KR8KE/line-1
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 7004da196362522b25f407c022cc0483ae3f944b goals/G-9XX4KB/specs/: exit 128: fatal: not a tree object
+
+selected commit: 7004da196362522b25f407c022cc0483ae3f944b
+selected row: 8548a3f5ad9b380cac2c42e74036251969e025b4
+````
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 2591b77d854362aebf30aa61ff47da1d13906e3d goals/G-GF11ED/specs/: exit 128: fatal: not a tree object
+
+selected commit: 2591b77d854362aebf30aa61ff47da1d13906e3d
+selected row: 3ce34fb11e659e2bc073868debcbc06b22a015ea

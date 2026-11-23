@@ -1,0 +1,284 @@
+G-VDG87A  ended  runs: 1 of 3 used
+stop: selected, by select 01M7WJH0MA35KYQ0MGFAV9ZKM0 at 2026-11-20T13:32:24.074615Z
+landed: by owner, land 01M7WJSTFC9FX8WGA0CRM50H4M at 2026-11-20T13:37:12.684825Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-VDG87A: The owner can put a selected Goal back to open with unselect, so a re-grill or a recheck after main moves happens inside the same Goal.
+
+## line-1 (gap): After the owner unselects a selected Goal, the Goal is open again: the grill may place, the runner may run, and a new select is recorded.
+
+### line-1/a: (example 8760c1e3f18bc98a56092a311a4dcf39d5dd6e73 is not readable here: object 8760c1e3f18bc98a56092a311a4dcf39d5dd6e73 not in this clone)
+
+verdict: met, exit 0
+
+output, 134 bytes:
+
+```
+unselect exit: 0
+state after unselect: open
+grill may place: yes
+place exit: 0
+run exit: 0
+select exit: 0
+state after select: selected
+```
+
+stderr, 0 bytes
+
+### line-1/b: (example 03d2be35fc9e439cc479bba3852cdbf18ea83fa2 is not readable here: object 03d2be35fc9e439cc479bba3852cdbf18ea83fa2 not in this clone)
+
+verdict: met, exit 0
+
+output, 104 bytes:
+
+```
+unselect exit: 0
+run on the merge exit: 0
+select exit: 0
+the select names the merge: yes
+state: selected
+```
+
+stderr, 0 bytes
+
+## line-2 (gap): After an unselect the budget starts again at 0 of 3, and H0's row and the old candidate's row keep their live cells.
+
+### line-2/a: (example 9971b9bac2c24b227fe73f17645a359953388d75 is not readable here: object 9971b9bac2c24b227fe73f17645a359953388d75 not in this clone)
+
+verdict: met, exit 0
+
+output, 129 bytes:
+
+```
+runs before: 1 of 3
+unselect exit: 0
+runs after unselect: 0 of 3
+run exits: 0 0 0
+runs after three runs: 3 of 3
+stop: budget used
+```
+
+stderr, 0 bytes
+
+### line-2/b: (example 5eb3f2088fc161ed53ac18b86d4b88fd703893f4 is not readable here: object 5eb3f2088fc161ed53ac18b86d4b88fd703893f4 not in this clone)
+
+verdict: met, exit 0
+
+output, 103 bytes:
+
+```
+unselect exit: 0
+state after unselect: open
+owner's select of the old row exit: 0
+Results in the log: 1
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): unselect is refused, exit 1, on a landed Goal, on a Goal that is not selected, and by any actor or role but the owner who added the Goal.
+
+### line-3/a: (example 2a0e493792640695a61ff22b738b4d160df65fc0 is not readable here: object 2a0e493792640695a61ff22b738b4d160df65fc0 not in this clone)
+
+verdict: met, exit 0
+
+output, 86 bytes:
+
+```
+unselect line printed: yes
+land exit: 0
+unselect after land exit: 1
+log unchanged: yes
+```
+
+stderr, 0 bytes
+
+### line-3/b: (example 57a9731bca3fe1dc92a4bd57894c473467e651a8 is not readable here: object 57a9731bca3fe1dc92a4bd57894c473467e651a8 not in this clone)
+
+verdict: met, exit 0
+
+output, 144 bytes:
+
+```
+unselect line printed: yes
+unselect of an open Goal exit: 1
+log unchanged: yes
+first unselect exit: 0
+second unselect exit: 1
+log unchanged: yes
+```
+
+stderr, 0 bytes
+
+### line-3/c: (example b1ecb00a74d55d5ca41badc3414bf745f469e09c is not readable here: object b1ecb00a74d55d5ca41badc3414bf745f469e09c not in this clone)
+
+verdict: met, exit 0
+
+output, 169 bytes:
+
+```
+unselect line printed: yes
+runner-1 runner: exit 1
+log unchanged: yes
+grill grill: exit 1
+log unchanged: yes
+owner-2 owner: exit 1
+log unchanged: yes
+owner owner: exit 0
+```
+
+stderr, 0 bytes
+
+## line-4 (gap): After an unselect, a runner's select is refused until a run records a cell for an example version or a row that was not run before the unselect; a rerun of the same example version on the same row does not count. The owner may select at any time.
+
+### line-4/a: (example fa99c947cf6d6f8de0788066383692e64db2f154 is not readable here: object fa99c947cf6d6f8de0788066383692e64db2f154 not in this clone)
+
+verdict: met, exit 0
+
+output, 159 bytes:
+
+```
+unselect exit: 0
+runner's select at once exit: 1
+log unchanged: yes
+rerun on the old row exit: 0
+runner's select after the rerun exit: 1
+owner's select exit: 0
+```
+
+stderr, 0 bytes
+
+### line-4/b: (example 001492e6ad241bc30981457153824f09ca605918 is not readable here: object 001492e6ad241bc30981457153824f09ca605918 not in this clone)
+
+verdict: met, exit 0
+
+output, 152 bytes:
+
+```
+unselect exit: 0
+place of a new version exit: 0
+runner's select after the place exit: 1
+run on the old row exit: 0
+runner's select after the run exit: 0
+```
+
+stderr, 0 bytes
+
+### line-4/c: (example dc615a81f11e6a2e3cf3ed67324751ebcf58bf2a is not readable here: object dc615a81f11e6a2e3cf3ed67324751ebcf58bf2a not in this clone)
+
+verdict: met, exit 0
+
+output, 82 bytes:
+
+```
+unselect exit: 0
+run on the new row exit: 0
+runner's select of the new row exit: 0
+```
+
+stderr, 0 bytes
+
+### line-4/d: (example cdd9d15c0d571b11e0a31775d80e6639379d1242 is not readable here: object cdd9d15c0d571b11e0a31775d80e6639379d1242 not in this clone)
+
+verdict: met, exit 0
+
+output, 109 bytes:
+
+```
+unselect exit: 0
+select line after the unselect: no
+run on the new row exit: 0
+select line after the run: yes
+```
+
+stderr, 0 bytes
+
+### line-4/e: (example 9f00295002125c1ebc89cc92413ef8dede9a9e33 is not readable here: object 9f00295002125c1ebc89cc92413ef8dede9a9e33 not in this clone)
+
+verdict: met, exit 0
+
+output, 254 bytes:
+
+```
+run C with version 1 exit: 0
+run B with version 1 exit: 0
+place of version 2 exit: 0
+run B with version 2 exit: 0
+runner's select of B exit: 0
+unselect exit: 0
+run C with version 2 exit: 0
+runner's select of B after it exit: 1
+owner's select of B exit: 0
+```
+
+stderr, 0 bytes
+
+## line-5 (guard): A Goal that was never unselected keeps the state, stop and allowed acts it has today.
+
+### line-5/a: (example 45c2645842854167c0e33da975a85c7fe30fe78b is not readable here: object 45c2645842854167c0e33da975a85c7fe30fe78b not in this clone)
+
+verdict: met, exit 0
+
+output, 140 bytes:
+
+```
+state: selected
+waits: owner
+land line: yes
+grill may: (none)
+runner may: (none)
+place exit: 1
+run exit: 1
+select exit: 1
+log unchanged: yes
+```
+
+stderr, 0 bytes
+
+### line-5/b: (example db0194b5535724e96031d16c5b741572ffb0451a is not readable here: object db0194b5535724e96031d16c5b741572ffb0451a not in this clone)
+
+verdict: met, exit 0
+
+output, 86 bytes:
+
+```
+state: open
+stop: budget used
+waits: owner
+land line: yes
+run on a fourth tree exit: 1
+```
+
+stderr, 0 bytes
+
+### line-5/c: (example 350a47ccad4d1aff6f5695bc43acd44a1e7df054 is not readable here: object 350a47ccad4d1aff6f5695bc43acd44a1e7df054 not in this clone)
+
+verdict: met, exit 0
+
+output, 96 bytes:
+
+```
+stop: two candidates
+waits: owner
+runner's select exit: 1
+owner's select exit: 0
+state: selected
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 74235f04d1c7d14483555b76436c70763b407b16 goals/G-VDG87A/specs/: exit 128: fatal: not a tree object
+
+selected commit: 74235f04d1c7d14483555b76436c70763b407b16
+selected row: 27b1e321e6a676f245eaab33571f00055b00b1cd

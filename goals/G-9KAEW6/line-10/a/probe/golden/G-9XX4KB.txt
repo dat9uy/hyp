@@ -1,0 +1,94 @@
+G-9XX4KB  ended  runs: 1 of 3 used
+stop: selected, by select 01M7S4F7Y677ZNGG9Y0QQJMWSX at 2026-11-19T05:29:02.662495Z
+landed: by owner, land 01M7YS8QZ3D2XNPY6EC2XAEKMS at 2026-11-21T10:08:41.955046Z
+waits: none
+owner may:
+  (none)
+grill may:
+  (none)
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+PR body:
+
+# G-9XX4KB: The communication channel: the owner knows what the agent read, and that what it read reflects hyp's state machine correctly.
+
+## line-1 (gap): The communication channel, which is used for `hyp` to communicate with agent, is one block of code, defined with Go as code that has a boundary, such as one Go module, one object or one state machine.
+
+### line-1/a: (example d3f8a60c9ce6ca5c5641c0b792daea3e7ea3cb29 is not readable here: object d3f8a60c9ce6ca5c5641c0b792daea3e7ea3cb29 not in this clone)
+
+verdict: met, exit 0
+
+output, 0 bytes
+
+stderr, 0 bytes
+
+## line-2 (gap): The owner can read exactly what the agent read.
+
+### line-2/a: (example 86550cb80478a576eda64c419d497023158e7983 is not readable here: object 86550cb80478a576eda64c419d497023158e7983 not in this clone)
+
+verdict: met, exit 0
+
+output, 489 bytes:
+
+```
+runner: 1 read, oldest first
+
+read 1 of 1: 01M7S4DZ7AZR4G55WKXF0FNY7Q at 2026-11-19T05:28:20.970106Z, role runner, exit 0
+command: hyp status
+stderr, 0 bytes
+stdout, 246 bytes:
+G-J3MA1E  written  runs: 0 of 3 used
+stop: none
+waits: grill
+owner may:
+  hyp add goal G-J3MA1E --base <commit> --words <words> --line <kind>:<text>
+grill may:
+  hyp place G-J3MA1E line-1/<example>
+probe-writer may:
+  (none)
+runner may:
+  (none)
+
+
+the owner's view holds the runner's last read byte for byte: yes
+```
+
+stderr, 0 bytes
+
+## line-3 (gap): hyp tells the owner and the agent something its state doesn't hold.
+
+### line-3/a: (example a111b7843c7a7f7ab3259332a6de7280a10f7d42 is not readable here: object a111b7843c7a7f7ab3259332a6de7280a10f7d42 not in this clone)
+
+verdict: met, exit 0
+
+output, 447 bytes:
+
+```
+ran G-8KR8KE line-1 at cc8e5fd9b9cd89e277bfcd5415c72de6a36e0eff
+row: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+line-1/a failed (exit 0, output b49f425a7e1f9cff3856329ada223f2f9d368f15a00cf48df16ca95986137fe8)
+  words: The owner says "hello" to hyp.
+G-8KR8KE  open  runs: 0 of 3 used
+stop: none
+waits: none
+owner may:
+  (none)
+grill may:
+  hyp place G-8KR8KE <line>/<example>
+probe-writer may:
+  (none)
+runner may:
+  hyp run <commit> G-8KR8KE/line-1
+```
+
+stderr, 0 bytes
+
+## Chart
+
+not readable here: git ls-tree -r -z 7004da196362522b25f407c022cc0483ae3f944b goals/G-9XX4KB/specs/: exit 128: fatal: not a tree object
+
+selected commit: 7004da196362522b25f407c022cc0483ae3f944b
+selected row: 8548a3f5ad9b380cac2c42e74036251969e025b4

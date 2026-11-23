@@ -1,0 +1,20 @@
+written, line-1 holds an example; hyp place G line-1/a returns:
+grill may:
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+hyp status:
+grill may:
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+hyp status G:
+grill may:
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+hyp status G --role grill:
+grill may:
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>
+hyp place G line-1/a again, refused, returns:
+grill may:
+  hyp place G line-2/<example>
+  hyp place G line-3/<example>

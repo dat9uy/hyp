@@ -1,0 +1,10 @@
+-- words --
+A fresh clone with an empty trace still sees the Goal as open.
+-- run --
+hyp status G
+-- floor: contains --
+  open  
+-- floor: contains --
+the place line names each hash and H0 verdict, and no output
+-- ceiling --
+  written  

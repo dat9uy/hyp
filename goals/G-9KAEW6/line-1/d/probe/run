@@ -1,0 +1,68 @@
+#!/bin/sh
+# Probe of G-9KAEW6 line-1/d. The working directory is a copy of the subject.
+# It builds hyp from the subject, runs the example's run section (hyp spec)
+# with that binary and prints its stdout, then says whether every event-kind
+# row of the events: block holds a field "changes a Goal's state:", then
+# whether every event kind is in input/base-kinds.txt of the example.
+# The last line is "exit N", the exit code of the run section. Setup output
+# goes to stderr. A build or setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export PATH="$work/bin:$PATH"
+
+out="$work/out"
+sh -c "$HYP_RUN" >"$out" 2>"$work/err"
+code=$?
+cat "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+
+# The event-kind rows of the events: block, one per line: "name<TAB>row".
+# A row starts with two spaces and a non-space; the block ends at the first
+# blank line. The name is the text before the row's first run of two spaces.
+awk '
+/^events:/ { inb = 1; next }
+inb && /^$/ { exit }
+inb && /^  [^ ]/ {
+  row = substr($0, 3)
+  name = row; sub(/  .*$/, "", name)
+  print name "\t" row
+}
+' "$out" >"$work/rows"
+
+missing=$(awk -F '\t' 'index($2, "changes a Goal'"'"'s state:") == 0 { print $1; exit }' "$work/rows")
+if [ ! -s "$work/rows" ]; then
+  echo "an event kind says nothing about whether it changes a Goal's state: (no event kind found)"
+elif [ -n "$missing" ]; then
+  echo "an event kind says nothing about whether it changes a Goal's state: $missing"
+else
+  echo "every event kind says whether it changes a Goal's state"
+fi
+
+base="$HYP_EXAMPLE/input/base-kinds.txt"
+[ -r "$base" ] || fail "no $base"
+extra=0
+while IFS= read -r kind; do
+  [ -n "$kind" ] || continue
+  if ! grep -Fxq -- "$kind" "$base"; then
+    echo "event kind $kind is not on the base"
+    extra=1
+  fi
+done <<EOK
+$(cut -f1 "$work/rows")
+EOK
+if [ "$extra" = 0 ] && [ -s "$work/rows" ]; then
+  echo "every event kind is on the base"
+fi
+
+echo "exit $code"
+exit 0

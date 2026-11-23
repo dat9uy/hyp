@@ -1,0 +1,7 @@
+BlankBeside: EveryLineNamesItsKey OneLinePerLineWhileOpen
+OfferGoneLines: OneLinePerLineWhileOpen OneLinePerLineWhileWritten
+OldH0: EveryAllowedPlaceOffered EveryLineNamesItsKey OneLinePerLineWhileOpen OneLinePerLineWhileWritten
+OnlyWhenWritten: EveryAllowedPlaceOffered OneLinePerLineWhileOpen
+PlaceWhenSelected: NothingOnceSelected
+TypeOK printed as not shown to fail: yes
+a rule some variant breaks printed as not shown to fail: no

@@ -1,0 +1,8 @@
+-- words --
+For every landed Goal on main, `hyp status G` prints the same on the build as on H0.
+-- run --
+hyp status G
+-- floor: contains --
+every landed Goal prints as on the base
+-- ceiling --
+differs

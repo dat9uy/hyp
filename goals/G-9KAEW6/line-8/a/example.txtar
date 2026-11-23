@@ -1,0 +1,8 @@
+-- words --
+In a fresh clone with an empty trace, `hyp status G` of a Goal that was selected in clone A prints `selected` and no `refused at replay`.
+-- run --
+hyp status G
+-- floor: contains --
+  selected  
+-- ceiling --
+refused at replay

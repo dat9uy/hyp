@@ -1,0 +1,115 @@
+#!/bin/sh
+# Probe of G-9KAEW6 line-9/a. The working directory is a copy of the subject.
+# It builds hyp from the subject and makes a test repository: a test Goal of
+# two lines (a gap line and a guard line), one fixture example on each with the
+# generic Probe, placed and committed on a branch record/<G>. It clones that
+# branch into a fresh clone, whose trace is empty. There a runner commits a
+# change that meets both lines and a spec, runs hyp run on that commit for each
+# line, and runs the example's run section with G and HASH (the commit's
+# subject hash) replaced. It prints the run section's stdout with the Goal id
+# as G, the hash as HASH and the select's id and time as ID and TIME, then a
+# summary line, "G is selected" when the run section exited 0 and hyp status G
+# then shows G selected, else "G is not selected", then a last line "exit N".
+# Setup output goes to stderr. A build or setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+generic() { # FILE
+  cat >"$1" <<'GENERIC'
+#!/bin/sh
+# Run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+  chmod +x "$1"
+}
+
+fixture() { # DIR WORDS RUN FLOOR
+  mkdir -p "$1/probe" || fail "mkdir $1"
+  {
+    echo '-- words --'
+    echo "$2"
+    echo '-- run --'
+    echo "$3"
+    echo '-- floor: contains --'
+    echo "$4"
+  } >"$1/example.txtar"
+  generic "$1/probe/run"
+}
+
+# Clone A: the Goal, its examples and the place, on branch record/<G>.
+a="$work/a"
+mkdir -p "$a" && cd "$a" || fail "mkdir a"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+echo keep >keep.txt
+git add -A && git commit -q -m base >&2 || fail "commit base"
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.' --line 'guard:the subject keeps keep.txt.') ||
+  fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+git checkout -q -b "record/$G" >&2 || fail "branch record/$G"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+fixture "goals/$G/line-1/a" "Fixture line-1/a." "cat greet.txt" "bye"
+fixture "goals/$G/line-2/a" "Fixture line-2/a." "cat keep.txt" "keep"
+git add -A && git commit -q -m fixtures >&2 || fail "commit fixtures"
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+git add -A && git commit -q -m placed >&2 || fail "commit placed"
+
+# Clone B: a fresh clone of the record branch, so its trace is empty.
+b="$work/b"
+git clone -q --branch "record/$G" "$a" "$b" >&2 || fail "git clone"
+cd "$b" || fail "cd b"
+git checkout -q -b "run/$G" >&2 || fail "branch run/$G"
+mkdir -p "goals/$G/specs" || fail "mkdir specs"
+echo "The subject says bye and keeps keep.txt." >"goals/$G/specs/spec.md"
+echo bye >greet.txt
+git add -A && git commit -q -m "feat: say bye" >&2 || fail "commit change"
+commit=$(git rev-parse HEAD) || fail "rev-parse"
+export HYP_ACTOR=runner HYP_ROLE=runner
+hyp run "$commit" "$G/line-1" >&2 || fail "hyp run line-1 failed"
+hyp run "$commit" "$G/line-2" >&2 || fail "hyp run line-2 failed"
+# The subject hash: the commit's tree without the top-level goals and .tree.
+HASH=$(git ls-tree "$commit" | grep -v -E '	(goals|\.tree)$' | git mktree) ||
+  fail "subject hash"
+[ -n "$HASH" ] || fail "no subject hash"
+
+run=$(printf '%s\n' "$HYP_RUN" | sed -e "s/HASH/$HASH/g" -e "s/ G\$/ $G/" -e "s/ G / $G /g")
+out="$work/out"
+sh -c "$run" >"$out"
+code=$?
+sed -e "s/$G/G/g" -e "s/$HASH/HASH/g" \
+  -e 's/by select [0-9A-Z]* at [^ ]*$/by select ID at TIME/' "$out"
+if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+
+# Summary: the run section exited 0 and hyp status G now shows G selected.
+if [ "$code" = 0 ] && hyp status "$G" 2>/dev/null | head -n 1 | grep -q -F '  selected  '; then
+  echo "G is selected"
+else
+  echo "G is not selected"
+fi
+echo "exit $code"
+exit 0
