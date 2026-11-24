@@ -1,0 +1,12 @@
+-- words --
+hyp status G-ONE with a folded finding prints the same findings: block as on H0.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+findings:
+  F-ONE  folded into G-ONE  by agent at
+-- floor: contains --
+    evidence: greet.txt line 1
+    fact: The subject says hello.
+-- ceiling --
+hyp finding fold F-ONE

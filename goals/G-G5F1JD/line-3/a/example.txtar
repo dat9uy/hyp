@@ -1,0 +1,10 @@
+-- words --
+A refuted finding still prints no may: block.
+-- run --
+hyp finding list
+-- floor: contains --
+F-ONE  refuted  by agent at
+-- ceiling --
+hyp finding fold F-ONE
+-- ceiling --
+hyp finding refute F-ONE

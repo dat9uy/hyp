@@ -1,0 +1,9 @@
+-- words --
+F-ONE is not folded and G-ONE is written: hyp finding list prints the fold line with --goal G, not --goal G-ONE.
+-- run --
+hyp finding list
+-- floor: contains --
+    hyp finding fold F-ONE --goal G
+    hyp finding refute F-ONE
+-- ceiling --
+hyp finding fold F-ONE --goal G-ONE
