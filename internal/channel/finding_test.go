@@ -51,7 +51,7 @@ func TestFindingAddFoldRefute(t *testing.T) {
 	_, list, _ := run(t, "finding", "list")
 	for _, want := range []string{f1 + "  not folded  by reader-1 at ", "  evidence: R-1\n",
 		"  fact: the select reaches an old build\n    only by cherry-pick\n",
-		"    hyp finding fold " + f1 + " --goal " + goal + "\n", "    hyp finding refute " + f2 + "\n",
+		"    hyp finding fold " + f1 + " --goal G\n", "    hyp finding refute " + f2 + "\n",
 		"record a new finding:\n  hyp finding add --fact TEXT --evidence TEXT"} {
 		if !strings.Contains(list, want) {
 			t.Fatalf("finding list lacks %q:\n%s", want, list)
@@ -70,6 +70,12 @@ func TestFindingAddFoldRefute(t *testing.T) {
 	if code != 0 || !strings.HasPrefix(out, "recorded "+f1+"  folded into "+other+"\n") ||
 		strings.Contains(out, f1+"  folded into "+goal) {
 		t.Fatalf("fold again: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	// a folded finding may be folded again, and the fold line names no Goal
+	_, list, _ = run(t, "finding", "list")
+	if !strings.Contains(list, "    hyp finding fold "+f1+" --goal G\n") || strings.Contains(list, "--goal "+goal) ||
+		strings.Contains(list, "--goal "+other) {
+		t.Fatalf("finding list lacks the fold line of a folded finding, or names a Goal:\n%s", list)
 	}
 	_, status, _ := run(t, "status", goal)
 	if strings.Contains(status, f1) || !strings.Contains(status, "findings:\n  "+f2+"  folded into "+goal+"  by reader-1 at ") {

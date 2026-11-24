@@ -435,7 +435,7 @@ var Rules = []Rule{
 		"A finding is a fact an agent found, with a pointer to its evidence, and names no Goal. Any agent adds one, folds it into the one Goal in work whose want it bears on, or refutes it; a finding may carry an add goal its agent drafted for the owner.",
 		"A decided want is a line of a written Goal; a fact no line needs is a finding.",
 		"Its events are in the clone's trace and never in git: they change no file under .tree/ and no Goal's state, and an end's snapshot names none of them. A finding of the old form, recorded on a Goal, reads not folded until a fold names it.",
-		"hyp finding list prints each finding with its state: not folded, folded into G, folded into G, ended, the old form's folded into #N, or refuted. hyp status G prints each finding folded into G, and hyp status counts the findings not folded.",
+		"hyp finding list prints each finding with its state: not folded, folded into G, folded into G, ended, the old form's folded into #N, or refuted. While any Goal is in work, each finding not refuted, folded or not, prints one fold line, hyp finding fold F --goal G, that names no Goal: the agent fills in the one whose want the fact bears on. hyp status G prints each finding folded into G, and hyp status counts the findings not folded.",
 	}},
 	{"the subject", []string{
 		"A commit's subject is its tree without the top-level entries goals and .tree; its git tree hash is the subject hash, one Hypothesis, one row.",
