@@ -60,16 +60,27 @@ type Command struct {
 	Any    bool          // an act on a finding: any actor runs it, with any role or none
 }
 
-// Usage is the command's usage line: the first line of its help block, up to
-// the run of spaces that starts the description.
+// Usage is the command's whole usage: the text of its help block before the
+// description column, joined across the block's lines. A line indented to the
+// description column holds only description and adds nothing.
 func (c Command) Usage() string {
-	line, _, _ := strings.Cut(c.Help, "\n")
-	line = strings.TrimSpace(line)
-	if i := strings.Index(line, "  "); i >= 0 {
-		line = line[:i]
+	var parts []string
+	for _, line := range strings.Split(c.Help, "\n") {
+		text := strings.TrimLeft(line, " ")
+		if text == "" || len(line)-len(text) >= descColumn {
+			continue
+		}
+		if i := strings.Index(text, "  "); i >= 0 {
+			text = text[:i]
+		}
+		parts = append(parts, text)
 	}
-	return line
+	return strings.Join(parts, " ")
 }
+
+// descColumn is the column, counted from zero, where hyp help starts a
+// command's description.
+const descColumn = 41
 
 // Commands are the entries of every command, in the order hyp help prints
 // them.

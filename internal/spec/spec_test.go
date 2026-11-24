@@ -174,3 +174,18 @@ func TestExitCodes(t *testing.T) {
 		}
 	}
 }
+
+// A usage that hyp help wraps onto a second line is whole in Usage: the
+// description column adds nothing to it.
+func TestUsageJoinsEveryLine(t *testing.T) {
+	want := map[string]string{
+		"add goal": "add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...] [--from G] [--why TEXT]",
+		"try":      "try G LINE/EXAMPLE [--worktree | --commit COMMIT]",
+		"run":      "run COMMIT G/LINE [--why TEXT]",
+	}
+	for _, c := range Commands {
+		if w, ok := want[c.Name]; ok && c.Usage() != w {
+			t.Errorf("usage of %s = %q, want %q", c.Name, c.Usage(), w)
+		}
+	}
+}
