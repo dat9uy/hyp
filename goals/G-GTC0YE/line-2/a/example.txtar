@@ -1,0 +1,96 @@
+-- words --
+hyp help unchanged
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+"$bin/hyp" help
+-- floor: equals --
+usage: hyp <command> [flags]
+
+Every command but help, spec and version needs an actor (--actor or
+$HYP_ACTOR). An act that writes also needs a role (--role or $HYP_ROLE):
+owner, grill, probe-writer or runner. hyp records what it prints to each actor
+in the trace, one folder per clone under ~/.hyp/traces; hyp show prints it.
+hyp writes nothing under ~/.local and does not read $XDG_STATE_HOME.
+
+commands:
+  add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
+           [--from G] [--why TEXT]
+                                         record a Goal; with G, replace a Goal
+                                         that is still written
+  place G [--why TEXT]                   place the whole example set of Goal G:
+                                         every folder goals/G/LINE/EXAMPLE, each
+                                         run on H0; it places the set only when
+                                         every example agrees with its line, and
+                                         otherwise places none and names each
+                                         cause
+  run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
+                                         Goal G on COMMIT and record the Result
+  try G LINE/EXAMPLE [--worktree | --commit COMMIT]
+                                         run the example folder goals/G/LINE/EXAMPLE
+                                         as it is on disk, on H0, on COMMIT, or
+                                         with --worktree on this checkout's files
+                                         with what is not committed, and print
+                                         its output, stderr, exit code and
+                                         verdict as place and run would record
+                                         them; it uses no run, and saves the
+                                         cell in this clone's trace only when
+                                         the trace lacks it
+  select G HASH [--why TEXT]             select the candidate row of Goal G whose
+                                         subject hash is HASH; the report is the
+                                         PR body
+  land G [--why TEXT]                    the owner lands Goal G at its stop: the
+                                         Goal ends, and its events up to the
+                                         land are the snapshot that a later
+                                         Goal's --from cites
+  close G [--why TEXT]                   the owner closes Goal G at any stop or
+                                         none: the Goal ends as a land ends it,
+                                         and a later Goal's --from cites it
+  unselect G [--why TEXT]                the owner unselects Goal G: G is open
+                                         again with its rows and cells, its
+                                         budget starts again, and the runner
+                                         selects again only after a run that
+                                         records a new cell
+  finding add --fact TEXT --evidence TEXT [--draft "hyp add goal ..."] [--why TEXT]
+                                         record a finding: a fact an agent
+                                         found and a pointer to its evidence,
+                                         with no Goal; --draft attaches an add
+                                         goal the agent drafted, which the
+                                         owner may edit and run; it prints the
+                                         finding's id
+  finding fold F [F ...] --goal G [--why TEXT]
+                                         fold one or more findings into Goal G,
+                                         written, open or selected: the Goal in
+                                         work whose want the finding bears on;
+                                         a folded finding may be folded again
+  finding refute F [--why TEXT]          refute finding F; refuted is final
+  finding list [--all | --not-folded]    print every finding with its state,
+                                         fact, evidence and draft, and the
+                                         finding acts it allows as ready
+                                         command lines. A finding folded into
+                                         an ended Goal is left out unless
+                                         --all; --not-folded lists only the
+                                         findings not folded
+  status [G] [--role ROLE] [--all]       print the state of every Goal in work,
+                                         or of G: its stop, its waits and the
+                                         allowed acts as ready command lines;
+                                         of a written or open G, also its
+                                         words, why, lines and placed examples,
+                                         and of G the findings folded into it.
+                                         With no G, it prints the words of each
+                                         written or open Goal, leaves out the
+                                         blocks of ended Goals with a line that
+                                         counts them (--all prints them too),
+                                         and ends with the count of findings
+                                         not folded
+  show ACTOR                             print every output hyp printed to
+                                         ACTOR, byte for byte, oldest first
+  prune [--remove]                       list the traces under ~/.hyp/traces of
+                                         repositories that no longer exist;
+                                         with --remove, remove those traces
+  spec                                   print the spec: every event kind, state,
+                                         act, guard and exit code, and the rules
+                                         hyp acts on
+  help                                   print this text
+  version                                print the hyp version
+
+exit codes: 0 recorded or printed, 1 refusal, 2 bad argument, 3 environment problem
