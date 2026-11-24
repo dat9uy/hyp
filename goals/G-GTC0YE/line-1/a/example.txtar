@@ -1,0 +1,43 @@
+-- words --
+Every act's usage equals hyp help's
+-- run --
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+h=$(mktemp) && s=$(mktemp) || exit 91
+# The usage of each command in hyp help: the text of its block before the
+# description column, joined across lines, whitespace squeezed.
+"$bin/hyp" help | awk '
+/^commands:/ { on = 1; next }
+on && /^$/ { exit }
+!on { next }
+{
+  match($0, /^ */); ind = RLENGTH
+  if (ind >= 41) next
+  t = substr($0, ind + 1); i = index(t, "  "); if (i) t = substr(t, 1, i - 1)
+  if (ind == 2 && u != "") { print u; u = "" }
+  u = (u == "" ? t : u " " t)
+}
+END { if (u != "") print u }' | tr -s ' ' >"$h"
+# The usage of each act in hyp spec: each entry of the acts section joined
+# across lines, then its text after "usage: " up to "  roles:", whitespace
+# squeezed.
+"$bin/hyp" spec | awk '
+/^acts:/ { on = 1; next }
+on && /^$/ { exit }
+!on || /^[a-z]/ { next }
+/^  [^ ]/ { if (e != "") print e; e = $0; next }
+{ e = e " " $0 }
+END { if (e != "") print e }' | awk '{
+  i = index($0, "  usage: "); n = substr($0, 3, i - 3); u = substr($0, i + 9)
+  j = index(u, "  roles:"); if (j) u = substr(u, 1, j - 1)
+  print n "\t" u
+}' | tr -s ' ' >"$s"
+nh=$(wc -l <"$h" | tr -d ' '); ns=$(wc -l <"$s" | tr -d ' ')
+[ "$nh" = "$ns" ] || { echo "hyp help lists $nh usages, hyp spec lists $ns"; exit 0; }
+echo "compared $nh usages"
+paste "$h" "$s" | while IFS='	' read -r hu name su; do
+  [ "$(echo $hu)" = "$(echo $su)" ] || echo "$name: differs"
+done | tee "$h.bad"
+[ -s "$h.bad" ] || echo "every usage matches"
+-- floor: equals --
+compared 18 usages
+every usage matches
