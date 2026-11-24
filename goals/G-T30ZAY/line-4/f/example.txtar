@@ -1,0 +1,16 @@
+-- words --
+A store holds a not folded finding recorded the old way, with a Goal: `hyp finding list --not-folded` lists it as not folded, with its fact and evidence.
+-- input/old-finding.jsonl --
+{"v":2,"id":"@TS@ZZZZZZZZZZZZZZZZ","ts":"2026-11-24T02:54:20.485088Z","actor":"owner","type":"finding.add","node":"@GOAL@","payload":{"role":"","fact":"hyp spec prints only the first line of a command's usage, so add goal's entry omits [--from G] [--why TEXT], which hyp help lists","evidence":"internal/spec/spec.go:78-79; hyp spec, acts, add goal; hyp help"},"why":""}
+-- run --
+hyp finding list --not-folded
+-- floor: contains --
+F-ZZZZZZ
+-- floor: contains --
+not folded
+-- floor: contains --
+hyp spec prints only the first line of a command's usage
+-- floor: contains --
+internal/spec/spec.go:78-79
+-- floor: contains --
+run exit: 0
