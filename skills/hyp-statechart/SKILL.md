@@ -34,8 +34,8 @@ The model lives in the Goal's spec folder, `goals/<G>/specs/`, committed on the
 record branch so that every runner commit holds it:
 
 - `<name>.tla`: the TLA+ module. A `.tla` file is what makes the folder a model.
-- `<name>.cfg`: the check config, with every variant FALSE and every rule under
-  `INVARIANTS` (or `PROPERTIES`).
+- `<name>.cfg`: the check config, with every variant FALSE and every rule
+  under `INVARIANTS` (or `PROPERTIES`), except a type rule (step 2).
 - `<name>-view.mjs`: the view module, with the `print()` the examples are
   matched against.
 - `variants/<variant>.cfg`: one variant config per variant. The tool writes
@@ -53,9 +53,17 @@ record branch so that every runner commit holds it:
    for a rule, add the variable. Never weaken a rule to make it hold.
 2. **Name the source of each rule.** Put a line comment right above each rule:
    `\* source: line-2` for a line of the Goal, `\* source: owner decision 3`
-   for a decision of the owner, or `\* source: model only` for a rule the model
-   needs, such as `TypeOK`. The tool lists each rule with no source and each
-   line of the Goal that no rule names.
+   for a decision of the owner, or `\* source: model only` for another rule the
+   model needs that a variant can break. The tool lists each rule with no
+   source and each line of the Goal that no rule names.
+
+   A type rule, such as `TypeOK`, says only that each variable holds a value of
+   its type. A variant changes what the system does, not the types of its
+   variables, so no variant breaks a type rule. At select, hyp refuses a commit
+   whose check config (any `.cfg` outside `variants/`) checks a rule that no
+   variant config names. So define a type rule in the module if you want it,
+   but do not list it in any check config. Leaving it out is not weakening a
+   rule: it describes the model, not the system.
 3. **One variant per potential Hypothesis.** Model each other behaviour that a
    cheap build could ship, such as the old behaviour, behind a boolean CONSTANT,
    such as `WriteOutputsEarly`, that is FALSE in the check config. A variant is
@@ -85,8 +93,11 @@ record branch so that every runner commit holds it:
    writes `goal.md` beside `report.md`:
    - one variant config per variant under `specs/variants/`, which lists
      exactly the rules that variant breaks;
-   - each rule no variant breaks, printed as not shown to fail: fix the model,
-     or take the rule out of the check config and name it in the hand-off;
+   - each rule no variant breaks, printed as not shown to fail. The tool
+     still exits 0, but hyp refuses this check config at select. Before you
+     commit the model, fix the model or add the variant that breaks the rule.
+     If no variant can break a rule of a line or of an owner decision, take
+     the rule out of the check config and name it in the hand-off;
    - for each example, a walk of the model whose prints meet the example's
      floors and ceilings, or that no walk of the model does;
    - for each example and each variant, whether the example is met under that
@@ -137,7 +148,11 @@ uses runs of the budget and can stop the Goal at `Two candidates`.
 4. Write the verdict line each try printed, such as `verdict: met, exit 0`, in
    `specs/tried/<variant>/<line>/<example>.txt`, and run the tool again. The
    report sets each tried cell beside its prediction and names each cell where
-   they differ. Where they differ, fix the model, not an example, and say so in
+   they differ. Where they differ, find the cause. When the model is wrong, fix
+   the model, not an example. The tool predicts from the shortest walk whose
+   prints meet the example's floors, and that walk can set up another case
+   than the example's Probe does. When that is the cause, the model is right
+   and the tried verdict stands over the prediction. Say which cause it was in
    one line of the hand-off.
 5. When a tried patch meets every example, the examples do not separate the two
    builds. The grill asks the owner one plain question about it, at the example
@@ -160,9 +175,10 @@ Add to the grill's hand-off:
 - the chart, as a `mermaid` block;
 - for each variant, the rules its config names, and whether its patch failed an
   example or met every example, as `hyp try` printed it;
-- one line for each tried verdict that differed from its prediction, and what
-  was fixed in the model;
-- each rule left out of the check config, and why;
+- one line for each tried verdict that differed from its prediction: what was
+  fixed in the model, or which case the tool's walk set up instead of the
+  example's;
+- each rule other than a type rule left out of the check config, and why;
 - when a chart config exists, the config and the state count behind each
   result;
 - what the model leaves out;
@@ -173,8 +189,9 @@ Add to the grill's hand-off:
 - `goals/<G>/specs/` holds the model, its check config, the variant configs the
   tool wrote, and `chart.mmd`.
 - Each variant was tried as a patch with `hyp try --worktree` up to its first
-  failed example, or on every placed example when each try was met; no tried
-  verdict differs from its prediction.
+  failed example, or on every placed example when each try was met.
+- Each tried verdict that differs from its prediction was traced to its cause
+  (step 4 of "Try what the tool predicts") and is named in the hand-off.
 
 ## Resources
 
