@@ -34,8 +34,8 @@ The model lives in the Goal's spec folder, `goals/<G>/specs/`, committed on the
 record branch so that every runner commit holds it:
 
 - `<name>.tla`: the TLA+ module. A `.tla` file is what makes the folder a model.
-- `<name>.cfg`: the check config, with every variant FALSE and every rule under
-  `INVARIANTS` (or `PROPERTIES`).
+- `<name>.cfg`: the check config, with every variant FALSE and every rule
+  under `INVARIANTS` (or `PROPERTIES`), except a type rule (step 2).
 - `<name>-view.mjs`: the view module, with the `print()` the examples are
   matched against.
 - `variants/<variant>.cfg`: one variant config per variant. The tool writes
@@ -53,9 +53,17 @@ record branch so that every runner commit holds it:
    for a rule, add the variable. Never weaken a rule to make it hold.
 2. **Name the source of each rule.** Put a line comment right above each rule:
    `\* source: line-2` for a line of the Goal, `\* source: owner decision 3`
-   for a decision of the owner, or `\* source: model only` for a rule the model
-   needs, such as `TypeOK`. The tool lists each rule with no source and each
-   line of the Goal that no rule names.
+   for a decision of the owner, or `\* source: model only` for another rule the
+   model needs that a variant can break. The tool lists each rule with no
+   source and each line of the Goal that no rule names.
+
+   A type rule, such as `TypeOK`, says only that each variable holds a value of
+   its type. A variant changes what the system does, not the types of its
+   variables, so no variant breaks a type rule. At select, hyp refuses a commit
+   whose check config (any `.cfg` outside `variants/`) checks a rule that no
+   variant config names. So define a type rule in the module if you want it,
+   but do not list it in any check config. Leaving it out is not weakening a
+   rule: it describes the model, not the system.
 3. **One variant per potential Hypothesis.** Model each other behaviour that a
    cheap build could ship, such as the old behaviour, behind a boolean CONSTANT,
    such as `WriteOutputsEarly`, that is FALSE in the check config. A variant is
@@ -85,8 +93,11 @@ record branch so that every runner commit holds it:
    writes `goal.md` beside `report.md`:
    - one variant config per variant under `specs/variants/`, which lists
      exactly the rules that variant breaks;
-   - each rule no variant breaks, printed as not shown to fail: fix the model,
-     or take the rule out of the check config and name it in the hand-off;
+   - each rule no variant breaks, printed as not shown to fail. The tool
+     still exits 0, but hyp refuses this check config at select. Before you
+     commit the model, fix the model or add the variant that breaks the rule.
+     If no variant can break a rule of a line or of an owner decision, take
+     the rule out of the check config and name it in the hand-off;
    - for each example, a walk of the model whose prints meet the example's
      floors and ceilings, or that no walk of the model does;
    - for each example and each variant, whether the example is met under that

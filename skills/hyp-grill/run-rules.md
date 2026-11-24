@@ -13,7 +13,8 @@ from the Goal and these rules, so two runners of one Goal are told the same.
 
 ```text
 Run the hyp Goal <G> as its runner.
-- Your actor is <actor>. Set HYP_ACTOR=<actor> each time you call hyp.
+- Your actor is <actor>. Set HYP_ACTOR=<actor> and HYP_ROLE=runner each
+  time you call hyp.
 - Work in your own worktree, on a new branch from the default branch.
 - Follow the run rules of the hyp-grill skill (run-rules.md) and this
   repository's agent files, such as AGENTS.md.
@@ -30,11 +31,17 @@ Run the hyp Goal <G> as its runner.
 
 1. **Run only the lines hyp prints.** Read `hyp status G --role runner` and
    copy the run line it prints, with your commit filled in. Run the select line
-   only when hyp prints it for you.
+   only when hyp prints it for you. When every line is met on your commit and
+   hyp prints no select line, the commit usually fails the Spec guard, and
+   `hyp status` does not say so. Check that the commit holds a spec under
+   `goals/G/specs/`, and when that spec is a model, that it holds a chart and
+   that its check config lists no rule the statechart tool printed as not
+   shown to fail. Fix it in a new commit and run its lines.
 2. **Check before you run.** `hyp try G LINE/EXAMPLE --worktree` shows an
    example's verdict on your uncommitted files. It records nothing and uses no
-   run of the budget. When the record branch holds no spec and you write the
-   Goal's model, follow the hyp-statechart skill: try each variant the tool
+   run of the budget. The select needs a spec in the commit, so when the
+   record branch holds none, write the Goal's model before the first commit you
+   run. Follow the hyp-statechart skill: try each variant the tool
    predicts to meet every example as a patch this way, and report each
    potential Hypothesis that meets every example with the outputs `hyp try`
    printed, never from the model alone. Its patch
