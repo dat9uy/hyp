@@ -60,13 +60,19 @@ record branch so that every runner commit holds it:
    cheap build could ship, such as the old behaviour, behind a boolean CONSTANT,
    such as `WriteOutputsEarly`, that is FALSE in the check config. A variant is
    a build a runner could make in a few lines, not a wish list.
-4. **Write `Next` as a disjunction of the actions**, such as
+4. **Model every act a line allows, in every state it allows it.** A line
+   that lets an act happen again (for example "a folded finding may be folded
+   again") needs that step from every state the line names, ended states
+   included. The view prints what the system prints on that step, ready lines
+   too, so an example can see it. A step the model leaves out is a behaviour
+   that no variant and no example reaches, and the chart does not show it.
+5. **Write `Next` as a disjunction of the actions**, such as
    `YouPressPlay \/ YouPressStop`, so that each step has its own name.
-5. **Write the view's `print()`.** `print(action, from, to)` returns what the
+6. **Write the view's `print()`.** `print(action, from, to)` returns what the
    system prints on that step, in the form the examples' floors use. The output
    of a walk is the prints of its steps, joined by newlines, and the tool
    matches it against each example's floors and ceilings as hyp does.
-6. **Run the tool** on the check config, into a new `--out` folder outside the
+7. **Run the tool** on the check config, into a new `--out` folder outside the
    repository:
 
    ```sh
@@ -105,7 +111,7 @@ record branch so that every runner commit holds it:
 
    [references/tool.md](references/tool.md) says how to label the chart with a
    view module and how to read the report.
-7. **Commit the chart in the spec folder.** Copy the `chart.mmd` the tool wrote
+8. **Commit the chart in the spec folder.** Copy the `chart.mmd` the tool wrote
    to `goals/<G>/specs/chart.mmd`, beside the model and its configs: the check
    config's chart, or the chart config's when the check config is over the
    budget. The select report prints every chart of the spec folder, so the
