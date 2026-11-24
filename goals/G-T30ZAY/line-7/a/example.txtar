@@ -1,0 +1,8 @@
+-- words --
+`hyp add goal ... --why "the event"`, then `hyp status G` prints the why under the words.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+a decision sat in a closed issue
+-- floor: contains --
+run exit: 0

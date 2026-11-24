@@ -1,0 +1,14 @@
+-- words --
+A finding folded into G is listed under G by `hyp status G`, with its fact, evidence and state.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+F-ONE
+-- floor: contains --
+fact one
+-- floor: contains --
+evidence one
+-- floor: contains --
+folded into G-ONE
+-- floor: contains --
+run exit: 0

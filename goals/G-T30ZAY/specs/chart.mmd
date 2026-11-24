@@ -1,0 +1,36 @@
+---
+title: "hyp G-T30ZAY, a finding is free until folded into a Goal in work"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: none
+    lg1: free
+    lg2: folded
+    lg3: refuted
+  }
+  class lg0 blue
+  class lg1 teal
+  class lg2 purple
+  class lg3 orange
+  s0: no finding
+  s1: not folded
+  s2: not folded, drafted
+  s3: folded into a Goal in work
+  s4: refuted
+  s5: folded into an ended Goal
+  [*] --> s0
+  s0 --> s1: an agent records a finding
+  s0 --> s2: an agent records a finding with a draft
+  s1 --> s3: an agent folds it into a Goal
+  s1 --> s4: an agent refutes it
+  s2 --> s3: an agent folds it into a Goal
+  s2 --> s4: an agent refutes it
+  s3 --> s5: the Goal ends
+  s3 --> s4: an agent refutes it
+  s5 --> s4: an agent refutes it
+  class s0 blue
+  class s1 teal
+  class s2 teal
+  class s3 purple
+  class s4 orange
+  class s5 purple

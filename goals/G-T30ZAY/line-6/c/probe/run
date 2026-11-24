@@ -1,0 +1,153 @@
+#!/bin/sh
+# Probe of G-T30ZAY line-6. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with the Goals and
+# findings the example's setup names, runs the example's run section with the
+# stand-in ids (G-ONE.., F-ONE..) replaced by real ids, and prints stdout,
+# stderr (both with real ids replaced back) and a last line "exit N".
+# Setup output goes to stderr. A failing finding command is an outcome.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+
+ids="$work/ids"; : >"$ids"   # lines: STANDIN REALID
+
+realid() { sed -n "s/^$1 //p" "$ids"; }
+
+# add_goal STANDIN WORDS: a written Goal with one gap line.
+add_goal() {
+  out=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words "$2" \
+    --line 'gap:the subject says bye.') || fail "hyp add goal: $out"
+  id=$(printf '%s\n' "$out" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+  [ -n "$id" ] || fail "no Goal id in: $out"
+  echo "$1 $id" >>"$ids"
+  commit_staged "goal $1" || fail "commit goal"
+}
+
+# place_goal STANDIN: one fixture example with the generic Probe, then place.
+place_goal() {
+  G=$(realid "$1"); d="goals/$G/line-1/a"
+  mkdir -p "$d/probe" || fail "mkdir $d"
+  { echo '-- words --'; echo "Fixture."; echo '-- run --'; echo "cat greet.txt"
+    echo '-- floor: contains --'; echo "bye"; } >"$d/example.txtar"
+  cat >"$d/probe/run" <<'GENERIC'
+#!/bin/sh
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "run exit: $code"
+echo "exit $code"
+rm -f "$tmp"
+GENERIC
+  chmod +x "$d/probe/run"
+  mkdir -p "goals/$G/specs" && echo spec >"goals/$G/specs/spec.txt" || fail "spec"
+  git add -A && git commit -q -m "fixtures $1" >&2 || fail "commit fixtures"
+  HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+  commit_staged "placed $1" || fail "commit placed"
+}
+
+# select_goal STANDIN: run a meeting Hypothesis on a branch, select it.
+select_goal() {
+  G=$(realid "$1"); br="h-$1"
+  git checkout -q -b "$br" main >&2 || fail "checkout $br"
+  echo bye >greet.txt
+  git add -A && git commit -q -m "$br" >&2 || fail "commit $br"
+  c=$(git rev-parse HEAD)
+  git checkout -q main >&2 || fail "checkout main"
+  ran=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1") || fail "hyp run failed: $ran"
+  row=$(printf '%s\n' "$ran" | sed -n 's/^row: //p' | head -n 1)
+  [ -n "$row" ] || fail "no row in: $ran"
+  commit_staged "events of $1" || fail "commit events"
+  HYP_ACTOR=runner HYP_ROLE=runner hyp select "$G" "$row" --why 'meets line-1' >&2 || fail "hyp select failed"
+  commit_staged "select $1" || fail "commit select"
+}
+
+land_goal() {
+  G=$(realid "$1")
+  HYP_ACTOR=owner HYP_ROLE=owner hyp land "$G" --why 'done' >&2 || fail "hyp land failed"
+  commit_staged "land $1" || fail "commit land"
+}
+
+# normalize: real ids back to stand-ins.
+normalize() {
+  expr=""
+  while read -r s r; do expr="$expr -e s/$r/$s/g"; done <"$ids"
+  if [ -n "$expr" ]; then sed $expr; else cat; fi
+}
+
+# setup_failed OUT ERR CODE: print a failing setup step as the outcome.
+setup_failed() {
+  printf '%s\n' "$1" | normalize
+  printf '%s\n' "$2" | normalize
+  echo "run exit: $3"
+  echo "exit $3"
+  exit 0
+}
+
+# add_finding STANDIN: record a finding; a failure is the outcome.
+add_finding() {
+  out=$(HYP_ACTOR=agent hyp finding add --fact "Fact $1." --evidence "Evidence $1." 2>"$work/err")
+  code=$?
+  [ "$code" -eq 0 ] || setup_failed "$out" "$(cat "$work/err")" "$code"
+  id=$(printf '%s\n' "$out" | sed -n 's/^recorded \(F-[A-Z0-9]*\).*/\1/p' | head -n 1)
+  [ -n "$id" ] || fail "no finding id in: $out"
+  echo "$1 $id" >>"$ids"
+  commit_staged "finding $1" || fail "commit finding"
+}
+
+fold_finding() {
+  out=$(HYP_ACTOR=agent hyp finding fold "$(realid "$1")" --goal "$(realid "$2")" 2>"$work/err")
+  code=$?
+  [ "$code" -eq 0 ] || setup_failed "$out" "$(cat "$work/err")" "$code"
+  commit_staged "fold $1" || fail "commit fold"
+}
+
+# ---- setup ----
+add_goal G-ONE 'Words of one.'
+add_finding F-ONE
+add_finding F-TWO
+add_finding F-THREE
+fold_finding F-THREE G-ONE
+
+# ---- run section ----
+export HYP_ACTOR=agent
+unset HYP_ROLE
+run="$HYP_RUN"
+for s in G-ONE G-TWO G-THREE G-FOUR G-FIVE F-ONE F-TWO F-THREE; do
+  r=$(realid "$s")
+  [ -n "$r" ] && run=$(printf '%s' "$run" | sed "s/$s/$r/g")
+done
+sh -c "$run" >"$work/o" 2>"$work/e"
+code=$?
+normalize <"$work/o"
+normalize <"$work/e"
+echo "run exit: $code"
+echo "exit $code"
+exit 0

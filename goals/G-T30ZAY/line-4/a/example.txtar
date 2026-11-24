@@ -1,0 +1,22 @@
+-- words --
+`hyp finding list` prints each finding with its state, fact, evidence and Goal.
+-- run --
+hyp finding list
+-- floor: contains --
+F-ONE
+-- floor: contains --
+not folded
+-- floor: contains --
+fact one
+-- floor: contains --
+evidence one
+-- floor: contains --
+F-TWO
+-- floor: contains --
+folded into G-ONE
+-- floor: contains --
+fact two
+-- floor: contains --
+evidence two
+-- floor: contains --
+run exit: 0

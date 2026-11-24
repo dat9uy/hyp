@@ -1,0 +1,6 @@
+-- words --
+A refute of a refuted finding is still refused.
+-- run --
+hyp finding refute F-ONE
+-- floor: contains --
+run exit: 1

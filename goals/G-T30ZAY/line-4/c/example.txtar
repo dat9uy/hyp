@@ -1,0 +1,10 @@
+-- words --
+`hyp finding list --all` shows a finding folded into an ended Goal.
+-- run --
+hyp finding list --all
+-- floor: contains --
+F-ONE
+-- floor: contains --
+F-TWO
+-- floor: contains --
+run exit: 0

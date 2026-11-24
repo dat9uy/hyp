@@ -1,0 +1,12 @@
+-- words --
+`hyp finding list` prints the drafted `add goal` of a not folded finding, marked as the agent's draft, as a runnable `hyp add goal` line.
+-- run --
+hyp finding list
+-- floor: contains --
+draft
+-- floor: contains --
+hyp add goal
+-- floor: contains --
+Cherry-pick old builds.
+-- floor: contains --
+run exit: 0

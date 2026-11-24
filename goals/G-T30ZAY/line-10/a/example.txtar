@@ -1,0 +1,20 @@
+-- words --
+A fixed store with a Goal in each state: `hyp status --all` prints the same state of each Goal as on H0.
+-- run --
+hyp status --all
+-- floor: contains --
+G-ONE  written
+-- floor: contains --
+G-TWO  open
+-- floor: contains --
+G-THREE  selected
+-- floor: contains --
+G-FOUR  ended
+-- floor: contains --
+G-FIVE  ended
+-- floor: contains --
+landed: by owner
+-- floor: contains --
+closed: by owner
+-- floor: contains --
+run exit: 0

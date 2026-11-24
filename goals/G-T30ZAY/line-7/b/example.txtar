@@ -1,0 +1,8 @@
+-- words --
+A fresh clone of the repository prints the same why in `hyp status G`.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+a decision sat in a closed issue
+-- floor: contains --
+run exit: 0

@@ -1,0 +1,10 @@
+-- words --
+A finding folded into another Goal is not listed under G.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+fact one
+-- floor: contains --
+run exit: 0
+-- ceiling --
+fact two

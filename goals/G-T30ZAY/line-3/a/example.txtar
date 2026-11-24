@@ -1,0 +1,8 @@
+-- words --
+A finding folded into a Goal that is then closed reads folded into that Goal, ended, in `hyp finding list --all`.
+-- run --
+hyp finding list --all
+-- floor: contains --
+folded into G-ONE, ended
+-- floor: contains --
+run exit: 0

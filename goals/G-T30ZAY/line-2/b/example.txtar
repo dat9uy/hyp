@@ -1,0 +1,8 @@
+-- words --
+A fold into an open Goal prints folded into that Goal.
+-- run --
+hyp finding fold F-ONE --goal G-ONE && hyp finding list
+-- floor: contains --
+folded into G-ONE
+-- floor: contains --
+run exit: 0

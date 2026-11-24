@@ -1,0 +1,12 @@
+-- words --
+`hyp status` prints the words of a written Goal, no words of a selected Goal, and no block of an ended Goal.
+-- run --
+hyp status
+-- floor: contains --
+Words of one.
+-- floor: contains --
+run exit: 0
+-- ceiling --
+Words of two.
+-- ceiling --
+Words of three.

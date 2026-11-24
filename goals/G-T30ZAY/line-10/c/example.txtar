@@ -1,0 +1,8 @@
+-- words --
+An event that H0 refuses at replay is still listed under `refused at replay`.
+-- run --
+hyp status
+-- floor: contains --
+refused at replay
+-- floor: contains --
+run exit: 0
