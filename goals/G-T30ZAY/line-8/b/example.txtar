@@ -5,6 +5,6 @@ hyp status G-ONE
 -- floor: contains --
 fact one
 -- floor: contains --
-exit 0
+run exit: 0
 -- ceiling --
 fact two

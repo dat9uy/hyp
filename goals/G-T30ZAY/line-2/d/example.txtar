@@ -3,4 +3,4 @@ A fold into an ended Goal is refused with exit 1.
 -- run --
 hyp finding fold F-ONE --goal G-ONE
 -- floor: contains --
-exit 1
+run exit: 1

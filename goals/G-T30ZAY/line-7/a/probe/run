@@ -47,5 +47,6 @@ sh -c "$run" >"$out" 2>"$err"
 code=$?
 sed "s/$G/G-ONE/g" "$out"
 sed "s/$G/G-ONE/g" "$err"
+echo "run exit: $code"
 echo "exit $code"
 exit 0

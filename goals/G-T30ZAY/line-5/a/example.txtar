@@ -9,4 +9,4 @@ hyp add goal
 -- floor: contains --
 Cherry-pick old builds.
 -- floor: contains --
-exit 0
+run exit: 0

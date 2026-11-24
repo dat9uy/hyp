@@ -62,6 +62,7 @@ sh -c "$HYP_RUN" >"$tmp"
 code=$?
 cat "$tmp"
 if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "run exit: $code"
 echo "exit $code"
 rm -f "$tmp"
 GENERIC
@@ -105,6 +106,7 @@ normalize() {
 setup_failed() {
   printf '%s\n' "$1" | normalize
   printf '%s\n' "$2" | normalize
+  echo "run exit: $3"
   echo "exit $3"
   exit 0
 }
@@ -146,5 +148,6 @@ sh -c "$run" >"$work/o" 2>"$work/e"
 code=$?
 normalize <"$work/o"
 normalize <"$work/e"
+echo "run exit: $code"
 echo "exit $code"
 exit 0

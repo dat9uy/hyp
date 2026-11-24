@@ -11,4 +11,4 @@ evidence one
 -- floor: contains --
 folded into G-ONE
 -- floor: contains --
-exit 0
+run exit: 0

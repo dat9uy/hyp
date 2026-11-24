@@ -5,4 +5,4 @@ hyp status
 -- floor: contains --
 refused at replay
 -- floor: contains --
-exit 0
+run exit: 0

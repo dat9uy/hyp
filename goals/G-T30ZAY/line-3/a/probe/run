@@ -73,6 +73,7 @@ new_cmd() {
   if [ "$code" -ne 0 ]; then
     norm "$work/so"
     norm "$work/se"
+    echo "run exit: $code"
     echo "exit $code"
     exit 0
   fi
@@ -102,5 +103,6 @@ sh -c "$run" >"$work/out" 2>"$work/err"
 code=$?
 norm "$work/out"
 norm "$work/err"
+echo "run exit: $code"
 echo "exit $code"
 exit 0

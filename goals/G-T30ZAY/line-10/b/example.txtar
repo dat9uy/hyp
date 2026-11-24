@@ -3,4 +3,4 @@ A refused act, a land of an open Goal, gives the same refusal and exit 1 as on H
 -- run --
 HYP_ROLE=owner hyp land G-ONE
 -- floor: contains --
-exit 1
+run exit: 1

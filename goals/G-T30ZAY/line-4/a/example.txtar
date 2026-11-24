@@ -19,4 +19,4 @@ fact two
 -- floor: contains --
 evidence two
 -- floor: contains --
-exit 0
+run exit: 0

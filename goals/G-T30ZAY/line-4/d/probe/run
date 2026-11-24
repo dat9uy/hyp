@@ -48,6 +48,7 @@ step() {
   code=$?
   if [ "$code" -ne 0 ]; then
     norm <"$step_out"
+    echo "run exit: $code"
     echo "exit $code"
     exit 0
   fi
@@ -77,5 +78,6 @@ code=$?
 norm <"$o"
 if [ -n "$(tail -c 1 "$o")" ]; then echo; fi
 norm <"$e"
+echo "run exit: $code"
 echo "exit $code"
 exit 0

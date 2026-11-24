@@ -3,4 +3,4 @@ A refute of a refuted finding is still refused.
 -- run --
 hyp finding refute F-ONE
 -- floor: contains --
-exit 1
+run exit: 1

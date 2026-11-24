@@ -39,5 +39,6 @@ run=$(printf '%s' "$HYP_RUN" | sed -e "s/G-ONE/$G1/g")
 sh -c "$run" >"$work/out" 2>"$work/err"
 code=$?
 cat "$work/out" "$work/err" | sed -e "s/$G1/G-ONE/g"
+echo "run exit: $code"
 echo "exit $code"
 exit 0

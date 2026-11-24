@@ -17,4 +17,4 @@ landed: by owner
 -- floor: contains --
 closed: by owner
 -- floor: contains --
-exit 0
+run exit: 0

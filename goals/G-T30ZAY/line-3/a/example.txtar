@@ -5,4 +5,4 @@ hyp finding list --all
 -- floor: contains --
 folded into G-ONE, ended
 -- floor: contains --
-exit 0
+run exit: 0

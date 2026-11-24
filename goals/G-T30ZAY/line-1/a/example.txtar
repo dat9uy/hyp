@@ -7,4 +7,4 @@ recorded F-
 -- floor: contains --
 not folded
 -- floor: contains --
-exit 0
+run exit: 0

@@ -109,7 +109,7 @@ finish() {
   # shellcheck disable=SC2086
   sed $sub "$err"
   # The last line is the Probe's own; the run's exit line is part of the output.
-  echo "exit $code"
+  echo "run exit: $code"
   echo "exit $code"
   exit 0
 }

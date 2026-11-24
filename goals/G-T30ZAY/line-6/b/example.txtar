@@ -5,7 +5,7 @@ hyp status
 -- floor: contains --
 Words of one.
 -- floor: contains --
-exit 0
+run exit: 0
 -- ceiling --
 Words of two.
 -- ceiling --

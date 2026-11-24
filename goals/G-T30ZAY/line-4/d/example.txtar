@@ -5,6 +5,6 @@ hyp finding list --not-folded
 -- floor: contains --
 F-ONE
 -- floor: contains --
-exit 0
+run exit: 0
 -- ceiling --
 F-TWO

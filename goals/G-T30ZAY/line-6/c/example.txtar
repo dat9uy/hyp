@@ -7,4 +7,4 @@ hyp status
 -- floor: contains --
 hyp finding list --not-folded
 -- floor: contains --
-exit 0
+run exit: 0

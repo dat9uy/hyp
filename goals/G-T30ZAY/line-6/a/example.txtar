@@ -7,4 +7,4 @@ Words of one.
 -- floor: contains --
 Words of two.
 -- floor: contains --
-exit 0
+run exit: 0

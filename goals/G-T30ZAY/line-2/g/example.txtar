@@ -5,6 +5,6 @@ hyp finding fold F-ONE --goal G-TWO && hyp finding list
 -- floor: contains --
 folded into G-TWO
 -- floor: contains --
-exit 0
+run exit: 0
 -- ceiling --
 folded into G-ONE

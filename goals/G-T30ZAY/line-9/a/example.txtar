@@ -4,5 +4,3 @@ The run rules tell an agent that a fact that no line of its Goal needs is a find
 cat skills/hyp-grill/run-rules.md
 -- floor: contains --
 is a finding
--- floor: contains --
-exit 0

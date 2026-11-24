@@ -9,4 +9,4 @@ hyp finding refute F-ONE
 -- floor: contains --
 hyp finding add --fact
 -- floor: contains --
-exit 0
+run exit: 0

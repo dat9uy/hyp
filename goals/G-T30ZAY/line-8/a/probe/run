@@ -46,6 +46,7 @@ add_goal() {
 # setup_failed CODE OUTPUT: a failed finding step is the outcome.
 setup_failed() {
   printf '%s\n' "$2" | sed "$maps"
+  echo "run exit: $1"
   echo "exit $1"
   exit 0
 }
@@ -80,5 +81,6 @@ sh -c "$run" >"$work/out" 2>"$work/err"
 code=$?
 sed "$maps" "$work/out"
 sed "$maps" "$work/err"
+echo "run exit: $code"
 echo "exit $code"
 exit 0
