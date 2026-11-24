@@ -5,3 +5,5 @@ hyp finding list --all
 -- floor: contains --
     hyp finding fold F-ONE --goal G
     hyp finding refute F-ONE
+-- ceiling --
+hyp finding fold F-ONE --goal G-TWO

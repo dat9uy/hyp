@@ -6,3 +6,7 @@ hyp finding list
   may:
     hyp finding fold F-ONE --goal G
     hyp finding refute F-ONE
+-- ceiling --
+hyp finding fold F-ONE --goal G-ONE
+-- ceiling --
+hyp finding fold F-ONE --goal G-TWO
