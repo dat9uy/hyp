@@ -1,0 +1,8 @@
+-- words --
+A finding folded into an ended Goal, folded again into a Goal in work, is recorded.
+-- run --
+hyp finding fold F-ONE --goal G-TWO && hyp finding list
+-- floor: contains --
+folded into G-TWO
+-- floor: contains --
+exit 0

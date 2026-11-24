@@ -1,0 +1,12 @@
+-- words --
+`hyp finding list` prints the ready lines for `hyp finding fold` and `hyp finding refute`, and the line `hyp finding add --fact`.
+-- run --
+hyp finding list
+-- floor: contains --
+hyp finding fold F-ONE
+-- floor: contains --
+hyp finding refute F-ONE
+-- floor: contains --
+hyp finding add --fact
+-- floor: contains --
+exit 0

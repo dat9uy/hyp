@@ -14,23 +14,23 @@ stateDiagram-v2
   class lg3 orange
   s0: no finding
   s1: not folded
-  s2: folded into a Goal in work
-  s3: not folded, drafted
+  s2: not folded, drafted
+  s3: folded into a Goal in work
   s4: refuted
   s5: folded into an ended Goal
   [*] --> s0
   s0 --> s1: an agent records a finding
-  s1 --> s2: an agent folds it into a Goal
-  s1 --> s3: an agent drafts an add goal
+  s0 --> s2: an agent records a finding with a draft
+  s1 --> s3: an agent folds it into a Goal
   s1 --> s4: an agent refutes it
-  s2 --> s5: the Goal ends
+  s2 --> s3: an agent folds it into a Goal
   s2 --> s4: an agent refutes it
-  s3 --> s2: an agent folds it into a Goal
+  s3 --> s5: the Goal ends
   s3 --> s4: an agent refutes it
   s5 --> s4: an agent refutes it
   class s0 blue
   class s1 teal
-  class s2 purple
-  class s3 teal
+  class s2 teal
+  class s3 purple
   class s4 orange
   class s5 purple

@@ -1,0 +1,10 @@
+-- words --
+`hyp status` prints a count line such as `2 not folded: hyp finding list --not-folded`.
+-- run --
+hyp status
+-- floor: contains --
+2 not folded
+-- floor: contains --
+hyp finding list --not-folded
+-- floor: contains --
+exit 0

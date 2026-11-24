@@ -8,7 +8,8 @@
 (*                                                                         *)
 (* Goals A and B move written -> open -> selected, and end from any of    *)
 (* those. A finding is "none" (not added), "notfolded", "folded" (into    *)
-(* into[i]) or "refuted", and may carry the agent's drafted add goal.      *)
+(* into[i]) or "refuted". It may carry the agent's drafted add goal: free *)
+(* text in the finding, which controls nothing in hyp (owner decision 1). *)
 (* Whether a finding's Goal has ended is calculated, never written.       *)
 (*                                                                         *)
 (* Variants, each FALSE in learned.cfg, are cheaper builds:               *)
@@ -22,7 +23,6 @@
 (*   ListShowsEnded     finding list shows findings of ended Goals        *)
 (*   NotFoldedShowsAll  --not-folded lists folded findings too            *)
 (*   ListNoActs         finding list prints no ready lines                *)
-(*   DraftOnFolded      a draft attaches to a folded finding too          *)
 (*   ListNoDraft        finding list does not print the draft             *)
 (*   StatusNoWords      hyp status prints no words of a Goal (H0)         *)
 (*   WordsOfSelected    hyp status prints the words of a selected Goal    *)
@@ -35,7 +35,7 @@ EXTENDS Integers, FiniteSets
 CONSTANTS Ids, Goals,
     AddNeedsGoal, FoldIntoEnded, FoldIntoMissing, RefutedReopens, NoRefold,
     EndFreezes, NoEndedMark, ListShowsEnded, NotFoldedShowsAll, ListNoActs,
-    DraftOnFolded, ListNoDraft, StatusNoWords, WordsOfSelected, StatusNoCount,
+    ListNoDraft, StatusNoWords, WordsOfSelected, StatusNoCount,
     StatusGNoWhy, StatusGNoFolded
 
 VARIABLES
@@ -100,13 +100,16 @@ GoalEnds(g) ==
 
 \* --- agents act on findings -----------------------------------------------
 
-\* An agent records finding i with its fact and evidence and no Goal.
-AgentAdds(i) ==
+\* An agent records finding i with its fact and evidence and no Goal, with
+\* a drafted add goal when d.
+AgentAdds(i, d) ==
     /\ f[i] = "none"
     /\ IF AddNeedsGoal
-         THEN out' = Out("add", FALSE, "needs-goal") /\ UNCHANGED f
-         ELSE f' = [f EXCEPT ![i] = "notfolded"] /\ out' = Out("add", TRUE, "none")
-    /\ UNCHANGED <<gs, into, draft, reopened>>
+         THEN out' = Out("add", FALSE, "needs-goal") /\ UNCHANGED <<f, draft>>
+         ELSE /\ f' = [f EXCEPT ![i] = "notfolded"]
+              /\ draft' = [draft EXCEPT ![i] = d]
+              /\ out' = Out("add", TRUE, "none")
+    /\ UNCHANGED <<gs, into, reopened>>
 
 \* Why a fold of S into target t is refused, or "none".
 FoldRefusal(S, t) ==
@@ -137,14 +140,6 @@ AgentRefutes(i) ==
          THEN f' = [f EXCEPT ![i] = "refuted"] /\ out' = Out("refute", TRUE, "none")
          ELSE out' = Out("refute", FALSE, "refuted") /\ UNCHANGED f
     /\ UNCHANGED <<gs, into, draft, reopened>>
-
-\* An agent attaches a drafted add goal to finding i.
-AgentDrafts(i) ==
-    /\ f[i] \in {"notfolded", "folded"} /\ ~draft[i]
-    /\ IF f[i] = "notfolded" \/ DraftOnFolded
-         THEN draft' = [draft EXCEPT ![i] = TRUE] /\ out' = Out("draft", TRUE, f[i])
-         ELSE out' = Out("draft", FALSE, "folded") /\ UNCHANGED draft
-    /\ UNCHANGED <<gs, f, into, reopened>>
 
 \* --- reads -----------------------------------------------------------------
 
@@ -185,7 +180,8 @@ AgentReadsGoal(g) ==
 
 Next ==
     \/ \E g \in Goals : GoalPlaced(g) \/ GoalSelected(g) \/ GoalEnds(g)
-    \/ \E i \in Ids : AgentAdds(i) \/ AgentRefutes(i) \/ AgentDrafts(i)
+    \/ \E i \in Ids, d \in BOOLEAN : AgentAdds(i, d)
+    \/ \E i \in Ids : AgentRefutes(i)
     \/ \E S \in SUBSET Ids, t \in Goals \cup {Missing} : AgentFolds(S, t)
     \/ \E m \in {"plain", "notfolded", "all"} : AgentLists(m)
     \/ AgentReadsStatus
@@ -227,9 +223,6 @@ NotFoldedOnlyFree ==
 
 \* source: line-4
 ListPrintsActs == out.cmd = "list" => out.acts
-
-\* source: line-5
-DraftOnlyOnFree == ~(out.cmd = "draft" /\ out.ok /\ out.why = "folded")
 
 \* source: line-5
 ListShowsDraft ==

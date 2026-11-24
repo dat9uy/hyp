@@ -1,0 +1,10 @@
+-- words --
+One fold that names two findings moves both.
+-- run --
+hyp finding fold F-ONE F-TWO --goal G-ONE && hyp finding list
+-- floor: contains --
+F-ONE  folded into G-ONE
+-- floor: contains --
+F-TWO  folded into G-ONE
+-- floor: contains --
+exit 0

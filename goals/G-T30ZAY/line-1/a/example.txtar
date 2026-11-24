@@ -1,0 +1,10 @@
+-- words --
+An agent records a finding with its fact and evidence and no Goal: hyp prints `recorded F-` and `hyp finding list` shows it not folded.
+-- run --
+hyp finding add --fact "fact one" --evidence "evidence one" && hyp finding list
+-- floor: contains --
+recorded F-
+-- floor: contains --
+not folded
+-- floor: contains --
+exit 0

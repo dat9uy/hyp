@@ -1,0 +1,6 @@
+-- words --
+A fold into a Goal id that does not exist is refused with exit 1.
+-- run --
+hyp finding fold F-ONE --goal G-NOGOAL
+-- floor: contains --
+exit 1

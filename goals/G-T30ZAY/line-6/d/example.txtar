@@ -1,0 +1,10 @@
+-- words --
+With no finding not folded, `hyp status` prints `0 not folded: hyp finding list --not-folded`.
+-- run --
+hyp status
+-- floor: contains --
+0 not folded
+-- floor: contains --
+hyp finding list --not-folded
+-- floor: contains --
+exit 0

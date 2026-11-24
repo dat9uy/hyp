@@ -27,10 +27,9 @@ export const colors = { none: "blue", free: "teal", folded: "purple", refuted: "
 export const step = (action, from, to) => {
   const o = to.out;
   switch (action) {
-    case "AgentAdds": return o.ok ? "an agent records a finding" : "an agent records a finding [refused]";
+    case "AgentAdds": return o.ok ? (to.draft[Object.keys(to.f).find((i) => from.f[i] === "none" && to.f[i] !== "none")] ? "an agent records a finding with a draft" : "an agent records a finding") : "an agent records a finding [refused]";
     case "AgentFolds": return o.ok ? "an agent folds it into a Goal" : "an agent folds it [refused]";
     case "AgentRefutes": return o.ok ? "an agent refutes it" : null;
-    case "AgentDrafts": return o.ok ? "an agent drafts an add goal" : null;
     case "GoalEnds": return "the Goal ends";
     case "GoalPlaced": case "GoalSelected": return null;
     case "AgentLists": case "AgentReadsStatus": case "AgentReadsGoal": return null;
@@ -57,7 +56,6 @@ export const print = (action, from, to) => {
                refuted: "refused: the finding is refuted", folded: "refused: the finding is folded",
                frozen: "refused: the finding's Goal has ended" }[o.why];
     case "refute": return o.ok ? "refuted" : "refused: the finding is refuted";
-    case "draft": return o.ok ? "drafted" : "refused: the finding is folded";
     case "list": {
       const lines = [];
       for (const i of Object.keys(to.f)) {

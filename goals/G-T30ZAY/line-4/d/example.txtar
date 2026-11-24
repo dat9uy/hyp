@@ -1,0 +1,10 @@
+-- words --
+`hyp finding list --not-folded` lists only the findings that are not folded.
+-- run --
+hyp finding list --not-folded
+-- floor: contains --
+F-ONE
+-- floor: contains --
+exit 0
+-- ceiling --
+F-TWO

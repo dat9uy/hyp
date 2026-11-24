@@ -1,0 +1,10 @@
+-- words --
+The run rules tell an agent to fold the finding into the Goal in work whose want it bears on, from `hyp finding list`, or to draft an `add goal` for the owner.
+-- run --
+cat skills/hyp-grill/run-rules.md
+-- floor: contains --
+hyp finding list
+-- floor: contains --
+add goal
+-- floor: contains --
+exit 0
