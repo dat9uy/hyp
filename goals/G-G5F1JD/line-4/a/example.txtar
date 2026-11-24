@@ -1,0 +1,8 @@
+-- words --
+A fold into an ended Goal is still refused with exit 1 and is ended; a fold names a Goal in work.
+-- run --
+hyp finding fold F-ONE --goal G-ONE
+-- floor: contains --
+G-ONE is ended; a fold names a Goal in work
+-- floor: contains --
+exit 1

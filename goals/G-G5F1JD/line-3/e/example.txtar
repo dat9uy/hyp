@@ -1,7 +1,7 @@
 -- words --
-no fold line while no Goal is in work: F-ONE is folded into G-ONE, which has ended, and no Goal is in work.
+no fold line while no Goal is in work: F-ONE is not folded, and the only Goal, G-ONE, has ended.
 -- run --
-hyp finding list --all
+hyp finding list
 -- floor: contains --
   may:
     hyp finding refute F-ONE
