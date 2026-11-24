@@ -6,19 +6,21 @@ import (
 	"github.com/dat9uy/hyp/internal/spec"
 )
 
-// Finding is a row of the Findings table: a fact an agent found on a Goal,
-// with a pointer to its evidence, and its state. Its events are in the
-// clone's trace: a finding changes no Goal's state.
+// Finding is a row of the Findings table: a fact an agent found, with a
+// pointer to its evidence, and its state. It names no Goal until a fold names
+// one. Its events are in the clone's trace: a finding changes no Goal's
+// state.
 type Finding struct {
 	ID       string // F- and the last six characters of EventID
 	EventID  string // the finding.add event that made it
-	Goal     string // the goal.add event id of its Goal
 	Fact     string
 	Evidence string
+	Draft    string // an add goal command line the agent drafted, or empty
 	Actor    string
 	Time     string
-	Issue    int  // the issue of its latest fold, or 0
-	Refuted  bool // a finding.refute names it; refuted is final
+	Into     *Goal // the Goal of its latest fold, or nil
+	Issue    int   // the issue of its latest fold in the old form, or 0
+	Refuted  bool  // a finding.refute names it; refuted is final
 }
 
 // State is the finding's state, as spec.FindingStates names it.
@@ -26,10 +28,21 @@ func (f *Finding) State() string {
 	switch {
 	case f.Refuted:
 		return spec.FindingRefuted
-	case f.Issue > 0:
+	case f.Into != nil || f.Issue > 0:
 		return spec.FindingFolded
 	}
 	return spec.FindingNotFolded
+}
+
+// IntoEnded reports whether the finding is folded into a Goal that has
+// ended since: it reads folded into G, ended.
+func (f *Finding) IntoEnded() bool {
+	return !f.Refuted && f.Into != nil && f.Into.State == StateEnded
+}
+
+// SortedFindings lists every finding of the tables in merge order.
+func SortedFindings(t Tables) []*Finding {
+	return t.order
 }
 
 // FindingID is the finding id of a finding.add event id.
@@ -65,11 +78,24 @@ func (t Tables) FindFinding(name string) (*Finding, error) {
 	return nil, fault.BadArg(fault.FindingTwice, name, n)
 }
 
-// GuardIssue refuses a fold that names no issue: an issue is a whole number
-// above zero.
+// GuardIssue refuses an old-form fold that names no issue: an issue is a
+// whole number above zero.
 func GuardIssue(issue int) error {
 	if issue <= 0 {
 		return fault.Refuse(fault.GuardIssue, fault.NoIssue)
+	}
+	return nil
+}
+
+// GuardInWork refuses a fold into a Goal the tables do not hold, or into an
+// ended Goal: a fold names a Goal in work, written, open or selected.
+func GuardInWork(t Tables, node string) error {
+	g, ok := t.Goals[node]
+	if !ok {
+		return fault.Refuse(fault.GuardInWork, fault.NoGoalToFold, GoalID(node))
+	}
+	if g.State == StateEnded {
+		return fault.Refuse(fault.GuardInWork, fault.FoldIntoEnded, g.ID)
 	}
 	return nil
 }
@@ -82,12 +108,15 @@ func GuardNotRefuted(f *Finding) error {
 	return nil
 }
 
-// GuardFindingAdd checks a finding.add against the tables: its node names a
-// Goal, in any state.
+// GuardFindingAdd checks a finding.add against the tables: a node other than
+// its own id, which only the old form has, names a Goal, in any state.
 func GuardFindingAdd(t Tables, ev events.Event) error {
 	var p events.FindingAdd
 	if err := events.Decode(ev, &p); err != nil {
 		return err
+	}
+	if ev.Node == "" || ev.Node == ev.ID {
+		return nil
 	}
 	if _, ok := t.Goals[ev.Node]; !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalForFinding, GoalID(ev.Node))
@@ -95,15 +124,25 @@ func GuardFindingAdd(t Tables, ev events.Event) error {
 	return nil
 }
 
-// GuardFindingFold checks a finding.fold against the tables: it names an
-// issue, and every finding it names exists and is not refuted.
+// GuardFindingFold checks a finding.fold against the tables: it names a
+// Goal in work, or in the old form an issue, and every finding it names
+// exists and is not refuted.
 func GuardFindingFold(t Tables, ev events.Event) error {
 	var p events.FindingFold
 	if err := events.Decode(ev, &p); err != nil {
 		return err
 	}
-	if err := GuardIssue(p.Issue); err != nil {
-		return err
+	switch {
+	case p.Goal != "" && p.Issue != 0:
+		return fault.Refuse(fault.NoGuard, fault.FoldGoalAndIssue)
+	case p.Goal != "":
+		if err := GuardInWork(t, p.Goal); err != nil {
+			return err
+		}
+	default:
+		if err := GuardIssue(p.Issue); err != nil {
+			return err
+		}
 	}
 	if len(p.Findings) == 0 {
 		return fault.Refuse(fault.NoGuard, fault.FoldNoFinding)
@@ -148,11 +187,10 @@ func replayFinding(t *Tables, ev events.Event, refuse func(events.Event, error))
 		if events.Decode(ev, &p) != nil {
 			return // GuardFindingAdd decoded it already
 		}
-		f := &Finding{ID: FindingID(ev.ID), EventID: ev.ID, Goal: ev.Node, Fact: p.Fact, Evidence: p.Evidence,
+		f := &Finding{ID: FindingID(ev.ID), EventID: ev.ID, Fact: p.Fact, Evidence: p.Evidence, Draft: p.Draft,
 			Actor: ev.Actor, Time: ev.TS}
-		g := t.Goals[ev.Node]
-		g.Findings = append(g.Findings, f)
 		t.findings[ev.ID] = f
+		t.order = append(t.order, f)
 	case events.TypeFindingFold:
 		if err := GuardFindingFold(*t, ev); err != nil {
 			refuse(ev, err)
@@ -162,8 +200,10 @@ func replayFinding(t *Tables, ev events.Event, refuse func(events.Event, error))
 		if events.Decode(ev, &p) != nil {
 			return
 		}
+		into := t.Goals[p.Goal] // nil for the old form
 		for _, id := range p.Findings {
-			t.findings[id].Issue = p.Issue
+			f := t.findings[id]
+			f.Into, f.Issue = into, p.Issue
 		}
 	case events.TypeFindingRefute:
 		if err := GuardFindingRefute(*t, ev); err != nil {

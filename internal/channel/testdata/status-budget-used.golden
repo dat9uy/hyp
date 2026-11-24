@@ -10,6 +10,7 @@ probe-writer may:
   (none)
 runner may:
   (none)
+words: w
 outputs: each cell shows at most 60 characters of the output's first line; all its bytes are in this clone's trace, outputs/<hash>
   row <hash>
     line-1/a  failed  exit 0  <hash>  3 bytes: bad
@@ -19,3 +20,4 @@ outputs: each cell shows at most 60 characters of the output's first line; all i
     line-1/a  failed  exit 0  <hash>  2 bytes: x2
   row <hash>
     line-1/a  failed  exit 0  <hash>  2 bytes: x3
+0 not folded: hyp finding list --not-folded

@@ -9,3 +9,5 @@ probe-writer may:
   (none)
 runner may:
   hyp run <commit> G-XXXXXX/line-1
+words: w
+0 not folded: hyp finding list --not-folded

@@ -64,7 +64,7 @@ type Goal struct {
 	Land       *Land                  // the Goal's land, or nil
 	Close      *Close                 // the Goal's close, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
-	Findings   []*Finding             // its findings, in merge order, from the clone's trace
+	Why        string                 // the why of its latest goal.add
 
 	// seen lists the ids of the Goal's events that replay applied, in merge
 	// order: the snapshot an end names.
@@ -180,6 +180,7 @@ type Tables struct {
 	Goals           map[string]*Goal // by EventID
 	results         map[string]*Result
 	findings        map[string]*Finding // by finding.add event id
+	order           []*Finding          // every finding, in merge order
 	Reads           map[string][]Read   // by actor, in merge order
 	RefusedAtReplay []Refused
 }
@@ -833,7 +834,7 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 		return // GuardGoalAdd decoded it already
 	}
 	if g, ok := t.Goals[ev.Node]; ok && ev.Node != ev.ID {
-		g.Words, g.Base, g.BaseTree, g.From, g.Lines = p.Words, p.Base, p.BaseTree, p.From, p.Lines
+		g.Words, g.Base, g.BaseTree, g.From, g.Lines, g.Why = p.Words, p.Base, p.BaseTree, p.From, p.Lines, ev.Why
 		g.seen = append(g.seen, ev.ID)
 		g.refresh()
 		return
@@ -841,7 +842,7 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 	t.Goals[ev.ID] = &Goal{
 		ID: GoalID(ev.ID), EventID: ev.ID, Words: p.Words, Base: p.Base, BaseTree: p.BaseTree,
 		Budget: p.Budget, Actor: ev.Actor, From: p.From, State: StateWritten, Lines: p.Lines,
-		seen: []string{ev.ID},
+		Why: ev.Why, seen: []string{ev.ID},
 	}
 }
 

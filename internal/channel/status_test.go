@@ -420,7 +420,7 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 		t.Fatalf("status --all prints a landed Goal's record:\n%s", all)
 	}
 	_, work, _ := run(t, "status")
-	if strings.Contains(work, f.goal) || work != "no Goal is in work.\n1 ended Goal not shown; hyp status --all lists every Goal.\n" {
+	if strings.Contains(work, f.goal) || work != "no Goal is in work.\n1 ended Goal not shown; hyp status --all lists every Goal.\n0 not folded: hyp finding list --not-folded\n" {
 		t.Fatalf("status of the Goals in work prints an ended Goal:\n%s", work)
 	}
 	if code, _, _ := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 1 {

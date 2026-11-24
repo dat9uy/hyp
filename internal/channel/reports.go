@@ -105,22 +105,29 @@ func landText(rep acts.LandReport) string {
 
 // findingText is the report of an act on a finding: each finding it wrote
 // about with its state after the act. The first line names the first
-// finding's id.
+// findingText is the report of an act on a finding: each finding it wrote
+// about, with its state after the act.
 func findingText(rep acts.FindingReport) string {
 	var b strings.Builder
 	for _, f := range rep.Findings {
-		fmt.Fprintf(&b, "recorded %s on %s: %s\n", f.ID, f.Goal, findingStateText(f.State, f.Issue))
+		fmt.Fprintf(&b, "recorded %s  %s\n", f.ID, findingStateText(f))
 	}
 	return b.String()
 }
 
 // findingStateText is a finding's state as hyp prints it: not folded,
-// folded into #N, or refuted.
-func findingStateText(state string, issue int) string {
-	if state == spec.FindingFolded {
-		return fmt.Sprintf("folded into #%d", issue)
+// folded into G, folded into G, ended, the old form's folded into #N, or
+// refuted.
+func findingStateText(f *tables.Finding) string {
+	switch {
+	case f.State() != spec.FindingFolded:
+		return f.State()
+	case f.Into == nil:
+		return fmt.Sprintf("folded into #%d", f.Issue)
+	case f.IntoEnded():
+		return fmt.Sprintf("folded into %s, ended", f.Into.ID)
 	}
-	return state
+	return "folded into " + f.Into.ID
 }
 
 // closeText is the report of a close: the Goal, now ended.
