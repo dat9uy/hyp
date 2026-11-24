@@ -64,7 +64,7 @@ hyp is changed the way it asks its users to decide things: with a Goal whose gap
 - hyp has one spec: its entries in `internal/spec` and `internal/events`, which the binary acts on and `hyp spec` prints. A change to a rule changes its entry in the same PR, and no doc restates the rule. The entries state each state and what it allows, each event kind with where it is stored and whether an end freezes it, each act with its roles and its guards in order, each guard with its codes, each exit code, and the rules of the store, the merge order, the budget, the example file and the Probe.
 - A PR whose events file conflicts on GitHub is merged locally first: GitHub does not run the union merge that the store's `.tree/.gitattributes` names, so take main's `.tree/.gitattributes` (`git checkout origin/main -- .tree/.gitattributes`), commit it if it changed, then run `git merge origin/main`, and push. Without that commit, `git merge` stops because the checked-out file would be overwritten.
 - Write "Part of #N", never a closing keyword, next to an issue that stays open.
-- An issue that closes with its goal not met gets a new issue first, as a placeholder that states the unmet goal, and its closing comment names that issue. A goal is never held only in a closed issue.
+- An issue that closes with its goal not met gets a placeholder first: a written Goal that holds the unmet goal as a line, or a new issue that states it. Its closing comment names the placeholder. A goal is never held only in a closed issue.
 - Commits use the conventional format (`feat:`, `fix:`, `docs:` and so on) and carry no AI trailers.
 
 ## Build and test
