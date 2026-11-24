@@ -17,13 +17,16 @@ type ListOpts struct {
 // FindingList is what hyp finding list prints: every finding of this
 // clone's trace in merge order, each with its state, fact, evidence, the
 // add goal its agent drafted, and the finding acts it allows as ready lines;
-// then the line that records a new finding. A finding folded into an ended
+// then the line that records a new finding. The fold line names no Goal: it
+// prints --goal G for the agent to fill, because hyp cannot know which Goal's
+// want the fact bears on, and it is printed while any Goal is in work, for a
+// folded finding too, since a folded finding may be folded again. A finding folded into an ended
 // Goal is left out unless o.All, and a last line counts those; with
 // o.NotFolded only the findings that are not folded are listed. Each line of
 // an agent's text is indented, so a finding ends where the next one starts.
 func FindingList(t tables.Tables, o ListOpts) string {
 	var b strings.Builder
-	inWork := goalsInWork(t)
+	inWork := len(goalsInWork(t)) > 0
 	shown, hidden := 0, 0
 	for _, f := range tables.SortedFindings(t) {
 		if o.NotFolded && f.State() != spec.FindingNotFolded {
@@ -45,10 +48,8 @@ func FindingList(t tables.Tables, o ListOpts) string {
 			continue
 		}
 		b.WriteString("  may:\n")
-		for _, g := range inWork {
-			if f.Into != g {
-				fmt.Fprintf(&b, "    hyp finding fold %s --goal %s\n", f.ID, g.ID)
-			}
+		if inWork {
+			fmt.Fprintf(&b, "    hyp finding fold %s --goal G\n", f.ID)
 		}
 		fmt.Fprintf(&b, "    hyp finding refute %s\n", f.ID)
 	}
