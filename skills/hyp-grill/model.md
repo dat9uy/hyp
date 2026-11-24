@@ -14,7 +14,11 @@ breaks and which examples each variant would meet.
   its part of the hand-off holds. Follow it there; this step adds only
   what you ask the owner.
 - Before the examples exist, each variant that no example separates is a
-  reading of a line ("How to grill the examples", step 1).
+  reading of a line ([examples.md](examples.md), step 1).
+- A variant reaches the owner as a question only when it changes what the
+  owner sees: a print, a refusal or an exit code. A variant that differs only
+  inside the build, or in free text that no act of hyp reads, is the runner's
+  choice: name it in the hand-off and ask nothing.
 - After the examples are placed, for each tried variant that meets every
   example and prints something else on a step no example takes, ask the
   owner one question in plain English, at the example level and with no
