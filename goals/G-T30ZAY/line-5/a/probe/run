@@ -1,0 +1,71 @@
+#!/bin/sh
+# Probe of G-T30ZAY line-5/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with a written Goal
+# (G-ONE) and one not folded finding (F-ONE) with a draft, then runs the run
+# section with stand-in ids replaced by the real ids. Output has the real ids
+# replaced back. Setup output goes to stderr. A setup step that runs a finding
+# command and fails is part of the outcome. Other setup failures exit 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G1=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G1" ] || fail "no Goal id in: $added"
+commit_staged goal || fail "commit goal"
+
+out="$work/out"
+: >"$out"
+F1=""
+finish() {
+  sed -e "s/$G1/G-ONE/g" -e "s/${F1:-F-NONE}/F-ONE/g" "$out"
+  if [ -n "$(tail -c 1 "$out")" ]; then echo; fi
+  echo "exit $1"
+  exit 0
+}
+
+export HYP_ACTOR=agent
+unset HYP_ROLE
+fa=$(hyp finding add --fact "select reaches an old build only by cherry-pick" \
+  --evidence "run of G-ONE" \
+  --draft "hyp add goal --base HEAD --words 'Cherry-pick old builds.' --line 'gap:select reaches an old build.'" 2>&1)
+code=$?
+if [ "$code" -ne 0 ]; then
+  printf '%s\n' "$fa" >"$out"
+  finish "$code"
+fi
+printf '%s\n' "$fa" >&2
+F1=$(printf '%s\n' "$fa" | sed -n 's/.*recorded \(F-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$F1" ] || fail "no finding id in: $fa"
+commit_staged finding || fail "commit finding"
+
+run=$(printf '%s' "$HYP_RUN" | sed -e "s/G-ONE/$G1/g" -e "s/F-ONE/$F1/g")
+sh -c "$run" >"$out" 2>&1
+finish $?
