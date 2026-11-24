@@ -174,7 +174,9 @@ background, and no "Not covered" item is a task.
 The hand-off ends with the runner's prompt, ready to copy: the Start prompt
 of the run rules, word for word, in one `text` block, with `<G>`, `<actor>`
 and `<issues>` filled in. `<issues>` is the issue you grill and each other
-issue the owner names as settled by the Goal. Propose the runner's actor, such as `runner-` and the Goal
+issue the owner names as settled by the Goal. It is `none` when the Goal
+closes no issue, such as a Goal made from folded findings; never fill it with
+an issue the Goal is only part of. Propose the runner's actor, such as `runner-` and the Goal
 id in lower case, and let the owner veto it; it is never the owner's actor.
 Change no other word of the prompt, write no runner prompt of your own, and
 add no choice to the hand-off for the runner: the runner looks for no rivals
