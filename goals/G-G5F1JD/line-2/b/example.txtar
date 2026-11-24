@@ -1,0 +1,8 @@
+-- words --
+F-ONE is not folded, and G-ONE and G-TWO are both in work: hyp finding list prints one fold line with --goal G, not one for each Goal.
+-- run --
+hyp finding list
+-- floor: contains --
+  may:
+    hyp finding fold F-ONE --goal G
+    hyp finding refute F-ONE

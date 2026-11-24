@@ -1,0 +1,6 @@
+-- words --
+hyp status, with no Goal named, still prints 1 not folded: hyp finding list --not-folded.
+-- run --
+hyp status
+-- floor: contains --
+1 not folded: hyp finding list --not-folded

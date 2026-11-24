@@ -1,0 +1,7 @@
+-- words --
+F-ONE is folded into G-ONE, and G-ONE is written: hyp finding list prints a fold line naming --goal G and the refute line.
+-- run --
+hyp finding list
+-- floor: contains --
+    hyp finding fold F-ONE --goal G
+    hyp finding refute F-ONE

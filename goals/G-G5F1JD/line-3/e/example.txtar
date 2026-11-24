@@ -1,0 +1,9 @@
+-- words --
+no fold line while no Goal is in work: F-ONE is folded into G-ONE, which has ended, and no Goal is in work.
+-- run --
+hyp finding list --all
+-- floor: contains --
+  may:
+    hyp finding refute F-ONE
+-- ceiling --
+hyp finding fold F-ONE
