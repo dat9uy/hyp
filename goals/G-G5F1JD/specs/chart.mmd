@@ -1,0 +1,45 @@
+---
+title: "hyp G-G5F1JD, the ready lines of a finding"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: none
+    lg1: free
+    lg2: folded
+    lg3: refuted
+  }
+  class lg0 blue
+  class lg1 teal
+  class lg2 purple
+  class lg3 orange
+  s0: no finding, a Goal in work
+  s1: not folded, a Goal in work
+  s2: folded into a Goal in work, a Goal in work
+  s3: no finding, no Goal in work
+  s4: refuted
+  s5: folded into an ended Goal, a Goal in work
+  s6: not folded, no Goal in work
+  s7: folded into an ended Goal, no Goal in work
+  [*] --> s0
+  s0 --> s1: an agent records a finding
+  s0 --> s3: a Goal ends
+  s1 --> s2: an agent folds it into a Goal
+  s1 --> s4: an agent refutes it
+  s2 --> s5: a Goal ends
+  s2 --> s4: an agent refutes it
+  s3 --> s6: an agent records a finding
+  s1 --> s6: a Goal ends
+  s5 --> s2: an agent folds it into a Goal
+  s5 --> s7: a Goal ends
+  s5 --> s4: an agent refutes it
+  s2 --> s7: a Goal ends
+  s6 --> s4: an agent refutes it
+  s7 --> s4: an agent refutes it
+  class s0 blue
+  class s1 teal
+  class s2 purple
+  class s3 blue
+  class s4 orange
+  class s5 purple
+  class s6 teal
+  class s7 purple
