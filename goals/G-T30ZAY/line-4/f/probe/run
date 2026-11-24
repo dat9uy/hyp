@@ -1,0 +1,72 @@
+#!/bin/sh
+# Probe of G-T30ZAY line-4/f. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with one written Goal and
+# and seeds the old-form finding from the example's input into the clone's
+# trace (no finding act runs in setup). It runs the example's run section as
+# agent, prints stdout then stderr (real Goal id replaced by G-ONE), then
+# "run exit: N" and "exit N". Setup output goes to stderr.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+
+G1=""
+norm() { sed -e "s/${G1:-NOID}/G-ONE/g"; }
+
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G1=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G1" ] || fail "no Goal id in: $added"
+commit_staged goal || fail "commit goal"
+
+# the goal.add event id of the Goal
+gid=$(grep '"goal.add"' .tree/events/owner.jsonl | head -n 1 \
+  | sed -n 's/.*"id":"\([0-9A-Z]\{26\}\)".*/\1/p')
+[ -n "$gid" ] || fail "no goal.add id"
+
+# one read so hyp creates this clone's trace folder
+HYP_ACTOR=owner hyp status >/dev/null 2>&1 || fail "hyp status"
+n=$(find "$HOME/.hyp/traces" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')
+[ "$n" = 1 ] || fail "expected one trace folder, found $n"
+trace=$(find "$HOME/.hyp/traces" -mindepth 1 -maxdepth 1 -type d)
+mkdir -p "$trace/events" || fail "mkdir trace events"
+ts=$(printf '%s' "$gid" | cut -c1-10)
+sed -e "s/@GOAL@/$gid/g" -e "s/@TS@/$ts/g" "$HYP_EXAMPLE/input/old-finding.jsonl" \
+  >>"$trace/events/owner.jsonl" || fail "seed finding"
+
+export HYP_ACTOR=agent
+unset HYP_ROLE
+o="$work/o"; e="$work/e"
+sh -c "$HYP_RUN" >"$o" 2>"$e"
+code=$?
+norm <"$o"
+if [ -n "$(tail -c 1 "$o")" ]; then echo; fi
+norm <"$e"
+echo "run exit: $code"
+echo "exit $code"
+exit 0
