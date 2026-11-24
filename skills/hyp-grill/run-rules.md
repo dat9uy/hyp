@@ -9,7 +9,8 @@ A runner starts on an open Goal from this prompt. The grill prints it at its
 hand-off with the Goal, the actor and the issues the Goal serves filled in, and
 the owner copies it and adds nothing else: what the runner is told comes only
 from the Goal and these rules, so two runners of one Goal are told the same.
-`<issues>` lists each issue as `#N`, separated by commas.
+`<issues>` lists each issue as `#N`, separated by commas, or is `none` when
+the Goal closes no issue.
 
 ```text
 Run the hyp Goal <G> as its runner.
@@ -23,8 +24,8 @@ Run the hyp Goal <G> as its runner.
   source of work.
 - Open a PR whose body is the select's report. Below it, add a line
   `Closes #N` for each of these issues, so the merge closes them: <issues>.
-  They are only the issues to close, not a source of work. Do not merge the
-  PR: the owner merges.
+  When it says none, add no `Closes` line. They are only the issues to close,
+  not a source of work. Do not merge the PR: the owner merges.
 ```
 
 ## Rules
