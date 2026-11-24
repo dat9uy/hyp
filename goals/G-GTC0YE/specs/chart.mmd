@@ -1,0 +1,12 @@
+---
+title: "hyp G-GTC0YE, the usage of each act in hyp spec"
+---
+stateDiagram-v2
+  s0: nothing printed
+  s1: hyp spec printed
+  s2: hyp help printed
+  [*] --> s0
+  s0 --> s1: the reader runs hyp spec
+  s0 --> s2: the reader runs hyp help
+  s1 --> s2: the reader runs hyp help
+  s2 --> s1: the reader runs hyp spec
