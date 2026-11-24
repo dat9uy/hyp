@@ -1,0 +1,82 @@
+#!/bin/sh
+# Probe of G-T30ZAY line-4. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test store with one written Goal and
+# the findings the example needs, runs the example's run section with the
+# stand-in ids (G-ONE, F-ONE, F-TWO) replaced by the real ids, prints stdout,
+# then stderr (real ids replaced back), then "exit N". Setup output goes to
+# stderr. A setup step that runs a finding act and fails is part of the
+# outcome: its output is printed, then its exit code.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add greet.txt && git commit -q -m base >&2 || fail "commit base"
+
+G1="" F1="" F2=""
+# norm: replace each real id by its stand-in
+norm() {
+  sed -e "s/${G1:-NOID}/G-ONE/g" -e "s/${F1:-NOID}/F-ONE/g" -e "s/${F2:-NOID}/F-TWO/g"
+}
+step_out="$work/step"
+# step CMD...: run a finding act; a failure is the outcome of the Probe
+step() {
+  "$@" >"$step_out" 2>&1
+  code=$?
+  if [ "$code" -ne 0 ]; then
+    norm <"$step_out"
+    echo "exit $code"
+    exit 0
+  fi
+  cat "$step_out" >&2
+}
+# newid: the finding id in "recorded F-XXXXXX" of the last step
+newid() {
+  sed -n 's/^recorded \(F-[A-Z0-9]*\).*/\1/p' "$step_out" | head -n 1
+}
+
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G1=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G1" ] || fail "no Goal id in: $added"
+commit_staged goal || fail "commit goal"
+
+export HYP_ACTOR=agent
+unset HYP_ROLE
+step hyp finding add --fact "fact one" --evidence "evidence one"; F1=$(newid)
+step hyp finding fold "$F1" --goal "$G1"
+HYP_ACTOR=owner HYP_ROLE=owner hyp close "$G1" --why done >&2 || fail "hyp close"; commit_staged close || fail "commit close"
+step hyp finding add --fact "fact two" --evidence "evidence two"; F2=$(newid)
+
+run=$(printf '%s' "$HYP_RUN" | sed -e "s/G-ONE/$G1/g" -e "s/F-ONE/${F1:-NOID}/g" -e "s/F-TWO/${F2:-NOID}/g")
+o="$work/o"; e="$work/e"
+sh -c "$run" >"$o" 2>"$e"
+code=$?
+norm <"$o"
+if [ -n "$(tail -c 1 "$o")" ]; then echo; fi
+norm <"$e"
+echo "exit $code"
+exit 0
