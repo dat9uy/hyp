@@ -148,7 +148,11 @@ uses runs of the budget and can stop the Goal at `Two candidates`.
 4. Write the verdict line each try printed, such as `verdict: met, exit 0`, in
    `specs/tried/<variant>/<line>/<example>.txt`, and run the tool again. The
    report sets each tried cell beside its prediction and names each cell where
-   they differ. Where they differ, fix the model, not an example, and say so in
+   they differ. Where they differ, find the cause. When the model is wrong, fix
+   the model, not an example. The tool predicts from the shortest walk whose
+   prints meet the example's floors, and that walk can set up another case
+   than the example's Probe does. When that is the cause, the model is right
+   and the tried verdict stands over the prediction. Say which cause it was in
    one line of the hand-off.
 5. When a tried patch meets every example, the examples do not separate the two
    builds. The grill asks the owner one plain question about it, at the example
@@ -171,9 +175,10 @@ Add to the grill's hand-off:
 - the chart, as a `mermaid` block;
 - for each variant, the rules its config names, and whether its patch failed an
   example or met every example, as `hyp try` printed it;
-- one line for each tried verdict that differed from its prediction, and what
-  was fixed in the model;
-- each rule left out of the check config, and why;
+- one line for each tried verdict that differed from its prediction: what was
+  fixed in the model, or which case the tool's walk set up instead of the
+  example's;
+- each rule other than a type rule left out of the check config, and why;
 - when a chart config exists, the config and the state count behind each
   result;
 - what the model leaves out;
@@ -184,8 +189,9 @@ Add to the grill's hand-off:
 - `goals/<G>/specs/` holds the model, its check config, the variant configs the
   tool wrote, and `chart.mmd`.
 - Each variant was tried as a patch with `hyp try --worktree` up to its first
-  failed example, or on every placed example when each try was met; no tried
-  verdict differs from its prediction.
+  failed example, or on every placed example when each try was met.
+- Each tried verdict that differs from its prediction was traced to its cause
+  (step 4 of "Try what the tool predicts") and is named in the hand-off.
 
 ## Resources
 
