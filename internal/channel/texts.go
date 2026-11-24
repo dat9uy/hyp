@@ -40,6 +40,7 @@ const (
 	codeSpecArgs       fault.Code = "spec-args"       // count
 	codeFindingWhat    fault.Code = "finding-what"    // no values
 	codeFindingArgs    fault.Code = "finding-args"    // act, count
+	codeFoldNoGoal     fault.Code = "fold-no-goal"    // no values
 )
 
 // words is the text of every code: a format whose verbs name the code's
@@ -222,11 +223,15 @@ var words = map[fault.Code]string{
 	fault.NoGoalForFinding:  "no Goal %s to add a finding to",
 	fault.NoFinding:         "no finding %s",
 	fault.FindingTwice:      "%s matches %d findings; give the finding.add event id",
-	fault.NoIssue:           "a fold names the issue it folds into: --issue N, a whole number above zero",
+	fault.NoIssue:           "the old form of a fold names the issue it folds into, a whole number above zero",
+	fault.NoGoalToFold:      "no Goal %s to fold into; a fold names a Goal in work: written, open or selected",
+	fault.FoldIntoEnded:     "%s is ended; a fold names a Goal in work: written, open or selected",
+	fault.FoldGoalAndIssue:  "the fold names both a Goal and an issue; it names one Goal",
 	fault.Refuted:           "%s is refuted; a refuted finding takes no fold and no refute",
 	fault.FoldNoFinding:     "the fold names no finding",
 	fault.EmptyFact:         "finding add needs --fact TEXT",
 	fault.EmptyEvidence:     "finding add needs --evidence TEXT, a pointer to the evidence",
+	fault.DraftNotAddGoal:   "--draft is an add goal command line for the owner: it starts with hyp add goal",
 	fault.NoNewCell:         "%s was unselected by %s, and no run since recorded a new cell: an example version or a row that had not run before the unselect; the runner selects again after such a run, the owner at any time",
 
 	// the channel's own
@@ -248,8 +253,9 @@ var words = map[fault.Code]string{
 	codeStateBlock:     "state block: %s",
 	codeNeedsActor:     "%s needs an actor (--actor or $HYP_ACTOR): hyp records what it prints to each actor",
 	codePruneArgs:      "prune takes no argument but --remove; got %d arguments",
-	codeFindingWhat:    "finding what? finding add, finding fold or finding refute",
+	codeFindingWhat:    "finding what? finding add, finding fold, finding refute or finding list",
 	codeFindingArgs:    "%s takes the arguments its usage in hyp help names; got %d arguments",
+	codeFoldNoGoal:     "finding fold needs --goal G, a Goal in work: written, open or selected",
 	codeLandArgs:       "land takes one Goal, for example: hyp land G-NXHHVA; got %d arguments",
 	codeCloseArgs:      "close takes one Goal, for example: hyp close G-NXHHVA; got %d arguments",
 	codeUnselectArgs:   "unselect takes one Goal, for example: hyp unselect G-NXHHVA; got %d arguments",

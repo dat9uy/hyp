@@ -51,6 +51,7 @@ const (
 	GuardSelected    Guard = "Selected"
 	GuardOwnResult   Guard = "Own Result"
 	GuardIssue       Guard = "Issue"
+	GuardInWork      Guard = "In work"
 	GuardNotRefuted  Guard = "Not refuted"
 	NoGuard          Guard = "" // a refusal that no guard names
 )

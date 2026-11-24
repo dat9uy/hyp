@@ -2,6 +2,7 @@ package acts
 
 import (
 	"encoding/json"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
@@ -17,30 +18,26 @@ type FindingOpts struct {
 	Actor    string
 	Role     string
 	Why      string
-	Goal     string   // finding add: the Goal's id
 	Fact     string   // finding add
 	Evidence string   // finding add
+	Draft    string   // finding add: an add goal command line for the owner, or empty
 	Findings []string // finding fold: one or more; finding refute: one
-	Issue    int      // finding fold
+	Goal     string   // finding fold: the Goal to fold into
 }
 
-// FindingReport is what an act on a finding returns: the Goal of each
-// finding it wrote about, and each finding with its state after the act.
+// FindingReport is what an act on a finding returns: the Goal a fold names,
+// and each finding with its state after the act.
 type FindingReport struct {
-	Goals    []string // Goal ids, in the order of Findings, without repeats
-	Findings []FindingLine
+	Goal     string // G-… of a fold; empty for an add or a refute
+	Findings []*tables.Finding
 }
 
-// FindingLine is one finding of a report.
-type FindingLine struct {
-	ID    string // F-…
-	Goal  string // G-…
-	State string // spec.FindingStates
-	Issue int
-}
+// DraftPrefix starts every draft a finding carries: a draft is an add goal
+// command line, which the owner may edit and run.
+const DraftPrefix = "hyp add goal "
 
-// FindingAdd records a finding on a Goal in any state. A Goal the store does
-// not hold is a refusal.
+// FindingAdd records a finding: a fact and its evidence, with no Goal, and
+// an add goal the agent drafted for the owner when Draft is set.
 func FindingAdd(o FindingOpts) (FindingReport, error) {
 	if o.Fact == "" {
 		return FindingReport{}, fault.BadArg(fault.EmptyFact)
@@ -48,33 +45,36 @@ func FindingAdd(o FindingOpts) (FindingReport, error) {
 	if o.Evidence == "" {
 		return FindingReport{}, fault.BadArg(fault.EmptyEvidence)
 	}
+	if o.Draft != "" && !strings.HasPrefix(o.Draft, DraftPrefix) {
+		return FindingReport{}, fault.BadArg(fault.DraftNotAddGoal)
+	}
 	return findingAct(o, events.TypeFindingAdd, func(t tables.Tables, ev *events.Event) error {
-		g, err := t.Find(o.Goal)
-		if err != nil {
-			if fault.KindOf(err) == fault.BadArguments {
-				if e, ok := fault.As(err); ok && e.Code == fault.NoGoal {
-					return fault.Refuse(fault.NoGuard, fault.NoGoalForFinding, o.Goal)
-				}
-			}
-			return err
-		}
-		raw, err := json.Marshal(events.FindingAdd{Role: o.Role, Fact: o.Fact, Evidence: o.Evidence})
+		raw, err := json.Marshal(events.FindingAdd{Role: o.Role, Fact: o.Fact, Evidence: o.Evidence, Draft: o.Draft})
 		if err != nil {
 			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingAdd, err)
 		}
-		ev.Node, ev.Payload = g.EventID, raw
+		ev.Payload = raw
 		return tables.GuardFindingAdd(t, *ev)
 	})
 }
 
-// FindingFold folds one or more findings into an issue, in one event: the
-// fold records all of them or none.
+// FindingFold folds one or more findings into one Goal in work, in one
+// event: the fold records all of them or none. A Goal the store does not
+// hold, or an ended Goal, is a refusal of In work.
 func FindingFold(o FindingOpts) (FindingReport, error) {
 	return findingAct(o, events.TypeFindingFold, func(t tables.Tables, ev *events.Event) error {
-		if err := tables.GuardIssue(o.Issue); err != nil {
+		g, err := t.Find(o.Goal)
+		if err != nil {
+			if e, ok := fault.As(err); ok && e.Code == fault.NoGoal {
+				return fault.Refuse(fault.GuardInWork, fault.NoGoalToFold, o.Goal)
+			}
 			return err
 		}
-		p := events.FindingFold{Role: o.Role, Issue: o.Issue}
+		if err := tables.GuardInWork(t, g.EventID); err != nil {
+			return err
+		}
+		node := g.EventID
+		p := events.FindingFold{Role: o.Role, Goal: node}
 		for _, name := range o.Findings {
 			f, err := t.FindFinding(name)
 			if err != nil {
@@ -162,18 +162,15 @@ func findingAct(o FindingOpts, typ string, build func(tables.Tables, *events.Eve
 		ids = []string{ev.Node}
 	}
 	var rep FindingReport
-	seen := map[string]bool{}
 	for _, id := range ids {
 		f, err := t.FindFinding(id)
 		if err != nil {
 			return FindingReport{}, err
 		}
-		g := tables.GoalID(f.Goal)
-		if !seen[g] {
-			seen[g] = true
-			rep.Goals = append(rep.Goals, g)
+		rep.Findings = append(rep.Findings, f)
+		if typ == events.TypeFindingFold && f.Into != nil {
+			rep.Goal = f.Into.ID
 		}
-		rep.Findings = append(rep.Findings, FindingLine{ID: f.ID, Goal: g, State: f.State(), Issue: f.Issue})
 	}
 	return rep, nil
 }

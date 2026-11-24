@@ -29,8 +29,8 @@ The fourteen event types, each with where it is stored in `hyp spec`:
 | `close` | the owner's close of a Goal at any stop or none; it names the snapshot |
 | `unselect` | the owner's unselect of a selected Goal, which puts it back to open |
 | `read` | what hyp printed to an actor; it goes into the trace, never into the log |
-| `finding.add` | a finding on a Goal in any state; it goes into the trace, never into the log |
-| `finding.fold` | a fold of one or more findings into an issue; it goes into the trace |
+| `finding.add` | a finding, which names no Goal; it goes into the trace, never into the log |
+| `finding.fold` | a fold of one or more findings into one Goal in work; it goes into the trace |
 | `finding.refute` | a refute of a finding; it goes into the trace |
 
 **Log**:
@@ -230,7 +230,7 @@ The record of one `run`: one line of one Goal on one commit, with one cell per p
 _Avoid_: finding, outcome
 
 **Finding**:
-A fact an agent found on a Goal, with a pointer to its evidence, such as a Result id. Its id is `F-…`. Any agent adds one with `hyp finding add`, on a Goal in any state, and folds it into an issue or refutes it. `hyp status G` prints each finding with its state: `not folded`, `folded into #N` or `refuted`. Its events are in the trace, so a finding changes no Goal's state (`hyp spec`, findings).
+A fact an agent found, with a pointer to its evidence, such as a Result id. Its id is `F-…`. Any agent adds one with `hyp finding add`, which names no Goal, and folds it into the one Goal in work whose want it bears on, or refutes it; it may carry an `add goal` the agent drafted for the owner. `hyp finding list` prints each finding with its state: `not folded`, `folded into G`, `folded into G, ended` or `refuted`, and `hyp status G` prints the findings folded into G. Its events are in the trace, so a finding changes no Goal's state (`hyp spec`, findings).
 _Avoid_: Result (a finding is not the record of a run)
 
 **Cell**:

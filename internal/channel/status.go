@@ -57,7 +57,7 @@ func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o Blo
 			inWork++
 		}
 		shown[g.EventID] = true
-		goalBlock(&b, g, repo, o)
+		goalBlock(&b, t, g, repo, o)
 	}
 	var refused []tables.Refused
 	for _, r := range t.RefusedAtReplay {
@@ -90,6 +90,9 @@ func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o Blo
 		}
 		fmt.Fprintf(&b, "%s not shown; hyp status --all lists every Goal.\n", endedCount(hidden))
 	}
+	if o.Goal == "" {
+		fmt.Fprintf(&b, "%d not folded: hyp finding list --not-folded\n", notFolded(t))
+	}
 	return b.String()
 }
 
@@ -101,7 +104,7 @@ func endedCount(n int) string {
 	return fmt.Sprintf("%d ended Goals", n)
 }
 
-func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
+func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string, o BlockOpts) {
 	st := acts.Stand(g, repo)
 	ended := g.State == tables.StateEnded
 	// an ended Goal prints no runs count: the runs are in each clone's trace,
@@ -157,8 +160,13 @@ func goalBlock(b *strings.Builder, g *tables.Goal, repo string, o BlockOpts) {
 	if !ended {
 		unstable(b, g)
 	}
+	if o.Goal == "" && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
+		// the list of every Goal names what each Goal in work asks, so an
+		// agent finds the Goal a finding bears on
+		fmt.Fprintf(b, "words: %s\n", indentText(g.Words, "  "))
+	}
 	if o.Goal != "" {
-		findings(b, g)
+		findings(b, t, g)
 	}
 	if o.Ask && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
 		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
@@ -202,18 +210,22 @@ func probeWriter(b *strings.Builder, g *tables.Goal) {
 	}
 }
 
-// findings lists every finding of g in this clone's trace, each with its
-// state, its evidence and its fact. Only a block that names its Goal prints
-// them: a fact is an agent's text, which can hold lines that read as Goals of
-// this store. Each line of a fact is indented, so the list ends where the
-// next part of the block starts.
-func findings(b *strings.Builder, g *tables.Goal) {
-	if len(g.Findings) == 0 {
-		return
-	}
-	b.WriteString("findings:\n")
-	for _, f := range g.Findings {
-		fmt.Fprintf(b, "  %s  %s  by %s at %s\n", f.ID, findingStateText(f.State(), f.Issue), f.Actor, f.Time)
+// findings lists every finding folded into g in this clone's trace, each
+// with its state, its evidence and its fact. Only a block that names its
+// Goal prints them: a fact is an agent's text, which can hold lines that read
+// as Goals of this store. Each line of a fact is indented, so the list ends
+// where the next part of the block starts.
+func findings(b *strings.Builder, t tables.Tables, g *tables.Goal) {
+	first := true
+	for _, f := range tables.SortedFindings(t) {
+		if f.Into != g {
+			continue
+		}
+		if first {
+			b.WriteString("findings:\n")
+			first = false
+		}
+		fmt.Fprintf(b, "  %s  %s  by %s at %s\n", f.ID, findingStateText(f), f.Actor, f.Time)
 		fmt.Fprintf(b, "    evidence: %s\n", indentText(f.Evidence, "      "))
 		fmt.Fprintf(b, "    fact: %s\n", indentText(f.Fact, "      "))
 	}
@@ -321,6 +333,9 @@ func h0Cell(b *strings.Builder, g *tables.Goal, p tables.Placement) {
 func askText(repo string, g *tables.Goal) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s: %s\n", g.ID, g.Words)
+	if g.Why != "" {
+		fmt.Fprintf(&b, "\nwhy: %s\n", g.Why)
+	}
 	placed := g.Placed()
 	for _, l := range g.Lines {
 		fmt.Fprintf(&b, "\n## %s (%s): %s\n", l.Key, l.Kind, l.Text)

@@ -63,6 +63,23 @@ at a stop, `hyp close G` when the Goal has no stop, such as with 0 runs.
 The ended Goal's builds stay commits on their branches. They are not
 Hypotheses of the new Goal, and the hand-off never offers one to the runner.
 A runner that builds on one picks it onto the new record branch, because
-`hyp select` reads the Goal's spec from the selected commit. Report what
+`hyp select` reads the Goal's spec from the selected commit. Record what
 agents found about those builds, such as their verdicts or why a Probe
-failed, as findings in the hand-off.
+failed, as findings with `hyp finding add`, and fold each into the new Goal
+once it is written.
+
+## Before a land
+
+Before a land, show the owner each decided part that no line builds: a
+decision the owner made in the grill or the re-grill that no line of the Goal
+holds. A decided want is a line of a written Goal, never only an issue or a
+comment, so give each one as a drafted `add goal` with its words, lines and
+why, to run `--from` the Goal after the land:
+
+```text
+hyp add goal --base COMMIT --from G --words TEXT --line gap:TEXT --why TEXT
+```
+
+The owner edits and runs it after `hyp land G`. Then read
+`hyp finding list --not-folded` with the owner, and fold each finding that
+bears on the new Goal into it.

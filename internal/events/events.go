@@ -90,9 +90,9 @@ var Kinds = []Kind{
 	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
 	{TypeUnselect, true, "the Goal its node names", true, "unselect"},
 	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
-	{TypeFindingAdd, false, "the Goal its node names, in any state, ended included", false, "finding add"},
-	{TypeFindingFold, false, "the Goal of each finding it names", false, "finding fold"},
-	{TypeFindingRefute, false, "the Goal of the finding its node names", false, "finding refute"},
+	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal until a fold names one; the old form's node names the Goal it was recorded on", false, "finding add"},
+	{TypeFindingFold, false, "the Goal its payload names, written, open or selected; the old form names an issue", false, "finding fold"},
+	{TypeFindingRefute, false, "the finding its node names", false, "finding refute"},
 }
 
 // KindOf returns the entry of an event type, and false for a type outside the
@@ -247,21 +247,28 @@ type Read struct {
 	Stderr  string   `json:"stderr"`
 }
 
-// FindingAdd is the payload of finding.add: a fact an agent found on the
-// Goal its node names, and a pointer to its evidence, such as a Result id, a
-// commit or a path. Role is the role the act declared, or empty.
+// FindingAdd is the payload of finding.add: a fact an agent found, and a
+// pointer to its evidence, such as a Result id, a commit or a path. Its node
+// is its own id: a finding names no Goal until a fold names one. The old form's
+// node names the Goal it was recorded on, which a fold does not need. Draft
+// is an add goal command line the agent drafted for the owner, or empty.
+// Role is the role the act declared, or empty.
 type FindingAdd struct {
 	Role     string `json:"role"`
 	Fact     string `json:"fact"`
 	Evidence string `json:"evidence"`
+	Draft    string `json:"draft,omitempty"`
 }
 
 // FindingFold is the payload of finding.fold: the findings it folds, by
-// their finding.add ids, and the number of the issue it folds them into.
+// their finding.add ids, and the goal.add id of the Goal it folds them into.
+// The old form names the number of an issue in place of a Goal; replay still
+// reads it, and no act writes it.
 type FindingFold struct {
 	Role     string   `json:"role"`
 	Findings []string `json:"findings"`
-	Issue    int      `json:"issue"`
+	Goal     string   `json:"goal,omitempty"`
+	Issue    int      `json:"issue,omitempty"`
 }
 
 // FindingRefute is the payload of finding.refute, whose node is the

@@ -217,6 +217,8 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 			switch args[1] {
 			case "add", "fold", "refute":
 				return findingCmd(c, args[1], args[2:], stdout, stderr)
+			case "list":
+				return findingListCmd(c, args[2:], stdout)
 			}
 		}
 		fmt.Fprint(stderr, usage)
@@ -713,8 +715,8 @@ func unselectCmd(c *call, args []string, stdout, stderr io.Writer) error {
 
 // findingCmd runs an act on a finding: finding add, fold or refute. Any
 // actor runs it, with any role or none; it writes its event to the clone's
-// trace. Its report names each finding with its state, and the state block
-// of the finding's Goal follows it.
+// trace. Its report names each finding with its state; after a fold, the
+// state block of the Goal it folded into follows it.
 func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) error {
 	command := "finding " + act
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -724,8 +726,9 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 	case "add":
 		fs.StringVar(&o.Fact, "fact", "", "")
 		fs.StringVar(&o.Evidence, "evidence", "", "")
+		fs.StringVar(&o.Draft, "draft", "", "")
 	case "fold":
-		fs.IntVar(&o.Issue, "issue", 0, "")
+		fs.StringVar(&o.Goal, "goal", "", "")
 	}
 	positional, _, err := readFlagsWith(c, command, args, fs)
 	if err != nil {
@@ -736,17 +739,18 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 		return err
 	}
 	var rep acts.FindingReport
-	goal := ""
 	switch act {
 	case "add":
-		if len(positional) != 1 {
+		if len(positional) != 0 {
 			return fault.BadArg(codeFindingArgs, command, len(positional))
 		}
-		o.Goal, goal = positional[0], positional[0]
 		rep, err = acts.FindingAdd(o)
 	case "fold":
 		if len(positional) == 0 {
 			return fault.BadArg(codeFindingArgs, command, len(positional))
+		}
+		if o.Goal == "" {
+			return fault.BadArg(codeFoldNoGoal)
 		}
 		o.Findings = positional
 		rep, err = acts.FindingFold(o)
@@ -758,12 +762,30 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 		rep, err = acts.FindingRefute(o)
 	}
 	if err != nil {
-		return finish(stdout, stderr, c.dir, goal, "", err)
+		return finish(stdout, stderr, c.dir, "", "", err)
 	}
-	if len(rep.Goals) == 1 {
-		goal = rep.Goals[0]
-	} else {
-		goal = ""
+	return finish(stdout, stderr, c.dir, rep.Goal, findingText(rep), nil)
+}
+
+// findingListCmd is hyp finding list: a read that prints every finding with
+// its state, fact, evidence and draft, and the acts each allows as ready
+// lines.
+func findingListCmd(c *call, args []string, stdout io.Writer) error {
+	fs := flag.NewFlagSet("finding list", flag.ContinueOnError)
+	var o ListOpts
+	fs.BoolVar(&o.All, "all", false, "")
+	fs.BoolVar(&o.NotFolded, "not-folded", false, "")
+	positional, _, err := readFlagsWith(c, "finding list", args, fs)
+	if err != nil {
+		return err
 	}
-	return finish(stdout, stderr, c.dir, goal, findingText(rep), nil)
+	if len(positional) != 0 {
+		return fault.BadArg(codeFindingArgs, "finding list", len(positional))
+	}
+	t, _, _, err := readStoreLines(c.dir)
+	if err != nil {
+		return err
+	}
+	fmt.Fprint(stdout, FindingList(t, o))
+	return nil
 }

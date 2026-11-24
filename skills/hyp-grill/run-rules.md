@@ -61,4 +61,15 @@ Run the hyp Goal <G> as its runner.
    issue the Start prompt names, and the diffs of rule 2, each with its
    variant and the outputs `hyp try` printed.
 10. **A defect outside the Goal** is fixed only when the line needs it.
-    Otherwise list it in the PR for the owner.
+    Otherwise record it as a finding (rule 11) and list it in the PR for the
+    owner.
+11. **A fact that no line of its Goal needs is a finding.** Record it with
+    `hyp finding add --fact TEXT --evidence TEXT`: the fact and a pointer to
+    its evidence, such as a commit, a path or a Result id. Then read
+    `hyp status`, which prints the words of each Goal in work, and
+    `hyp finding list`. Fold the finding into the one Goal in work whose want
+    it bears on, with the ready `hyp finding fold` line the list prints. When
+    no Goal in work holds that want, draft an `add goal` for the owner, with
+    its words, lines and why, and attach it with
+    `--draft "hyp add goal ..."`; the owner may edit and run it. Never hold a
+    fact only in an issue, a PR or a comment.
