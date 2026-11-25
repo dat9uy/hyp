@@ -112,6 +112,10 @@ owner_cmd() {
   fi
 }
 
+# A seed Goal, which no stand-in id maps to, so that the store exists.
+HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Seed.' \
+  --line 'gap:the subject says bye.' >&2 || fail "seed goal"
+commit_staged "seed goal" || fail "commit seed goal"
 add_finding
 F1=$F
 add_goal 'Greet.' "--finding $F1"
