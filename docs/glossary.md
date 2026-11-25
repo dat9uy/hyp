@@ -130,12 +130,12 @@ _Avoid_: edit, amend
 
 **Goal state**:
 `written`, `open`, `selected` or `ended`, calculated and never stored.
-- **written**: a `goal.add` exists, and the Goal is not open.
+- **written**: a `goal.add` exists, and the Goal is not open. It has an H0 but no verdict on it, so its gap is claimed, not shown. A written Goal may wait; only its H0 ages, and an outdated Goal is replaced by a new Goal.
 - **open**: every line holds a placed example. Each current placement has a live cell on H0's row with the verdict its line's kind needs.
 - **selected**: the Goal has a select. It allows only the owner's `land`, `unselect` and `close`. An unselect puts it back to open.
 - **ended**: the owner landed or closed the Goal. It takes no write. A line under `stop:` names the end: `landed:` or `closed:`.
 
-_Avoid_: done, met (as a state word); landed as the state word (say ended, and the line names the land)
+_Avoid_: done, met (as a state word); unmet, placeholder (say written or open); landed as the state word (say ended, and the line names the land)
 
 ## Examples and Probes
 

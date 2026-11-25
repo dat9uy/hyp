@@ -60,6 +60,10 @@ with `--from G` holds the corrected example. Two causes lead here:
 The owner ends the Goal with the act that `hyp status G` offers: `hyp land G`
 at a stop, `hyp close G` when the Goal has no stop, such as with 0 runs.
 
+A Goal that ends with no select gives up its want. When the owner still wants
+it, a new Goal holds it once its lines are known, and an issue holds it until
+then. The `--why` of the land or close says which, or that the want is dropped.
+
 The ended Goal's builds stay commits on their branches. They are not
 Hypotheses of the new Goal, and the hand-off never offers one to the runner.
 A runner that builds on one picks it onto the new record branch, because
