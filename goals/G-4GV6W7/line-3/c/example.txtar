@@ -3,6 +3,6 @@ A landed Goal: hyp status G prints no Start prompt. The Probe prints the Goal id
 -- run --
 hyp status G
 -- floor: contains --
-G  landed
+landed: by owner
 -- ceiling --
 runner-g
