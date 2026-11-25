@@ -183,10 +183,10 @@ tr=$(ls -d "$HOME"/.hyp/traces/*/ | head -n 1)
 fnode=$(sed -n 's/.*"id":"\([0-9A-Z]*\)".*"type":"finding.add".*/\1/p' "$tr/events/agent.jsonl" | head -n 1)
 gnode=$(sed -n 's/.*"id":"\([0-9A-Z]*\)".*"type":"goal.add".*/\1/p' .tree/events/owner.jsonl | head -n 1)
 [ -n "$fnode" ] && [ -n "$gnode" ] || fail "no node ids"
-rnd=$(LC_ALL=C tr -dc '0-9A-HJKMNP-TV-Z' </dev/urandom | head -c 16)
+rnd=ZZZZZZZZZZZZZZZZ
 fid=$(printf '%s' "$fnode" | cut -c1-10)$rnd
-printf '{"v":2,"id":"%s","ts":"2026-11-25T16:00:00.000000Z","actor":"agent","type":"finding.fold","node":"%s","payload":{"role":"","findings":["%s"],"goal":"%s"},"why":""}\n' \
-  "$fid" "$fid" "$fnode" "$gnode" >>"$tr/events/agent.jsonl" || fail "write fold"
+printf '{"v":2,"id":"%s","ts":"%s","actor":"agent","type":"finding.fold","node":"%s","payload":{"role":"","findings":["%s"],"goal":"%s"},"why":""}\n' \
+  "$fid" "$(date -u +%Y-%m-%dT%H:%M:%S.000000Z)" "$fid" "$fnode" "$gnode" >>"$tr/events/agent.jsonl" || fail "write fold"
 select_goal "$G1"
 land_goal "$G1"
 
