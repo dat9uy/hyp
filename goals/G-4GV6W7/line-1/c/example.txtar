@@ -1,0 +1,12 @@
+-- words --
+Nothing left to fill: hyp status G of an open Goal prints the runner's Start prompt with no placeholder left to fill. The Probe prints the Goal id as G and its lower case as g.
+-- run --
+hyp status G
+-- floor: contains --
+runner-g
+-- ceiling --
+<G>
+-- ceiling --
+<actor>
+-- ceiling --
+<issues>

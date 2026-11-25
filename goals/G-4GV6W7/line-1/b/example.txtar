@@ -1,0 +1,8 @@
+-- words --
+No Closes line: hyp status G of an open Goal prints the runner's Start prompt, and the prompt asks for no Closes line (F-DCYYSW). The Probe prints the Goal id as G and its lower case as g.
+-- run --
+hyp status G
+-- floor: contains --
+runner-g
+-- ceiling --
+Closes

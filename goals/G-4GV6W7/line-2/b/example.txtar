@@ -1,0 +1,8 @@
+-- words --
+Says where hyp prints it: SKILL.md, run-rules.md and the owner guide each say, in one sentence, that hyp status prints the Start prompt.
+-- run --
+for f in skills/hyp-grill/SKILL.md skills/hyp-grill/run-rules.md docs/owner-guide.md; do if awk 'BEGIN { RS = "" } { gsub(/\n/, " "); n = split($0, s, /\. /); for (i = 1; i <= n; i++) if (s[i] ~ /hyp status/ && s[i] ~ /Start prompt/) found = 1 } END { exit !found }' "$f"; then echo "$f: says"; else echo "$f: silent"; fi; done
+-- floor: equals --
+skills/hyp-grill/SKILL.md: says
+skills/hyp-grill/run-rules.md: says
+docs/owner-guide.md: says
