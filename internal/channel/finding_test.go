@@ -139,6 +139,62 @@ func TestFindingFoldedIntoAnEndedGoal(t *testing.T) {
 	}
 }
 
+func TestFindingDecline(t *testing.T) {
+	inRepo(t)
+	goal := newGoal(t)
+	f1 := addFinding(t)
+	f2 := addFinding(t)
+	held := addFinding(t)
+	if code, _, errs := run(t, "finding", "fold", held, "--goal", goal); code != 0 {
+		t.Fatalf("fold: code %d, stderr %q", code, errs)
+	}
+
+	if code, out, errs := run(t, "finding", "decline", f1); code != 1 || out != "" ||
+		!strings.Contains(errs, "refused: Owner declines: a decline needs --why TEXT") {
+		t.Fatalf("decline with no why: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	t.Setenv("HYP_ROLE", "runner")
+	if code, _, errs := run(t, "finding", "decline", f1, "--why", "not wanted"); code != 1 ||
+		!strings.Contains(errs, "refused: Owner declines: only the owner declines a finding; the role is runner") {
+		t.Fatalf("decline by a runner: code %d, stderr %q", code, errs)
+	}
+	t.Setenv("HYP_ROLE", "owner")
+	if code, _, errs := run(t, "finding", "decline", held, "--why", "not wanted"); code != 1 ||
+		!strings.Contains(errs, "refused: Not folded: "+held+" is folded into "+goal) {
+		t.Fatalf("decline of a folded finding: code %d, stderr %q", code, errs)
+	}
+	if code, out, errs := run(t, "finding", "decline", f1, "--why", "not wanted"); code != 0 || out != "recorded "+f1+"  declined\n" {
+		t.Fatalf("decline: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	for _, args := range [][]string{{"finding", "fold", f1, "--goal", goal}, {"finding", "refute", f1},
+		{"finding", "decline", f1, "--why", "still not wanted"}} {
+		code, _, errs := run(t, args...)
+		if code != 1 || !strings.Contains(errs, "refused: Not declined: "+f1+" is declined") {
+			t.Fatalf("%v: code %d, stderr %q", args, code, errs)
+		}
+	}
+	if code, _, errs := run(t, "finding", "refute", f2); code != 0 {
+		t.Fatalf("refute: code %d, stderr %q", code, errs)
+	}
+	if code, _, errs := run(t, "finding", "decline", f2, "--why", "not wanted"); code != 1 ||
+		!strings.Contains(errs, "refused: Not refuted: "+f2+" is refuted") {
+		t.Fatalf("decline of a refuted finding: code %d, stderr %q", code, errs)
+	}
+
+	_, list, _ := run(t, "finding", "list")
+	if strings.Contains(list, f1) || !strings.Contains(list, "1 finding declined not shown; hyp finding list --all lists them.\n") {
+		t.Fatalf("finding list shows a declined finding:\n%s", list)
+	}
+	_, all, _ := run(t, "finding", "list", "--all")
+	if !strings.Contains(all, f1+"  declined  by ") || !strings.Contains(all, "  why: not wanted\n") ||
+		strings.Contains(all, "hyp finding refute "+f1) {
+		t.Fatalf("finding list --all:\n%s", all)
+	}
+	if _, status, _ := run(t, "status"); !strings.Contains(status, "\n0 not folded: hyp finding list") {
+		t.Fatalf("status counts a declined finding as not folded:\n%s", status)
+	}
+}
+
 func TestFindingDraft(t *testing.T) {
 	inRepo(t)
 	newGoal(t)

@@ -24,23 +24,24 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The fourteen event types. example.place is the old form of a place, one
+// The fifteen event types. example.place is the old form of a place, one
 // example per event: hyp writes examples.place, and replays both.
 const (
-	TypeGoalAdd       = "goal.add"
-	TypeExamplePlace  = "example.place"
-	TypeExamplesPlace = "examples.place"
-	TypeResultRecord  = "result.record"
-	TypeResultRetract = "result.retract"
-	TypeSelect        = "select"
-	TypeBudgetReset   = "budget.reset"
-	TypeLand          = "land"
-	TypeClose         = "close"
-	TypeUnselect      = "unselect"
-	TypeRead          = "read"
-	TypeFindingAdd    = "finding.add"
-	TypeFindingFold   = "finding.fold"
-	TypeFindingRefute = "finding.refute"
+	TypeGoalAdd        = "goal.add"
+	TypeExamplePlace   = "example.place"
+	TypeExamplesPlace  = "examples.place"
+	TypeResultRecord   = "result.record"
+	TypeResultRetract  = "result.retract"
+	TypeSelect         = "select"
+	TypeBudgetReset    = "budget.reset"
+	TypeLand           = "land"
+	TypeClose          = "close"
+	TypeUnselect       = "unselect"
+	TypeRead           = "read"
+	TypeFindingAdd     = "finding.add"
+	TypeFindingFold    = "finding.fold"
+	TypeFindingRefute  = "finding.refute"
+	TypeFindingDecline = "finding.decline"
 )
 
 // Where an event kind is stored.
@@ -73,7 +74,7 @@ func (k Kind) Home() string {
 	return HomeTrace
 }
 
-// Kinds are the entries of the fourteen event types, in the order hyp spec
+// Kinds are the entries of the fifteen event types, in the order hyp spec
 // prints them. A Result changes no Goal's state: the state is calculated from
 // the places, selects and ends alone, so a clone that holds no Result replays
 // the same state. hyp reads an event of a kind that changes no Goal's state
@@ -93,6 +94,7 @@ var Kinds = []Kind{
 	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal until a fold names one; the old form's node names the Goal it was recorded on", false, "finding add"},
 	{TypeFindingFold, false, "the Goal its payload names, written, open or selected; the old form names an issue", false, "finding fold"},
 	{TypeFindingRefute, false, "the finding its node names", false, "finding refute"},
+	{TypeFindingDecline, false, "the finding its node names", false, "finding decline"},
 }
 
 // KindOf returns the entry of an event type, and false for a type outside the
@@ -274,6 +276,13 @@ type FindingFold struct {
 // FindingRefute is the payload of finding.refute, whose node is the
 // finding.add id of the finding it refutes.
 type FindingRefute struct {
+	Role string `json:"role"`
+}
+
+// FindingDecline is the payload of finding.decline, whose node is the
+// finding.add id of the finding the owner declines; the event's why is the
+// owner's reason not to fix it.
+type FindingDecline struct {
 	Role string `json:"role"`
 }
 

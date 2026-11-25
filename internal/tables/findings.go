@@ -18,9 +18,11 @@ type Finding struct {
 	Draft    string // an add goal command line the agent drafted, or empty
 	Actor    string
 	Time     string
-	Into     *Goal // the Goal of its latest fold, or nil
-	Issue    int   // the issue of its latest fold in the old form, or 0
-	Refuted  bool  // a finding.refute names it; refuted is final
+	Into     *Goal  // the Goal of its latest fold, or nil
+	Issue    int    // the issue of its latest fold in the old form, or 0
+	Refuted  bool   // a finding.refute names it; refuted is final
+	Declined bool   // the owner's finding.decline names it; declined is final
+	Why      string // the why of the decline, when Declined
 }
 
 // State is the finding's state, as spec.FindingStates names it.
@@ -28,6 +30,8 @@ func (f *Finding) State() string {
 	switch {
 	case f.Refuted:
 		return spec.FindingRefuted
+	case f.Declined:
+		return spec.FindingDeclined
 	case f.Into != nil || f.Issue > 0:
 		return spec.FindingFolded
 	}
@@ -100,10 +104,43 @@ func GuardInWork(t Tables, node string) error {
 	return nil
 }
 
-// GuardNotRefuted refuses a fold or a refute of a refuted finding.
+// GuardNotRefuted refuses a fold, a refute or a decline of a refuted finding.
 func GuardNotRefuted(f *Finding) error {
 	if f.Refuted {
 		return fault.Refuse(fault.GuardNotRefuted, fault.Refuted, f.ID)
+	}
+	return nil
+}
+
+// GuardNotDeclined refuses a fold, a refute or a decline of a declined
+// finding.
+func GuardNotDeclined(f *Finding) error {
+	if f.Declined {
+		return fault.Refuse(fault.GuardNotDeclined, fault.Declined, f.ID)
+	}
+	return nil
+}
+
+// GuardOwnerDeclines refuses a decline by any role but the owner, and a
+// decline with no why.
+func GuardOwnerDeclines(role, why string) error {
+	if role != "owner" {
+		return fault.Refuse(fault.GuardOwnerDecl, fault.NotOwnerDecline, role)
+	}
+	if why == "" {
+		return fault.Refuse(fault.GuardOwnerDecl, fault.DeclineNoWhy)
+	}
+	return nil
+}
+
+// GuardNotFolded refuses a decline of a folded finding, whether the Goal it
+// is folded into is in work or ended.
+func GuardNotFolded(f *Finding) error {
+	switch {
+	case f.Into != nil:
+		return fault.Refuse(fault.GuardNotFolded, fault.DeclineFolded, f.ID, f.Into.ID)
+	case f.Issue > 0:
+		return fault.Refuse(fault.GuardNotFolded, fault.DeclineFoldedIssue, f.ID, f.Issue)
 	}
 	return nil
 }
@@ -155,6 +192,9 @@ func GuardFindingFold(t Tables, ev events.Event) error {
 		if err := GuardNotRefuted(f); err != nil {
 			return err
 		}
+		if err := GuardNotDeclined(f); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -170,7 +210,34 @@ func GuardFindingRefute(t Tables, ev events.Event) error {
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoFinding, FindingID(ev.Node))
 	}
-	return GuardNotRefuted(f)
+	if err := GuardNotRefuted(f); err != nil {
+		return err
+	}
+	return GuardNotDeclined(f)
+}
+
+// GuardFindingDecline checks a finding.decline against the tables: the
+// owner declines, with a why, a finding that is not refuted, not declined
+// and not folded.
+func GuardFindingDecline(t Tables, ev events.Event) error {
+	var p events.FindingDecline
+	if err := events.Decode(ev, &p); err != nil {
+		return err
+	}
+	if err := GuardOwnerDeclines(p.Role, ev.Why); err != nil {
+		return err
+	}
+	f, ok := t.findings[ev.Node]
+	if !ok {
+		return fault.Refuse(fault.NoGuard, fault.NoFinding, FindingID(ev.Node))
+	}
+	if err := GuardNotRefuted(f); err != nil {
+		return err
+	}
+	if err := GuardNotDeclined(f); err != nil {
+		return err
+	}
+	return GuardNotFolded(f)
 }
 
 // replayFinding applies a finding event at its place in the merge order,
@@ -211,5 +278,12 @@ func replayFinding(t *Tables, ev events.Event, refuse func(events.Event, error))
 			return
 		}
 		t.findings[ev.Node].Refuted = true
+	case events.TypeFindingDecline:
+		if err := GuardFindingDecline(*t, ev); err != nil {
+			refuse(ev, err)
+			return
+		}
+		f := t.findings[ev.Node]
+		f.Declined, f.Why = true, ev.Why
 	}
 }

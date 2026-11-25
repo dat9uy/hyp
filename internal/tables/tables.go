@@ -766,7 +766,7 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 			replayClose(&t, ev, refuse)
 		case events.TypeUnselect:
 			replayUnselect(&t, ev, refuse)
-		case events.TypeFindingAdd, events.TypeFindingFold, events.TypeFindingRefute:
+		case events.TypeFindingAdd, events.TypeFindingFold, events.TypeFindingRefute, events.TypeFindingDecline:
 			replayFinding(&t, ev, refuse)
 		case events.TypeRead:
 			var p events.Read
