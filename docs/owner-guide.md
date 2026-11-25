@@ -47,7 +47,7 @@ A real event, such as a refusal or a run you flag, starts an issue. Start a sess
 
 ### 2. The run
 
-The grill prints the runner's prompt at its hand-off. Start a runner session and give it that prompt, and nothing else. The runner follows the run rules of the hyp-grill skill.
+`hyp status G` prints the runner's Start prompt of an open Goal, ready to copy. Start a runner session and give it that prompt, and nothing else. The prompt names no issue: you close the issues the Goal settles. The runner follows the run rules of the hyp-grill skill.
 
 - Each build that the runner offers is a Hypothesis. The budget is three Hypotheses after H0.
 - With one candidate, a build that meets every line, the runner selects it. The select's report is the PR body: each line, each example's words, output, exit code and verdict, each chart of the model, and the selected commit.

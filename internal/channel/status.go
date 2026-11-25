@@ -168,6 +168,9 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 	if o.Goal != "" {
 		findings(b, t, g)
 	}
+	if o.Ask && g.State == tables.StateOpen && (o.Role == "" || o.Role == "owner") {
+		fmt.Fprintf(b, "\nThe runner's Start prompt, ready to copy:\n\n%s", fence(startPrompt(g.ID)))
+	}
 	if o.Ask && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
 		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
 	}
@@ -361,4 +364,23 @@ func askText(repo string, g *tables.Goal) string {
 		}
 	}
 	return b.String()
+}
+
+// startPrompt is the prompt the owner gives a runner of the open Goal id:
+// the Goal, and the actor runner- with the Goal id in lower case, filled in.
+// It names no issue: the owner, not the runner, closes the issues a Goal
+// settles.
+func startPrompt(id string) string {
+	actor := "runner-" + strings.ToLower(id)
+	return fmt.Sprintf("Run the hyp Goal %[1]s as its runner.\n"+
+		"- Your actor is %[2]s. Set HYP_ACTOR=%[2]s and HYP_ROLE=runner each\n"+
+		"  time you call hyp.\n"+
+		"- Work in your own worktree, on a new branch from the default branch.\n"+
+		"- Follow the run rules of the hyp-grill skill (run-rules.md) and this\n"+
+		"  repository's agent files, such as AGENTS.md.\n"+
+		"- The Goal's placed examples are the whole task: start from what\n"+
+		"  `hyp status %[1]s --role runner` prints. No issue, PR or hand-off is a\n"+
+		"  source of work.\n"+
+		"- Open a PR whose body is the select's report. Do not merge the PR: the\n"+
+		"  owner merges.\n", id, actor)
 }
