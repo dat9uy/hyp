@@ -1,0 +1,33 @@
+---
+title: "hyp G-QC8DF5, the decline of a finding"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: none
+    lg1: open
+    lg2: final
+  }
+  class lg0 blue
+  class lg1 teal
+  class lg2 orange
+  s0: no finding
+  s1: not folded
+  s2: declined
+  s3: folded into a Goal in work
+  s4: refuted
+  s5: folded into an ended Goal
+  [*] --> s0
+  s0 --> s1: an agent records a finding
+  s1 --> s2: the owner declines it, with a why
+  s1 --> s3: an agent folds it into a Goal in work
+  s1 --> s4: an agent refutes it
+  s3 --> s5: the Goal ends
+  s3 --> s4: an agent refutes it
+  s5 --> s2: the owner declines it, with a why
+  s5 --> s4: an agent refutes it
+  class s0 blue
+  class s1 teal
+  class s2 orange
+  class s3 teal
+  class s4 orange
+  class s5 teal
