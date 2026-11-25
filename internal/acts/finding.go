@@ -21,7 +21,7 @@ type FindingOpts struct {
 	Fact     string   // finding add
 	Evidence string   // finding add
 	Draft    string   // finding add: an add goal command line for the owner, or empty
-	Findings []string // finding fold: one or more; finding refute: one
+	Findings []string // finding fold: one or more; finding refute and decline: one
 	Goal     string   // finding fold: the Goal to fold into
 }
 
@@ -83,6 +83,9 @@ func FindingFold(o FindingOpts) (FindingReport, error) {
 			if err := tables.GuardNotRefuted(f); err != nil {
 				return err
 			}
+			if err := tables.GuardNotDeclined(f); err != nil {
+				return err
+			}
 			p.Findings = append(p.Findings, f.EventID)
 		}
 		raw, err := json.Marshal(p)
@@ -104,12 +107,45 @@ func FindingRefute(o FindingOpts) (FindingReport, error) {
 		if err := tables.GuardNotRefuted(f); err != nil {
 			return err
 		}
+		if err := tables.GuardNotDeclined(f); err != nil {
+			return err
+		}
 		raw, err := json.Marshal(events.FindingRefute{Role: o.Role})
 		if err != nil {
 			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingRefute, err)
 		}
 		ev.Node, ev.Payload = f.EventID, raw
 		return tables.GuardFindingRefute(t, *ev)
+	})
+}
+
+// FindingDecline is the owner's act that ends a true finding the owner does
+// not want fixed, with a why. Only a finding that is not folded, not refuted
+// and not declined is declined; declined is final.
+func FindingDecline(o FindingOpts) (FindingReport, error) {
+	return findingAct(o, events.TypeFindingDecline, func(t tables.Tables, ev *events.Event) error {
+		if err := tables.GuardOwnerDeclines(o.Role, o.Why); err != nil {
+			return err
+		}
+		f, err := t.FindFinding(o.Findings[0])
+		if err != nil {
+			return err
+		}
+		if err := tables.GuardNotRefuted(f); err != nil {
+			return err
+		}
+		if err := tables.GuardNotDeclined(f); err != nil {
+			return err
+		}
+		if err := tables.GuardNotFolded(f); err != nil {
+			return err
+		}
+		raw, err := json.Marshal(events.FindingDecline{Role: o.Role})
+		if err != nil {
+			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingDecline, err)
+		}
+		ev.Node, ev.Payload = f.EventID, raw
+		return tables.GuardFindingDecline(t, *ev)
 	})
 }
 
@@ -158,7 +194,7 @@ func findingAct(o FindingOpts, typ string, build func(tables.Tables, *events.Eve
 			return FindingReport{}, err
 		}
 		ids = p.Findings
-	case events.TypeFindingRefute:
+	case events.TypeFindingRefute, events.TypeFindingDecline:
 		ids = []string{ev.Node}
 	}
 	var rep FindingReport

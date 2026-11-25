@@ -28,10 +28,11 @@ const (
 	ActUnselect = "unselect"
 	ActClose    = "close"
 
-	ActFindingAdd    = "finding add"
-	ActFindingFold   = "finding fold"
-	ActFindingRefute = "finding refute"
-	ActFindingList   = "finding list"
+	ActFindingAdd     = "finding add"
+	ActFindingFold    = "finding fold"
+	ActFindingRefute  = "finding refute"
+	ActFindingDecline = "finding decline"
+	ActFindingList    = "finding list"
 )
 
 // The states of a Goal.
@@ -47,6 +48,7 @@ const (
 	FindingNotFolded = "not folded"
 	FindingFolded    = "folded"
 	FindingRefuted   = "refuted"
+	FindingDeclined  = "declined"
 )
 
 // Command is the entry of one command: an act that writes an event, or a read.
@@ -159,7 +161,7 @@ var Commands = []Command{
                                          finding's id
 `},
 	{Name: ActFindingFold, Any: true,
-		Guards: []fault.Guard{fault.GuardInWork, fault.GuardNotRefuted}, Writes: "finding.fold, in the trace",
+		Guards: []fault.Guard{fault.GuardInWork, fault.GuardNotRefuted, fault.GuardNotDeclined}, Writes: "finding.fold, in the trace",
 		Help: `  finding fold F [F ...] --goal G [--why TEXT]
                                          fold one or more findings into Goal G,
                                          written, open or selected: the Goal in
@@ -167,17 +169,26 @@ var Commands = []Command{
                                          a folded finding may be folded again
 `},
 	{Name: ActFindingRefute, Any: true,
-		Guards: []fault.Guard{fault.GuardNotRefuted}, Writes: "finding.refute, in the trace",
-		Help: `  finding refute F [--why TEXT]          refute finding F; refuted is final
+		Guards: []fault.Guard{fault.GuardNotRefuted, fault.GuardNotDeclined}, Writes: "finding.refute, in the trace",
+		Help: `  finding refute F [--why TEXT]          refute finding F: its fact is false;
+                                         refuted is final
+`},
+	{Name: ActFindingDecline, Roles: []string{"owner"},
+		Guards: []fault.Guard{fault.GuardOwnerDecl, fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardNotFolded},
+		Writes: "finding.decline, in the trace",
+		Help: `  finding decline F --why TEXT           the owner declines finding F, which is
+                                         not folded: its fact is true and the
+                                         owner does not want it fixed, for the
+                                         why; declined is final
 `},
 	{Name: ActFindingList,
 		Help: `  finding list [--all | --not-folded]    print every finding with its state,
                                          fact, evidence and draft, and the
                                          finding acts it allows as ready
                                          command lines. A finding folded into
-                                         an ended Goal is left out unless
-                                         --all; --not-folded lists only the
-                                         findings not folded
+                                         an ended Goal, or declined, is left
+                                         out unless --all; --not-folded lists
+                                         only the findings not folded
 `},
 	{Name: "status",
 		Help: `  status [G] [--role ROLE] [--all]       print the state of every Goal in work,
@@ -274,18 +285,28 @@ var States = []State{
 		}},
 }
 
-// FindingStates are the entries of the three states of a finding. A
+// FindingStates are the entries of the four states of a finding. A
 // finding's state changes no Goal's state: its events are in the clone's
 // trace, and a Goal lands, closes or ends with findings in any state.
 var FindingStates = []State{
-	{Name: FindingNotFolded, Holds: "a finding.add exists, and no fold or refute names it",
-		Allows: []string{ActFindingFold, ActFindingRefute}},
+	{Name: FindingNotFolded, Holds: "a finding.add exists, and no fold, refute or decline names it",
+		Allows: []string{ActFindingFold, ActFindingRefute, ActFindingDecline}},
 	{Name: FindingFolded, Holds: "a fold names it and no refute does; it reads folded into G, the Goal of its latest fold, and folded into G, ended once G ends, which no act writes; the old form reads folded into #N",
-		Allows: []string{ActFindingFold, ActFindingRefute}},
-	{Name: FindingRefuted, Holds: "a refute names it; refuted is final",
+		Allows: []string{ActFindingFold, ActFindingRefute},
+		Stops: []Stop{
+			{ActFindingDecline, "whether G is in work or ended", fault.GuardNotFolded},
+		}},
+	{Name: FindingRefuted, Holds: "a refute names it: its fact is false; refuted is final",
 		Stops: []Stop{
 			{ActFindingFold, "", fault.GuardNotRefuted},
 			{ActFindingRefute, "", fault.GuardNotRefuted},
+			{ActFindingDecline, "", fault.GuardNotRefuted},
+		}},
+	{Name: FindingDeclined, Holds: "the owner's decline names it, with a why: its fact is true and the owner does not want it fixed; declined is final",
+		Stops: []Stop{
+			{ActFindingFold, "", fault.GuardNotDeclined},
+			{ActFindingRefute, "", fault.GuardNotDeclined},
+			{ActFindingDecline, "", fault.GuardNotDeclined},
 		}},
 }
 
@@ -384,8 +405,14 @@ var Guards = []Guard{
 		[]fault.Code{fault.NoGoalToFold, fault.FoldIntoEnded}, "yes: a Goal's state reads only events stored in git"},
 	{fault.GuardIssue, "the old form of a fold, which no act writes and replay still reads, names an issue by its number, a whole number above zero",
 		[]fault.Code{fault.NoIssue}, "yes"},
-	{fault.GuardNotRefuted, "a refuted finding takes no fold and no refute",
+	{fault.GuardNotRefuted, "a refuted finding takes no fold, no refute and no decline",
 		[]fault.Code{fault.Refuted}, "yes: a finding and its fold or refute are in the same clone's trace"},
+	{fault.GuardOwnerDecl, "only the owner declines a finding, and with a why",
+		[]fault.Code{fault.NotOwnerDecline, fault.DeclineNoWhy}, "yes"},
+	{fault.GuardNotDeclined, "a declined finding takes no fold, no refute and no decline",
+		[]fault.Code{fault.Declined}, "yes: a finding and its acts are in the same clone's trace"},
+	{fault.GuardNotFolded, "the owner declines only a finding that is not folded, whether the Goal it is folded into is in work or ended",
+		[]fault.Code{fault.DeclineFolded, fault.DeclineFoldedIssue}, "yes: a finding and its fold are in the same clone's trace"},
 	{fault.NoGuard, "a file hyp reads breaks a rule of its form, or the act names what the store does not hold",
 		[]fault.Code{fault.NoStore, fault.EventVersion, fault.EventType, fault.PayloadDecode, fault.PayloadInvalid, fault.TrailingData,
 			fault.IDNotULID, fault.ActorNotFile, fault.NoIDAfter, fault.NoGoalToPlace, fault.NoGoalToRun, fault.NoGoalToSelect,
@@ -446,10 +473,10 @@ var Rules = []Rule{
 		"An actor matches ^[a-z0-9][a-z0-9-]{0,39}$ and names its events file; a write act needs a role: owner, grill, probe-writer or runner. An act on a finding needs only an actor, and records the role it declared when it is one of the four.",
 	}},
 	{"findings", []string{
-		"A finding is a fact an agent found, with a pointer to its evidence, and names no Goal. Any agent adds one, folds it into the one Goal in work whose want it bears on, or refutes it; a finding may carry an add goal its agent drafted for the owner.",
+		"A finding is a fact an agent found, with a pointer to its evidence, and names no Goal. Any agent adds one, folds it into the one Goal in work whose want it bears on, or refutes it when its fact is false; a finding may carry an add goal its agent drafted for the owner. The owner declines, with a why, a finding that is not folded whose fact is true and that the owner does not want fixed.",
 		"A decided want is a line of a written Goal; a fact no line needs is a finding.",
 		"Its events are in the clone's trace and never in git: they change no file under .tree/ and no Goal's state, and an end's snapshot names none of them. A finding of the old form, recorded on a Goal, reads not folded until a fold names it.",
-		"hyp finding list prints each finding with its state: not folded, folded into G, folded into G, ended, the old form's folded into #N, or refuted. While any Goal is in work, each finding not refuted, folded or not, prints one fold line, hyp finding fold F --goal G, that names no Goal: the agent fills in the one whose want the fact bears on. hyp status G prints each finding folded into G, and hyp status counts the findings not folded.",
+		"hyp finding list prints each finding with its state: not folded, folded into G, folded into G, ended, the old form's folded into #N, refuted, or declined with its why; a declined finding is left out unless --all. While any Goal is in work, each finding neither refuted nor declined, folded or not, prints one fold line, hyp finding fold F --goal G, that names no Goal: the agent fills in the one whose want the fact bears on. hyp status G prints each finding folded into G, and hyp status counts the findings not folded.",
 	}},
 	{"the subject", []string{
 		"A commit's subject is its tree without the top-level entries goals and .tree; its git tree hash is the subject hash, one Hypothesis, one row.",

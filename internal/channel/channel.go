@@ -215,7 +215,7 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 	case "finding":
 		if len(args) > 1 {
 			switch args[1] {
-			case "add", "fold", "refute":
+			case "add", "fold", "refute", "decline":
 				return findingCmd(c, args[1], args[2:], stdout, stderr)
 			case "list":
 				return findingListCmd(c, args[2:], stdout)
@@ -713,9 +713,9 @@ func unselectCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	return finish(stdout, stderr, c.dir, rep.Goal, unselectText(rep), nil)
 }
 
-// findingCmd runs an act on a finding: finding add, fold or refute. Any
-// actor runs it, with any role or none; it writes its event to the clone's
-// trace. Its report names each finding with its state; after a fold, the
+// findingCmd runs an act on a finding: finding add, fold, refute or
+// decline. Any actor runs it, with any role or none, but only the owner
+// declines; it writes its event to the clone's trace. Its report names each finding with its state; after a fold, the
 // state block of the Goal it folded into follows it.
 func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) error {
 	command := "finding " + act
@@ -760,6 +760,12 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 		}
 		o.Findings = positional
 		rep, err = acts.FindingRefute(o)
+	case "decline":
+		if len(positional) != 1 {
+			return fault.BadArg(codeFindingArgs, command, len(positional))
+		}
+		o.Findings = positional
+		rep, err = acts.FindingDecline(o)
 	}
 	if err != nil {
 		return finish(stdout, stderr, c.dir, "", "", err)
