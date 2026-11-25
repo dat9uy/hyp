@@ -1,0 +1,6 @@
+-- words --
+No copy of the prompt: the hyp-grill skill, its run rules and the owner guide hold no copy of the runner's Start prompt.
+-- run --
+grep -rlE 'as its runner|Your actor is' skills/hyp-grill docs/owner-guide.md || echo "no copy"
+-- floor: contains --
+no copy

@@ -1,0 +1,8 @@
+-- words --
+Goal and actor filled: hyp status G of an open Goal prints the runner's Start prompt with the Goal G and the actor runner-g filled in. The Probe prints the Goal id as G and its lower case as g.
+-- run --
+hyp status G
+-- floor: contains --
+runner-g
+-- floor: contains --
+Goal G
