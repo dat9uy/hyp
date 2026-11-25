@@ -1,0 +1,58 @@
+#!/bin/sh
+# Build hyp from the subject copy, make a fresh repo, bring a Goal to the
+# example's state, run the example's run section, print its stdout with the
+# Goal id as G and its lower case as g, then a last line "exit N".
+state=written
+bin=$(mktemp -d) && go build -o "$bin/hyp" ./cmd/hyp || exit 90
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+HOME=$(mktemp -d) && export HOME || exit 91
+hy() { a=$1 r=$2; shift 2; HYP_ACTOR=$a HYP_ROLE=$r "$bin/hyp" "$@"; }
+save() { git add -A && git commit -q -m "$1"; }
+mkex() { # dir kind text
+  mkdir -p "$1/probe" || return 1
+  cat >"$1/probe/run" <<'PROBE'
+#!/bin/sh
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+PROBE
+  chmod +x "$1/probe/run"
+  printf '%s\n' '-- words --' 'An example.' '-- run --' 'cat greet.txt' "-- floor: contains --" "$2" >"$1/example.txtar"
+}
+r=$(mktemp -d) && cd "$r" && git init -q && echo hello >greet.txt && git add greet.txt && git commit -q -m base || exit 92
+g=$(hy owner owner add goal --base HEAD --words 'Greet.' --line 'gap:hyp says bye.' --line 'guard:hyp keeps hello.' | sed -n 's/^recorded //p')
+[ -n "$g" ] || exit 93
+save 'record the Goal' || exit 94
+case $state in
+written) ;;
+closed) hy owner owner close "$g" >/dev/null 2>&1 || exit 95; save 'close' || exit 96 ;;
+selected|landed)
+  mkex "goals/$g/line-1/a" bye && mkex "goals/$g/line-2/a" hello || exit 97
+  save 'add the examples' || exit 98
+  hy fixture-grill grill place "$g" >/dev/null 2>&1 || exit 99
+  save 'place' || exit 100
+  echo 'hello bye' >greet.txt
+  mkdir -p "goals/$g/specs" && echo 'Greet says hello and bye.' >"goals/$g/specs/spec.txt"
+  save 'meet every line' || exit 101
+  c=$(git rev-parse HEAD)
+  hy fixture-runner runner run "$c" "$g/line-1" >/dev/null 2>&1 || exit 102
+  hy fixture-runner runner run "$c" "$g/line-2" >/dev/null 2>&1 || exit 103
+  h=$(hy fixture-runner runner status "$g" --role runner 2>/dev/null | sed -n "s/^  hyp select $g \([0-9a-f]*\)\$/\1/p" | head -1)
+  [ -n "$h" ] || exit 109
+  hy fixture-runner runner select "$g" "$h" >/dev/null 2>&1 || exit 104
+  save 'select' || exit 105
+  if [ "$state" = landed ]; then hy owner owner land "$g" >/dev/null 2>&1 || exit 106; save 'land' || exit 107; fi ;;
+*) exit 108 ;;
+esac
+export PATH="$bin:$PATH" HYP_ACTOR=owner
+run=$(printf '%s' "$HYP_RUN" | sed -e "s/ G\$/ $g/" -e "s/ G / $g /g" -e "s/^G /$g /")
+out=$(sh -c "$run" 2>&1)
+code=$?
+lg=$(printf '%s' "$g" | tr 'A-Z' 'a-z')
+printf '%s\n' "$out" | sed -e "s/$g/G/g" -e "s/$lg/g/g"
+echo "exit $code"
