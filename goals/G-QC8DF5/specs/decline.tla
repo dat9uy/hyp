@@ -12,6 +12,7 @@
 (*   AnyRole          a decline by a role other than owner is recorded     *)
 (*   NoWhy            a decline with no why is recorded                    *)
 (*   DeclineHeld      a finding a Goal in work holds is declined           *)
+(*   DeclineEndedFold a finding folded into an ended Goal is declined      *)
 (*   DeclinedTakesActs a declined finding takes a fold or a refute         *)
 (*   DeclinedListed   plain hyp finding list shows a declined finding      *)
 (*   AllHidesDeclined hyp finding list --all leaves a declined one out     *)
@@ -21,7 +22,7 @@
 EXTENDS Integers, FiniteSets
 
 CONSTANTS Ids, Goals,
-    AnyRole, NoWhy, DeclineHeld, DeclinedTakesActs, DeclinedListed,
+    AnyRole, NoWhy, DeclineHeld, DeclineEndedFold, DeclinedTakesActs, DeclinedListed,
     AllHidesDeclined, DeclinedCounted, DeclineRefutes
 
 VARIABLES
@@ -92,7 +93,7 @@ Declines(i, r, w) ==
     /\ f[i] # "none"
     /\ LET okRole == r = "owner" \/ AnyRole
            okWhy == w \/ NoWhy
-           okState == f[i] = "notfolded" \/ (f[i] = "folded" /\ ~Held(i))
+           okState == f[i] = "notfolded" \/ (f[i] = "folded" /\ ~Held(i) /\ DeclineEndedFold)
                       \/ (Held(i) /\ DeclineHeld)
                       \/ (f[i] = "declined" /\ DeclinedTakesActs)
        IN IF okRole /\ okWhy /\ okState
@@ -140,7 +141,7 @@ DeclineReadsDeclined == (out.cmd = "decline" /\ out.ok) => f[out.id] = "declined
 DeclineOwnerWithWhy == (out.cmd = "decline" /\ out.ok) => (out.role = "owner" /\ out.hasWhy)
 
 \* source: line-2
-NoDeclineOfHeld == (out.cmd = "decline" /\ out.ok) => out.prior \in {"notfolded", "folded"}
+NoDeclineOfFolded == (out.cmd = "decline" /\ out.ok) => out.prior = "notfolded"
 
 \* source: line-2
 DeclinedIsFinal == (out.cmd \in {"fold", "refute", "decline"} /\ out.prior = "declined") => ~out.ok
