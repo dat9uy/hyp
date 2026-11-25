@@ -1,0 +1,33 @@
+---
+title: "hyp G-4GV6W7, hyp status G prints the runner's Start prompt of an open Goal"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: written
+    lg1: open
+    lg2: selected
+    lg3: landed
+    lg4: closed
+  }
+  class lg0 orange
+  class lg1 teal
+  class lg2 purple
+  class lg3 blue
+  class lg4 pink
+  s0: Written
+  s1: Closed
+  s2: Open
+  s3: Selected
+  s4: Landed
+  [*] --> s0
+  s0 --> s1: the owner closes
+  s0 --> s2: the grill places the examples
+  s2 --> s1: the owner closes
+  s2 --> s3: the runner selects
+  s3 --> s2: the owner unselects
+  s3 --> s4: the owner lands
+  class s0 orange
+  class s1 pink
+  class s2 teal
+  class s3 purple
+  class s4 blue
