@@ -1,0 +1,8 @@
+-- words --
+F-ONE is declined and G-ONE is written: an agent folds F-ONE into G-ONE, and hyp refuses the fold.
+-- run --
+hyp finding fold F-ONE --goal G-ONE
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE

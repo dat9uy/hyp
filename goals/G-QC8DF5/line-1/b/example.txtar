@@ -1,0 +1,10 @@
+-- words --
+F-ONE is not folded: the owner declines it with no why, and hyp refuses the decline and names --why.
+-- run --
+hyp finding decline F-ONE
+-- floor: contains --
+--why
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE

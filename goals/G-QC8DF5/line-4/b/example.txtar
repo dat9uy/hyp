@@ -1,0 +1,8 @@
+-- words --
+hyp spec prints the guard that stops each act on a declined finding.
+-- run --
+hyp spec
+-- floor: contains --
+Not declined
+-- floor: contains --
+exit 0

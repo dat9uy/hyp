@@ -1,0 +1,8 @@
+-- words --
+F-ONE is not folded: the owner declines it with a why, and hyp records it as declined.
+-- run --
+hyp finding decline F-ONE --why 'not wanted'
+-- floor: contains --
+recorded F-ONE  declined
+-- floor: contains --
+exit 0

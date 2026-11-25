@@ -1,0 +1,8 @@
+-- words --
+F-ONE is not folded and G-ONE is written: an agent folds F-ONE into G-ONE, and hyp records the fold, as on H0.
+-- run --
+hyp finding fold F-ONE --goal G-ONE
+-- floor: contains --
+recorded F-ONE  folded into G-ONE
+-- floor: contains --
+exit 0

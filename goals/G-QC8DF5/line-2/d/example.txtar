@@ -1,0 +1,8 @@
+-- words --
+F-ONE is declined: an agent refutes it, and hyp refuses the refute.
+-- run --
+hyp finding refute F-ONE
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE

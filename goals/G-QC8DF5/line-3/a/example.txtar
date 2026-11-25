@@ -1,0 +1,8 @@
+-- words --
+F-ONE is declined: hyp finding list leaves it out.
+-- run --
+hyp finding list
+-- floor: contains --
+exit 0
+-- ceiling --
+F-ONE

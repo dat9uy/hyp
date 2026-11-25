@@ -1,0 +1,10 @@
+-- words --
+F-ONE is not folded: a runner declines it with a why, and hyp refuses the decline and names the owner.
+-- run --
+HYP_ROLE=runner hyp finding decline F-ONE --why 'not wanted'
+-- floor: contains --
+owner
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE

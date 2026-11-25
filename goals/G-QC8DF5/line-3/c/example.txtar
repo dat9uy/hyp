@@ -1,0 +1,10 @@
+-- words --
+F-ONE is declined and F-TWO is not folded: hyp status counts one finding not folded.
+-- run --
+hyp status
+-- floor: contains --
+1 not folded
+-- floor: contains --
+exit 0
+-- ceiling --
+2 not folded

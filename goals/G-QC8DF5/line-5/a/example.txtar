@@ -1,0 +1,8 @@
+-- words --
+F-ONE is not folded: an agent refutes it, and hyp records it as refuted, as on H0.
+-- run --
+hyp finding refute F-ONE
+-- floor: contains --
+recorded F-ONE  refuted
+-- floor: contains --
+exit 0
