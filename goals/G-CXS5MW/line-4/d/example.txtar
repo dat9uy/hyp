@@ -1,0 +1,10 @@
+-- words --
+G-ONE named F-ONE and was closed: hyp add goal of a new Goal that names F-ONE is recorded.
+-- run --
+hyp add goal --base HEAD --words 'Greet again.' --line 'gap:greet.txt says hey.' --finding F-ONE
+-- floor: contains --
+recorded G-
+-- floor: contains --
+exit 0
+-- ceiling --
+refused

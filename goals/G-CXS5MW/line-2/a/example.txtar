@@ -1,0 +1,10 @@
+-- words --
+G-ONE names F-ONE and no example names it: hyp place G-ONE refuses the set and names F-ONE.
+-- run --
+hyp place G-ONE
+-- floor: contains --
+F-ONE
+-- floor: contains --
+exit 1
+-- ceiling --
+placed G-ONE

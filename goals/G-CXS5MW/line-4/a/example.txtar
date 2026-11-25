@@ -1,0 +1,6 @@
+-- words --
+G-ONE names F-ONE and lands with a select: hyp finding list --all prints F-ONE as settled.
+-- run --
+hyp finding list --all
+-- floor: contains --
+F-ONE  settled
