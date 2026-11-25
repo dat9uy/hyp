@@ -1,0 +1,40 @@
+---
+title: "hyp G-CXS5MW, a Goal names its findings"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: none
+    lg1: wait
+    lg2: work
+    lg3: end
+  }
+  class lg0 blue
+  class lg1 teal
+  class lg2 purple
+  class lg3 orange
+  s0: ended, not settled
+  s1: settled
+  s2: no finding
+  s3: waiting
+  s4: refuted
+  s5: named by a Goal in work
+  s6: declined
+  [*] --> s0
+  [*] --> s1
+  [*] --> s2
+  s0 --> s4: an agent refutes it
+  s1 --> s4: an agent refutes it
+  s2 --> s3: an agent records a finding
+  s3 --> s5: the owner adds a Goal that names it or the grill places an example that names it
+  s3 --> s6: the owner declines it
+  s3 --> s4: an agent refutes it
+  s5 --> s0: the owner closes the Goal or the owner lands with no select
+  s5 --> s4: an agent refutes it
+  s5 --> s1: the owner lands with a select
+  class s0 orange
+  class s1 orange
+  class s2 blue
+  class s3 teal
+  class s4 orange
+  class s5 purple
+  class s6 orange

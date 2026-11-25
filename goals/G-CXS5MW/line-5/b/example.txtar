@@ -1,0 +1,10 @@
+-- words --
+hyp help and hyp spec name no finding fold.
+-- run --
+hyp help; hyp spec
+-- floor: contains --
+finding decline
+-- floor: contains --
+exit 0
+-- ceiling --
+finding fold

@@ -1,0 +1,10 @@
+-- words --
+hyp add goal names F-ZZZZZZ, an id that this clone's trace does not hold: hyp refuses it.
+-- run --
+hyp add goal --base HEAD --words 'Greet.' --line 'gap:greet.txt says hi.' --finding F-ZZZZZZ
+-- floor: contains --
+F-ZZZZZZ
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded G-

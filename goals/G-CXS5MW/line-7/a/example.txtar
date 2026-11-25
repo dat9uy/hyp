@@ -1,0 +1,8 @@
+-- words --
+A closed Goal named F-ONE: the owner declines F-ONE, and hyp refuses the decline, as on H0.
+-- run --
+hyp finding decline F-ONE --why 'not wanted'
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE
