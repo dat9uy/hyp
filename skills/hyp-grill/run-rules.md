@@ -5,28 +5,11 @@ refuses what breaks its guards; these are the rules it cannot check.
 
 ## Start
 
-A runner starts on an open Goal from this prompt. The grill prints it at its
-hand-off with the Goal, the actor and the issues the Goal serves filled in, and
-the owner copies it and adds nothing else: what the runner is told comes only
-from the Goal and these rules, so two runners of one Goal are told the same.
-`<issues>` lists each issue as `#N`, separated by commas, or is `none` when
-the Goal closes no issue.
-
-```text
-Run the hyp Goal <G> as its runner.
-- Your actor is <actor>. Set HYP_ACTOR=<actor> and HYP_ROLE=runner each
-  time you call hyp.
-- Work in your own worktree, on a new branch from the default branch.
-- Follow the run rules of the hyp-grill skill (run-rules.md) and this
-  repository's agent files, such as AGENTS.md.
-- The Goal's placed examples are the whole task: start from what
-  `hyp status <G> --role runner` prints. No issue, PR or hand-off is a
-  source of work.
-- Open a PR whose body is the select's report. Below it, add a line
-  `Closes #N` for each of these issues, so the merge closes them: <issues>.
-  When it says none, add no `Closes` line. They are only the issues to close,
-  not a source of work. Do not merge the PR: the owner merges.
-```
+A runner starts on an open Goal from its Start prompt. `hyp status G` prints
+the Start prompt of an open Goal, ready to copy, with the Goal and the
+runner's actor filled in. The owner copies it and adds nothing else: what the
+runner is told comes only from the Goal and these rules, so two runners of one
+Goal are told the same.
 
 ## Rules
 
@@ -65,9 +48,8 @@ Run the hyp Goal <G> as its runner.
 8. **Stop for the owner when hyp stops.** At `Two candidates` or
    `Budget used`, stop and report the state block.
 9. **The PR body is the select's report.** Paste it as hyp printed it; hyp
-   writes nothing to GitHub. Below it, add only one `Closes #N` line for each
-   issue the Start prompt names, and the diffs of rule 2, each with its
-   variant and the outputs `hyp try` printed.
+   writes nothing to GitHub. Below it, add only the diffs of rule 2, each
+   with its variant and the outputs `hyp try` printed.
 10. **A defect outside the Goal** is fixed only when the line needs it.
     Otherwise record it as a finding (rule 11) and list it in the PR for the
     owner.

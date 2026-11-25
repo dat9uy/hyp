@@ -171,16 +171,11 @@ holds the Goal's words, lines and placed examples, and the model in the spec
 folder, with the run rules. If a runner reads the hand-off, it is
 background, and no "Not covered" item is a task.
 
-The hand-off ends with the runner's prompt, ready to copy: the Start prompt
-of the run rules, word for word, in one `text` block, with `<G>`, `<actor>`
-and `<issues>` filled in. `<issues>` is the issue you grill and each other
-issue the owner names as settled by the Goal. It is `none` when the Goal
-closes no issue, such as a Goal made from folded findings; never fill it with
-an issue the Goal is only part of. Propose the runner's actor, such as `runner-` and the Goal
-id in lower case, and let the owner veto it; it is never the owner's actor.
-Change no other word of the prompt, write no runner prompt of your own, and
-add no choice to the hand-off for the runner: the runner looks for no rivals
-until the owner unselects.
+The hand-off ends with where the runner's prompt is: `hyp status G` prints
+the Start prompt of an open Goal, ready to copy, with the Goal and the
+runner's actor, `runner-` and the Goal id in lower case, filled in. Write no
+runner prompt of your own, and add no choice to the hand-off for the runner:
+the runner looks for no rivals until the owner unselects.
 
 ## Done when
 
@@ -192,8 +187,8 @@ until the owner unselects.
   under "Not covered".
 - The issue you grill holds each decision of the owner in the owner's words,
   and each "Not covered" item another open issue owns is on that issue.
-- The hand-off ends with the Start prompt of the run rules, filled in with the
-  Goal, the runner's actor and the issues the Goal serves.
+- The hand-off ends with the sentence that `hyp status G` prints the
+  runner's Start prompt.
 
 ## Resources
 

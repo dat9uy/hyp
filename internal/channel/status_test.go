@@ -168,6 +168,39 @@ func TestStatusGoalAsksGolden(t *testing.T) {
 	}
 }
 
+// TestStatusPrintsStartPrompt: status G of an open Goal prints the runner's
+// Start prompt with the Goal and its runner's actor filled in, no placeholder
+// and no Closes line; the runner's own view and a selected Goal print none.
+func TestStatusPrintsStartPrompt(t *testing.T) {
+	f := newFx(t, map[string]string{"line-1/a": counterEx})
+	actor := "runner-" + strings.ToLower(f.goal)
+	_, out, _ := run(t, "status", f.goal)
+	for _, want := range []string{"The runner's Start prompt, ready to copy:", "Run the hyp Goal " + f.goal + " as its runner.", "Set HYP_ACTOR=" + actor + " and HYP_ROLE=runner"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("status G lacks %q:\n%s", want, out)
+		}
+	}
+	for _, bad := range []string{"Closes", "<G>", "<actor>", "<issues>"} {
+		if strings.Contains(out, bad) {
+			t.Fatalf("status G holds %q:\n%s", bad, out)
+		}
+	}
+	if _, out, _ := run(t, "status", f.goal, "--role", "runner"); strings.Contains(out, "Start prompt") {
+		t.Fatalf("the runner's view prints the Start prompt:\n%s", out)
+	}
+	if _, out, _ := run(t, "status"); strings.Contains(out, "Start prompt") {
+		t.Fatalf("the list of every Goal prints the Start prompt:\n%s", out)
+	}
+	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
+	run(t, "run", c, f.goal+"/line-1")
+	_, out, _ = run(t, "status")
+	args := selectLine(t, out)
+	run(t, args[1:]...)
+	if _, out, _ := run(t, "status", f.goal); strings.Contains(out, "Start prompt") {
+		t.Fatalf("a selected Goal prints the Start prompt:\n%s", out)
+	}
+}
+
 func TestStatusSelectedGolden(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
 	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})

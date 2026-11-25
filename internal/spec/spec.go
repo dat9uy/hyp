@@ -185,7 +185,10 @@ var Commands = []Command{
                                          allowed acts as ready command lines;
                                          of a written or open G, also its
                                          words, why, lines and placed examples,
-                                         and of G the findings folded into it.
+                                         of an open G, unless --role names a
+                                         role other than owner, the runner's
+                                         Start prompt ready to copy, and of G
+                                         the findings folded into it.
                                          With no G, it prints the words of each
                                          written or open Goal, leaves out the
                                          blocks of ended Goals with a line that
