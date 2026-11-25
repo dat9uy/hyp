@@ -1,0 +1,10 @@
+-- words --
+hyp spec prints the act finding decline and the state declined.
+-- run --
+hyp spec
+-- floor: contains --
+finding decline
+-- floor: contains --
+declined
+-- floor: contains --
+exit 0

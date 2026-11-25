@@ -1,0 +1,16 @@
+#!/bin/sh
+# Build hyp from the subject (the working directory), put it first on PATH, run
+# the example's run section, print its stdout, then a last line "exit N".
+tmpdir=$(mktemp -d) || exit 3
+CGO_ENABLED=0 go build -o "$tmpdir/hyp" ./cmd/hyp >&2 || exit 3
+PATH="$tmpdir:$PATH"
+export PATH
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "run exit $code"
+echo "exit $code"
+rm -f "$tmp" "$tmpdir/hyp"
+rmdir "$tmpdir"

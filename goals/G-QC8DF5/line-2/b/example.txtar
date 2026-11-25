@@ -1,0 +1,8 @@
+-- words --
+F-ONE was folded into G-ONE, and then the owner closed G-ONE: the owner declines F-ONE, and hyp refuses the decline.
+-- run --
+hyp finding decline F-ONE --why 'not wanted'
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE

@@ -1,0 +1,10 @@
+-- words --
+F-ONE is declined with the why 'not wanted': hyp finding list --all lists it as declined, with its why.
+-- run --
+hyp finding list --all
+-- floor: contains --
+F-ONE  declined
+-- floor: contains --
+not wanted
+-- floor: contains --
+exit 0

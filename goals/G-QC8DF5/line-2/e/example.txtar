@@ -1,0 +1,8 @@
+-- words --
+F-ONE is declined: the owner declines it again with another why, and hyp refuses the second decline.
+-- run --
+hyp finding decline F-ONE --why 'still not wanted'
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE

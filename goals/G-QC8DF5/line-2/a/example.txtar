@@ -1,0 +1,10 @@
+-- words --
+F-ONE is folded into G-ONE, which is written: the owner declines it, and hyp refuses the decline and names G-ONE.
+-- run --
+hyp finding decline F-ONE --why 'not wanted'
+-- floor: contains --
+G-ONE
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded F-ONE
