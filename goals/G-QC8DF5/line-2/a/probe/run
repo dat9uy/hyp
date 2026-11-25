@@ -63,7 +63,7 @@ add_goal() {
 setup_outcome() {
   sed -f "$work/ids.sed" "$1"
   if [ -n "$(tail -c 1 "$1")" ]; then echo; fi
-  echo "run exit: $2"
+  echo "run exit $2"
   echo "exit $2"
   exit 0
 }
@@ -119,6 +119,6 @@ code=$?
 sed -f "$work/ids.sed" "$work/out"
 if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
 sed -f "$work/ids.sed" "$work/err"
-echo "run exit: $code"
+echo "run exit $code"
 echo "exit $code"
 exit 0
