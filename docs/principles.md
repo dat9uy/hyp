@@ -15,6 +15,11 @@ later reader, such as the owner, a new session or another agent, reads the log
 and the PR body, not a chat. They find what each example printed on each build,
 and which build was selected.
 
+**Learning is why anything is kept.** Three things are learned, by three
+parties. An agent finds a fact: a finding. A Goal names the findings that bear
+on its want. The owner learns a want from a consequence and states it as a
+line, a decline or a "not yet". A record that serves none of these is not kept.
+
 ## 2. The log is the truth; everything else is calculated
 
 **Events are appended and never edited, and every state is calculated from
@@ -25,14 +30,18 @@ new event, for example a new version of an example, so the earlier event stays
 in the history. Two clones merge their logs by a union merge, and replay orders
 the events by id.
 
-The log holds only the acts that change a Goal. What hyp printed to an actor is
-the trace, outside the repository. `hyp show` prints it byte for byte.
+The log keeps what the owner learned or approved: the acts that change a
+Goal, such as `add goal`, `select`, `land` and `close`, and one place of each
+example set. What agents learned is the trace, outside the repository: the
+Results, their outputs, the findings and what hyp printed to each actor. The
+trace is a cache. It may be lost with its clone, and a reader that lacks a cell
+runs the example again. `hyp show` prints what hyp printed, byte for byte.
 
 ## 3. H0 and the lines are the prior; an example is evidence only if it can fail
 
 **An example counts only when H0 gives the verdict its line needs.** H0 is the
-Goal's base commit. A gap example must fail on H0, and a guard example must be
-met on H0. `place` runs the example on H0 and refuses it otherwise (the guard
+Goal's base commit. An example agrees with its line on H0 when a gap example
+fails there and a guard example is met there. `place` runs the example on H0 and refuses it otherwise (the guard
 Kind). So no check that cannot fail
 enters the Goal. The compare is literal: floors the output must hold and
 ceilings it must not hold. No reader judges a verdict.

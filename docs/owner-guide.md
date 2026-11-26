@@ -41,7 +41,7 @@ A real event, such as a refusal or a run you flag, starts the work. A fact an ag
     --line "guard:<what the build must keep true>"
   ```
 
-- The grill writes the examples and runs each one on H0. A gap example must fail on H0, and a guard example must be met on H0. When the change moves through states, the grill also writes a model and its chart with the [hyp-statechart](../skills/hyp-statechart/SKILL.md) skill. When two builds meet every example and print different things in one case, the grill shows you the case and what each build prints. You choose the output you want.
+- The grill writes the examples and runs each one on H0. Each example must agree with its line there: a gap example fails on H0, and a guard example is met on H0. When the change moves through states, the grill also writes a model and its chart with the [hyp-statechart](../skills/hyp-statechart/SKILL.md) skill. When two builds meet every example and print different things in one case, the grill shows you the case and what each build prints. You choose the output you want.
 - The grill places the examples, and the Goal opens. Its hand-off lists your decisions and a part "Not covered": each want that no example checks. No runner gets a "Not covered" item as a task.
 - You merge the record PR, which holds the Goal, its examples and the model. The examples then reach the runner's commits.
 
