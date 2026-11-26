@@ -1,0 +1,6 @@
+-- words --
+An old fold event folded F-ONE into G-ONE, and G-ONE landed with a select: hyp finding list --all prints F-ONE as settled.
+-- run --
+hyp finding list --all
+-- floor: contains --
+F-ONE  settled

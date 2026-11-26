@@ -1,0 +1,10 @@
+-- words --
+F-ONE is refuted: hyp add goal that names F-ONE is refused.
+-- run --
+hyp add goal --base HEAD --words 'Greet.' --line 'gap:greet.txt says hi.' --finding F-ONE
+-- floor: contains --
+F-ONE
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded G-

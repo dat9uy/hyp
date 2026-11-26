@@ -1,0 +1,8 @@
+-- words --
+G-ONE names F-ONE, read on a clone whose trace lacks F-ONE: hyp status G-ONE still prints F-ONE, and no fact.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+F-ONE
+-- ceiling --
+The subject says hello.

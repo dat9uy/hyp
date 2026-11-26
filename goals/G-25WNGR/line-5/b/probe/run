@@ -1,0 +1,17 @@
+#!/bin/sh
+# Probe of G-25WNGR line-5/b. Builds hyp from the subject (the working
+# directory), puts it first on PATH, runs the example's run section, prints its
+# stdout, then "run exit N" and "exit N". No store is needed.
+tmpdir=$(mktemp -d) || exit 3
+CGO_ENABLED=0 go build -o "$tmpdir/hyp" ./cmd/hyp >&2 || exit 3
+PATH="$tmpdir:$PATH"
+export PATH
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "run exit $code"
+echo "exit $code"
+rm -f "$tmp" "$tmpdir/hyp"
+rmdir "$tmpdir"

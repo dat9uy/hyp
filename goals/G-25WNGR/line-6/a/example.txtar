@@ -1,0 +1,8 @@
+-- words --
+The hyp-grill skill says the grill checks that each naming example's words state the finding's fact, and names no hyp finding fold.
+-- run --
+cat skills/hyp-grill/SKILL.md skills/hyp-grill/examples.md skills/hyp-grill/run-rules.md
+-- floor: contains --
+states the finding's fact
+-- ceiling --
+hyp finding fold

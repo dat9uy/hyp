@@ -1,0 +1,8 @@
+-- words --
+G-ONE names F-ONE and is closed, and F-TWO waits: hyp status counts one finding that waits.
+-- run --
+hyp status
+-- floor: contains --
+1 not folded
+-- ceiling --
+2 not folded
