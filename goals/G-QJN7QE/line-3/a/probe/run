@@ -1,0 +1,78 @@
+#!/bin/sh
+# Write the fixture Goal G-ONE in the subject copy (the working directory):
+# a model of a toy command, a view, and the example line-1/a whose Probe
+# calls toy refute, a command the model has no step for. Then run $HYP_RUN
+# and print its stdout and a last line "exit N".
+set -e
+g=goals/G-ONE
+mkdir -p $g/specs $g/line-1/a/probe
+
+cat > $g/specs/toy.tla <<'TLA'
+---- MODULE toy ----
+EXTENDS Naturals
+CONSTANT NoFoldLine
+VARIABLES st, last
+
+vars == <<st, last>>
+
+Init == st = "none" /\ last = "Init"
+
+\* command: toy add
+Add == st = "none" /\ st' = "free" /\ last' = "Add"
+\* command: toy fold
+Fold == st = "free" /\ st' = "folded" /\ last' = "Fold"
+\* command: toy list
+List == UNCHANGED st /\ last' = "List"
+
+Next == Add \/ Fold \/ List
+
+Spec == Init /\ [][Next]_vars
+
+\* The last List of a folded finding names it.
+FoldedListNamesIt == (last = "List" /\ st = "folded") => ~NoFoldLine
+====
+TLA
+
+cat > $g/specs/toy.cfg <<'CFG'
+SPECIFICATION Spec
+CONSTANT NoFoldLine = FALSE
+INVARIANTS FoldedListNamesIt
+CFG
+
+cat > $g/specs/toy-view.mjs <<'MJS'
+export const state = (v) => v.st;
+export const print = (action, from, to) => {
+  if (action === "Add") return "added F-1";
+  if (action === "Fold") return "folded F-1";
+  if (to.st === "none") return "no findings";
+  if (to.st === "free") return "F-1 not folded";
+  if (to.NoFoldLine) return "";
+  return "F-1 folded";
+};
+MJS
+
+cat > $g/line-1/a/example.txtar <<'EX'
+-- words --
+List a folded finding.
+-- run --
+toy list
+-- floor: contains --
+F-1
+EX
+
+cat > $g/line-1/a/probe/run <<'PR'
+#!/bin/sh
+toy add
+toy refute
+sh -c "$HYP_RUN"
+PR
+chmod +x $g/line-1/a/probe/run
+
+tmp=$(mktemp) || exit 1
+set +e
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
