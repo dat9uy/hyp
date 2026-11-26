@@ -1,0 +1,14 @@
+-- words --
+The return of hyp select still holds the Goal's words, each line with its kind, each example's key and words, and the selected commit and row.
+-- run --
+hyp select G-ONE ROW-ONE
+-- floor: contains --
+# G-ONE: Greet.
+-- floor: contains --
+## line-1 (gap): the subject says bye.
+-- floor: contains --
+### line-1/a: Fixture line-1/a.
+-- floor: contains --
+selected commit: 
+-- floor: contains --
+selected row: ROW-ONE

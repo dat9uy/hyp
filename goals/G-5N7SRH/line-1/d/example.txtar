@@ -1,0 +1,10 @@
+-- words --
+A selected Goal whose example writes to stderr: hyp status G holds no stderr label and none of the stderr bytes.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+### line-1/a: Fixture line-1/a.
+-- ceiling --
+stderr
+-- ceiling --
+fixture-warning

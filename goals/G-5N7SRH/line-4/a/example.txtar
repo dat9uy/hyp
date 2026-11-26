@@ -1,0 +1,8 @@
+-- words --
+A landed Goal: hyp status G holds each example's words and no verdict line under it.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+### line-1/a: Fixture line-1/a.
+-- ceiling --
+verdict:

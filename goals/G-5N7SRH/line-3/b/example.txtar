@@ -1,0 +1,10 @@
+-- words --
+The glossary's PR body entry lists no output, stderr, exit code or verdict.
+-- run --
+grep -n -A1 '^\*\*PR body\*\*' docs/glossary.md
+-- floor: contains --
+**PR body**
+-- ceiling --
+output, stderr, exit code and verdict
+-- ceiling --
+each example's words, output

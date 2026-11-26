@@ -1,0 +1,12 @@
+-- words --
+The same selected Goal: hyp status G holds the example's words and no verdict, exit code or output.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+### line-1/a: Fixture line-1/a.
+-- ceiling --
+verdict:
+-- ceiling --
+output,
+-- ceiling --
+hello
