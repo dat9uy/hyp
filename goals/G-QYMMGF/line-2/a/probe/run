@@ -85,8 +85,8 @@ MJS
 
 cat >"$g/line-1/a/example.txtar" <<'TXT' || fail "write example"
 -- words --
-F-1 is folded and listed: toy list prints F-1.
-
+F-1 is free and listed: toy list prints F-1.
+-- run --
 toy list
 -- floor: contains --
 F-1
