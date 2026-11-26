@@ -1,0 +1,11 @@
+-- words --
+equals that holds the contains
+-- input/a.fixture --
+floor-equals: hello bye
+floor-contains: bye
+-- run --
+hyp place G-ONE 2>&1; echo "place exit: $?"; hyp status G-ONE | head -n 1
+-- floor: contains --
+place exit: 0
+-- floor: contains --
+G-ONE  open
