@@ -12,8 +12,8 @@ Goal.** The owner states the Goal as words and lines. The grill places examples
 that can fail. The runner builds Hypotheses, the subjects of its commits, and
 runs the lines on them. A
 later reader, such as the owner, a new session or another agent, reads the log
-and the PR body, not a chat. They find what each example printed on each build,
-and which build was selected.
+and the PR body, not a chat. They find in the log what each example printed on
+each build, and in the PR body which build was selected.
 
 **Learning is why anything is kept.** Three things are learned, by three
 parties. An agent finds a fact: a finding. A Goal names the findings that bear

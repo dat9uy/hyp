@@ -190,9 +190,6 @@ func shortCommit(commit string) string {
 	return commit
 }
 
-// prOutputMax is how much of one stored output the PR body prints.
-const prOutputMax = 16384
-
 var backtickRun = regexp.MustCompile("`+")
 
 // fence wraps text in a code fence longer than any run of backticks in it.
@@ -210,27 +207,21 @@ func fence(text string) string {
 	return bar + "\n" + text + bar + "\n"
 }
 
-// prBody is the PR body of a selected Goal : its words, each line
-// with its kind, each placed example with its words, output, stderr, exit
-// code and verdict on the selected row, and the selected commit and row. A
-// split line is marked. It reads only the tables, the stored outputs and the
-// example folders. An ended Goal's body reads git alone: each placed example
-// is met by the select, with no output, so it reads the same in every clone.
+// prBody is the PR body of a selected Goal: its words, each line with its
+// kind, each placed example with its key and words, each chart of the
+// selected commit's spec folder, and the selected commit and row. A split
+// line is marked. It holds no output, stderr, exit code or verdict of any
+// example: every placed example is met by the select, so a result teaches
+// the owner nothing at the merge. It reads only the tables and git, so it
+// reads the same in every clone.
 func prBody(root string, g *tables.Goal) string {
 	if g == nil || g.Select == nil {
 		return ""
 	}
 	tree := g.Select.RowTree
-	ended := g.State == tables.StateEnded
 	var split []string
-	if !ended {
+	if g.State != tables.StateEnded {
 		split = g.SplitLines(tree)
-	}
-	live := map[string]tables.LiveCell{}
-	for _, c := range g.LiveCells(tree) {
-		if _, ok := live[c.Key]; !ok {
-			live[c.Key] = c
-		}
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "# %s: %s\n", g.ID, g.Words)
@@ -250,31 +241,7 @@ func prBody(root string, g *tables.Goal) string {
 			if err != nil {
 				words = "(example " + p.Hash + " is not readable here: " + bodyText(err, root) + ")"
 			}
-			fmt.Fprintf(&b, "\n### %s: %s\n\n", p.Key, words)
-			if ended {
-				fmt.Fprintf(&b, "verdict: met, by select %s at %s\n", g.Select.ID, g.Select.Time)
-				continue
-			}
-			c, ok := live[p.Key]
-			if !ok {
-				tc, tried := g.TraceCell(p.Hash, tree)
-				if !tried {
-					// git holds the select, which every placed example met;
-					// this clone's trace holds no Result of it
-					fmt.Fprintf(&b, "verdict: not in this clone's trace; run it again in this clone with:\n  %s\n", tryLine(g, p.Key, g.Select.Commit))
-					continue
-				}
-				fmt.Fprintf(&b, "verdict: %s, exit %d, run again in this clone\n", tc.Verdict, tc.Exit)
-				if tc.Verdict != "met" {
-					fmt.Fprintf(&b, "warning: %s gave two verdicts on the selected row: met at the select, in this clone: %s\n", p.Key, tc.Verdict)
-				}
-				prStored(&b, root, "output", tc.Output)
-				prStored(&b, root, "stderr", tc.Stderr)
-				continue
-			}
-			fmt.Fprintf(&b, "verdict: %s, exit %d\n", c.Verdict, c.Exit)
-			prStored(&b, root, "output", c.Output)
-			prStored(&b, root, "stderr", c.Stderr)
+			fmt.Fprintf(&b, "\n### %s: %s\n", p.Key, words)
 		}
 	}
 	prCharts(&b, root, g)
@@ -314,22 +281,6 @@ func prCharts(b *strings.Builder, root string, g *tables.Goal) {
 		}
 		f := fence(string(data))
 		b.WriteString(strings.Replace(f, "\n", "mermaid\n", 1))
-	}
-}
-
-// prStored prints a stored output under a label in the PR body: its byte
-// count, then the bytes in a fenced block; an empty output is "<label>, 0 bytes".
-func prStored(b *strings.Builder, root, label, hash string) {
-	data, size, err := logstore.ReadOutput(root, hash, prOutputMax)
-	switch {
-	case err != nil:
-		fmt.Fprintf(b, "\n%s: not readable here: %s\n", label, bodyText(err, root))
-	case size == 0:
-		fmt.Fprintf(b, "\n%s, 0 bytes\n", label)
-	case int64(len(data)) < size:
-		fmt.Fprintf(b, "\n%s, first %d of %d bytes:\n\n%s", label, len(data), size, fence(string(data)))
-	default:
-		fmt.Fprintf(b, "\n%s, %d bytes:\n\n%s", label, size, fence(string(data)))
 	}
 }
 

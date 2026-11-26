@@ -21,15 +21,5 @@ PR body:
 
 ### line-1/a: w
 
-verdict: met, exit 0
-
-output, 2 bytes:
-
-```
-ok
-```
-
-stderr, 0 bytes
-
 selected commit: <hash>
 selected row: <hash>
