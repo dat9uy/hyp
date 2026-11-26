@@ -120,9 +120,11 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 	fmt.Fprintf(b, "stop: %s\n", stopText(st.Stop, st.Cause))
 	if g.Land != nil {
 		fmt.Fprintf(b, "landed: by %s, land %s at %s\n", g.Land.Actor, g.Land.ID, g.Land.Time)
+		endWhy(b, g.Land.Why, o)
 	}
 	if g.Close != nil {
 		fmt.Fprintf(b, "closed: by %s, close %s at %s\n", g.Close.Actor, g.Close.ID, g.Close.Time)
+		endWhy(b, g.Close.Why, o)
 	}
 	fmt.Fprintf(b, "waits: %s\n", st.Waits)
 	if g.Select != nil && acts.OnNoRef(repo, g.Select.Commit) {
@@ -173,6 +175,9 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 	}
 	if o.Ask && (g.State == tables.StateWritten || g.State == tables.StateOpen) {
 		fmt.Fprintf(b, "\nThe Goal asks:\n\n%s", askText(repo, g))
+	}
+	if o.Ask && ended {
+		fmt.Fprintf(b, "\nThe Goal asked:\n\n%s", askedText(g))
 	}
 	switch {
 	case o.Goal == "" && (g.State == tables.StateEnded || st.Stop == acts.StopSelected):
@@ -373,6 +378,29 @@ func askText(repo string, g *tables.Goal) string {
 		}
 	}
 	return b.String()
+}
+
+// askedText is what an ended Goal asked: its words, the why of its latest
+// goal.add, and each line with its kind. hyp status G prints it, so the want a
+// close gave up stays readable; land and close do not print it.
+func askedText(g *tables.Goal) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "# %s: %s\n", g.ID, g.Words)
+	if g.Why != "" {
+		fmt.Fprintf(&b, "\nwhy: %s\n", g.Why)
+	}
+	for _, l := range g.Lines {
+		fmt.Fprintf(&b, "\n## %s (%s): %s\n", l.Key, l.Kind, l.Text)
+	}
+	return b.String()
+}
+
+// endWhy prints the why of a land or close under its line, in hyp status G
+// only: the return of land and close prints the block without it.
+func endWhy(b *strings.Builder, why string, o BlockOpts) {
+	if o.Ask && why != "" {
+		fmt.Fprintf(b, "  why: %s\n", indentText(why, "    "))
+	}
 }
 
 // startPrompt is the prompt the owner gives a runner of the open Goal id:

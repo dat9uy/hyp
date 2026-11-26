@@ -196,8 +196,10 @@ var Commands = []Command{
                                          words, why, lines and placed examples,
                                          of an open G, unless --role names a
                                          role other than owner, the runner's
-                                         Start prompt ready to copy, and of G
-                                         the findings it names.
+                                         Start prompt ready to copy; of an
+                                         ended G, its words, why and lines and
+                                         the why of its land or close; and of
+                                         G the findings it names.
                                          With no G, it prints the words of each
                                          written or open Goal, leaves out the
                                          blocks of ended Goals with a line that
