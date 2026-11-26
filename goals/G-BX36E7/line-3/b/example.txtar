@@ -1,0 +1,8 @@
+-- words --
+A model that breaks a rule exits as today: a Goal's model whose own behaviour breaks its checked rule Positive; the tool exits 1 and says nothing about hyp select.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/count.tla --config goals/G-ONE/specs/count.cfg --out out
+-- floor: contains --
+exit 1
+-- ceiling --
+hyp select

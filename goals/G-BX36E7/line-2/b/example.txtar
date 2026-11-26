@@ -1,0 +1,6 @@
+-- words --
+It points at what status names: the run rules tell a runner with no select line to read the guard and fix that hyp status names.
+-- run --
+cat skills/hyp-grill/run-rules.md
+-- floor: contains --
+hyp status names
