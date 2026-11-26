@@ -1,0 +1,8 @@
+-- words --
+G-ONE is open: hyp status G-ONE still prints its Start prompt and its placed examples, as on H0.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+The runner's Start prompt
+-- floor: contains --
+### line-1/a

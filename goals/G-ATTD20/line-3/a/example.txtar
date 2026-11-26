@@ -1,0 +1,6 @@
+-- words --
+The glossary's Snapshot entry no longer says that the return of land or close prints the Goal's record.
+-- run --
+cat docs/glossary.md
+-- ceiling --
+and the return of `land` or `close` print its record

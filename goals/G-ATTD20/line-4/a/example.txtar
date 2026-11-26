@@ -1,0 +1,10 @@
+-- words --
+G-ONE is open: hyp close G-ONE prints 'closed G-ONE', and not the Goal's why or line, as on H0.
+-- run --
+hyp close G-ONE --why 'not wanted any more'
+-- floor: contains --
+closed G-ONE
+-- ceiling --
+greet test
+-- ceiling --
+greet.txt says bye

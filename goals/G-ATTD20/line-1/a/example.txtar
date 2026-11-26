@@ -1,0 +1,12 @@
+-- words --
+F-1YMNJ8: a Goal closed with no select. hyp status G-ONE prints its words, its why and its lines, not only its state and its close.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+Greet.
+-- floor: contains --
+greet test
+-- floor: contains --
+line-1 (gap): greet.txt says bye.
+-- findings --
+F-1YMNJ8
