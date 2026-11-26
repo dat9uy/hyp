@@ -88,18 +88,22 @@ commit_staged placed || fail "commit placed"
 
 specs="goals/$G/specs"
 
-# The Hypothesis changes the text of OldRule (a different constant) and holds a
-# chart and a variant config naming only Other.
-git checkout -q -b h1 main >&2 || fail "checkout h1"
-echo bye >greet.txt
+# The change of OldRule reaches the Hypothesis as a merge from another branch, so
+# the Own path guard does not count it as the runner's own change. The Hypothesis
+# also holds a chart and a variant config naming only Other.
+git checkout -q -b model-change main >&2 || fail "checkout model-change"
 sed -i.bak 's/OldRule == x \\in {0, 1}/OldRule == x \\in {0, 1, 3}/' goals/model/model.tla || fail "sed"
 rm -f goals/model/model.tla.bak
 grep -q '{0, 1, 3}' goals/model/model.tla || fail "OldRule text unchanged"
+commit_staged "change the text of OldRule" || fail "commit model change"
+git checkout -q -b h1 main >&2 || fail "checkout h1"
+echo bye >greet.txt
 specs="goals/$G/specs"
 mkdir -p "$specs/variants" || fail "mkdir specs"
 printf '%s\n' 'stateDiagram-v2' '  hello --> bye' >"$specs/chart.mmd"
 printf '%s\n' 'SPECIFICATION Spec' 'INVARIANTS Other' >"$specs/variants/Breaks.cfg"
 commit_staged "hypothesis h1" || fail "commit h1"
+git merge -q --no-ff -m "merge model change" model-change >&2 || fail "merge"
 c=$(git rev-parse HEAD)
 git checkout -q main >&2 || fail "checkout main"
 ran=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1") || fail "hyp run failed: $ran"
