@@ -1,0 +1,8 @@
+-- words --
+G-ONE is written and F-ONE is not folded: hyp finding fold is refused as a command hyp does not have.
+-- run --
+hyp finding fold F-ONE --goal G-ONE
+-- floor: contains --
+exit 2
+-- ceiling --
+folded into

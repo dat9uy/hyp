@@ -1,0 +1,8 @@
+-- words --
+G-ONE names F-ONE at add goal: hyp status G-ONE prints F-ONE with its fact.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+F-ONE
+-- floor: contains --
+The subject says hello.

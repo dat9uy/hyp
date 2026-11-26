@@ -1,0 +1,10 @@
+-- words --
+G-ONE is in work and names F-ONE: hyp add goal of another Goal that names F-ONE is refused and names G-ONE.
+-- run --
+hyp add goal --base HEAD --words 'Greet again.' --line 'gap:greet.txt says hey.' --finding F-ONE
+-- floor: contains --
+G-ONE
+-- floor: contains --
+exit 1
+-- ceiling --
+recorded G-
