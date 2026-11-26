@@ -1,0 +1,76 @@
+#!/bin/sh
+# Write a toy Goal model and its fixture example in the subject copy, run the
+# example's run section in it, print its stdout, then a last line "exit N" with
+# its exit code.
+set -e
+spec=goals/G-ONE/specs
+ex=goals/G-ONE/line-1/a
+mkdir -p "$spec" "$ex/probe"
+cat >"$spec/toy.tla" <<'TLA'
+------------------------------- MODULE toy -------------------------------
+CONSTANT NoFoldLine
+
+VARIABLES st, shown
+
+vars == <<st, shown>>
+
+Init == st = "none" /\ shown = ""
+
+Add == st = "none" /\ st' = "free" /\ shown' = "added F-1"
+
+Fold == st = "free" /\ st' = "folded" /\ shown' = "folded F-1"
+
+List ==
+    /\ st' = st
+    /\ shown' = CASE st = "none" -> "no findings"
+                  [] st = "free" -> "F-1 not folded"
+                  [] st = "folded" /\ ~NoFoldLine -> "F-1 folded"
+                  [] st = "folded" /\ NoFoldLine -> ""
+
+Next == Add \/ Fold \/ List
+
+Spec == Init /\ [][Next]_vars
+
+TypeOK == st \in {"none", "free", "folded"}
+
+\* source: line-1
+ListOfFoldedNamesIt == (st = "folded") => (shown # "")
+=======================================================================
+TLA
+cat >"$spec/toy.cfg" <<'CFG'
+SPECIFICATION Spec
+
+CONSTANTS
+    NoFoldLine = FALSE
+
+INVARIANTS
+    ListOfFoldedNamesIt
+CFG
+cat >"$spec/toy-view.mjs" <<'MJS'
+export const state = (v) => v.st;
+export const step = (action) => action;
+export const print = (action, from, to) => to.shown;
+MJS
+cat >"$ex/example.txtar" <<'TXT'
+-- words --
+Lists a finding that is not folded.
+-- run --
+toy list
+-- floor: contains --
+not folded
+-- ceiling --
+added
+TXT
+cat >"$ex/probe/run" <<'SH'
+#!/bin/sh
+toy add
+sh -c "$HYP_RUN"
+SH
+set +e
+tmp=$(mktemp) || exit 3
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
