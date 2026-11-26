@@ -59,16 +59,53 @@ flowchart LR
   G2 --> G
 ```
 
-A finding's state follows from the Goals that name it. hyp calculates it, and `hyp finding list` prints it:
+One want passes through five steps, and each step adds one record. A finding and its Goal are two machines. The fold joins them: the finding is folded while its Goal's record names it.
 
-| A finding reads | When |
-|---|---|
-| `not folded` | No Goal names it. It waits for a Goal, a decline or a refute. |
-| `folded into G` | A Goal in work, G, names it. Only one Goal in work may name a finding. |
-| `settled in G` | A Goal that names it landed with a select. |
-| `ended in G, not settled` | Every Goal that named it ended with no select. A later Goal may name it again. |
-| `declined` | You declined it with a why: its fact is true, and you do not want it fixed. |
-| `refuted` | An agent refuted it: its fact is false. |
+```mermaid
+flowchart LR
+  subgraph FT["the finding (trace)"]
+    direction TB
+    NF["not folded<br/>step 1; step 2 with a draft"]
+    FO["folded into G<br/>a Goal in work names it"]
+    DE["declined<br/>the owner, with a why"]
+    RE["refuted<br/>any agent"]
+    SE["settled in G, or ended in G, not settled<br/>with a select, or with none"]
+    NF --> FO
+    NF --> DE
+    NF --> RE
+    FO --> SE
+  end
+  subgraph GG["its Goal (git)"]
+    direction TB
+    W["written<br/>step 3: the gap is claimed"]
+    O["open<br/>step 4: the gap is shown on H0"]
+    S["selected<br/>step 5: the want is met"]
+    E["ended<br/>a land or a close"]
+    W -- place --> O
+    O -- select --> S
+    S -- land --> E
+  end
+  FO -. "3" .-> W
+  FO -. "4" .-> O
+  FO -. "5" .-> S
+  SE -. "=" .-> E
+```
+
+hyp calculates each state, and `hyp finding list` and `hyp status G` print them:
+
+| Step | Goal state | What names the finding | The finding reads |
+|---|---|---|---|
+| 0. A part | none | Nothing. An issue holds the want, in your words. | none |
+| 1. A finding | none | Nothing | `not folded` |
+| 2. A drafted finding | none | Nothing. Its draft may hold an `add goal` for you to edit and run. | `not folded` |
+| 3. A written Goal | `written` | The Goal: you, with `add goal --finding F` | `folded into G` |
+| 4. An open Goal | `open` | An example: the grill, in its `findings` section. Each finding the Goal names needs one. | `folded into G` |
+| 5. A selected Goal | `selected` | The same | `folded into G` |
+| End, with a select | `ended` | The same | `settled in G` |
+| End, with no select | `ended` | The same. A later Goal may name the finding again. | `ended in G, not settled` |
+| Exit | any | You decline a finding that no Goal named: its fact is true, and you do not want it fixed. An agent refutes a finding whose fact is false. | `declined` or `refuted` |
+
+A fact that a Goal's words already cover can skip step 3: the grill names it in an example at step 4. Only one Goal in work may name a finding.
 
 Each record has one home. Git holds what every clone must agree on. The trace holds what agents learned, as a cache:
 
