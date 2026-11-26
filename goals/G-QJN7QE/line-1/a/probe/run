@@ -24,14 +24,17 @@ TypeOK == st \in {"none", "free", "folded"}
 
 Init == st = "none" /\ out = [cmd |-> "none", text |-> "none"]
 
+\* command: toy add
 Add ==
     /\ st = "none" /\ st' = "free"
     /\ out' = [cmd |-> "add", text |-> "added"]
 
+\* command: toy fold
 Fold ==
     /\ st = "free" /\ st' = "folded"
     /\ out' = [cmd |-> "fold", text |-> "folded"]
 
+\* command: toy list
 List ==
     /\ st' = st
     /\ out' = [cmd |-> "list",
