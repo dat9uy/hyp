@@ -21,12 +21,20 @@ const SEARCH_LIMIT = 500_000;
 // ---------------------------------------------------------------- examples
 
 type Floor = { op: "contains" | "equals"; text: string };
-export type Example = { key: string; words: string; floors: Floor[]; ceilings: string[] };
+export type Example = {
+  key: string;
+  words: string;
+  run: string;
+  floors: Floor[];
+  ceilings: string[];
+  // the example's Probe, probe/run, when it has one
+  probe?: string;
+};
 
 // parseExample reads an example.txtar as hyp does: each section starts with a
 // line "-- name --", and a body drops exactly one final newline.
 export function parseExample(key: string, text: string): Example {
-  const ex: Example = { key, words: "", floors: [], ceilings: [] };
+  const ex: Example = { key, words: "", run: "", floors: [], ceilings: [] };
   let name: string | undefined;
   let body: string[] = [];
   const flush = () => {
@@ -34,6 +42,7 @@ export function parseExample(key: string, text: string): Example {
     const t = body.join("");
     const b = t.endsWith("\n") ? t.slice(0, -1) : t;
     if (name === "words") ex.words = b;
+    else if (name === "run") ex.run = b;
     else if (name === "floor: contains") ex.floors.push({ op: "contains", text: b });
     else if (name === "floor: equals") ex.floors.push({ op: "equals", text: b });
     else if (name === "ceiling") ex.ceilings.push(b);
@@ -74,8 +83,11 @@ export function readGoal(goalDir: string) {
   for (const line of lines)
     for (const ex of dirs(path.join(goalDir, line)).sort()) {
       const file = path.join(goalDir, line, ex, "example.txtar");
-      if (fs.existsSync(file))
-        examples.push(parseExample(`${line}/${ex}`, fs.readFileSync(file, "utf8")));
+      if (!fs.existsSync(file)) continue;
+      const example = parseExample(`${line}/${ex}`, fs.readFileSync(file, "utf8"));
+      const probe = path.join(goalDir, line, ex, "probe", "run");
+      if (fs.existsSync(probe)) example.probe = fs.readFileSync(probe, "utf8");
+      examples.push(example);
     }
   return { lines, examples };
 }
@@ -246,6 +258,182 @@ export function replay(model: Model, actions: string[], ex: Example): boolean {
   return false;
 }
 
+// ---------------------------------------------------------- command walks
+
+// commandsOf reads, for each action, the "command:" tag of the line comments
+// right above its definition in the module: the command of the system that
+// takes that step, such as "\* command: hyp select".
+export function commandsOf(tla: string) {
+  const lines = tla.split(/\r?\n/);
+  const found = new Map<string, string>();
+  for (let d = 0; d < lines.length; d++) {
+    const def = /^(\w+)\s*(?:\([^)]*\))?\s*==/.exec(lines[d]);
+    if (!def) continue;
+    for (let i = d - 1; i >= 0 && /^\s*\\\*/.test(lines[i]); i--) {
+      const m = /command:\s*(.+?)\s*$/i.exec(lines[i]);
+      if (m) {
+        found.set(def[1], m[1]);
+        break;
+      }
+    }
+  }
+  return found;
+}
+
+// shellCommands splits a shell script into its simple commands, in the order
+// they are written: it drops comments and the bodies of here-documents,
+// splits at ; & | && || and newlines outside quotes, and drops leading
+// assignments and keywords. Each command is a list of words with their
+// quotes removed; raw keeps the text, so that a reference to $HYP_RUN shows.
+export function shellCommands(script: string) {
+  const cmds: { words: string[]; raw: string }[] = [];
+  const lines = script.replace(/\\\n/g, " ").split("\n");
+  const keywords = new Set(["if", "then", "else", "elif", "fi", "do", "done", "while", "until", "!", "{", "}", "(", ")", "exec", "command"]);
+  let doc: { tag: string; strip: boolean } | undefined;
+  for (const line of lines) {
+    if (doc) {
+      if ((doc.strip ? line.replace(/^\t+/, "") : line) === doc.tag) doc = undefined;
+      continue;
+    }
+    let words: string[] = [];
+    let word: string | undefined;
+    let raw = "";
+    let quote: string | undefined;
+    const end = () => {
+      if (word !== undefined) words.push(word);
+      word = undefined;
+    };
+    const flush = () => {
+      end();
+      let i = 0;
+      while (i < words.length && (keywords.has(words[i]) || /^\w+=/.test(words[i]))) i++;
+      words = words.slice(i);
+      if (words.length) cmds.push({ words, raw: raw.trim() });
+      words = [];
+      raw = "";
+    };
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (quote) {
+        raw += c;
+        if (c === quote) quote = undefined;
+        else if (c === "\\" && quote === '"' && i + 1 < line.length) word = (word ?? "") + line[++i];
+        else word = (word ?? "") + c;
+        continue;
+      }
+      if (c === "'" || c === '"') {
+        quote = c;
+        raw += c;
+        word ??= "";
+        continue;
+      }
+      if (c === "#" && word === undefined) break;
+      const heredoc = /^<<(-?)\s*(['"]?)(\w+)\2/.exec(line.slice(i));
+      if (heredoc) {
+        doc = { tag: heredoc[3], strip: heredoc[1] === "-" };
+        end();
+        raw += heredoc[0];
+        i += heredoc[0].length - 1;
+        continue;
+      }
+      if (c === ";" || c === "&" || c === "|") {
+        flush();
+        continue;
+      }
+      raw += c;
+      if (/\s/.test(c)) end();
+      else word = (word ?? "") + c;
+    }
+    flush();
+  }
+  return cmds;
+}
+
+// A command step of an example: the action of the model that a command of
+// its Probe or of its run section takes. run is true for a command of the
+// run section: only its prints are matched against the example.
+type CommandStep = { action: string; command: string; run: boolean };
+
+export type CommandWalk =
+  | { steps: CommandStep[] }
+  // a command of a program the model holds steps for, with no step of its own
+  | { unknown: string[] };
+
+// commandWalk is the walk of the commands an example's Probe and its run
+// section call, in the order they call them. A Probe command that refers to
+// $HYP_RUN stands for the commands of the run section; with no Probe, the
+// walk is the run section's commands. A command of another program, such as
+// echo or mkdir, takes no step of the model.
+export function commandWalk(ex: Example, commands: Map<string, string>): CommandWalk {
+  const tags = [...commands].map(([action, command]) => ({ action, words: command.split(/\s+/) }));
+  tags.sort((a, b) => b.words.length - a.words.length);
+  const programs = new Set(tags.map((t) => t.words[0]));
+  const steps: CommandStep[] = [];
+  const unknown: string[] = [];
+  const take = (script: string, run: boolean) => {
+    for (const c of shellCommands(script)) {
+      if (!run && /\$\{?HYP_RUN\b/.test(c.raw)) {
+        take(ex.run, true);
+        continue;
+      }
+      const tag = tags.find((t) => t.words.every((w, i) => c.words[i] === w));
+      if (tag) steps.push({ action: tag.action, command: tag.words.join(" "), run });
+      else if (programs.has(c.words[0])) {
+        const name = c.words.slice(0, 2).join(" ");
+        if (!unknown.includes(name)) unknown.push(name);
+      }
+    }
+  };
+  if (ex.probe !== undefined) take(ex.probe, false);
+  else take(ex.run, true);
+  return unknown.length ? { unknown } : { steps };
+}
+
+// pathOf is a path of the model that takes the steps of a command walk, from
+// a start state; undefined when the model cannot take them.
+export function pathOf(model: Model, steps: CommandStep[]): Edge[] | undefined {
+  const seen = new Set<string>();
+  const go = (id: string, i: number): Edge[] | undefined => {
+    if (i === steps.length) return [];
+    const k = `${id}|${i}`;
+    if (seen.has(k)) return undefined;
+    seen.add(k);
+    for (const e of model.out.get(id) ?? []) {
+      if (e.action !== steps[i].action) continue;
+      const rest = go(e.to, i + 1);
+      if (rest) return [e, ...rest];
+    }
+    return undefined;
+  };
+  for (const id of model.starts) {
+    const p = go(id, 0);
+    if (p) return p;
+  }
+  return undefined;
+}
+
+// follow takes the steps of a command walk in a model, from each start state
+// and along each edge of each step's action, feeds only the prints of the run
+// section's steps to the matcher, and says whether some path meets the
+// example.
+export function follow(model: Model, steps: CommandStep[], ex: Example): boolean {
+  const mt = new Matcher(ex);
+  let front = new Map<string, { id: string; m: MState }>();
+  for (const id of model.starts) front.set(`${id}|${mt.key(mt.start())}`, { id, m: mt.start() });
+  for (const s of steps) {
+    const next = new Map<string, { id: string; m: MState }>();
+    for (const { id, m } of front.values())
+      for (const e of model.out.get(id) ?? []) {
+        if (e.action !== s.action) continue;
+        const m2 = s.run ? mt.feed(m, e.print) : m;
+        if (m2) next.set(`${e.to}|${mt.key(m2)}`, { id: e.to, m: m2 });
+      }
+    front = next;
+  }
+  for (const { m } of front.values()) if (mt.accepts(m)) return true;
+  return false;
+}
+
 export type Difference = {
   actions: string[];
   labels: string[];
@@ -389,6 +577,12 @@ export function variantConfig(
 
 // ------------------------------------------------------------------ report
 
+type Plan =
+  | { kind: "shortest"; walk: Walk }
+  | { kind: "unknown"; commands: string[] }
+  | { kind: "cannot"; steps: CommandStep[] }
+  | { kind: "commands"; steps: CommandStep[]; edges: Edge[]; outside: boolean };
+
 type Cell = { predicted: "met" | "fail" | "no walk" | "not predicted"; tried?: "met" | "fail" };
 
 const fence = (s: string) => {
@@ -501,10 +695,35 @@ export async function goalReport(
     }
   }
 
-  // Walks of the check config and predictions.
+  // Walks of the check config and predictions. When the module tags its
+  // actions with the commands of the system, each example is predicted from
+  // the walk of the commands its Probe and its run section call; a model with
+  // no command tag falls back to the shortest walk whose prints meet it.
   const baseModel = base.paths ? undefined : modelOf(base.graph, view);
-  const walks = new Map<string, Walk | undefined>();
-  for (const ex of goal.examples) walks.set(ex.key, baseModel && findWalk(baseModel, ex));
+  const commands = commandsOf(fs.readFileSync(specFile, "utf8"));
+  const plans = new Map<string, Plan>();
+  for (const ex of goal.examples) {
+    if (!baseModel) continue;
+    if (!commands.size) {
+      plans.set(ex.key, { kind: "shortest", walk: findWalk(baseModel, ex) });
+      continue;
+    }
+    const cw = commandWalk(ex, commands);
+    if ("unknown" in cw) {
+      plans.set(ex.key, { kind: "unknown", commands: cw.unknown });
+      continue;
+    }
+    const edges = pathOf(baseModel, cw.steps);
+    if (!edges) {
+      plans.set(ex.key, { kind: "cannot", steps: cw.steps });
+      continue;
+    }
+    const floorsOnly = { ...ex, ceilings: [] };
+    const outside = ![baseModel, ...variants.map((v) => models.get(v))].some(
+      (m) => m && follow(m, cw.steps, floorsOnly),
+    );
+    plans.set(ex.key, { kind: "commands", steps: cw.steps, edges, outside });
+  }
   const grid = new Map<string, Map<string, Cell>>();
   const separatedBy = new Map<string, string[]>();
   for (const v of variants) {
@@ -512,18 +731,21 @@ export async function goalReport(
     const sep: string[] = [];
     const vm = models.get(v);
     for (const ex of goal.examples) {
-      const w = walks.get(ex.key);
-      let predicted: Cell["predicted"];
-      if (!w || !("edges" in w)) predicted = w && "none" in w ? "no walk" : "not predicted";
-      else if (!vm) predicted = "not predicted";
-      else
-        predicted = replay(
-          vm,
-          w.edges.map((e) => e.action),
-          ex,
-        )
-          ? "met"
-          : "fail";
+      const plan = plans.get(ex.key);
+      let predicted: Cell["predicted"] = "not predicted";
+      if (plan?.kind === "shortest") {
+        const w = plan.walk;
+        if ("none" in w) predicted = "no walk";
+        else if ("edges" in w && vm)
+          predicted = replay(
+            vm,
+            w.edges.map((e) => e.action),
+            ex,
+          )
+            ? "met"
+            : "fail";
+      } else if (plan?.kind === "commands" && !plan.outside && vm && pathOf(vm, plan.steps))
+        predicted = follow(vm, plan.steps, ex) ? "met" : "fail";
       // A tried verdict stands over the prediction: a tried fail separates
       // the variant, and a tried met does not, whatever the model predicts.
       const tried = readTried(specDir, v, ex.key);
@@ -585,21 +807,68 @@ export async function goalReport(
     );
 
   // Walks
+  const toTry: string[] = [];
   if (goal.examples.length) {
     out.push("", "## Walks of the examples", "");
+    if (baseModel && !commands.size)
+      out.push(
+        "The module tags no action with a `\\* command:` comment, so each walk is the shortest walk whose prints meet the example, and it can set up another case than the example's Probe.",
+        "",
+      );
     for (const ex of goal.examples) {
-      const w = walks.get(ex.key);
-      if (!w) out.push(`- ${ex.key}: not searched.`);
-      else if ("none" in w)
-        out.push(`- ${ex.key}: no walk of the model gives an output that meets this example.`);
-      else if ("stopped" in w) out.push(`- ${ex.key}: the search stopped at ${SEARCH_LIMIT} states.`);
-      else {
-        const acts = w.edges.map((e) => e.action);
-        out.push(`- ${ex.key}: walk ${acts.length ? acts.join(", ") : "(no step)"}`);
-        if (w.edges.length) out.push("", fence(w.edges.map((e) => e.print).join("\n")), "");
+      const plan = plans.get(ex.key);
+      if (!plan) out.push(`- ${ex.key}: not searched.`);
+      else if (plan.kind === "shortest") {
+        const w = plan.walk;
+        if ("none" in w) out.push(`- ${ex.key}: no walk of the model gives an output that meets this example.`);
+        else if ("stopped" in w) out.push(`- ${ex.key}: the search stopped at ${SEARCH_LIMIT} states.`);
+        else {
+          const acts = w.edges.map((e) => e.action);
+          out.push(`- ${ex.key}: walk ${acts.length ? acts.join(", ") : "(no step)"}`);
+          if (w.edges.length) out.push("", fence(w.edges.map((e) => e.print).join("\n")), "");
+        }
+      } else if (plan.kind === "unknown") {
+        const names = plan.commands.join(", ");
+        out.push(
+          `- ${ex.key}: its Probe or run section calls ${names}, which the model has no step for, so the tool predicts no verdict.`,
+        );
+        toTry.push(`- ${ex.key}: the model has no step for ${names}.`);
+      } else if (plan.kind === "cannot") {
+        const acts = plan.steps.map((s) => s.action).join(", ");
+        out.push(
+          `- ${ex.key}: the model cannot take the walk of its commands, ${acts}, so the tool predicts no verdict.`,
+        );
+        toTry.push(`- ${ex.key}: the model cannot take the walk ${acts}.`);
+      } else {
+        const part = (run: boolean) =>
+          plan.steps
+            .filter((s) => s.run === run)
+            .map((s) => s.action)
+            .join(", ") || "none";
+        out.push(
+          `- ${ex.key}: walk ${plan.steps.map((s) => s.action).join(", ") || "(no step)"} (setup: ${part(false)}; run section: ${part(true)})`,
+        );
+        const prints = plan.edges.filter((_, i) => plan.steps[i].run).map((e) => e.print);
+        out.push("", "The run section prints, on one path of the walk:", "", fence(prints.join("\n")), "");
+        if (plan.outside) {
+          out.push(
+            `${ex.key} is outside the model's prints: no print of its walk gives its floors, under the check config or any variant, so the tool predicts no verdict.`,
+            "",
+          );
+          toTry.push(`- ${ex.key}: outside the model's prints.`);
+        }
       }
     }
   }
+  if (toTry.length && variants.length)
+    out.push(
+      "",
+      "## Examples to try on every variant",
+      "",
+      "The tool predicts no verdict for these examples. Try each one on the patch of every variant with `hyp try --worktree`.",
+      "",
+      ...toTry,
+    );
 
   // Grid
   if (variants.length && goal.examples.length) {

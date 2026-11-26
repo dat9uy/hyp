@@ -23,7 +23,7 @@ The view can also export these:
 - `group(vars)` returns the name of a phase. Each chart state gets the color of its group. When the model states behind one chart state are in different groups, that state gets no color.
 - `colors` gives each group name a color class.
 - `title` is a string that the chart shows at the top.
-- `print(action, from, to)` returns what the system prints on that step. The tool matches the prints of a walk, joined by newlines, against the floors and ceilings of a hyp Goal's examples. Without it, a step prints its label.
+- `print(action, from, to)` returns what the system prints on that step. The tool matches the prints of the run section's steps of an example's walk, joined by newlines, against the floors and ceilings of a hyp Goal's example. Without it, a step prints its label.
 
 The command calls `state()` and `group()` at most once for each model state, and `step()` at most once for each step. The chart and the report both use those answers. So make each function depend only on its arguments.
 
