@@ -39,6 +39,10 @@ type AddGoalOpts struct {
 	Words string
 	Base  string
 	Lines []LineInput
+
+	// Findings are the findings the Goal names, each by its id (F-1A2B3C) or
+	// its finding.add id: the findings of this clone's trace it is about.
+	Findings []string
 }
 
 // Report is what add goal returns.
@@ -49,6 +53,7 @@ type Report struct {
 	Base     string // the full commit sha
 	BaseTree string // H0's row tree
 	Lines    []events.Line
+	Findings []string // the ids (F-…) of the findings it names
 }
 
 // ValidRole reports whether role is one of the four.
@@ -71,8 +76,10 @@ func CheckActor(actor, role string) error {
 }
 
 // AddGoal records a Goal, or replaces a written one, or refuses with the first
-// failing guard: Draft, Whole lines, then From landed. It creates .tree/ at the git top
-// level when it is absent, and only after the guards pass.
+// failing guard: Draft, Whole lines, From ended, then for each finding it
+// names Not refuted, Not declined and One in work; a finding this clone's
+// trace does not hold is a refusal. It creates .tree/ at the git top level
+// when it is absent, and only after the guards pass.
 func AddGoal(o AddGoalOpts) (Report, error) {
 	if err := CheckActor(o.Actor, o.Role); err != nil {
 		return Report{}, err
@@ -116,9 +123,17 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 			}
 			from = g.EventID
 		}
+		var self *tables.Goal
+		if o.Goal != "" {
+			self = goal
+		}
+		named, ids, err := nameFindings(t, o.Findings, self)
+		if err != nil {
+			return ev, err
+		}
 		payload, err := json.Marshal(events.GoalAdd{
 			Role: o.Role, Words: o.Words, Base: base, BaseTree: baseTree,
-			Budget: DefaultBudget, From: from, Lines: lines,
+			Budget: DefaultBudget, From: from, Lines: lines, Findings: named,
 		})
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeGoalAdd, err)
@@ -137,7 +152,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 				return ev, fault.Refuse(fault.GuardFromEnded, fault.FromNotEnded, cited.ID, cited.State)
 			}
 		}
-		rep = Report{Replaced: o.Goal != "", Words: o.Words, Base: base, BaseTree: baseTree, Lines: lines}
+		rep = Report{Replaced: o.Goal != "", Words: o.Words, Base: base, BaseTree: baseTree, Lines: lines, Findings: ids}
 		if rep.Replaced {
 			rep.Goal = goal.ID
 		}
@@ -162,6 +177,27 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		rep.Goal = tables.GoalID(ev.ID)
 	}
 	return rep, nil
+}
+
+// nameFindings resolves each finding a Goal names in this clone's trace and
+// checks the name: Not refuted, Not declined and One in work, with g the
+// Goal that names them (nil for a new one). It returns their finding.add ids
+// and their finding ids, each once, in the order given.
+func nameFindings(t tables.Tables, names []string, g *tables.Goal) (eventIDs, ids []string, err error) {
+	for _, name := range names {
+		f, err := t.FindFinding(name)
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := tables.GuardNameable(f, g); err != nil {
+			return nil, nil, err
+		}
+		if !slices.Contains(eventIDs, f.EventID) {
+			eventIDs = append(eventIDs, f.EventID)
+			ids = append(ids, f.ID)
+		}
+	}
+	return eventIDs, ids, nil
 }
 
 // resolveBase returns the full sha of the commit base names and its row tree.

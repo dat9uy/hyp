@@ -71,8 +71,8 @@ The issue is the owner's record, not a rule for the runner:
 
 When the owner already recorded the Goal (`hyp status G` shows it `written`
 with no examples), its recording is the confirmation step 1 asks for: skip that
-and steps 2 to 8. Read `hyp status G`, with its why and each finding folded
-into it, and the event the why names. Make the worktree of step 9 on branch
+and steps 2 to 8. Read `hyp status G`, with its why and each finding it
+names, and the event the why names. Make the worktree of step 9 on branch
 `record/<G>`, then go on with step 10 and the examples.
 
 1. **Read the event, the store and what the issue touches, then confirm the

@@ -56,6 +56,8 @@ const (
 	GuardOwnerDecl   Guard = "Owner declines"
 	GuardNotDeclined Guard = "Not declined"
 	GuardNotFolded   Guard = "Not folded"
+	GuardOneInWork   Guard = "One in work"
+	GuardCovered     Guard = "Covered"
 	NoGuard          Guard = "" // a refusal that no guard names
 )
 

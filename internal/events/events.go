@@ -80,9 +80,9 @@ func (k Kind) Home() string {
 // the same state. hyp reads an event of a kind that changes no Goal's state
 // only from the trace, never from git.
 var Kinds = []Kind{
-	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces", true, "add goal"},
+	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces; its payload names the findings the Goal is about", true, "add goal"},
 	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
-	{TypeExamplesPlace, true, "the Goal its node names", true, "place"},
+	{TypeExamplesPlace, true, "the Goal its node names; each example names the findings its findings section names", true, "place"},
 	{TypeResultRecord, false, "the Goal its node names", false, "run"},
 	{TypeResultRetract, false, "the Goal of the Result its node names", false, "retract, not built"},
 	{TypeSelect, true, "the Goal its node names", true, "select"},
@@ -91,8 +91,8 @@ var Kinds = []Kind{
 	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
 	{TypeUnselect, true, "the Goal its node names", true, "unselect"},
 	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
-	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal until a fold names one; the old form's node names the Goal it was recorded on", false, "finding add"},
-	{TypeFindingFold, false, "the Goal its payload names, written, open or selected; the old form names an issue", false, "finding fold"},
+	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal: a Goal names it; the old form's node names the Goal it was recorded on", false, "finding add"},
+	{TypeFindingFold, false, "the Goal its payload names, which the fold counts as a name of the finding by that Goal; the old form names an issue", false, "none: the old form of a name, replayed and no longer written"},
 	{TypeFindingRefute, false, "the finding its node names", false, "finding refute"},
 	{TypeFindingDecline, false, "the finding its node names", false, "finding decline"},
 }
@@ -121,15 +121,18 @@ type Line struct {
 	Kind string `json:"kind"`
 }
 
-// GoalAdd is the payload of goal.add. From is a Goal id or empty.
+// GoalAdd is the payload of goal.add. From is a Goal id or empty. Findings
+// are the finding.add ids of the findings the Goal names: the Goal's record
+// keeps only their ids, so it reads whole on a clone whose trace lacks them.
 type GoalAdd struct {
-	Role     string `json:"role"`
-	Words    string `json:"words"`
-	Base     string `json:"base"`
-	BaseTree string `json:"base_tree"`
-	Budget   int    `json:"budget"`
-	From     string `json:"from"`
-	Lines    []Line `json:"lines"`
+	Role     string   `json:"role"`
+	Words    string   `json:"words"`
+	Base     string   `json:"base"`
+	BaseTree string   `json:"base_tree"`
+	Budget   int      `json:"budget"`
+	From     string   `json:"from"`
+	Lines    []Line   `json:"lines"`
+	Findings []string `json:"findings,omitempty"`
 }
 
 // Cell is H0's verdict on an example, written by the placement that adds it.
@@ -163,12 +166,14 @@ type ExamplesPlace struct {
 	Examples []PlacedExample `json:"examples"`
 }
 
-// PlacedExample is one example of an examples.place event.
+// PlacedExample is one example of an examples.place event. Findings are the
+// finding.add ids of the findings its findings section names.
 type PlacedExample struct {
-	Line    string `json:"line"`
-	Example string `json:"example"`
-	Hash    string `json:"hash"`
-	H0      Cell   `json:"h0"`
+	Line     string   `json:"line"`
+	Example  string   `json:"example"`
+	Hash     string   `json:"hash"`
+	H0       Cell     `json:"h0"`
+	Findings []string `json:"findings,omitempty"`
 }
 
 // ExampleCell is the cell of one example in a Result.
@@ -251,8 +256,8 @@ type Read struct {
 
 // FindingAdd is the payload of finding.add: a fact an agent found, and a
 // pointer to its evidence, such as a Result id, a commit or a path. Its node
-// is its own id: a finding names no Goal until a fold names one. The old form's
-// node names the Goal it was recorded on, which a fold does not need. Draft
+// is its own id: a finding names no Goal; a Goal names it. The old form's
+// node names the Goal it was recorded on. Draft
 // is an add goal command line the agent drafted for the owner, or empty.
 // Role is the role the act declared, or empty.
 type FindingAdd struct {
@@ -262,10 +267,11 @@ type FindingAdd struct {
 	Draft    string `json:"draft,omitempty"`
 }
 
-// FindingFold is the payload of finding.fold: the findings it folds, by
-// their finding.add ids, and the goal.add id of the Goal it folds them into.
-// The old form names the number of an issue in place of a Goal; replay still
-// reads it, and no act writes it.
+// FindingFold is the payload of finding.fold, the old form of a name, which
+// replay still reads and no act writes: the findings it folds, by their
+// finding.add ids, and the goal.add id of the Goal it folds them into, which
+// counts as a name of each by that Goal. Its oldest form names the number of
+// an issue in place of a Goal.
 type FindingFold struct {
 	Role     string   `json:"role"`
 	Findings []string `json:"findings"`

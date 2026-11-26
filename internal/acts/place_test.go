@@ -713,3 +713,62 @@ func TestKindRefusalStoresNoOutput(t *testing.T) {
 		t.Fatalf("outputs after a Kind refusal = %v, were %v", after, before)
 	}
 }
+
+// findingOf records a finding in the clone's trace and returns it.
+func findingOf(t *testing.T, dir string) *tables.Finding {
+	t.Helper()
+	rep, err := FindingAdd(FindingOpts{Dir: dir, Actor: "agent-1", Fact: "a fact", Evidence: "R-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rep.Findings[0]
+}
+
+func TestPlaceNamesFindingsAndCoversTheGoalsNames(t *testing.T) {
+	e := newPlaceEnv(t)
+	f1, f2 := findingOf(t, e.root), findingOf(t, e.root)
+	_, base := e.log(t)
+	g, err := base.Find(e.goal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	o := opts(e.root, g.Base, gapLine)
+	o.Goal, o.Findings = e.goal, []string{f1.ID}
+	if _, err := AddGoal(o); err != nil {
+		t.Fatal(err)
+	}
+
+	// the Goal names f1 and no example does
+	e.example(t, "line-1/a", failingOnH0)
+	_, err = e.place()
+	refusedBy(t, err, string(fault.GuardCovered))
+	causedBy(t, causes(t, err), f1.ID, string(fault.GuardCovered))
+
+	// an example names an id this clone's trace does not hold
+	e.example(t, "line-1/a", failingOnH0+"-- findings --\n"+f1.ID+"\nF-ZZZZZZ\n")
+	_, err = e.place()
+	if cause := causes(t, err)["line-1/a"]; cause == nil || !strings.Contains(cause.Error(), "no-finding") {
+		t.Fatalf("cause of line-1/a = %v, want no finding F-ZZZZZZ", cause)
+	}
+
+	e.example(t, "line-1/a", failingOnH0+"-- findings --\n"+f1.ID+"\n"+f2.ID+"\n")
+	if _, err := e.place(); err != nil {
+		t.Fatal(err)
+	}
+	p := payload(t, e.placements(t)[0])
+	if want := []string{f1.EventID, f2.EventID}; !slices.Equal(p.Examples[0].Findings, want) {
+		t.Fatalf("place names %v, want %v", p.Examples[0].Findings, want)
+	}
+	_, tb := e.log(t)
+	goal, _ := tb.Find(e.goal)
+	f, _ := tb.FindFinding(f2.ID)
+	if !f.NamedBy(goal) || f.State() != "folded" {
+		t.Fatalf("f2 names %v, state %s; want named by %s and folded", f.Names, f.State(), e.goal)
+	}
+
+	// another Goal in work may not name f2
+	other := opts(e.root, g.Base, gapLine)
+	other.Findings = []string{f2.ID}
+	_, err = AddGoal(other)
+	refusedBy(t, err, string(fault.GuardOneInWork))
+}
