@@ -1,10 +1,8 @@
 -- words --
-G-ONE is selected: hyp land G-ONE prints 'landed G-ONE', and not the Goal's why or line, as on H0.
+G-ONE is selected: hyp land G-ONE prints 'landed G-ONE', and not the why the Goal was added with, as on H0.
 -- run --
 hyp land G-ONE --why 'done and merged'
 -- floor: contains --
 landed G-ONE
 -- ceiling --
 greet test
--- ceiling --
-greet.txt says bye
