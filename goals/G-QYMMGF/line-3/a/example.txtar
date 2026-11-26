@@ -1,0 +1,6 @@
+-- words --
+A Goal with its own whole model: no kept model exists; the candidate's spec folder holds a model, its check config, a variant config that names its one rule, and a chart; hyp status G offers the select as on H0.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+hyp select G-ONE

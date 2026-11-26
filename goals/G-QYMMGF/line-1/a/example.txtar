@@ -1,0 +1,10 @@
+-- words --
+A new rule with no variant: the candidate adds the rule NewRule to the kept model in goals/model/, and no variant config of the Goal names it; hyp status G lists the candidate as held back by the Spec guard, rule-no-variant, naming NewRule.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+rule-no-variant
+-- floor: contains --
+NewRule
+-- ceiling --
+hyp select G-ONE

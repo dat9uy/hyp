@@ -1,0 +1,8 @@
+-- words --
+Unchanged rules need no variant: the kept model in goals/model/ holds OldRule on H0, and the candidate adds NewRule; a variant config of the Goal names NewRule and none names OldRule; hyp status G offers the select.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+hyp select G-ONE
+-- ceiling --
+rule-no-variant
