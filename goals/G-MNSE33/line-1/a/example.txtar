@@ -10,5 +10,7 @@ place exit: 1
 G-ONE  written
 -- floor: contains --
 line-1/a
+-- ceiling --
+placed G-ONE
 -- findings --
 F-DS4E4G
