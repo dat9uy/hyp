@@ -48,7 +48,7 @@ hyp is changed the way it asks its users to decide things: with a Goal whose gap
    - A prose-only skill change, one that changes no command, flag, default, cap or exit code a skill names, ships as a plain PR that names its event and the owner's decision. Its gate is `go test`.
 
    [principles.md](docs/principles.md) §9 explains why the loop is guarded while it runs instead of proven in advance.
-6. **The PR body is the report `hyp select` printed:** each line's examples, outputs and verdicts, and the selected commit and row.
+6. **The PR body is the report `hyp select` printed:** the Goal's words, each line with its examples' words, each chart, and the selected commit and row. It holds no result of any example.
 
 ## Run controls
 

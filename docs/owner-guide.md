@@ -50,12 +50,12 @@ A real event, such as a refusal or a run you flag, starts the work. A fact an ag
 `hyp status G` prints the runner's Start prompt of an open Goal, ready to copy. Start a runner session and give it that prompt, and nothing else. The prompt names no issue: the issue of the Goal closed when you added the Goal. The runner follows the run rules of the hyp-grill skill.
 
 - Each build that the runner offers is a Hypothesis. The budget is three Hypotheses after H0.
-- With one candidate, a build that meets every line, the runner selects it. The select's report is the PR body: each line, each example's words, output, exit code and verdict, each chart of the model, and the selected commit.
+- With one candidate, a build that meets every line, the runner selects it. The select's report is the PR body: the Goal's words, each line, each example's words, each chart of the model, and the selected commit and row. It holds no output and no verdict: every example is met on the selected build by the rule of the select.
 - You may select a candidate at any time. You do not have to wait for the runner.
 
 hyp stops the run and waits for you at a stop:
 
-- **Selected.** Read the PR body. Read each output against what you meant, not only its verdict.
+- **Selected.** Read the PR body, then read the code of the selected commit at the merge, against what you meant.
 - **Two candidates.** Two builds meet every line. `hyp status G --role owner` prints the outputs of each build and a `hyp select` line for each one. Select the build you want, or have the grill place an example that fails the other.
 - **Budget used.** Three Hypotheses ran and none meets every line. `hyp status G --role owner` prints the outputs table. A cell shows only the start of the first line: open `outputs/<hash>` in the trace of the clone that ran it to read every byte.
 

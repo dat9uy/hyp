@@ -431,7 +431,7 @@ The part of a return that shows a Goal. It holds the state, `runs: N of 3 used` 
 The part of a return that says what was recorded, or which guard refused and why.
 
 **PR body**:
-The select's report: each line, each example's words, output, stderr, exit code and verdict, and the selected commit and row. The runner pastes it into the PR; hyp writes nothing to GitHub. `status G` prints it again after the Goal is landed, as the record of its decision.
+The select's report: the Goal's words, each line with its kind, each placed example's key and words, each chart of the model, and the selected commit and row. It holds no result of any example: every placed example is met on the selected row by the rule of the select, and the owner reads the code at the merge. The runner pastes it into the PR; hyp writes nothing to GitHub. `status G` prints it again after the Goal is landed, as the record of its decision.
 
 **Byte block**:
 Stored bytes printed under a label `<label>, N bytes:`. A cut is said in the label, never inside the bytes.

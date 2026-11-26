@@ -1,0 +1,32 @@
+---
+title: "hyp G-0P2A61, the select's report"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: open
+    lg1: selected
+    lg2: landed
+  }
+  class lg0 blue
+  class lg1 purple
+  class lg2 orange
+  s0: Open
+  s1: Open, fresh clone
+  s2: Selected
+  s3: Landed
+  s4: Selected, fresh clone
+  s5: Landed, fresh clone
+  [*] --> s0
+  s0 --> s1: the owner clones the store
+  s0 --> s2: the runner selects
+  s1 --> s4: the runner selects
+  s2 --> s3: the owner lands
+  s2 --> s4: the owner clones the store
+  s3 --> s5: the owner clones the store
+  s4 --> s5: the owner lands
+  class s0 blue
+  class s1 blue
+  class s2 purple
+  class s3 orange
+  class s4 purple
+  class s5 orange

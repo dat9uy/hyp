@@ -462,8 +462,8 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 }
 
 // TestEndedGoalReadsTheSameInEveryClone: status G of a landed Goal prints
-// each placed example as met by the select, with no runs count, no output and
-// no try line, and prints the same bytes in a fresh clone whose trace is
+// the select in its stop line and each placed example's words, with no
+// runs count, no verdict, no output and no try line, and prints the same bytes in a fresh clone whose trace is
 // empty.
 func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
@@ -483,12 +483,12 @@ func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
 	testutil.Git(t, f.r.Dir, "add", "-f", ".tree")
 	testutil.Git(t, f.r.Dir, "commit", "-q", "-m", "events")
 	_, here, _ := run(t, "status", f.goal)
-	for _, bad := range []string{"runs:", "output, ", "hyp try", "not in this clone's trace"} {
+	for _, bad := range []string{"runs:", "verdict:", "output, ", "hyp try", "not in this clone's trace"} {
 		if strings.Contains(here, bad) {
 			t.Fatalf("status G of a landed Goal prints %q:\n%s", bad, here)
 		}
 	}
-	if !strings.Contains(here, "verdict: met, by select ") {
+	if !strings.Contains(here, "stop: selected, by select ") {
 		t.Fatalf("status G of a landed Goal names no select:\n%s", here)
 	}
 	other := filepath.Join(t.TempDir(), "clone")
@@ -502,7 +502,8 @@ func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
 // TestStatusListPrintsNoQuotedGoalLine: an output that holds a state line of
 // another store does not read as a Goal of this one. status for every Goal
 // prints a selected Goal's state block alone, so each line that starts with
-// G- is a Goal of this store; status G still prints the output byte for byte.
+// G- is a Goal of this store; status G prints the PR body, which quotes no
+// output.
 func TestStatusListPrintsNoQuotedGoalLine(t *testing.T) {
 	quoted := "ok\nG-ABCDEF  written  runs: 0 of 3 used\n"
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
@@ -525,8 +526,8 @@ func TestStatusListPrintsNoQuotedGoalLine(t *testing.T) {
 		t.Fatalf("status of every Goal prints a selected Goal's PR body:\n%s", all)
 	}
 	_, one, _ := run(t, "status", f.goal)
-	if !strings.Contains(one, "PR body:") || !strings.Contains(one, "```\n"+quoted+"```\n") {
-		t.Fatalf("status G of a selected Goal lacks its output byte for byte:\n%s", one)
+	if !strings.Contains(one, "PR body:") || strings.Contains(one, "G-ABCDEF") {
+		t.Fatalf("status G of a selected Goal lacks its PR body or quotes an output:\n%s", one)
 	}
 }
 
