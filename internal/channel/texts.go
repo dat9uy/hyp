@@ -24,6 +24,7 @@ const (
 	codeStatusArgs     fault.Code = "status-args"     // count
 	codeShowArgs       fault.Code = "show-args"       // count
 	codeShowActor      fault.Code = "show-actor"      // actor
+	codeShowGoal       fault.Code = "show-goal"       // Goal id
 	codeReplaceTwice   fault.Code = "replace-twice"   // count
 	codeNeedsBase      fault.Code = "needs-base"      // no values
 	codeNeedsWords     fault.Code = "needs-words"     // no values
@@ -254,7 +255,8 @@ var words = map[fault.Code]string{
 	codeSelectArgs:     "select takes a Goal and a subject hash, for example: hyp select G-NXHHVA 4df2b9e...; got %d arguments",
 	codeStatusArgs:     "status takes at most one Goal, got %d",
 	codeShowArgs:       "show takes one actor, for example: hyp show runner-1; got %d arguments",
-	codeShowActor:      "show %s: an actor matches ^[a-z0-9][a-z0-9-]{0,39}$",
+	codeShowActor:      "show takes an actor name, such as runner-1; %s is not one: an actor matches ^[a-z0-9][a-z0-9-]{0,39}$",
+	codeShowGoal:       "show takes an actor name, such as runner-1; %[1]s is a Goal id: hyp status %[1]s prints that Goal",
 	codeReplaceTwice:   "add goal takes at most one Goal to replace, got %d",
 	codeNeedsBase:      "add goal needs --base COMMIT",
 	codeNeedsWords:     "add goal needs --words TEXT",

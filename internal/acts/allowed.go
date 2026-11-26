@@ -3,6 +3,7 @@ package acts
 import (
 	"slices"
 
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -263,14 +264,55 @@ func runLines(g *tables.Goal, st Standing, fix bool) []Ready {
 
 // selectable checks the select guards that read only git: Spec and Own path
 // on the commit the select would record. A candidate that fails them is not
-// listed; the select act names the guard.
+// listed; HeldBack names the guard.
 func selectable(g *tables.Goal, repo string, c tables.Row) bool {
+	return gitGuards(g, repo, c) == nil
+}
+
+// gitGuards is the first select guard that reads only git and refuses the
+// candidate c, as hyp select would print it: Spec, then Own path, on the
+// commit the select would record. It is nil when both hold.
+func gitGuards(g *tables.Goal, repo string, c tables.Row) error {
 	commit := latestCommit(g, c.RowTree)
-	if commit == "" || guardSpec(repo, g, commit) != nil {
-		return false
+	if commit == "" {
+		return fault.Refuse(fault.GuardCandidate, fault.NoResultOnRow, c.RowTree)
+	}
+	if err := guardSpec(repo, g, commit); err != nil {
+		return err
 	}
 	changes, err := gitread.OwnChange(repo, commit, g.Base)
-	return err == nil && tables.GuardOwnPath(g, changes) == nil
+	if err != nil {
+		return err
+	}
+	return tables.GuardOwnPath(g, changes)
+}
+
+// Hold is a candidate whose select hyp holds back: its row and the refusal
+// hyp select would print for it.
+type Hold struct {
+	Row tables.Row
+	Err error
+}
+
+// HeldBack lists the candidates of an open Goal whose select hyp holds back,
+// in the order of the candidates: each candidate of a Goal at no stop with
+// one candidate, or at Two candidates, that fails a select guard that reads
+// only git. A selected or ended Goal holds none back.
+func HeldBack(g *tables.Goal, repo string) []Hold {
+	if g.State == tables.StateEnded || g.Select != nil {
+		return nil
+	}
+	st := Stand(g, repo)
+	if !(st.Stop == StopTwoCandidates || (st.Stop == StopNone && len(st.Candidates) == 1)) {
+		return nil
+	}
+	var out []Hold
+	for _, c := range st.Candidates {
+		if err := gitGuards(g, repo, c); err != nil {
+			out = append(out, Hold{Row: c, Err: err})
+		}
+	}
+	return out
 }
 
 // OnNoRef reports whether commit is in this clone and on no branch or tag:

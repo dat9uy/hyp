@@ -202,7 +202,11 @@ var Commands = []Command{
                                          Start prompt ready to copy; of an
                                          ended G, its words, why and lines and
                                          the why of its land or close; and of
-                                         G the findings it names.
+                                         G the findings it names. For each
+                                         candidate whose select hyp holds
+                                         back, with any role, it prints the
+                                         guard, its code and the fix that
+                                         hyp select would print.
                                          With no G, it prints the words of each
                                          written or open Goal, leaves out the
                                          blocks of ended Goals with a line that
@@ -212,7 +216,10 @@ var Commands = []Command{
 `},
 	{Name: "show",
 		Help: `  show ACTOR                             print every output hyp printed to
-                                         ACTOR, byte for byte, oldest first
+                                         ACTOR, byte for byte, oldest first;
+                                         an argument that is not an actor
+                                         name exits 2, and a Goal id names
+                                         hyp status G
 `},
 	{Name: "prune",
 		Help: `  prune [--remove]                       list the traces under ~/.hyp/traces of

@@ -130,3 +130,27 @@ func TestUnnamedKeepsRuleOrder(t *testing.T) {
 		t.Fatalf("unnamed = %s", got)
 	}
 }
+
+// TestHeldBackNamesWhatSelectRefuses: a lone candidate that hyp select
+// refuses is held back with the refusal select printed.
+func TestHeldBackNamesWhatSelectRefuses(t *testing.T) {
+	e := newRunEnv(t)
+	selErr := e.selectModel(t, map[string]string{"m.tla": modelTLA, "m.cfg": checkCfg, "variants/named.cfg": namedCfg})
+	tb, _, err := ReadTables(e.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g, err := tb.Find(e.goal)
+	if err != nil {
+		t.Fatal(err)
+	}
+	holds := HeldBack(g, e.root)
+	if len(holds) != 1 {
+		t.Fatalf("holds = %v", holds)
+	}
+	want, _ := fault.As(selErr)
+	got, _ := fault.As(holds[0].Err)
+	if want == nil || got == nil || got.Guard != want.Guard || got.Code != want.Code || got.Code != fault.RuleNoVariant {
+		t.Fatalf("held back by %v, select refused with %v", holds[0].Err, selErr)
+	}
+}
