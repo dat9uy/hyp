@@ -1,0 +1,71 @@
+#!/bin/sh
+# Write the toy fixture (a model of a `toy` command with finding F-1) in the
+# subject copy, then run the example's run section and print its stdout and
+# a last line "exit N".
+mkdir -p goals/G-ONE/specs goals/G-ONE/line-1/a/probe || exit 1
+cat > goals/G-ONE/specs/toy.tla <<'TLA'
+---- MODULE toy ----
+EXTENDS Naturals
+CONSTANT NoFoldLine
+VARIABLES st, lastAct, pr
+vars == <<st, lastAct, pr>>
+Init == st = "none" /\ lastAct = "init" /\ pr = ""
+Add == st = "none" /\ st' = "free" /\ lastAct' = "Add" /\ pr' = "added F-1"
+Fold == st = "free" /\ st' = "folded" /\ lastAct' = "Fold" /\ pr' = "folded F-1"
+List == /\ UNCHANGED st /\ lastAct' = "List"
+        /\ pr' = IF st = "none" THEN "no findings"
+                 ELSE IF st = "free" THEN "F-1 not folded"
+                 ELSE IF NoFoldLine THEN "" ELSE "F-1 folded"
+Next == Add \/ Fold \/ List
+Spec == Init /\ [][Next]_vars
+\* source: model only
+FoldedListNamesIt == (lastAct = "List" /\ st = "folded") => pr = "F-1 folded"
+====
+TLA
+cat > goals/G-ONE/specs/toy.cfg <<'CFG'
+SPECIFICATION Spec
+
+CONSTANTS
+    NoFoldLine = FALSE
+
+INVARIANTS
+    FoldedListNamesIt
+CFG
+cat > goals/G-ONE/specs/toy-view.mjs <<'MJS'
+export const title = "toy";
+export const state = (v) => v.st;
+export const step = (action) => action;
+export const print = (action, from, to) => {
+  if (action === "Add") return "added F-1";
+  if (action === "Fold") return "folded F-1";
+  if (action === "List") return to.pr;
+  return "";
+};
+MJS
+cat > goals/G-ONE/line-1/a/example.txtar <<'EX'
+-- words --
+The fixture example: its floor is text its run section echoes, which no print of the model gives.
+-- run --
+toy list; echo "list exit: $?"
+-- floor: contains --
+list exit: 0
+EX
+cat > goals/G-ONE/line-1/a/probe/run <<'SH'
+#!/bin/sh
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+SH
+
+# Run the example's run section with the generic Probe.
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
