@@ -38,7 +38,7 @@ func TestGitRefusesWriteCommand(t *testing.T) {
 		{"rev-parse", "--git-dir"},
 		{"ls-tree", "--output=x", "HEAD"},
 		{"diff-tree", "-w", "HEAD", "HEAD"},
-		{"merge-base", "A", "B"},
+		{"merge-base", "--fork-point", "A"},
 		{"patch-id"},
 		{"patch-id", "--stable"},
 		{"diff-tree", "-p", "a", "b"},

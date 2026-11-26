@@ -154,3 +154,87 @@ func TestHeldBackNamesWhatSelectRefuses(t *testing.T) {
 		t.Fatalf("held back by %v, select refused with %v", holds[0].Err, selErr)
 	}
 }
+
+const (
+	keptTLA = "---- MODULE kept ----\nOldRule == x \\in {0}\n\\* source: model only\nNewRule ==\n    x \\in {0, 1}\n====\n"
+	keptCfg = "SPECIFICATION Spec\nINVARIANTS OldRule NewRule\n"
+	newCfg  = "SPECIFICATION Spec\nINVARIANTS NewRule\n"
+)
+
+// selectKept commits the kept model files and the spec files on a leaf from
+// H0, runs line-1 on it and selects.
+func (e *runEnv) selectKept(t *testing.T, kept, spec map[string]string) error {
+	t.Helper()
+	all := map[string]string{"counter": "ok\n"}
+	for p, s := range kept {
+		all[KeptDir+p] = s
+	}
+	for p, s := range spec {
+		all["goals/"+e.goal+"/specs/"+p] = s
+	}
+	commit := e.child(t, e.base, all)
+	if _, err := e.run(commit); err != nil {
+		t.Fatal(err)
+	}
+	tree, err := gitread.RowTree(e.root, commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
+	return err
+}
+
+func TestSelectRefusesANewKeptRuleNoVariantNames(t *testing.T) {
+	e := newRunEnv(t)
+	err := e.selectKept(t, map[string]string{"kept.tla": keptTLA, "kept.cfg": keptCfg},
+		map[string]string{"variants/new.cfg": newCfg, "chart.mmd": chartMmd})
+	refusedBy(t, err, "Spec")
+	f, _ := fault.As(err)
+	if f.Code != fault.RuleNoVariant {
+		t.Fatalf("code = %s", f.Code)
+	}
+	if rules, _ := f.Args[1].([]string); !slices.Equal(rules, []string{"OldRule"}) {
+		t.Fatalf("rules = %v", f.Args[1])
+	}
+}
+
+func TestSelectRecordsAKeptChangeWhoseRulesAreNamed(t *testing.T) {
+	e := newRunEnv(t)
+	both := "SPECIFICATION Spec\nINVARIANTS OldRule NewRule\n"
+	err := e.selectKept(t, map[string]string{"kept.tla": keptTLA, "kept.cfg": keptCfg},
+		map[string]string{"variants/both.cfg": both, "chart.mmd": chartMmd})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSelectRefusesAKeptChangeWithNoChart(t *testing.T) {
+	e := newRunEnv(t)
+	both := "SPECIFICATION Spec\nINVARIANTS OldRule NewRule\n"
+	err := e.selectKept(t, map[string]string{"kept.tla": keptTLA, "kept.cfg": keptCfg},
+		map[string]string{"variants/both.cfg": both})
+	refusedBy(t, err, "Spec")
+	if f, _ := fault.As(err); f.Code != fault.NoChart {
+		t.Fatalf("code = %s", f.Code)
+	}
+}
+
+func TestKeptChangeIsNewAndChangedRulesOnly(t *testing.T) {
+	e := newRunEnv(t)
+	from := e.child(t, e.base, map[string]string{KeptDir + "kept.tla": keptTLA, KeptDir + "kept.cfg": keptCfg})
+	changed := strings.Replace(keptTLA, "{0, 1}", "{0, 1, 2}", 1) + "Added == TRUE\n"
+	to := e.child(t, from, map[string]string{
+		KeptDir + "kept.tla": changed,
+		KeptDir + "kept.cfg": "SPECIFICATION Spec\nINVARIANTS OldRule NewRule Added\n",
+	})
+	got, err := KeptChange(e.root, from, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"NewRule", "Added"}; !slices.Equal(got, want) {
+		t.Fatalf("kept change = %q, want %q", got, want)
+	}
+	if got, _ := KeptChange(e.root, from, from); len(got) != 0 {
+		t.Fatalf("kept change of a commit against itself = %q", got)
+	}
+}

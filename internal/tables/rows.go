@@ -179,14 +179,15 @@ func GuardLeafOnly(g *Goal, anc Ancestry, commit string) error {
 }
 
 // GuardOwnPath is the Own path guard: the runner's own change writes no path
-// under goals/<another Goal>/.
+// under goals/<another Goal>/. goals/model/, the repository's kept model, is
+// no Goal's folder: a Goal's model is a change to it.
 func GuardOwnPath(g *Goal, changes []gitread.OwnPath) error {
 	for _, c := range changes {
 		rest, ok := strings.CutPrefix(c.Path, "goals/")
 		if !ok {
 			continue
 		}
-		if name, _, _ := strings.Cut(rest, "/"); name != g.ID {
+		if name, _, _ := strings.Cut(rest, "/"); name != g.ID && name != "model" {
 			return fault.Refuse(fault.GuardOwnPath, fault.OtherGoalPath, c.Commit, c.Path, g.ID)
 		}
 	}
