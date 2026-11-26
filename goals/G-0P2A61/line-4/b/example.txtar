@@ -1,0 +1,8 @@
+-- words --
+A landed Goal: hyp status G still names the select by its id, with no verdict line under any example.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+SELECT-ONE
+-- ceiling --
+verdict:

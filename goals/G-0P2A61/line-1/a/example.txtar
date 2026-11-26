@@ -1,0 +1,12 @@
+-- words --
+A selected Goal whose one example prints hello: the return of hyp select holds the example's words and no verdict, exit code or output.
+-- run --
+hyp select G-ONE ROW-ONE
+-- floor: contains --
+### line-1/a: Fixture line-1/a.
+-- ceiling --
+verdict:
+-- ceiling --
+output,
+-- ceiling --
+hello

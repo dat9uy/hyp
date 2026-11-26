@@ -1,0 +1,10 @@
+-- words --
+A fresh clone of a selected Goal, whose trace lacks the cell: hyp status G holds the example's words and no line about the verdict or a try.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+### line-1/a: Fixture line-1/a.
+-- ceiling --
+verdict:
+-- ceiling --
+hyp try

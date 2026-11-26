@@ -1,0 +1,6 @@
+-- words --
+No file under docs/ or skills/ describes the report as holding an output, exit code and verdict, or tells the owner to read each output.
+-- run --
+grep -rniE "output, (stderr, )?exit code(,)? and verdict|each output against" docs skills
+-- floor: contains --
+exit 1
