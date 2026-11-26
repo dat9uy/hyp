@@ -1,0 +1,18 @@
+---
+title: "G-5N7SRH: the select's report"
+---
+stateDiagram-v2
+  s0: Open
+  s1: Open, read in a fresh clone
+  s2: Selected
+  s3: Selected, read in a fresh clone
+  s4: Landed
+  s5: Landed, read in a fresh clone
+  [*] --> s0
+  s0 --> s1: the owner reads in a fresh clone
+  s0 --> s2: the runner selects the one candidate
+  s1 --> s3: the runner selects the one candidate
+  s2 --> s3: the owner reads in a fresh clone
+  s2 --> s4: the owner lands the Goal
+  s3 --> s5: the owner lands the Goal
+  s4 --> s5: the owner reads in a fresh clone
