@@ -1,0 +1,8 @@
+-- words --
+A runner changes the kept model in its own commit: the Hypothesis commit itself adds the rule NewRule to the kept model in goals/model/, and a variant config of the Goal names NewRule; hyp run records the run, and hyp status G offers the select. The Probe prints what hyp run printed, then what hyp status printed.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+hyp select G-ONE
+-- ceiling --
+other-goal-path
