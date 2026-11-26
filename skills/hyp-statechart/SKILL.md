@@ -76,10 +76,16 @@ record branch so that every runner commit holds it:
    that no variant and no example reaches, and the chart does not show it.
 5. **Write `Next` as a disjunction of the actions**, such as
    `YouPressPlay \/ YouPressStop`, so that each step has its own name.
+   Put a line comment right above each action that a command of the system
+   takes, with that command: `\* command: hyp select`. The tool reads the
+   commands each example's Probe and run section call, and takes the action
+   of each command in the order they call them.
 6. **Write the view's `print()`.** `print(action, from, to)` returns what the
    system prints on that step, in the form the examples' floors use. The output
-   of a walk is the prints of its steps, joined by newlines, and the tool
-   matches it against each example's floors and ceilings as hyp does.
+   of an example's walk is the prints of its run section's steps, joined by
+   newlines, and the tool matches it against the example's floors and ceilings
+   as hyp does. The prints of the steps the Probe takes before the run section
+   are not matched, as hyp matches only the run section's output.
 7. **Run the tool** on the check config, into a new `--out` folder outside the
    repository:
 
@@ -100,8 +106,17 @@ record branch so that every runner commit holds it:
      breaks the rule.
      If no variant can break a rule of a line or of an owner decision, take
      the rule out of the check config and name it in the hand-off;
-   - for each example, a walk of the model whose prints meet the example's
-     floors and ceilings, or that no walk of the model does;
+   - for each example, its walk: the actions of the commands its Probe and
+     its run section call, in the order they call them, and what the run
+     section prints. A command of another program, such as `echo` or
+     `mkdir`, takes no step. With no `command:` comment in the module, the
+     walk is the shortest walk whose prints meet the example, which can set
+     up another case than the example's Probe;
+   - each example the tool cannot predict, and why: its Probe or run section
+     calls a command of the system that the model has no step for, or no
+     print of its walk gives its floors, under the check config or any
+     variant, so it is outside the model's prints. The tool lists each such
+     example to try on every variant;
    - for each example and each variant, whether the example is met under that
      variant, predicted from the model alone by following the example's walk,
      and for each variant the examples that separate it: each example whose
@@ -143,7 +158,8 @@ uses runs of the budget and can stop the Goal at `Two candidates`.
    `hyp try G LINE/EXAMPLE --worktree`. It records nothing and uses no run.
    Try first the example the tool predicts the variant to fail. With no
    prediction, try first the examples on the source lines of the rules the
-   variant breaks.
+   variant breaks. Try each example the tool lists to try on every variant
+   on each variant's patch.
 3. Stop trying a variant at its first failed example. That failed try
    separates the variant, and the report counts it so. A variant whose every
    try is met is tried on every placed example.
@@ -151,10 +167,11 @@ uses runs of the budget and can stop the Goal at `Two candidates`.
    `specs/tried/<variant>/<line>/<example>.txt`, and run the tool again. The
    report sets each tried cell beside its prediction and names each cell where
    they differ. Where they differ, find the cause. When the model is wrong, fix
-   the model, not an example. The tool predicts from the shortest walk whose
-   prints meet the example's floors, and that walk can set up another case
-   than the example's Probe does. When that is the cause, the model is right
-   and the tried verdict stands over the prediction. Say which cause it was in
+   the model, not an example. A model with no `command:` comment is predicted
+   from the shortest walk whose prints meet the example's floors, and that
+   walk can set up another case than the example's Probe does. When that is
+   the cause, the model is right and the tried verdict stands over the
+   prediction: tag the actions with their commands. Say which cause it was in
    one line of the hand-off.
 5. When a tried patch meets every example, the examples do not separate the two
    builds. The grill asks the owner one plain question about it, at the example

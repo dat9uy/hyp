@@ -1,0 +1,24 @@
+---
+title: "The statechart tool predicts the fixture example"
+---
+stateDiagram-v2
+  s0: fixture set up: the Probe calls toy refute
+  s1: fixture set up: no setup, one command
+  s2: fixture set up: the floor is the run section's echo
+  s3: fixture set up: the Probe adds and folds, the run lists
+  s4: fixture set up: the ceiling is a setup print
+  s5: the floor is the run section's echo: outside the model's prints
+  s6: the Probe calls toy refute: names toy refute
+  s7: the Probe adds and folds, the run lists: predicts fail
+  s8: no setup, one command: predicts met
+  s9: the ceiling is a setup print: predicts met
+  [*] --> s0
+  [*] --> s1
+  [*] --> s2
+  [*] --> s3
+  [*] --> s4
+  s0 --> s6: the tool runs
+  s1 --> s8: the tool runs
+  s2 --> s5: the tool runs
+  s3 --> s7: the tool runs
+  s4 --> s9: the tool runs
