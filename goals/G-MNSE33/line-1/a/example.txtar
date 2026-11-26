@@ -1,0 +1,16 @@
+-- words --
+contains floor exit 1
+-- input/a.fixture --
+floor-contains: exit 1
+-- run --
+hyp place G-ONE 2>&1; echo "place exit: $?"; hyp status G-ONE | head -n 1
+-- floor: contains --
+place exit: 1
+-- floor: contains --
+G-ONE  written
+-- floor: contains --
+line-1/a
+-- ceiling --
+placed G-ONE
+-- findings --
+F-DS4E4G

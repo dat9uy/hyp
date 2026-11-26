@@ -1,0 +1,11 @@
+-- words --
+plain floor and ceiling
+-- input/a.fixture --
+floor-contains: bye
+ceiling: error
+-- run --
+hyp place G-ONE 2>&1; echo "place exit: $?"; hyp status G-ONE | head -n 1
+-- floor: contains --
+place exit: 0
+-- floor: contains --
+G-ONE  open
