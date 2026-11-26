@@ -115,6 +115,7 @@ type Land struct {
 	Cause string
 	Time  string
 	Actor string
+	Why   string // the why the owner gave the land
 }
 
 // Close is a row of the Closes table: the owner's close of a Goal, which ends
@@ -123,6 +124,7 @@ type Close struct {
 	ID    string // the close event id
 	Time  string
 	Actor string
+	Why   string // the why the owner gave the close
 }
 
 // Findings are the finding.add ids the Goal's record names: those its latest
@@ -938,7 +940,7 @@ func replayLand(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 		return // GuardLand decoded it already
 	}
 	g := t.Goals[ev.Node]
-	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor}
+	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor, Why: ev.Why}
 	g.State = StateEnded
 }
 
@@ -980,7 +982,7 @@ func replayClose(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 		return
 	}
 	g := t.Goals[ev.Node]
-	g.Close = &Close{ID: ev.ID, Time: ev.TS, Actor: ev.Actor}
+	g.Close = &Close{ID: ev.ID, Time: ev.TS, Actor: ev.Actor, Why: ev.Why}
 	g.State = StateEnded
 }
 

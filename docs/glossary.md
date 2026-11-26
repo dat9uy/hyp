@@ -349,7 +349,7 @@ The owner's act `unselect G` and its `unselect` event. It puts a selected Goal b
 _Avoid_: deselect, reopen, undo
 
 **Snapshot**:
-What an ended Goal leaves: the Goal's events that its land or close names, in the `.tree/` of the tree being read, and the outputs they name. The end stores only their ids, and the snapshot holds no code, only Results. It is the owner's decision, fixed: replay refuses an event of the Goal that another clone wrote before the end and that the end does not name, so the Goal holds what the owner saw in every clone. `status G` and the return of `land` or `close` print its record: the PR body, or the table of outputs when the Goal has no select. A later Goal starts from it with `add goal --from G` (`hyp spec`, `land`).
+What an ended Goal leaves: the Goal's events that its land or close names, in the `.tree/` of the tree being read, and the outputs they name. The end stores only their ids, and the snapshot holds no code, only Results. It is the owner's decision, fixed: replay refuses an event of the Goal that another clone wrote before the end and that the end does not name, so the Goal holds what the owner saw in every clone. `status G` prints its record: the Goal's words, the why it was added with, each line with its kind, the why of its land or close, and the PR body, or the table of outputs when the Goal has no select. The return of `land` or `close` does not print that record: it prints the state block, without the words, the whys or the lines. A later Goal starts from it with `add goal --from G` (`hyp spec`, `land`).
 _Avoid_: archive, report file
 
 **Reset** (specified, not built):
