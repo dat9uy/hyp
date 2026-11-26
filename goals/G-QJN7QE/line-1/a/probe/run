@@ -1,0 +1,109 @@
+#!/bin/sh
+# Probe of G-QJN7QE line-1/a. The working directory is a copy of the subject.
+# It writes the fixture Goal goals/G-ONE (a toy model with one finding F-1, and
+# one example whose Probe adds and folds the finding, then lists), runs the
+# example's run section, prints its stdout, then a last line "exit N".
+# A setup failure goes to stderr and exits 3.
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+g=goals/G-ONE
+mkdir -p "$g/specs" "$g/line-1/a/probe" || fail "mkdir"
+
+cat >"$g/specs/toy.tla" <<'TLA' || fail "write toy.tla"
+-------------------------------- MODULE toy --------------------------------
+EXTENDS Integers
+
+CONSTANTS NoFoldLine
+
+VARIABLES st, out
+
+vars == <<st, out>>
+
+TypeOK == st \in {"none", "free", "folded"}
+
+Init == st = "none" /\ out = [cmd |-> "none", text |-> "none"]
+
+\* command: toy add
+Add ==
+    /\ st = "none" /\ st' = "free"
+    /\ out' = [cmd |-> "add", text |-> "added"]
+
+\* command: toy fold
+Fold ==
+    /\ st = "free" /\ st' = "folded"
+    /\ out' = [cmd |-> "fold", text |-> "folded"]
+
+\* command: toy list
+List ==
+    /\ st' = st
+    /\ out' = [cmd |-> "list",
+               text |-> IF st = "none" THEN "none"
+                        ELSE IF st = "free" THEN "free"
+                        ELSE IF NoFoldLine THEN "empty" ELSE "folded"]
+
+Next == Add \/ Fold \/ List
+
+Spec == Init /\ [][Next]_vars
+
+\* source: line-1
+FoldedListNamesIt == (out.cmd = "list" /\ st = "folded") => out.text = "folded"
+=============================================================================
+TLA
+
+cat >"$g/specs/toy.cfg" <<'CFG' || fail "write toy.cfg"
+SPECIFICATION Spec
+
+CONSTANTS
+    NoFoldLine = FALSE
+
+INVARIANTS
+    FoldedListNamesIt
+CFG
+
+cat >"$g/specs/toy-view.mjs" <<'MJS' || fail "write toy-view.mjs"
+// The view of toy.tla: what the toy command prints for each step.
+
+export const title = "toy, one finding";
+
+export const state = (v) => v.st;
+
+export const print = (action, from, to) => {
+  const o = to.out;
+  switch (o.cmd) {
+    case "add": return "added F-1";
+    case "fold": return "folded F-1";
+    case "list":
+      if (o.text === "none") return "no findings";
+      if (o.text === "free") return "F-1 not folded";
+      if (o.text === "folded") return "F-1 folded";
+      return "";
+  }
+  return "";
+};
+MJS
+
+cat >"$g/line-1/a/example.txtar" <<'TXT' || fail "write example"
+-- words --
+F-1 is folded and listed: toy list prints F-1.
+-- run --
+toy list
+-- floor: contains --
+F-1
+TXT
+
+cat >"$g/line-1/a/probe/run" <<'RUN' || fail "write fixture probe"
+#!/bin/sh
+toy add
+toy fold
+sh -c "$HYP_RUN"
+RUN
+
+tmp=$(mktemp) || exit 3
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp" "$tmp".x
+rm -rf out

@@ -1,0 +1,10 @@
+-- words --
+A command with no step: the fixture example's Probe calls toy refute, which the model has no step for; the tool names toy refute and the example, predicts no verdict, and lists the example to try on every variant.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/toy.tla --config goals/G-ONE/specs/toy.cfg --view goals/G-ONE/specs/toy-view.mjs --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+toy refute
+-- ceiling --
+| line-1/a | met |
+-- ceiling --
+| line-1/a | fail |
