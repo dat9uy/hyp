@@ -1,0 +1,8 @@
+-- words --
+hyp status G of a selected Goal still holds each chart of the selected commit's spec folder, in a mermaid block.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+## Chart: goals/G-ONE/specs/chart.mmd
+-- floor: contains --
+mermaid
