@@ -43,6 +43,7 @@ printf '%s\n' '---- MODULE kept ----' 'VARIABLE x' 'Init == x = 0' \
   '\* source: model only' 'Other == x \in {0, 1}' '====' >goals/model/model.tla || fail "model.tla"
 printf '%s\n' 'SPECIFICATION Spec' 'INVARIANTS OldRule Other' >goals/model/model.cfg || fail "model.cfg"
 git add -A && git commit -q -m base >&2 || fail "commit base"
+base=$(git rev-parse HEAD)
 
 # The owner adds the Goal.
 added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
@@ -79,10 +80,10 @@ commit_staged placed || fail "commit placed"
 
 specs="goals/$G/specs"
 
-# The Hypothesis holds a variant config for NewRule only, with a chart. Its
-# change of goals/model/ is not in the commit: on H0 the Own path guard
-# refuses a run on a commit that writes goals/model/, and the Spec guard of H0
-# does not read goals/model/.
+# The Hypothesis holds a variant config for NewRule only, with a chart. The
+# change of the kept model (NewRule) is a commit of a side branch cut from the
+# base and is merged with --no-ff, so the runner's own first-parent change
+# holds only greet.txt and goals/G/specs/.
 spec_kept_new_rule() {
   mkdir -p "$specs/variants" || return 1
   printf '%s\n' 'stateDiagram-v2' '  hello --> bye' >"$specs/chart.mmd" || return 1
@@ -90,10 +91,19 @@ spec_kept_new_rule() {
 }
 
 : >"$work/held"
+git checkout -q -b side "$base" >&2 || fail "checkout side"
+printf '%s\n' '---- MODULE kept ----' 'VARIABLE x' 'Init == x = 0' \
+  'Next == x'"'"' = x' 'Spec == Init /\ [][Next]_x' \
+  '\* source: model only' 'OldRule == x \in {0}' \
+  '\* source: model only' 'Other == x \in {0, 1}' \
+  '\* source: model only' 'NewRule == x \in {0, 2}' '====' >goals/model/model.tla || fail "model.tla"
+printf '%s\n' 'SPECIFICATION Spec' 'INVARIANTS OldRule Other NewRule' >goals/model/model.cfg || fail "model.cfg"
+commit_staged "kept model gains NewRule" || fail "commit side"
 git checkout -q -b h1 main >&2 || fail "checkout h1"
 echo bye >greet.txt
 spec_kept_new_rule || fail "spec of h1"
 commit_staged "hypothesis h1" || fail "commit h1"
+git merge -q --no-ff -m "merge kept model change" side >&2 || fail "merge side"
 c=$(git rev-parse HEAD)
 git checkout -q main >&2 || fail "checkout main"
 ran=$(HYP_ACTOR=runner HYP_ROLE=runner hyp run "$c" "$G/line-1") || fail "hyp run failed: $ran"
