@@ -1,0 +1,51 @@
+#!/bin/sh
+# Write a small model in the subject copy's Goal spec folder, run the example's
+# run section in it, print its stdout, then a last line "exit N" with its exit code.
+set -e
+spec=goals/G-ONE/specs
+mkdir -p "$spec"
+cat >"$spec/count.tla" <<'TLA'
+----------------------------- MODULE count -----------------------------
+EXTENDS Naturals
+
+CONSTANT Breaks
+
+VARIABLE x
+
+vars == <<x>>
+
+Init == x = 1
+
+Stay == x' = x
+
+Drop == Breaks /\ x' = 0
+
+Next == Stay \/ Drop
+
+Spec == Init /\ [][Next]_vars
+
+\* source: model only
+TypeOK == x \in 0..1
+
+\* source: model only
+Positive == x > 0
+=======================================================================
+TLA
+cat >"$spec/count.cfg" <<'CFG'
+SPECIFICATION Spec
+
+CONSTANTS
+    Breaks = FALSE
+
+INVARIANTS
+    TypeOK
+    Positive
+CFG
+set +e
+tmp=$(mktemp) || exit 3
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"

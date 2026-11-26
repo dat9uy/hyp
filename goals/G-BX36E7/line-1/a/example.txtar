@@ -1,0 +1,10 @@
+-- words --
+Names the rule, refuses, not 0: a Goal's model checks TypeOK, which no variant breaks; the tool names TypeOK, says hyp select refuses this check config, and exits with a code that is not 0.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/count.tla --config goals/G-ONE/specs/count.cfg --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+TypeOK
+-- floor: contains --
+hyp select
+-- ceiling --
+tool exit: 0

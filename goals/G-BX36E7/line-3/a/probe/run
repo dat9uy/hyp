@@ -1,0 +1,44 @@
+#!/bin/sh
+# Write a small Goal model in the subject copy, run the example's run section
+# in it, print its stdout, then a last line "exit N" with its exit code.
+mkdir -p goals/G-ONE/specs || exit 1
+cat > goals/G-ONE/specs/count.tla <<'TLA'
+--------------------------- MODULE count ---------------------------
+EXTENDS Integers
+
+CONSTANT Breaks
+
+VARIABLE x
+
+TypeOK == x \in {0, 1}
+
+\* source: model only
+Positive == x > 0
+
+Init == x = 1
+
+Keep == x' = x
+
+Zero == Breaks /\ x' = 0
+
+Next == Keep \/ Zero
+
+Spec == Init /\ [][Next]_x
+=====================================================================
+TLA
+cat > goals/G-ONE/specs/count.cfg <<'CFG'
+SPECIFICATION Spec
+
+CONSTANTS
+    Breaks = FALSE
+
+INVARIANTS
+    Positive
+CFG
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"

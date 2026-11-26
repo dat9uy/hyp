@@ -1,0 +1,45 @@
+#!/bin/sh
+# Write a small Goal model whose own behaviour breaks its checked rule Positive,
+# run the example's run section in the subject copy (the working directory),
+# print its stdout, then a last line "exit N" with its exit code.
+mkdir -p goals/G-ONE/specs || exit 3
+cat >goals/G-ONE/specs/count.tla <<'TLA'
+---- MODULE count ----
+EXTENDS Naturals
+CONSTANT Breaks
+VARIABLE x
+
+Init == x = 1
+
+\* The base model itself can set x to 0.
+Drop == x' = 0
+
+\* The variant may also set x to 0.
+Variant == Breaks /\ x' = 0
+
+Stay == x' = x
+
+Next == Drop \/ Variant \/ Stay
+
+Spec == Init /\ [][Next]_x
+
+TypeOK == x \in 0..1
+
+\* source: model only
+Positive == x > 0
+====
+TLA
+cat >goals/G-ONE/specs/count.cfg <<'CFG'
+SPECIFICATION Spec
+CONSTANTS
+  Breaks = FALSE
+INVARIANTS
+  Positive
+CFG
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"

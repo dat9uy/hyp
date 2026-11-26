@@ -1,0 +1,10 @@
+-- words --
+A good model exits 0: a Goal's model whose one checked rule, Positive, the variant Breaks breaks; the tool writes the variant config, says nothing about hyp select, and exits 0.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/count.tla --config goals/G-ONE/specs/count.cfg --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+variants/Breaks.cfg
+-- floor: contains --
+tool exit: 0
+-- ceiling --
+hyp select

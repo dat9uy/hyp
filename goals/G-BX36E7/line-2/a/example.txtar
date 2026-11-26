@@ -1,0 +1,8 @@
+-- words --
+The silent sentence is gone: the run rules no longer say that hyp status does not say why a select is held back.
+-- run --
+cat skills/hyp-grill/run-rules.md
+-- floor: contains --
+Run only the lines hyp prints.
+-- ceiling --
+`hyp status` does not say so.
