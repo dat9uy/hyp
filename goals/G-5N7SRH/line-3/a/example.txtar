@@ -1,0 +1,6 @@
+-- words --
+The owner guide no longer tells the owner to read each output in the report.
+-- run --
+grep -c "Read each output against what you meant" docs/owner-guide.md
+-- floor: equals --
+0
