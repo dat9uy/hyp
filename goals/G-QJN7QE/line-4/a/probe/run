@@ -19,18 +19,21 @@ Init ==
     /\ last = "none"
     /\ named = FALSE
 
+\* command: toy add
 Add ==
     /\ st = "none"
     /\ st' = "free"
     /\ last' = "Add"
     /\ named' = FALSE
 
+\* command: toy fold
 Fold ==
     /\ st = "free"
     /\ st' = "folded"
     /\ last' = "Fold"
     /\ named' = FALSE
 
+\* command: toy list
 List ==
     /\ st' = st
     /\ last' = "List"
