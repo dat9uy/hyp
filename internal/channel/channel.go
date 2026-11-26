@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"runtime/debug"
 	"slices"
 	"strings"
@@ -534,6 +535,10 @@ func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	return finishWith(stdout, stderr, c.dir, BlockOpts{Goal: rep.Goal, Role: role}, tryText(rep), nil)
 }
 
+// goalIDRe matches a Goal id: G- and the last six characters of its
+// goal.add event id, a ULID.
+var goalIDRe = regexp.MustCompile(`^G-[0-9A-HJKMNP-TV-Z]{6}$`)
+
 func showCmd(c *call, args []string, stdout io.Writer) error {
 	positional, _, err := readFlags(c, "show", args)
 	if err != nil {
@@ -544,6 +549,9 @@ func showCmd(c *call, args []string, stdout io.Writer) error {
 	}
 	actor := positional[0]
 	if !logstore.ValidActor(actor) {
+		if goalIDRe.MatchString(actor) {
+			return fault.BadArg(codeShowGoal, actor)
+		}
 		return fault.BadArg(codeShowActor, actor)
 	}
 	t, root, err := readStore(c.dir)

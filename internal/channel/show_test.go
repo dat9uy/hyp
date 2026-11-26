@@ -139,6 +139,26 @@ func TestShowBadArgumentsExit2(t *testing.T) {
 	}
 }
 
+// TestShowNamesWhatItTakes: an argument that is not an actor name says that
+// show takes one; a Goal id also names the hyp status line that prints it.
+func TestShowNamesWhatItTakes(t *testing.T) {
+	newFx(t, map[string]string{"line-1/a": counterEx})
+	for arg, want := range map[string][]string{
+		"G-GTC0YE": {"show takes an actor name", "hyp status G-GTC0YE prints that Goal"},
+		"F-BNZHB6": {"show takes an actor name", "F-BNZHB6 is not one"},
+	} {
+		code, _, errs := run(t, "show", arg)
+		if code != 2 {
+			t.Errorf("hyp show %s: code %d", arg, code)
+		}
+		for _, w := range want {
+			if !strings.Contains(errs, w) {
+				t.Errorf("hyp show %s: stderr %q lacks %q", arg, errs, w)
+			}
+		}
+	}
+}
+
 // TestReadNeedsAnActor: a read prints only to an actor it can record; with no
 // actor it is a bad argument and leaves no trace.
 func TestReadNeedsAnActor(t *testing.T) {

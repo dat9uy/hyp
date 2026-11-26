@@ -10,6 +10,7 @@ import (
 
 	"github.com/dat9uy/hyp"
 	"github.com/dat9uy/hyp/internal/acts"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
@@ -159,6 +160,7 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 			b.WriteString("  (none)\n")
 		}
 	}
+	heldBack(b, g, repo)
 	if !ended {
 		unstable(b, g)
 	}
@@ -246,6 +248,36 @@ func findings(b *strings.Builder, t tables.Tables, g *tables.Goal) {
 		fmt.Fprintf(b, "    evidence: %s\n", indentText(f.Evidence, "      "))
 		fmt.Fprintf(b, "    fact: %s\n", indentText(f.Fact, "      "))
 	}
+}
+
+// heldBack names, for each candidate whose select hyp holds back, the guard,
+// its code and the words with the fix that hyp select would print for it. It
+// prints for every role: hyp status lists no select line for such a
+// candidate, and the line it lists instead does not say why.
+func heldBack(b *strings.Builder, g *tables.Goal, repo string) {
+	holds := acts.HeldBack(g, repo)
+	if len(holds) == 0 {
+		return
+	}
+	b.WriteString("held back: hyp select refuses each candidate below, and says why:\n")
+	for _, h := range holds {
+		fmt.Fprintf(b, "  row %s: %s\n", h.Row.RowTree, holdText(h.Err, repo))
+	}
+}
+
+// holdText is the refusal of a held-back select as hyp select prints it, with
+// its code after the guard: "Spec (no-spec): commit ... ; commit the spec, ...".
+func holdText(err error, repo string) string {
+	text := bodyText(err, repo)
+	e, ok := fault.As(err)
+	if !ok {
+		return text
+	}
+	if e.Guard == fault.NoGuard {
+		return "(" + string(e.Code) + "): " + text
+	}
+	prefix := string(e.Guard) + ": "
+	return string(e.Guard) + " (" + string(e.Code) + "): " + strings.TrimPrefix(text, prefix)
 }
 
 // indentText puts indent before every line of s after the first.
