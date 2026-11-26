@@ -1,0 +1,39 @@
+---
+title: "hyp G-W8MR53: say why a select is held back, and what show takes"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: held
+    lg1: clear
+  }
+  class lg0 orange
+  class lg1 teal
+  state "no candidate" as s0 {
+    s1: no select held back
+    [*] --> s1
+  }
+  state "one candidate" as s2 {
+    s3: no select held back
+    s4: 1 held back
+    [*] --> s3: the runner runs a row to a candidate
+    [*] --> s4: the runner runs a row to a candidate
+  }
+  state "Two candidates" as s5 {
+    s6: no select held back
+    s7: 1 held back
+    s8: 2 held back
+  }
+  [*] --> s0
+  s1 --> s2
+  s3 --> s6: the runner runs a row to a candidate
+  s4 --> s3: the runner commits the fix
+  s4 --> s8: the runner runs a row to a candidate
+  s7 --> s6: the runner commits the fix
+  s8 --> s7: the runner commits the fix
+  s2 --> s7: the runner runs a row to a candidate
+  class s1 teal
+  class s3 teal
+  class s4 orange
+  class s6 teal
+  class s7 orange
+  class s8 orange

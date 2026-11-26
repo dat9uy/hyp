@@ -1,0 +1,12 @@
+-- words --
+A lone candidate whose commit holds no spec: hyp status G with the runner role names the Spec guard, the code no-spec and its fix, as hyp select would print them.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+Spec
+-- floor: contains --
+no-spec
+-- floor: contains --
+commit the spec
+-- findings --
+F-5WPG9A

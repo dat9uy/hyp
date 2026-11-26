@@ -1,0 +1,8 @@
+-- words --
+hyp show of an actor name prints the same as on H0 and exits 0.
+-- run --
+hyp show runner-1 2>&1; echo "show exit: $?"
+-- floor: contains --
+no read of runner-1 is recorded
+-- floor: contains --
+show exit: 0

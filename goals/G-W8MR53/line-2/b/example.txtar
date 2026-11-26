@@ -1,0 +1,8 @@
+-- words --
+hyp show with an argument that is neither an actor name nor a Goal id, such as a finding id, says that show takes an actor name, and exits 2.
+-- run --
+hyp show F-BNZHB6 2>&1; echo "show exit: $?"
+-- floor: contains --
+takes an actor
+-- floor: contains --
+show exit: 2

@@ -1,0 +1,15 @@
+-- words --
+A lone candidate that can be selected: hyp status G with the runner role prints the same as on H0, its select line and no note of a held-back select.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+hyp select G-ONE
+-- floor: contains --
+G-ONE  open  runs: 1 of 3 used
+stop: none
+waits: none
+runner may:
+  hyp select G-ONE 5932e94ab05ef26f462c78040a41abdd5b4fc884
+  hyp run <commit> G-ONE/line-1
+
+The Goal asks:

@@ -1,0 +1,10 @@
+-- words --
+Two candidates, one whose model has no chart and one that can be selected: hyp status G read by the owner names the code no-chart and its fix for the first, and still lists the select of the second.
+-- run --
+hyp status G-ONE --role owner
+-- floor: contains --
+no-chart
+-- floor: contains --
+commit the chart
+-- floor: contains --
+hyp select G-ONE
