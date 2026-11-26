@@ -39,8 +39,8 @@ Three rules keep the boundary honest: a concept stays core when self-review is w
 hyp is changed the way it asks its users to decide things: with a Goal whose gap and guard lines each hold examples, runs of rival Hypotheses against those examples, and a select hyp records only for the one candidate met on every line. The loop:
 
 1. **A real event points at hyp.** In a real run a refusal or a warning fires, a Goal reaches a stop it cannot leave, `hyp status` lists an event under `refused at replay`, or the owner flags a run. A change is never proposed on speculation.
-2. **An issue names the event and its scope.**
-3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, and gap and guard lines. The grill places one or more examples on each line with `hyp place`, each run on H0 to show it gives the verdict its line needs. The rules are in `hyp spec`.
+2. **The event is recorded where it fits.** A fact an agent found is a finding from the moment it is found, with `hyp finding add`, and names no Goal. A want whose lines are not known yet is an issue that names the event and its scope. The issue closes when the owner adds the Goal that holds the want.
+3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, gap and guard lines, and a `--finding F` for each finding the Goal is about. The grill places one or more examples on each line with `hyp place`, each run on H0 to show it gives the verdict its line needs. The rules are in `hyp spec`.
 4. **The runner runs and selects.** `hyp run` runs a line on a commit, within a budget of three Hypotheses, and `hyp select` records the one candidate that is met on every line and holds a spec. The select's report is the PR body, and `hyp status` prints the allowed acts of each role as ready command lines. Every change is a Goal.
 5. **The change passes its gate.**
    - A failure that can be detected from the log or from git goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.

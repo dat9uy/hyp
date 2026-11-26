@@ -63,6 +63,10 @@ The issue is the owner's record, not a rule for the runner:
 - **A "Not covered" item that another open issue owns** (it waits on that
   issue's change, or that issue decides it) goes to that issue too, with the
   owner's words, and the hand-off names that issue.
+- **The issue closes when the owner adds the Goal.** An issue holds a want
+  only until its lines are known; from then on the written Goal holds it.
+  Decisions made after the add still go to that issue. A want whose lines are
+  already known needs no issue.
 - **A record cites only what others can read**: an issue, a PR or a commit.
   Never a gitignored or local file, such as a design page, a report or a
   memory note, in the Goal's words, a `--why` or a comment.
