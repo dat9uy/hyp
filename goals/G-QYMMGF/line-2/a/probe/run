@@ -20,7 +20,7 @@ vars == <<st, out>>
 
 TypeOK == st \in {"none", "free", "folded"}
 
-Init == st \in {"none", "free"} / out = [cmd |-> "none", text |-> "none"]
+Init == st \in {"none", "free"} /\ out = [cmd |-> "none", text |-> "none"]
 
 \* command: toy add
 Add ==
