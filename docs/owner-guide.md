@@ -29,7 +29,7 @@ stateDiagram-v2
 
 ### 1. The grill: the hyp-grill skill
 
-A real event, such as a refusal or a run you flag, starts an issue. Start a session with the [hyp-grill](../skills/hyp-grill/SKILL.md) skill and give it the issue.
+A real event, such as a refusal or a run you flag, starts the work. A fact an agent found is a finding (`hyp finding add`) from the moment it is found. A want whose lines are not known yet is an issue, and it closes when you add its Goal. Start a session with the [hyp-grill](../skills/hyp-grill/SKILL.md) skill and give it the issue, or the findings when there is no issue.
 
 - The grill asks you only what you want to be true, never how to build it. Each question gives options. Each option has a label and a description of what the runner then builds. You answer with a label.
 - The grill drafts the `hyp add goal` command with your actor. You run it yourself:
@@ -47,7 +47,7 @@ A real event, such as a refusal or a run you flag, starts an issue. Start a sess
 
 ### 2. The run
 
-`hyp status G` prints the runner's Start prompt of an open Goal, ready to copy. Start a runner session and give it that prompt, and nothing else. The prompt names no issue: you close the issues the Goal settles. The runner follows the run rules of the hyp-grill skill.
+`hyp status G` prints the runner's Start prompt of an open Goal, ready to copy. Start a runner session and give it that prompt, and nothing else. The prompt names no issue: the issue of the Goal closed when you added the Goal. The runner follows the run rules of the hyp-grill skill.
 
 - Each build that the runner offers is a Hypothesis. The budget is three Hypotheses after H0.
 - With one candidate, a build that meets every line, the runner selects it. The select's report is the PR body: each line, each example's words, output, exit code and verdict, each chart of the model, and the selected commit.
