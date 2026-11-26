@@ -1,0 +1,8 @@
+-- words --
+A floor the Probe writes: the fixture example's floor is text its run section echoes, which no print of the model can give; the tool predicts no verdict, says the example is outside the model's prints, and lists it to try on every variant.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/toy.tla --config goals/G-ONE/specs/toy.cfg --view goals/G-ONE/specs/toy-view.mjs --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+outside the model
+-- ceiling --
+| line-1/a | no walk |

@@ -1,0 +1,6 @@
+-- words --
+One command, no setup: the fixture example's Probe sets up nothing and its run section is toy list on an empty store; the tool predicts the same cell for NoFoldLine as on H0.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/toy.tla --config goals/G-ONE/specs/toy.cfg --view goals/G-ONE/specs/toy-view.mjs --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+| line-1/a | met |

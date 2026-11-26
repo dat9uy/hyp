@@ -1,0 +1,8 @@
+-- words --
+Setup prints aren't checked: the fixture example's ceiling is text that only its setup step prints; the tool matches it only against the run section's prints, so it predicts a verdict where today it finds no walk.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/toy.tla --config goals/G-ONE/specs/toy.cfg --view goals/G-ONE/specs/toy-view.mjs --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+| line-1/a | met |
+-- ceiling --
+| line-1/a | no walk |

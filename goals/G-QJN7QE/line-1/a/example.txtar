@@ -1,0 +1,10 @@
+-- words --
+The Probe's case, not the shortest: the fixture example's Probe adds a finding and folds it, then its run lists findings; the variant NoFoldLine drops the folded finding from the list. The tool predicts from that walk and shows NoFoldLine failing the example, where today the shortest walk shows it met. This is finding F-X90HJJ's fact: a prediction from the shortest walk can set up another case than the example's Probe, and predict met for a variant whose patch fails.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/toy.tla --config goals/G-ONE/specs/toy.cfg --view goals/G-ONE/specs/toy-view.mjs --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+| line-1/a | fail |
+-- ceiling --
+| line-1/a | met |
+-- findings --
+F-X90HJJ
