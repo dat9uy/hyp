@@ -7,11 +7,13 @@ build can meet.
 The re-grill reviews a Goal against its lines, from what builds really
 printed, at each stop for the owner: `Selected`, `Two candidates` and
 `Budget used`. A runner's report of an example that no build can meet goes
-straight to "When the Goal must end", stop or no stop. Read the table of
-outputs `hyp status G` prints and each output it names, in the trace of the
-clone that ran it; where this clone's trace lacks a cell, run the `hyp try`
-line `hyp status G` prints for it. A met output matters as much as a failed
-one.
+straight to "When the Goal must end", stop or no stop. At `Two candidates`
+and `Budget used`, read the table of outputs `hyp status G` prints and each
+output it names, in the trace of the clone that ran it; where this clone's
+trace lacks a cell, run the `hyp try` line `hyp status G` prints for it. At
+`Selected`, read each example's output on the selected commit C with
+`hyp try G LINE/EXAMPLE --commit C`. A met output matters as much as a
+failed one.
 
 - **Discover ceilings.** In each met output, look for text the line's words
   forbid that its floors let through. Show the owner the example, its floors
@@ -42,6 +44,44 @@ new example key, and a place that changes no example is refused.
   line is always a new Goal, never an edit of an open one. Use the words "an
   adjust" or "a new Goal" in the proposal. The owner decides.
 - Use `hyp show <actor>` to read exactly what hyp printed to the runner.
+
+## At `Selected`: walk the difference
+
+At `Selected`, every verdict is met and the owner wrote every floor, so
+neither shows the owner anything new. The owner learns a want from a
+consequence of the build. So show the owner what the build does beyond its
+examples, as real runs, before the owner reads the code. This covers what the
+owner put in a line and what the owner left out.
+
+1. **Find the cases in the diff.** Read the diff between H0 and the selected
+   commit C. For each changed part, write one case: a command the owner would
+   type that reaches that part. Skip a case that a placed example already
+   holds: its verdict is met by rule.
+2. **Write each case as an example folder that you do not place.** Put it
+   under the line whose words are nearest to it, or under any line when none
+   is near: the folder is never placed. Give it the generic Probe, or a Probe
+   writer's Probe when the case needs a setup, as in
+   [examples.md](examples.md). Give it the floor `exit`, which the generic
+   Probe's last line always holds: the walk shows outputs, never this verdict.
+3. **Ask about one case at a time.** Show the case and its output on H0, from
+   `hyp try G LINE/CASE`. Ask: "What do you expect the build to print?" The
+   owner may answer "I expect Y", "either is fine" or "I don't know". Each
+   answer is welcome. Do not show the build's output before the owner answers.
+4. **Then show the build's output**, from `hyp try G LINE/CASE --commit C`,
+   byte for byte, beside H0's output. Write no summary of your own: the owner
+   reads outputs and code, not prose about them.
+5. **Each case ends in the owner's words:**
+   - **It fits.** Keep nothing. `hyp try` saves cells in this clone's trace
+     only, so the walk adds nothing to git. Commit no walk folder.
+   - **Hold it, and a line's words cover it.** This is an adjust. The owner
+     unselects. The case becomes a new example key on that line, with the
+     owner's answer as its floor, and is placed. The place moves the budget's
+     boundary, so the runner runs the selected build again, as run 1 of 3.
+   - **Hold it, and no line's words cover it.** This is a new Goal. The owner
+     lands G, then adds a Goal `--from G`, in the same record PR.
+6. **Code reading stays behind the walk.** When the owner finds a consequence
+   in the code that no case showed, record it with `hyp finding add`, with the
+   case that would have shown it as its evidence.
 
 ## When the Goal must end
 
