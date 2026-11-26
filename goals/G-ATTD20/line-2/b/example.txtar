@@ -1,0 +1,6 @@
+-- words --
+G-ONE is landed with the why 'done and merged': hyp status G-ONE prints that why.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+done and merged

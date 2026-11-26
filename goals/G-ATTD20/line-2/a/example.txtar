@@ -1,0 +1,6 @@
+-- words --
+G-ONE is closed with the why 'not wanted any more': hyp status G-ONE prints that why.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+not wanted any more

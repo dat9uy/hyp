@@ -1,0 +1,1 @@
+Spec of G-ATTD20: hyp status G of an ended Goal, landed or closed, prints the Goal's words, the why of its add, each line with its kind, and the why of its land or close. land, close and the status of a Goal in work print what they print on H0. The glossary Snapshot entry says so.

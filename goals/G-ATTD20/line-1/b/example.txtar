@@ -1,0 +1,10 @@
+-- words --
+G-ONE is selected and landed: hyp status G-ONE prints its words, its why and its lines.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+Greet.
+-- floor: contains --
+greet test
+-- floor: contains --
+line-1 (gap): greet.txt says bye.
