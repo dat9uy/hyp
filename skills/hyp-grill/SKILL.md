@@ -53,7 +53,8 @@ extra rule.
 ## The issue holds the decisions
 
 A chat, a local page and a memory note are read by no one else, so what the
-grill learns goes to the issues, in the same session, with `gh issue comment`.
+grill learns goes to the issue you grill, in the same session, with
+`gh issue comment`. When the Goal has no issue, the record PR's body holds it.
 The issue is the owner's record, not a rule for the runner:
 
 - **Each decision of the owner goes to the issue you grill**, with the owner's
@@ -135,8 +136,8 @@ names, and the event the why names. Make the worktree of step 9 on branch
    may work in the main checkout, so never switch its branch or commit there.
    Before you show the owner the act that adds the Goal, run `git fetch origin`
    and `git worktree add -b record/<issue> <path> origin/main` (or the default
-   branch), with `<issue>` the issue you grill (for a Goal already recorded,
-   `record/<G>` instead) and `<path>` a folder beside the repository. The owner runs the act in that path, and every commit of the
+   branch), with `<issue>` the issue you grill, or a short name of the want when
+   it has no issue (for a Goal already recorded, `record/<G>` instead) and `<path>` a folder beside the repository. The owner runs the act in that path, and every commit of the
    grill and pick of a Probe writer's commit happens there. hyp gives the Goal
    its id only when it is added: rename the branch `record/<G>` then.
 10. **Draft the model with `/hyp-statechart`.** When the change moves through
@@ -168,7 +169,7 @@ The grill ends with a record branch that holds the examples and the place
 events, and a hand-off for the owner: the Goal's lines, the owner's decisions
 numbered with their words, and "Not covered" with each decision no example
 checks. Before the record PR, the issues already hold those decisions and the
-"Not covered" items they own.
+"Not covered" items they own. With no issue, the record PR's body holds them.
 
 A runner works from the Goal: what `hyp status G --role runner` prints, which
 holds the Goal's words, lines and placed examples, and the model in the spec
@@ -189,8 +190,8 @@ the runner looks for no rivals until the owner unselects.
   either output is fine and it is listed under "Not covered".
 - Each decision of the owner is the words, a line or an example, or is listed
   under "Not covered".
-- The issue you grill holds each decision of the owner in the owner's words,
-  and each "Not covered" item another open issue owns is on that issue.
+- The issue you grill, or the record PR's body when there is no issue, holds
+  each decision of the owner in the owner's words, and each "Not covered" item another open issue owns is on that issue.
 - The hand-off ends with the sentence that `hyp status G` prints the
   runner's Start prompt.
 
