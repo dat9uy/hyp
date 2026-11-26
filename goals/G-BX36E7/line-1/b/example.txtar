@@ -1,10 +1,10 @@
 -- words --
 Still writes report and configs: a Goal's model checks TypeOK, which no variant breaks; the tool still writes its report and the variant configs, and exits with a code that is not 0.
 -- run --
-skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/count.tla --config goals/G-ONE/specs/count.cfg --out out
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/count.tla --config goals/G-ONE/specs/count.cfg --out out 2>&1; echo "tool exit: $?"
 -- floor: contains --
 variants/Breaks.cfg
 -- floor: contains --
 Wrote out
 -- ceiling --
-exit 0
+tool exit: 0
