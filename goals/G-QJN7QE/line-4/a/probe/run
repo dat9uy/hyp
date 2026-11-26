@@ -1,0 +1,105 @@
+#!/bin/sh
+# Write the fixture Goal G-ONE (a model of a toy command) in the subject copy,
+# then run the example's run section, print its stdout and a last line "exit N".
+set -e
+d=goals/G-ONE/specs
+mkdir -p "$d"
+cat > "$d/toy.tla" <<'TLA'
+---------------------------- MODULE toy ----------------------------
+(* A toy command with one finding F-1. Variant NoFoldLine: the list of  *)
+(* a folded finding prints nothing.                                      *)
+CONSTANTS NoFoldLine
+
+VARIABLES st, last, named
+
+vars == <<st, last, named>>
+
+Init ==
+    /\ st = "none"
+    /\ last = "none"
+    /\ named = FALSE
+
+Add ==
+    /\ st = "none"
+    /\ st' = "free"
+    /\ last' = "Add"
+    /\ named' = FALSE
+
+Fold ==
+    /\ st = "free"
+    /\ st' = "folded"
+    /\ last' = "Fold"
+    /\ named' = FALSE
+
+List ==
+    /\ st' = st
+    /\ last' = "List"
+    /\ named' = ((st # "none") /\ ~(NoFoldLine /\ st = "folded"))
+
+Next == Add \/ Fold \/ List
+
+Spec == Init /\ [][Next]_vars
+
+TypeOK ==
+    /\ st \in {"none", "free", "folded"}
+    /\ last \in {"none", "Add", "Fold", "List"}
+    /\ named \in BOOLEAN
+
+\* source: model only
+FoldedListNamed == (last = "List" /\ st = "folded") => named
+=====================================================================
+TLA
+cat > "$d/toy.cfg" <<'CFG'
+SPECIFICATION Spec
+
+CONSTANTS
+    NoFoldLine = FALSE
+
+INVARIANTS
+    FoldedListNamed
+CFG
+cat > "$d/toy-view.mjs" <<'MJS'
+// The view of toy.tla: what each toy command prints.
+export const title = "toy command";
+
+export const step = (action) => action;
+
+export const print = (action, from, to) => {
+  if (action === "Add") return "added F-1";
+  if (action === "Fold") return "folded F-1";
+  if (action === "List") {
+    if (to.st === "none") return "no findings";
+    if (to.st === "free") return "F-1 not folded";
+    return to.named ? "F-1 folded" : "";
+  }
+  return "";
+};
+MJS
+mkdir -p goals/G-ONE/line-1/a/probe
+cat > goals/G-ONE/line-1/a/example.txtar <<'TXT'
+-- words --
+List on an empty store.
+-- run --
+toy list
+-- floor: contains --
+no findings
+TXT
+cat > goals/G-ONE/line-1/a/probe/run <<'GEN'
+#!/bin/sh
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+GEN
+chmod +x goals/G-ONE/line-1/a/probe/run
+set +e
+tmp=$(mktemp) || exit 1
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
