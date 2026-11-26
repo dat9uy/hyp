@@ -270,3 +270,38 @@ func TestParseFindingsSection(t *testing.T) {
 		t.Fatal("a new version that changes the findings section is not refused")
 	}
 }
+
+func TestMeetableRefusesWhatNoOutputMeets(t *testing.T) {
+	ex := func(floors []Floor, ceilings ...string) Example { return Example{Floors: floors, Ceilings: ceilings} }
+	tests := []struct {
+		name string
+		ex   Example
+		code fault.Code // "" when some output meets it
+	}{
+		{"contains exit line", ex([]Floor{{OpContains, "exit 1"}}), fault.FloorIsExitLine},
+		{"equals exit line", ex([]Floor{{OpEquals, "exit 0"}}), fault.FloorIsExitLine},
+		{"exit inside longer text", ex([]Floor{{OpContains, "said exit 1 twice"}, {OpContains, "exit"}}), ""},
+		{"not a number", ex([]Floor{{OpContains, "exit N"}}), ""},
+		{"two different equals", ex([]Floor{{OpEquals, "hello"}, {OpEquals, "bye"}}), fault.EqualsFloorsDiffer},
+		{"two equal equals", ex([]Floor{{OpEquals, "bye"}, {OpEquals, "bye"}}), ""},
+		{"equals lacks a contains", ex([]Floor{{OpEquals, "hello"}, {OpContains, "bye"}}), fault.EqualsLacksContains},
+		{"equals holds the contains", ex([]Floor{{OpEquals, "hello bye"}, {OpContains, "bye"}}), ""},
+		{"contains holds a ceiling", ex([]Floor{{OpContains, "hello bye"}}, "bye"), fault.FloorHoldsCeiling},
+		{"equals holds a ceiling", ex([]Floor{{OpEquals, "hello bye"}}, "bye"), fault.FloorHoldsCeiling},
+		{"empty ceiling", ex([]Floor{{OpContains, "a"}}, ""), fault.FloorHoldsCeiling},
+		{"plain floor and ceiling", ex([]Floor{{OpContains, "bye"}}, "error"), ""},
+	}
+	for _, tc := range tests {
+		err := Meetable(tc.ex)
+		if tc.code == "" {
+			if err != nil {
+				t.Errorf("%s: Meetable = %v, want nil", tc.name, err)
+			}
+			continue
+		}
+		e, ok := fault.As(err)
+		if !ok || e.Guard != fault.GuardMeetable || e.Code != tc.code {
+			t.Errorf("%s: Meetable = %v, want a Meetable refusal %s", tc.name, err, tc.code)
+		}
+	}
+}

@@ -94,8 +94,8 @@ type scan struct {
 // event that holds every example the set changed, or places none of the set
 // and names every cause. The guards its entry in hyp spec names, in
 // order: Not landed, not Selected and Grill places for the Goal; then, for
-// the set, Whole set, Committed and Adds only, which need no Probe; then Kind,
-// which runs each changed example on H0. A set that changes no example is
+// the set, Whole set, Committed, Adds only and Meetable, which need no
+// Probe; then Kind, which runs each changed example on H0. A set that changes no example is
 // refused by Adds only. The Probes run with the lock released, and every guard
 // is checked again under the lock before the event is appended.
 func Place(o PlaceOpts) (PlaceReport, error) {
@@ -261,9 +261,9 @@ func sameChanges(a, b []change) bool {
 
 // scanSet runs the guards that need no Probe: Not landed, not Selected and
 // Grill places for the Goal, which refuse at once; then, for every line of the
-// Goal, Whole set, Committed and Adds only on each example folder, then the
-// names of each changed example's findings section (Not refuted, Not
-// declined, One in work) and Covered for the set, which it collects as causes
+// Goal, Whole set, Committed, Adds only and Meetable on each example
+// folder, then the names of each changed example's findings section (Not
+// refuted, Not declined, One in work) and Covered for the set, which it collects as causes
 // so a refusal names every one. An unknown Goal is a bad argument.
 func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
 	t := tables.Replay(evs)
@@ -409,8 +409,9 @@ func exampleNames(root, lineDir string) ([]string, error) {
 }
 
 // checkExample runs the guards that need no Probe on one example folder of
-// the set: its name, Committed, then Adds only. It reports whether the folder
-// changes the set: a new example key or a new hash on a placed one.
+// the set: its name, Committed, Adds only, then Meetable on a new hash. It
+// reports whether the folder changes the set: a new example key or a new
+// hash on a placed one.
 func checkExample(root string, g *tables.Goal, l tables.Line, name string) (change, bool, error) {
 	rel := path.Join("goals", g.ID, l.Key, name)
 	if !exampleNameRe.MatchString(name) {
@@ -450,6 +451,9 @@ func checkExample(root string, g *tables.Goal, l tables.Line, name string) (chan
 		if err := example.AddsOnly(old, c.ex, oldProbe, c.probeHash); err != nil {
 			return change{}, false, err
 		}
+	}
+	if err := example.Meetable(c.ex); err != nil {
+		return change{}, false, err
 	}
 	return c, true, nil
 }

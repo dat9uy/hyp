@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -44,8 +43,6 @@ type Out struct {
 	Stdout, Stderr []byte
 	Exit           int
 }
-
-var exitLineRe = regexp.MustCompile(`^exit (0|[1-9][0-9]*)$`)
 
 // Run extracts the subject of o.Commit (or copies the checkout's files) and
 // the example folder o.ExampleHash (or copies o.ExampleDir) into a fresh
@@ -173,7 +170,7 @@ func splitExitLine(out []byte) (body []byte, code int, ok bool) {
 	out = out[:len(out)-1]
 	i := bytes.LastIndexByte(out, '\n')
 	line := string(out[i+1:])
-	if !exitLineRe.MatchString(line) {
+	if !example.ExitLine.MatchString(line) {
 		return nil, 0, false
 	}
 	n, err := strconv.Atoi(strings.TrimPrefix(line, "exit "))

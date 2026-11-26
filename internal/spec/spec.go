@@ -100,7 +100,7 @@ var Commands = []Command{
 `},
 	{Name: "place", Roles: []string{"grill"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardGrillPlaces, fault.GuardWholeSet,
-			fault.GuardCommitted, fault.GuardAddsOnly, fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork,
+			fault.GuardCommitted, fault.GuardAddsOnly, fault.GuardMeetable, fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork,
 			fault.GuardCovered, fault.GuardKind}, Writes: "examples.place",
 		Help: `  place G [--why TEXT]                   place the whole example set of Goal G:
                                          every folder goals/G/LINE/EXAMPLE, each
@@ -387,6 +387,8 @@ var Guards = []Guard{
 		[]fault.Code{fault.NotAFolder, fault.FolderOnDisk, fault.NotCommitted, fault.DiskNotCommitted, fault.DiffersAt, fault.SetChangedWhileProbe}, "no: it reads the example folders and git"},
 	{fault.GuardAddsOnly, "a new version of an example only adds floor or ceiling sections; any other change is a new example key; a hash the key held before never comes back, except the current one measured again on H0 after a replace moved H0; a place that changes no example places nothing",
 		[]fault.Code{fault.SetUnchanged, fault.KeyTwiceInSet, fault.AlreadyCurrent, fault.EarlierVersion, fault.SectionDiffers, fault.PathDiffers, fault.DropsFloor, fault.DropsCeiling, fault.AddsNothing}, "yes, the half that reads the events; the act checks the folders' bytes"},
+	{fault.GuardMeetable, "some output can meet each new example: no floor's whole text is an exit line exit N, since hyp cuts the Probe's last line exit N off before it compares; no two equals floors differ; an equals floor holds the text of each contains floor; no floor holds the text of a ceiling",
+		[]fault.Code{fault.FloorIsExitLine, fault.EqualsFloorsDiffer, fault.EqualsLacksContains, fault.FloorHoldsCeiling}, "no: it reads the example folders"},
 	{fault.GuardKind, "H0 gives each changed example the verdict its line's kind needs: a gap example fails, a guard example is met; the place records each example's hash and that verdict in git, and H0's outputs in the clone's trace",
 		[]fault.Code{fault.WrongVerdictOnH0, fault.H0MovedWhilePlacing}, "no: it runs the Probes on H0; replay reads the verdict the place recorded"},
 	{fault.GuardBytes, "the commit exists in this clone",
