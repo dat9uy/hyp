@@ -45,6 +45,25 @@ record branch so that every runner commit holds it:
   printed for that example on the variant's patch.
 - `chart.mmd`: the chart the tool wrote from the check config.
 
+## The kept model
+
+A repository keeps one model of its machine in `goals/model/`: a TLA+ module
+and its check config. It is no Goal's folder, so a runner's own commit may
+change it. A Goal whose change moves the machine changes the kept model
+instead of writing the whole machine again: the commit edits `goals/model/`,
+and the Goal's spec folder holds the variant configs and the chart. The tool
+writes the variant configs of the kept model under `goals/model/variants/`;
+move them to `goals/<G>/specs/variants/` and keep none under `goals/model/`.
+
+At select, hyp compares the kept model of the commit with the kept model
+where the commit left the checked-out line, or with H0's when that point is
+the commit itself or comes before H0. Each rule that is new, or whose
+definition text differs, needs a variant config under
+`goals/<G>/specs/variants/` that names it; a rule the commit leaves as it was
+needs none. A change to the kept model also needs a chart in the Goal's spec
+folder. A Goal whose spec folder holds its own whole model is checked as
+before.
+
 ## How to write the model
 
 1. **Write each rule the owner agrees to as an INVARIANT.** Take the rules from
@@ -113,9 +132,11 @@ record branch so that every runner commit holds it:
      walk is the shortest walk whose prints meet the example, which can set
      up another case than the example's Probe;
    - each example the tool cannot predict, and why: its Probe or run section
-     calls a command of the system that the model has no step for, or no
+     calls a command of the system that the model has no step for; no
      print of its walk gives its floors, under the check config or any
-     variant, so it is outside the model's prints. The tool lists each such
+     variant, so it is outside the model's prints; or the model has more than
+     one start case and the Probe writes files before its run section, so
+     the tool cannot see the example's start case. The tool lists each such
      example to try on every variant;
    - for each example and each variant, whether the example is met under that
      variant, predicted from the model alone by following the example's walk,

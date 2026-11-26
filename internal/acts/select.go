@@ -2,6 +2,7 @@ package acts
 
 import (
 	"encoding/json"
+	"slices"
 
 	"unicode/utf8"
 
@@ -129,9 +130,11 @@ func latestCommit(g *tables.Goal, rowTree string) string {
 // guardSpec is the Spec guard: the commit holds a spec under
 // goals/<G>/specs/. When the spec is a model (a .tla file), every rule its
 // check configs check is named by a variant config under specs/variants/ (or
-// the older specs/switches/), and
-// the folder holds a chart (.mmd). hyp reads the files and runs no model
-// checker.
+// the older specs/switches/). When the commit changes the kept model
+// (goals/model/), every rule of it that is new, or whose text differs, is
+// named by such a variant config too; the other rules of the kept model need
+// none. A model or a kept change needs a chart (.mmd) in the folder. hyp reads
+// the files and runs no model checker.
 func guardSpec(root string, g *tables.Goal, commit string) error {
 	dir := SpecDir(g.ID)
 	files, err := SpecFiles(root, commit, g.ID)
@@ -145,10 +148,27 @@ func guardSpec(root string, g *tables.Goal, commit string) error {
 	if err != nil {
 		return err
 	}
-	if !m.Present {
+	from, err := KeptFrom(root, g.Base, commit)
+	if err != nil {
+		return err
+	}
+	kept, err := KeptChange(root, from, commit)
+	if err != nil {
+		return err
+	}
+	if !m.Present && len(kept) == 0 {
 		return nil
 	}
-	if missing := m.Unnamed(); len(missing) > 0 {
+	var missing []string
+	if m.Present {
+		missing = m.Unnamed()
+	}
+	for _, r := range kept {
+		if !slices.Contains(m.Named, r) && !slices.Contains(missing, r) {
+			missing = append(missing, r)
+		}
+	}
+	if len(missing) > 0 {
 		return fault.Refuse(fault.GuardSpec, fault.RuleNoVariant, commit, missing, dir+variantsDir)
 	}
 	if len(m.Charts) == 0 {

@@ -93,7 +93,9 @@ func permits(cmd string, rest []string) bool {
 		pos, ok := split(rest, "-z", "-r")
 		return ok && len(pos) >= 1 && noDash(pos)
 	case "merge-base":
-		return len(rest) == 3 && rest[0] == "--is-ancestor" && noDash(rest[1:])
+		// --is-ancestor A B, or the merge base of two commits
+		return (len(rest) == 3 && rest[0] == "--is-ancestor" && noDash(rest[1:])) ||
+			(len(rest) == 2 && noDash(rest))
 	case "diff-tree":
 		pos, ok := split(rest, "--name-only", "-r", "-z", "-c")
 		return ok && (len(pos) == 1 || len(pos) == 2) && noDash(pos)

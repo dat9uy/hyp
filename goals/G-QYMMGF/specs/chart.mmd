@@ -1,0 +1,23 @@
+---
+title: "hyp, the acts on one finding"
+---
+stateDiagram-v2
+  s0: no finding
+  s1: not folded
+  s2: declined
+  s3: folded
+  s4: refuted
+  s5: ended
+  s6: settled
+  [*] --> s0
+  s0 --> s1: an agent adds the finding
+  s1 --> s2: the owner declines it
+  s1 --> s3: the owner adds a Goal that names it
+  s1 --> s4: an agent refutes it
+  s3 --> s5: the owner closes the Goal
+  s3 --> s6: the owner lands the Goal with a select
+  s3 --> s4: an agent refutes it
+  s5 --> s3: the owner adds a Goal that names it
+  s5 --> s4: an agent refutes it
+  s6 --> s3: the owner adds a Goal that names it
+  s6 --> s4: an agent refutes it
