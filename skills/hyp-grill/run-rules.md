@@ -16,11 +16,10 @@ Goal are told the same.
 1. **Run only the lines hyp prints.** Read `hyp status G --role runner` and
    copy the run line it prints, with your commit filled in. Run the select line
    only when hyp prints it for you. When every line is met on your commit and
-   hyp prints no select line, the commit usually fails the Spec guard, and
-   `hyp status` does not say so. Check that the commit holds a spec under
-   `goals/G/specs/`, and when that spec is a model, that it holds a chart and
-   that its check config lists no rule the statechart tool printed as not
-   shown to fail. Fix it in a new commit and run its lines.
+   hyp prints no select line, `hyp status G` lists the commit under
+   `held back`, with the guard that refuses it and its fix. Read the guard
+   and make the fix that hyp status names in a new commit, then run its
+   lines.
 2. **Check before you run.** `hyp try G LINE/EXAMPLE --worktree` shows an
    example's verdict on your uncommitted files. It records nothing and uses no
    run of the budget. The select needs a spec in the commit, so when the

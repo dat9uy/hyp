@@ -420,14 +420,17 @@ const isGoalConfig = (configFile: string) => {
 
 // goalReport runs the Goal part when the spec has variants or is in a Goal's
 // spec folder. It writes the variant configs into specs/variants/ and returns
-// the report, or undefined when there is nothing to report.
+// the report, or undefined when there is nothing to report. In a Goal's spec
+// folder, refused lists each rule of the check config that no variant config
+// it wrote names: hyp select refuses a commit whose check config checks such
+// a rule.
 export async function goalReport(
   specFile: string,
   configFile: string,
   view: CheckedView,
   base: CheckResult,
   scratch: string,
-): Promise<string | undefined> {
+): Promise<{ text: string; refused: string[] } | undefined> {
   if (!isGoalConfig(configFile)) return undefined;
   const cfgText = fs.readFileSync(configFile, "utf8");
   const cfg = readConfig({ file: configFile, text: cfgText });
@@ -574,6 +577,12 @@ export async function goalReport(
     out.push(`- Lines of the Goal that no rule names: ${unnamed.length ? unnamed.join(", ") : "none"}.`);
   }
   if (written.length) out.push(`- Variant configs written: ${written.join(", ")}.`);
+  const named = new Set(variants.flatMap((v) => broken.get(v) ?? []));
+  const refused = goalDir ? rules.filter((r) => !named.has(r)) : [];
+  if (refused.length)
+    out.push(
+      `- hyp select refuses this check config: no variant config names ${refused.join(", ")}. Add a variant that breaks each such rule, or take the rule out of the check config.`,
+    );
 
   // Walks
   if (goal.examples.length) {
@@ -647,5 +656,5 @@ export async function goalReport(
         );
       }
     }
-  return out.join("\n");
+  return { text: out.join("\n"), refused };
 }

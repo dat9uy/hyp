@@ -17,11 +17,14 @@ try {
     inspect,
   );
   const result = await check(specFile, configFile);
-  const { files, exit } = compile(result, view);
+  const { files, exit: verdict } = compile(result, view);
+  let exit = verdict;
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "statechart-goal-"));
   try {
     const goal = await goalReport(specFile, configFile, view, result, scratch);
-    if (goal !== undefined) files.set("goal.md", [goal]);
+    if (goal !== undefined) files.set("goal.md", [goal.text]);
+    // Exit 3 when every rule holds but hyp select refuses the check config.
+    if (goal?.refused.length && exit === 0) exit = 3;
   } finally {
     fs.rmSync(scratch, { recursive: true, force: true });
   }

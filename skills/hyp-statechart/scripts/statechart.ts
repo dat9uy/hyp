@@ -23,8 +23,10 @@ config sets FALSE), writes specs/variants/VARIANT.cfg with exactly the rules it 
 writes goal.md: the rules and their sources, a walk for each example, and each example
 predicted under each variant.
 Exit code: TLC's own on the config as written: 0 when every rule holds, 1 when a rule breaks,
-and 2 when TLC stops with an error, a signal kills the check, or the command cannot run. 130 or
-143 when SIGINT or SIGTERM stops the check. Only exits 0 and 1 write output.`;
+and 2 when TLC stops with an error, a signal kills the check, or the command cannot run. In a
+Goal's spec folder, 3 when every rule holds but the check config checks a rule that no variant
+config names, so hyp select refuses it; goal.md names each such rule. 130 or 143 when SIGINT
+or SIGTERM stops the check. Only exits 0, 1 and 3 write output.`;
 
 let stop: NodeJS.Signals | undefined;
 const stopped = new Promise<void>((resolve) => {
@@ -141,7 +143,7 @@ try {
     } else if (worker.signalCode) {
       console.error(`${worker.signalCode} killed the check, so the command wrote nothing.`);
       exitCode = 2;
-    } else if ((verdict === 0 || verdict === 1) && fs.existsSync(done)) {
+    } else if ((verdict === 0 || verdict === 1 || verdict === 3) && fs.existsSync(done)) {
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       try {
         fs.renameSync(done, dest);
