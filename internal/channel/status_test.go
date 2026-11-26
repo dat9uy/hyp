@@ -461,10 +461,10 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 	}
 }
 
-// TestEndedGoalReadsTheSameInEveryClone: status G of a landed Goal prints
-// each placed example as met by the select, with no runs count, no output and
-// no try line, and prints the same bytes in a fresh clone whose trace is
-// empty.
+// TestEndedGoalReadsTheSameInEveryClone: status G of a landed Goal names the
+// select and prints each placed example's words, with no runs count, no
+// verdict, no output and no try line, and prints the same bytes in a fresh
+// clone whose trace is empty.
 func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
 	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
@@ -483,12 +483,12 @@ func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
 	testutil.Git(t, f.r.Dir, "add", "-f", ".tree")
 	testutil.Git(t, f.r.Dir, "commit", "-q", "-m", "events")
 	_, here, _ := run(t, "status", f.goal)
-	for _, bad := range []string{"runs:", "output, ", "hyp try", "not in this clone's trace"} {
+	for _, bad := range []string{"runs:", "verdict:", "output, ", "hyp try", "not in this clone's trace"} {
 		if strings.Contains(here, bad) {
 			t.Fatalf("status G of a landed Goal prints %q:\n%s", bad, here)
 		}
 	}
-	if !strings.Contains(here, "verdict: met, by select ") {
+	if !strings.Contains(here, "by select ") || !strings.Contains(here, "### line-1/a: ") {
 		t.Fatalf("status G of a landed Goal names no select:\n%s", here)
 	}
 	other := filepath.Join(t.TempDir(), "clone")
@@ -525,8 +525,8 @@ func TestStatusListPrintsNoQuotedGoalLine(t *testing.T) {
 		t.Fatalf("status of every Goal prints a selected Goal's PR body:\n%s", all)
 	}
 	_, one, _ := run(t, "status", f.goal)
-	if !strings.Contains(one, "PR body:") || !strings.Contains(one, "```\n"+quoted+"```\n") {
-		t.Fatalf("status G of a selected Goal lacks its output byte for byte:\n%s", one)
+	if !strings.Contains(one, "PR body:") || strings.Contains(one, quoted) {
+		t.Fatalf("status G of a selected Goal lacks its PR body or prints an example's output:\n%s", one)
 	}
 }
 

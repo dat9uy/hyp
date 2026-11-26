@@ -133,7 +133,10 @@ var Commands = []Command{
 			fault.GuardGoalsActor, fault.GuardSpec, fault.GuardOwnPath}, Writes: "select",
 		Help: `  select G HASH [--why TEXT]             select the candidate row of Goal G whose
                                          subject hash is HASH; the report is the
-                                         PR body
+                                         PR body: the Goal's words, each line,
+                                         each placed example's words, each
+                                         chart and the selected commit and row,
+                                         and no result of any example
 `},
 	{Name: "land", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerLands, fault.GuardGoalsActor, fault.GuardStop}, Writes: "land",
