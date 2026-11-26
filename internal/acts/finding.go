@@ -21,14 +21,12 @@ type FindingOpts struct {
 	Fact     string   // finding add
 	Evidence string   // finding add
 	Draft    string   // finding add: an add goal command line for the owner, or empty
-	Findings []string // finding fold: one or more; finding refute and decline: one
-	Goal     string   // finding fold: the Goal to fold into
+	Findings []string // finding refute and decline: one
 }
 
-// FindingReport is what an act on a finding returns: the Goal a fold names,
-// and each finding with its state after the act.
+// FindingReport is what an act on a finding returns: each finding with its
+// state after the act.
 type FindingReport struct {
-	Goal     string // G-… of a fold; empty for an add or a refute
 	Findings []*tables.Finding
 }
 
@@ -36,7 +34,7 @@ type FindingReport struct {
 // command line, which the owner may edit and run.
 const DraftPrefix = "hyp add goal "
 
-// FindingAdd records a finding: a fact and its evidence, with no Goal, and
+// FindingAdd records a finding: a fact and its evidence, naming no Goal, and
 // an add goal the agent drafted for the owner when Draft is set.
 func FindingAdd(o FindingOpts) (FindingReport, error) {
 	if o.Fact == "" {
@@ -55,45 +53,6 @@ func FindingAdd(o FindingOpts) (FindingReport, error) {
 		}
 		ev.Payload = raw
 		return tables.GuardFindingAdd(t, *ev)
-	})
-}
-
-// FindingFold folds one or more findings into one Goal in work, in one
-// event: the fold records all of them or none. A Goal the store does not
-// hold, or an ended Goal, is a refusal of In work.
-func FindingFold(o FindingOpts) (FindingReport, error) {
-	return findingAct(o, events.TypeFindingFold, func(t tables.Tables, ev *events.Event) error {
-		g, err := t.Find(o.Goal)
-		if err != nil {
-			if e, ok := fault.As(err); ok && e.Code == fault.NoGoal {
-				return fault.Refuse(fault.GuardInWork, fault.NoGoalToFold, o.Goal)
-			}
-			return err
-		}
-		if err := tables.GuardInWork(t, g.EventID); err != nil {
-			return err
-		}
-		node := g.EventID
-		p := events.FindingFold{Role: o.Role, Goal: node}
-		for _, name := range o.Findings {
-			f, err := t.FindFinding(name)
-			if err != nil {
-				return err
-			}
-			if err := tables.GuardNotRefuted(f); err != nil {
-				return err
-			}
-			if err := tables.GuardNotDeclined(f); err != nil {
-				return err
-			}
-			p.Findings = append(p.Findings, f.EventID)
-		}
-		raw, err := json.Marshal(p)
-		if err != nil {
-			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingFold, err)
-		}
-		ev.Payload = raw
-		return tables.GuardFindingFold(t, *ev)
 	})
 }
 
@@ -120,7 +79,7 @@ func FindingRefute(o FindingOpts) (FindingReport, error) {
 }
 
 // FindingDecline is the owner's act that ends a true finding the owner does
-// not want fixed, with a why. Only a finding that is not folded, not refuted
+// not want fixed, with a why. Only a finding that no Goal named, not refuted
 // and not declined is declined; declined is final.
 func FindingDecline(o FindingOpts) (FindingReport, error) {
 	return findingAct(o, events.TypeFindingDecline, func(t tables.Tables, ev *events.Event) error {
@@ -188,12 +147,6 @@ func findingAct(o FindingOpts, typ string, build func(tables.Tables, *events.Eve
 	switch typ {
 	case events.TypeFindingAdd:
 		ids = []string{ev.ID}
-	case events.TypeFindingFold:
-		var p events.FindingFold
-		if err := events.Decode(ev, &p); err != nil {
-			return FindingReport{}, err
-		}
-		ids = p.Findings
 	case events.TypeFindingRefute, events.TypeFindingDecline:
 		ids = []string{ev.Node}
 	}
@@ -204,9 +157,6 @@ func findingAct(o FindingOpts, typ string, build func(tables.Tables, *events.Eve
 			return FindingReport{}, err
 		}
 		rep.Findings = append(rep.Findings, f)
-		if typ == events.TypeFindingFold && f.Into != nil {
-			rep.Goal = f.Into.ID
-		}
 	}
 	return rep, nil
 }

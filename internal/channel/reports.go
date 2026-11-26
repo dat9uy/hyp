@@ -28,6 +28,9 @@ func addGoalText(rep acts.Report) string {
 	for _, l := range rep.Lines {
 		fmt.Fprintf(&b, "%s %s: %s\n", l.Key, l.Kind, l.Text)
 	}
+	if len(rep.Findings) > 0 {
+		fmt.Fprintf(&b, "findings: %s\n", strings.Join(rep.Findings, " "))
+	}
 	return b.String()
 }
 
@@ -116,18 +119,21 @@ func findingText(rep acts.FindingReport) string {
 }
 
 // findingStateText is a finding's state as hyp prints it: not folded,
-// folded into G, folded into G, ended, the old form's folded into #N, or
-// refuted.
+// folded into G, settled in G, ended in G, the old form's folded into #N,
+// refuted or declined.
 func findingStateText(f *tables.Finding) string {
-	switch {
-	case f.State() != spec.FindingFolded:
-		return f.State()
-	case f.Into == nil:
+	switch f.State() {
+	case spec.FindingFolded:
+		if g := f.InWork(); g != nil {
+			return "folded into " + g.ID
+		}
 		return fmt.Sprintf("folded into #%d", f.Issue)
-	case f.IntoEnded():
-		return fmt.Sprintf("folded into %s, ended", f.Into.ID)
+	case spec.FindingSettled:
+		return "settled in " + f.SettledBy().ID
+	case spec.FindingEnded:
+		return "ended in " + f.Names[len(f.Names)-1].ID + ", not settled"
 	}
-	return "folded into " + f.Into.ID
+	return f.State()
 }
 
 // closeText is the report of a close: the Goal, now ended.

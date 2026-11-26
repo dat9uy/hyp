@@ -2,6 +2,7 @@ package example
 
 import (
 	"bytes"
+	"slices"
 
 	"github.com/dat9uy/hyp/internal/fault"
 )
@@ -75,6 +76,9 @@ func AddsOnly(old, next Example, oldProbe, newProbe string) error {
 	}
 	if old.HasExternal != next.HasExternal || old.External != next.External {
 		return section("external")
+	}
+	if !slices.Equal(old.Findings, next.Findings) {
+		return section("findings")
 	}
 	oldFloors := map[Floor]int{}
 	for _, f := range next.Floors {

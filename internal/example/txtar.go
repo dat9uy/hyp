@@ -31,7 +31,8 @@ type Example struct {
 	Floors      []Floor
 	Ceilings    []string
 	HasExternal bool
-	External    string // the body of the external section, one name per line
+	External    string   // the body of the external section, one name per line
+	Findings    []string // the findings section: the id of each finding the example names, one per line
 }
 
 var envNameRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
@@ -75,7 +76,9 @@ func validInputPath(p string) bool {
 // escaped. Text before the first marker, a name outside the allowed ones, a
 // repeated words, run or external section, a missing words, run or floor, an
 // input path that leaves the folder and an external line that is not an
-// environment variable name are refusals that name the line.
+// environment variable name are refusals that name the line. A findings
+// section, at most one, names one finding id per line; empty lines do not
+// count.
 func Parse(data []byte) (Example, error) {
 	var ex Example
 	type section struct {
@@ -99,7 +102,7 @@ func Parse(data []byte) (Example, error) {
 		secs[len(secs)-1].body.WriteString(raw)
 	}
 
-	var haveWords, haveRun bool
+	var haveWords, haveRun, haveFindings bool
 	seenInput := map[string]bool{}
 	for _, sec := range secs {
 		body := strings.TrimSuffix(sec.body.String(), "\n")
@@ -130,6 +133,16 @@ func Parse(data []byte) (Example, error) {
 				}
 			}
 			ex.HasExternal, ex.External = true, body
+		case sec.name == "findings":
+			if haveFindings {
+				return ex, fault.Refuse(fault.NoGuard, fault.SecondSection, sec.line, sec.name)
+			}
+			haveFindings = true
+			for _, id := range strings.Split(body, "\n") {
+				if id = strings.TrimSpace(id); id != "" {
+					ex.Findings = append(ex.Findings, id)
+				}
+			}
 		case strings.HasPrefix(sec.name, "input/"):
 			path := strings.TrimPrefix(sec.name, "input/")
 			if !validInputPath(path) {

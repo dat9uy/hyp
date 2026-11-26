@@ -79,6 +79,7 @@ type change struct {
 	probeHash       string // the tree hash of its probe/ folder
 	ex              example.Example
 	lineRow         tables.Line
+	findings        []string // the finding.add ids its findings section names
 }
 
 // scan is what the guards that need no Probe found for the whole set.
@@ -177,7 +178,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 				Commit: again.goal.Base, RowTree: again.goal.BaseTree, Probe: c.probeHash,
 				Exit: out.Exit, Verdict: string(runs[i].verdict),
 			}
-			p.Examples = append(p.Examples, events.PlacedExample{Line: c.line, Example: c.name, Hash: c.hash, H0: h0})
+			p.Examples = append(p.Examples, events.PlacedExample{Line: c.line, Example: c.name, Hash: c.hash, H0: h0, Findings: c.findings})
 			outs = append(outs, out.Stdout, out.Stderr)
 			cells = append(cells, logstore.Cell{
 				Hash: c.hash, RowTree: h0.RowTree, Commit: h0.Commit, Probe: h0.Probe,
@@ -260,9 +261,10 @@ func sameChanges(a, b []change) bool {
 
 // scanSet runs the guards that need no Probe: Not landed, not Selected and
 // Grill places for the Goal, which refuse at once; then, for every line of the
-// Goal, Whole set, Committed and Adds only on each example folder, which it
-// collects as causes so a refusal names every one. An unknown Goal is a bad
-// argument.
+// Goal, Whole set, Committed and Adds only on each example folder, then the
+// names of each changed example's findings section (Not refuted, Not
+// declined, One in work) and Covered for the set, which it collects as causes
+// so a refusal names every one. An unknown Goal is a bad argument.
 func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
 	t := tables.Replay(evs)
 	g, err := t.Find(o.Goal)
@@ -309,8 +311,63 @@ func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
 			}
 		}
 	}
+	s.causes = append(s.causes, s.nameFindings(t)...)
 	sort.SliceStable(s.causes, func(i, j int) bool { return s.causes[i].Key < s.causes[j].Key })
 	return s, nil
+}
+
+// nameFindings resolves the findings section of each changed example in the
+// tables t and checks each new name, then checks Covered: every finding the
+// Goal names at add goal is named by an example of the set, a changed one or
+// the current version of an unchanged one. A finding the Goal names already
+// is not checked again, so a clone whose trace lacks it places the set. It
+// returns the causes it found.
+func (s *scan) nameFindings(t tables.Tables) []SetCause {
+	g := s.goal
+	named := g.Findings()
+	var causes []SetCause
+	covered := map[string]bool{}
+	changed := map[string]bool{}
+	for i := range s.changes {
+		c := &s.changes[i]
+		changed[c.key] = true
+		for _, name := range c.ex.Findings {
+			id := ""
+			for _, n := range named {
+				if n == name || tables.FindingID(n) == name {
+					id = n
+				}
+			}
+			if id == "" {
+				f, err := t.FindFinding(name)
+				if err == nil {
+					err = tables.GuardNameable(f, g)
+				}
+				if err != nil {
+					causes = append(causes, SetCause{Key: c.key, Err: err})
+					continue
+				}
+				id = f.EventID
+			}
+			if !slices.Contains(c.findings, id) {
+				c.findings = append(c.findings, id)
+			}
+			covered[id] = true
+		}
+	}
+	for _, p := range g.Placed() {
+		if !changed[p.Key] {
+			for _, id := range p.Findings {
+				covered[id] = true
+			}
+		}
+	}
+	for _, id := range g.Named {
+		if !covered[id] {
+			causes = append(causes, SetCause{Key: tables.FindingID(id), Err: fault.Refuse(fault.GuardCovered, fault.NotCovered, g.ID, tables.FindingID(id))})
+		}
+	}
+	return causes
 }
 
 // exampleNames lists the example folders of a line folder, on disk and at
