@@ -160,8 +160,11 @@ At a stop for the owner (`Selected`, `Two candidates`, `Budget used`), when a
 selected Goal is reviewed, or when a runner reports a placed example that no
 build can meet, follow [re-grill.md](re-grill.md): it reviews the
 Goal from what builds really printed, finds ceilings and loose floors, and
-turns each kept finding into an adjust or a new Goal. It also says when a Goal
-must end because an example is wrong, and what happens to that Goal's builds.
+turns each kept finding into an adjust or a new Goal. At `Selected` it also
+walks the difference: it runs, on H0 and on the selected commit, each case of
+the diff that no placed example holds, and asks the owner to predict each
+output first. It also says when a Goal must end because an example is wrong,
+and what happens to that Goal's builds.
 
 ## Hand-off
 
