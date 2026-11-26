@@ -1,0 +1,10 @@
+-- words --
+A changed rule with no variant: the candidate changes the text of the rule OldRule, already in the kept model in goals/model/ on H0, and no variant config of the Goal names it; hyp status G lists the candidate as held back by the Spec guard, rule-no-variant, naming OldRule.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+rule-no-variant
+-- floor: contains --
+OldRule
+-- ceiling --
+hyp select G-ONE

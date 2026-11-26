@@ -1,0 +1,12 @@
+-- words --
+A start case the tool cannot see: the fixture model has two start cases, and the fixture example's Probe picks one by writing a file before toy list; the tool says it cannot see the example's start case, predicts no verdict, and lists the example to try on every variant. This is finding F-D5FCRE's fact: a case a Probe sets up by writing files takes no step, so the tool predicts met when any start case meets the example.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/toy.tla --config goals/G-ONE/specs/toy.cfg --view goals/G-ONE/specs/toy-view.mjs --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+start case
+-- ceiling --
+| line-1/a | met |
+-- ceiling --
+| line-1/a | fail |
+-- findings --
+F-D5FCRE
