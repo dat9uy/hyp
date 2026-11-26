@@ -10,8 +10,11 @@ CONSTANT NoFoldLine
 VARIABLES st, lastAct, pr
 vars == <<st, lastAct, pr>>
 Init == st = "none" /\ lastAct = "init" /\ pr = ""
+\* command: toy add
 Add == st = "none" /\ st' = "free" /\ lastAct' = "Add" /\ pr' = "added F-1"
+\* command: toy fold
 Fold == st = "free" /\ st' = "folded" /\ lastAct' = "Fold" /\ pr' = "folded F-1"
+\* command: toy list
 List == /\ UNCHANGED st /\ lastAct' = "List"
         /\ pr' = IF st = "none" THEN "no findings"
                  ELSE IF st = "free" THEN "F-1 not folded"
