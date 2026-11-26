@@ -1,0 +1,12 @@
+-- words --
+A lone candidate whose model checks a rule, TypeOKRule, that no variant config names: hyp status with no G, read by the grill, names the code rule-no-variant, the rule and its fix.
+-- run --
+hyp status --role grill
+-- floor: contains --
+rule-no-variant
+-- floor: contains --
+TypeOKRule
+-- floor: contains --
+commit a variant config
+-- findings --
+F-5WPG9A

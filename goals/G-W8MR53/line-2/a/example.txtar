@@ -1,0 +1,12 @@
+-- words --
+hyp show with a Goal id says that show takes an actor name and that hyp status G prints that Goal, and exits 2.
+-- run --
+hyp show G-GTC0YE 2>&1; echo "show exit: $?"
+-- floor: contains --
+takes an actor
+-- floor: contains --
+hyp status G-GTC0YE
+-- floor: contains --
+show exit: 2
+-- findings --
+F-BNZHB6

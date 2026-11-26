@@ -1,0 +1,6 @@
+-- words --
+A lone candidate that can be selected: hyp status G with the runner role prints the same as on H0, its select line and no note of a held-back select.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+hyp select G-ONE
