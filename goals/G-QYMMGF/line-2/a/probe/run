@@ -14,6 +14,8 @@ cat >"$g/specs/toy.tla" <<'TLA' || fail "write toy.tla"
 -------------------------------- MODULE toy --------------------------------
 EXTENDS Integers
 
+CONSTANTS NoFreeLine
+
 VARIABLES st, out
 
 vars == <<st, out>>
@@ -37,7 +39,7 @@ List ==
     /\ st' = st
     /\ out' = [cmd |-> "list",
                text |-> IF st = "none" THEN "none"
-                        ELSE IF st = "free" THEN "free"
+                        ELSE IF st = "free" THEN (IF NoFreeLine THEN "empty" ELSE "free")
                         ELSE "folded"]
 
 Next == Add \/ Fold \/ List
@@ -45,15 +47,18 @@ Next == Add \/ Fold \/ List
 Spec == Init /\ [][Next]_vars
 
 \* source: line-1
-FoldedListNamesIt == (out.cmd = "list" /\ st = "folded") => out.text = "folded"
+FreeListNamesIt == (out.cmd = "list" /\ st = "free") => out.text = "free"
 =============================================================================
 TLA
 
 cat >"$g/specs/toy.cfg" <<'CFG' || fail "write toy.cfg"
 SPECIFICATION Spec
 
+CONSTANTS
+    NoFreeLine = FALSE
+
 INVARIANTS
-    FoldedListNamesIt
+    FreeListNamesIt
 CFG
 
 cat >"$g/specs/toy-view.mjs" <<'MJS' || fail "write toy-view.mjs"
