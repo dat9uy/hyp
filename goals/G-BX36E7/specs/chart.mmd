@@ -1,0 +1,26 @@
+---
+title: "hyp G-BX36E7, the statechart tool says when hyp select refuses the check config"
+---
+stateDiagram-v2
+  s0: Nothing run
+  s1: Tool ran on a model that breaks a rule
+  s2: Tool ran on a model every rule of which a variant breaks
+  s3: Runner read the run rules
+  s4: Tool ran on a rule no variant breaks
+  [*] --> s0
+  s0 --> s1: run the tool on a model that breaks a rule
+  s0 --> s2: run the tool on a model whose every rule a variant breaks
+  s0 --> s3: read the run rules
+  s0 --> s4: run the tool on a rule no variant breaks
+  s1 --> s2: run the tool on a model whose every rule a variant breaks
+  s1 --> s3: read the run rules
+  s1 --> s4: run the tool on a rule no variant breaks
+  s2 --> s1: run the tool on a model that breaks a rule
+  s2 --> s3: read the run rules
+  s2 --> s4: run the tool on a rule no variant breaks
+  s3 --> s1: run the tool on a model that breaks a rule
+  s3 --> s2: run the tool on a model whose every rule a variant breaks
+  s3 --> s4: run the tool on a rule no variant breaks
+  s4 --> s1: run the tool on a model that breaks a rule
+  s4 --> s2: run the tool on a model whose every rule a variant breaks
+  s4 --> s3: read the run rules
