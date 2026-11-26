@@ -56,10 +56,12 @@ Goal are told the same.
 11. **A fact that no line of its Goal needs is a finding.** Record it with
     `hyp finding add --fact TEXT --evidence TEXT`: the fact and a pointer to
     its evidence, such as a commit, a path or a Result id. Then read
-    `hyp status`, which prints the words of each Goal in work, and
-    `hyp finding list`. Fold the finding into the one Goal in work whose want
-    it bears on, with the ready `hyp finding fold` line the list prints. When
-    no Goal in work holds that want, draft an `add goal` for the owner, with
-    its words, lines and why, and attach it with
-    `--draft "hyp add goal ..."`; the owner may edit and run it. Never hold a
-    fact only in an issue, a PR or a comment.
+    `hyp status`, which prints the words of each Goal in work. A Goal names
+    the findings it is about: the owner with `--finding F` in `hyp add goal`,
+    the grill in the `findings` section of an example. When a Goal in work
+    holds the want the finding bears on, list the finding's id in the PR for
+    the owner and the grill of that Goal. When no Goal in work holds that
+    want, draft an `add goal` for the owner, with its words, lines and why,
+    and attach it with `--draft "hyp add goal ..."`; the owner may edit it,
+    add `--finding F` with the finding's id, and run it. Never hold a fact
+    only in an issue, a PR or a comment.

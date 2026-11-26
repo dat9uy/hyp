@@ -198,6 +198,8 @@ const (
 	DeclineFolded      Code = "decline-folded"       // finding, Goal
 	DeclineFoldedIssue Code = "decline-folded-issue" // finding, issue
 	FoldNoFinding      Code = "fold-no-finding"      // no values
+	NamedInWork        Code = "named-in-work"        // finding, Goal
+	NotCovered         Code = "not-covered"          // Goal, finding
 	EmptyFact          Code = "empty-fact"           // no values
 	EmptyEvidence      Code = "empty-evidence"       // no values
 	DraftNotAddGoal    Code = "draft-not-add-goal"   // no values

@@ -36,118 +36,160 @@ func newGoal(t *testing.T) string {
 	return fields[1]
 }
 
-func TestFindingAddFoldRefute(t *testing.T) {
+// namingGoal adds a written Goal that names the findings, and returns its
+// id.
+func namingGoal(t *testing.T, findings ...string) string {
+	t.Helper()
+	args := []string{"add", "goal", "--base", "HEAD", "--words", "Find it.", "--line", "gap:it fails"}
+	for _, f := range findings {
+		args = append(args, "--finding", f)
+	}
+	code, out, errs := run(t, args...)
+	fields := strings.Fields(out)
+	if code != 0 || len(fields) < 2 || !strings.Contains(out, "findings: "+strings.Join(findings, " ")+"\n") {
+		t.Fatalf("add goal: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	return fields[1]
+}
+
+func TestFindingAddNameRefute(t *testing.T) {
 	r := inRepo(t)
 	keepStoreOut(t, r.Dir)
-	goal := newGoal(t)
-	other := newGoal(t)
-	before := testutil.Snapshot(t, r.Dir)
-	// any agent, with a role outside the four, adds and folds
+	newGoal(t)
+	// any agent, with a role outside the four, adds and refutes
 	t.Setenv("HYP_ACTOR", "reader-1")
 	t.Setenv("HYP_ROLE", "reader")
 	f1 := addFinding(t)
 	f2 := addFinding(t)
+	f3 := addFinding(t)
 
 	_, list, _ := run(t, "finding", "list")
 	for _, want := range []string{f1 + "  not folded  by reader-1 at ", "  evidence: R-1\n",
 		"  fact: the select reaches an old build\n    only by cherry-pick\n",
-		"    hyp finding fold " + f1 + " --goal G\n", "    hyp finding refute " + f2 + "\n",
+		"    hyp finding refute " + f2 + "\n",
 		"record a new finding:\n  hyp finding add --fact TEXT --evidence TEXT"} {
 		if !strings.Contains(list, want) {
 			t.Fatalf("finding list lacks %q:\n%s", want, list)
 		}
 	}
-	if _, all, _ := run(t, "status"); strings.Contains(all, "findings:") || !strings.Contains(all, "2 not folded: hyp finding list --not-folded\n") {
+	if strings.Contains(list, "finding fold") {
+		t.Fatalf("finding list names a fold:\n%s", list)
+	}
+	if _, all, _ := run(t, "status"); strings.Contains(all, "findings:") || !strings.Contains(all, "3 not folded: hyp finding list --not-folded\n") {
 		t.Fatalf("the list of every Goal prints findings, or no count:\n%s", all)
 	}
 
-	code, out, errs := run(t, "finding", "fold", f1, f2, "--goal", goal)
-	if code != 0 || !strings.Contains(out, "recorded "+f1+"  folded into "+goal+"\n") ||
-		!strings.Contains(out, "recorded "+f2+"  folded into "+goal+"\n") || !strings.Contains(out, goal+"  written  ") {
-		t.Fatalf("fold: code %d, stdout %q, stderr %q", code, out, errs)
-	}
-	code, out, errs = run(t, "finding", "fold", f1, "--goal", other)
-	if code != 0 || !strings.HasPrefix(out, "recorded "+f1+"  folded into "+other+"\n") ||
-		strings.Contains(out, f1+"  folded into "+goal) {
-		t.Fatalf("fold again: code %d, stdout %q, stderr %q", code, out, errs)
-	}
-	// a folded finding may be folded again, and the fold line names no Goal
-	_, list, _ = run(t, "finding", "list")
-	if !strings.Contains(list, "    hyp finding fold "+f1+" --goal G\n") || strings.Contains(list, "--goal "+goal) ||
-		strings.Contains(list, "--goal "+other) {
-		t.Fatalf("finding list lacks the fold line of a folded finding, or names a Goal:\n%s", list)
-	}
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
+	goal := namingGoal(t, f1, f2)
 	_, status, _ := run(t, "status", goal)
-	if strings.Contains(status, f1) || !strings.Contains(status, "findings:\n  "+f2+"  folded into "+goal+"  by reader-1 at ") {
-		t.Fatalf("status G lists a finding folded into another Goal, or lacks its own:\n%s", status)
-	}
-
-	if code, _, errs := run(t, "finding", "fold", f1); code != 2 || !strings.Contains(errs, "finding fold needs --goal G") {
-		t.Fatalf("fold with no Goal: code %d, stderr %q", code, errs)
-	}
-	if code, _, errs := run(t, "finding", "refute", f2); code != 0 {
-		t.Fatalf("refute: code %d, stderr %q", code, errs)
-	}
-	for _, args := range [][]string{{"finding", "fold", f2, "--goal", goal}, {"finding", "refute", f2}, {"finding", "fold", f1, f2, "--goal", goal}} {
-		code, _, errs := run(t, args...)
-		if code != 1 || !strings.Contains(errs, "refused: Not refuted: "+f2+" is refuted") {
-			t.Fatalf("%v: code %d, stderr %q", args, code, errs)
+	for _, f := range []string{f1, f2} {
+		if !strings.Contains(status, "  "+f+"  folded into "+goal+"  by reader-1 at ") {
+			t.Fatalf("status G lacks %s:\n%s", f, status)
 		}
 	}
-	// a refused fold of two findings folds neither
-	_, list, _ = run(t, "finding", "list")
-	if !strings.Contains(list, f1+"  folded into "+other+"  ") || !strings.Contains(list, f2+"  refuted  ") ||
-		strings.Contains(list, "hyp finding refute "+f2) {
-		t.Fatalf("finding list after the refusals:\n%s", list)
+	if !strings.Contains(status, "findings:\n") || !strings.Contains(status, "    fact: the select reaches an old build\n      only by cherry-pick\n") {
+		t.Fatalf("status G lacks the facts:\n%s", status)
+	}
+	if code, out, errs := run(t, "add", "goal", "--base", "HEAD", "--words", "Again.", "--line", "gap:x", "--finding", f1); code != 1 || out != "" ||
+		!strings.Contains(errs, "refused: One in work: "+f1+" is named by "+goal+", a Goal in work") {
+		t.Fatalf("a second Goal in work names f1: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if code, _, errs := run(t, "add", "goal", "--base", "HEAD", "--words", "None.", "--line", "gap:x", "--finding", "F-NONE00"); code != 1 ||
+		!strings.Contains(errs, "refused: no finding F-NONE00") {
+		t.Fatalf("a Goal names a finding the trace lacks: code %d, stderr %q", code, errs)
+	}
+
+	t.Setenv("HYP_ACTOR", "reader-1")
+	if code, _, errs := run(t, "finding", "refute", f3); code != 0 {
+		t.Fatalf("refute: code %d, stderr %q", code, errs)
+	}
+	if code, _, errs := run(t, "finding", "refute", f3); code != 1 || !strings.Contains(errs, "refused: Not refuted: "+f3+" is refuted") {
+		t.Fatalf("refute again: code %d, stderr %q", code, errs)
+	}
+	t.Setenv("HYP_ACTOR", "owner-1")
+	if code, _, errs := run(t, "add", "goal", "--base", "HEAD", "--words", "Refuted.", "--line", "gap:x", "--finding", f3); code != 1 ||
+		!strings.Contains(errs, "refused: Not refuted: "+f3+" is refuted") {
+		t.Fatalf("a Goal names a refuted finding: code %d, stderr %q", code, errs)
 	}
 	if _, nf, _ := run(t, "finding", "list", "--not-folded"); strings.Contains(nf, f1) || !strings.Contains(nf, "no finding is not folded.\n") {
 		t.Fatalf("finding list --not-folded:\n%s", nf)
 	}
-	_, status, _ = run(t, "status", goal)
-	if !strings.Contains(status, goal+"  written  ") {
+	if _, status, _ := run(t, "status", goal); !strings.Contains(status, goal+"  written  ") {
 		t.Fatalf("a finding changed the Goal's state:\n%s", status)
+	}
+}
+
+// The acts on a finding change no git state: their events are in the trace.
+func TestFindingActsKeepGitState(t *testing.T) {
+	r := inRepo(t)
+	keepStoreOut(t, r.Dir)
+	newGoal(t)
+	before := testutil.Snapshot(t, r.Dir)
+	f := addFinding(t)
+	if code, _, errs := run(t, "finding", "refute", f); code != 0 {
+		t.Fatalf("refute: code %d, stderr %q", code, errs)
 	}
 	if testutil.Snapshot(t, r.Dir) != before {
 		t.Fatal("an act on a finding changed the repository's git state")
 	}
 }
 
-func TestFindingFoldedIntoAnEndedGoal(t *testing.T) {
-	inRepo(t)
-	goal := newGoal(t)
-	other := newGoal(t)
+// A Goal's names are in git: a clone whose trace lacks the finding prints its
+// id, and says the trace does not hold it.
+func TestFindingNamedOnAnotherClone(t *testing.T) {
+	r := inRepo(t)
+	newGoal(t)
 	f := addFinding(t)
-	if code, _, errs := run(t, "finding", "fold", f, "--goal", goal); code != 0 {
-		t.Fatalf("fold: code %d, stderr %q", code, errs)
+	goal := namingGoal(t, f)
+	testutil.Git(t, r.Dir, "add", "-A")
+	testutil.Git(t, r.Dir, "commit", "-q", "-m", "goal")
+	clone := filepath.Join(t.TempDir(), "clone")
+	testutil.Git(t, r.Dir, "clone", "-q", r.Dir, clone)
+	t.Chdir(clone)
+	_, status, _ := run(t, "status", goal)
+	if !strings.Contains(status, "findings:\n  "+f+"  not in this clone's trace\n") || strings.Contains(status, "cherry-pick") {
+		t.Fatalf("status G on another clone:\n%s", status)
 	}
+}
+
+func TestFindingNamedByAnEndedGoal(t *testing.T) {
+	inRepo(t)
+	newGoal(t)
+	f := addFinding(t)
+	addFinding(t) // a finding no Goal names, which waits
+	goal := namingGoal(t, f)
 	if code, _, errs := run(t, "close", goal); code != 0 {
 		t.Fatalf("close: code %d, stderr %q", code, errs)
 	}
 	_, list, _ := run(t, "finding", "list")
-	if strings.Contains(list, f) || !strings.Contains(list, "1 finding folded into an ended Goal not shown; hyp finding list --all lists them.\n") {
-		t.Fatalf("finding list shows a finding folded into an ended Goal:\n%s", list)
+	if strings.Contains(list, f+"  ") || !strings.Contains(list, "1 finding settled or ended not shown; hyp finding list --all lists them.\n") {
+		t.Fatalf("finding list shows a finding of an ended Goal:\n%s", list)
 	}
-	if _, all, _ := run(t, "finding", "list", "--all"); !strings.Contains(all, f+"  folded into "+goal+", ended  ") {
+	if _, all, _ := run(t, "finding", "list", "--all"); !strings.Contains(all, f+"  ended in "+goal+", not settled  ") {
 		t.Fatalf("finding list --all:\n%s", all)
 	}
-	code, _, errs := run(t, "finding", "fold", f, "--goal", goal)
-	if code != 1 || !strings.Contains(errs, "refused: In work: "+goal+" is ended") {
-		t.Fatalf("fold into an ended Goal: code %d, stderr %q", code, errs)
+	if _, status, _ := run(t, "status"); !strings.Contains(status, "1 not folded: hyp finding list") {
+		t.Fatalf("status counts an ended finding as waiting:\n%s", status)
 	}
-	if code, out, errs := run(t, "finding", "fold", f, "--goal", other); code != 0 || !strings.HasPrefix(out, "recorded "+f+"  folded into "+other+"\n") {
-		t.Fatalf("fold again into a Goal in work: code %d, stdout %q, stderr %q", code, out, errs)
+	if code, _, errs := run(t, "finding", "decline", f, "--why", "not wanted"); code != 1 ||
+		!strings.Contains(errs, "refused: Not folded: "+f+" is named by "+goal) {
+		t.Fatalf("decline of a finding an ended Goal named: code %d, stderr %q", code, errs)
+	}
+	// a later Goal may name it
+	later := namingGoal(t, f)
+	if _, all, _ := run(t, "finding", "list"); !strings.Contains(all, f+"  folded into "+later+"  ") {
+		t.Fatalf("finding list after a later Goal names it:\n%s", all)
 	}
 }
 
 func TestFindingDecline(t *testing.T) {
 	inRepo(t)
-	goal := newGoal(t)
+	newGoal(t)
 	f1 := addFinding(t)
 	f2 := addFinding(t)
 	held := addFinding(t)
-	if code, _, errs := run(t, "finding", "fold", held, "--goal", goal); code != 0 {
-		t.Fatalf("fold: code %d, stderr %q", code, errs)
-	}
+	goal := namingGoal(t, held)
 
 	if code, out, errs := run(t, "finding", "decline", f1); code != 1 || out != "" ||
 		!strings.Contains(errs, "refused: Owner declines: a decline needs --why TEXT") {
@@ -160,14 +202,14 @@ func TestFindingDecline(t *testing.T) {
 	}
 	t.Setenv("HYP_ROLE", "owner")
 	if code, _, errs := run(t, "finding", "decline", held, "--why", "not wanted"); code != 1 ||
-		!strings.Contains(errs, "refused: Not folded: "+held+" is folded into "+goal) {
-		t.Fatalf("decline of a folded finding: code %d, stderr %q", code, errs)
+		!strings.Contains(errs, "refused: Not folded: "+held+" is named by "+goal) {
+		t.Fatalf("decline of a named finding: code %d, stderr %q", code, errs)
 	}
 	if code, out, errs := run(t, "finding", "decline", f1, "--why", "not wanted"); code != 0 || out != "recorded "+f1+"  declined\n" {
 		t.Fatalf("decline: code %d, stdout %q, stderr %q", code, out, errs)
 	}
-	for _, args := range [][]string{{"finding", "fold", f1, "--goal", goal}, {"finding", "refute", f1},
-		{"finding", "decline", f1, "--why", "still not wanted"}} {
+	for _, args := range [][]string{{"add", "goal", "--base", "HEAD", "--words", "D.", "--line", "gap:x", "--finding", f1},
+		{"finding", "refute", f1}, {"finding", "decline", f1, "--why", "still not wanted"}} {
 		code, _, errs := run(t, args...)
 		if code != 1 || !strings.Contains(errs, "refused: Not declined: "+f1+" is declined") {
 			t.Fatalf("%v: code %d, stderr %q", args, code, errs)
@@ -211,7 +253,8 @@ func TestFindingDraft(t *testing.T) {
 }
 
 // An old-form finding, recorded on a Goal, still replays: it reads not
-// folded until a fold names it.
+// folded until a Goal names it. An old fold event counts as a name by its
+// Goal.
 func TestFindingOldForm(t *testing.T) {
 	r := inRepo(t)
 	goal := newGoal(t)
@@ -233,8 +276,8 @@ func TestFindingOldForm(t *testing.T) {
 		t.Fatal(err)
 	}
 	ts := gid[:10]
-	lines := `{"v":2,"id":"` + ts + `ZZZZZZZZZZZZZZZY","ts":"2026-11-24T02:54:20Z","actor":"old","type":"finding.add","node":"` + gid + `","payload":{"role":"","fact":"old one","evidence":"e1"},"why":""}
-{"v":2,"id":"` + ts + `ZZZZZZZZZZZZZZZZ","ts":"2026-11-24T02:54:21Z","actor":"old","type":"finding.add","node":"` + gid + `","payload":{"role":"","fact":"old two","evidence":"e2"},"why":""}
+	lines := `{"v":2,"id":"` + ts + `ZZZZZZZZZZZZZZZX","ts":"2026-11-24T02:54:20Z","actor":"old","type":"finding.add","node":"` + gid + `","payload":{"role":"","fact":"old one","evidence":"e1"},"why":""}
+{"v":2,"id":"` + ts + `ZZZZZZZZZZZZZZZY","ts":"2026-11-24T02:54:21Z","actor":"old","type":"finding.add","node":"` + gid + `","payload":{"role":"","fact":"old two","evidence":"e2"},"why":""}
 `
 	if err := os.MkdirAll(filepath.Join(trace.Dir, "events"), 0o755); err != nil {
 		t.Fatal(err)
@@ -243,13 +286,23 @@ func TestFindingOldForm(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, list, _ := run(t, "finding", "list", "--not-folded")
-	for _, want := range []string{"F-ZZZZZY  not folded  by old at ", "  fact: old one\n", "F-ZZZZZZ  not folded  "} {
+	for _, want := range []string{"F-ZZZZZX  not folded  by old at ", "  fact: old one\n", "F-ZZZZZY  not folded  "} {
 		if !strings.Contains(list, want) {
 			t.Fatalf("finding list --not-folded lacks %q:\n%s", want, list)
 		}
 	}
-	if code, out, errs := run(t, "finding", "fold", "F-ZZZZZY", "--goal", goal); code != 0 || !strings.HasPrefix(out, "recorded F-ZZZZZY  folded into "+goal+"\n") {
-		t.Fatalf("fold of an old-form finding: code %d, stdout %q, stderr %q", code, out, errs)
+	fold := `{"v":2,"id":"` + ts + `ZZZZZZZZZZZZZZZZ","ts":"2026-11-24T02:54:22Z","actor":"old","type":"finding.fold","node":"` + ts + `ZZZZZZZZZZZZZZZZ","payload":{"role":"","findings":["` + ts + `ZZZZZZZZZZZZZZZX"],"goal":"` + gid + `"},"why":""}
+`
+	f, err := os.OpenFile(filepath.Join(trace.Dir, "events", "old.jsonl"), os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.WriteString(fold); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	if _, status, _ := run(t, "status", goal); !strings.Contains(status, "findings:\n  F-ZZZZZX  folded into "+goal+"  by old at ") {
+		t.Fatalf("status G lacks the finding an old fold folded into it:\n%s", status)
 	}
 	if _, status, _ := run(t, "status"); !strings.Contains(status, "1 not folded: hyp finding list --not-folded\n") || strings.Contains(status, "refused at replay") {
 		t.Fatalf("status:\n%s", status)
@@ -271,10 +324,7 @@ func TestFindingArguments(t *testing.T) {
 		{[]string{"finding", "add", "--evidence", "R-1"}, 2, "finding add needs --fact TEXT"},
 		{[]string{"finding", "add", "--fact", "a"}, 2, "finding add needs --evidence TEXT"},
 		{[]string{"finding", "add", goal, "--fact", "a", "--evidence", "R-1"}, 2, "finding add takes the arguments"},
-		{[]string{"finding", "fold", "--goal", goal}, 2, "finding fold takes the arguments"},
-		{[]string{"finding", "fold", f, "--issue", "1"}, 2, "flag provided but not defined: -issue"},
-		{[]string{"finding", "fold", f, "--goal", "G-NOGOAL"}, 1, "refused: In work: no Goal G-NOGOAL to fold into"},
-		{[]string{"finding", "fold", f, "--goal", goal}, 1, "refused: In work: " + goal + " is ended"},
+		{[]string{"finding", "fold", f, "--goal", goal}, 2, "finding what?"},
 		{[]string{"finding", "refute", "F-1", "F-2"}, 2, "finding refute takes the arguments"},
 		{[]string{"finding", "refute", "F-NONE"}, 1, "refused: no finding F-NONE"},
 		{[]string{"finding", "list", "F-1"}, 2, "finding list takes the arguments"},

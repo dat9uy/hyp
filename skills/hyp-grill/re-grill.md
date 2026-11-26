@@ -69,8 +69,9 @@ Hypotheses of the new Goal, and the hand-off never offers one to the runner.
 A runner that builds on one picks it onto the new record branch, because
 `hyp select` reads the Goal's spec from the selected commit. Record what
 agents found about those builds, such as their verdicts or why a Probe
-failed, as findings with `hyp finding add`, and fold each into the new Goal
-once it is written.
+failed, as findings with `hyp finding add`, and name each in the new Goal:
+with `--finding F` in its `add goal`, or in the `findings` section of one of
+its examples.
 
 ## Before a land
 
@@ -84,6 +85,7 @@ why, to run `--from` the Goal after the land:
 hyp add goal --base COMMIT --from G --words TEXT --line gap:TEXT --why TEXT
 ```
 
-The owner edits and runs it after `hyp land G`. Then read
-`hyp finding list --not-folded` with the owner, and fold each finding that
-bears on the new Goal into it.
+The owner edits and runs it after `hyp land G`. Read
+`hyp finding list --not-folded` with the owner before, and add
+`--finding F` to the drafted `add goal` for each finding that bears on the
+new Goal.

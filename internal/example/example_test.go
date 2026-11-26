@@ -251,3 +251,22 @@ func TestAddsOnlyRefusesNothingAdded(t *testing.T) {
 	adds(t, base, base, probeA, probeA, "nothing")
 	adds(t, base, "-- run --\necho hi\n-- words --\nw\n-- floor: contains --\nhi\n", probeA, probeA, "nothing")
 }
+
+func TestParseFindingsSection(t *testing.T) {
+	ex, err := Parse([]byte("-- words --\nw\n-- run --\nr\n-- floor: contains --\nx\n-- findings --\nF-AAAAAA\n\nF-BBBBBB\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ex.Findings) != 2 || ex.Findings[0] != "F-AAAAAA" || ex.Findings[1] != "F-BBBBBB" {
+		t.Fatalf("findings = %q", ex.Findings)
+	}
+	if _, err := Parse([]byte("-- words --\nw\n-- run --\nr\n-- floor: contains --\nx\n-- findings --\nF-A\n-- findings --\nF-B\n")); err == nil {
+		t.Fatal("a second findings section parsed")
+	}
+	next := ex
+	next.Findings = []string{"F-AAAAAA"}
+	next.Ceilings = []string{"c"}
+	if err := AddsOnly(ex, next, "p", "p"); err == nil {
+		t.Fatal("a new version that changes the findings section is not refused")
+	}
+}

@@ -40,6 +40,8 @@ type Placement struct {
 	Actor   string
 	EventID string
 	H0      events.Cell // H0's cell, written by the placement
+
+	Findings []string // the finding.add ids its findings section names
 }
 
 // Line is a row of the Lines table.
@@ -65,6 +67,7 @@ type Goal struct {
 	Close      *Close                 // the Goal's close, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
 	Why        string                 // the why of its latest goal.add
+	Named      []string               // the finding.add ids its latest goal.add names
 
 	// seen lists the ids of the Goal's events that replay applied, in merge
 	// order: the snapshot an end names.
@@ -120,6 +123,22 @@ type Close struct {
 	ID    string // the close event id
 	Time  string
 	Actor string
+}
+
+// Findings are the finding.add ids the Goal's record names: those its latest
+// goal.add names, then those the current version of each placed example
+// names, in key order, each once. They are in git, so every clone reads the
+// same ids, whether or not its trace holds the findings.
+func (g *Goal) Findings() []string {
+	out := slices.Clone(g.Named)
+	for _, p := range g.Placed() {
+		for _, id := range p.Findings {
+			if !slices.Contains(out, id) {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
 }
 
 // Seen is the snapshot an end of the Goal names: the ids of the Goal's
@@ -574,7 +593,7 @@ func GuardPlaceSet(t Tables, ev events.Event) error {
 
 // addPlacement adds one placement the guards allowed. The version is the
 // count of the hashes the key has held, this one included.
-func (g *Goal) addPlacement(ev events.Event, line, name, hash string, h0 events.Cell) {
+func (g *Goal) addPlacement(ev events.Event, line, name, hash string, h0 events.Cell, findings []string) {
 	if g.Placements == nil {
 		g.Placements = map[string][]Placement{}
 	}
@@ -590,14 +609,14 @@ func (g *Goal) addPlacement(ev events.Event, line, name, hash string, h0 events.
 	}
 	g.Placements[key] = append(g.Placements[key], Placement{
 		Key: key, Line: line, Example: name, Hash: hash, Version: version,
-		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: h0,
+		Time: ev.TS, Actor: ev.Actor, EventID: ev.ID, H0: h0, Findings: findings,
 	})
 }
 
 // place applies an old-form placement of one example. A new example key or a
 // new hash on a key starts a new budget.
 func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
-	g.addPlacement(ev, p.Line, p.Example, p.Hash, p.H0)
+	g.addPlacement(ev, p.Line, p.Example, p.Hash, p.H0, nil)
 	g.epoch++
 }
 
@@ -605,7 +624,7 @@ func (g *Goal) place(ev events.Event, p events.ExamplePlace) {
 // budget for the whole set.
 func (g *Goal) placeSet(ev events.Event, p events.ExamplesPlace) {
 	for _, x := range p.Examples {
-		g.addPlacement(ev, x.Line, x.Example, x.Hash, x.H0)
+		g.addPlacement(ev, x.Line, x.Example, x.Hash, x.H0, x.Findings)
 	}
 	g.epoch++
 }
@@ -780,6 +799,7 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 			})
 		}
 	}
+	linkNames(&t)
 	return t
 }
 
@@ -834,7 +854,7 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 		return // GuardGoalAdd decoded it already
 	}
 	if g, ok := t.Goals[ev.Node]; ok && ev.Node != ev.ID {
-		g.Words, g.Base, g.BaseTree, g.From, g.Lines, g.Why = p.Words, p.Base, p.BaseTree, p.From, p.Lines, ev.Why
+		g.Words, g.Base, g.BaseTree, g.From, g.Lines, g.Why, g.Named = p.Words, p.Base, p.BaseTree, p.From, p.Lines, ev.Why, p.Findings
 		g.seen = append(g.seen, ev.ID)
 		g.refresh()
 		return
@@ -842,7 +862,7 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 	t.Goals[ev.ID] = &Goal{
 		ID: GoalID(ev.ID), EventID: ev.ID, Words: p.Words, Base: p.Base, BaseTree: p.BaseTree,
 		Budget: p.Budget, Actor: ev.Actor, From: p.From, State: StateWritten, Lines: p.Lines,
-		Why: ev.Why, seen: []string{ev.ID},
+		Why: ev.Why, Named: p.Findings, seen: []string{ev.ID},
 	}
 }
 

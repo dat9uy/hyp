@@ -179,7 +179,7 @@ func TestExitCodes(t *testing.T) {
 // description column adds nothing to it.
 func TestUsageJoinsEveryLine(t *testing.T) {
 	want := map[string]string{
-		"add goal": "add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...] [--from G] [--why TEXT]",
+		"add goal": "add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...] [--from G] [--finding F ...] [--why TEXT]",
 		"try":      "try G LINE/EXAMPLE [--worktree | --commit COMMIT]",
 		"run":      "run COMMIT G/LINE [--why TEXT]",
 	}

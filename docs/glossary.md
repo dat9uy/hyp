@@ -30,7 +30,7 @@ The fourteen event types, each with where it is stored in `hyp spec`:
 | `unselect` | the owner's unselect of a selected Goal, which puts it back to open |
 | `read` | what hyp printed to an actor; it goes into the trace, never into the log |
 | `finding.add` | a finding, which names no Goal; it goes into the trace, never into the log |
-| `finding.fold` | a fold of one or more findings into one Goal in work; it goes into the trace |
+| `finding.fold` | the old form of a name: a fold of one or more findings into one Goal in work, which counts as a name by that Goal; replayed and no longer written; it goes into the trace |
 | `finding.refute` | a refute of a finding; it goes into the trace |
 | `finding.decline` | the owner's decline of a finding, with a why; it goes into the trace |
 
@@ -231,7 +231,7 @@ The record of one `run`: one line of one Goal on one commit, with one cell per p
 _Avoid_: finding, outcome
 
 **Finding**:
-A fact an agent found, with a pointer to its evidence, such as a Result id. Its id is `F-…`. Any agent adds one with `hyp finding add`, which names no Goal, and folds it into the one Goal in work whose want it bears on, or refutes it when its fact is false; it may carry an `add goal` the agent drafted for the owner. The owner declines, with `hyp finding decline F --why TEXT`, a finding that is not folded whose fact is true and that the owner does not want fixed. `hyp finding list` prints each finding with its state: `not folded`, `folded into G`, `folded into G, ended`, `refuted` or `declined`, and `hyp status G` prints the findings folded into G. Its events are in the trace, so a finding changes no Goal's state (`hyp spec`, findings).
+A fact an agent found, with a pointer to its evidence, such as a Result id. Its id is `F-…`. Any agent adds one with `hyp finding add`, which names no Goal, or refutes it when its fact is false; it may carry an `add goal` the agent drafted for the owner. A Goal names the findings it is about in its own record: the owner with `hyp add goal --finding F`, the grill in the `findings` section of an example. The owner declines, with `hyp finding decline F --why TEXT`, a finding that no Goal named whose fact is true and that the owner does not want fixed. `hyp finding list` prints each finding with its state: `not folded`, `folded into G`, `settled in G`, `ended in G, not settled`, `refuted` or `declined`, and `hyp status G` prints the findings G names. Its events are in the trace, so a finding changes no Goal's state (`hyp spec`, findings).
 _Avoid_: Result (a finding is not the record of a run)
 
 **Cell**:

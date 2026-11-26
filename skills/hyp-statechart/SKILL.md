@@ -69,8 +69,8 @@ record branch so that every runner commit holds it:
    such as `WriteOutputsEarly`, that is FALSE in the check config. A variant is
    a build a runner could make in a few lines, not a wish list.
 4. **Model every act a line allows, in every state it allows it.** A line
-   that lets an act happen again (for example "a folded finding may be folded
-   again") needs that step from every state the line names, ended states
+   that lets an act happen again (for example "an unselected Goal may be
+   selected again") needs that step from every state the line names, ended states
    included. The view prints what the system prints on that step, ready lines
    too, so an example can see it. A step the model leaves out is a behaviour
    that no variant and no example reaches, and the chart does not show it.

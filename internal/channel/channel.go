@@ -215,7 +215,7 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 	case "finding":
 		if len(args) > 1 {
 			switch args[1] {
-			case "add", "fold", "refute", "decline":
+			case "add", "refute", "decline":
 				return findingCmd(c, args[1], args[2:], stdout, stderr)
 			case "list":
 				return findingListCmd(c, args[2:], stdout)
@@ -264,6 +264,16 @@ func (l *lineFlag) Set(s string) error {
 	return nil
 }
 
+// listFlag collects a repeated flag's values in order.
+type listFlag []string
+
+func (l *listFlag) String() string { return "" }
+
+func (l *listFlag) Set(s string) error {
+	*l = append(*l, s)
+	return nil
+}
+
 // flagsFailed is the bad argument of a command whose flags do not parse.
 func flagsFailed(command string, err error) error {
 	if _, ok := fault.As(err); ok {
@@ -294,7 +304,9 @@ func addGoal(c *call, args []string, stdout, stderr io.Writer) error {
 	fs.SetOutput(io.Discard)
 	var o acts.AddGoalOpts
 	var lines lineFlag
+	var names listFlag
 	actorFlags(fs, &o.Actor, &o.Role, &o.Why)
+	fs.Var(&names, "finding", "")
 	fs.StringVar(&o.From, "from", "", "")
 	fs.StringVar(&o.Words, "words", "", "")
 	fs.StringVar(&o.Base, "base", "", "")
@@ -319,7 +331,7 @@ func addGoal(c *call, args []string, stdout, stderr io.Writer) error {
 	if err := checkWhy(o.Why); err != nil {
 		return err
 	}
-	o.Lines = lines
+	o.Lines, o.Findings = lines, names
 	o.Dir = c.dir
 	rep, err := acts.AddGoal(o)
 	if err != nil {
@@ -713,10 +725,10 @@ func unselectCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	return finish(stdout, stderr, c.dir, rep.Goal, unselectText(rep), nil)
 }
 
-// findingCmd runs an act on a finding: finding add, fold, refute or
-// decline. Any actor runs it, with any role or none, but only the owner
-// declines; it writes its event to the clone's trace. Its report names each finding with its state; after a fold, the
-// state block of the Goal it folded into follows it.
+// findingCmd runs an act on a finding: finding add, refute or decline. Any
+// actor runs it, with any role or none, but only the owner declines; it
+// writes its event to the clone's trace. Its report names each finding with
+// its state.
 func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) error {
 	command := "finding " + act
 	fs := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -727,8 +739,6 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 		fs.StringVar(&o.Fact, "fact", "", "")
 		fs.StringVar(&o.Evidence, "evidence", "", "")
 		fs.StringVar(&o.Draft, "draft", "", "")
-	case "fold":
-		fs.StringVar(&o.Goal, "goal", "", "")
 	}
 	positional, _, err := readFlagsWith(c, command, args, fs)
 	if err != nil {
@@ -745,15 +755,6 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 			return fault.BadArg(codeFindingArgs, command, len(positional))
 		}
 		rep, err = acts.FindingAdd(o)
-	case "fold":
-		if len(positional) == 0 {
-			return fault.BadArg(codeFindingArgs, command, len(positional))
-		}
-		if o.Goal == "" {
-			return fault.BadArg(codeFoldNoGoal)
-		}
-		o.Findings = positional
-		rep, err = acts.FindingFold(o)
 	case "refute":
 		if len(positional) != 1 {
 			return fault.BadArg(codeFindingArgs, command, len(positional))
@@ -770,7 +771,7 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 	if err != nil {
 		return finish(stdout, stderr, c.dir, "", "", err)
 	}
-	return finish(stdout, stderr, c.dir, rep.Goal, findingText(rep), nil)
+	return finish(stdout, stderr, c.dir, "", findingText(rep), nil)
 }
 
 // findingListCmd is hyp finding list: a read that prints every finding with

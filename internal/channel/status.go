@@ -213,20 +213,29 @@ func probeWriter(b *strings.Builder, g *tables.Goal) {
 	}
 }
 
-// findings lists every finding folded into g in this clone's trace, each
-// with its state, its evidence and its fact. Only a block that names its
-// Goal prints them: a fact is an agent's text, which can hold lines that read
-// as Goals of this store. Each line of a fact is indented, so the list ends
+// findings lists every finding g names: the ids its record in git names, on
+// any clone, then those an old fold in this clone's trace folded into it.
+// Each prints its state, its evidence and its fact when this clone's trace
+// holds it, and says so when it does not. Only a block that names its Goal
+// prints them: a fact is an agent's text, which can hold lines that read as
+// Goals of this store. Each line of a fact is indented, so the list ends
 // where the next part of the block starts.
 func findings(b *strings.Builder, t tables.Tables, g *tables.Goal) {
-	first := true
+	ids := g.Findings()
 	for _, f := range tables.SortedFindings(t) {
-		if f.Into != g {
-			continue
+		if f.NamedBy(g) && !slices.Contains(ids, f.EventID) {
+			ids = append(ids, f.EventID)
 		}
-		if first {
-			b.WriteString("findings:\n")
-			first = false
+	}
+	if len(ids) == 0 {
+		return
+	}
+	b.WriteString("findings:\n")
+	for _, id := range ids {
+		f, err := t.FindFinding(id)
+		if err != nil {
+			fmt.Fprintf(b, "  %s  not in this clone's trace\n", tables.FindingID(id))
+			continue
 		}
 		fmt.Fprintf(b, "  %s  %s  by %s at %s\n", f.ID, findingStateText(f), f.Actor, f.Time)
 		fmt.Fprintf(b, "    evidence: %s\n", indentText(f.Evidence, "      "))
