@@ -93,9 +93,11 @@ record branch so that every runner commit holds it:
    writes `goal.md` beside `report.md`:
    - one variant config per variant under `specs/variants/`, which lists
      exactly the rules that variant breaks;
-   - each rule no variant breaks, printed as not shown to fail. The tool
-     still exits 0, but hyp refuses this check config at select. Before you
-     commit the model, fix the model or add the variant that breaks the rule.
+   - each rule no variant breaks, printed as not shown to fail. hyp refuses
+     this check config at select, so the tool names each such rule, says that
+     hyp select refuses the check config, and exits 3 where it would exit 0.
+     Before you commit the model, fix the model or add the variant that
+     breaks the rule.
      If no variant can break a rule of a line or of an owner decision, take
      the rule out of the check config and name it in the hand-off;
    - for each example, a walk of the model whose prints meet the example's
