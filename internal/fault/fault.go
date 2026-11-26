@@ -40,6 +40,7 @@ const (
 	GuardKind        Guard = "Kind"
 	GuardCommitted   Guard = "Committed"
 	GuardAddsOnly    Guard = "Adds only"
+	GuardMeetable    Guard = "Meetable"
 	GuardWholeSet    Guard = "Whole set"
 	GuardLeafOnly    Guard = "Leaf only"
 	GuardBytes       Guard = "Bytes"

@@ -1,0 +1,26 @@
+---
+title: "hyp G-MNSE33: place refuses an example no build can meet"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: written
+    lg1: open
+  }
+  class lg0 orange
+  class lg1 teal
+  state "Written" as s0 {
+    s1: nothing placed yet
+    s2: set refused
+    [*] --> s1
+  }
+  state "Open" as s3 {
+    s4: set placed
+    [*] --> s4
+  }
+  [*] --> s0
+  s1 --> s3: the grill places the set [some output meets each example]
+  s1 --> s2: the grill places the set [an example no output meets]
+  s2 --> s1: the grill fixes the set
+  class s1 orange
+  class s2 orange
+  class s4 teal

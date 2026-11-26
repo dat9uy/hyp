@@ -263,6 +263,23 @@ func TestPlaceRefusesWholeSetWhenOneExampleDisagrees(t *testing.T) {
 	}
 }
 
+func TestPlaceRefusesAnExampleNoOutputMeets(t *testing.T) {
+	e := newPlaceEnv(t)
+	e.write(t, "line-1/a", failingOnH0, fixtureProbe)
+	e.write(t, "line-1/b", failingOnH0+"-- floor: contains --\nexit 1\n", fixtureProbe)
+	e.commit(t)
+	_, err := e.place()
+	refusedBy(t, err, "Meetable")
+	cs := causes(t, err)
+	if len(cs) != 1 {
+		t.Fatalf("causes = %v, want line-1/b alone", cs)
+	}
+	causedBy(t, cs, "line-1/b", "Meetable")
+	if n := len(e.placements(t)); n != 0 {
+		t.Fatalf("%d place events, want none", n)
+	}
+}
+
 func TestPlaceKindRefusalShowsH0Output(t *testing.T) {
 	e := newPlaceEnv(t)
 	e.example(t, "line-1/a", metOnH0+"-- floor: equals --\nhi\n-- ceiling --\nzzz\n")

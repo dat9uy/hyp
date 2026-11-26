@@ -2,7 +2,9 @@ package example
 
 import (
 	"bytes"
+	"regexp"
 	"slices"
+	"strings"
 
 	"github.com/dat9uy/hyp/internal/fault"
 )
@@ -41,6 +43,44 @@ func Compare(output []byte, ex Example) Verdict {
 		}
 	}
 	return Met
+}
+
+// ExitLine is the last line a Probe prints, "exit N". hyp cuts it off the
+// Probe's stdout before it compares, so the output never ends with it.
+var ExitLine = regexp.MustCompile(`^exit (0|[1-9][0-9]*)$`)
+
+// Meetable refuses an example that no output can meet: a floor whose whole
+// text is an exit line, two equals floors that differ, an equals floor that
+// does not hold the text of a contains floor, or a floor that holds the text
+// of a ceiling. It names the first such floor.
+func Meetable(ex Example) error {
+	for _, f := range ex.Floors {
+		if ExitLine.MatchString(f.Text) {
+			return fault.Refuse(fault.GuardMeetable, fault.FloorIsExitLine, f.Op, f.Text)
+		}
+	}
+	var equals *Floor
+	for i, f := range ex.Floors {
+		if f.Op != OpEquals {
+			continue
+		}
+		if equals == nil {
+			equals = &ex.Floors[i]
+		} else if equals.Text != f.Text {
+			return fault.Refuse(fault.GuardMeetable, fault.EqualsFloorsDiffer, equals.Text, f.Text)
+		}
+	}
+	for _, f := range ex.Floors {
+		if equals != nil && f.Op == OpContains && !strings.Contains(equals.Text, f.Text) {
+			return fault.Refuse(fault.GuardMeetable, fault.EqualsLacksContains, equals.Text, f.Text)
+		}
+		for _, c := range ex.Ceilings {
+			if strings.Contains(f.Text, c) {
+				return fault.Refuse(fault.GuardMeetable, fault.FloorHoldsCeiling, f.Op, f.Text, c)
+			}
+		}
+	}
+	return nil
 }
 
 // AddsOnly refuses a new version of an example that changes more than it

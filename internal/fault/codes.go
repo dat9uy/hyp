@@ -45,6 +45,10 @@ const (
 	ObjectMissing        Code = "object-missing"          // hash
 	NoExampleTxtar       Code = "no-example-txtar"        // hash
 	WrongVerdictOnH0     Code = "wrong-verdict-on-h0"     // acts.KindFacts
+	FloorIsExitLine      Code = "floor-is-exit-line"      // op, floor
+	EqualsFloorsDiffer   Code = "equals-floors-differ"    // floor, floor
+	EqualsLacksContains  Code = "equals-lacks-contains"   // equals floor, contains floor
+	FloorHoldsCeiling    Code = "floor-holds-ceiling"     // op, floor, ceiling
 
 	// run
 	NoCommit         Code = "no-commit"          // no values
