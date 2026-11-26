@@ -61,8 +61,9 @@ owner put in a line and what the owner left out.
    under the line whose words are nearest to it, or under any line when none
    is near: the folder is never placed. Give it the generic Probe, or a Probe
    writer's Probe when the case needs a setup, as in
-   [examples.md](examples.md). Give it the floor `exit`, which the generic
-   Probe's last line always holds: the walk shows outputs, never this verdict.
+   [examples.md](examples.md). An example file needs a floor, so give it
+   any short floor: the walk shows outputs, never the verdict. hyp cuts the
+   Probe's last line `exit N` off before it compares, so no floor sees it.
 3. **Ask about one case at a time.** Show the case and its output on H0, from
    `hyp try G LINE/CASE`. Ask: "What do you expect the build to print?" The
    owner may answer "I expect Y", "either is fine" or "I don't know". Each
