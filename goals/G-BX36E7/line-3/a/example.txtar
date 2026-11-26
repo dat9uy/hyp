@@ -3,7 +3,7 @@ A good model exits 0: a Goal's model whose one checked rule, Positive, the varia
 -- run --
 skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/count.tla --config goals/G-ONE/specs/count.cfg --out out
 -- floor: contains --
-Variant configs written: Breaks.cfg
+variants/Breaks.cfg
 -- floor: contains --
 exit 0
 -- ceiling --

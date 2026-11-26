@@ -3,7 +3,7 @@ Still writes report and configs: a Goal's model checks TypeOK, which no variant 
 -- run --
 skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/count.tla --config goals/G-ONE/specs/count.cfg --out out
 -- floor: contains --
-Variant configs written: Breaks.cfg
+variants/Breaks.cfg
 -- floor: contains --
 Wrote out
 -- ceiling --
