@@ -5,4 +5,4 @@ hyp status G-ONE --role runner
 -- floor: contains --
 hyp select G-ONE
 -- ceiling --
-other-goal-path
+Own path
