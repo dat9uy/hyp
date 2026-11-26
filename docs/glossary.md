@@ -119,11 +119,15 @@ One part or one meaning of a line's words that an example checks. The grill show
 _Avoid_: interpretation, test idea, direction (alone)
 
 **Gap line**:
-A line that is false on H0 and that the build must make true. Each of its examples must fail on H0 (`hyp spec`, Kind).
+A line that is false on H0 and that the build must make true. Each of its examples agrees with it on H0: the example fails there (`hyp spec`, Kind).
 
 **Guard line**:
-A line that is true on H0 and that the build must keep true. Each of its examples must be met on H0 (`hyp spec`, Kind).
+A line that is true on H0 and that the build must keep true. Each of its examples agrees with it on H0: the example is met there (`hyp spec`, Kind).
 _Avoid_: guard (alone) for a guard line; a guard is a rule of an act
+
+**Agree** (of an example with its line):
+An example agrees with its line when H0 gives it the verdict its line's kind needs: a gap example fails on H0, and a guard example is met on H0. An example that does not agree disagrees, and `place` then refuses the whole set (`hyp spec`, Kind). Agree and disagree are said only of H0; `met` and `failed` stay the verdicts of a build.
+_Avoid_: pass on H0, red on base, valid
 
 **Draft replace**:
 `add goal G …` on a Goal that is still written. It replaces the Goal's words, lines or base and keeps its actor. After the Goal opens, the words and lines are frozen (`hyp spec`, Draft).
@@ -232,7 +236,15 @@ _Avoid_: finding, outcome
 
 **Finding**:
 A fact an agent found, with a pointer to its evidence, such as a Result id. Its id is `F-…`. Any agent adds one with `hyp finding add`, which names no Goal, or refutes it when its fact is false; it may carry an `add goal` the agent drafted for the owner. A Goal names the findings it is about in its own record: the owner with `hyp add goal --finding F`, the grill in the `findings` section of an example. The owner declines, with `hyp finding decline F --why TEXT`, a finding that no Goal named whose fact is true and that the owner does not want fixed. `hyp finding list` prints each finding with its state: `not folded`, `folded into G`, `settled in G`, `ended in G, not settled`, `refuted` or `declined`, and `hyp status G` prints the findings G names. Its events are in the trace, so a finding changes no Goal's state (`hyp spec`, findings).
-_Avoid_: Result (a finding is not the record of a run)
+_Avoid_: Result (a finding is not the record of a run); out-of-Goal finding (every finding names no Goal)
+
+**Fold** (of a finding):
+The state of a finding that a Goal's record names. It reads `folded into G` while a Goal in work names it, `settled in G` once a Goal that names it lands with a select, and `ended in G, not settled` when every Goal that named it ended with no select. Fold is a state, not an act: no command folds. An old `finding.fold` event counts as a name by its Goal (`hyp spec`, finding states).
+_Avoid_: link, ref, attach
+
+**Learn**:
+What every record is kept for. An agent learns a fact, which is a finding. A Goal names the findings that bear on its want. The owner learns a want from a consequence and states it as a line, a decline or a "not yet". The log keeps what the owner learned or approved. The trace keeps what agents learned, as a cache that may be lost with its clone.
+_Avoid_: knowledge (alone), memory
 
 **Cell**:
 One example's record on one Result: the example key and hash, the Probe hash, the output and stderr hashes, the exit code and the verdict.
@@ -494,7 +506,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](https://githu
 | Keyed item, Limit, Line, Reading, Reach | Items inside an event: a case no check ran, a limit on the Goal (`G-…#n`), how a run read owner words, and what an answer could move. | Line: `line-N`, a gap or guard line with examples. A gap a review finds is an example or a new Goal. |
 | Answer, Checkpoint | The owner's event, and the runner's report event. | The owner's acts `add goal`, `select`, `land`, `unselect` and `reset`. |
 | Aim, Reassess, Coverage | What an Experiment planned to settle, how an answer reached the tree, and which Hypotheses a Result ran on. | None. |
-| Out-of-Goal finding | A finding that is a case of no line. | A defect outside the Goal, which the runner lists in the PR. |
+| Out-of-Goal finding | A finding that is a case of no line. | A finding (`hyp finding add`), which names no Goal; a Goal names it. |
 | Ledger item, Owed, Awaiting owner, Frontier, Open limits, Status section | The open work and the `hyp status` sections that showed it. | The state block: the stop, the waits and the allowed acts. |
 | Edge, supersedes, external_ref | Typed links between nodes. | None. |
 | Admission, Cite | Write-time rules, and a token that names a node. | Guards. |
