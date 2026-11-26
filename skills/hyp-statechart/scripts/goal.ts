@@ -389,6 +389,23 @@ export function commandWalk(ex: Example, commands: Map<string, string>): Command
   return unknown.length ? { unknown } : { steps };
 }
 
+// writesBeforeRun reports whether an example's Probe writes a file before it
+// calls its run section: a command with an output redirect (> or >>, not to
+// /dev/null or to a file descriptor) or a program that writes files, such as
+// cp or touch. Such a write can set up the example's case, and it takes no
+// step of the model.
+const WRITERS = new Set(["cp", "mv", "touch", "tee", "mkdir", "ln", "rm", "install", "dd", "tar", "unzip"]);
+export function writesBeforeRun(ex: Example): boolean {
+  if (ex.probe === undefined) return false;
+  for (const c of shellCommands(ex.probe)) {
+    if (/\$\{?HYP_RUN\b/.test(c.raw)) return false;
+    const unquoted = c.raw.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, "");
+    if (/>>?\s*(?![&>]|\/dev\/null\b)\S/.test(unquoted)) return true;
+    if (WRITERS.has(c.words[0])) return true;
+  }
+  return false;
+}
+
 // pathOf is a path of the model that takes the steps of a command walk, from
 // a start state; undefined when the model cannot take them.
 export function pathOf(model: Model, steps: CommandStep[]): Edge[] | undefined {
@@ -581,6 +598,9 @@ type Plan =
   | { kind: "shortest"; walk: Walk }
   | { kind: "unknown"; commands: string[] }
   | { kind: "cannot"; steps: CommandStep[] }
+  // the model has more than one start case and the Probe writes files before
+  // its run section, which take no step: the tool cannot see the start case
+  | { kind: "start"; starts: number }
   | { kind: "commands"; steps: CommandStep[]; edges: Edge[]; outside: boolean };
 
 type Cell = { predicted: "met" | "fail" | "no walk" | "not predicted"; tried?: "met" | "fail" };
@@ -713,6 +733,10 @@ export async function goalReport(
       plans.set(ex.key, { kind: "unknown", commands: cw.unknown });
       continue;
     }
+    if (baseModel.starts.length > 1 && writesBeforeRun(ex)) {
+      plans.set(ex.key, { kind: "start", starts: baseModel.starts.length });
+      continue;
+    }
     const edges = pathOf(baseModel, cw.steps);
     if (!edges) {
       plans.set(ex.key, { kind: "cannot", steps: cw.steps });
@@ -833,6 +857,11 @@ export async function goalReport(
           `- ${ex.key}: its Probe or run section calls ${names}, which the model has no step for, so the tool predicts no verdict.`,
         );
         toTry.push(`- ${ex.key}: the model has no step for ${names}.`);
+      } else if (plan.kind === "start") {
+        out.push(
+          `- ${ex.key}: the model has ${plan.starts} start cases, and the example's Probe writes files before its run section, which takes no step of the model, so the tool cannot see the example's start case and predicts no verdict.`,
+        );
+        toTry.push(`- ${ex.key}: the tool cannot see its start case.`);
       } else if (plan.kind === "cannot") {
         const acts = plan.steps.map((s) => s.action).join(", ");
         out.push(
