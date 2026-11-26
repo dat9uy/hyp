@@ -74,9 +74,11 @@ owner put in a line and what the owner left out.
    - **It fits.** Keep nothing. `hyp try` saves cells in this clone's trace
      only, so the walk adds nothing to git. Commit no walk folder.
    - **Hold it, and a line's words cover it.** This is an adjust. The owner
-     unselects. The case becomes a new example key on that line, with the
-     owner's answer as its floor, and is placed. The place moves the budget's
-     boundary, so the runner runs the selected build again, as run 1 of 3.
+     unselects. The case becomes a new example key on that line, and is
+     placed. Its floor is the owner's answer, or, after "either is fine" or
+     "I don't know", the part of an output the owner names. The place moves
+     the budget's boundary, so the runner runs the selected build again, as
+     run 1 of 3.
    - **Hold it, and no line's words cover it.** This is a new Goal. The owner
      lands G, then adds a Goal `--from G`, in the same record PR.
 6. **Code reading stays behind the walk.** When the owner finds a consequence
