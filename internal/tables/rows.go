@@ -34,7 +34,7 @@ type Row struct {
 
 // rowCommits lists the Goal's rows in order, H0's first, as row tree and the
 // commits it was seen at. A Result refused by Stable counts for nothing, so
-// it makes no row; a retracted one still does.
+// it makes no row.
 func (g *Goal) rowCommits() (trees []string, commits map[string][]string) {
 	commits = map[string][]string{g.BaseTree: {g.Base}}
 	trees = []string{g.BaseTree}
@@ -211,8 +211,8 @@ func GuardOwnPath(g *Goal, changes []gitread.OwnPath) error {
 }
 
 // countedTrees are the distinct row trees, H0's excluded, of the Goal's
-// Results recorded since the boundary. A retracted Result counts; one refused
-// by Stable does not; one on a tree that was H0 when it ran never does, even
+// Results recorded since the boundary. A Result refused
+// by Stable does not count; one on a tree that was H0 when it ran never does, even
 // after a Draft replace moved the base.
 func (g *Goal) countedTrees() []string {
 	var trees []string

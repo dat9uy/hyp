@@ -181,9 +181,9 @@ func TestEventGoesWhereItsKindSays(t *testing.T) {
 	if evs, _, err := Load(r.Dir); err != nil || len(evs) != 1 {
 		t.Errorf("Load = %d events, %v; want the read", len(evs), err)
 	}
-	reset := events.Event{Type: events.TypeBudgetReset, Node: "x", Payload: []byte(`{"role":"owner"}`)}
-	if _, err := tr.Append("owner-1", reset); fault.CodeOf(err) != fault.EventHome {
-		t.Errorf("a budget.reset in the trace: %v, want %s", err, fault.EventHome)
+	unsel := events.Event{Type: events.TypeUnselect, Node: "x", Payload: []byte(`{"role":"owner"}`)}
+	if _, err := tr.Append("owner-1", unsel); fault.CodeOf(err) != fault.EventHome {
+		t.Errorf("an unselect in the trace: %v, want %s", err, fault.EventHome)
 	}
 	if _, err := os.Stat(filepath.Join(r.Dir, ".tree", "events", "runner-1.jsonl")); !os.IsNotExist(err) {
 		t.Errorf("the read went to git: %v", err)

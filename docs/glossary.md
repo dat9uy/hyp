@@ -14,7 +14,7 @@ _Avoid_: database, index (hyp keeps no table)
 One JSON line in a file of its own, `.tree/events/<actor>/<id>.json`, or in an older store a line of `.tree/events/<actor>.jsonl`. Only hyp writes it, and it is never changed. Every table and state comes from the events.
 _Avoid_: entry, record (alone)
 
-The fourteen event types, each with where it is stored in `hyp spec`:
+Ten of the thirteen event types. `hyp spec` lists all of them, each with where it is stored:
 
 | Event | Records |
 |---|---|
@@ -22,9 +22,7 @@ The fourteen event types, each with where it is stored in `hyp spec`:
 | `examples.place` | a place of the example set: each example it changed, with H0's cell |
 | `example.place` | the old form, one example per event; replay reads it, no act writes it |
 | `result.record` | a Result: the cells of one line on one commit |
-| `result.retract` | a retract of a Result |
 | `select` | the select of a candidate row |
-| `budget.reset` | a reset of the budget's boundary |
 | `land` | the owner's land of a Goal at a stop; it names the stop, the act that caused it and the snapshot |
 | `close` | the owner's close of a Goal at any stop or none; it names the snapshot |
 | `unselect` | the owner's unselect of a selected Goal, which puts it back to open |
@@ -84,7 +82,7 @@ _Avoid_: user, author (alone); actor for a role
 What an actor does in an act: `owner`, `grill`, `probe-writer` or `runner`. It comes from `--role` or `$HYP_ROLE`, and a write act needs one. Roles are self-declared: hyp has no authorization layer.
 
 **Owner**:
-The role that adds the Goal, selects a candidate, unselects and lands a Goal, and resets the budget. The owner may select at any time, and is the only role that selects when two or more candidates exist. Only the actor that added the Goal selects for the owner (`hyp spec`, Candidate, New cell and Goal's actor). The owner answers product questions; the builder chooses the mechanics.
+The role that adds the Goal, selects a candidate, unselects, lands and closes a Goal. The owner may select at any time, and is the only role that selects when two or more candidates exist. Only the actor that added the Goal selects for the owner (`hyp spec`, Candidate, New cell and Goal's actor). The owner answers product questions; the builder chooses the mechanics.
 _Avoid_: user, stakeholder, approver
 
 **Grill**:
@@ -235,7 +233,7 @@ _Avoid_: run tree, tree for a hash
 A Hypothesis with nothing below it in the Hypothesis tree: no Result on another row carries one of its row's commits among the commits its run's commit descends from. hyp calculates it from the Results, so a rebase, a squash or a new clone changes no leaf (`hyp spec`, the subject).
 
 **Result**:
-The record of one `run`: one line of one Goal on one commit, with one cell per placed example. Its id is `R-…`. A retracted Result is never deleted.
+The record of one `run`: one line of one Goal on one commit, with one cell per placed example. Its id is `R-…`. A Result is never deleted.
 _Avoid_: finding, outcome
 
 **Finding**:
@@ -257,7 +255,7 @@ One example's record on one Result: the example key and hash, the Probe hash, th
 A cell is keyed by its Result and its example hash, not by the example key and version. So an adjust makes new cells, and the old cells stay as history that is not live under the new placement (`hyp spec`, Cell key).
 
 **Live** (cell):
-A cell whose Result is not retracted and not refused by Stable, and whose example hash is the current placement's hash.
+A cell whose Result is not refused by Stable, and whose example hash is the current placement's hash.
 _Avoid_: live for a Hypothesis (a v1 meaning)
 
 **Candidate**:
@@ -316,11 +314,11 @@ What the runner wrote in a commit, not what it took in from main: the diff from 
 ## Budget and stops
 
 **Budget**:
-At most three Hypotheses run since the boundary, H0 never counted. Three is fixed for every Goal. A refused run costs nothing, and a retracted Result still counts (`hyp spec`, Budget).
+At most three Hypotheses run since the boundary, H0 never counted. Three is fixed for every Goal. A refused run costs nothing (`hyp spec`, Budget).
 _Avoid_: three commits (the unit is the Hypothesis: one subject hash), retries
 
 **Boundary**:
-The start of the budget's count: the latest of the latest example-changing placement, the latest `budget.reset` and the latest `unselect`, else the Goal's start.
+The start of the budget's count: the latest of the latest example-changing placement and the latest `unselect`, else the Goal's start.
 
 **Stop**:
 A calculated point that ends the runner's runs on a Goal. A stop is not stored: hyp shows it as an event, calculated from the log, on the `stop:` line of the state block: which stop, the act that caused it, its event id and when. Each stop waits for the owner, who may land the Goal:
@@ -356,8 +354,6 @@ A command that writes nothing in the repository and only a `read` in the trace: 
 | `land` | owner | yes |
 | `close` | owner | yes |
 | `unselect` | owner | yes |
-| `reset` | owner | specified, not built |
-| `retract` | the actor that ran the Result | specified, not built |
 
 "Built" means `hyp help` lists the act. `hyp spec` gives each act's guards, in order.
 
@@ -385,12 +381,6 @@ _Avoid_: deselect, reopen, undo
 What an ended Goal leaves: the Goal's events that its land or close names, in the `.tree/` of the tree being read, and the outputs they name. The end stores only their ids, and the snapshot holds no code, only Results. It is the owner's decision, fixed: replay refuses an event of the Goal that another clone wrote before the end and that the end does not name, so the Goal holds what the owner saw in every clone. `status G` prints its record: the Goal's words, the why it was added with, each line with its kind, the why of its land or close, and the PR body, or the table of outputs when the Goal has no select. The return of `land` or `close` does not print that record: it prints the state block, without the words, the whys or the lines. A later Goal starts from it with `add goal --from G` (`hyp spec`, `land`).
 _Avoid_: archive, report file
 
-**Reset** (specified, not built):
-The owner's act `reset G`. It writes `budget.reset`, which moves the budget's boundary.
-
-**Retract** (specified, not built):
-The act `retract R`. It moves a Result to retracted, so its cells stop being live. Only the actor that ran it retracts it (`hyp spec`, Own Result).
-
 **Show**:
 The read `show ACTOR`. It prints every read of ACTOR from the trace, oldest first, byte for byte.
 
@@ -412,7 +402,7 @@ _Avoid_: check, validation, rule (alone)
 | Whole lines | every line has a kind, one line or more is a gap line, and there are at most ten lines |
 | Not ended | the Goal is not landed or closed, and at replay the end's snapshot names the event |
 | Open | the Goal is open; `run` on H0 does not check it |
-| Goal's actor | the actor added the Goal, for an owner's select, a land, a close, an unselect and a reset |
+| Goal's actor | the actor added the Goal, for an owner's select, a land, a close and an unselect |
 | Grill places | the act's role is grill, for a place |
 | Kind | H0 gives the verdict the line's kind needs |
 | Whole set | for a place: every line holds an example folder, every example placed before still has its folder, and every folder name is an example name |
@@ -432,7 +422,6 @@ _Avoid_: check, validation, rule (alone)
 | Owner unselects | the act's role is owner, for an unselect |
 | Stop | the Goal is at a stop, for a land |
 | From ended | the Goal that `add goal --from` cites is landed or closed |
-| Own Result | the actor ran the Result it retracts |
 
 The guard **Nothing new** is removed: Stable judges every repeat.
 
@@ -525,7 +514,7 @@ These words belong to hyp 0.1.0. Its rules are in [replay-spec.md](https://githu
 | Evidence pointer, Pin, Questionable | Where a Result points, the hash it recorded for a bundle, and the flag when that hash moved. | Outputs by hash, and the example hash on each cell. |
 | Stale, depends_on, Reaffirm | A node whose basis may no longer hold, the edge it follows, and the act that renews it. | None. |
 | Keyed item, Limit, Line, Reading, Reach | Items inside an event: a case no check ran, a limit on the Goal (`G-…#n`), how a run read owner words, and what an answer could move. | Line: `line-N`, a gap or guard line with examples. A gap a review finds is an example or a new Goal. |
-| Answer, Checkpoint | The owner's event, and the runner's report event. | The owner's acts `add goal`, `select`, `land`, `unselect` and `reset`. |
+| Answer, Checkpoint | The owner's event, and the runner's report event. | The owner's acts `add goal`, `select`, `land`, `close` and `unselect`. |
 | Aim, Reassess, Coverage | What an Experiment planned to settle, how an answer reached the tree, and which Hypotheses a Result ran on. | None. |
 | Out-of-Goal finding | A finding that is a case of no line. | A finding (`hyp finding add`), which names no Goal; a Goal names it. |
 | Ledger item, Owed, Awaiting owner, Frontier, Open limits, Status section | The open work and the `hyp status` sections that showed it. | The state block: the stop, the waits and the allowed acts. |

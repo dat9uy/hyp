@@ -130,7 +130,7 @@ type UnstableCell struct {
 }
 
 // unstableAt reads, at the Result's place in the merge order, the live cell
-// each differing example was compared with, so a later retract or adjust does
+// each differing example was compared with, so a later Result does
 // not change what the refusal shows.
 func (g *Goal) unstableAt(p events.ResultRecord) []UnstableCell {
 	live := g.LiveCells(p.RowTree)

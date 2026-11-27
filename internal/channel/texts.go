@@ -223,8 +223,6 @@ var words = map[fault.Code]string{
 	fault.AlreadyUnselected:    "the owner already unselected %[2]s on %[1]s",
 	fault.AlreadyCurrent:       "%s is already the current version of %s (@%d); a new version adds a floor or a ceiling",
 	fault.EarlierVersion:       "%s was version @%d of %s; an earlier version never comes back",
-	fault.NoResultToRetract:    "no Result %s to retract",
-	fault.NotOwnResult:         "%s was run by %s, not %s",
 	fault.Ended:                "%s is ended; an ended Goal takes no write",
 	fault.NotInSnapshot:        "the end of %s, %s, does not name this event: it was written in another clone before the end and reached this log after it, so the ended Goal keeps what the owner saw",
 	fault.NotOwnerClose:        "only the owner closes a Goal; the role is %s",

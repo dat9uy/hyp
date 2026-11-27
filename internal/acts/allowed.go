@@ -101,12 +101,12 @@ func selectCause(sel *tables.Select) Cause {
 }
 
 // lastRun is the run that caused a stop of the runs: the latest Result, in
-// merge order, that counts, neither retracted nor refused by Stable. Only a
+// merge order, that counts, not refused by Stable. Only a
 // run adds a row or a cell, so the latest one is the run after which the stop
 // held.
 func lastRun(g *tables.Goal) Cause {
 	for i := len(g.Results) - 1; i >= 0; i-- {
-		if r := g.Results[i]; !r.Retracted && r.Refused == "" {
+		if r := g.Results[i]; r.Refused == "" {
 			return Cause{Act: ActRun, ID: r.ID, Time: r.Time}
 		}
 	}

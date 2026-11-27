@@ -182,7 +182,6 @@ type Result struct {
 	Actor     string
 	Role      string
 	Time      string
-	Retracted bool
 	Refused   string // empty, or "Stable"
 	Differing []string
 	Cells     []events.ExampleCell
@@ -406,7 +405,7 @@ func (g *Goal) Placed() []Placement {
 }
 
 // LiveCell is a live cell on one row of a Goal: a cell of a Result that is not
-// retracted and not refused by Stable, or the H0 cell of a placement, under
+// refused by Stable, or the H0 cell of a placement, under
 // the example hash that is current for its key. Result is empty for a
 // placement's H0 cell.
 type LiveCell struct {
@@ -442,7 +441,7 @@ func (g *Goal) LiveCells(rowTree string) []LiveCell {
 		}
 	}
 	for _, r := range g.Results {
-		if r.Retracted || r.Refused != "" || r.RowTree != rowTree {
+		if r.Refused != "" || r.RowTree != rowTree {
 			continue
 		}
 		for _, c := range r.Cells {
@@ -772,24 +771,11 @@ func snapshots(evs []events.Event, dropped map[string]bool) map[string]snapshot 
 // goalOf is the goal.add event id of the Goal an event changes, when its
 // kind's entry says an end freezes it (events.Kinds), or empty for an event
 // that changes no Goal, that adds a new Goal, or that no end freezes.
-func goalOf(t Tables, ev events.Event) string {
+func goalOf(ev events.Event) string {
 	if k, ok := events.KindOf(ev.Type); !ok || !k.Frozen {
 		return ""
 	}
-	switch ev.Type {
-	case events.TypeGoalAdd:
-		if ev.Node == ev.ID {
-			return ""
-		}
-		return ev.Node
-	case events.TypeResultRetract:
-		if r, ok := t.results[ev.Node]; ok {
-			for _, g := range t.Goals {
-				if slices.Contains(g.Results, r) {
-					return g.EventID
-				}
-			}
-		}
+	if ev.Type == events.TypeGoalAdd && ev.Node == ev.ID {
 		return ""
 	}
 	return ev.Node
@@ -801,7 +787,7 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Err: err})
 	}
 	for i, ev := range evs {
-		if node := goalOf(t, ev); node != "" {
+		if node := goalOf(ev); node != "" {
 			if s, ok := snaps[node]; ok && i < s.at && !s.seen[ev.ID] {
 				refuse(ev, fault.Refuse(fault.GuardNotEnded, fault.NotInSnapshot, GoalID(node), evs[s.at].ID))
 				continue
@@ -838,8 +824,6 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 			g.refresh()
 		case events.TypeResultRecord:
 			replayResult(&t, ev, refuse)
-		case events.TypeResultRetract:
-			replayRetract(&t, ev, refuse)
 		case events.TypeSelect:
 			replaySelect(&t, ev, refuse)
 		case events.TypeLand:
@@ -890,21 +874,6 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 	}
 	g.Results = append(g.Results, r)
 	t.results[ev.ID] = r
-}
-
-// replayRetract marks a Result retracted. Only the actor that ran it may
-// retract it (Own Result); a retract that names no Result is skipped.
-func replayRetract(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	r, ok := t.results[ev.Node]
-	if !ok {
-		refuse(ev, fault.Refuse(fault.NoGuard, fault.NoResultToRetract, ev.Node))
-		return
-	}
-	if r.Actor != ev.Actor {
-		refuse(ev, fault.Refuse(fault.GuardOwnResult, fault.NotOwnResult, r.ID, r.Actor, ev.Actor))
-		return
-	}
-	r.Retracted = true
 }
 
 func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error)) {
@@ -1211,7 +1180,7 @@ func (g *Goal) HasNewCell() bool {
 		}
 	}
 	for _, r := range g.Results[u.Results:] {
-		if r.Retracted || r.Refused != "" {
+		if r.Refused != "" {
 			continue
 		}
 		for _, c := range r.Cells {

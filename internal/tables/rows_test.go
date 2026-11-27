@@ -46,12 +46,6 @@ func resultRead(t *testing.T, goal, line, commit, rowTree, refused string, read 
 	return events.Event{V: 2, ID: nextID(), TS: "2026-11-19T00:00:00Z", Actor: "r", Type: events.TypeResultRecord, Node: goal, Payload: p}
 }
 
-func retract(t *testing.T, res events.Event) events.Event {
-	t.Helper()
-	p, _ := json.Marshal(events.ResultRetract{Role: "runner"})
-	return events.Event{V: 2, ID: nextID(), TS: "2026-11-19T00:00:00Z", Actor: res.Actor, Type: events.TypeResultRetract, Node: res.ID, Payload: p}
-}
-
 // cell is a Result's cell for example a of line-1.
 func cell(hash, verdict string) events.ExampleCell {
 	return events.ExampleCell{Example: "a", Hash: hash, Probe: "p", Output: "o-" + verdict, Stderr: "e", Verdict: verdict}

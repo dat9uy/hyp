@@ -16,9 +16,9 @@ import (
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
-func reset(payload string) func([]events.Event) (events.Event, error) {
+func unselect(payload string) func([]events.Event) (events.Event, error) {
 	return func([]events.Event) (events.Event, error) {
-		return events.Event{Type: events.TypeBudgetReset, Payload: json.RawMessage(payload)}, nil
+		return events.Event{Type: events.TypeUnselect, Payload: json.RawMessage(payload)}, nil
 	}
 }
 
@@ -83,7 +83,7 @@ func TestTopLevelOutsideRepoIsEnvironment(t *testing.T) {
 func TestUnionMergedFileReplaysSame(t *testing.T) {
 	root := newStore(t)
 	for i, actor := range []string{"a", "b", "a", "b", "a"} {
-		if _, err := Append(root, actor, reset(`{"role":"owner"}`)); err != nil {
+		if _, err := Append(root, actor, unselect(`{"role":"owner"}`)); err != nil {
 			t.Fatalf("append %d: %v", i, err)
 		}
 	}
@@ -126,7 +126,7 @@ func TestUnionMergedFileReplaysSame(t *testing.T) {
 
 func TestTornLastLineIsReportedNotFatal(t *testing.T) {
 	root := newStore(t)
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	oldForm(t, root, "a")
@@ -146,7 +146,7 @@ func TestTornLastLineIsReportedNotFatal(t *testing.T) {
 func TestAppendAfterTornLineStartsNewLine(t *testing.T) {
 	root := newStore(t)
 	appendRaw(t, root, "a", `{"v":2,"id":"01M661QG60000000`)
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	evs, errs, err := Events(root)
@@ -160,7 +160,7 @@ func TestAppendAfterTornLineStartsNewLine(t *testing.T) {
 
 func TestRefusedBuildWritesNothing(t *testing.T) {
 	root := newStore(t)
-	if _, err := Append(root, "b", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "b", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	_, err := Append(root, "a", func([]events.Event) (events.Event, error) {
@@ -176,7 +176,7 @@ func TestRefusedBuildWritesNothing(t *testing.T) {
 
 func TestAppendFillsEnvelope(t *testing.T) {
 	root := newStore(t)
-	ev, err := Append(root, "a", reset(`{"role":"owner"}`))
+	ev, err := Append(root, "a", unselect(`{"role":"owner"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +184,7 @@ func TestAppendFillsEnvelope(t *testing.T) {
 		t.Fatalf("envelope not filled: %+v", ev)
 	}
 	next, err := Append(root, "a", func([]events.Event) (events.Event, error) {
-		return events.Event{Type: events.TypeBudgetReset, Node: "G-X", Payload: json.RawMessage(`{"role":"owner"}`)}, nil
+		return events.Event{Type: events.TypeUnselect, Node: "G-X", Payload: json.RawMessage(`{"role":"owner"}`)}, nil
 	})
 	if err != nil || next.Node != "G-X" || next.ID <= ev.ID {
 		t.Fatalf("second event %+v, %v", next, err)
@@ -193,11 +193,11 @@ func TestAppendFillsEnvelope(t *testing.T) {
 
 func TestAppendRefusesBadActorAndLongWhy(t *testing.T) {
 	root := newStore(t)
-	if _, err := Append(root, "Bad Actor", reset(`{}`)); fault.KindOf(err) != fault.BadArguments {
+	if _, err := Append(root, "Bad Actor", unselect(`{}`)); fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("bad actor: %v", err)
 	}
 	_, err := Append(root, "a", func([]events.Event) (events.Event, error) {
-		return events.Event{Type: events.TypeBudgetReset, Payload: json.RawMessage(`{}`), Why: strings.Repeat("é", 601)}, nil
+		return events.Event{Type: events.TypeUnselect, Payload: json.RawMessage(`{}`), Why: strings.Repeat("é", 601)}, nil
 	})
 	if fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("long why: %v", err)
@@ -209,7 +209,7 @@ func TestAppendRefusesBadActorAndLongWhy(t *testing.T) {
 
 func TestAppendWithoutStoreIsRefusal(t *testing.T) {
 	r := testutil.NewRepo(t)
-	if _, err := Append(r.Dir, "a", reset(`{}`)); fault.KindOf(err) != fault.Refusal {
+	if _, err := Append(r.Dir, "a", unselect(`{}`)); fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("err = %v, want the no-store refusal", err)
 	}
 }
@@ -251,7 +251,7 @@ func TestStoreWritesNoGitState(t *testing.T) {
 	if err := Create(root); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := PutOutput(root, []byte("x")); err != nil {
@@ -280,7 +280,7 @@ func TestIDAfterSortsAfterNewest(t *testing.T) {
 
 func TestEventWithWrongActorIsALineError(t *testing.T) {
 	root := newStore(t)
-	line := `{"v":2,"id":"01M661QG600000000000000001","ts":"t","actor":"other","type":"budget.reset","node":"n","payload":{"role":"owner"},"why":""}`
+	line := `{"v":2,"id":"01M661QG600000000000000001","ts":"t","actor":"other","type":"unselect","node":"n","payload":{"role":"owner"},"why":""}`
 	appendRaw(t, root, "a", line+"\n")
 	evs, errs, err := Events(root)
 	if err != nil || len(evs) != 0 || len(errs) != 1 {
@@ -333,7 +333,7 @@ func TestAppendAddsOneFileAndChangesNone(t *testing.T) {
 	root := newStore(t)
 	for i, actor := range []string{"a", "a", "b"} {
 		before := storeFiles(t, root)
-		ev, err := Append(root, actor, reset(`{"role":"owner"}`))
+		ev, err := Append(root, actor, unselect(`{"role":"owner"}`))
 		if err != nil {
 			t.Fatalf("append %d: %v", i, err)
 		}
@@ -360,12 +360,12 @@ func TestAppendAddsOneFileAndChangesNone(t *testing.T) {
 func TestOldAndNewFilesReplayTogether(t *testing.T) {
 	root := newStore(t)
 	for i := 0; i < 2; i++ {
-		if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+		if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 			t.Fatal(err)
 		}
 	}
 	oldForm(t, root, "a")
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	evs, errs, err := Events(root)
@@ -379,7 +379,7 @@ func TestOldAndNewFilesReplayTogether(t *testing.T) {
 
 func TestEventFileOfAnotherActorIsReported(t *testing.T) {
 	root := newStore(t)
-	ev, err := Append(root, "a", reset(`{"role":"owner"}`))
+	ev, err := Append(root, "a", unselect(`{"role":"owner"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -416,7 +416,7 @@ func appendRaw(t *testing.T, root, actor, s string) {
 
 func TestDuplicateLineReplaysOnce(t *testing.T) {
 	root := newStore(t)
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	for _, data := range storeFiles(t, root) {
@@ -435,7 +435,7 @@ func TestSameIDAndActorOrdersByLineBytes(t *testing.T) {
 	line := func(why string) string {
 		b, err := json.Marshal(events.Event{
 			V: events.Version, ID: "01M661QG600000000000NXHHVA", TS: "2026-11-19T00:00:00Z", Actor: "a",
-			Type: events.TypeBudgetReset, Node: "01M661QG600000000000NXHHVA", Payload: json.RawMessage(`{"role":"owner"}`), Why: why,
+			Type: events.TypeUnselect, Node: "01M661QG600000000000NXHHVA", Payload: json.RawMessage(`{"role":"owner"}`), Why: why,
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -461,7 +461,7 @@ func TestSameIDAndActorOrdersByLineBytes(t *testing.T) {
 
 func TestWithLockReadsAndWritesNothing(t *testing.T) {
 	root := newStore(t)
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	before := storeFiles(t, root)
@@ -484,7 +484,7 @@ func TestWithLockReadsAndWritesNothing(t *testing.T) {
 	if err := WithLock(root, func([]events.Event) error { return want }); err != want {
 		t.Fatalf("WithLock returned %v, want f's error", err)
 	}
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatalf("Append after WithLock: %v", err)
 	}
 }
@@ -494,7 +494,7 @@ func TestWithLockHoldsAppendBack(t *testing.T) {
 	done := make(chan error, 1)
 	err := WithLock(root, func([]events.Event) error {
 		go func() {
-			_, err := Append(root, "a", reset(`{"role":"owner"}`))
+			_, err := Append(root, "a", unselect(`{"role":"owner"}`))
 			done <- err
 		}()
 		time.Sleep(200 * time.Millisecond)

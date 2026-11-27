@@ -16,7 +16,7 @@ func TestStepLogGetsOneLinePerEvent(t *testing.T) {
 	root := newStore(t)
 	log := filepath.Join(t.TempDir(), "steps")
 	t.Setenv(StepLogVar, log)
-	first, err := Append(root, "a", reset(`{"role":"owner"}`))
+	first, err := Append(root, "a", unselect(`{"role":"owner"}`))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func TestStepLogGetsOneLinePerEvent(t *testing.T) {
 	for i, want := range []struct {
 		action string
 		ev     events.Event
-	}{{"BudgetReset", first}, {"FindingAdd", second}} {
+	}{{"Unselect", first}, {"FindingAdd", second}} {
 		head, body, ok := strings.Cut(strings.TrimPrefix(lines[i], "step "), " ")
 		if !strings.HasPrefix(lines[i], "step ") || !ok || head != want.action {
 			t.Fatalf("line %d = %q, want step %s <json>", i+1, lines[i], want.action)
@@ -58,7 +58,7 @@ func TestStepLogGetsOneLinePerEvent(t *testing.T) {
 func TestNoStepLogWhenUnset(t *testing.T) {
 	root := newStore(t)
 	t.Setenv(StepLogVar, "")
-	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+	if _, err := Append(root, "a", unselect(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
 	for _, dir := range []string{root, os.Getenv("HOME")} {

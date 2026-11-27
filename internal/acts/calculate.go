@@ -34,7 +34,7 @@ func calculateSelect(g *tables.Goal) {
 	}
 	sel := &tables.Select{RowTree: c.RowTree, Calculated: true}
 	for _, r := range g.Results {
-		if r.RowTree == c.RowTree && !r.Retracted && r.Refused == "" {
+		if r.RowTree == c.RowTree && r.Refused == "" {
 			sel.ID, sel.Commit, sel.Time, sel.Actor = r.ID, r.Commit, r.Time, r.Actor
 		}
 	}

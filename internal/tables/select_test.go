@@ -131,7 +131,8 @@ func TestUnstableKeepsBothOutputs(t *testing.T) {
 	second := resultRefused(t, id1, "line-1", "c1", "r1", "Stable", events.ExampleCell{Example: "a", Hash: hashA, Probe: "p", Output: "out-second", Stderr: "e", Verdict: "failed"})
 	p, _ := json.Marshal(events.ResultRecord{Role: "runner", Line: "line-1", Commit: "c1", RowTree: "r1", Refused: "Stable", Differing: []string{"line-1/a"}, Cells: []events.ExampleCell{{Example: "a", Hash: hashA, Probe: "p", Output: "out-second", Stderr: "e", Verdict: "failed"}}})
 	second.Payload = p
-	later := retract(t, first) // a retract after the refusal must not change what it kept
+	// a later Result on the row after the refusal must not change what it kept
+	later := result(t, id1, "line-1", "c2", "r1", events.ExampleCell{Example: "a", Hash: hashA, Probe: "p", Output: "out-later", Stderr: "e", Verdict: "met"})
 	_, g := openGoal(t, first, second, later)
 	var got []UnstableCell
 	for _, r := range g.Results {

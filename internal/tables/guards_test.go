@@ -121,16 +121,6 @@ func TestGuardStableCountsPlacementCellOnH0(t *testing.T) {
 	refusedWith(t, GuardStable(g, "line-1", "t", []events.ExampleCell{cell(hashA, "met")}), "Stable")
 }
 
-func TestGuardStableIgnoresRetractedCell(t *testing.T) {
-	first := run(t, "t1", "met")
-	_, g := openGoal(t, first)
-	refusedWith(t, GuardStable(g, "line-1", "t1", []events.ExampleCell{cell(hashA, "failed")}), "Stable")
-	_, g = openGoal(t, first, retract(t, first))
-	if err := GuardStable(g, "line-1", "t1", []events.ExampleCell{cell(hashA, "failed")}); err != nil {
-		t.Fatalf("a rerun after a retract was refused: %v", err)
-	}
-}
-
 func TestGuardBudgetRefusesFourthTree(t *testing.T) {
 	_, g := openGoal(t, run(t, "t1", "met"), run(t, "t2", "met"))
 	if err := GuardBudget(g, "t3"); err != nil {
@@ -177,15 +167,6 @@ func TestGuardBudgetCountsOldTreeRerunAfterBoundary(t *testing.T) {
 	if n := RunsUsed(g); n != 1 {
 		t.Fatalf("RunsUsed = %d after t1 ran again, want 1: it is run against the new evidence", n)
 	}
-}
-
-func TestGuardBudgetCountsRetractedResult(t *testing.T) {
-	first := run(t, "t1", "met")
-	_, g := openGoal(t, first, run(t, "t2", "met"), run(t, "t3", "met"), retract(t, first))
-	if n := RunsUsed(g); n != 3 {
-		t.Fatalf("RunsUsed = %d, want 3: a retract does not give a run back", n)
-	}
-	refusedWith(t, GuardBudget(g, "t4"), "Budget")
 }
 
 func TestGuardBudgetSkipsStableRefusal(t *testing.T) {

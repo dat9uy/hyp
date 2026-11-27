@@ -487,8 +487,6 @@ var Guards = []Guard{
 		[]fault.Code{fault.NotOwnerClose, fault.PayloadInvalid}, "yes"},
 	{fault.GuardOwnerUnsel, "only the owner unselects a Goal",
 		[]fault.Code{fault.NotOwnerUnselect, fault.PayloadInvalid}, "yes"},
-	{fault.GuardOwnResult, "only the actor that ran a Result retracts it; the Result and its retract are in the same clone's trace",
-		[]fault.Code{fault.NotOwnResult}, "yes: a retract is in the trace of the clone that holds its Result"},
 	{fault.GuardInWork, "an old fold, which no act writes and replay still reads, names one Goal in work, written, open or selected, that the store holds",
 		[]fault.Code{fault.NoGoalToFold, fault.FoldIntoEnded}, "yes: a Goal's state reads only events stored in git"},
 	{fault.GuardIssue, "the oldest form of a fold, which no act writes and replay still reads, names an issue by its number, a whole number above zero",
@@ -508,7 +506,7 @@ var Guards = []Guard{
 	{fault.NoGuard, "a file hyp reads breaks a rule of its form, or the act names what the store does not hold",
 		[]fault.Code{fault.NoStore, fault.EventVersion, fault.EventType, fault.PayloadDecode, fault.PayloadInvalid, fault.TrailingData,
 			fault.IDNotULID, fault.ActorNotFile, fault.NoIDAfter, fault.NoGoalToPlace, fault.NoGoalToRun, fault.NoGoalToSelect,
-			fault.NoGoalToLand, fault.NoGoalToClose, fault.NoGoalToUnselect, fault.NoResultToRetract, fault.NoGoalForFinding, fault.NoFinding, fault.NoExampleAtCommit, fault.FoldNoFinding, fault.FoldGoalAndIssue, fault.NoExampleTxtar,
+			fault.NoGoalToLand, fault.NoGoalToClose, fault.NoGoalToUnselect, fault.NoGoalForFinding, fault.NoFinding, fault.NoExampleAtCommit, fault.FoldNoFinding, fault.FoldGoalAndIssue, fault.NoExampleTxtar,
 			fault.TextBeforeFirst, fault.SecondSection, fault.ExternalNotName, fault.InputOutside, fault.InputTwice,
 			fault.UnknownSection, fault.NoSection, fault.Submodule, fault.EntryLeaves, fault.NotFileOrDir, fault.ReadFolder}, "yes"},
 }
@@ -580,8 +578,8 @@ var Rules = []Rule{
 		"H0 is the Goal's base commit; a row is a leaf when no Result on another row carries one of its commits among the commits of the Goal's rows that its run read its commit descends from.",
 	}},
 	{"budget and stops", []string{
-		"The budget is three Hypotheses since the boundary, H0 never counted; a refused run costs nothing, a retracted Result still counts.",
-		"The boundary is the latest of the latest place, the latest budget.reset and the latest unselect, else the Goal's start.",
+		"The budget is three Hypotheses since the boundary, H0 never counted; a refused run costs nothing.",
+		"The boundary is the latest of the latest example-changing place and the latest unselect, else the Goal's start.",
 		"The stops: selected (one candidate this clone's Results show that holds a spec and writes no other Goal's folder, or a select event), two candidates (two or more candidates and no select), budget used (three Hypotheses counted, the third with a live cell for every example, and no candidate). A row an unselect rejected is no candidate.",
 		"A stop is calculated, never stored; it waits for the owner. At two candidates and budget used the state block adds the table of outputs.",
 		"Runs, rows, candidates and every stop are calculated from the Results of this clone's trace; a select event of the older form, or the owner's select among two candidates, is read from git.",
