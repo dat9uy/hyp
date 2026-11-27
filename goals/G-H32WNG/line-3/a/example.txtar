@@ -1,0 +1,8 @@
+-- words --
+A close whose payload decodes and whose role is not owner is still refused under its guard: the store holds a close, written by hand by the Goal's actor, with the role runner; hyp status lists it under refused at replay under Owner closes.
+-- run --
+HYP_ACTOR=owner hyp status
+-- floor: contains --
+refused at replay:
+-- floor: contains --
+Owner closes: only the owner closes a Goal; the role is runner

@@ -1,0 +1,12 @@
+-- words --
+An event of kind example.place whose payload does not decode names no guard: the store holds a example.place, written by hand, whose payload carries the unknown field "zz"; hyp status lists it under refused at replay as a fault of its payload alone.
+-- run --
+HYP_ACTOR=owner hyp status
+-- floor: contains --
+refused at replay:
+-- floor: contains --
+ULID: example.place payload: json: unknown field "zz"
+-- ceiling --
+Owner places: example.place payload
+-- findings --
+F-NKD9YP
