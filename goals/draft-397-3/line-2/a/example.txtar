@@ -1,0 +1,8 @@
+-- words --
+A commit on no branch prints the same: Goal G-ONE has rows on C1 and C2, C2 built on C1; hyp status is printed; then C2's branch is deleted, its commit kept; hyp status prints the same.
+-- run --
+T=$(mktemp -d); hyp status G-ONE >"$T/before" 2>&1; git branch -D c2 >/dev/null 2>&1; hyp status G-ONE >"$T/after" 2>&1; if cmp -s "$T/before" "$T/after"; then echo "status: same"; else echo "status: changed"; fi
+-- floor: contains --
+status: same
+-- ceiling --
+status: changed

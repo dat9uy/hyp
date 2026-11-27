@@ -1,0 +1,8 @@
+-- words --
+Own path, as on H0: the store holds Goal G-ONE and Goal G-TWO; a runner commit C1 for G-ONE writes a file under G-TWO's folder; a run of G-ONE on C1 is refused by Own path.
+-- run --
+HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 2>&1; echo "run exit: $?"
+-- floor: contains --
+Own path
+-- floor: contains --
+run exit: 1

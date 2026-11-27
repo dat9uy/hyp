@@ -1,0 +1,8 @@
+-- words --
+History removed, status the same: Goal G-ONE has two rows, C2 built on C1, both met, so only C2 is a leaf and the Goal is selected on C2. hyp status is printed; then the branches are deleted and the commits pruned from the clone; hyp status prints the same.
+-- run --
+T=$(mktemp -d); hyp status G-ONE >"$T/before" 2>&1; git branch -D c1 c2 >/dev/null 2>&1; git reflog expire --expire=now --all; git gc -q --prune=now; hyp status G-ONE >"$T/after" 2>&1; if cmp -s "$T/before" "$T/after"; then echo "status: same"; else echo "status: changed"; fi
+-- floor: contains --
+status: same
+-- ceiling --
+status: changed
