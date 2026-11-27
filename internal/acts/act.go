@@ -110,18 +110,36 @@ func writerAt(dir, actor string) (writer, error) {
 // locks, and checks them again in append.
 func (w writer) check(v view, f func(tables.Tables) error) error {
 	return logstore.WithLock(w.root, func(evs []events.Event) error {
-		return f(tablesOf(evs, nil, v))
+		cells, err := w.cells()
+		if err != nil {
+			return err
+		}
+		return f(tablesOf(evs, cells, v))
 	})
+}
+
+// cells reads the cells the clone's trace keeps as files, so a refusal under
+// the lock names H0's outputs as the clone's trace holds them.
+func (w writer) cells() (map[string]logstore.Cell, error) {
+	tr, err := logstore.TraceOf(w.root)
+	if err != nil {
+		return nil, err
+	}
+	return tr.Cells()
 }
 
 // append takes the store's lock and the trace's, calls build with the
 // tables of every event in view v and those events, and appends the event
 // build returns; an error from build writes nothing. The tables are read
 // under the lock, never carried over from a read before it. Under the lock
-// an act reads the events alone, not the trace's cell files: a refusal
-// names only the outputs the events name.
+// an act reads the trace's cell files with the events, so a refusal names
+// H0's outputs too.
 func (w writer) append(v view, build func(tables.Tables, []events.Event) (events.Event, error)) (events.Event, error) {
 	return logstore.Append(w.root, w.actor, func(evs []events.Event) (events.Event, error) {
-		return build(tablesOf(evs, nil, v), evs)
+		cells, err := w.cells()
+		if err != nil {
+			return events.Event{}, err
+		}
+		return build(tablesOf(evs, cells, v), evs)
 	})
 }
