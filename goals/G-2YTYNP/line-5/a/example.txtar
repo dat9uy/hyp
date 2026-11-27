@@ -1,0 +1,6 @@
+-- words --
+Unset means no step line: with HYP_STEP_LOG unset, the owner's hyp add goal and hyp status print open and leave no step line in the test repository or the trace.
+-- run --
+unset HYP_STEP_LOG; HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words "Other." --line "gap:other" --examples goals/draft-greet >/dev/null 2>&1; HYP_ACTOR=owner hyp status 2>&1 | grep -c " open " | sed "s/^/open goals: /"; echo "step lines: $( (grep -r "^step " . "$HOME/.hyp" 2>/dev/null) | grep -c .)"
+-- floor: contains --
+step lines: 0
