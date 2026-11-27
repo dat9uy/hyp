@@ -91,7 +91,7 @@ var Kinds = []Kind{
 	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
 	{TypeUnselect, true, "the Goal its node names", true, "unselect"},
 	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
-	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal: a Goal names it; the old form's node names the Goal it was recorded on", false, "finding add"},
+	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal: a Goal names it; the old form's node names the Goal it was recorded on; its payload may name an example and a commit that holds it", false, "finding add"},
 	{TypeFindingFold, false, "the Goal its payload names, which the fold counts as a name of the finding by that Goal; the old form names an issue", false, "none: the old form of a name, replayed and no longer written"},
 	{TypeFindingRefute, false, "the finding its node names", false, "finding refute"},
 	{TypeFindingDecline, false, "the finding its node names", false, "finding decline"},
@@ -259,12 +259,17 @@ type Read struct {
 // is its own id: a finding names no Goal; a Goal names it. The old form's
 // node names the Goal it was recorded on. Draft
 // is an add goal command line the agent drafted for the owner, or empty.
-// Role is the role the act declared, or empty.
+// Role is the role the act declared, or empty. Example and Commit, set
+// together or not at all, name an example as G-XXXXXX/line-N/name and the
+// full sha of a commit that holds it: the finding is about the steps of the
+// kept model that example's run section takes on that commit.
 type FindingAdd struct {
 	Role     string `json:"role"`
 	Fact     string `json:"fact"`
 	Evidence string `json:"evidence"`
 	Draft    string `json:"draft,omitempty"`
+	Example  string `json:"example,omitempty"`
+	Commit   string `json:"commit,omitempty"`
 }
 
 // FindingFold is the payload of finding.fold, the old form of a name, which

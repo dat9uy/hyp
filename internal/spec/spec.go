@@ -161,13 +161,18 @@ var Commands = []Command{
 `},
 	{Name: ActFindingAdd, Any: true,
 		Guards: nil, Writes: "finding.add, in the trace",
-		Help: `  finding add --fact TEXT --evidence TEXT [--draft "hyp add goal ..."] [--why TEXT]
+		Help: `  finding add --fact TEXT --evidence TEXT [--example G/line-N/name --commit C]
+              [--draft "hyp add goal ..."] [--why TEXT]
                                          record a finding: a fact an agent
                                          found and a pointer to its evidence,
-                                         that names no Goal; --draft attaches an add
-                                         goal the agent drafted, which the
-                                         owner may edit and run; it prints the
-                                         finding's id
+                                         that names no Goal; --example and
+                                         --commit, given together, name an
+                                         example and a commit that holds it as
+                                         evidence too, and a commit that does
+                                         not hold it is refused; --draft
+                                         attaches an add goal the agent
+                                         drafted, which the owner may edit and
+                                         run; it prints the finding's id
 `},
 	{Name: ActFindingRefute, Any: true,
 		Guards: []fault.Guard{fault.GuardNotRefuted, fault.GuardNotDeclined}, Writes: "finding.refute, in the trace",
@@ -186,7 +191,15 @@ var Commands = []Command{
 		Help: `  finding list [--all | --not-folded]    print every finding with its state,
                                          fact, evidence and draft, and the
                                          finding acts it allows as ready
-                                         command lines. A finding settled or
+                                         command lines. A finding whose
+                                         evidence names an example prints its
+                                         walk: each command of the example's
+                                         run section with the step of the
+                                         kept model, goals/model/, it takes on
+                                         the commit the finding names, or no
+                                         step; in a repository that keeps a
+                                         model, a finding that names no
+                                         example reads no walk. A finding settled or
                                          ended, or declined, is left out
                                          unless --all; --not-folded lists only
                                          the findings not folded
@@ -214,7 +227,13 @@ var Commands = []Command{
                                          command, a rule with the words of
                                          the Goal line its source names as
                                          G:line-N, or no line; no TLA+ text.
-                                         With no G, it prints the words of each
+                                         Of G, for each line, each command of
+                                         its placed examples' run sections
+                                         with the step of the kept model it
+                                         takes, or no step: on H0, or on the
+                                         selected commit while G is selected;
+                                         nothing when that commit keeps no
+                                         model. With no G, it prints the words of each
                                          written or open Goal, leaves out the
                                          blocks of ended Goals with a line that
                                          counts them (--all prints them too),
@@ -454,7 +473,7 @@ var Guards = []Guard{
 	{fault.NoGuard, "a file hyp reads breaks a rule of its form, or the act names what the store does not hold",
 		[]fault.Code{fault.NoStore, fault.EventVersion, fault.EventType, fault.PayloadDecode, fault.PayloadInvalid, fault.TrailingData,
 			fault.IDNotULID, fault.ActorNotFile, fault.NoIDAfter, fault.NoGoalToPlace, fault.NoGoalToRun, fault.NoGoalToSelect,
-			fault.NoGoalToLand, fault.NoGoalToClose, fault.NoGoalToUnselect, fault.NoResultToRetract, fault.NoGoalForFinding, fault.NoFinding, fault.FoldNoFinding, fault.FoldGoalAndIssue, fault.NoExampleTxtar,
+			fault.NoGoalToLand, fault.NoGoalToClose, fault.NoGoalToUnselect, fault.NoResultToRetract, fault.NoGoalForFinding, fault.NoFinding, fault.NoExampleAtCommit, fault.FoldNoFinding, fault.FoldGoalAndIssue, fault.NoExampleTxtar,
 			fault.TextBeforeFirst, fault.SecondSection, fault.ExternalNotName, fault.InputOutside, fault.InputTwice,
 			fault.UnknownSection, fault.NoSection, fault.Submodule, fault.EntryLeaves, fault.NotFileOrDir, fault.ReadFolder}, "yes"},
 }
@@ -517,6 +536,7 @@ var Rules = []Rule{
 		"A finding's state follows from the Goals that name it: folded into G while G, a Goal in work, names it; settled once no Goal in work names it and a Goal that names it landed with a select; ended, not settled, when every Goal that named it ended with no select, and a later Goal may name it.",
 		"Its events are in the clone's trace and never in git: they change no file under .tree/ and no Goal's state, and an end's snapshot names none of them. A finding of the old form, recorded on a Goal, reads not folded until a Goal names it.",
 		"hyp finding list prints each finding with its state: not folded, folded into G, settled in G, ended in G, the old form's folded into #N, refuted, or declined with its why; a settled, ended or declined finding is left out unless --all. hyp status G prints the id of each finding G names on any clone, with its state and fact when this clone's trace holds it, and says so when it does not; hyp status counts the findings not folded, which wait for a Goal.",
+		"A finding's evidence may name an example, as G-XXXXXX/line-N/name, and a commit: finding add refuses a commit that does not hold the example's example.txtar. A finding and a Goal line are about the steps of the kept model, goals/model/, that their examples' run sections take, calculated and never written: each command of the run section takes the step of the kept model tagged \\* command: X whose words start it, the longest when two do, or no step. hyp finding list prints the walk of a finding's example on its commit; hyp status G prints the walk of each placed example on H0, or on the selected commit while G is selected.",
 	}},
 	{"the subject", []string{
 		"A commit's subject is its tree without the top-level entries goals and .tree; its git tree hash is the subject hash, one Hypothesis, one row.",
