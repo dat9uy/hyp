@@ -26,12 +26,44 @@ const (
 	calculatedView
 )
 
-// tablesOf is the one place the tables are calculated: it replays evs,
-// gives every Goal the cells the clone's trace keeps as files (nil for
-// none) and, in calculatedView, the select this clone's Results show.
-func tablesOf(evs []events.Event, cells map[string]logstore.Cell, v view) tables.Tables {
-	t := tables.Replay(evs)
-	t.UseCells(cells)
+// snapshot is what the tables of an act are calculated from: the events of
+// the store and of the clone's trace, and the cells the trace keeps as files.
+// An act reads both together, from readSnapshot, so no caller can calculate
+// tables that leave the cells out.
+type snapshot struct {
+	evs   []events.Event
+	cells map[string]logstore.Cell
+}
+
+// readSnapshot holds evs with the cells the clone's trace at root keeps as
+// files. Under the lock it reads the cells once, with the events, so a
+// refusal names H0's outputs as the clone's trace holds them.
+func readSnapshot(root string, evs []events.Event) (snapshot, error) {
+	tr, err := logstore.TraceOf(root)
+	if err != nil {
+		return snapshot{}, err
+	}
+	cells, err := tr.Cells()
+	if err != nil {
+		return snapshot{}, err
+	}
+	return snapshot{evs: evs, cells: cells}, nil
+}
+
+// snapshotOf holds evs with no cells. It is for the tables of a log that is
+// not the store as it stands: an empty log before a store exists, or the
+// log after an event an act just appended. The question such tables answer
+// reads no Goal's cells, so the trace's cells are not part of it.
+func snapshotOf(evs []events.Event) snapshot {
+	return snapshot{evs: evs}
+}
+
+// tablesOf is the one place the tables are calculated: it replays the
+// events of s, gives every Goal the cells of s and, in calculatedView, the
+// select this clone's Results show.
+func tablesOf(s snapshot, v view) tables.Tables {
+	t := tables.Replay(s.evs)
+	t.UseCells(s.cells)
 	if v == calculatedView {
 		t = tables.Calculate(t)
 	}
@@ -48,15 +80,11 @@ func load(root string, v view) (tables.Tables, []logstore.LineError, error) {
 	if err != nil {
 		return tables.Tables{}, nil, err
 	}
-	tr, err := logstore.TraceOf(root)
+	s, err := readSnapshot(root, evs)
 	if err != nil {
 		return tables.Tables{}, nil, err
 	}
-	cells, err := tr.Cells()
-	if err != nil {
-		return tables.Tables{}, nil, err
-	}
-	return tablesOf(evs, cells, v), unread, nil
+	return tablesOf(s, v), unread, nil
 }
 
 // ReadTables reads every event of the store and of the clone's trace and
@@ -110,36 +138,25 @@ func writerAt(dir, actor string) (writer, error) {
 // locks, and checks them again in append.
 func (w writer) check(v view, f func(tables.Tables) error) error {
 	return logstore.WithLock(w.root, func(evs []events.Event) error {
-		cells, err := w.cells()
+		s, err := readSnapshot(w.root, evs)
 		if err != nil {
 			return err
 		}
-		return f(tablesOf(evs, cells, v))
+		return f(tablesOf(s, v))
 	})
-}
-
-// cells reads the cells the clone's trace keeps as files, so a refusal under
-// the lock names H0's outputs as the clone's trace holds them.
-func (w writer) cells() (map[string]logstore.Cell, error) {
-	tr, err := logstore.TraceOf(w.root)
-	if err != nil {
-		return nil, err
-	}
-	return tr.Cells()
 }
 
 // append takes the store's lock and the trace's, calls build with the
 // tables of every event in view v and those events, and appends the event
 // build returns; an error from build writes nothing. The tables are read
-// under the lock, never carried over from a read before it. Under the lock
-// an act reads the trace's cell files with the events, so a refusal names
-// H0's outputs too.
+// under the lock, never carried over from a read before it, from one
+// snapshot of the events and the trace's cells.
 func (w writer) append(v view, build func(tables.Tables, []events.Event) (events.Event, error)) (events.Event, error) {
 	return logstore.Append(w.root, w.actor, func(evs []events.Event) (events.Event, error) {
-		cells, err := w.cells()
+		s, err := readSnapshot(w.root, evs)
 		if err != nil {
 			return events.Event{}, err
 		}
-		return build(tablesOf(evs, cells, v), evs)
+		return build(tablesOf(s, v), evs)
 	})
 }
