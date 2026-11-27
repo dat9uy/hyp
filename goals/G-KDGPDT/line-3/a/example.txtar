@@ -1,0 +1,8 @@
+-- words --
+An act appends its step: with HYP_STEP_LOG set to a file, the owner's hyp add goal leaves that file with one line that starts step AddGoal {.
+-- run --
+F=$(mktemp); HYP_STEP_LOG="$F" HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words "Other." --line "gap:other" >/dev/null 2>&1; echo "lines: $(grep -c . "$F")"; echo "first: $(head -c 15 "$F")"
+-- floor: contains --
+lines: 1
+-- floor: contains --
+first: step AddGoal {
