@@ -63,13 +63,15 @@ commit_staged "goal $G" || fail "commit goal"
 
 d="goals/$G/line-1/a"
 mkdir -p "$d/probe" || fail "mkdir $d"
-cat >"$d/example.txtar" <<'EXAMPLE'
+cat >"$d/example.txtar" <<EXAMPLE
 -- words --
 The subject says bye.
 -- run --
 toy list
 -- floor: contains --
 bye
+-- findings --
+$f
 EXAMPLE
 cat >"$d/probe/run" <<'GENERIC'
 #!/bin/sh
