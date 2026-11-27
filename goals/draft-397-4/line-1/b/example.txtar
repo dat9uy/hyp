@@ -1,0 +1,10 @@
+-- words --
+Each run keeps only its own steps: Goal G-ONE has two examples on line-1; line-1/a's Probe runs one hyp add goal, line-1/b's Probe runs one hyp finding add. After hyp run of line-1 on C1, the trace holds two step logs, one with only AddGoal, one with only FindingAdd.
+-- run --
+HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; L=$(grep -rl "^step " "$HOME/.hyp/traces" 2>/dev/null); echo "step logs: $(echo "$L" | grep -c .)"; M=0; for f in $L; do grep -q "^step AddGoal" "$f" && grep -q "^step FindingAdd" "$f" && M=$((M+1)); done; echo "mixed logs: $M"
+-- floor: contains --
+step logs: 2
+-- floor: contains --
+mixed logs: 0
+-- ceiling --
+step logs: 0

@@ -1,0 +1,8 @@
+-- words --
+A read appends nothing: with HYP_STEP_LOG set to a file, hyp spec leaves that file empty.
+-- run --
+F=$(mktemp); HYP_STEP_LOG="$F" hyp spec >/dev/null 2>&1; echo "lines: $(grep -c . "$F")"; echo "spec ran: yes"
+-- floor: contains --
+lines: 0
+-- floor: contains --
+spec ran: yes
