@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
-	"strings"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
@@ -28,7 +27,19 @@ func result(t *testing.T, goal, line, commit, rowTree string, cells ...events.Ex
 
 func resultRefused(t *testing.T, goal, line, commit, rowTree, refused string, cells ...events.ExampleCell) events.Event {
 	t.Helper()
-	p, err := json.Marshal(events.ResultRecord{Role: "runner", Line: line, Commit: commit, RowTree: rowTree, Refused: refused, Cells: cells})
+	return resultRead(t, goal, line, commit, rowTree, refused, nil, cells...)
+}
+
+// resultAbove is a result.record event whose run read that its commit
+// descends from the commits above.
+func resultAbove(t *testing.T, goal, line, commit, rowTree string, above []string, cells ...events.ExampleCell) events.Event {
+	t.Helper()
+	return resultRead(t, goal, line, commit, rowTree, "", &events.CommitRead{Above: above}, cells...)
+}
+
+func resultRead(t *testing.T, goal, line, commit, rowTree, refused string, read *events.CommitRead, cells ...events.ExampleCell) events.Event {
+	t.Helper()
+	p, err := json.Marshal(events.ResultRecord{Role: "runner", Line: line, Commit: commit, RowTree: rowTree, Refused: refused, Cells: cells, Read: read})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,19 +111,29 @@ func fork(t *testing.T) (r *testutil.Repo, a, b, c string) {
 	return r, a, b, c
 }
 
+// aboveOf is what a run on commit reads of the rows of goal in tb.
+func aboveOf(t *testing.T, r *testutil.Repo, tb Tables, goal, commit string) []string {
+	t.Helper()
+	above, err := tb.Goals[goal].Above(gitread.Ancestry{Dir: r.Dir}, commit)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return above
+}
+
 func TestRowsLeavesFromAncestry(t *testing.T) {
 	r, a, b, c := fork(t)
 	g := realGoal(t, r, a, gap)
-	tb := Replay([]events.Event{
-		g, placeReal(t, idP1, hashA, "failed", g),
-		result(t, id1, "line-1", a, treeOf(t, r, a), cell(hashA, "failed")),
-		result(t, id1, "line-1", b, treeOf(t, r, b), cell(hashA, "met")),
-		result(t, id1, "line-1", c, treeOf(t, r, c), cell(hashA, "failed")),
-	})
+	evs := []events.Event{g, placeReal(t, idP1, hashA, "failed", g)}
+	for _, x := range []struct{ commit, verdict string }{{a, "failed"}, {b, "met"}, {c, "failed"}} {
+		above := aboveOf(t, r, Replay(evs), id1, x.commit)
+		evs = append(evs, resultAbove(t, id1, "line-1", x.commit, treeOf(t, r, x.commit), above, cell(hashA, x.verdict)))
+	}
+	tb := Replay(evs)
 	if len(tb.RefusedAtReplay) != 0 {
 		t.Fatalf("refused at replay: %+v", tb.RefusedAtReplay)
 	}
-	rows := Rows(tb, gitread.Ancestry{Dir: r.Dir})
+	rows := Rows(tb)
 	if len(rows) != 3 {
 		t.Fatalf("rows = %+v, want 3", rows)
 	}
@@ -135,13 +156,13 @@ func TestRowNotLeafWhenOneCommitHasDescendant(t *testing.T) {
 	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "z", x)
 	z := r.Commit(t, map[string]string{"z.go": "z"})
 	g := realGoal(t, r, a, gap)
-	tb := Replay([]events.Event{
-		g, placeReal(t, idP1, hashA, "failed", g),
-		result(t, id1, "line-1", x, treeOf(t, r, x), cell(hashA, "failed")),
-		result(t, id1, "line-1", y, treeOf(t, r, y), cell(hashA, "failed")),
-		result(t, id1, "line-1", z, treeOf(t, r, z), cell(hashA, "failed")),
-	})
-	rows := Rows(tb, gitread.Ancestry{Dir: r.Dir})
+	evs := []events.Event{g, placeReal(t, idP1, hashA, "failed", g)}
+	for _, c := range []string{x, y, z} {
+		above := aboveOf(t, r, Replay(evs), id1, c)
+		evs = append(evs, resultAbove(t, id1, "line-1", c, treeOf(t, r, c), above, cell(hashA, "failed")))
+	}
+	tb := Replay(evs)
+	rows := Rows(tb)
 	if row := rowOf(t, rows, treeOf(t, r, z)); !row.Leaf {
 		t.Fatalf("row Z = %+v, want a leaf", row)
 	}
@@ -162,7 +183,7 @@ func TestCellUnderOldPlacementIsHistory(t *testing.T) {
 		g, placeReal(t, idP1, hashA, "failed", g),
 		result(t, id1, "line-1", b, rb, cell(hashA, "met")),
 	})
-	if got := rowOf(t, Rows(tb, gitread.Ancestry{Dir: r.Dir}), rb).Verdicts["line-1/a"]; got != "met" {
+	if got := rowOf(t, Rows(tb), rb).Verdicts["line-1/a"]; got != "met" {
 		t.Fatalf("verdict under the current placement = %q, want met", got)
 	}
 	tb = Replay([]events.Event{
@@ -170,7 +191,7 @@ func TestCellUnderOldPlacementIsHistory(t *testing.T) {
 		result(t, id1, "line-1", b, rb, cell(hashA, "met")),
 		placeReal(t, idP2, hashB, "failed", g),
 	})
-	rows := Rows(tb, gitread.Ancestry{Dir: r.Dir})
+	rows := Rows(tb)
 	if got := rowOf(t, rows, rb).Verdicts["line-1/a"]; got != NotRun {
 		t.Fatalf("verdict of a cell under an old placement = %q, want %q", got, NotRun)
 	}
@@ -195,7 +216,7 @@ func TestRowKeyedBySubjectTree(t *testing.T) {
 		result(t, id1, "line-1", x, tx, cell(hashA, "failed")),
 		result(t, id1, "line-1", y, tx, cell(hashA, "failed")),
 	})
-	rows := Rows(tb, gitread.Ancestry{Dir: r.Dir})
+	rows := Rows(tb)
 	row := rowOf(t, rows, tx)
 	if !slices.Equal(row.Commits, []string{x, y}) {
 		t.Fatalf("commits = %v, want x and y in one row", row.Commits)
@@ -239,25 +260,23 @@ func TestRunOnH0DoesNotOpenAGoal(t *testing.T) {
 	}
 }
 
-func TestRowsLeafUnknownNamesMissingCommit(t *testing.T) {
-	r, a, b, _ := fork(t)
-	g := realGoal(t, r, a, gap)
+func TestRowsReadNoGit(t *testing.T) {
+	// The commits are in no clone: a row's leaf mark is what the Results
+	// carry, so removing history changes no row.
+	g := goalAdd(t, id1, "", "w", gap)
 	tb := Replay([]events.Event{
-		g, placeReal(t, idP1, hashA, "failed", g),
-		result(t, id1, "line-1", b, treeOf(t, r, b), cell(hashA, "met")),
+		g, placeEv(t, idP1, "line-1", "a", hashA, "failed"),
+		resultAbove(t, id1, "line-1", "c1", "t1", []string{"c"}, cell(hashA, "met")),
+		resultAbove(t, id1, "line-1", "c2", "t2", []string{"c", "c1"}, cell(hashA, "met")),
+		resultAbove(t, id1, "line-1", "c3", "t3", []string{"c"}, cell(hashA, "met")),
 	})
-	rows := Rows(tb, gitread.Ancestry{Dir: r.Dir})
-	if row := rowOf(t, rows, treeOf(t, r, b)); !row.Leaf || row.Unknown != "" {
-		t.Fatalf("row B = %+v, want a known leaf", row)
+	rows := Rows(tb)
+	if row := rowOf(t, rows, "t1"); row.Leaf {
+		t.Fatalf("row t1 = %+v, want not a leaf: c2's run read that it descends from c1", row)
 	}
-	missing := strings.Repeat("0", 40)
-	tb = Replay([]events.Event{
-		g, placeReal(t, idP1, hashA, "failed", g),
-		result(t, id1, "line-1", b, treeOf(t, r, b), cell(hashA, "met")),
-		result(t, id1, "line-1", missing, "tz", cell(hashA, "met")),
-	})
-	row := rowOf(t, Rows(tb, gitread.Ancestry{Dir: r.Dir}), treeOf(t, r, b))
-	if row.Leaf || row.Unknown != missing {
-		t.Fatalf("row B = %+v, want leaf unknown naming %s", row, missing)
+	for _, tree := range []string{"t2", "t3"} {
+		if row := rowOf(t, rows, tree); !row.Leaf {
+			t.Fatalf("row %s = %+v, want a leaf", tree, row)
+		}
 	}
 }

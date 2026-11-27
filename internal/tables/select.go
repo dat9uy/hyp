@@ -30,12 +30,11 @@ func (g *Goal) metEverywhere(rowTree string) bool {
 }
 
 // Candidates are the rows of g that a select may name: leaf rows met on every
-// line under the current placements, which no unselect rejected. A row whose leaf mark is unknown, because
-// this clone lacks a commit, is left out; GuardCandidate names that commit.
-func Candidates(g *Goal, anc Ancestry) []Row {
+// line under the current placements, which no unselect rejected.
+func Candidates(g *Goal) []Row {
 	var out []Row
-	for _, row := range g.Rows(anc) {
-		if row.Leaf && row.Unknown == "" && !g.Rejected[row.RowTree] && g.metEverywhere(row.RowTree) {
+	for _, row := range g.Rows() {
+		if row.Leaf && !g.Rejected[row.RowTree] && g.metEverywhere(row.RowTree) {
 			out = append(out, row)
 		}
 	}
@@ -47,9 +46,8 @@ func selectRole(role string) bool { return role == "owner" || role == "runner" }
 
 // GuardCandidate is the Candidate guard of the select act: the tree is a
 // candidate, and with two or more candidates only the owner selects. tree is
-// a row tree hash or a unique prefix of one. A row whose leaf mark needs a
-// commit this clone lacks is an environment problem naming it.
-func GuardCandidate(g *Goal, anc Ancestry, tree, role string) (Row, error) {
+// a row tree hash or a unique prefix of one.
+func GuardCandidate(g *Goal, tree, role string) (Row, error) {
 	if !selectRole(role) {
 		return Row{}, fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, role)
 	}
@@ -57,7 +55,7 @@ func GuardCandidate(g *Goal, anc Ancestry, tree, role string) (Row, error) {
 		return Row{}, fault.BadArg(fault.NoTree)
 	}
 	var named []Row
-	for _, row := range g.Rows(anc) {
+	for _, row := range g.Rows() {
 		if row.RowTree == tree {
 			named = []Row{row}
 			break
@@ -73,10 +71,7 @@ func GuardCandidate(g *Goal, anc Ancestry, tree, role string) (Row, error) {
 		return Row{}, fault.Refuse(fault.GuardCandidate, fault.NoRow, g.ID, tree)
 	}
 	row := named[0]
-	if row.Unknown != "" {
-		return Row{}, fault.EnvFault(fault.RowLeafUnknown, row.RowTree, row.Unknown)
-	}
-	cands := Candidates(g, anc)
+	cands := Candidates(g)
 	for _, c := range cands {
 		if c.RowTree != row.RowTree {
 			continue

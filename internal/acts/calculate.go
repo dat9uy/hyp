@@ -13,23 +13,23 @@ import (
 // (New cell). A clone that lacks those Results shows the Goal open. A Goal
 // whose select an event of the older form holds, and an ended Goal, keep
 // what replay gave them.
-func Calculate(t tables.Tables, repo string) tables.Tables {
+func Calculate(t tables.Tables) tables.Tables {
 	for _, g := range t.Goals {
-		calculateSelect(g, repo)
+		calculateSelect(g)
 	}
 	return t
 }
 
-func calculateSelect(g *tables.Goal, repo string) {
+func calculateSelect(g *tables.Goal) {
 	if g.State != tables.StateOpen || g.Select != nil {
 		return
 	}
-	st := Stand(g, repo)
+	st := Stand(g)
 	if st.Stop != StopNone || len(st.Candidates) != 1 || !g.HasNewCell() {
 		return
 	}
 	c := st.Candidates[0]
-	if !selectable(g, repo, c) {
+	if !selectable(g, c) {
 		return
 	}
 	sel := &tables.Select{RowTree: c.RowTree, Calculated: true}

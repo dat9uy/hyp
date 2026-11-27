@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
 )
@@ -70,6 +71,28 @@ func WalkRun(root, commit, run string) (Walk, error) {
 	if err != nil || !kept {
 		return Walk{}, err
 	}
+	return walkOn(steps, run), nil
+}
+
+// WalkRead is the walk of the run section of the example folder with tree
+// hash hash on the kept model a run read of its commit (CommitRead).
+func WalkRead(root string, read *events.CommitRead, hash string) (Walk, error) {
+	if !read.Keeps {
+		return Walk{}, nil
+	}
+	ex, _, err := readExample(root, hash)
+	if err != nil {
+		return Walk{}, err
+	}
+	var steps []keptStep
+	for _, s := range read.Steps {
+		steps = append(steps, keptStep{name: s.Name, words: strings.Fields(s.Command)})
+	}
+	return walkOn(steps, ex.Run), nil
+}
+
+// walkOn is the walk of the run section run on a kept model with steps.
+func walkOn(steps []keptStep, run string) Walk {
 	w := Walk{Kept: true}
 	for _, cmd := range RunCommands(run) {
 		words := commandWords(cmd)
@@ -81,7 +104,7 @@ func WalkRun(root, commit, run string) (Walk, error) {
 		}
 		w.Steps = append(w.Steps, WalkStep{Command: cmd, Step: best})
 	}
-	return w, nil
+	return w
 }
 
 // WalkExample is the walk of the run section of the example folder with

@@ -28,20 +28,29 @@ EXTENDS Naturals, FiniteSets, Sequences
 \* UnselectNamesNothing: unselect writes an event that names no commit.
 \* SelectIgnoresUnselect: the selected view does not read unselect events.
 \* IgnoreOldSelect: the selected view reads no select event of the old form.
+\* StatusReadsHistory: hyp status reads the leaf marks of the rows from git
+\* history, so a clone whose runner commits were pruned shows the Goal open.
+\* RowsFromBranches: hyp status reads the rows from the branches, so a clone
+\* whose runner branches were deleted shows the Goal open.
 CONSTANTS GrillPlaces, AddGoalAcceptsDisagreeing, AddExampleSkipsH0,
           AddExampleSkipsAddsOnly, RunWritesGit, SelectIgnoresMissing,
           LandTrustsMissing, UnselectNamesNothing, SelectIgnoresUnselect,
-          IgnoreOldSelect
+          IgnoreOldSelect, StatusReadsHistory, RowsFromBranches
 
 \* The number of clones and of commits, 1 or 2 each. The check config uses
 \* two of each; the chart config, which only draws the chart, one of each.
 CONSTANTS NClones, NCommits
 
+\* pruned and branchGone are git outside hyp: the runner's branches were
+\* deleted, and git pruned the commits no ref reaches. A run reads git and
+\* its Result carries what it read, so no other variable depends on them.
 VARIABLES form, added, atAdd, later, results, unselected, anyUnselect,
-          rejected, landed, landVerdict, closed, gitWriters, out
+          rejected, landed, landVerdict, closed, gitWriters, out,
+          pruned, branchGone
 
 vars == <<form, added, atAdd, later, results, unselected, anyUnselect,
-          rejected, landed, landVerdict, closed, gitWriters, out>>
+          rejected, landed, landVerdict, closed, gitWriters, out,
+          pruned, branchGone>>
 
 Clones == IF NClones = 1 THEN {"a"} ELSE {"a", "b"}
 C == IF NCommits = 1 THEN {"c1"} ELSE {"c1", "c2"}
@@ -69,6 +78,7 @@ GoalTypeOK ==
     /\ landVerdict \in [Ex -> Verdicts]
     /\ closed \in BOOLEAN
     /\ gitWriters \subseteq {"owner", "grill", "runner"}
+    /\ pruned \in BOOLEAN /\ branchGone \in BOOLEAN
 
 \* The old form's select of c1 holds while no unselect event exists.
 OldSel == IF form = "old" /\ ~IgnoreOldSelect /\ ~anyUnselect
@@ -109,6 +119,8 @@ Init ==
     /\ closed = FALSE
     /\ gitWriters = {}
     /\ out = "none"
+    /\ pruned = FALSE
+    /\ branchGone = FALSE
 
 \* The owner adds the Goal with its examples, each with its hash and its
 \* verdict on H0.
@@ -119,14 +131,14 @@ AddGoal ==
         /\ IF ~GrillPlaces /\ ~AddGoalAcceptsDisagreeing
                  /\ \E e \in S : ~Agrees(e)
            THEN /\ out' = "add goal exit 1: wrong-verdict-on-h0"
-                /\ UNCHANGED <<added, atAdd, gitWriters>>
+                /\ UNCHANGED <<added, atAdd, gitWriters, pruned, branchGone>>
            ELSE /\ added' = TRUE
                 /\ atAdd' = IF GrillPlaces THEN {} ELSE S
                 /\ gitWriters' = gitWriters \cup {"owner"}
                 /\ out' = IF GrillPlaces THEN "add goal exit 0: written"
                           ELSE "add goal exit 0: open"
         /\ UNCHANGED <<form, later, results, unselected, anyUnselect,
-                       rejected, landed, landVerdict, closed>>
+                       rejected, landed, landVerdict, closed, pruned, branchGone>>
 
 \* An act adds a new example to the Goal: the owner's, or with GrillPlaces
 \* the grill's place of today.
@@ -137,16 +149,16 @@ Place ==
         /\ GrillPlaces \/ atAdd # {}
         /\ IF ~AddExampleSkipsH0 /\ ~Agrees(e)
            THEN /\ out' = "place exit 1: wrong-verdict-on-h0"
-                /\ UNCHANGED <<later, gitWriters>>
+                /\ UNCHANGED <<later, gitWriters, pruned, branchGone>>
            ELSE IF ~AddExampleSkipsAddsOnly /\ ~AddsOnly(e)
            THEN /\ out' = "place exit 1: section-differs"
-                /\ UNCHANGED <<later, gitWriters>>
+                /\ UNCHANGED <<later, gitWriters, pruned, branchGone>>
            ELSE /\ later' = {e}
                 /\ gitWriters' = gitWriters \cup
                        {IF GrillPlaces THEN "grill" ELSE "owner"}
                 /\ out' = "place exit 0: " \o e
         /\ UNCHANGED <<form, added, atAdd, results, unselected, anyUnselect,
-                       rejected, landed, landVerdict, closed>>
+                       rejected, landed, landVerdict, closed, pruned, branchGone>>
 
 \* The runner runs one example on one commit in clone k. The Result goes to
 \* that clone's trace.
@@ -161,14 +173,24 @@ Run ==
                          ELSE gitWriters
         /\ out' = "run exit 0: " \o c \o " " \o e \o " " \o Truth(c, e)
         /\ UNCHANGED <<form, added, atAdd, later, unselected, anyUnselect,
-                       rejected, landed, landVerdict, closed>>
+                       rejected, landed, landVerdict, closed, pruned, branchGone>>
 
-StatusText(k) ==
+\* What hyp status G prints in clone k, calculated from events alone.
+StatusFromEvents(k) ==
     IF ~added THEN "status: no goal"
     ELSE IF ended THEN "status: ended"
     ELSE IF placed = {} THEN "status: written"
     ELSE IF SelectedIn(k) # "none" THEN "status: selected on " \o SelectedIn(k)
     ELSE "status: open"
+
+\* What hyp status G prints in clone k. A variant that reads git history
+\* or branches loses the select its Results show once git lost them.
+StatusText(k) ==
+    IF /\ \/ StatusReadsHistory /\ pruned
+          \/ RowsFromBranches /\ branchGone
+       /\ SelectedIn(k) \notin {"none", OldSel}
+    THEN "status: open"
+    ELSE StatusFromEvents(k)
 
 \* hyp status G in clone k: a read; it changes only what is printed.
 \* command: hyp status
@@ -177,7 +199,7 @@ Status ==
         /\ out' = StatusText(k)
         /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                        anyUnselect, rejected, landed, landVerdict, closed,
-                       gitWriters>>
+                       gitWriters, pruned, branchGone>>
 
 \* The commits clone k lets the owner land: the selected one, or a row with
 \* no failed Result and at least one met, whose missing Results land runs.
@@ -209,9 +231,9 @@ Land ==
                       /\ gitWriters' = gitWriters \cup {"owner"}
                       /\ out' = "land exit 0: " \o c
                  ELSE /\ out' = "land exit 1: not met on " \o c
-                      /\ UNCHANGED <<landed, landVerdict, gitWriters>>
+                      /\ UNCHANGED <<landed, landVerdict, gitWriters, pruned, branchGone>>
         /\ UNCHANGED <<form, added, atAdd, later, unselected, anyUnselect,
-                       rejected, closed>>
+                       rejected, closed, pruned, branchGone>>
 
 \* The owner unselects the commit clone k shows selected, naming it.
 \* command: hyp unselect
@@ -227,7 +249,29 @@ Unselect ==
         /\ gitWriters' = gitWriters \cup {"owner"}
         /\ out' = "unselect exit 0: " \o SelectedIn(k)
         /\ UNCHANGED <<form, added, atAdd, later, results, landed,
-                       landVerdict, closed>>
+                       landVerdict, closed, pruned, branchGone>>
+
+\* The runner's branches are deleted; their commits stay until git prunes
+\* them. Git outside hyp: no variable of hyp changes.
+\* command: git branch -D
+DeleteBranch ==
+    /\ ~branchGone
+    /\ branchGone' = TRUE
+    /\ out' = "branches deleted"
+    /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
+                   anyUnselect, rejected, landed, landVerdict, closed,
+                   gitWriters, pruned>>
+
+\* Git prunes the commits no ref reaches, such as after a rebase, a squash
+\* or a new clone.
+\* command: git gc
+Prune ==
+    /\ branchGone /\ ~pruned
+    /\ pruned' = TRUE
+    /\ out' = "commits pruned"
+    /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
+                   anyUnselect, rejected, landed, landVerdict, closed,
+                   gitWriters, branchGone>>
 
 \* command: hyp close
 Close ==
@@ -236,9 +280,10 @@ Close ==
     /\ gitWriters' = gitWriters \cup {"owner"}
     /\ out' = "close exit 0"
     /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
-                   anyUnselect, rejected, landed, landVerdict>>
+                   anyUnselect, rejected, landed, landVerdict, pruned, branchGone>>
 
 Next == AddGoal \/ Place \/ Run \/ Status \/ Land \/ Unselect \/ Close
+        \/ DeleteBranch \/ Prune
 
 Spec == Init /\ [][Next]_vars
 
@@ -278,5 +323,13 @@ UnselectedNeverShown ==
 OldStoreSameStatus ==
     (form = "old" /\ ~anyUnselect /\ ~ended) =>
         \A k \in Clones : SelectedIn(k) = "c1"
+
+\* source: G-YFB9QP:line-1
+StatusSameAfterPrune ==
+    pruned => \A k \in Clones : StatusText(k) = StatusFromEvents(k)
+
+\* source: G-YFB9QP:line-2
+StatusSameWithoutBranch ==
+    branchGone => \A k \in Clones : StatusText(k) = StatusFromEvents(k)
 
 =============================================================================

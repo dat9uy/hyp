@@ -3,7 +3,7 @@ package acts
 import (
 	"encoding/json"
 	"slices"
-
+	"strings"
 	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
@@ -59,7 +59,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 			// the Goal selected, and no event of the runner's holds it
 			return ev, fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, o.Role)
 		}
-		t := Calculate(tables.Replay(evs), root)
+		t := Calculate(tables.Replay(evs))
 		g, err := t.Find(o.Goal)
 		if err != nil {
 			return ev, err
@@ -70,7 +70,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err := tables.GuardNotSelected(g); err != nil {
 			return ev, err
 		}
-		row, err := tables.GuardCandidate(g, gitread.Ancestry{Dir: root}, o.Tree, o.Role)
+		row, err := tables.GuardCandidate(g, o.Tree, o.Role)
 		if err != nil {
 			return ev, err
 		}
@@ -132,51 +132,140 @@ func latestCommit(g *tables.Goal, rowTree string) string {
 	return commit
 }
 
-// guardSpec is the Spec guard: the commit holds a spec under
-// goals/<G>/specs/. When the spec is a model (a .tla file), every rule its
-// check configs check is named by a variant config under specs/variants/ (or
-// the older specs/switches/). When the commit changes the kept model
-// (goals/model/), every rule of it that is new, or whose text differs,
-// against H0, whatever commit the clone has checked out, is named by such a
-// variant config too; the other rules of the kept model need
-// none. A model or a kept change needs a chart (.mmd) in the folder. hyp reads
-// the files and runs no model checker.
+// guardSpec is the Spec guard of an act, which reads git: it reads the
+// commit (ReadCommit) and checks what it read (SpecGuard).
 func guardSpec(root string, g *tables.Goal, commit string) error {
-	dir := SpecDir(g.ID)
-	files, err := SpecFiles(root, commit, g.ID)
+	read, err := readSpec(root, g, commit)
 	if err != nil {
 		return err
 	}
-	if len(files) == 0 {
+	return SpecGuard(g, commit, &read)
+}
+
+// SpecGuard is the Spec guard on what a run read of the commit: the commit
+// holds a spec under goals/<G>/specs/. When the spec is a model (a .tla
+// file), every rule its check configs check is named by a variant config
+// under specs/variants/ (or the older specs/switches/). When the commit
+// changes the kept model (goals/model/), every rule of it that is new, or
+// whose text differs, against H0, whatever commit the clone has checked
+// out, is named by such a variant config too; the other rules of the kept
+// model need none. A model or a kept change needs a chart (.mmd) in the
+// folder. hyp reads the files and runs no model checker. A nil read is a
+// Result recorded before runs carried what they read: a run of a line on
+// the commit records one.
+func SpecGuard(g *tables.Goal, commit string, read *events.CommitRead) error {
+	dir := SpecDir(g.ID)
+	if read == nil {
+		return fault.Refuse(fault.GuardSpec, fault.NoRead, commit, g.ID)
+	}
+	if read.SpecFiles == 0 {
 		return fault.Refuse(fault.GuardSpec, fault.NoSpec, commit, dir)
 	}
-	m, err := ReadModel(root, files)
-	if err != nil {
-		return err
+	var kept []string
+	for _, it := range read.Kept {
+		if it.Rule {
+			kept = append(kept, it.Name)
+		}
 	}
-	kept, err := KeptChange(root, g.Base, commit)
-	if err != nil {
-		return err
-	}
-	if !m.Present && len(kept) == 0 {
+	if !read.Model && len(kept) == 0 {
 		return nil
 	}
 	var missing []string
-	if m.Present {
-		missing = m.Unnamed()
+	if read.Model {
+		missing = append(missing, read.Unnamed...)
 	}
 	for _, r := range kept {
-		if !slices.Contains(m.Named, r) && !slices.Contains(missing, r) {
+		if !slices.Contains(read.Named, r) && !slices.Contains(missing, r) {
 			missing = append(missing, r)
 		}
 	}
 	if len(missing) > 0 {
 		return fault.Refuse(fault.GuardSpec, fault.RuleNoVariant, commit, missing, dir+variantsDir)
 	}
-	if len(m.Charts) == 0 {
+	if len(read.Charts) == 0 {
 		return fault.Refuse(fault.GuardSpec, fault.NoChart, commit, dir)
 	}
 	return nil
+}
+
+// ReadCommit is what a run reads of git about commit, which its Result
+// carries: the commits of g's rows it descends from, its spec folder and
+// its kept model.
+func ReadCommit(root string, g *tables.Goal, commit string) (events.CommitRead, error) {
+	read, err := readSpec(root, g, commit)
+	if err != nil {
+		return read, err
+	}
+	if read.Above, err = g.Above(gitread.Ancestry{Dir: root}, commit); err != nil {
+		return read, err
+	}
+	return read, nil
+}
+
+// readSpec reads the spec folder of g and the kept model at commit.
+func readSpec(root string, g *tables.Goal, commit string) (events.CommitRead, error) {
+	var read events.CommitRead
+	files, err := SpecFiles(root, commit, g.ID)
+	if err != nil {
+		return read, err
+	}
+	m, err := ReadModel(root, files)
+	if err != nil {
+		return read, err
+	}
+	read.SpecFiles, read.Model, read.Unnamed, read.Named = len(files), m.Present, m.Unnamed(), m.Named
+	for _, c := range m.Charts {
+		data, err := gitread.Git(root, "cat-file", "blob", c.Hash)
+		if err != nil {
+			return read, err
+		}
+		read.Charts = append(read.Charts, events.Chart{Path: c.Path, Text: string(data)})
+	}
+	keeps, steps, err := keptSteps(root, commit)
+	if err != nil {
+		return read, err
+	}
+	read.Keeps = keeps
+	for _, st := range steps {
+		read.Steps = append(read.Steps, events.KeptStep{Name: st.name, Command: strings.Join(st.words, " ")})
+	}
+	if read.Kept, err = KeptDiff(root, g.Base, commit); err != nil {
+		return read, err
+	}
+	return read, nil
+}
+
+// SelectedRead is what was read of the commit g is selected on, for the
+// prints of a selected or landed Goal: what the latest Result of this clone
+// on it carries, else what its land carries. A select or land of the older
+// form, recorded before acts carried what they read, carries none: then,
+// and only then, it reads the commit from git, as those records were
+// printed.
+func SelectedRead(root string, g *tables.Goal) (*events.CommitRead, error) {
+	if read := ReadOf(g, g.Select.Commit); read != nil {
+		return read, nil
+	}
+	if g.Land != nil && g.Land.Read != nil && g.Land.Commit == g.Select.Commit {
+		return g.Land.Read, nil
+	}
+	read, err := readSpec(root, g, g.Select.Commit)
+	if err != nil {
+		return nil, err
+	}
+	return &read, nil
+}
+
+// ReadOf is what the latest Result on commit that counts, neither
+// retracted nor refused by Stable, read of it; nil when no such Result
+// carries a read.
+func ReadOf(g *tables.Goal, commit string) *events.CommitRead {
+	var read *events.CommitRead
+	for _, r := range g.Results {
+		if r.Commit == commit && !r.Retracted && r.Refused == "" {
+			read = r.Read
+		}
+	}
+	return read
 }
 
 // ExampleFile is the example.txtar of the example folder with tree hash

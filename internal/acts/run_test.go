@@ -544,3 +544,43 @@ func TestRunRefusedAfterTheProbesStoresNoOutput(t *testing.T) {
 		t.Fatalf("a refused run stored its output %s", own)
 	}
 }
+
+// A run carries what it read of git about its commit: the commits of the
+// Goal's rows it descends from and its spec folder. The rows and the
+// calculated select then read no git: once the commits are gone from the
+// clone, the Goal still shows selected on the same commit.
+func TestRunCarriesWhatItRead(t *testing.T) {
+	e := newRunEnv(t)
+	spec := "goals/" + e.goal + "/specs/spec.md"
+	c1 := e.child(t, e.base, map[string]string{"counter": "ok\n", spec: "s\n"})
+	if _, err := e.run(c1); err != nil {
+		t.Fatal(err)
+	}
+	c2 := e.child(t, c1, map[string]string{"counter": "ok2\n"})
+	if _, err := e.run(c2); err != nil {
+		t.Fatal(err)
+	}
+	rs := e.results(t)
+	if len(rs) != 2 || rs[0].Read == nil || rs[1].Read == nil {
+		t.Fatalf("results = %+v, want two that carry a read", rs)
+	}
+	if !slices.Equal(rs[0].Read.Above, []string{e.base}) || !slices.Equal(rs[1].Read.Above, []string{e.base, c1}) {
+		t.Fatalf("above = %v and %v, want [H0] and [H0 C1]", rs[0].Read.Above, rs[1].Read.Above)
+	}
+	if rs[1].Read.SpecFiles != 1 {
+		t.Fatalf("spec files = %d, want 1", rs[1].Read.SpecFiles)
+	}
+	before := e.shown(t)
+	if before.Select == nil || before.Select.Commit != c2 {
+		t.Fatalf("select = %+v, want the Goal selected on C2", before.Select)
+	}
+	testutil.Git(t, e.root, "reflog", "expire", "--expire=now", "--all")
+	testutil.Git(t, e.root, "gc", "-q", "--prune=now")
+	if ok, _ := (gitread.Ancestry{Dir: e.root}).HasCommit(c2); ok {
+		t.Fatal("test setup: C2 is still in the clone")
+	}
+	after := e.shown(t)
+	if after.Select == nil || after.Select.Commit != c2 || len(Stand(after).Rows) != 3 {
+		t.Fatalf("after the prune: select = %+v, want the Goal selected on C2 with three rows", after.Select)
+	}
+}

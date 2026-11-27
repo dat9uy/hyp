@@ -66,10 +66,10 @@ func TestLandOnTheSelectedCommitCarriesItsEvidence(t *testing.T) {
 	if g.State != tables.StateEnded || g.Land == nil || g.Select == nil || g.Select.Commit != commit {
 		t.Fatalf("state = %s, land %+v, select %+v", g.State, g.Land, g.Select)
 	}
-	if st := Stand(g, e.root); st.Stop != StopSelected || st.Waits != "none" {
+	if st := Stand(g); st.Stop != StopSelected || st.Waits != "none" {
 		t.Fatalf("standing = %+v", st)
 	}
-	if got := AllowedFor(g, e.root); len(got) != 0 {
+	if got := AllowedFor(g); len(got) != 0 {
 		t.Fatalf("a landed Goal allows %+v", got)
 	}
 	// a landed Goal takes no write: Not ended refuses each
@@ -157,11 +157,11 @@ func TestStopWaitsForTheOwnerAfterSelect(t *testing.T) {
 	e := newRunEnv(t)
 	commit, _ := e.selected(t)
 	g := e.shown(t)
-	st := Stand(g, e.root)
+	st := Stand(g)
 	if st.Stop != StopSelected || st.Waits != "owner" {
 		t.Fatalf("standing = %+v", st)
 	}
-	got := AllowedFor(g, e.root)
+	got := AllowedFor(g)
 	if len(got) != 3 || got[0].Role != "owner" || got[0].Act != ActLand || got[0].Goal != e.goal || got[0].Commit != commit ||
 		got[1].Role != "owner" || got[1].Act != ActUnselect || got[1].Goal != e.goal || got[1].Commit != commit ||
 		got[2].Role != "owner" || got[2].Act != ActClose || got[2].Goal != e.goal {

@@ -13,8 +13,9 @@ import (
 // boundary, H0 never counted. It is three for every Goal.
 const MaxHypotheses = 3
 
-// Ancestry answers the two questions about git that Rows and the run guards
-// ask. gitread.Ancestry is the real one.
+// Ancestry answers the two questions about git that the run guards ask.
+// gitread.Ancestry is the real one. Rows read none: the run's Result
+// carries what it read.
 type Ancestry interface {
 	// IsAncestor reports whether a is an ancestor of b, or b itself.
 	IsAncestor(a, b string) (bool, error)
@@ -28,7 +29,6 @@ type Row struct {
 	RowTree  string   // the subject tree hash
 	Commits  []string // the commits it was seen at, in order
 	Leaf     bool
-	Unknown  string            // a commit this clone lacks: the leaf mark is unknown
 	Verdicts map[string]string // by example key: the live cell's verdict, or NotRun
 }
 
@@ -53,20 +53,20 @@ func (g *Goal) rowCommits() (trees []string, commits map[string][]string) {
 	return trees, commits
 }
 
-// Rows calculates the rows of every Goal, H0's row first. A row is a leaf when
-// none of its commits has a descendant among the commits of the Goal's other
-// rows. A commit this clone lacks leaves the mark unknown and names the
-// commit.
-func Rows(t Tables, anc Ancestry) []Row {
+// Rows calculates the rows of every Goal, H0's row first. A row is a leaf
+// when no Result on another row names one of its commits among the commits
+// its run's commit descends from (CommitRead.Above): the run read git, and
+// its Result carries what it read, so no row reads git.
+func Rows(t Tables) []Row {
 	var out []Row
 	for _, g := range sortedGoals(t) {
-		out = append(out, g.Rows(anc)...)
+		out = append(out, g.Rows()...)
 	}
 	return out
 }
 
 // Rows calculates the rows of one Goal, H0's row first.
-func (g *Goal) Rows(anc Ancestry) []Row {
+func (g *Goal) Rows() []Row {
 	var out []Row
 	trees, commits := g.rowCommits()
 	for _, tree := range trees {
@@ -74,7 +74,7 @@ func (g *Goal) Rows(anc Ancestry) []Row {
 		for _, p := range g.Placed() {
 			row.Verdicts[p.Key] = g.Verdict(p.Key, tree)
 		}
-		row.Leaf, row.Unknown = leafMark(anc, trees, commits, tree)
+		row.Leaf = g.leaf(tree, commits[tree])
 		out = append(out, row)
 	}
 	return out
@@ -89,29 +89,45 @@ func sortedGoals(t Tables) []*Goal {
 	return gs
 }
 
-// leafMark reports whether the row with tree is a leaf, or the first commit
-// this clone lacks.
-func leafMark(anc Ancestry, trees []string, commits map[string][]string, tree string) (leaf bool, unknown string) {
-	for _, c := range commits[tree] {
-		for _, other := range trees {
-			if other == tree {
-				continue
-			}
-			for _, d := range commits[other] {
-				if c == d {
-					continue
-				}
-				desc, err := anc.IsAncestor(c, d)
-				if err != nil {
-					return false, missingOf(anc, c, d)
-				}
-				if desc {
-					return false, ""
-				}
+// leaf reports whether the row with tree, seen at commits, is a leaf: no
+// Result that makes a row on another tree carries one of commits in Above.
+// Leaf only refuses a run on an ancestor of a row, so a row recorded later
+// never lies below one recorded before it, and the Result of the lower row
+// is always the earlier one; the later Result names it.
+func (g *Goal) leaf(tree string, commits []string) bool {
+	for _, r := range g.Results {
+		if r.Refused != "" || r.RowTree == tree || r.Read == nil {
+			continue
+		}
+		for _, c := range r.Read.Above {
+			if slices.Contains(commits, c) {
+				return false
 			}
 		}
 	}
-	return true, ""
+	return true
+}
+
+// Above is each commit of g's rows, H0's included, other than commit, that
+// commit descends from, as anc answers: what a run carries in its Result.
+func (g *Goal) Above(anc Ancestry, commit string) ([]string, error) {
+	var out []string
+	trees, commits := g.rowCommits()
+	for _, tree := range trees {
+		for _, c := range commits[tree] {
+			if c == commit || slices.Contains(out, c) {
+				continue
+			}
+			below, err := anc.IsAncestor(c, commit)
+			if err != nil {
+				return nil, fault.EnvFault(fault.LeafNeedsCommit, g.ID, missingOf(anc, c, commit), err)
+			}
+			if below {
+				out = append(out, c)
+			}
+		}
+	}
+	return out, nil
 }
 
 // missingOf names the commit of a failed ancestry question that this clone

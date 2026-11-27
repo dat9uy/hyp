@@ -228,11 +228,11 @@ A build that hyp has not recorded, such as a variant of a Goal's model written a
 _Avoid_: wrong build, broken variant, right build
 
 **Hypothesis tree**:
-The Hypotheses of one Goal, arranged by the git ancestry of their commits. H0 is its root. A Hypothesis is below another when one of its commits descends from one of the other's. hyp reads the arrangement from git and stores no edge (`hyp spec`, Hypothesis tree). It is the only tree in hyp's words.
+The Hypotheses of one Goal, arranged by the git ancestry of their commits. H0 is its root. A Hypothesis is below another when one of its commits descends from one of the other's. A run reads that from git and its Result carries it; no state or print reads git for it (`hyp spec`, the subject). It is the only tree in hyp's words.
 _Avoid_: run tree, tree for a hash
 
 **Leaf**:
-A Hypothesis with nothing below it in the Hypothesis tree: none of its row's commits has a descendant among the commits of the Goal's other rows. hyp reads it from git. A missing commit prints `leaf unknown` (`hyp spec`, Hypothesis tree).
+A Hypothesis with nothing below it in the Hypothesis tree: no Result on another row carries one of its row's commits among the commits its run's commit descends from. hyp calculates it from the Results, so a rebase, a squash or a new clone changes no leaf (`hyp spec`, the subject).
 
 **Result**:
 The record of one `run`: one line of one Goal on one commit, with one cell per placed example. Its id is `R-…`. A retracted Result is never deleted.

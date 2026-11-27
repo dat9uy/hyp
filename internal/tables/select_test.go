@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
-	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -28,7 +27,7 @@ func TestCandidateIsLeafMetOnEveryLine(t *testing.T) {
 		result(t, id1, "line-1", b, treeOf(t, r, b), cell(hashA, "met")),
 		result(t, id1, "line-1", c, treeOf(t, r, c), cell(hashA, "failed")),
 	})
-	cands := Candidates(tb.Goals[id1], gitread.Ancestry{Dir: r.Dir})
+	cands := Candidates(tb.Goals[id1])
 	if len(cands) != 1 || cands[0].RowTree != treeOf(t, r, b) {
 		t.Fatalf("candidates = %+v, want only the leaf row B that is met", cands)
 	}
@@ -38,9 +37,9 @@ func TestCandidateIsLeafMetOnEveryLine(t *testing.T) {
 	tb = Replay([]events.Event{
 		g, placeReal(t, idP1, hashA, "failed", g),
 		result(t, id1, "line-1", b, treeOf(t, r, b), cell(hashA, "met")),
-		result(t, id1, "line-1", d, treeOf(t, r, d), cell(hashA, "failed")),
+		resultAbove(t, id1, "line-1", d, treeOf(t, r, d), []string{a, b}, cell(hashA, "failed")),
 	})
-	if cands := Candidates(tb.Goals[id1], gitread.Ancestry{Dir: r.Dir}); len(cands) != 0 {
+	if cands := Candidates(tb.Goals[id1]); len(cands) != 0 {
 		t.Fatalf("candidates = %+v, want none: B is not a leaf", cands)
 	}
 }
@@ -67,10 +66,10 @@ func TestNotCandidateWithUnrunLine(t *testing.T) {
 		g, placeReal(t, idP1, hashA, "failed", g), place2,
 		result(t, id1, "line-1", b, treeOf(t, r, b), cell(hashA, "met")), run2,
 	})
-	if cands := Candidates(both.Goals[id1], gitread.Ancestry{Dir: r.Dir}); len(cands) != 1 {
+	if cands := Candidates(both.Goals[id1]); len(cands) != 1 {
 		t.Fatalf("candidates = %+v, want B once both lines are run", cands)
 	}
-	if cands := Candidates(goal, gitread.Ancestry{Dir: r.Dir}); len(cands) != 0 {
+	if cands := Candidates(goal); len(cands) != 0 {
 		t.Fatalf("candidates = %+v, want none while line-2 is not run on B", cands)
 	}
 }
