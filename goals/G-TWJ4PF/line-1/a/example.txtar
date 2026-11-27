@@ -1,0 +1,10 @@
+-- words --
+One act, one new file: in a repository whose store already holds Goal G-ONE, committed, the owner closes G-ONE; git status then shows one new file under .tree and no changed file.
+-- run --
+hyp close G-ONE --why 'no longer wanted' >/dev/null 2>&1; echo "close exit: $?"; git status --porcelain --untracked-files=all .tree | cut -c1-2 | sort | uniq -c
+-- floor: contains --
+close exit: 0
+-- floor: contains --
+1 ??
+-- ceiling --
+M

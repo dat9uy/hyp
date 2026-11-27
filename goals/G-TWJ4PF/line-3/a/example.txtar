@@ -1,0 +1,6 @@
+-- words --
+No local-merge rule: AGENTS.md holds no rule telling anyone to merge a PR locally because of an events file.
+-- run --
+echo "rule lines: $(grep -c 'merged locally' AGENTS.md)"
+-- floor: contains --
+rule lines: 0

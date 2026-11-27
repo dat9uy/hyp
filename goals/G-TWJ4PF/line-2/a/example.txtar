@@ -1,0 +1,8 @@
+-- words --
+Two Goals, two branches: from a base with no store, branch main adds Goal X and branch side adds Goal Y, both by the owner. A plain git merge, with no merge driver (as on GitHub), exits 0, and hyp status lists both Goals.
+-- run --
+printf '* merge=text\n' > .git/info/attributes; git merge --no-edit side >/dev/null 2>&1; echo "merge exit: $?"; echo "written: $(hyp status --all 2>/dev/null | grep -c written)"
+-- floor: contains --
+merge exit: 0
+-- floor: contains --
+written: 2

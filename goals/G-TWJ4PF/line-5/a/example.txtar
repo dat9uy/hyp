@@ -1,0 +1,8 @@
+-- words --
+Two acts that cannot both stand: from a base whose store holds Goal G-ONE, the owner closes G-ONE on branch main and lands or closes it again on branch side. After git merge, hyp status shows the later act refused at replay, as on H0.
+-- run --
+git merge --no-edit side >/dev/null 2>&1; echo "merge exit: $?"; hyp status G-ONE
+-- floor: contains --
+merge exit: 0
+-- floor: contains --
+refused at replay
