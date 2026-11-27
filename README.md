@@ -44,7 +44,7 @@ hyp keeps a record only for what someone learned from it. Three things are learn
 - **A Goal names the findings that bear on its want.** You name a finding when you add the Goal, with `hyp add goal --finding F`. The grill names it in an example. That name is the fold: a state of the finding, not an act.
 - **You learn a want.** You see a consequence, such as an output, a stop or a finding. Then you state a want: a line of a new Goal, or a decline of a finding that you do not want fixed. Only you add a want. An agent can show a fact and ask.
 
-A want that is not ready to become lines waits in an issue. The issue closes when you add the Goal that holds the want.
+An issue tracks the process toward a want: the event, your decisions and the split into Goals. The want itself is a Goal, a snapshot of it at the moment you add it. The issue closes when each want it tracks is held by an added Goal.
 
 The loop joins the three:
 
@@ -95,7 +95,7 @@ hyp calculates each state, and `hyp finding list` and `hyp status G` print them:
 
 | Step | Goal state | What names the finding | The finding reads |
 |---|---|---|---|
-| 0. A part | none | Nothing. An issue holds the want, in your words. | none |
+| 0. A part | none | Nothing. An issue tracks the want, in your words. | none |
 | 1. A finding | none | Nothing | `not folded` |
 | 2. A drafted finding | none | Nothing. Its draft may hold an `add goal` for you to edit and run. | `not folded` |
 | 3. A written Goal | `written` | The Goal: you, with `add goal --finding F` | `folded into G` |
@@ -117,7 +117,7 @@ Each record has one home. Git holds what every clone must agree on. The trace ho
 | The end of a Goal, with its why | you | The land or the close, in git |
 | A Result: one line on one build | hyp, from a run | The clone's trace, in `~/.hyp/traces/` |
 | A fact | an agent | A finding, in the clone's trace |
-| A part of what you want, before its lines are known | you | An issue, in your words |
+| The process toward a want: the event, your decisions, the split into Goals | you | An issue, in your words |
 | The steps, prints and rules of the machine | agents, carried by a selected commit | The kept model, in git (`goals/model/`) |
 
 ### How the records relate

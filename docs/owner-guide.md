@@ -29,7 +29,7 @@ stateDiagram-v2
 
 ### 1. The grill: the hyp-grill skill
 
-A real event, such as a refusal or a run you flag, starts the work. A fact an agent found is a finding (`hyp finding add`) from the moment it is found. A want whose lines are not known yet is an issue, and it closes when you add its Goal. Start a session with the [hyp-grill](../skills/hyp-grill/SKILL.md) skill and give it the issue, or the findings when there is no issue.
+A real event, such as a refusal or a run you flag, starts the work. A fact an agent found is a finding (`hyp finding add`) from the moment it is found. An issue tracks the process toward a want: the event, your decisions and the split into Goals. It closes when each want it tracks is held by an added Goal. Start a session with the [hyp-grill](../skills/hyp-grill/SKILL.md) skill and give it the issue, or the findings when there is no issue.
 
 - The grill asks you only what you want to be true, never how to build it. Each question gives options. Each option has a label and a description of what the runner then builds. You answer with a label.
 - The grill drafts the `hyp add goal` command with your actor. You run it yourself:
