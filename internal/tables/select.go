@@ -105,7 +105,7 @@ func GuardGoalActor(g *Goal, actor, role string) error {
 func GuardSelect(t Tables, ev events.Event) error {
 	var p events.Select
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardSelected, fault.PayloadInvalid, err)
+		return err
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {

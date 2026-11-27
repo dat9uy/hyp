@@ -328,7 +328,7 @@ func GuardWholeLines(lines []Line) error {
 func GuardGoalAdd(t Tables, ev events.Event) error {
 	var p events.GoalAdd
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardWholeLines, fault.PayloadInvalid, err)
+		return err
 	}
 	node := ev.Node
 	if node == ev.ID {
@@ -608,7 +608,7 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 func GuardPlace(t Tables, ev events.Event) error {
 	var p events.ExamplePlace
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardOwnerPlaces, fault.PayloadInvalid, err)
+		return err
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
@@ -634,7 +634,7 @@ func GuardPlace(t Tables, ev events.Event) error {
 func GuardPlaceSet(t Tables, ev events.Event) error {
 	var p events.ExamplesPlace
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardOwnerPlaces, fault.PayloadInvalid, err)
+		return err
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
@@ -855,7 +855,7 @@ func replayExamplesPlace(t *Tables, ev events.Event, refuse func(events.Event, e
 func replayRead(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 	var p events.Read
 	if err := events.Decode(ev, &p); err != nil {
-		refuse(ev, fault.Refuse(fault.NoGuard, fault.PayloadInvalid, err))
+		refuse(ev, err)
 		return
 	}
 	t.Reads[ev.Actor] = append(t.Reads[ev.Actor], Read{
@@ -958,7 +958,7 @@ func GuardOwnerLands(role string) error {
 func GuardLand(t Tables, ev events.Event) error {
 	var p events.Land
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardStop, fault.PayloadInvalid, err)
+		return err
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
@@ -1064,7 +1064,7 @@ func GuardOwnerCloses(role string) error {
 func GuardClose(t Tables, ev events.Event) error {
 	var p events.Close
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardOwnerClose, fault.PayloadInvalid, err)
+		return err
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
@@ -1115,7 +1115,7 @@ func GuardHasSelect(g *Goal) error {
 func GuardUnselect(t Tables, ev events.Event) error {
 	var p events.Unselect
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardOwnerUnsel, fault.PayloadInvalid, err)
+		return err
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
