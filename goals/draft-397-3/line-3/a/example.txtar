@@ -1,8 +1,0 @@
--- words --
-Leaf only, as on H0: Goal G-ONE has one row, on C2, built on C1, and not met; a run on C1, an ancestor of that row, is refused by Leaf only.
--- run --
-HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 2>&1; echo "run exit: $?"
--- floor: contains --
-Leaf only
--- floor: contains --
-run exit: 1

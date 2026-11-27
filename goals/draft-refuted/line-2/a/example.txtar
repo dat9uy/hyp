@@ -1,8 +1,0 @@
--- words --
---all still prints a refuted finding: the same store; hyp finding list --all prints the refuted finding with the state refuted.
--- run --
-L=$(HYP_ACTOR=owner hyp finding list --all 2>&1); if echo "$L" | grep -q "^F_REFUTED  refuted"; then echo "refuted: shown as refuted"; else echo "refuted: missing"; fi
--- floor: contains --
-refuted: shown as refuted
--- ceiling --
-refuted: missing

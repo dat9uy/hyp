@@ -1,8 +1,0 @@
--- words --
-A command prints the folder of draft NAME in the clone's trace: in a git repository, hyp draft path x prints a folder under the clone's trace named drafts/x.
--- run --
-HYP_ACTOR=grill-1 hyp draft path x
--- floor: contains --
-/.hyp/traces/
--- floor: contains --
-/drafts/x

@@ -1,8 +1,0 @@
--- words --
-hyp spec states the step format: one step per line, step <Action> <json>, append only, and no effect when HYP_STEP_LOG is unset.
--- run --
-hyp spec 2>&1 | grep -c "HYP_STEP_LOG" | sed "s/^/HYP_STEP_LOG mentions: /"; hyp spec 2>&1 | grep -F -o "step <Action> <json>" | head -1
--- floor: contains --
-step <Action> <json>
--- ceiling --
-HYP_STEP_LOG mentions: 0

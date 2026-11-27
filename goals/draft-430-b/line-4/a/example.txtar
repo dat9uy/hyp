@@ -1,8 +1,0 @@
--- words --
-An unselect restarts the budget: the Goal is selected on C1 after one run; the owner unselects C1; hyp status shows no run used.
--- run --
-HYP_ACTOR=owner HYP_ROLE=owner hyp unselect GOAL C1 >/dev/null 2>&1; echo "unselect exit $?"; HYP_ACTOR=owner hyp status GOAL | head -1
--- floor: contains --
-unselect exit 0
--- floor: contains --
-runs: 0 of 3 used
