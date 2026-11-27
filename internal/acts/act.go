@@ -152,11 +152,17 @@ func (w writer) check(v view, f func(tables.Tables) error) error {
 // under the lock, never carried over from a read before it, from one
 // snapshot of the events and the trace's cells.
 func (w writer) append(v view, build func(tables.Tables, []events.Event) (events.Event, error)) (events.Event, error) {
-	return logstore.Append(w.root, w.actor, func(evs []events.Event) (events.Event, error) {
+	return w.appendBefore(v, build, nil)
+}
+
+// appendBefore is append with before called with the event and its id just
+// before the event is written; an error from before leaves the event unwritten.
+func (w writer) appendBefore(v view, build func(tables.Tables, []events.Event) (events.Event, error), before func(events.Event) error) (events.Event, error) {
+	return logstore.AppendBefore(w.root, w.actor, func(evs []events.Event) (events.Event, error) {
 		s, err := readSnapshot(w.root, evs)
 		if err != nil {
 			return events.Event{}, err
 		}
 		return build(tablesOf(s, v), evs)
-	})
+	}, before)
 }
