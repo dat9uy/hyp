@@ -189,12 +189,13 @@ func stripCfgComments(cfg string) string {
 const KeptDir = "goals/model/"
 
 // keptRules is the kept model at commit: each rule its check configs check,
-// in first-seen order, and the text of each rule's definition in its .tla
-// files. A commit with no kept model has no rules.
-func keptRules(root, commit string) ([]string, map[string]string, error) {
+// in first-seen order, and each top-level definition of its .tla files, with
+// the names of the definitions in module order. A commit with no kept model
+// has no rules.
+func keptRules(root, commit string) ([]string, map[string]definition, []string, error) {
 	out, err := gitread.Git(root, "ls-tree", "-r", "-z", commit, KeptDir)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	var rules []string
 	var modules []string
@@ -214,7 +215,7 @@ func keptRules(root, commit string) ([]string, map[string]string, error) {
 		}
 		data, err := gitread.Git(root, "cat-file", "blob", f[2])
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		if ext == ".cfg" {
 			rules = appendNew(rules, CfgRules(string(data))...)
@@ -222,38 +223,63 @@ func keptRules(root, commit string) ([]string, map[string]string, error) {
 			modules = append(modules, string(data))
 		}
 	}
-	text := map[string]string{}
+	defs := map[string]definition{}
+	var order []string
 	for _, m := range modules {
-		for name, def := range definitions(m) {
-			text[name] = def
+		for _, d := range definitions(m) {
+			if _, had := defs[d.Name]; !had {
+				order = append(order, d.Name)
+			}
+			defs[d.Name] = d
 		}
 	}
-	return rules, text, nil
+	return rules, defs, order, nil
 }
 
-// definitions is the text of each top-level definition of a TLA+ module: a
-// line "Name ==" or "Name(args) ==" at the start of a line and the indented
-// lines after it, with trailing spaces of each line removed.
-func definitions(tla string) map[string]string {
-	defs := map[string]string{}
-	name := ""
+// definition is one top-level definition of a TLA+ module: its name, its
+// text, and what the line comments right above it name: the source of a
+// rule (\* source: X) and the command of a step (\* command: X).
+type definition struct {
+	Name, Text, Source, Command string
+}
+
+// definitions is each top-level definition of a TLA+ module, in module
+// order: a line "Name ==" or "Name(args) ==" at the start of a line and the
+// indented lines after it, with trailing spaces of each line removed. The
+// line comments right above the definition give its source and command.
+func definitions(tla string) []definition {
+	var defs []definition
+	var cur *definition
 	var body []string
+	source, command := "", ""
 	flush := func() {
-		if name != "" {
-			defs[name] = strings.Join(body, "\n")
+		if cur != nil {
+			cur.Text = strings.Join(body, "\n")
+			defs = append(defs, *cur)
 		}
-		name, body = "", nil
+		cur, body = nil, nil
 	}
 	for _, line := range strings.Split(tla, "\n") {
 		line = strings.TrimRight(line, " \t\r")
-		if name != "" && line != "" && (line[0] == ' ' || line[0] == '\t') {
+		if cur != nil && line != "" && (line[0] == ' ' || line[0] == '\t') {
 			body = append(body, line)
 			continue
 		}
 		flush()
-		if m := defLine.FindStringSubmatch(line); m != nil {
-			name, body = m[1], []string{line}
+		if c, ok := strings.CutPrefix(line, `\*`); ok {
+			c = strings.TrimSpace(c)
+			if v, ok := strings.CutPrefix(c, "source:"); ok {
+				source = strings.TrimSpace(v)
+			}
+			if v, ok := strings.CutPrefix(c, "command:"); ok {
+				command = strings.TrimSpace(v)
+			}
+			continue
 		}
+		if m := defLine.FindStringSubmatch(line); m != nil {
+			cur, body = &definition{Name: m[1], Source: source, Command: command}, []string{line}
+		}
+		source, command = "", ""
 	}
 	flush()
 	return defs
@@ -265,43 +291,59 @@ var defLine = regexp.MustCompile(`^(\w+)\s*(?:\([^)]*\))?\s*==`)
 // text differs, against the kept model at from, in the order of the
 // commit's check configs.
 func KeptChange(root, from, commit string) ([]string, error) {
-	rules, text, err := keptRules(root, commit)
-	if err != nil {
-		return nil, err
-	}
-	old, oldText, err := keptRules(root, from)
+	d, err := KeptDiff(root, from, commit)
 	if err != nil {
 		return nil, err
 	}
 	var out []string
-	for _, r := range rules {
-		t, had := oldText[r]
-		if !slices.Contains(old, r) || !had || t != text[r] {
-			out = append(out, r)
+	for _, it := range d {
+		if it.Rule {
+			out = append(out, it.Name)
 		}
 	}
 	return out, nil
 }
 
-// KeptFrom is the commit whose kept model the kept change of commit is
-// measured against: where commit left the checked-out line, the merge base
-// of HEAD and commit, unless that is commit itself or a commit before H0;
-// then H0.
-func KeptFrom(root, h0, commit string) (string, error) {
-	code, out, err := gitread.GitExit(root, "merge-base", "HEAD", commit)
+// KeptItem is one step or rule of the kept model that a commit adds or
+// changes. A step is a definition tagged with the command it takes; a rule
+// is a name its check configs check, with the source its comment names.
+type KeptItem struct {
+	Rule    bool   // a rule; else a step
+	Name    string // the name of its definition
+	Command string // a step's command
+	Source  string // a rule's source, as its comment names it; empty when none
+}
+
+// KeptDiff is what the kept model at commit adds or changes against the
+// kept model at from: each step that is new, or whose text or command
+// differs, in module order, then each rule that is new, or whose text
+// differs, in the order of the commit's check configs.
+func KeptDiff(root, from, commit string) ([]KeptItem, error) {
+	rules, defs, order, err := keptRules(root, commit)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	mb := strings.TrimSpace(string(out))
-	if code != 0 || mb == "" || mb == commit {
-		return h0, nil
-	}
-	after, err := gitread.IsAncestor(root, h0, mb)
+	old, oldDefs, _, err := keptRules(root, from)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	if !after {
-		return h0, nil
+	var out []KeptItem
+	for _, name := range order {
+		d := defs[name]
+		if d.Command == "" || slices.Contains(rules, name) {
+			continue
+		}
+		if o, had := oldDefs[name]; had && o.Text == d.Text && o.Command == d.Command {
+			continue
+		}
+		out = append(out, KeptItem{Name: name, Command: d.Command})
 	}
-	return mb, nil
+	for _, r := range rules {
+		o, had := oldDefs[r]
+		if slices.Contains(old, r) && had && o.Text == defs[r].Text {
+			continue
+		}
+		out = append(out, KeptItem{Rule: true, Name: r, Source: defs[r].Source})
+	}
+	return out, nil
 }

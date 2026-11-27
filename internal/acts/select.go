@@ -131,8 +131,9 @@ func latestCommit(g *tables.Goal, rowTree string) string {
 // goals/<G>/specs/. When the spec is a model (a .tla file), every rule its
 // check configs check is named by a variant config under specs/variants/ (or
 // the older specs/switches/). When the commit changes the kept model
-// (goals/model/), every rule of it that is new, or whose text differs, is
-// named by such a variant config too; the other rules of the kept model need
+// (goals/model/), every rule of it that is new, or whose text differs,
+// against H0, whatever commit the clone has checked out, is named by such a
+// variant config too; the other rules of the kept model need
 // none. A model or a kept change needs a chart (.mmd) in the folder. hyp reads
 // the files and runs no model checker.
 func guardSpec(root string, g *tables.Goal, commit string) error {
@@ -148,11 +149,7 @@ func guardSpec(root string, g *tables.Goal, commit string) error {
 	if err != nil {
 		return err
 	}
-	from, err := KeptFrom(root, g.Base, commit)
-	if err != nil {
-		return err
-	}
-	kept, err := KeptChange(root, from, commit)
+	kept, err := KeptChange(root, g.Base, commit)
 	if err != nil {
 		return err
 	}

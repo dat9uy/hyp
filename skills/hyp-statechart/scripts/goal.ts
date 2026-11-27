@@ -632,8 +632,22 @@ const isGoalConfig = (configFile: string) => {
   return parent !== "variants" && parent !== "switches";
 };
 
+// goalSpecDir is the Goal spec folder a check writes into: the spec's own
+// folder when it is a Goal's spec folder, goals/G/specs/; else, for a model
+// kept outside any Goal, such as the kept model in goals/model/, the Goal
+// spec folder that holds the output folder, when one does.
+const goalSpecDir = (specFile: string, outDir: string) => {
+  const own = path.dirname(path.resolve(specFile));
+  if (path.basename(own) === "specs") return own;
+  const parts = path.resolve(outDir).split(path.sep);
+  for (let i = parts.length - 1; i >= 2; i--)
+    if (parts[i] === "specs" && parts[i - 2] === "goals") return parts.slice(0, i + 1).join(path.sep);
+  return own;
+};
+
 // goalReport runs the Goal part when the spec has variants or is in a Goal's
-// spec folder. It writes the variant configs into specs/variants/ and returns
+// spec folder, or its output folder is in one. It writes the variant configs
+// into that folder's variants/ and returns
 // the report, or undefined when there is nothing to report. In a Goal's spec
 // folder, refused lists each rule of the check config that no variant config
 // it wrote names: hyp select refuses a commit whose check config checks such
@@ -641,6 +655,7 @@ const isGoalConfig = (configFile: string) => {
 export async function goalReport(
   specFile: string,
   configFile: string,
+  outDir: string,
   view: CheckedView,
   base: CheckResult,
   scratch: string,
@@ -649,7 +664,7 @@ export async function goalReport(
   const cfgText = fs.readFileSync(configFile, "utf8");
   const cfg = readConfig({ file: configFile, text: cfgText });
   const variants = variantsOf(cfg.sections);
-  const specDir = path.dirname(path.resolve(specFile));
+  const specDir = goalSpecDir(specFile, outDir);
   const goalDir = path.basename(specDir) === "specs" ? path.dirname(specDir) : undefined;
   const goal = goalDir ? readGoal(goalDir) : { lines: [], examples: [] };
   if (!variants.length && !goalDir) return undefined;
