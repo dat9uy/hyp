@@ -21,7 +21,8 @@ draws only the paths to the rules that break, and with no rule broken there is n
 In a hyp Goal's spec folder (goals/G/specs/), the command also runs each variant (a constant the
 config sets FALSE), writes specs/variants/VARIANT.cfg with exactly the rules it breaks, and
 writes goal.md: the rules and their sources, a walk for each example, and each example
-predicted under each variant.
+predicted under each variant. For a spec outside a Goal's spec folder, such as the kept model in
+goals/model/, it does so for the Goal whose spec folder holds DIR.
 Exit code: TLC's own on the config as written: 0 when every rule holds, 1 when a rule breaks,
 and 2 when TLC stops with an error, a signal kills the check, or the command cannot run. In a
 Goal's spec folder, 3 when every rule holds but the check config checks a rule that no variant
@@ -111,6 +112,7 @@ try {
         stage,
         specFile,
         configFile,
+        dest,
         ...(flags.view ? [flags.view] : []),
       ],
       {

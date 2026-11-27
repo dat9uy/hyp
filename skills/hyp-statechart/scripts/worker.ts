@@ -9,7 +9,7 @@ import { goalReport } from "./goal.ts";
 import { compile } from "./pipeline.ts";
 import { check, messageOf } from "./run.ts";
 
-const [stage, specFile, configFile, viewFile] = process.argv.slice(2);
+const [stage, specFile, configFile, outDir, viewFile] = process.argv.slice(2);
 
 try {
   const view = checkView(
@@ -21,7 +21,7 @@ try {
   let exit = verdict;
   const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "statechart-goal-"));
   try {
-    const goal = await goalReport(specFile, configFile, view, result, scratch);
+    const goal = await goalReport(specFile, configFile, outDir, view, result, scratch);
     if (goal !== undefined) files.set("goal.md", [goal.text]);
     // Exit 3 when every rule holds but hyp select refuses the check config.
     if (goal?.refused.length && exit === 0) exit = 3;

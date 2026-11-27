@@ -206,7 +206,14 @@ var Commands = []Command{
                                          candidate whose select hyp holds
                                          back, with any role, it prints the
                                          guard, its code and the fix that
-                                         hyp select would print.
+                                         hyp select would print. Of a
+                                         selected G, it lists each step and
+                                         rule of the kept model, goals/model/,
+                                         that the selected commit adds or
+                                         changes against H0: a step by its
+                                         command, a rule with the words of
+                                         the Goal line its source names as
+                                         G:line-N, or no line; no TLA+ text.
                                          With no G, it prints the words of each
                                          written or open Goal, leaves out the
                                          blocks of ended Goals with a line that
@@ -416,7 +423,7 @@ var Guards = []Guard{
 		[]fault.Code{fault.NoNewCell}, "no: it reads the cells of the clone's trace"},
 	{fault.GuardGoalsActor, "only the actor that added the Goal selects for the owner, lands, closes or unselects it",
 		[]fault.Code{fault.NotGoalsActor}, "yes"},
-	{fault.GuardSpec, "the selected commit holds a spec under goals/G/specs/; a model there names each rule of its check configs in a variant config, and holds a chart; when the commit changes the kept model, goals/model/, against the merge base of HEAD and the commit (H0 when that base is the commit or comes before H0), a variant config under goals/G/specs/ names each kept rule that is new or whose definition text differs, the other kept rules need none, and the folder holds a chart",
+	{fault.GuardSpec, "the selected commit holds a spec under goals/G/specs/; a model there names each rule of its check configs in a variant config, and holds a chart; when the commit changes the kept model, goals/model/, against H0, whatever commit the clone has checked out, a variant config under goals/G/specs/ names each kept rule that is new or whose definition text differs, the other kept rules need none, and the folder holds a chart",
 		[]fault.Code{fault.NoSpec, fault.RuleNoVariant, fault.NoChart}, "no: it reads git"},
 	{fault.GuardOwnerLands, "only the owner lands a Goal",
 		[]fault.Code{fault.NotOwner}, "yes"},

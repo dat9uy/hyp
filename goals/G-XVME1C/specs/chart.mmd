@@ -1,0 +1,34 @@
+---
+title: "G-XVME1C: the kept change at the Selected stop"
+---
+stateDiagram-v2
+  s0: changed rule
+  s1: kept tool
+  s2: new rule
+  s3: new step
+  s4: own tool
+  s5: side branch
+  s6: changed rule: ran
+  s7: new rule: ran
+  s8: new step: ran
+  s9: side branch: ran
+  s10: kept tool: done
+  s11: own tool: done
+  s12: changed rule: selected
+  s13: new rule: selected
+  s14: new step: selected
+  [*] --> s0
+  [*] --> s1
+  [*] --> s2
+  [*] --> s3
+  [*] --> s4
+  [*] --> s5
+  s0 --> s6: Run
+  s1 --> s10: Tool
+  s2 --> s7: Run
+  s3 --> s8: Run
+  s4 --> s11: Tool
+  s5 --> s9: Run
+  s6 --> s12: Select
+  s7 --> s13: Select
+  s8 --> s14: Select

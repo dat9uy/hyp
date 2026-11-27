@@ -51,13 +51,19 @@ A repository keeps one model of its machine in `goals/model/`: a TLA+ module
 and its check config. It is no Goal's folder, so a runner's own commit may
 change it. A Goal whose change moves the machine changes the kept model
 instead of writing the whole machine again: the commit edits `goals/model/`,
-and the Goal's spec folder holds the variant configs and the chart. The tool
-writes the variant configs of the kept model under `goals/model/variants/`;
-move them to `goals/<G>/specs/variants/` and keep none under `goals/model/`.
+and the Goal's spec folder holds the variant configs and the chart. Run the
+tool on the kept model with `--out` in the Goal's spec folder, such as
+`--out goals/<G>/specs/out`: it then writes the variant configs under
+`goals/<G>/specs/variants/` and none under `goals/model/`.
 
-At select, hyp compares the kept model of the commit with the kept model
-where the commit left the checked-out line, or with H0's when that point is
-the commit itself or comes before H0. Each rule that is new, or whose
+Name the source of a kept rule with its Goal: `\* source: G-XXXXXX:line-2`
+for a line of a Goal, or `\* source: model only` for a rule no line holds.
+At the selected stop, `hyp status G` lists each step and rule that the
+selected commit adds or changes in the kept model: a step by its command, a
+rule with the words of the line its source names, or `no line`.
+
+At select, hyp compares the kept model of the commit with H0's, whatever
+commit the clone has checked out. Each rule that is new, or whose
 definition text differs, needs a variant config under
 `goals/<G>/specs/variants/` that names it; a rule the commit leaves as it was
 needs none. A change to the kept model also needs a chart in the Goal's spec
@@ -106,7 +112,8 @@ before.
    as hyp does. The prints of the steps the Probe takes before the run section
    are not matched, as hyp matches only the run section's output.
 7. **Run the tool** on the check config, into a new `--out` folder outside the
-   repository:
+   repository, or, for the kept model, a new folder in the Goal's spec folder
+   that you delete before you commit:
 
    ```sh
    <skill dir>/scripts/statechart SPEC.tla --config SPEC.cfg --view VIEW.mjs --out DIR

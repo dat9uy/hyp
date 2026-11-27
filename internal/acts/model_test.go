@@ -238,3 +238,24 @@ func TestKeptChangeIsNewAndChangedRulesOnly(t *testing.T) {
 		t.Fatalf("kept change of a commit against itself = %q", got)
 	}
 }
+
+func TestKeptDiffListsChangedStepsAndRuleSources(t *testing.T) {
+	e := newRunEnv(t)
+	base := "---- MODULE kept ----\n\\* command: toy add\nInc == n' = n + 1\n\\* source: model only\nKeeps == n >= 0\n====\n"
+	cfg := "SPECIFICATION Spec\nINVARIANTS Keeps\n"
+	from := e.child(t, e.base, map[string]string{KeptDir + "kept.tla": base, KeptDir + "kept.cfg": cfg})
+	changed := strings.Replace(base, "====\n",
+		"\\* command: toy fold\nFold == n' = n\n\\* source: G-ONE:line-1\nNew == n < 3\n====\n", 1)
+	to := e.child(t, from, map[string]string{
+		KeptDir + "kept.tla": changed,
+		KeptDir + "kept.cfg": "SPECIFICATION Spec\nINVARIANTS Keeps New\n",
+	})
+	got, err := KeptDiff(e.root, from, to)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []KeptItem{{Name: "Fold", Command: "toy fold"}, {Rule: true, Name: "New", Source: "G-ONE:line-1"}}
+	if !slices.Equal(got, want) {
+		t.Fatalf("kept diff = %+v, want %+v", got, want)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -186,12 +187,57 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 		// the list of every Goal prints no PR body: an output it quotes can
 		// hold lines that read as Goals of this store
 	case st.Stop == acts.StopSelected:
+		keptChange(b, t, g, repo)
 		if !o.NoBody {
 			fmt.Fprintf(b, "\nPR body:\n\n%s", prBody(repo, g))
 		}
 	case st.Stop == acts.StopTwoCandidates || st.Stop == acts.StopBudgetUsed:
 		outputsTable(b, g, repo, st.Rows)
 	}
+}
+
+// keptChange lists what the selected commit adds or changes in the kept
+// model, goals/model/, against H0: each step by the command it takes, and
+// each rule with the words of the Goal line its source names as G:line-N,
+// or "no line" when it names none. It prints no TLA+ text, and nothing when
+// the commit leaves the kept model as H0 holds it.
+func keptChange(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string) {
+	items, err := acts.KeptDiff(repo, g.Base, g.Select.Commit)
+	if err != nil {
+		fmt.Fprintf(b, "\nkept model: not readable here: %s\n", bodyText(err, repo))
+		return
+	}
+	if len(items) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "\nkept model: what the selected commit adds or changes in %s against H0:\n", acts.KeptDir)
+	for _, it := range items {
+		if !it.Rule {
+			fmt.Fprintf(b, "  step: %s\n", it.Command)
+			continue
+		}
+		fmt.Fprintf(b, "  rule %s: %s\n", it.Name, sourceText(t, it.Source))
+	}
+}
+
+// sourceLine is a rule's source that names a Goal line: G-XXXXXX:line-N.
+var sourceLine = regexp.MustCompile(`^(G-[0-9A-Z]+):(line-[0-9]+)$`)
+
+// sourceText is the Goal line a kept rule's source names, as
+// "G:line-N: words", or "no line" when the source names none.
+func sourceText(t tables.Tables, source string) string {
+	m := sourceLine.FindStringSubmatch(source)
+	if m == nil {
+		return "no line"
+	}
+	if lg, err := t.Find(m[1]); err == nil {
+		for _, l := range lg.Lines {
+			if l.Key == m[2] {
+				return source + ": " + indentText(l.Text, "    ")
+			}
+		}
+	}
+	return source + ": not a line of this store"
 }
 
 // probeWriter is the probe-writer block of a written or open Goal in
