@@ -139,7 +139,7 @@ func TestReplayFormFaultsNameNoGuard(t *testing.T) {
 		code fault.Code
 	}{
 		{"a select whose role is grill", selectEv(t, "a", "grill", "commit-r1", "r1"), fault.SelectRole},
-		{"a result.record whose payload does not decode", bogus, fault.PayloadInvalid},
+		{"a result.record whose payload does not decode", bogus, fault.PayloadDecode},
 	}
 	for _, c := range cases {
 		tb := Replay([]events.Event{goalAdd(t, id1, "", "w", gap), placeEv(t, idP1, "line-1", "a", hashA, "failed"), run(t, "r1", "met"), c.ev})

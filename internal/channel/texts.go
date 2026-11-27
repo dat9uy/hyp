@@ -102,12 +102,11 @@ var words = map[fault.Code]string{
 	fault.NoChart:         "commit %s holds a model and no chart under %s; commit the chart (.mmd), then run one line on that commit",
 
 	// events and their payloads
-	fault.EventVersion:   "event version %d, want %d",
-	fault.EventType:      "unknown event type %s",
-	fault.PayloadDecode:  "%s payload: %s",
-	fault.TrailingData:   "trailing data after JSON object",
-	fault.PayloadInvalid: "%s",
-	fault.SelectRole:     "a select payload names the role %s; a select's role is owner, or runner in the older form",
+	fault.EventVersion:  "event version %d, want %d",
+	fault.EventType:     "unknown event type %s",
+	fault.PayloadDecode: "%s payload: %s",
+	fault.TrailingData:  "trailing data after JSON object",
+	fault.SelectRole:    "a select payload names the role %s; a select's role is owner, or runner in the older form",
 
 	// the example file
 	fault.SectionDiffers:      "the %s section differs from the current version; a change there is a new example key, not a new version",

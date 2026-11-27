@@ -67,12 +67,11 @@ const (
 	NoChart          Code = "no-chart"           // commit, folder
 
 	// events and their payloads
-	EventVersion   Code = "event-version"   // version, wanted version
-	EventType      Code = "event-type"      // type
-	PayloadDecode  Code = "payload-decode"  // event type, cause
-	TrailingData   Code = "trailing-data"   // no values
-	PayloadInvalid Code = "payload-invalid" // cause
-	SelectRole     Code = "select-role"     // role
+	EventVersion  Code = "event-version"  // version, wanted version
+	EventType     Code = "event-type"     // type
+	PayloadDecode Code = "payload-decode" // event type, cause
+	TrailingData  Code = "trailing-data"  // no values
+	SelectRole    Code = "select-role"    // role
 
 	// the example file
 	SectionDiffers  Code = "section-differs"   // section name
