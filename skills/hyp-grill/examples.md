@@ -79,6 +79,14 @@ full: the owner may read only the last message, not the status before it.
      stderr. It records nothing and uses no
      run. When the verdict is not the one the line needs, fix the example and
      try again.
+   - **Check why a gap example fails.** The right verdict for the wrong
+     reason passes `hyp try` and still makes a Goal that no build can meet. A
+     gap example's H0 output must show the behaviour its line wants gone, and
+     every act its Probe or run section sets up must succeed on H0. An act
+     refused on H0 that no build may change, such as `hyp finding add` in a
+     repository with no store, gives the same failed verdict on every build.
+     When a setup act hides its output (`>/dev/null 2>&1`), run it once by hand
+     on H0 and read its exit.
    - **Add the H0 ceilings.** A gap example's H0 output shows the behaviour
      the line wants gone: text of it that a half-fixed build could still print
      becomes a ceiling, copied byte for byte. Name each such ceiling in the

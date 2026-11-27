@@ -37,9 +37,11 @@ act `hyp help` lists for adding a Goal; you draft the words and lines it takes,
 and the draft folder of examples it carries with `--examples`. Git holds only
 the owner's acts: you write no event, and the owner adds a new example to an
 open Goal with the place act.
-In that draft, set `HYP_ACTOR` to the owner's actor, never a placeholder: the
-actor of the `goal.add` events in the store, which the folder
-`.tree/events/<actor>/` names (or, in an older store, `.tree/events/<actor>.jsonl`). Ask the owner once, only when the store has no Goal yet or several actors
+
+In the owner's draft, set `HYP_ACTOR` to the owner's actor, never a
+placeholder: the actor of the `goal.add` events in the store, which the folder
+`.tree/events/<actor>/` names (in an older store, `.tree/events/<actor>.jsonl`).
+Ask the owner once, only when the store has no Goal yet or several actors
 added Goals. The owner's place, land, unselect and close of a Goal are allowed
 only to the actor that added it, so a wrong actor locks the owner out of them.
 
@@ -122,7 +124,7 @@ names, and the event the why names. Make the worktree of step 9 on branch
    do not turn it into a question.
 7. **A form question names every case.** When you ask about the form of what
    hyp prints (the state block, a report, an error), name every state a Goal
-   can be in (`written`, `open`, `selected`, `landed`) and every command that
+   can be in (`written`, `open`, `selected`, `ended`) and every command that
    prints that form, so the answer covers each one.
 8. **Draft the words and lines.** One sentence of words. Each line is `gap`
    (false on H0, the build must make it true) or `guard` (true on H0, the build
