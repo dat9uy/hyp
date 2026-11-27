@@ -1,12 +1,10 @@
 -- words --
-When Stable refuses a run on a commit other than H0, its refusal prints both outputs as it does today: the example's Probe prints bad on the first run of a second commit and ok on the next, and the refusal shows bad as the first output and ok as the second.
+After Stable refuses a run on H0, hyp status prints the unstable cell with H0's first output hash, not (unknown): the example's Probe prints bad when the owner places it and ok on the next run, hyp run on H0 is refused, and hyp status of the Goal names both outputs of the cell.
 -- run --
-HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run H0 GOAL/line-1 >/dev/null 2>&1; HYP_ACTOR=owner hyp status GOAL
 -- floor: contains --
-gave different verdicts; the first stands
--- floor: contains --
-bytes:
-bad
--- floor: contains --
-bytes:
-ok
+line-1/a on COMMIT: HASH then HASH
+-- ceiling --
+(unknown) then
+-- findings --
+F-BQ06DP

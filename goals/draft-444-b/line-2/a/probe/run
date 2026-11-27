@@ -2,12 +2,10 @@
 # Probe of line-2/a. The working directory is a copy of the subject. It builds hyp from the subject and
 # makes a test repo whose Goal has one gap line and one example, added by the owner and committed. The
 # example's own Probe is flaky: it counts its runs in $HOME/count, outside the subject copy, and prints bad on
-# its first two runs and ok on every later one. The owner's add runs it on H0 (bad, failed). The runner
-# commits a child of the Goal commit that adds a file the example does not read, that is ROW, and runs the
-# example on it once as setup (bad, failed). Then the run section is executed with ROW and GOAL replaced by
-# that commit and the Goal id: that run prints ok (met), and the Stable guard refuses it. It prints the stdout
-# and the stderr of the run with ids, hashes and timestamps mapped to tokens, then a last line "exit N".
-# Setup output goes to stderr. A setup failure exits 3.
+# its first run and ok on every later one. The owner's add runs it on H0 once (bad, failed). Then the run
+# section is executed with H0 and GOAL replaced by the H0 commit and the Goal id: that run prints ok (met), and
+# the Stable guard refuses it. It prints the stdout and the stderr of the run with ids, hashes and timestamps
+# mapped to tokens, then a last line "exit N". Setup output goes to stderr. A setup failure exits 3.
 
 work=$(mktemp -d) || exit 3
 trap 'rm -rf "$work"' EXIT
@@ -39,7 +37,7 @@ cat >goals/draft-g/line-1/a/probe/run <<'INNER'
 #!/bin/sh
 n=$(cat "$HOME/count" 2>/dev/null || echo 0)
 echo $((n + 1)) >"$HOME/count"
-if [ "$n" -lt 2 ]; then echo bad; else echo ok; fi
+if [ "$n" -lt 1 ]; then echo bad; else echo ok; fi
 echo "exit 0"
 INNER
 chmod +x goals/draft-g/line-1/a/probe/run || fail "probe mode"
@@ -54,11 +52,7 @@ cat "$work/add" >&2
 goal=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/add" | head -1)
 [ -n "$goal" ] || fail "no Goal id"
 git add -A && git commit -q -m goal >&2 || fail "commit goal"
-printf 'change\n' >note || fail "write note"
-git add -A && git commit -q -m row >&2 || fail "commit row"
-row=$(git rev-parse HEAD) || fail "rev-parse row"
-runner run "$row" "$goal/line-1" >&2 || fail "setup run"
-target=$row
+target=$h0
 
 run=$(printf '%s' "$HYP_RUN" | sed -e "s/GOAL/$goal/g" -e "s/H0/$target/g" -e "s/ROW/$target/g")
 sh -c "$run" >"$work/out" 2>"$work/err"

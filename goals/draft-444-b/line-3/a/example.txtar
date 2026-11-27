@@ -1,0 +1,12 @@
+-- words --
+When Stable refuses a run on a commit other than H0, its refusal prints both outputs as it does today: the example's Probe prints bad on the first run of a second commit and ok on the next, and the refusal shows bad as the first output and ok as the second.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1
+-- floor: contains --
+gave different verdicts; the first stands
+-- floor: contains --
+bytes:
+bad
+-- floor: contains --
+bytes:
+ok
