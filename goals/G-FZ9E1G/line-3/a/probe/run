@@ -1,0 +1,94 @@
+#!/bin/sh
+# Probe of G-FZ9E1G line-3/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test repo whose base commit holds a
+# kept model (rule Ok, steps Add tagged toy add and List tagged toy list), adds
+# a Goal of one gap line with one placed example that runs toy list, and leaves
+# the Goal open. Then it runs the example's run section with G-ONE replaced by
+# the real Goal id, prints its stdout with the real id replaced by G-ONE and
+# timestamps by TIME, then a last line "exit N". Setup output goes to stderr.
+# A setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+mkdir -p goals/model || fail "mkdir model"
+printf '%s\n' '---- MODULE model ----' 'VARIABLE st' 'Init == st = 0' \
+  '\* command: toy add' 'Add == st'"'"' = st + 1' \
+  '\* command: toy list' 'List == st'"'"' = st' \
+  'Spec == Init /\ [][Add \/ List]_st' \
+  '\* source: model only' 'Ok == TRUE' '====' >goals/model/model.tla || fail "model.tla"
+printf '%s\n' 'SPECIFICATION Spec' 'INVARIANTS Ok' >goals/model/model.cfg || fail "model.cfg"
+git add -A && git commit -q -m base >&2 || fail "commit base"
+
+# The owner adds the Goal.
+added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+  --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+[ -n "$G" ] || fail "no Goal id in: $added"
+commit_staged "goal $G" || fail "commit goal"
+
+# The grill places one example. Its Probe puts a toy command on PATH that
+# echoes its arguments and the subject's greeting; the base fails it.
+d="goals/$G/line-1/a"
+mkdir -p "$d/probe" || fail "mkdir $d"
+cat >"$d/example.txtar" <<'EXAMPLE'
+-- words --
+The subject says bye.
+-- run --
+toy list
+-- floor: contains --
+bye
+EXAMPLE
+cat >"$d/probe/run" <<'TOYPROBE'
+#!/bin/sh
+bin=$(mktemp -d) || exit 1
+printf '%s\n' '#!/bin/sh' 'echo "toy $*"' 'cat greet.txt' >"$bin/toy"
+chmod +x "$bin/toy"
+tmp=$(mktemp) || exit 1
+PATH="$bin:$PATH" sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -rf "$tmp" "$bin"
+TOYPROBE
+chmod +x "$d/probe/run"
+commit_staged "example of $G" || fail "commit example"
+HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "hyp place failed"
+commit_staged placed || fail "commit placed"
+
+export HYP_ACTOR=owner HYP_ROLE=owner
+run=$(printf '%s' "$HYP_RUN" | sed -e "s/G-ONE/$G/g")
+g=$(printf '%s' "$G" | tr 'A-Z' 'a-z')
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+sed -e "s/$G/G-ONE/g" -e "s/$g/g-one/g" -e 's/[0-9]\{4\}-[0-9-]*T[0-9:.]*Z/TIME/g' "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+sed -e "s/$G/G-ONE/g" -e "s/$g/g-one/g" "$work/err" >&2
+echo "exit $code"
+exit 0
