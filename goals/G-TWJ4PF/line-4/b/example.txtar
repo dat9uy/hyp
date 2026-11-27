@@ -1,0 +1,12 @@
+-- words --
+A store of the older form still replays: a repository whose committed store holds only .tree/events/owner.jsonl, with one goal.add event written in H0's form and no file of any newer form, prints that Goal with hyp status, as on H0.
+-- run --
+hyp status --all
+-- floor: contains --
+G-ABCDEF
+-- floor: contains --
+written
+-- ceiling --
+no Goal is in work
+-- findings --
+F-ZNE0YC
