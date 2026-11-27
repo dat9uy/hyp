@@ -1,0 +1,90 @@
+#!/bin/sh
+# Probe of an example at a select this clone's Results show. The working directory is a copy of the subject.
+# It builds hyp from the subject and makes a test repo whose Goal has one gap line, base H0 where counter
+# reads bad, and the example line-1/a that wants counter ok. A leaf C1 (a child of H0, counter ok, with a spec)
+# is run by the runner, so the Goal shows selected. A second leaf C2 (counter ok, other bytes) is committed and
+# not run. goals/draft-more holds the Goal's set plus line-1/b. GOAL, C1 and C2 in the run section are
+# replaced by the Goal id and the commits. It prints the stdout with ids mapped to tokens, then a last line
+# "exit N". Setup output goes to stderr. A setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+cp skills/hyp-grill/probe/run "$work/generic-run" || fail "generic probe"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+printf 'bad\n' >counter
+
+# mkex FOLDER KEY: an example whose run prints counter and whose floor is ok
+mkex() {
+  mkdir -p "$1/$2/probe" || fail "mkdir example"
+  printf '%s\n' '-- words --' 'The counter says ok.' '-- run --' 'cat counter' \
+    '-- floor: contains --' 'ok' >"$1/$2/example.txtar"
+  cp "$work/generic-run" "$1/$2/probe/run" && chmod +x "$1/$2/probe/run" || fail "probe copy"
+}
+mkex goals/draft-g line-1/a
+git add -A && git commit -q -m base >&2 || fail "commit base"
+base=$(git rev-parse HEAD)
+
+owner() { HYP_ACTOR=owner HYP_ROLE=owner hyp "$@"; }
+runner() { HYP_ACTOR=runner-1 HYP_ROLE=runner hyp "$@"; }
+
+owner add goal --base HEAD --words 'Count.' --line 'gap:the counter says ok.' --examples goals/draft-g >"$work/add" 2>&1 || { cat "$work/add" >&2; fail "add goal"; }
+cat "$work/add" >&2
+goal=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/add" | head -1)
+[ -n "$goal" ] || fail "no Goal id"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+main=$(git rev-parse HEAD)
+
+# the leaves are children of H0 and hold a spec
+leaf() {
+  git checkout -q -b "$1" "$base" || fail "checkout $1"
+  printf '%s\n' "$2" >counter
+  mkdir -p "goals/$goal/specs" && printf 'spec %s\n' "$1" >"goals/$goal/specs/spec.md" || fail "spec"
+  git add -A && git commit -q -m "leaf $1" >&2 || fail "commit $1"
+  git rev-parse HEAD
+}
+c1=$(leaf c1 ok)
+c2=$(leaf c2 ok)
+git checkout -q main || fail "checkout main"
+
+runner run "$c1" "$goal/line-1" >&2 || fail "run C1"
+owner status "$goal" 2>&1 | head -1 | grep -q "^$goal  selected" || fail "the Goal does not show selected"
+
+# a committed folder with the Goal's set and a new example on line-1
+cp -R "goals/$goal" goals/draft-more || fail "draft-more"
+rm -rf goals/draft-more/specs
+mkex goals/draft-more line-1/b
+git add -A && git commit -q -m more >&2 || fail "commit more"
+
+# the example names no role for its place; the owner holds the owner role in this clone
+export HYP_ROLE=owner
+run=$(printf '%s' "$HYP_RUN" | sed -e "s/GOAL/$goal/g" -e "s/C1/$c1/g" -e "s/C2/$c2/g")
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+map() {
+  sed -e "s/$goal/GOAL/g" -e "s/$c1/C1/g" -e "s/$c2/C2/g" \
+    -e "s/$(echo "$c1" | cut -c1-7)[0-9a-f]*/C1/g" -e "s/$(echo "$c2" | cut -c1-7)[0-9a-f]*/C2/g" \
+    -e 's/[0-9A-HJKMNP-TV-Z]\{26\}/ULID/g' \
+    -e 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z\{0,1\}\([+-][0-9:]*\)\{0,1\}/TIMESTAMP/g' "$1"
+}
+map "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+map "$work/err" >&2
+echo "exit $code"
+exit 0

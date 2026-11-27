@@ -1,0 +1,8 @@
+-- words --
+On an open Goal with no candidate, the runner's run records its Result: line-1's example fails on the leaf C1; the runner runs line-1 on C1; the run exits 0, and the Goal shows one run used.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run C1 GOAL/line-1 >/dev/null 2>&1; echo "run exit $?"; HYP_ACTOR=owner hyp status GOAL | head -1
+-- floor: contains --
+run exit 0
+-- floor: contains --
+GOAL  open  runs: 1 of 3 used
