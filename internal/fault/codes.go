@@ -149,6 +149,7 @@ const (
 	LeafNeedsCommit   Code = "leaf-needs-commit"   // Goal, commit, cause
 	AncestorOfRow     Code = "ancestor-of-row"     // commit, descendant commit, Goal
 	OtherGoalPath     Code = "other-goal-path"     // commit, path, Goal
+	NoGoalFolder      Code = "no-goal-folder"      // commit, path
 	BudgetUsed        Code = "budget-used"         // Goal, trees used, trees allowed
 	OtherVerdict      Code = "other-verdict"       // Goal, example keys
 	NoGoalToRun       Code = "no-goal-to-run"      // Goal
@@ -172,6 +173,8 @@ const (
 	BadExamplesFolder Code = "bad-examples-folder" // folder
 	CopyExamples      Code = "copy-examples"       // from, to, cause
 	TryDraftOnH0      Code = "try-draft-on-h0"     // no values
+	BadDraftName      Code = "bad-draft-name"      // name
+	NoDraft           Code = "no-draft"            // name, folder
 	ExampleOffLine    Code = "example-off-line"    // example key
 	AddedVerdictWrong Code = "added-verdict-wrong" // example key, verdict, verdict needed
 	ReplaceExamples   Code = "replace-examples"    // Goal

@@ -474,6 +474,16 @@ func TestRunRefusesOtherGoalPath(t *testing.T) {
 	}
 }
 
+func TestRunRefusesFolderOfNoGoalWithItsOwnCode(t *testing.T) {
+	e := newRunEnv(t)
+	bad := e.child(t, e.base, map[string]string{"counter": "ok9\n", "goals/draft-x/f": "x"})
+	_, err := e.run(bad)
+	refusedBy(t, err, "Own path")
+	if !testutil.Mentions(err, "no-goal-folder") || testutil.Mentions(err, "other-goal-path") {
+		t.Fatalf("err = %v, want the folder of no Goal, not another Goal's path", err)
+	}
+}
+
 func TestRunLeafMarkNeedsEveryCommit(t *testing.T) {
 	e := newRunEnv(t)
 	if _, err := e.run(e.leaf(t, e.base, "ok")); err != nil {

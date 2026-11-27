@@ -23,6 +23,8 @@ const (
 	codeSelectArgs     fault.Code = "select-args"     // count
 	codeStatusArgs     fault.Code = "status-args"     // count
 	codeShowArgs       fault.Code = "show-args"       // count
+	codeDraftWhat      fault.Code = "draft-what"      // no values
+	codeDraftArgs      fault.Code = "draft-args"      // count
 	codeShowActor      fault.Code = "show-actor"      // actor
 	codeShowGoal       fault.Code = "show-goal"       // Goal id
 	codeReplaceTwice   fault.Code = "replace-twice"   // count
@@ -188,6 +190,7 @@ var words = map[fault.Code]string{
 	fault.LeafNeedsCommit:      "Leaf only: the leaf mark of %s needs commit %s, which this clone lacks (%s)",
 	fault.AncestorOfRow:        "%s is an ancestor of %s, a commit of a row of %s; run a leaf",
 	fault.OtherGoalPath:        "commit %[1]s writes %[2]s, a path of another Goal; %[3]s may write only under goals/%[3]s/",
+	fault.NoGoalFolder:         "commit %s writes %s, in a goals/ folder of no Goal in the store; a Goal's examples go in its own folder, and a draft of examples is kept with hyp draft path",
 	fault.BudgetUsed:           "%s has used %d of %d Hypotheses since its last change; the owner decides",
 	fault.OtherVerdict:         "%s on this Hypothesis gave another verdict than its live cell: %s",
 	fault.NoGoalToRun:          "no Goal %s to run on",
@@ -208,8 +211,10 @@ var words = map[fault.Code]string{
 	fault.NoGapLine:            "the Goal has no gap line",
 	fault.HasSelect:            "%s has a select; it takes no place, run or second select",
 	fault.NotOwnerPlace:        "only the owner places an example; the role is %s",
-	fault.BadExamplesFolder:    "--examples %s is not a folder inside the repository",
-	fault.TryDraftOnH0:         "try --examples runs a draft example on the commit --base names, H0 of the Goal to add; it takes no --worktree and no --commit",
+	fault.BadExamplesFolder:    "%s is not a folder inside the repository",
+	fault.BadDraftName:         "%s is not a draft name: use 1 to 40 characters of a-z, 0-9 and -, the first not a dash",
+	fault.NoDraft:              "no draft %s: the folder %s is not there; hyp draft path %[1]s prints it, and the examples go in it as LINE/EXAMPLE",
+	fault.TryDraftOnH0:         "try --draft runs a draft example on the commit --base names, H0 of the Goal to add; it takes no --worktree and no --commit",
 	fault.CopyExamples:         "cannot copy the examples from %s to %s: %v",
 	fault.ExampleOffLine:       "the example %s is on no line of the Goal",
 	fault.AddedVerdictWrong:    "the add records the verdict %[2]s on H0 for %[1]s, whose line needs %[3]s",
@@ -269,6 +274,8 @@ var words = map[fault.Code]string{
 	codeRunArgs:        "run takes COMMIT and <Goal>/<line>, for example: hyp run 4df2b9e G-NXHHVA/line-3; got %d arguments",
 	codeSelectArgs:     "select takes a Goal and a subject hash, for example: hyp select G-NXHHVA 4df2b9e...; got %d arguments",
 	codeStatusArgs:     "status takes at most one Goal, got %d",
+	codeDraftWhat:      "draft what? only draft path NAME exists",
+	codeDraftArgs:      "draft path takes one draft name, for example: hyp draft path x; got %d arguments",
 	codeShowArgs:       "show takes one actor, for example: hyp show runner-1; got %d arguments",
 	codeShowActor:      "show takes an actor name, such as runner-1; %s is not one: an actor matches ^[a-z0-9][a-z0-9-]{0,39}$",
 	codeShowGoal:       "show takes an actor name, such as runner-1; %[1]s is a Goal id: hyp status %[1]s prints that Goal",

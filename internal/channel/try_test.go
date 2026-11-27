@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -48,24 +49,31 @@ func TestTryPrintsTheCellAndRecordsNothing(t *testing.T) {
 // try needs no store and records nothing.
 func TestTryDraftNeedsNoGoal(t *testing.T) {
 	r := inRepo(t)
-	if err := os.MkdirAll(filepath.Join(r.Dir, "goals/draft-x/line-1/a"), 0o755); err != nil {
+	tr, err := logstore.TraceOf(r.Dir)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(r.Dir, "goals/draft-x/line-1/a/example.txtar"), []byte("-- words --\nw\n-- run --\necho hi\n-- floor: equals --\nbye\n"), 0o644); err != nil {
+	folder := filepath.Join(tr.DraftDir("x"), "line-1", "a")
+	if err := os.MkdirAll(filepath.Join(folder, "probe"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	r.WriteExec(t, "goals/draft-x/line-1/a/probe/run", fixtureProbe)
+	if err := os.WriteFile(filepath.Join(folder, "example.txtar"), []byte("-- words --\nw\n-- run --\necho hi\n-- floor: equals --\nbye\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(folder, "probe", "run"), []byte(fixtureProbe), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	base := strings.TrimSpace(testutil.Git(t, r.Dir, "rev-parse", "HEAD"))
 	before := testutil.Snapshot(t, r.Dir)
-	code, out, errs := run(t, "try", "--examples", "goals/draft-x", "--base", base, "line-1/a")
-	if code != 0 || !strings.Contains(out, "tried the draft goals/draft-x line-1/a on H0 "+base+"\n") ||
+	code, out, errs := run(t, "try", "--draft", "x", "--base", base, "line-1/a")
+	if code != 0 || !strings.Contains(out, "tried the draft x line-1/a on H0 "+base+"\n") ||
 		!strings.Contains(out, "nothing is recorded") || !strings.Contains(out, "verdict: failed, exit 0\n") {
 		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	if testutil.Snapshot(t, r.Dir) != before {
 		t.Fatal("a draft try changed the repository's git state")
 	}
-	if code, _, _ := run(t, "try", "--examples", "goals/draft-x", "--base", base, "line-1/a", "--worktree"); code != 2 {
+	if code, _, _ := run(t, "try", "--draft", "x", "--base", base, "line-1/a", "--worktree"); code != 2 {
 		t.Fatalf("a draft try on another commit: code %d, want 2", code)
 	}
 }
@@ -86,5 +94,31 @@ func TestTryArguments(t *testing.T) {
 	t.Setenv("HYP_ACTOR", "")
 	if code, _, errs := run(t, "try", goal, "line-1/a"); code != 2 || !strings.Contains(errs, "try needs an actor") {
 		t.Fatalf("no actor: code %d, stderr %q", code, errs)
+	}
+}
+
+// draft path prints the folder of a draft in the clone's trace and creates
+// nothing; a name that is not a draft name is a bad argument.
+func TestDraftPath(t *testing.T) {
+	r := inRepo(t)
+	before := testutil.Snapshot(t, r.Dir)
+	code, out, errs := run(t, "draft", "path", "x")
+	tr, err := logstore.TraceOf(r.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if code != 0 || strings.TrimSpace(out) != tr.DraftDir("x") || !strings.Contains(out, "/.hyp/traces/") || !strings.HasSuffix(strings.TrimSpace(out), "/drafts/x") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if _, err := os.Stat(tr.DraftDir("x")); err == nil {
+		t.Fatal("draft path created the folder")
+	}
+	if testutil.Snapshot(t, r.Dir) != before {
+		t.Fatal("draft path changed the repository's git state")
+	}
+	for _, args := range [][]string{{"draft", "path", "../x"}, {"draft", "path"}, {"draft", "path", "a", "b"}, {"draft"}} {
+		if code, _, _ := run(t, args...); code != 2 {
+			t.Errorf("hyp %v: code %d, want 2", args, code)
+		}
 	}
 }

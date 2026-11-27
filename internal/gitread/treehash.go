@@ -113,21 +113,36 @@ func DirTreeHash(path string) (string, error) {
 // dirTree returns the tree hash of the folder at path and whether it holds
 // anything git can store.
 func dirTree(path string) (string, bool, error) {
+	entries, err := DirEntries(path)
+	if err != nil {
+		return "", false, err
+	}
+	if len(entries) == 0 {
+		return TreeObjectHash(nil), false, nil
+	}
+	return TreeObjectHash(entries), true, nil
+}
+
+// DirEntries lists the root entries of the folder at path as git would store
+// them with no filter, as RootEntries lists them for a commit's tree: an
+// empty folder is skipped, because git stores none, and mode and hash are
+// those of git. hyp writes no object.
+func DirEntries(path string) ([]Entry, error) {
 	des, err := os.ReadDir(path)
 	if err != nil {
-		return "", false, fault.Refuse(fault.NoGuard, fault.ReadFolder, path, err)
+		return nil, fault.Refuse(fault.NoGuard, fault.ReadFolder, path, err)
 	}
 	var entries []Entry
 	for _, de := range des {
 		child := filepath.Join(path, de.Name())
 		info, err := os.Lstat(child)
 		if err != nil {
-			return "", false, fault.EnvFault(fault.ReadPath, child, err)
+			return nil, fault.EnvFault(fault.ReadPath, child, err)
 		}
 		if info.IsDir() {
 			h, any, err := dirTree(child)
 			if err != nil {
-				return "", false, err
+				return nil, err
 			}
 			if any {
 				entries = append(entries, Entry{Mode: "40000", Type: "tree", Hash: h, Name: de.Name()})
@@ -136,14 +151,11 @@ func dirTree(path string) (string, bool, error) {
 		}
 		e, err := diskBlob(child, de.Name(), info)
 		if err != nil {
-			return "", false, err
+			return nil, err
 		}
 		entries = append(entries, e)
 	}
-	if len(entries) == 0 {
-		return TreeObjectHash(nil), false, nil
-	}
-	return TreeObjectHash(entries), true, nil
+	return entries, nil
 }
 
 // diskFiles lists every file and symlink under root, by slash path.

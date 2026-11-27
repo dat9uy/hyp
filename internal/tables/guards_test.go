@@ -183,10 +183,10 @@ func TestGuardBudgetSkipsStableRefusal(t *testing.T) {
 func TestGuardOwnPathRefusesOtherGoal(t *testing.T) {
 	g := &Goal{ID: "G-NXHHVA"}
 	own := []gitread.OwnPath{{Path: "main.go", Commit: "c1"}, {Path: "goals/G-NXHHVA/line-1/a/example.txtar", Commit: "c1"}}
-	if err := GuardOwnPath(g, own); err != nil {
+	if err := GuardOwnPath(g, ownGoals, own); err != nil {
 		t.Fatalf("the Goal's own folder was refused: %v", err)
 	}
-	err := GuardOwnPath(g, append(own, gitread.OwnPath{Path: "goals/G-OTHER00/line-1/a/probe/run", Commit: "c2"}))
+	err := GuardOwnPath(g, ownGoals, append(own, gitread.OwnPath{Path: "goals/G-OTHER00/line-1/a/probe/run", Commit: "c2"}))
 	refusedWith(t, err, "Own path")
 	if !testutil.Mentions(err, "goals/G-OTHER00/line-1/a/probe/run") || !testutil.Mentions(err, "c2") {
 		t.Fatalf("err = %v, want the path and the commit that wrote it", err)
@@ -210,7 +210,7 @@ func TestOwnPathAllowsMergedMainWithOtherGoal(t *testing.T) {
 	if len(own) == 0 {
 		t.Fatal("the runner's own change is empty")
 	}
-	if err := GuardOwnPath(g, own); err != nil {
+	if err := GuardOwnPath(g, ownGoals, own); err != nil {
 		t.Fatalf("a merged-in folder of another Goal refused the runner: %v", err)
 	}
 	// The diff from H0 would hold the other Goal's folder.
@@ -224,7 +224,7 @@ func TestOwnPathAllowsMergedMainWithOtherGoal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	refusedWith(t, GuardOwnPath(g, own), "Own path")
+	refusedWith(t, GuardOwnPath(g, ownGoals, own), "Own path")
 }
 
 func TestGuardBudgetIgnoresAnEarlierH0(t *testing.T) {
@@ -246,5 +246,19 @@ func TestGuardBudgetIgnoresAnEarlierH0(t *testing.T) {
 	}
 	if n := RunsUsed(tb.Goals[id1]); n != 0 {
 		t.Fatalf("RunsUsed = %d, want 0: a tree that was H0 when it ran never counts", n)
+	}
+}
+
+var ownGoals = Tables{Goals: map[string]*Goal{"a": {ID: "G-NXHHVA"}, "b": {ID: "G-OTHER00"}}}
+
+func TestGuardOwnPathFolderOfNoGoal(t *testing.T) {
+	g := &Goal{ID: "G-NXHHVA"}
+	err := GuardOwnPath(g, ownGoals, []gitread.OwnPath{{Path: "goals/draft-x/f", Commit: "c1"}})
+	refusedWith(t, err, "Own path")
+	if !testutil.Mentions(err, "no-goal-folder") || testutil.Mentions(err, "other-goal-path") {
+		t.Fatalf("err = %v, want the folder of no Goal, not another Goal's path", err)
+	}
+	if err := GuardOwnPath(g, ownGoals, []gitread.OwnPath{{Path: "goals/draft-x/f", Commit: "c1", Deleted: true}}); err != nil {
+		t.Fatalf("a delete of a folder of no Goal was refused: %v", err)
 	}
 }

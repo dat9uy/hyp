@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -38,20 +39,25 @@ func TestOneGoalEndToEnd(t *testing.T) {
 	r.Commit(t, map[string]string{"title.sh": titleBefore})
 	t.Chdir(r.Dir)
 
-	// the grill commits a draft folder with one example per line; the commit
-	// that holds it is H0
-	for key, txtar := range map[string]string{"line-1/a": wholeTitle, "line-2/a": shortTitle} {
-		dir := filepath.Join("goals", "draft-title", key)
-		if err := os.MkdirAll(filepath.Join(r.Dir, dir), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(r.Dir, dir, "example.txtar"), []byte(txtar), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		r.WriteExec(t, filepath.Join(dir, "probe", "run"), fixtureProbe)
+	// the grill writes a draft with one example per line in the clone's trace;
+	// HEAD is H0
+	tr, err := logstore.TraceOf(r.Dir)
+	if err != nil {
+		t.Fatal(err)
 	}
-	testutil.Git(t, r.Dir, "add", "-A")
-	testutil.Git(t, r.Dir, "commit", "-q", "-m", "draft examples")
+	draftDir := tr.DraftDir("title")
+	for key, txtar := range map[string]string{"line-1/a": wholeTitle, "line-2/a": shortTitle} {
+		dir := filepath.Join(draftDir, key)
+		if err := os.MkdirAll(filepath.Join(dir, "probe"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "example.txtar"), []byte(txtar), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "probe", "run"), []byte(fixtureProbe), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
 	base := testutil.Git(t, r.Dir, "rev-parse", "HEAD")
 
 	// the owner adds the Goal with the draft folder: it is open at once
@@ -59,7 +65,7 @@ func TestOneGoalEndToEnd(t *testing.T) {
 	t.Setenv("HYP_ROLE", "owner")
 	code, out, errs := run(t, "add", "goal", "--base", base, "--words", "Show the whole title.",
 		"--line", "gap:status shows the whole title", "--line", "guard:short titles print as today",
-		"--examples", "goals/draft-title")
+		"--draft", "title")
 	fields := strings.Fields(out)
 	if code != 0 || len(fields) < 2 || !strings.Contains(out, " is open") || !strings.Contains(out, "copied the examples to goals/") {
 		t.Fatalf("add goal: code %d, stdout %q, stderr %q", code, out, errs)

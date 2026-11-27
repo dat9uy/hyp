@@ -207,7 +207,7 @@ func checkRun(root string, o RunOpts, t tables.Tables, goalName, lineKey string)
 	if err != nil {
 		return runChecked{}, err
 	}
-	if err := tables.GuardOwnPath(g, changes); err != nil {
+	if err := tables.GuardOwnPath(g, t, changes); err != nil {
 		return runChecked{}, err
 	}
 	if err := tables.GuardLeafOnly(g, anc, c.commit); err != nil {

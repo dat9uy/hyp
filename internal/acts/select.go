@@ -82,7 +82,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err != nil {
 			return ev, err
 		}
-		if err := tables.GuardOwnPath(g, changes); err != nil {
+		if err := tables.GuardOwnPath(g, t, changes); err != nil {
 			return ev, err
 		}
 		p := events.Select{Role: o.Role, Commit: commit, RowTree: row.RowTree}

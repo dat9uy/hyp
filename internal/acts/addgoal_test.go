@@ -8,6 +8,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 	"github.com/dat9uy/hyp/internal/testutil"
@@ -163,33 +164,40 @@ func TestAddGoalWritesNoGitState(t *testing.T) {
 	}
 }
 
-// draft commits a draft example folder for each key under goals/draft-x and
-// returns the commit that holds them.
+// draft writes a draft example folder x in the clone's trace for each key and
+// returns HEAD, the commit that is H0.
 func draft(t *testing.T, r *testutil.Repo, examples map[string]string) string {
 	t.Helper()
-	for key, txtar := range examples {
-		dir := filepath.Join("goals", "draft-x", key)
-		if err := os.MkdirAll(filepath.Join(r.Dir, dir), 0o755); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(r.Dir, dir, "example.txtar"), []byte(txtar), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		r.WriteExec(t, filepath.Join(dir, "probe", "run"), fixtureProbe)
+	tr, err := logstore.TraceOf(r.Dir)
+	if err != nil {
+		t.Fatal(err)
 	}
-	testutil.Git(t, r.Dir, "add", "-A")
-	testutil.Git(t, r.Dir, "commit", "-q", "-m", "draft")
+	for key, txtar := range examples {
+		dir := filepath.Join(tr.DraftDir("x"), key)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "example.txtar"), []byte(txtar), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Join(dir, "probe"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "probe", "run"), []byte(fixtureProbe), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
 	return strings.TrimSpace(testutil.Git(t, r.Dir, "rev-parse", "HEAD"))
 }
 
-// An add with an examples folder carries every example with its H0 verdict,
-// so the Goal is open from git alone, and copies the folder to the Goal's.
+// An add with a draft carries every example with its H0 verdict,
+// so the Goal is open from git alone, and copies the draft to the Goal's folder.
 func TestAddGoalWithExamplesIsOpen(t *testing.T) {
 	r := testutil.NewRepo(t)
 	r.Commit(t, map[string]string{"main.go": "package main\n"})
 	base := draft(t, r, map[string]string{"line-1/a": failingOnH0, "line-2/a": metOnH0})
 	o := opts(r.Dir, base, gapLine, LineInput{Kind: events.KindGuard, Text: "it holds"})
-	o.Examples = "goals/draft-x"
+	o.Draft = "x"
 	rep, err := AddGoal(o)
 	if err != nil {
 		t.Fatal(err)
@@ -224,7 +232,7 @@ func TestAddGoalWithExamplesRefusesWrongVerdict(t *testing.T) {
 	r.Commit(t, map[string]string{"main.go": "package main\n"})
 	base := draft(t, r, map[string]string{"line-1/a": metOnH0})
 	o := opts(r.Dir, base, gapLine)
-	o.Examples = "goals/draft-x"
+	o.Draft = "x"
 	_, err := AddGoal(o)
 	if fault.KindOf(err) != fault.Refusal {
 		t.Fatalf("err = %v, want a refusal", err)
@@ -235,8 +243,52 @@ func TestAddGoalWithExamplesRefusesWrongVerdict(t *testing.T) {
 			t.Fatalf("%d events after a refused add", len(evs))
 		}
 	}
-	o.Examples = "../outside"
+	o.Draft = "../outside"
 	if _, err := AddGoal(o); fault.KindOf(err) != fault.BadArguments {
 		t.Fatalf("err = %v, want a bad argument for a folder outside the repository", err)
+	}
+}
+
+// The draft is read once: a Probe that changes the draft while the add runs
+// H0 does not change what the Goal's folder holds.
+func TestAddGoalFolderHoldsTheBytesItHashed(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"main.go": "package main\n"})
+	base := draft(t, r, map[string]string{"line-1/a": failingOnH0})
+	tr, err := logstore.TraceOf(r.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	folder := filepath.Join(tr.DraftDir("x"), "line-1", "a")
+	// the run section adds a file to the draft while the Probe runs
+	changing := "-- words --\nw\n-- run --\necho late > " + filepath.Join(folder, "late") + "\n-- floor: contains --\nnope\n"
+	if err := os.WriteFile(filepath.Join(folder, "example.txtar"), []byte(changing), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	o := opts(r.Dir, base, gapLine)
+	o.Draft = "x"
+	rep, err := AddGoal(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(folder, "late")); err != nil {
+		t.Fatalf("test setup: the Probe did not change the draft: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(r.Dir, "goals", rep.Goal, "line-1", "a", "late")); err == nil {
+		t.Fatal("the Goal's folder holds a file the draft got after the add read it")
+	}
+	got, err := gitread.DirTreeHash(filepath.Join(r.Dir, "goals", rep.Goal, "line-1", "a"))
+	if err != nil || got != rep.Placed[0].Hash {
+		t.Fatalf("the folder hashes to %s (%v), the add carries %s", got, err, rep.Placed[0].Hash)
+	}
+}
+
+func TestAddGoalNeedsTheDraft(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"main.go": "package main\n"})
+	o := opts(r.Dir, "HEAD", gapLine)
+	o.Draft = "nope"
+	if _, err := AddGoal(o); fault.KindOf(err) != fault.BadArguments {
+		t.Fatalf("err = %v, want a bad argument for a draft that is not there", err)
 	}
 }

@@ -263,8 +263,9 @@ func (a Ancestry) HasCommit(commit string) (bool, error) { return HasCommit(a.Di
 // OwnPath is a path the runner's own change touches and the commit that wrote
 // it.
 type OwnPath struct {
-	Path   string
-	Commit string
+	Path    string
+	Commit  string
+	Deleted bool // the commit deletes the path
 }
 
 // OwnChange returns the paths of the runner's own change of commit: what the
@@ -281,11 +282,11 @@ func OwnChange(dir, commit, h0 string) ([]OwnPath, error) {
 	}
 	var out []OwnPath
 	seen := map[string]bool{}
-	add := func(c string, paths []string) {
+	add := func(c string, paths []changedPath) {
 		for _, p := range paths {
-			if !seen[p] {
-				seen[p] = true
-				out = append(out, OwnPath{Path: p, Commit: c})
+			if !seen[p.path] {
+				seen[p.path] = true
+				out = append(out, OwnPath{Path: p.path, Commit: c, Deleted: p.deleted})
 			}
 		}
 	}
@@ -295,9 +296,9 @@ func OwnChange(dir, commit, h0 string) ([]OwnPath, error) {
 		if err != nil {
 			return nil, err
 		}
-		args := []string{"diff-tree", "-r", "--name-only", "-z", cur}
+		args := []string{"diff-tree", "-r", "--name-status", "-z", cur}
 		if len(parents) > 1 {
-			args = []string{"diff-tree", "-r", "-c", "--name-only", "-z", cur}
+			args = []string{"diff-tree", "-r", "-c", "--name-status", "-z", cur}
 		}
 		raw, err := Git(dir, args...)
 		if err != nil {
@@ -322,15 +323,27 @@ func OwnChange(dir, commit, h0 string) ([]OwnPath, error) {
 	}
 }
 
-// diffPaths splits the NUL-separated output of diff-tree --name-only -z; a
-// commit argument makes the first field the commit's own id.
-func diffPaths(raw []byte, commit string) []string {
-	var paths []string
+// changedPath is a path of a diff-tree --name-status output and whether the
+// diff deletes it; for a merge it is deleted when every parent's diff deletes it.
+type changedPath struct {
+	path    string
+	deleted bool
+}
+
+// diffPaths splits the NUL-separated output of diff-tree --name-status -z; a
+// commit argument makes the first field the commit's own id. Each change is
+// a status field, one letter per parent, then its path.
+func diffPaths(raw []byte, commit string) []changedPath {
+	var fields []string
 	for i, f := range bytes.Split(raw, []byte{0}) {
 		if len(f) == 0 || (i == 0 && string(f) == commit) {
 			continue
 		}
-		paths = append(paths, string(f))
+		fields = append(fields, string(f))
+	}
+	var paths []changedPath
+	for i := 0; i+1 < len(fields); i += 2 {
+		paths = append(paths, changedPath{path: fields[i+1], deleted: strings.Trim(fields[i], "D") == ""})
 	}
 	return paths
 }
