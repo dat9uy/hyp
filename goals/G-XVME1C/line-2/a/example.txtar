@@ -1,0 +1,12 @@
+-- words --
+The comparison is with H0 whatever is checked out: the candidate takes in a side branch that adds the rule NewRule to the kept model, and no variant config names NewRule; the clone has that side branch checked out; hyp status G lists the candidate as held back by the Spec guard, rule-no-variant, naming NewRule. This is finding F-B7S9DN's fact.
+-- run --
+hyp status G-ONE --role runner
+-- floor: contains --
+rule-no-variant
+-- floor: contains --
+NewRule
+-- ceiling --
+hyp select G-ONE
+-- findings --
+F-B7S9DN

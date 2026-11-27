@@ -1,0 +1,8 @@
+-- words --
+A Goal's own spec with line-N sources reads as before: the statechart tool runs on a Goal's own whole model whose rule SaysBye names the source line-1; its rules table shows SaysBye with the source line-1, and no line of the Goal is left unnamed.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/G-ONE/specs/greet.tla --config goals/G-ONE/specs/greet.cfg --out out 2>&1; echo "tool exit: $?"
+-- floor: contains --
+| SaysBye | line-1 |
+-- floor: contains --
+Lines of the Goal that no rule names: none.

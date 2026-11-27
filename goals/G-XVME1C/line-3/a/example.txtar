@@ -1,0 +1,10 @@
+-- words --
+The tool writes the kept model's variant configs into the Goal's folder: the statechart tool runs on the kept model in goals/model/ with its output in the Goal's spec folder; it writes the variant config of the kept model's variant under goals/G-ONE/specs/variants/, and none under goals/model/variants/. This is finding F-ZCBSJ8's fact.
+-- run --
+skills/hyp-statechart/scripts/statechart goals/model/model.tla --config goals/model/model.cfg --out goals/G-ONE/specs/out 2>&1; echo "tool exit: $?"; ls goals/G-ONE/specs/variants goals/model/variants 2>&1
+-- floor: contains --
+goals/G-ONE/specs/variants/Breaks.cfg
+-- ceiling --
+goals/model/variants/Breaks.cfg
+-- findings --
+F-ZCBSJ8
