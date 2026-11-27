@@ -121,8 +121,10 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
-	if o.Examples != "" && o.Goal != "" {
-		return Report{}, fault.Refuse(fault.GuardDraft, fault.ReplaceExamples, o.Goal)
+	if o.Goal != "" {
+		if err := tables.GuardReplaceExamples(o.Goal, o.Examples != ""); err != nil {
+			return Report{}, err
+		}
 	}
 	var placed []events.PlacedExample
 	var outs [][]byte

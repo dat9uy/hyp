@@ -340,7 +340,23 @@ func GuardGoalAdd(t Tables, ev events.Event) error {
 	if err := GuardWholeLines(p.Lines); err != nil {
 		return err
 	}
-	return guardAddedExamples(p)
+	if err := guardAddedExamples(p); err != nil {
+		return err
+	}
+	if node == "" {
+		return nil
+	}
+	return GuardReplaceExamples(GoalID(node), len(p.Examples) > 0)
+}
+
+// GuardReplaceExamples is the half of Draft that a replace carries no
+// example, since the owner places them: goal names the Goal replaced, and
+// examples says whether the replace carries any.
+func GuardReplaceExamples(goal string, examples bool) error {
+	if examples {
+		return fault.Refuse(fault.GuardDraft, fault.ReplaceExamples, goal)
+	}
+	return nil
 }
 
 // guardAddedExamples is the table half of the examples a goal.add carries:
@@ -770,6 +786,16 @@ func goalOf(ev events.Event) string {
 	return k.goal(ev)
 }
 
+// guardInSnapshot is the half of Not ended that replay checks of an event of
+// the Goal node ahead of its end in the merge order: the snapshot s of the
+// end endID names it.
+func guardInSnapshot(ev events.Event, node string, s snapshot, endID string) error {
+	if !s.seen[ev.ID] {
+		return fault.Refuse(fault.GuardNotEnded, fault.NotInSnapshot, GoalID(node), endID)
+	}
+	return nil
+}
+
 func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}, findings: map[string]*Finding{}, Reads: map[string][]Read{}}
 	refuse := func(ev events.Event, err error) {
@@ -777,9 +803,11 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 	}
 	for i, ev := range evs {
 		if node := goalOf(ev); node != "" {
-			if s, ok := snaps[node]; ok && i < s.at && !s.seen[ev.ID] {
-				refuse(ev, fault.Refuse(fault.GuardNotEnded, fault.NotInSnapshot, GoalID(node), evs[s.at].ID))
-				continue
+			if s, ok := snaps[node]; ok && i < s.at {
+				if err := guardInSnapshot(ev, node, s, evs[s.at].ID); err != nil {
+					refuse(ev, err)
+					continue
+				}
 			}
 		}
 		if k, ok := kindReplays[ev.Type]; ok {
@@ -872,10 +900,7 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 		return // GuardGoalAdd decoded it already
 	}
 	if g, ok := t.Goals[ev.Node]; ok && ev.Node != ev.ID {
-		if len(p.Examples) > 0 {
-			refuse(ev, fault.Refuse(fault.GuardDraft, fault.ReplaceExamples, g.ID))
-			return
-		}
+		// a replace carries no example: GuardGoalAdd refused one that does
 		g.Words, g.Base, g.BaseTree, g.From, g.Lines, g.Why, g.Named = p.Words, p.Base, p.BaseTree, p.From, p.Lines, ev.Why, p.Findings
 		g.seen = append(g.seen, ev.ID)
 		g.refresh()
@@ -967,11 +992,8 @@ func GuardLand(t Tables, ev events.Event) error {
 // clone held no Result for; replay reads the verdicts the land carries, so
 // every clone ends the Goal from git alone.
 func GuardEvidence(g *Goal, p events.Land) error {
-	if g.State == StateWritten {
-		return fault.Refuse(fault.GuardEvidence, fault.LandNotOpen, g.ID, g.State)
-	}
-	if g.Rejected[p.RowTree] {
-		return fault.Refuse(fault.GuardEvidence, fault.CommitUnselected, p.Commit, g.ID)
+	if err := GuardEvidenceRow(g, p.Commit, p.RowTree); err != nil {
+		return err
 	}
 	if g.Select != nil && !g.Select.Calculated && g.Select.RowTree != p.RowTree {
 		return fault.Refuse(fault.GuardEvidence, fault.NotTheSelect, p.Commit, g.ID, g.Select.Commit)
@@ -988,6 +1010,19 @@ func GuardEvidence(g *Goal, p events.Land) error {
 		case v.Verdict != "met":
 			return fault.Refuse(fault.GuardEvidence, fault.NotMetOnCommit, x.Key, p.Commit, v.Verdict)
 		}
+	}
+	return nil
+}
+
+// GuardEvidenceRow is the half of Evidence that reads no verdict: the Goal is
+// not written, and the row of commit, rowTree, is not one an unselect
+// rejected. The land act checks it before it runs a Probe.
+func GuardEvidenceRow(g *Goal, commit, rowTree string) error {
+	if g.State == StateWritten {
+		return fault.Refuse(fault.GuardEvidence, fault.LandNotOpen, g.ID, g.State)
+	}
+	if g.Rejected[rowTree] {
+		return fault.Refuse(fault.GuardEvidence, fault.CommitUnselected, commit, g.ID)
 	}
 	return nil
 }
@@ -1099,8 +1134,8 @@ func GuardUnselect(t Tables, ev events.Event) error {
 		// an unselect that names its commit rejects that row; the act
 		// checked that this clone showed the Goal selected on it, which
 		// reads the Results of its trace
-		if g.Select != nil && g.Select.RowTree != p.RowTree {
-			return fault.Refuse(fault.GuardSelected, fault.NotSelectedOn, g.ID, p.Commit, g.Select.Commit)
+		if err := GuardSelectedOn(g, p.Commit, p.RowTree); err != nil {
+			return err
 		}
 		if g.Rejected[p.RowTree] {
 			return fault.Refuse(fault.GuardSelected, fault.AlreadyUnselected, g.ID, p.Commit)
@@ -1108,6 +1143,16 @@ func GuardUnselect(t Tables, ev events.Event) error {
 		return nil
 	}
 	return GuardHasSelect(g)
+}
+
+// GuardSelectedOn is the half of Selected that an unselect names the commit
+// the Goal is selected on: the select, when the Goal has one, is on the row
+// of commit, rowTree.
+func GuardSelectedOn(g *Goal, commit, rowTree string) error {
+	if g.Select != nil && g.Select.RowTree != rowTree {
+		return fault.Refuse(fault.GuardSelected, fault.NotSelectedOn, g.ID, commit, g.Select.Commit)
+	}
+	return nil
 }
 
 // replayUnselect applies an unselect the guards allow: the Goal loses its

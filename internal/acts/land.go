@@ -208,11 +208,8 @@ func planLand(root string, o LandOpts, t tables.Tables) (landPlan, error) {
 		return landPlan{}, err
 	}
 	lp.tree = strings.TrimSpace(string(out))
-	if g.State == tables.StateWritten {
-		return landPlan{}, fault.Refuse(fault.GuardEvidence, fault.LandNotOpen, g.ID, g.State)
-	}
-	if g.Rejected[lp.rowTree] {
-		return landPlan{}, fault.Refuse(fault.GuardEvidence, fault.CommitUnselected, lp.commit, g.ID)
+	if err := tables.GuardEvidenceRow(g, lp.commit, lp.rowTree); err != nil {
+		return landPlan{}, err
 	}
 	return lp, nil
 }

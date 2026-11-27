@@ -65,8 +65,8 @@ func Unselect(o UnselectOpts) (UnselectReport, error) {
 			if err != nil {
 				return ev, err
 			}
-			if rowTree != sel.RowTree {
-				return ev, fault.Refuse(fault.GuardSelected, fault.NotSelectedOn, g.ID, commit, sel.Commit)
+			if err := tables.GuardSelectedOn(g, commit, rowTree); err != nil {
+				return ev, err
 			}
 		}
 		payload, err := json.Marshal(events.Unselect{Role: o.Role, Commit: sel.Commit, RowTree: sel.RowTree})

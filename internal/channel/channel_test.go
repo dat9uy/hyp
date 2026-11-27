@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/spec"
+	"github.com/dat9uy/hyp/internal/tables"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -358,5 +360,36 @@ func TestHelpAndSpecShareEachEntry(t *testing.T) {
 	}
 	if code, _, _ := run(t, "spec", "extra"); code != 2 {
 		t.Errorf("hyp spec extra: code %d, want 2", code)
+	}
+}
+
+// TestSpecPrintsEachGuardFromItsEntry: hyp spec prints each guard's line from
+// its entry, with yes or no from the replay entries and the entry's words
+// after it; every code of an entry has words in the channel; and a guard
+// replay does not check says why.
+func TestSpecPrintsEachGuardFromItsEntry(t *testing.T) {
+	_, out, _ := run(t, "spec")
+	for _, g := range spec.Guards {
+		name := string(g.Name)
+		if g.Name == fault.NoGuard {
+			name = "(no guard)"
+		}
+		word := "no"
+		if tables.ChecksAtReplay(g.Name) {
+			word = "yes"
+		} else if g.ReplayWhy == "" {
+			t.Errorf("guard %q is not checked at replay, and its entry does not say why", name)
+		}
+		if want := "  " + name + "  rule: " + g.Rule + "  checked at replay: " + word + g.ReplayWhy + "  codes: "; !strings.Contains(out, want) {
+			t.Errorf("hyp spec lacks %q", want)
+		}
+		for _, c := range g.Codes {
+			if _, ok := words[c]; !ok && !shaped[c] {
+				t.Errorf("guard %q names code %s, which has no words in the channel", name, c)
+			}
+		}
+	}
+	if !shaped[fault.SetNotPlaced] {
+		t.Errorf("%s has no words in the channel", fault.SetNotPlaced)
 	}
 }

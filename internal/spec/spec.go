@@ -422,93 +422,98 @@ func StatesAllowing(act string) []string {
 }
 
 // Guard is the entry of one guard: its rule, the codes of the refusals it
-// gives, and whether replay checks it. Replay checks a guard only when it
-// reads only events stored in git, so every clone replays the same refusals;
-// a guard that reads git objects, files, the Probes or the Results and cells
-// of a clone's trace is checked by its act alone.
+// gives, and the words on whether replay checks it. Replay checks a guard
+// only when it reads only events stored in git, so every clone replays the
+// same refusals; a guard that reads git objects, files, the Probes or the
+// Results and cells of a clone's trace is checked by its act alone. Whether
+// replay checks it is no word of the entry: the replay entries of the event
+// kinds in internal/tables say it, and hyp spec prints yes or no from them.
 type Guard struct {
-	Name   fault.Guard
-	Rule   string
-	Codes  []fault.Code
-	Replay string // "yes", or "no" and why
+	Name  fault.Guard
+	Rule  string
+	Codes []fault.Code
+	// ReplayWhy follows the yes or no that hyp spec prints after checked at
+	// replay, with its own leading separator: the part replay checks, or why
+	// it checks none; empty for a plain yes.
+	ReplayWhy string
 }
 
 // Guards are the entries of every guard, and of the refusals no guard names.
 var Guards = []Guard{
 	{fault.GuardDraft, "before the Goal opens, add goal G may replace it, with no example; after, its words and lines are frozen; a new Goal always passes",
-		[]fault.Code{fault.NoGoalToReplace, fault.NotWritten, fault.ReplaceExamples}, "yes"},
+		[]fault.Code{fault.NoGoalToReplace, fault.NotWritten, fault.ReplaceExamples}, ""},
 	{fault.GuardWholeLines, "every line has a kind, gap or guard; the Goal has one to ten lines and at least one gap line",
-		[]fault.Code{fault.TooManyLines, fault.BadLineKind, fault.NoGapLine, fault.PayloadInvalid}, "yes"},
+		[]fault.Code{fault.TooManyLines, fault.BadLineKind, fault.NoGapLine, fault.PayloadInvalid}, ""},
 	{fault.GuardFromEnded, "add goal --from G cites only an ended Goal, landed or closed; checked by the act only, never at replay",
-		[]fault.Code{fault.FromNotEnded}, "no: it is checked by the act only"},
+		[]fault.Code{fault.FromNotEnded}, ": it is checked by the act only"},
 	{fault.GuardNotEnded, "no write after the owner's land or close ends the Goal; replay also stops an event of the Goal ahead of the end that the end's snapshot does not name",
-		[]fault.Code{fault.Ended, fault.NotInSnapshot}, "yes"},
+		[]fault.Code{fault.Ended, fault.NotInSnapshot}, ""},
 	{fault.GuardSelected, "place, run and select need the Goal not selected; unselect needs it selected, on the commit it names, which no unselect rejected before",
-		[]fault.Code{fault.HasSelect, fault.NoSelect, fault.NotSelectedOn, fault.AlreadyUnselected, fault.PayloadInvalid}, "yes, against a select event; the act reads the select this clone's Results show"},
+		[]fault.Code{fault.HasSelect, fault.NoSelect, fault.NotSelectedOn, fault.AlreadyUnselected, fault.PayloadInvalid}, ", against a select event; the act reads the select this clone's Results show"},
 	{fault.GuardOwnerPlaces, "only the owner places an example, with the Goal's actor; a place of the older form names the grill and replays as it was",
-		[]fault.Code{fault.NotOwnerPlace, fault.PayloadInvalid}, "yes"},
+		[]fault.Code{fault.NotOwnerPlace, fault.PayloadInvalid}, ""},
 	{fault.GuardWholeSet, "the set of an add goal --examples or a place is every folder FOLDER/LINE/EXAMPLE, goals/G/LINE/EXAMPLE by default; every line holds an example folder, every placed example keeps its folder, and every folder's name is an example name",
-		[]fault.Code{fault.LineHoldsNoExample, fault.PlacedFolderGone, fault.NotAnExampleName, fault.ExampleOffLine}, "yes, that each example an add goal carries is on a line of the Goal; the act reads the example folders"},
+		[]fault.Code{fault.LineHoldsNoExample, fault.PlacedFolderGone, fault.NotAnExampleName, fault.ExampleOffLine}, ", that each example an add goal carries is on a line of the Goal; the act reads the example folders"},
 	{fault.GuardCommitted, "each example folder's bytes on disk equal its bytes committed at HEAD",
-		[]fault.Code{fault.NotAFolder, fault.FolderOnDisk, fault.NotCommitted, fault.DiskNotCommitted, fault.DiffersAt, fault.SetChangedWhileProbe}, "no: it reads the example folders and git"},
+		[]fault.Code{fault.NotAFolder, fault.FolderOnDisk, fault.NotCommitted, fault.DiskNotCommitted, fault.DiffersAt, fault.SetChangedWhileProbe}, ": it reads the example folders and git"},
 	{fault.GuardAddsOnly, "a new version of an example only adds floor or ceiling sections; any other change is a new example key; a hash the key held before never comes back, except the current one measured again on H0 after a replace moved H0; a place that changes no example places nothing",
-		[]fault.Code{fault.SetUnchanged, fault.KeyTwiceInSet, fault.AlreadyCurrent, fault.EarlierVersion, fault.SectionDiffers, fault.PathDiffers, fault.DropsFloor, fault.DropsCeiling, fault.AddsNothing}, "yes, the half that reads the events; the act checks the folders' bytes"},
+		[]fault.Code{fault.SetUnchanged, fault.KeyTwiceInSet, fault.AlreadyCurrent, fault.EarlierVersion, fault.SectionDiffers, fault.PathDiffers, fault.DropsFloor, fault.DropsCeiling, fault.AddsNothing}, ", the half that reads the events; the act checks the folders' bytes"},
 	{fault.GuardMeetable, "some output can meet each new example: no floor's whole text is an exit line exit N, since hyp cuts the Probe's last line exit N off before it compares; no two equals floors differ; an equals floor holds the text of each contains floor; no floor holds the text of a ceiling",
-		[]fault.Code{fault.FloorIsExitLine, fault.EqualsFloorsDiffer, fault.EqualsLacksContains, fault.FloorHoldsCeiling}, "no: it reads the example folders"},
+		[]fault.Code{fault.FloorIsExitLine, fault.EqualsFloorsDiffer, fault.EqualsLacksContains, fault.FloorHoldsCeiling}, ": it reads the example folders"},
 	{fault.GuardKind, "H0 gives each new or changed example the verdict its line's kind needs: a gap example fails, a guard example is met; the add goal or the place records each example's hash and that verdict in git, and H0's outputs in the clone's trace",
-		[]fault.Code{fault.WrongVerdictOnH0, fault.H0MovedWhilePlacing, fault.AddedVerdictWrong}, "yes, that the verdict on H0 an add goal records for each example it carries is the one its line's kind needs; the act runs the Probes on H0"},
+		[]fault.Code{fault.WrongVerdictOnH0, fault.H0MovedWhilePlacing, fault.AddedVerdictWrong}, ", that the verdict on H0 an add goal records for each example it carries is the one its line's kind needs; the act runs the Probes on H0"},
 	{fault.GuardBytes, "the commit exists in this clone",
-		[]fault.Code{fault.CommitNotHere, fault.NotACommit}, "no: it reads git"},
+		[]fault.Code{fault.CommitNotHere, fault.NotACommit}, ": it reads git"},
 	{fault.GuardOpen, "the Goal is open, unless the commit's subject hash is H0's; the examples do not change while the Probes run",
-		[]fault.Code{fault.NothingPlaced, fault.NotOpen, fault.H0MovedWhileRun, fault.ExamplesChanged, fault.ExampleChanged}, "yes"},
+		[]fault.Code{fault.NothingPlaced, fault.NotOpen, fault.H0MovedWhileRun, fault.ExamplesChanged, fault.ExampleChanged}, ""},
 	{fault.GuardOwnPath, "the runner's own change of the commit writes no path under goals/X/ of another Goal X; goals/model/, the repository's kept model, is no Goal's folder",
-		[]fault.Code{fault.OtherGoalPath}, "no: it reads git"},
+		[]fault.Code{fault.OtherGoalPath}, ": it reads git"},
 	{fault.GuardLeafOnly, "a run is on H0, or on a commit that no row of the Goal descends from",
-		[]fault.Code{fault.AncestorOfRow}, "no: it reads git"},
+		[]fault.Code{fault.AncestorOfRow}, ": it reads git"},
 	{fault.GuardBudget, "at most three Hypotheses run since the boundary, H0 never counted",
-		[]fault.Code{fault.BudgetUsed}, "no: it counts the Results of the clone's trace"},
+		[]fault.Code{fault.BudgetUsed}, ": it counts the Results of the clone's trace"},
 	{fault.GuardStable, "two runs on the same bytes give one verdict; a run it stops still records its Result, marked, which counts nothing",
-		[]fault.Code{fault.OtherVerdict, fault.VerdictsDiffered}, "no: it reads the cells of the clone's trace; replay keeps the mark a Result was recorded with"},
+		[]fault.Code{fault.OtherVerdict, fault.VerdictsDiffered}, ": it reads the cells of the clone's trace; replay keeps the mark a Result was recorded with"},
 	{fault.GuardCandidate, "the row is a candidate, a leaf row met on every line that no unselect rejected; only the owner selects, and a lone candidate is selected by the Results that show it, with no select event",
-		[]fault.Code{fault.RoleCannotSelect, fault.NoRow, fault.OwnerSelectsAmong, fault.RowNotLeaf, fault.RowNotMet, fault.NoResultOnRow}, "no: it reads the cells of the clone's trace"},
+		[]fault.Code{fault.RoleCannotSelect, fault.NoRow, fault.OwnerSelectsAmong, fault.RowNotLeaf, fault.RowNotMet, fault.NoResultOnRow}, ": it reads the cells of the clone's trace"},
 	{fault.GuardNewCell, "after an unselect, the runner selects only once a run recorded a cell whose example version, or whose row, had not run before it; the owner selects at any time",
-		[]fault.Code{fault.NoNewCell}, "no: it reads the cells of the clone's trace"},
+		[]fault.Code{fault.NoNewCell}, ": it reads the cells of the clone's trace"},
 	{fault.GuardGoalsActor, "only the actor that added the Goal selects for the owner, lands, closes or unselects it",
-		[]fault.Code{fault.NotGoalsActor}, "yes"},
+		[]fault.Code{fault.NotGoalsActor}, ""},
 	{fault.GuardSpec, "the selected commit holds a spec under goals/G/specs/; a model there names each rule of its check configs in a variant config, and holds a chart; when the commit changes the kept model, goals/model/, against H0, whatever commit the clone has checked out, a variant config under goals/G/specs/ names each kept rule that is new or whose definition text differs, the other kept rules need none, and the folder holds a chart",
-		[]fault.Code{fault.NoSpec, fault.NoRead, fault.RuleNoVariant, fault.NoChart}, "no: run and land read git and their events carry what they read; the calculated select and hyp status check what the Result of the commit carries"},
+		[]fault.Code{fault.NoSpec, fault.NoRead, fault.RuleNoVariant, fault.NoChart}, ": run and land read git and their events carry what they read; the calculated select and hyp status check what the Result of the commit carries"},
 	{fault.GuardOwnerLands, "only the owner lands a Goal",
-		[]fault.Code{fault.NotOwner}, "yes"},
+		[]fault.Code{fault.NotOwner}, ""},
 	{fault.GuardEvidence, "a land on a commit carries, for every current example, its verdict on that commit, from this clone's Result or from a run the land makes first; every verdict is met, the row is not one an unselect rejected, and a select event, when one holds the Goal, is on that row",
-		[]fault.Code{fault.LandNotOpen, fault.CommitUnselected, fault.NotTheSelect, fault.EvidenceMissing, fault.NotMetOnCommit}, "yes: replay reads the verdicts the land carries"},
+		[]fault.Code{fault.LandNotOpen, fault.CommitUnselected, fault.NotTheSelect, fault.EvidenceMissing, fault.NotMetOnCommit}, ": replay reads the verdicts the land carries"},
 	{fault.GuardStop, "a land with no commit needs a stop: two candidates or budget used",
-		[]fault.Code{fault.NoStop, fault.StopNotHeld, fault.PayloadInvalid}, "yes, the stop the land names against the select; the act reads the stop the Results hold"},
+		[]fault.Code{fault.NoStop, fault.StopNotHeld, fault.PayloadInvalid}, ", the stop the land names against the select; the act reads the stop the Results hold"},
 	{fault.GuardOwnerClose, "only the owner closes a Goal, at any stop or none",
-		[]fault.Code{fault.NotOwnerClose, fault.PayloadInvalid}, "yes"},
+		[]fault.Code{fault.NotOwnerClose, fault.PayloadInvalid}, ""},
 	{fault.GuardOwnerUnsel, "only the owner unselects a Goal",
-		[]fault.Code{fault.NotOwnerUnselect, fault.PayloadInvalid}, "yes"},
+		[]fault.Code{fault.NotOwnerUnselect, fault.PayloadInvalid}, ""},
 	{fault.GuardInWork, "an old fold, which no act writes and replay still reads, names one Goal in work, written, open or selected, that the store holds",
-		[]fault.Code{fault.NoGoalToFold, fault.FoldIntoEnded}, "yes: a Goal's state reads only events stored in git"},
+		[]fault.Code{fault.NoGoalToFold, fault.FoldIntoEnded}, ": a Goal's state reads only events stored in git"},
 	{fault.GuardIssue, "the oldest form of a fold, which no act writes and replay still reads, names an issue by its number, a whole number above zero",
-		[]fault.Code{fault.NoIssue}, "yes"},
+		[]fault.Code{fault.NoIssue}, ""},
 	{fault.GuardNotRefuted, "a refuted finding takes no name, no refute and no decline",
-		[]fault.Code{fault.Refuted}, "yes for a refute and a decline, which are in the same clone's trace; a name is checked by its act only, since a Goal's record is in git"},
+		[]fault.Code{fault.Refuted}, " for a refute and a decline, which are in the same clone's trace; a name is checked by its act only, since a Goal's record is in git"},
 	{fault.GuardOwnerDecl, "only the owner declines a finding, and with a why",
-		[]fault.Code{fault.NotOwnerDecline, fault.DeclineNoWhy}, "yes"},
+		[]fault.Code{fault.NotOwnerDecline, fault.DeclineNoWhy}, ""},
 	{fault.GuardNotDeclined, "a declined finding takes no name, no refute and no decline",
-		[]fault.Code{fault.Declined}, "yes for a refute and a decline, which are in the same clone's trace; a name is checked by its act only, since a Goal's record is in git"},
+		[]fault.Code{fault.Declined}, " for a refute and a decline, which are in the same clone's trace; a name is checked by its act only, since a Goal's record is in git"},
 	{fault.GuardNotFolded, "the owner declines only a finding that no Goal named, whether that Goal is in work or ended",
-		[]fault.Code{fault.DeclineFolded, fault.DeclineFoldedIssue}, "yes: replay reads the names in git and the decline in the clone's trace"},
+		[]fault.Code{fault.DeclineFolded, fault.DeclineFoldedIssue}, ": replay reads the names in git and the decline in the clone's trace"},
 	{fault.GuardOneInWork, "add goal and place name a finding that no other Goal in work names",
-		[]fault.Code{fault.NamedInWork}, "no: it reads the findings of the clone's trace"},
+		[]fault.Code{fault.NamedInWork}, ": it reads the findings of the clone's trace"},
 	{fault.GuardCovered, "a place names, in the findings section of at least one example of the set, each finding the Goal names at add goal",
-		[]fault.Code{fault.NotCovered}, "no: it reads the example folders"},
+		[]fault.Code{fault.NotCovered}, ": it reads the example folders"},
 	{fault.NoGuard, "a file hyp reads breaks a rule of its form, or the act names what the store does not hold",
 		[]fault.Code{fault.NoStore, fault.EventVersion, fault.EventType, fault.PayloadDecode, fault.PayloadInvalid, fault.SelectRole, fault.TrailingData,
 			fault.IDNotULID, fault.ActorNotFile, fault.NoIDAfter, fault.NoGoalToPlace, fault.NoGoalToRun, fault.NoGoalToSelect,
 			fault.NoGoalToLand, fault.NoGoalToClose, fault.NoGoalToUnselect, fault.NoGoalForFinding, fault.NoFinding, fault.NoExampleAtCommit, fault.FoldNoFinding, fault.FoldGoalAndIssue, fault.NoExampleTxtar,
 			fault.TextBeforeFirst, fault.SecondSection, fault.ExternalNotName, fault.InputOutside, fault.InputTwice,
-			fault.UnknownSection, fault.NoSection, fault.Submodule, fault.EntryLeaves, fault.NotFileOrDir, fault.ReadFolder}, "yes"},
+			fault.UnknownSection, fault.NoSection, fault.Submodule, fault.EntryLeaves, fault.NotFileOrDir, fault.ReadFolder}, ""},
 }
 
 // Exit is the entry of one exit code.
