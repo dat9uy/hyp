@@ -107,6 +107,7 @@ var words = map[fault.Code]string{
 	fault.PayloadDecode:  "%s payload: %s",
 	fault.TrailingData:   "trailing data after JSON object",
 	fault.PayloadInvalid: "%s",
+	fault.SelectRole:     "a select payload names the role %s; a select's role is owner, or runner in the older form",
 
 	// the example file
 	fault.SectionDiffers:      "the %s section differs from the current version; a change there is a new example key, not a new version",

@@ -72,6 +72,7 @@ const (
 	PayloadDecode  Code = "payload-decode"  // event type, cause
 	TrailingData   Code = "trailing-data"   // no values
 	PayloadInvalid Code = "payload-invalid" // cause
+	SelectRole     Code = "select-role"     // role
 
 	// the example file
 	SectionDiffers  Code = "section-differs"   // section name
