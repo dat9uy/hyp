@@ -70,6 +70,17 @@ needs none. A change to the kept model also needs a chart in the Goal's spec
 folder. A Goal whose spec folder holds its own whole model is checked as the
 start of this skill says.
 
+## Steps, prints and outside reads
+
+A step is an action that changes a variable: a side effect of the system, such
+as a write to its store. A read or a refusal is a print, not a step. Every
+variable changes only inside an action that a command takes. What a step reads
+from outside the system, such as git history, a file another program wrote, a
+clock or a web service, is that step's input. When a rule or a later step needs
+it, the step stores it in a variable, as the value or the hash of the bytes. No
+rule or print reads the outside system again. Test the model: rewrite or remove
+the outside system's history; no variable may change.
+
 ## How to write the model
 
 1. **Write each rule the owner agrees to as an INVARIANT.** Take the rules from
