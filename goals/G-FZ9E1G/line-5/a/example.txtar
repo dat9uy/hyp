@@ -1,0 +1,12 @@
+-- words --
+No kept model: a repository with no goals/model/ has an open Goal G-ONE and a finding with free-text evidence; hyp status G-ONE and hyp finding list print no steps, no step and no walk.
+-- run --
+hyp status G-ONE; hyp finding list
+-- floor: contains --
+G-ONE  open
+-- floor: contains --
+not folded
+-- ceiling --
+no walk
+-- ceiling --
+no step

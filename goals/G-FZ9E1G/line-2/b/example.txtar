@@ -1,0 +1,8 @@
+-- words --
+No step: the finding's example runs toy refute, and no action of the kept model is tagged with it; hyp finding list shows toy refute with no step.
+-- run --
+hyp finding list
+-- floor: contains --
+toy refute
+-- floor: contains --
+no step

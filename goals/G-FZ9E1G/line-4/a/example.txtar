@@ -1,0 +1,6 @@
+-- words --
+Free-text evidence works as before: an agent adds a finding with only a fact and free-text evidence, and the owner adds a Goal that names it; hyp finding list shows the finding folded into that Goal.
+-- run --
+hyp finding list
+-- floor: contains --
+folded into G-ONE

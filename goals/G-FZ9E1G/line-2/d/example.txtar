@@ -1,0 +1,8 @@
+-- words --
+Setup is not shown: the finding's example calls toy add in its Probe before its run section, and runs toy list; hyp finding list shows toy list with the step List, and does not show toy add.
+-- run --
+hyp finding list
+-- floor: contains --
+List
+-- ceiling --
+toy add

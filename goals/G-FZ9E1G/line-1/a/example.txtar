@@ -1,0 +1,8 @@
+-- words --
+Accepted and kept: an agent adds a finding whose evidence names the example G-ONE line-1/a and the commit HEAD, which holds it; the add succeeds, and hyp finding list shows that example beside the finding.
+-- run --
+hyp finding add --fact 'nothing shows' --evidence 'seen in a run' --example G-ONE/line-1/a --commit HEAD 2>&1; echo "add exit: $?"; hyp finding list
+-- floor: contains --
+add exit: 0
+-- floor: contains --
+G-ONE/line-1/a

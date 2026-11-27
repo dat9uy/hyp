@@ -1,0 +1,8 @@
+-- words --
+A step per command: the finding's example runs toy list, and the kept model tags the action List with the command toy list; hyp finding list shows toy list with the step List.
+-- run --
+hyp finding list
+-- floor: contains --
+toy list
+-- floor: contains --
+List

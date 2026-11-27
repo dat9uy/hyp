@@ -1,0 +1,8 @@
+-- words --
+An unknown example is refused: an agent adds a finding whose evidence names the example G-ONE line-1/z, which the commit HEAD does not hold; the add is refused as a rule, exit 1, and the refusal names the example.
+-- run --
+hyp finding add --fact 'nothing shows' --evidence 'seen in a run' --example G-ONE/line-1/z --commit HEAD 2>&1; echo "add exit: $?"
+-- floor: contains --
+line-1/z
+-- floor: contains --
+add exit: 1
