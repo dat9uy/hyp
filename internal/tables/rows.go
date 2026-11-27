@@ -297,8 +297,9 @@ func GuardStable(g *Goal, line, rowTree string, cells []events.ExampleCell) erro
 // The act calls the same guards in spec order around the guards that read
 // git. A Result already marked refused by Stable is kept and counts for
 // nothing, so it passes Stable. ev.Node is the goal.add event id.
-func GuardRun(t Tables, ev events.Event) error {
-	g, p, err := guardRunGit(t, ev)
+// p is the payload of ev.
+func GuardRun(t Tables, ev events.Event, p *events.ResultRecord) error {
+	g, err := guardRunGit(t, ev, p)
 	if err != nil {
 		return err
 	}
@@ -315,28 +316,27 @@ func GuardRun(t Tables, ev events.Event) error {
 // that read only events stored in git, Not ended, Selected and Open. Budget
 // and Stable read the Results of the clone's trace, so replay does not check
 // them; the act did.
-func guardRunAtReplay(t Tables, ev events.Event) error {
-	_, _, err := guardRunGit(t, ev)
+// p is the payload of ev.
+func guardRunAtReplay(t Tables, ev events.Event, p *events.ResultRecord) error {
+	_, err := guardRunGit(t, ev, p)
 	return err
 }
 
-func guardRunGit(t Tables, ev events.Event) (*Goal, events.ResultRecord, error) {
-	var p events.ResultRecord
-	if err := events.Decode(ev, &p); err != nil {
-		return nil, p, err
-	}
+// guardRunGit checks the run guards that read only events stored in git:
+// Not ended, Selected and Open. p is the payload of ev.
+func guardRunGit(t Tables, ev events.Event, p *events.ResultRecord) (*Goal, error) {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
-		return nil, p, fault.Refuse(fault.NoGuard, fault.NoGoalToRun, GoalID(ev.Node))
+		return nil, fault.Refuse(fault.NoGuard, fault.NoGoalToRun, GoalID(ev.Node))
 	}
 	if err := GuardNotEnded(g); err != nil {
-		return nil, p, err
+		return nil, err
 	}
 	if err := GuardNotSelected(g); err != nil {
-		return nil, p, err
+		return nil, err
 	}
 	if err := GuardOpen(g, p.RowTree, p.Line); err != nil {
-		return nil, p, err
+		return nil, err
 	}
-	return g, p, nil
+	return g, nil
 }

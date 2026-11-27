@@ -161,12 +161,13 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 			return ev, setRefusal(again.goal.ID, causes)
 		}
 		placed, outs, cells := placedExamples(again.goal.Base, again.goal.BaseTree, again.changes, runs)
-		payload, err := json.Marshal(events.ExamplesPlace{Role: o.Role, Examples: placed})
+		p := events.ExamplesPlace{Role: o.Role, Examples: placed}
+		payload, err := json.Marshal(p)
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeExamplesPlace, err)
 		}
 		ev.Node, ev.Payload = again.goal.EventID, payload
-		if err := tables.GuardPlaceSet(t, ev); err != nil {
+		if err := tables.GuardPlaceSet(t, ev, &p); err != nil {
 			return ev, err
 		}
 		// The outputs and cells are stored only once every guard holds, just

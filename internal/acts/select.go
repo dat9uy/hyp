@@ -85,12 +85,13 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err := tables.GuardOwnPath(g, t, changes); err != nil {
 			return ev, err
 		}
-		payload, err := json.Marshal(events.Select{Role: o.Role, Commit: commit, RowTree: row.RowTree})
+		p := events.Select{Role: o.Role, Commit: commit, RowTree: row.RowTree}
+		payload, err := json.Marshal(p)
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeSelect, err)
 		}
 		ev.Node, ev.Payload = g.EventID, payload
-		if err := tables.GuardSelect(t, ev); err != nil {
+		if err := tables.GuardSelect(t, ev, &p); err != nil {
 			return ev, err
 		}
 		rep = SelectReport{Goal: g.ID, Commit: commit, RowTree: row.RowTree}
