@@ -1,0 +1,8 @@
+-- words --
+hyp add goal reads an example set from a draft named with --draft NAME: the clone's trace holds draft x, the owner adds a Goal with --draft x, and the Goal's folder holds the example.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Count.' --line 'gap:the counter says ok.' --draft x && ls goals/G-*/line-1/a
+-- floor: contains --
+recorded
+-- floor: contains --
+example.txtar

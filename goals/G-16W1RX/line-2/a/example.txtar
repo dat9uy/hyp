@@ -1,0 +1,10 @@
+-- words --
+After an add with a draft, goals/<G>/ holds exactly the bytes whose hashes the goal.add carries, even when the draft changes while the add runs H0: the draft's example says ORIGINAL, its Probe rewrites the draft's example to say REWRITTEN while the add runs it, and the Goal's folder still says ORIGINAL.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Count.' --line 'gap:the counter says ok.' --draft x >/dev/null 2>&1; cat goals/G-*/line-1/a/example.txtar
+-- floor: contains --
+ORIGINAL
+-- ceiling --
+REWRITTEN
+-- findings --
+F-Y5ARH5
