@@ -47,7 +47,7 @@ func TestUnselectOpensTheGoalAndRestartsTheBudget(t *testing.T) {
 	if RunsUsed(g) != 0 {
 		t.Fatalf("runs used = %d, want 0 after the unselect", RunsUsed(g))
 	}
-	if !g.metEverywhere("r1") || len(g.Results) != 1 || g.Results[0].Retracted {
+	if !g.metEverywhere("r1") || len(g.Results) != 1 {
 		t.Fatal("the old row lost its cells")
 	}
 }

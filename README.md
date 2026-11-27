@@ -237,7 +237,7 @@ Four roles act. The actor and the role are declared by the agent, and a guard th
 | **probe-writer** | Writes Probe code for an example. Records no event. | none that writes |
 | **runner** | Builds commits and runs each line on them. Its runs stay in the clone's trace. | `hyp run` |
 
-Any agent may add a finding with `hyp finding add`, or refute one with `hyp finding refute`. hyp itself is not a role. It runs each Probe, calculates each state, and refuses an act whose guard fails, with exit 1 and the guard's name. `hyp status`, `hyp try`, `hyp show` and `hyp prune` are reads: they record nothing in the repository. `hyp spec` also names `reset` and `retract`, which later Goals will build.
+Any agent may add a finding with `hyp finding add`, or refute one with `hyp finding refute`. hyp itself is not a role. It runs each Probe, calculates each state, and refuses an act whose guard fails, with exit 1 and the guard's name. `hyp status`, `hyp try`, `hyp show` and `hyp prune` are reads: they record nothing in the repository.
 
 ### Example: G-ATTD20
 

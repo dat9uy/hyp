@@ -24,16 +24,14 @@ type Event struct {
 	Why     string          `json:"why"`
 }
 
-// The fifteen event types. example.place is the old form of a place, one
+// The thirteen event types. example.place is the old form of a place, one
 // example per event: hyp writes examples.place, and replays both.
 const (
 	TypeGoalAdd        = "goal.add"
 	TypeExamplePlace   = "example.place"
 	TypeExamplesPlace  = "examples.place"
 	TypeResultRecord   = "result.record"
-	TypeResultRetract  = "result.retract"
 	TypeSelect         = "select"
-	TypeBudgetReset    = "budget.reset"
 	TypeLand           = "land"
 	TypeClose          = "close"
 	TypeUnselect       = "unselect"
@@ -75,7 +73,7 @@ func (k Kind) Home() string {
 	return HomeTrace
 }
 
-// Kinds are the entries of the fifteen event types, in the order hyp spec
+// Kinds are the entries of the thirteen event types, in the order hyp spec
 // prints them. Git holds only the owner's acts. A Result changes no state
 // that replay of git gives: replay calculates the state from the adds,
 // places, selects, unselects and ends alone, so every clone replays the same
@@ -87,9 +85,7 @@ var Kinds = []Kind{
 	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none", "Place"},
 	{TypeExamplesPlace, true, "the Goal its node names; each example names the findings its findings section names", true, "place, by the owner; a place of the grill's is the older form, replayed", "Place"},
 	{TypeResultRecord, false, "the Goal its node names; it carries what the run read of git about its commit: the commits of the Goal's rows it descends from, its spec folder and its kept model", false, "run", "Run"},
-	{TypeResultRetract, false, "the Goal of the Result its node names", false, "retract, not built", "Retract"},
 	{TypeSelect, true, "the Goal its node names", true, "select, by the owner among two candidates; a select of the runner's is the older form, replayed", "Select"},
-	{TypeBudgetReset, true, "the Goal its node names", false, "reset, not built", "BudgetReset"},
 	{TypeLand, true, "the Goal its node names; it ends the Goal, and may carry the evidence of the commit it lands, with what it read of that commit's spec folder and kept model", false, "land", "Land"},
 	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close", "Close"},
 	{TypeUnselect, true, "the Goal its node names; it names the commit it rejects", true, "unselect", "Unselect"},
@@ -259,11 +255,6 @@ type KeptItem struct {
 	Source  string `json:"source,omitempty"`  // a rule's source, as its comment names it; empty when none
 }
 
-// ResultRetract is the payload of result.retract.
-type ResultRetract struct {
-	Role string `json:"role"`
-}
-
 // Select is the payload of select.
 type Select struct {
 	Role    string `json:"role"`
@@ -321,11 +312,6 @@ type Unselect struct {
 	Role    string `json:"role"`
 	Commit  string `json:"commit,omitempty"`
 	RowTree string `json:"row_tree,omitempty"`
-}
-
-// BudgetReset is the payload of budget.reset.
-type BudgetReset struct {
-	Role string `json:"role"`
 }
 
 // Read is the payload of read: what hyp printed to the event's actor for one

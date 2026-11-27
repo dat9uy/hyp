@@ -230,7 +230,7 @@ func planLand(root string, o LandOpts, evs []events.Event) (landPlan, error) {
 // that counts.
 func lastRunOn(g *tables.Goal, rowTree string) Cause {
 	for i := len(g.Results) - 1; i >= 0; i-- {
-		if r := g.Results[i]; r.RowTree == rowTree && !r.Retracted && r.Refused == "" {
+		if r := g.Results[i]; r.RowTree == rowTree && r.Refused == "" {
 			return Cause{Act: ActRun, ID: r.ID, Time: r.Time}
 		}
 	}

@@ -22,7 +22,7 @@ func TestParseLineRefusesUnknownType(t *testing.T) {
 }
 
 func TestParseLineRefusesUnknownEnvelopeField(t *testing.T) {
-	line := `{"v":2,"id":"01M661QG600000000000000001","ts":"t","actor":"a","type":"budget.reset","node":"x","payload":{},"why":"","extra":1}`
+	line := `{"v":2,"id":"01M661QG600000000000000001","ts":"t","actor":"a","type":"unselect","node":"x","payload":{},"why":"","extra":1}`
 	if _, err := ParseLine([]byte(line)); err == nil {
 		t.Fatal("an unknown envelope field parsed")
 	}
@@ -68,19 +68,19 @@ func TestGoalAddRoundTrip(t *testing.T) {
 }
 
 func TestDecodeRefusesUnknownField(t *testing.T) {
-	ev := Event{Type: TypeBudgetReset, Payload: json.RawMessage(`{"role":"owner","surprise":1}`)}
-	var p BudgetReset
+	ev := Event{Type: TypeUnselect, Payload: json.RawMessage(`{"role":"owner","surprise":1}`)}
+	var p Unselect
 	if err := Decode(ev, &p); err == nil {
 		t.Fatal("an unknown payload field decoded")
 	}
-	ok := Event{Type: TypeBudgetReset, Payload: json.RawMessage(`{"role":"owner"}`)}
+	ok := Event{Type: TypeUnselect, Payload: json.RawMessage(`{"role":"owner"}`)}
 	if err := Decode(ok, &p); err != nil || p.Role != "owner" {
 		t.Fatalf("Decode = %v, %+v", err, p)
 	}
 }
 
 func TestEveryTypeIsKnown(t *testing.T) {
-	for _, typ := range []string{TypeGoalAdd, TypeExamplePlace, TypeResultRecord, TypeResultRetract, TypeSelect, TypeBudgetReset} {
+	for _, typ := range []string{TypeGoalAdd, TypeExamplePlace, TypeResultRecord, TypeSelect, TypeUnselect} {
 		line := `{"v":2,"id":"i","ts":"t","actor":"a","type":"` + typ + `","node":"n","payload":{},"why":""}`
 		if _, err := ParseLine([]byte(line)); err != nil {
 			t.Errorf("%s: %v", typ, err)

@@ -121,11 +121,11 @@ func Select(o SelectOpts) (SelectReport, error) {
 }
 
 // latestCommit is the commit of the latest Result, in merge order, that counts
-// on the row with rowTree: not retracted and not refused by Stable.
+// on the row with rowTree: not refused by Stable.
 func latestCommit(g *tables.Goal, rowTree string) string {
 	commit := ""
 	for _, r := range g.Results {
-		if r.RowTree == rowTree && !r.Retracted && r.Refused == "" {
+		if r.RowTree == rowTree && r.Refused == "" {
 			commit = r.Commit
 		}
 	}
@@ -255,13 +255,13 @@ func SelectedRead(root string, g *tables.Goal) (*events.CommitRead, error) {
 	return &read, nil
 }
 
-// ReadOf is what the latest Result on commit that counts, neither
-// retracted nor refused by Stable, read of it; nil when no such Result
+// ReadOf is what the latest Result on commit that counts, not
+// refused by Stable, read of it; nil when no such Result
 // carries a read.
 func ReadOf(g *tables.Goal, commit string) *events.CommitRead {
 	var read *events.CommitRead
 	for _, r := range g.Results {
-		if r.Commit == commit && !r.Retracted && r.Refused == "" {
+		if r.Commit == commit && r.Refused == "" {
 			read = r.Read
 		}
 	}

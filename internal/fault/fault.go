@@ -51,7 +51,6 @@ const (
 	GuardSpec        Guard = "Spec"
 	GuardOwnPath     Guard = "Own path"
 	GuardSelected    Guard = "Selected"
-	GuardOwnResult   Guard = "Own Result"
 	GuardIssue       Guard = "Issue"
 	GuardInWork      Guard = "In work"
 	GuardNotRefuted  Guard = "Not refuted"
