@@ -6,6 +6,8 @@ HYP_ACTOR=owner hyp status
 refused at replay:
 -- floor: contains --
 ULID: select payload: json: unknown field "zz"
+-- ceiling --
+Selected: select payload
 -- findings --
 F-NKD9YP
 F-4D3VY1

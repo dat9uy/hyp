@@ -6,5 +6,7 @@ HYP_ACTOR=owner hyp status
 refused at replay:
 -- floor: contains --
 ULID: goal.add payload: json: unknown field "zz"
+-- ceiling --
+Whole lines: goal.add payload
 -- findings --
 F-NKD9YP

@@ -6,5 +6,7 @@ HYP_ACTOR=owner hyp status
 refused at replay:
 -- floor: contains --
 ULID: close payload: json: unknown field "zz"
+-- ceiling --
+Owner closes: close payload
 -- findings --
 F-NKD9YP
