@@ -24,11 +24,11 @@ type TryOpts struct {
 	Commit       string // run on this commit, not on H0
 	ProbeTimeout time.Duration
 
-	// Examples names a draft folder of examples, FOLDER/<line>/<example>,
-	// for a Goal the owner has not added yet: Goal is empty, and Base is the
-	// commit the Goal will name as H0.
-	Examples string
-	Base     string
+	// Draft names a draft in the clone's trace, whose folder holds the
+	// examples as <line>/<example>, for a Goal the owner has not added yet:
+	// Goal is empty, and Base is the commit the Goal will name as H0.
+	Draft string
+	Base  string
 }
 
 // TryReport is what try returns: the example as it is on disk, what its
@@ -72,7 +72,7 @@ func Try(o TryOpts) (TryReport, error) {
 	if err != nil {
 		return TryReport{}, err
 	}
-	if o.Examples != "" {
+	if o.Draft != "" {
 		return tryDraft(root, o, lineKey, name)
 	}
 	if err := logstore.Find(root); err != nil {
@@ -182,23 +182,24 @@ func Try(o TryOpts) (TryReport, error) {
 }
 
 // tryDraft runs one example of a draft folder on the commit the Goal will
-// name as H0, before the owner adds the Goal with add goal --examples: the
-// folder as it is on disk, committed or not. It records nothing, and needs no
-// store.
+// name as H0, before the owner adds the Goal with add goal --draft: the
+// draft as it is on disk, which git never holds. It records nothing, and needs
+// no store.
 func tryDraft(root string, o TryOpts, lineKey, name string) (TryReport, error) {
 	if o.Worktree || o.Commit != "" {
 		return TryReport{}, fault.BadArg(fault.TryDraftOnH0)
 	}
-	dir, err := exampleFolder(o.Examples)
+	snap, done, err := snapshotDraft(root, o.Draft)
 	if err != nil {
 		return TryReport{}, err
 	}
+	defer done()
 	base, baseTree, err := resolveBase(root, o.Base)
 	if err != nil {
 		return TryReport{}, err
 	}
-	rel := path.Join(dir, lineKey, name)
-	disk := filepath.Join(root, filepath.FromSlash(rel))
+	rel := path.Join("drafts", o.Draft, lineKey, name)
+	disk := filepath.Join(snap, lineKey, name)
 	if fi, err := os.Stat(disk); err != nil || !fi.IsDir() {
 		return TryReport{}, fault.BadArg(fault.NotAFolder, rel)
 	}
@@ -210,7 +211,7 @@ func tryDraft(root string, o TryOpts, lineKey, name string) (TryReport, error) {
 	if err != nil {
 		return TryReport{}, err
 	}
-	rep := TryReport{ID: "the draft " + dir, Key: o.Key, Folder: rel, Words: ex.Words, Commit: base, H0: true, RowTree: baseTree}
+	rep := TryReport{ID: "the draft " + o.Draft, Key: o.Key, Folder: rel, Words: ex.Words, Commit: base, H0: true, RowTree: baseTree}
 	if rep.Hash, err = gitread.DirTreeHash(disk); err != nil {
 		return TryReport{}, err
 	}

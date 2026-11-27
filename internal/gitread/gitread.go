@@ -97,7 +97,7 @@ func permits(cmd string, rest []string) bool {
 		return (len(rest) == 3 && rest[0] == "--is-ancestor" && noDash(rest[1:])) ||
 			(len(rest) == 2 && noDash(rest))
 	case "diff-tree":
-		pos, ok := split(rest, "--name-only", "-r", "-z", "-c")
+		pos, ok := split(rest, "--name-only", "--name-status", "-r", "-z", "-c")
 		return ok && (len(pos) == 1 || len(pos) == 2) && noDash(pos)
 	case "for-each-ref":
 		// one fixed form: the first branch or tag that contains a commit

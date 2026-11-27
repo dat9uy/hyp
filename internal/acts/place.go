@@ -32,8 +32,11 @@ type PlaceOpts struct {
 	Role         string
 	Why          string
 	Goal         string // the Goal's id
-	Examples     string // the folder that holds the example set, relative to the top level; empty for goals/G
+	Draft        string // the name of the draft in the clone's trace that holds the example set; empty for goals/G
 	ProbeTimeout time.Duration
+
+	// snap is the snapshot of the draft that every read of the set uses.
+	snap string
 
 	// afterProbe, when set, runs after the Probes and before the second check;
 	// a test uses it to land an event between the two checks.
@@ -75,6 +78,7 @@ type SetFacts struct {
 // or a new version of a placed one.
 type change struct {
 	key, line, name string
+	dir             string // the example folder of a draft's snapshot; empty for a committed one
 	hash            string // the example folder's tree hash
 	probeHash       string // the tree hash of its probe/ folder
 	ex              example.Example
@@ -104,6 +108,16 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		return PlaceReport{}, err
 	}
 	root := w.root
+	if o.Draft != "" {
+		// One snapshot of the draft: the bytes that are checked, hashed and
+		// run on H0 are the bytes the Goal's folder gets.
+		snap, done, err := snapshotDraft(root, o.Draft)
+		if err != nil {
+			return PlaceReport{}, err
+		}
+		defer done()
+		o.snap = snap
+	}
 
 	var first scan
 	err = w.check(eventsView, func(t tables.Tables) error {
@@ -127,6 +141,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	}
 
 	var rep PlaceReport
+	var written []change
 	ev, err := w.append(eventsView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeExamplesPlace, Why: o.Why, Actor: o.Actor}
 		again, err := scanSet(root, o, t)
@@ -163,6 +178,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 			return ev, err
 		}
 		rep.Goal = again.goal.ID
+		written = again.changes
 		for i, c := range again.changes {
 			rep.Placed = append(rep.Placed, PlacedRow{Key: c.key, Hash: c.hash, Verdict: string(runs[i].verdict), Exit: runs[i].out.Exit})
 		}
@@ -170,6 +186,20 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	})
 	if err != nil {
 		return PlaceReport{}, err
+	}
+	if o.snap != "" {
+		// the Goal's own folder gets the examples the place changed, as later
+		// places read them by default; hyp writes no git state, so the owner
+		// commits them
+		for _, c := range written {
+			to := filepath.Join(root, "goals", rep.Goal, c.line, c.name)
+			if err := os.RemoveAll(to); err != nil {
+				return PlaceReport{}, fault.EnvFault(fault.CopyExamples, c.dir, to, err)
+			}
+			if err := copyFolder(c.dir, to); err != nil {
+				return PlaceReport{}, fault.EnvFault(fault.CopyExamples, c.dir, to, err)
+			}
+		}
 	}
 	after, _, err := load(root, eventsView)
 	if err != nil {
@@ -196,7 +226,7 @@ type measured struct {
 func measureOnH0(root, base string, changes []change, timeout time.Duration) ([]measured, error) {
 	runs := make([]measured, len(changes))
 	for i, c := range changes {
-		out, err := probe.Run(probe.Opts{Repo: root, Commit: base, ExampleHash: c.hash, Timeout: timeout})
+		out, err := probe.Run(probe.Opts{Repo: root, Commit: base, ExampleHash: c.hash, ExampleDir: c.dir, Timeout: timeout})
 		if err != nil {
 			return nil, err
 		}
@@ -303,11 +333,10 @@ func scanSet(root string, o PlaceOpts, t tables.Tables) (scan, error) {
 	if err := tables.GuardGoalActor(g, o.Actor, o.Role); err != nil {
 		return scan{}, err
 	}
-	dir := o.Examples
-	if dir == "" {
-		dir = path.Join("goals", g.ID)
+	if o.snap != "" {
+		return scanFolder(root, path.Join("drafts", o.Draft), o.snap, g, t)
 	}
-	return scanFolder(root, dir, g, t)
+	return scanFolder(root, path.Join("goals", g.ID), "", g, t)
 }
 
 // exampleFolder is the clean slash form of a folder of examples given
@@ -323,7 +352,9 @@ func exampleFolder(dir string) (string, error) {
 // scanFolder runs, for every line of g, Whole set, Committed, Adds only and
 // Meetable on each example folder under dir/<line>/, then the names of each
 // changed example's findings section and Covered, and collects the causes.
-func scanFolder(root, dir string, g *tables.Goal, t tables.Tables) (scan, error) {
+// With disk set, the set is the snapshot of a draft at disk, which git does
+// not hold: dir only names it in a refusal, and Committed does not apply.
+func scanFolder(root, dir, disk string, g *tables.Goal, t tables.Tables) (scan, error) {
 	dir, err := exampleFolder(dir)
 	if err != nil {
 		return scan{}, err
@@ -331,7 +362,7 @@ func scanFolder(root, dir string, g *tables.Goal, t tables.Tables) (scan, error)
 	s := scan{goal: g}
 	for _, l := range g.Lines {
 		lineDir := path.Join(dir, l.Key)
-		names, err := exampleNames(root, lineDir)
+		names, err := exampleNames(root, lineDir, diskLine(disk, l.Key))
 		if err != nil {
 			return scan{}, err
 		}
@@ -346,7 +377,7 @@ func scanFolder(root, dir string, g *tables.Goal, t tables.Tables) (scan, error)
 		}
 		for _, name := range names {
 			key := l.Key + "/" + name
-			c, changed, err := checkExample(root, dir, g, l, name)
+			c, changed, err := checkExample(root, dir, disk, g, l, name)
 			if err != nil {
 				if fault.KindOf(err) != fault.Refusal {
 					return scan{}, err
@@ -422,9 +453,13 @@ func (s *scan) nameFindings(t tables.Tables) []SetCause {
 // HEAD, sorted: a folder on disk that is not committed and a folder committed
 // but gone from disk are both examples of the set, and Committed refuses
 // them.
-func exampleNames(root, lineDir string) ([]string, error) {
+func exampleNames(root, lineDir, disk string) ([]string, error) {
 	seen := map[string]bool{}
-	entries, err := os.ReadDir(filepath.Join(root, filepath.FromSlash(lineDir)))
+	from := filepath.Join(root, filepath.FromSlash(lineDir))
+	if disk != "" {
+		from = disk
+	}
+	entries, err := os.ReadDir(from)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, fault.EnvFault(fault.ReadFolder, lineDir, err)
 	}
@@ -432,6 +467,9 @@ func exampleNames(root, lineDir string) ([]string, error) {
 		if e.IsDir() {
 			seen[e.Name()] = true
 		}
+	}
+	if disk != "" {
+		return sortedNames(seen), nil
 	}
 	code, out, err := gitread.GitExit(root, "rev-parse", "--verify", "HEAD:"+lineDir)
 	if err != nil {
@@ -448,27 +486,52 @@ func exampleNames(root, lineDir string) ([]string, error) {
 			}
 		}
 	}
-	names := make([]string, 0, len(seen))
-	for n := range seen {
+	return sortedNames(seen), nil
+}
+
+// sortedNames is the keys of set, sorted.
+func sortedNames(set map[string]bool) []string {
+	names := make([]string, 0, len(set))
+	for n := range set {
 		names = append(names, n)
 	}
 	sort.Strings(names)
-	return names, nil
+	return names
+}
+
+// diskLine is the folder of a line in the snapshot at disk; empty for a set
+// git holds.
+func diskLine(disk, line string) string {
+	if disk == "" {
+		return ""
+	}
+	return filepath.Join(disk, line)
 }
 
 // checkExample runs the guards that need no Probe on one example folder of
 // the set: its name, Committed, Adds only, then Meetable on a new hash. It
 // reports whether the folder changes the set: a new example key or a new
 // hash on a placed one.
-func checkExample(root, dir string, g *tables.Goal, l tables.Line, name string) (change, bool, error) {
+func checkExample(root, dir, disk string, g *tables.Goal, l tables.Line, name string) (change, bool, error) {
 	rel := path.Join(dir, l.Key, name)
 	if !exampleNameRe.MatchString(name) {
 		return change{}, false, fault.Refuse(fault.GuardWholeSet, fault.NotAnExampleName, rel)
 	}
 	c := change{key: l.Key + "/" + name, line: l.Key, name: name, lineRow: l}
 	var err error
-	if c.hash, err = committedHash(root, rel); err != nil {
+	if disk != "" {
+		c.dir = filepath.Join(disk, l.Key, name)
+		if c.hash, err = diskHash(c.dir, rel); err != nil {
+			return change{}, false, err
+		}
+	} else if c.hash, err = committedHash(root, rel); err != nil {
 		return change{}, false, err
+	}
+	read := func() (example.Example, string, error) {
+		if c.dir != "" {
+			return readExampleDir(c.dir)
+		}
+		return readExample(root, c.hash)
 	}
 	cur, placed := g.Current(c.key)
 	if placed && cur.Hash == c.hash {
@@ -477,12 +540,12 @@ func checkExample(root, dir string, g *tables.Goal, l tables.Line, name string) 
 		}
 		// A replace moved H0 since the place: the same version is measured
 		// again on the new H0, and git then holds its verdict there.
-		if c.ex, c.probeHash, err = readExample(root, c.hash); err != nil {
+		if c.ex, c.probeHash, err = read(); err != nil {
 			return change{}, false, err
 		}
 		return c, true, nil
 	}
-	if c.ex, c.probeHash, err = readExample(root, c.hash); err != nil {
+	if c.ex, c.probeHash, err = read(); err != nil {
 		return change{}, false, err
 	}
 	if err := tables.GuardAddsOnlyTable(g, c.key, c.hash); err != nil {
@@ -493,7 +556,7 @@ func checkExample(root, dir string, g *tables.Goal, l tables.Line, name string) 
 		if err != nil {
 			return change{}, false, err
 		}
-		if err := sameBesidesExample(root, cur.Hash, c.hash); err != nil {
+		if err := sameBesidesExample(root, cur.Hash, c.hash, c.dir); err != nil {
 			return change{}, false, err
 		}
 		if err := example.AddsOnly(old, c.ex, oldProbe, c.probeHash); err != nil {
@@ -541,6 +604,42 @@ func committedHash(root, rel string) (string, error) {
 	return "", fault.Refuse(fault.GuardCommitted, fault.DiffersAt, rel, path.Join(rel, diff))
 }
 
+// diskHash is the tree hash of the draft's example folder at disk, as git
+// would hash it; rel names the folder in a refusal.
+func diskHash(disk, rel string) (string, error) {
+	if fi, err := os.Stat(disk); err != nil || !fi.IsDir() {
+		return "", fault.Refuse(fault.GuardWholeSet, fault.NotAFolder, rel)
+	}
+	h, err := gitread.DirTreeHash(disk)
+	if err != nil {
+		if fault.KindOf(err) == fault.Refusal {
+			return "", fault.Refuse(fault.GuardWholeSet, fault.FolderOnDisk, err)
+		}
+		return "", err
+	}
+	return h, nil
+}
+
+// readExampleDir reads and parses the example.txtar of the example folder at
+// disk, and returns the tree hash of its probe/ folder.
+func readExampleDir(disk string) (example.Example, string, error) {
+	data, err := os.ReadFile(filepath.Join(disk, "example.txtar"))
+	if err != nil {
+		return example.Example{}, "", fault.Refuse(fault.NoGuard, fault.NoExampleTxtar, disk)
+	}
+	ex, err := example.Parse(data)
+	if err != nil {
+		return example.Example{}, "", err
+	}
+	probeHash := ""
+	if fi, err := os.Stat(filepath.Join(disk, "probe")); err == nil && fi.IsDir() {
+		if probeHash, err = gitread.DirTreeHash(filepath.Join(disk, "probe")); err != nil {
+			return example.Example{}, "", err
+		}
+	}
+	return ex, probeHash, nil
+}
+
 // readExample reads and parses the example.txtar of the example folder with
 // tree hash hash, and returns the tree hash of its probe/ folder.
 func readExample(root, hash string) (example.Example, string, error) {
@@ -584,12 +683,17 @@ type KindFacts struct {
 // current one in any root entry but example.txtar, by mode or hash: the probe/
 // folder and every other file must be byte-equal. It names the first
 // differing entry.
-func sameBesidesExample(root, oldHash, newHash string) error {
+func sameBesidesExample(root, oldHash, newHash, newDisk string) error {
 	oldEntries, err := gitread.RootEntries(root, oldHash)
 	if err != nil {
 		return err
 	}
-	newEntries, err := gitread.RootEntries(root, newHash)
+	var newEntries []gitread.Entry
+	if newDisk != "" {
+		newEntries, err = gitread.DirEntries(newDisk)
+	} else {
+		newEntries, err = gitread.RootEntries(root, newHash)
+	}
 	if err != nil {
 		return err
 	}
@@ -617,7 +721,7 @@ func sameBesidesExample(root, oldHash, newHash string) error {
 		}
 		a, inOld := o[name]
 		b, inNew := n[name]
-		if inOld != inNew || a.Mode != b.Mode || a.Hash != b.Hash {
+		if inOld != inNew || strings.TrimLeft(a.Mode, "0") != strings.TrimLeft(b.Mode, "0") || a.Hash != b.Hash {
 			if a.Type == "tree" || b.Type == "tree" {
 				name += "/"
 			}

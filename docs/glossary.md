@@ -86,7 +86,7 @@ The role that adds the Goal, selects a candidate, unselects, lands and closes a 
 _Avoid_: user, stakeholder, approver
 
 **Grill**:
-The role that writes a Goal's examples in a draft folder and tries them, and that does the re-grill. The grill records no event: the owner adds the Goal with the examples, and only the owner places (`hyp spec`, Owner places). The skill `skills/hyp-grill` teaches it. In that skill the grill also drafts the words and lines with the owner, and the owner records them.
+The role that writes a Goal's examples in a named draft in the clone's trace and tries them, and that does the re-grill. The grill records no event: the owner adds the Goal with the examples, and only the owner places (`hyp spec`, Owner places). The skill `skills/hyp-grill` teaches it. In that skill the grill also drafts the words and lines with the owner, and the owner records them.
 _Avoid_: interviewer, reviewer
 
 **Re-grill**:

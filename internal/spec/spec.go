@@ -91,16 +91,18 @@ var Commands = []Command{
 	{Name: "add goal", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardDraft, fault.GuardWholeLines, fault.GuardFromEnded,
 			fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork,
-			fault.GuardWholeSet, fault.GuardCommitted, fault.GuardMeetable, fault.GuardCovered, fault.GuardKind}, Writes: "goal.add; a new Goal is in no state before it",
+			fault.GuardWholeSet, fault.GuardMeetable, fault.GuardCovered, fault.GuardKind}, Writes: "goal.add; a new Goal is in no state before it",
 		Help: `  add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
-           [--examples FOLDER] [--from G] [--finding F ...] [--why TEXT]
-                                         record a Goal; with --examples, the
-                                         example set in FOLDER/LINE/EXAMPLE,
-                                         each run on H0: the add carries each
-                                         example's hash and verdict, the Goal is
-                                         open at once, the set is copied to
-                                         goals/G/, and an example that does not
-                                         agree with its line records no Goal;
+           [--draft NAME] [--from G] [--finding F ...] [--why TEXT]
+                                         record a Goal; with --draft, the
+                                         example set of draft NAME in the
+                                         clone's trace, LINE/EXAMPLE, read once
+                                         and each run on H0: the add carries
+                                         each example's hash and verdict, the
+                                         Goal is open at once, the bytes it
+                                         hashed are copied to goals/G/, and an
+                                         example that does not agree with its
+                                         line records no Goal;
                                          with G, replace a Goal that is still
                                          written; each --finding names a
                                          finding of this clone's trace that the
@@ -110,12 +112,14 @@ var Commands = []Command{
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardOwnerPlaces, fault.GuardGoalsActor, fault.GuardWholeSet,
 			fault.GuardCommitted, fault.GuardAddsOnly, fault.GuardMeetable, fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork,
 			fault.GuardCovered, fault.GuardKind}, Writes: "examples.place",
-		Help: `  place G [--examples FOLDER] [--why TEXT]
+		Help: `  place G [--draft NAME] [--why TEXT]
                                          the owner places the whole example set
                                          of Goal G: every folder
-                                         goals/G/LINE/EXAMPLE, or with
-                                         --examples FOLDER/LINE/EXAMPLE, each new
-                                         or changed one run on H0; it places the
+                                         goals/G/LINE/EXAMPLE, or with --draft,
+                                         the draft NAME of the clone's trace,
+                                         LINE/EXAMPLE, read once and copied to
+                                         goals/G/; each new or changed one run
+                                         on H0; it places the
                                          set only when every example agrees with
                                          its line and each finding G names is
                                          named by an example, and otherwise
@@ -129,7 +133,7 @@ var Commands = []Command{
 `},
 	{Name: "try",
 		Help: `  try G LINE/EXAMPLE [--worktree | --commit COMMIT]
-  try --examples FOLDER --base COMMIT LINE/EXAMPLE
+  try --draft NAME --base COMMIT LINE/EXAMPLE
                                          run the example folder goals/G/LINE/EXAMPLE
                                          as it is on disk, on H0, on COMMIT, or
                                          with --worktree on this checkout's files
@@ -138,10 +142,20 @@ var Commands = []Command{
                                          verdict as place and run would record
                                          them; it uses no run, and saves the
                                          cell in this clone's trace only when
-                                         the trace lacks it; with --examples,
-                                         the draft example FOLDER/LINE/EXAMPLE
+                                         the trace lacks it; with --draft,
+                                         the example LINE/EXAMPLE of draft NAME
                                          of a Goal not added yet, on COMMIT as
                                          its H0, and it saves nothing
+`},
+	{Name: "draft",
+		Help: `  draft path NAME                        print the folder of draft NAME in this
+                                         clone's trace, drafts/NAME under
+                                         ~/.hyp/traces; the grill writes a
+                                         draft's examples there as
+                                         LINE/EXAMPLE, and hyp try, add goal
+                                         and place read them with --draft NAME;
+                                         the folder is in no commit, and hyp
+                                         creates nothing
 `},
 	{Name: "select", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardCandidate, fault.GuardNewCell,
@@ -452,9 +466,9 @@ var Guards = []Guard{
 		[]fault.Code{fault.HasSelect, fault.NoSelect, fault.NotSelectedOn, fault.AlreadyUnselected}, ", against a select event; the act reads the select this clone's Results show"},
 	{fault.GuardOwnerPlaces, "only the owner places an example, with the Goal's actor; a place of the older form names the grill and replays as it was",
 		[]fault.Code{fault.NotOwnerPlace}, ""},
-	{fault.GuardWholeSet, "the set of an add goal --examples or a place is every folder FOLDER/LINE/EXAMPLE, goals/G/LINE/EXAMPLE by default; every line holds an example folder, every placed example keeps its folder, and every folder's name is an example name",
-		[]fault.Code{fault.LineHoldsNoExample, fault.PlacedFolderGone, fault.NotAnExampleName, fault.ExampleOffLine}, ", that each example an add goal carries is on a line of the Goal; the act reads the example folders"},
-	{fault.GuardCommitted, "each example folder's bytes on disk equal its bytes committed at HEAD",
+	{fault.GuardWholeSet, "the set of an add goal --draft or a place is every folder LINE/EXAMPLE of the draft, goals/G/LINE/EXAMPLE by default; a draft is read once, and the bytes hashed, run on H0 and copied to goals/G/ are that one read; every line holds an example folder, every placed example keeps its folder, and every folder's name is an example name",
+		[]fault.Code{fault.LineHoldsNoExample, fault.PlacedFolderGone, fault.NotAnExampleName, fault.ExampleOffLine, fault.NotAFolder, fault.FolderOnDisk}, ", that each example an add goal carries is on a line of the Goal; the act reads the example folders"},
+	{fault.GuardCommitted, "each example folder's bytes on disk equal its bytes committed at HEAD; a draft of the clone's trace is in no commit, so a place --draft does not check it, and an add goal --draft has no such set",
 		[]fault.Code{fault.NotAFolder, fault.FolderOnDisk, fault.NotCommitted, fault.DiskNotCommitted, fault.DiffersAt, fault.SetChangedWhileProbe}, ": it reads the example folders and git"},
 	{fault.GuardAddsOnly, "a new version of an example only adds floor or ceiling sections; any other change is a new example key; a hash the key held before never comes back, except the current one measured again on H0 after a replace moved H0; a place that changes no example places nothing",
 		[]fault.Code{fault.SetUnchanged, fault.KeyTwiceInSet, fault.AlreadyCurrent, fault.EarlierVersion, fault.SectionDiffers, fault.PathDiffers, fault.DropsFloor, fault.DropsCeiling, fault.AddsNothing}, ", the half that reads the events; the act checks the folders' bytes"},
@@ -466,8 +480,8 @@ var Guards = []Guard{
 		[]fault.Code{fault.CommitNotHere, fault.NotACommit}, ": it reads git"},
 	{fault.GuardOpen, "the Goal is open, unless the commit's subject hash is H0's; the examples do not change while the Probes run",
 		[]fault.Code{fault.NothingPlaced, fault.NotOpen, fault.H0MovedWhileRun, fault.ExamplesChanged, fault.ExampleChanged}, ""},
-	{fault.GuardOwnPath, "the runner's own change of the commit writes no path under goals/X/ of another Goal X; goals/model/, the repository's kept model, is no Goal's folder",
-		[]fault.Code{fault.OtherGoalPath}, ": it reads git"},
+	{fault.GuardOwnPath, "the runner's own change of the commit writes no path under goals/X/ of another Goal X, and adds or changes no file under a goals/X/ folder of no Goal in the store; a change that only deletes files of such a folder passes; goals/model/, the repository's kept model, is no Goal's folder",
+		[]fault.Code{fault.OtherGoalPath, fault.NoGoalFolder}, ": it reads git"},
 	{fault.GuardLeafOnly, "a run is on H0, or on a commit that no row of the Goal descends from",
 		[]fault.Code{fault.AncestorOfRow}, ": it reads git"},
 	{fault.GuardBudget, "at most three Hypotheses run since the boundary, H0 never counted",

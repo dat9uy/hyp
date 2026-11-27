@@ -136,7 +136,7 @@ func Land(o LandOpts) (LandReport, error) {
 			if err != nil {
 				return ev, err
 			}
-			if err := tables.GuardOwnPath(g, changes); err != nil {
+			if err := tables.GuardOwnPath(g, t, changes); err != nil {
 				return ev, err
 			}
 			cause := tables.Cause{}

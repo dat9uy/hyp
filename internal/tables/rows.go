@@ -195,16 +195,25 @@ func GuardLeafOnly(g *Goal, anc Ancestry, commit string) error {
 }
 
 // GuardOwnPath is the Own path guard: the runner's own change writes no path
-// under goals/<another Goal>/. goals/model/, the repository's kept model, is
-// no Goal's folder: a Goal's model is a change to it.
-func GuardOwnPath(g *Goal, changes []gitread.OwnPath) error {
+// under goals/<another Goal>/, and adds or changes no file under a goals/X/
+// folder of no Goal in the store t. goals/model/, the repository's kept model,
+// is no Goal's folder: a Goal's model is a change to it. A change that only
+// deletes files of a folder of no Goal passes.
+func GuardOwnPath(g *Goal, t Tables, changes []gitread.OwnPath) error {
 	for _, c := range changes {
 		rest, ok := strings.CutPrefix(c.Path, "goals/")
 		if !ok {
 			continue
 		}
-		if name, _, _ := strings.Cut(rest, "/"); name != g.ID && name != "model" {
+		name, _, _ := strings.Cut(rest, "/")
+		if name == g.ID || name == "model" {
+			continue
+		}
+		if t.ByID(name) != nil {
 			return fault.Refuse(fault.GuardOwnPath, fault.OtherGoalPath, c.Commit, c.Path, g.ID)
+		}
+		if !c.Deleted {
+			return fault.Refuse(fault.GuardOwnPath, fault.NoGoalFolder, c.Commit, c.Path)
 		}
 	}
 	return nil

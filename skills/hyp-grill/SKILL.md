@@ -34,7 +34,7 @@ hyp printed. A skill names no write command." So this skill shows only reads
 copy from a line hyp printed. Set `HYP_ACTOR` to your actor name and
 `HYP_ROLE=grill` for every command. The owner records the Goal itself, with the
 act `hyp help` lists for adding a Goal; you draft the words and lines it takes,
-and the draft folder of examples it carries with `--examples`. Git holds only
+and the draft of examples it carries with `--draft NAME`. Git holds only
 the owner's acts: you write no event, and the owner adds a new example to an
 open Goal with the place act.
 
@@ -163,8 +163,8 @@ names, and the event the why names. Make the worktree of step 9 on branch
 When the owner agreed to the Goal's words and lines, and before the owner adds
 the Goal, follow [examples.md](examples.md): you show the readings of each
 line, the owner chooses, you draft one example per chosen reading in a draft
-folder, try each on H0 with `hyp try --examples`, and the owner adds the Goal
-with the draft folder, `hyp add goal ... --examples goals/draft-<name>`. It
+draft, try each on H0 with `hyp try --draft`, and the owner adds the Goal
+with the draft, `hyp add goal ... --draft NAME`. It
 also says when the Goal has enough.
 
 ## How to re-grill
@@ -178,8 +178,8 @@ and it says when a Goal must end because an example is wrong.
 
 ## Hand-off
 
-The grill ends with a record branch that holds the draft folder, the Goal's
-folder with the examples the owner's add copied there, and the owner's add,
+The grill ends with a record branch that holds the Goal's
+folder with the examples the owner's add copied there from the draft, and the owner's add,
 and a hand-off for the owner: the Goal's lines, the owner's decisions
 numbered with their words, and "Not covered" with each decision no example
 checks. Before the record PR, the issues already hold those decisions and the

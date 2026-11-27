@@ -50,10 +50,12 @@ full: the owner may read only the last message, not the status before it.
    the owner's choice names two things, never in advance. A split changes the
    lines, so the owner records it while the Goal is `written`. When the owner
    keeps one line, it holds one example per reading.
-4. **One folder per example**, in a draft folder on the record branch, at
-   `goals/draft-<name>/<line>/<example>/`, with `<line>` the key the line will
-   get (`line-1` for the first), and with an `example.txtar` and a `probe/`
-   folder. The owner's add copies the set to `goals/<G>/`. A new reading is a new example key,
+4. **One folder per example**, in a named draft that is in no commit. `hyp
+   draft path NAME` prints the folder of draft NAME in this clone's trace; put
+   each example at `<that folder>/<line>/<example>/`, with `<line>` the key the
+   line will get (`line-1` for the first), and with an `example.txtar` and a
+   `probe/` folder. The owner's add reads the draft once and copies the set it
+   read to `goals/<G>/`. A new reading is a new example key,
    never a new version of an existing one. The `example.txtar` sections are
    `words` (the reading the owner chose), `run` (the command run on the subject),
    `input/<path>` files, and at least one `floor: contains` or `floor: equals`,
@@ -73,7 +75,7 @@ full: the owner may read only the last message, not the status before it.
 7. **Run `hyp try` before the owner adds the Goal.** Do these in order:
    - **Try each example on H0.** A gap example must fail on H0 and a guard
      example must be met on H0. Run
-     `hyp try --examples goals/draft-<name> --base COMMIT LINE/EXAMPLE`, with
+     `hyp try --draft NAME --base COMMIT LINE/EXAMPLE`, with
      COMMIT the H0 the add will name, or `hyp try G LINE/EXAMPLE` for a new
      example of an added Goal, and read its verdict, exit code, output and
      stderr. It records nothing and uses no
@@ -102,15 +104,15 @@ full: the owner may read only the last message, not the status before it.
      example that names a finding state that finding's fact, in words the
      owner reads.
    - **The owner adds the Goal with the whole set.** When every line holds
-     its examples, commit the draft folder and draft the owner's add with
-     `--examples goals/draft-<name>`. hyp runs each example on H0 and records
+     its examples, draft the owner's add with `--draft NAME`. hyp reads the
+     draft once, runs each example on H0 and records
      the Goal, open at once, with each example's hash and verdict, only when
      every example gives its line's verdict there. Otherwise it records no
      Goal and names each example that disagrees, each line that holds no
      example and each folder it cannot read, with the guard that refused it.
      Fix every cause and draft the add again. A new example of an open Goal
      is the owner's act too: the place line `hyp status G --role owner`
-     prints, with `--examples` naming the folder that holds the set, under
+     prints, with `--draft NAME` naming the draft that holds the set, under
      the same rules. A placed example stays in the set: never remove its
      folder.
 8. **Stop when the Goal has enough.** The Goal has enough when every line

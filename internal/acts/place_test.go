@@ -12,6 +12,7 @@ import (
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/example"
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 	"github.com/dat9uy/hyp/internal/testutil"
@@ -793,4 +794,45 @@ func TestPlaceNamesFindingsAndCoversTheGoalsNames(t *testing.T) {
 	other.Findings = []string{f2.ID}
 	_, err = AddGoal(other)
 	refusedBy(t, err, string(fault.GuardOneInWork))
+}
+
+// A place with --draft reads the draft from the clone's trace, which no
+// commit holds, and copies the examples it placed to the Goal's folder.
+func TestPlaceFromDraft(t *testing.T) {
+	e := newPlaceEnv(t)
+	tr, err := logstore.TraceOf(e.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	folder := filepath.Join(tr.DraftDir("x"), "line-1", "a")
+	if err := os.MkdirAll(filepath.Join(folder, "probe"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(folder, "example.txtar"), []byte(failingOnH0), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(folder, "probe", "run"), []byte(fixtureProbe), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	o := e.opts()
+	o.Draft = "x"
+	rep, err := Place(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rep.Placed) != 1 || rep.State != tables.StateOpen {
+		t.Fatalf("report = %+v", rep)
+	}
+	got, err := gitread.DirTreeHash(filepath.Join(e.root, "goals", e.goal, "line-1", "a"))
+	if err != nil || got != rep.Placed[0].Hash {
+		t.Fatalf("the Goal's folder hashes to %s (%v), the place carries %s", got, err, rep.Placed[0].Hash)
+	}
+	// the same draft changes nothing a second time
+	if _, err := Place(o); fault.KindOf(err) != fault.Refusal {
+		t.Fatalf("err = %v, want a refusal: the set changes no example", err)
+	}
+	o.Draft = "missing"
+	if _, err := Place(o); fault.KindOf(err) != fault.BadArguments {
+		t.Fatalf("err = %v, want a bad argument for a draft that is not there", err)
+	}
 }

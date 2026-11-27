@@ -209,6 +209,8 @@ func dispatch(c *call, args []string, stdout, stderr io.Writer) error {
 		return statusCmd(c, args[1:], stdout)
 	case "try":
 		return tryCmd(c, args[1:], stdout, stderr)
+	case "draft":
+		return draftCmd(c, args[1:], stdout, stderr)
 	case "show":
 		return showCmd(c, args[1:], stdout)
 	case "prune":
@@ -311,7 +313,7 @@ func addGoal(c *call, args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&o.From, "from", "", "")
 	fs.StringVar(&o.Words, "words", "", "")
 	fs.StringVar(&o.Base, "base", "", "")
-	fs.StringVar(&o.Examples, "examples", "", "")
+	fs.StringVar(&o.Draft, "draft", "", "")
 	fs.Var(&lines, "line", "")
 	positional, err := parseInterleaved(fs, args)
 	if err != nil {
@@ -347,7 +349,7 @@ func place(c *call, args []string, stdout, stderr io.Writer) error {
 	fs.SetOutput(io.Discard)
 	var o acts.PlaceOpts
 	actorFlags(fs, &o.Actor, &o.Role, &o.Why)
-	fs.StringVar(&o.Examples, "examples", "", "")
+	fs.StringVar(&o.Draft, "draft", "", "")
 	positional, err := parseInterleaved(fs, args)
 	if err != nil {
 		return flagsFailed("place", err)
@@ -525,14 +527,14 @@ func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	var o acts.TryOpts
 	fs.BoolVar(&o.Worktree, "worktree", false, "")
 	fs.StringVar(&o.Commit, "commit", "", "")
-	fs.StringVar(&o.Examples, "examples", "", "")
+	fs.StringVar(&o.Draft, "draft", "", "")
 	fs.StringVar(&o.Base, "base", "", "")
 	positional, role, err := readFlagsWith(c, "try", args, fs)
 	if err != nil {
 		return err
 	}
-	if o.Examples != "" {
-		// a draft folder: no Goal yet, so no state block
+	if o.Draft != "" {
+		// a draft: no Goal yet, so no state block
 		if len(positional) != 1 {
 			return fault.BadArg(codeTryArgs, len(positional))
 		}
@@ -553,6 +555,27 @@ func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 		return finishWith(stdout, stderr, c.dir, BlockOpts{Goal: o.Goal, Role: role}, "", err)
 	}
 	return finishWith(stdout, stderr, c.dir, BlockOpts{Goal: rep.Goal, Role: role}, tryText(rep), nil)
+}
+
+// draftCmd prints the folder of a draft in the clone's trace: draft path NAME.
+func draftCmd(c *call, args []string, stdout, stderr io.Writer) error {
+	if len(args) == 0 || args[0] != "path" {
+		fmt.Fprint(stderr, usage)
+		return fault.BadArg(codeDraftWhat)
+	}
+	positional, _, err := readFlags(c, "draft", args[1:])
+	if err != nil {
+		return err
+	}
+	if len(positional) != 1 {
+		return fault.BadArg(codeDraftArgs, len(positional))
+	}
+	dir, err := acts.DraftDir(c.dir, positional[0])
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(stdout, dir)
+	return nil
 }
 
 // goalIDRe matches a Goal id: G- and the last six characters of its

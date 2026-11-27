@@ -49,11 +49,12 @@ type AddGoalOpts struct {
 	// its finding.add id: the findings of this clone's trace it is about.
 	Findings []string
 
-	// Examples is the folder, relative to the top level, that holds the
-	// Goal's example set as a place reads it, FOLDER/<line>/<example>: the
-	// add runs each on H0 and carries each with its hash and its verdict
-	// there, and the Goal is open at once. Empty adds a written Goal.
-	Examples     string
+	// Draft is the name of the draft in the clone's trace that holds the
+	// Goal's example set as a place reads it, <line>/<example>: the add
+	// snapshots it once, runs each example on H0 and carries each with its
+	// hash and its verdict there, and the Goal is open at once. Empty adds a
+	// written Goal.
+	Draft        string
 	ProbeTimeout time.Duration
 }
 
@@ -122,15 +123,23 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		return Report{}, err
 	}
 	if o.Goal != "" {
-		if err := tables.GuardReplaceExamples(o.Goal, o.Examples != ""); err != nil {
+		if err := tables.GuardReplaceExamples(o.Goal, o.Draft != ""); err != nil {
 			return Report{}, err
 		}
 	}
 	var placed []events.PlacedExample
 	var outs [][]byte
 	var cells []logstore.Cell
-	if o.Examples != "" {
-		if placed, outs, cells, err = addedExamples(root, o, base, baseTree, lines); err != nil {
+	snap := ""
+	if o.Draft != "" {
+		// One snapshot of the draft: the bytes hashed and run on H0 are the
+		// bytes the Goal's folder gets.
+		var done func()
+		if snap, done, err = snapshotDraft(root, o.Draft); err != nil {
+			return Report{}, err
+		}
+		defer done()
+		if placed, outs, cells, err = addedExamples(root, o, snap, base, baseTree, lines); err != nil {
 			return Report{}, err
 		}
 	}
@@ -218,7 +227,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if len(placed) > 0 {
 		// the Goal's own folder gets its example set, as later places read
 		// it by default; hyp writes no git state, so the owner commits it
-		if err := copyExamples(root, o.Examples, path.Join("goals", tables.GoalID(ev.ID)), lines); err != nil {
+		if err := copyExamples(snap, filepath.Join(root, "goals", tables.GoalID(ev.ID)), lines); err != nil {
 			return Report{}, err
 		}
 		rep.Folder = path.Join("goals", tables.GoalID(ev.ID))
@@ -235,13 +244,13 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	return rep, nil
 }
 
-// addedExamples reads the example set under o.Examples for a new Goal with
+// addedExamples reads the example set of the snapshot snap of draft o.Draft for a new Goal with
 // lines, as a place reads a Goal's set: Whole set, Committed, Meetable, the
 // names of each findings section and Covered, then Kind, which runs each
 // example on H0. It returns the examples the add carries, and H0's outputs
 // and cells for the clone's trace. A set with a cause is refused whole, and
 // no Goal is recorded.
-func addedExamples(root string, o AddGoalOpts, base, baseTree string, lines []events.Line) ([]events.PlacedExample, [][]byte, []logstore.Cell, error) {
+func addedExamples(root string, o AddGoalOpts, snap, base, baseTree string, lines []events.Line) ([]events.PlacedExample, [][]byte, []logstore.Cell, error) {
 	t := tablesOf(nil, nil, eventsView)
 	if logstore.Find(root) == nil {
 		var err error
@@ -254,7 +263,7 @@ func addedExamples(root string, o AddGoalOpts, base, baseTree string, lines []ev
 		return nil, nil, nil, err
 	}
 	g := &tables.Goal{ID: "the new Goal", Base: base, BaseTree: baseTree, Lines: lines, Named: named}
-	s, err := scanFolder(root, o.Examples, g, t)
+	s, err := scanFolder(root, path.Join("drafts", o.Draft), snap, g, t)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -322,46 +331,50 @@ func resolveBase(root, base string) (commit, rowTree string, err error) {
 // to/<line>, file by file with each file's mode, so both folders hold the
 // same tree hashes. A path that is already there is an environment problem:
 // the copy overwrites nothing.
-func copyExamples(root, from, to string, lines []events.Line) error {
+func copyExamples(from, to string, lines []events.Line) error {
 	for _, l := range lines {
-		src := filepath.Join(root, filepath.FromSlash(path.Join(from, l.Key)))
-		dst := filepath.Join(root, filepath.FromSlash(path.Join(to, l.Key)))
+		src := filepath.Join(from, l.Key)
 		if _, err := os.Stat(src); os.IsNotExist(err) {
 			continue
 		}
-		err := filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
-			if err != nil {
-				return err
-			}
-			rel, err := filepath.Rel(src, p)
-			if err != nil {
-				return err
-			}
-			out := filepath.Join(dst, rel)
-			if d.IsDir() {
-				return os.MkdirAll(out, 0o755)
-			}
-			info, err := d.Info()
-			if err != nil {
-				return err
-			}
-			data, err := os.ReadFile(p)
-			if err != nil {
-				return err
-			}
-			f, err := os.OpenFile(out, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
-			if err != nil {
-				return err
-			}
-			if _, err := f.Write(data); err != nil {
-				f.Close()
-				return err
-			}
-			return f.Close()
-		})
-		if err != nil {
+		if err := copyFolder(src, filepath.Join(to, l.Key)); err != nil {
 			return fault.EnvFault(fault.CopyExamples, from, to, err)
 		}
 	}
 	return nil
+}
+
+// copyFolder copies the folder src to dst, file by file with each file's
+// mode; a file that is already there is an error.
+func copyFolder(src, dst string) error {
+	return filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, p)
+		if err != nil {
+			return err
+		}
+		out := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(out, 0o755)
+		}
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		f, err := os.OpenFile(out, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+		if err != nil {
+			return err
+		}
+		if _, err := f.Write(data); err != nil {
+			f.Close()
+			return err
+		}
+		return f.Close()
+	})
 }

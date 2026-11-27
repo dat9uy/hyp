@@ -5,7 +5,7 @@ Read it when an example's reading needs a state set up before the command (for
 example "in a git repository with three commits"), so the generic Probe cannot
 run it. Then:
 
-- Write and commit the `example.txtar`. Its `run` stays the command the
+- Write the `example.txtar` in the draft. Its `run` stays the command the
   owner would type, word for word; the setup goes in the Probe, never in
   the `run`.
 - Tell the writer that each setup act must succeed: the Probe checks its exit
@@ -17,18 +17,13 @@ run it. Then:
   `hyp status G --role probe-writer` prints, copied word for word, followed
   by the example's key (for example `line-2/a`), its words and the setup it
   needs. Before the owner adds the Goal, print the block of any Goal of the
-  store, and name the draft folder, `goals/draft-<name>/`, in place of
-  `goals/<G>/`. Probe writers run in parallel, each in a worktree named by its
-  example key, on a branch made from the record branch. Make each worktree
-  yourself, one after another, before you start the writers, for `line-2/a`:
-  `git worktree add -b probe/<G>-line-2-a <path>/probe-<G>-line-2-a record/<G>`.
-  git can fail when two worktrees are made at the same moment, so do not let
-  the writers or the runtime make them at once. Tell each writer its worktree
-  path and to work only there.
-- The Probe writer commits the example's `probe/` folder and returns the
-  commit and the output of `hyp try`. In the record branch's worktree, bring each
-  commit onto the record branch with `git cherry-pick`; each touches only
-  its own folder, so the picks do not conflict. Then do step 7 of
-  [examples.md](examples.md) there, because the writer's `hyp try` ran on its own
-  branch. Remove each writer's worktree once its commit is picked. Start no Probe
-  writer for an example the generic Probe can run.
+  store, and name the example's folder in the draft, `hyp draft path NAME`
+  and `/line-2/a`, in place of `goals/<G>/line-2/a`. The draft is in no
+  commit, so a Probe writer needs no worktree and no branch: it writes only
+  the `probe/` folder of its own example in the draft, and writers of
+  different examples run in parallel with no conflict. Tell each writer its
+  example folder and to touch nothing else.
+- The Probe writer returns the output of `hyp try --draft NAME --base COMMIT
+  LINE/EXAMPLE`. Do step 7 of [examples.md](examples.md) yourself on the
+  finished draft. Start no Probe writer for an example the generic Probe can
+  run.

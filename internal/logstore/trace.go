@@ -51,6 +51,14 @@ func TraceOf(root string) (Trace, error) {
 	return Trace{Dir: filepath.Join(base, Hash([]byte(clone))), Clone: clone}, nil
 }
 
+// ValidDraft reports whether name is a draft name: it matches
+// ^[a-z0-9][a-z0-9-]{0,39}$, as an actor does.
+func ValidDraft(name string) bool { return actorRe.MatchString(name) }
+
+// DraftDir is the folder of draft name in the trace: drafts/<name>, which
+// holds an example set as FOLDER/<line>/<example>. It creates nothing.
+func (t Trace) DraftDir(name string) string { return filepath.Join(t.Dir, "drafts", name) }
+
 // Outputs is the folder that holds the trace's outputs.
 func (t Trace) Outputs() string { return outputsIn(t.Dir) }
 
