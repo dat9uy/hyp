@@ -12,7 +12,9 @@ run it. Then:
   whose prompt is the probe-writer block that
   `hyp status G --role probe-writer` prints, copied word for word, followed
   by the example's key (for example `line-2/a`), its words and the setup it
-  needs. Probe writers run in parallel, each in a worktree named by its
+  needs. Before the owner adds the Goal, print the block of any Goal of the
+  store, and name the draft folder, `goals/draft-<name>/`, in place of
+  `goals/<G>/`. Probe writers run in parallel, each in a worktree named by its
   example key, on a branch made from the record branch. Make each worktree
   yourself, one after another, before you start the writers, for `line-2/a`:
   `git worktree add -b probe/<G>-line-2-a <path>/probe-<G>-line-2-a record/<G>`.

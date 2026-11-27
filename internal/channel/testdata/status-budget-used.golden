@@ -3,9 +3,10 @@ stop: budget used, by run <id> at <time>
 waits: owner
 owner may:
   hyp land G-XXXXXX
+  hyp place G-XXXXXX
   hyp close G-XXXXXX
 grill may:
-  hyp place G-XXXXXX
+  (none)
 probe-writer may:
   (none)
 runner may:

@@ -77,7 +77,7 @@ func (e *placeEnv) example(t *testing.T, key, txtar string) {
 }
 
 func (e *placeEnv) opts() PlaceOpts {
-	return PlaceOpts{Dir: e.root, Actor: "grill-1", Role: "grill", Goal: e.goal, ProbeTimeout: 20 * time.Second}
+	return PlaceOpts{Dir: e.root, Actor: "owner-1", Role: "owner", Goal: e.goal, ProbeTimeout: 20 * time.Second}
 }
 
 // place places the Goal's whole example set.
@@ -172,7 +172,7 @@ func TestPlaceGapExampleFailingOnH0Records(t *testing.T) {
 	p := payload(t, pl[0])
 	evs, tb := e.log(t)
 	g := tb.ByID(e.goal)
-	if pl[0].Node != g.EventID || pl[0].Actor != "grill-1" || p.Role != "grill" || len(p.Examples) != 1 {
+	if pl[0].Node != g.EventID || pl[0].Actor != "owner-1" || p.Role != "owner" || len(p.Examples) != 1 {
 		t.Fatalf("event = %+v payload = %+v", pl[0], p)
 	}
 	x := p.Examples[0]
@@ -422,15 +422,20 @@ func TestPlaceNamesEveryCauseBeforeTheProbes(t *testing.T) {
 
 func TestPlaceRefusesRunnerRole(t *testing.T) {
 	e := newPlaceEnv(t)
-	e.write(t, "line-1/a", failingOnH0, fixtureProbe) // uncommitted: Grill places comes first
-	for _, role := range []string{"runner", "owner", "probe-writer"} {
+	e.write(t, "line-1/a", failingOnH0, fixtureProbe) // uncommitted: Owner places comes first
+	for _, role := range []string{"runner", "grill", "probe-writer"} {
 		o := e.opts()
 		o.Role = role
 		_, err := Place(o)
-		refusedBy(t, err, "Grill places")
+		refusedBy(t, err, "Owner places")
 	}
+	// the owner of another Goal places nothing on this one
+	o := e.opts()
+	o.Actor = "owner-2"
+	_, err := Place(o)
+	refusedBy(t, err, "Goal's actor")
 	if n := len(e.placements(t)); n != 0 {
-		t.Fatalf("%d placements after Grill places refusals", n)
+		t.Fatalf("%d placements after Owner places refusals", n)
 	}
 }
 
@@ -553,7 +558,7 @@ func TestPlaceBadArgumentsAreExit2(t *testing.T) {
 func TestPlaceWithoutStoreIsRefusal(t *testing.T) {
 	r := testutil.NewRepo(t)
 	r.Commit(t, map[string]string{"a": "a"})
-	_, err := Place(PlaceOpts{Dir: r.Dir, Actor: "grill-1", Role: "grill", Goal: "G-AAAAAA"})
+	_, err := Place(PlaceOpts{Dir: r.Dir, Actor: "owner-1", Role: "owner", Goal: "G-AAAAAA"})
 	if fault.KindOf(err) != fault.Refusal || fault.CodeOf(err) != fault.NoStore {
 		t.Fatalf("err = %v, want the no-store refusal", err)
 	}
@@ -576,11 +581,11 @@ func TestPlaceProbeFailureRecordsNothing(t *testing.T) {
 func TestPlaceChecksAgainAfterTheProbe(t *testing.T) {
 	e := newPlaceEnv(t)
 	e.example(t, "line-1/a", failingOnH0)
-	// another actor places the same set while these Probes run
+	// the owner places the same set from another shell while these Probes run
 	o := e.opts()
 	o.afterProbe = func() {
 		other := e.opts()
-		other.Actor = "grill-2"
+		other.Why = "between the checks"
 		if _, err := Place(other); err != nil {
 			t.Errorf("the place that lands between the checks was refused: %v", err)
 		}
@@ -588,7 +593,7 @@ func TestPlaceChecksAgainAfterTheProbe(t *testing.T) {
 	_, err := Place(o)
 	refusedBy(t, err, "Adds only")
 	pl := e.placements(t)
-	if len(pl) != 1 || pl[0].Actor != "grill-2" {
+	if len(pl) != 1 || pl[0].Why != "between the checks" {
 		t.Fatalf("placements = %+v, want only the one that landed between the checks", pl)
 	}
 }

@@ -55,24 +55,25 @@ func runEveryLine(t *testing.T, out, commit string) int {
 }
 
 func TestAllowedLinesParseAsCommands(t *testing.T) {
-	// a Goal that is written: the owner may replace it, the grill may place
+	// a Goal that is written: the owner may replace it and place
 	f := newFx(t, nil)
 	_, out, _ := run(t, "status")
 	if n := runEveryLine(t, out, f.base); n < 2 {
 		t.Fatalf("ran %d ready lines of a written Goal:\n%s", n, out)
 	}
 
-	// an open Goal with one candidate: the runner may run and select
+	// a Goal with one candidate is shown selected: the owner may land and
+	// unselect its commit
 	g := newFx(t, map[string]string{"line-1/a": counterEx})
 	c := g.leaf(t, map[string]string{"counter": "ok\n", g.spec(): "spec\n"})
 	if code, out, errs := run(t, "run", c, g.goal+"/line-1"); code != 0 {
 		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, out, _ = run(t, "status")
-	if !strings.Contains(out, "hyp select "+g.goal) {
-		t.Fatalf("no select line:\n%s", out)
+	if !strings.Contains(out, "hyp land "+g.goal+" "+c[:12]) || !strings.Contains(out, "hyp unselect "+g.goal+" "+c[:12]) {
+		t.Fatalf("no land and unselect lines:\n%s", out)
 	}
 	if n := runEveryLine(t, out, c); n < 3 {
-		t.Fatalf("ran %d ready lines of an open Goal:\n%s", n, out)
+		t.Fatalf("ran %d ready lines of a selected Goal:\n%s", n, out)
 	}
 }

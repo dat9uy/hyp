@@ -33,12 +33,15 @@ hyp printed. A skill names no write command." So this skill shows only reads
 (`hyp help`, `hyp status`, `hyp try`, `hyp show`); every act that writes, you
 copy from a line hyp printed. Set `HYP_ACTOR` to your actor name and
 `HYP_ROLE=grill` for every command. The owner records the Goal itself, with the
-act `hyp help` lists for adding a Goal; you draft the words and lines it takes.
+act `hyp help` lists for adding a Goal; you draft the words and lines it takes,
+and the draft folder of examples it carries with `--examples`. Git holds only
+the owner's acts: you write no event, and the owner adds a new example to an
+open Goal with the place act.
 In that draft, set `HYP_ACTOR` to the owner's actor, never a placeholder: the
 actor of the `goal.add` events in the store, which the folder
 `.tree/events/<actor>/` names (or, in an older store, `.tree/events/<actor>.jsonl`). Ask the owner once, only when the store has no Goal yet or several actors
-added Goals. The owner's land, unselect and select of a Goal are allowed only
-to the actor that added it, so a wrong actor locks the owner out of them.
+added Goals. The owner's place, land, unselect and close of a Goal are allowed
+only to the actor that added it, so a wrong actor locks the owner out of them.
 
 ## Decisions
 
@@ -152,10 +155,12 @@ names, and the event the why names. Make the worktree of step 9 on branch
 
 ## How to grill the examples
 
-When the Goal is recorded and its lines need examples, follow
-[examples.md](examples.md): you show the readings of each line, the owner
-chooses, you write one example per chosen reading, try each on H0 with
-`hyp try`, and place the whole set. It also says when the Goal has enough.
+When the owner agreed to the Goal's words and lines, and before the owner adds
+the Goal, follow [examples.md](examples.md): you show the readings of each
+line, the owner chooses, you draft one example per chosen reading in a draft
+folder, try each on H0 with `hyp try --examples`, and the owner adds the Goal
+with the draft folder, `hyp add goal ... --examples goals/draft-<name>`. It
+also says when the Goal has enough.
 
 ## How to re-grill
 
@@ -168,8 +173,9 @@ and it says when a Goal must end because an example is wrong.
 
 ## Hand-off
 
-The grill ends with a record branch that holds the examples and the place
-events, and a hand-off for the owner: the Goal's lines, the owner's decisions
+The grill ends with a record branch that holds the draft folder, the Goal's
+folder with the examples the owner's add copied there, and the owner's add,
+and a hand-off for the owner: the Goal's lines, the owner's decisions
 numbered with their words, and "Not covered" with each decision no example
 checks. Before the record PR, the issues already hold those decisions and the
 "Not covered" items they own. With no issue, the record PR's body holds them.

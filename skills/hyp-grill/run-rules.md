@@ -14,17 +14,18 @@ Goal are told the same.
 ## Rules
 
 1. **Run only the lines hyp prints.** Read `hyp status G --role runner` and
-   copy the run line it prints, with your commit filled in. Run the select line
-   only when hyp prints it for you. When every line is met on your commit and
-   hyp prints no select line, `hyp status G` lists the commit under
-   `held back`, with the guard that refuses it and its fix. Read the guard
-   and make the fix that hyp status names in a new commit, then run its
-   lines.
+   copy the run line it prints, with your commit filled in. Your runs write
+   only to this clone's trace, never to git. When every line is met on your
+   commit, `hyp status G` shows the Goal `selected` on it, calculated from
+   this clone's Results. When every line is met and hyp status does not show
+   the Goal selected, it lists the commit under `held back`, with the guard
+   that refuses it and its fix. Read the guard and make the fix that hyp
+   status names in a new commit, then run its lines.
 2. **Check before you run.** `hyp try G LINE/EXAMPLE --worktree` shows an
    example's verdict on your uncommitted files. It records nothing and uses no
-   run of the budget. The select needs a spec in the commit, so when the
-   record branch holds none, write the Goal's model before the first commit you
-   run. When the repository keeps a model in `goals/model/`, change it in your
+   run of the budget. hyp shows a Goal selected only on a commit that holds
+   a spec, so when the record branch holds none, write the Goal's model
+   before the first commit you run. When the repository keeps a model in `goals/model/`, change it in your
    commit, and carry into it the draft the grill left in `goals/<G>/specs/`;
    keep no `.tla` file in the Goal's folder then. Follow the hyp-statechart
    skill: try each variant the tool predicts to meet every example as a patch
@@ -38,18 +39,20 @@ Goal are told the same.
    rewrite away a commit you ran.
 5. **Leave the examples as the grill placed them.** An example that seems wrong
    goes to the owner; it is not yours to edit.
-6. **Commit only what your acts wrote.** Add the event lines your own acts
-   wrote under `.tree/events/`, each by name. hyp keeps Results and outputs
-   in the clone's trace, so a run leaves nothing to commit.
-7. **Select when hyp offers it.** When hyp offers one candidate, select it.
-   You run a rival, a second commit with `hyp run` that uses runs of the
-   budget, only after the owner unselects the Goal; a second candidate then
-   stops the Goal for the owner. A variant tried with `hyp try --worktree` is
-   not a rival.
+6. **Commit no event.** Git holds only the owner's acts. hyp keeps your
+   Results and outputs in the clone's trace, so a run leaves nothing under
+   `.tree/` to commit.
+7. **Open the PR when hyp status shows the Goal selected.** When
+   `hyp status G` shows the Goal `selected` on your commit, push the branch
+   and open the PR. You run a rival, a second commit with `hyp run` that uses
+   runs of the budget, only after the owner unselects that commit; a second
+   candidate then stops the Goal for the owner. A variant tried with
+   `hyp try --worktree` is not a rival.
 8. **Stop for the owner when hyp stops.** At `Two candidates` or
    `Budget used`, stop and report the state block.
-9. **The PR body is the select's report.** Paste it as hyp printed it; hyp
-   writes nothing to GitHub. Below it, add only the diffs of rule 2, each
+9. **The PR body is the report hyp status prints.** Paste what
+   `hyp status G` prints under `PR body:` while the Goal is selected, as hyp
+   printed it; hyp writes nothing to GitHub. Below it, add only the diffs of rule 2, each
    with its variant and the outputs `hyp try` printed.
 10. **A defect outside the Goal** is fixed only when the line needs it.
     Otherwise record it as a finding (rule 11) and list it in the PR for the

@@ -4,9 +4,14 @@ package acts
 
 import (
 	"encoding/json"
+	"io/fs"
+	"os"
+	"path"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
@@ -43,6 +48,13 @@ type AddGoalOpts struct {
 	// Findings are the findings the Goal names, each by its id (F-1A2B3C) or
 	// its finding.add id: the findings of this clone's trace it is about.
 	Findings []string
+
+	// Examples is the folder, relative to the top level, that holds the
+	// Goal's example set as a place reads it, FOLDER/<line>/<example>: the
+	// add runs each on H0 and carries each with its hash and its verdict
+	// there, and the Goal is open at once. Empty adds a written Goal.
+	Examples     string
+	ProbeTimeout time.Duration
 }
 
 // Report is what add goal returns.
@@ -53,7 +65,10 @@ type Report struct {
 	Base     string // the full commit sha
 	BaseTree string // H0's row tree
 	Lines    []events.Line
-	Findings []string // the ids (F-…) of the findings it names
+	Findings []string    // the ids (F-…) of the findings it names
+	Placed   []PlacedRow // the examples it carries, in key order
+	Folder   string      // the Goal's folder the examples were copied to, or empty
+	State    string      // the Goal's state after the add
 }
 
 // ValidRole reports whether role is one of the four.
@@ -102,6 +117,17 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
+	if o.Examples != "" && o.Goal != "" {
+		return Report{}, fault.Refuse(fault.GuardDraft, fault.ReplaceExamples, o.Goal)
+	}
+	var placed []events.PlacedExample
+	var outs [][]byte
+	var cells []logstore.Cell
+	if o.Examples != "" {
+		if placed, outs, cells, err = addedExamples(root, o, base, baseTree, lines); err != nil {
+			return Report{}, err
+		}
+	}
 
 	var rep Report
 	build := func(evs []events.Event) (events.Event, error) {
@@ -133,7 +159,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		}
 		payload, err := json.Marshal(events.GoalAdd{
 			Role: o.Role, Words: o.Words, Base: base, BaseTree: baseTree,
-			Budget: DefaultBudget, From: from, Lines: lines, Findings: named,
+			Budget: DefaultBudget, From: from, Lines: lines, Findings: named, Examples: placed,
 		})
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeGoalAdd, err)
@@ -153,6 +179,9 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 			}
 		}
 		rep = Report{Replaced: o.Goal != "", Words: o.Words, Base: base, BaseTree: baseTree, Lines: lines, Findings: ids}
+		for _, x := range placed {
+			rep.Placed = append(rep.Placed, PlacedRow{Key: x.Line + "/" + x.Example, Version: 1, Hash: x.Hash, Verdict: x.H0.Verdict, Exit: x.H0.Exit})
+		}
 		if rep.Replaced {
 			rep.Goal = goal.ID
 		}
@@ -173,10 +202,72 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if err != nil {
 		return Report{}, err
 	}
+	// H0's outputs and cells of the examples it carries go to the clone's
+	// trace, a cache a reader fills again with try
+	if err := putOutputs(root, outs...); err != nil {
+		return Report{}, err
+	}
+	if err := putCells(root, cells...); err != nil {
+		return Report{}, err
+	}
+	if len(placed) > 0 {
+		// the Goal's own folder gets its example set, as later places read
+		// it by default; hyp writes no git state, so the owner commits it
+		if err := copyExamples(root, o.Examples, path.Join("goals", tables.GoalID(ev.ID)), lines); err != nil {
+			return Report{}, err
+		}
+		rep.Folder = path.Join("goals", tables.GoalID(ev.ID))
+	}
 	if !rep.Replaced {
 		rep.Goal = tables.GoalID(ev.ID)
 	}
+	rep.State = tables.StateWritten
+	if evs, _, err := logstore.Load(root); err == nil {
+		if g := tables.Replay(evs).Goals[ev.Node]; g != nil {
+			rep.State = g.State
+		}
+	}
 	return rep, nil
+}
+
+// addedExamples reads the example set under o.Examples for a new Goal with
+// lines, as a place reads a Goal's set: Whole set, Committed, Meetable, the
+// names of each findings section and Covered, then Kind, which runs each
+// example on H0. It returns the examples the add carries, and H0's outputs
+// and cells for the clone's trace. A set with a cause is refused whole, and
+// no Goal is recorded.
+func addedExamples(root string, o AddGoalOpts, base, baseTree string, lines []events.Line) ([]events.PlacedExample, [][]byte, []logstore.Cell, error) {
+	var t tables.Tables
+	if logstore.Find(root) == nil {
+		evs, _, err := logstore.Load(root)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		t = tables.Replay(evs)
+	} else {
+		t = tables.Replay(nil)
+	}
+	named, _, err := nameFindings(t, o.Findings, nil)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	g := &tables.Goal{ID: "the new Goal", Base: base, BaseTree: baseTree, Lines: lines, Named: named}
+	s, err := scanFolder(root, o.Examples, g, t)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if err := s.refusal(); err != nil {
+		return nil, nil, nil, err
+	}
+	runs, err := measureOnH0(root, base, s.changes, o.ProbeTimeout)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if causes := kindCauses(s.changes, runs); len(causes) > 0 {
+		return nil, nil, nil, setRefusal(g.ID, causes)
+	}
+	placed, outs, cells := placedExamples(base, baseTree, s.changes, runs)
+	return placed, outs, cells, nil
 }
 
 // nameFindings resolves each finding a Goal names in this clone's trace and
@@ -223,4 +314,52 @@ func resolveBase(root, base string) (commit, rowTree string, err error) {
 		return "", "", err
 	}
 	return commit, rowTree, nil
+}
+
+// copyExamples copies each line folder from/<line> of the Goal's lines to
+// to/<line>, file by file with each file's mode, so both folders hold the
+// same tree hashes. A path that is already there is an environment problem:
+// the copy overwrites nothing.
+func copyExamples(root, from, to string, lines []events.Line) error {
+	for _, l := range lines {
+		src := filepath.Join(root, filepath.FromSlash(path.Join(from, l.Key)))
+		dst := filepath.Join(root, filepath.FromSlash(path.Join(to, l.Key)))
+		if _, err := os.Stat(src); os.IsNotExist(err) {
+			continue
+		}
+		err := filepath.WalkDir(src, func(p string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			rel, err := filepath.Rel(src, p)
+			if err != nil {
+				return err
+			}
+			out := filepath.Join(dst, rel)
+			if d.IsDir() {
+				return os.MkdirAll(out, 0o755)
+			}
+			info, err := d.Info()
+			if err != nil {
+				return err
+			}
+			data, err := os.ReadFile(p)
+			if err != nil {
+				return err
+			}
+			f, err := os.OpenFile(out, os.O_WRONLY|os.O_CREATE|os.O_EXCL, info.Mode().Perm())
+			if err != nil {
+				return err
+			}
+			if _, err := f.Write(data); err != nil {
+				f.Close()
+				return err
+			}
+			return f.Close()
+		})
+		if err != nil {
+			return fault.EnvFault(fault.CopyExamples, from, to, err)
+		}
+	}
+	return nil
 }

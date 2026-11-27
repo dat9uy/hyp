@@ -33,6 +33,7 @@ type PlaceOpts struct {
 	Role         string
 	Why          string
 	Goal         string // the Goal's id
+	Examples     string // the folder that holds the example set, relative to the top level; empty for goals/G
 	ProbeTimeout time.Duration
 
 	// afterProbe, when set, runs after the Probes and before the second check;
@@ -123,17 +124,9 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		return PlaceReport{}, err
 	}
 
-	type measured struct {
-		out     probe.Out
-		verdict example.Verdict
-	}
-	runs := make([]measured, len(first.changes))
-	for i, c := range first.changes {
-		out, err := probe.Run(probe.Opts{Repo: root, Commit: first.goal.Base, ExampleHash: c.hash, Timeout: o.ProbeTimeout})
-		if err != nil {
-			return PlaceReport{}, err
-		}
-		runs[i] = measured{out: out, verdict: example.Compare(out.Stdout, c.ex)}
+	runs, err := measureOnH0(root, first.goal.Base, first.changes, o.ProbeTimeout)
+	if err != nil {
+		return PlaceReport{}, err
 	}
 	if o.afterProbe != nil {
 		o.afterProbe()
@@ -141,7 +134,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 
 	var rep PlaceReport
 	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
-		ev := events.Event{Type: events.TypeExamplesPlace, Why: o.Why}
+		ev := events.Event{Type: events.TypeExamplesPlace, Why: o.Why, Actor: o.Actor}
 		again, err := scanSet(root, o, evs)
 		if err != nil {
 			return ev, err
@@ -155,38 +148,11 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		if !sameChanges(first.changes, again.changes) {
 			return ev, fault.Refuse(fault.GuardCommitted, fault.SetChangedWhileProbe, again.goal.ID)
 		}
-		var causes []SetCause
-		for i, c := range again.changes {
-			if string(runs[i].verdict) != tables.Needs(c.lineRow.Kind) {
-				causes = append(causes, SetCause{Key: c.key, Err: fault.Refuse(fault.GuardKind, fault.WrongVerdictOnH0, KindFacts{
-					Line: c.lineRow, Verdict: string(runs[i].verdict), Out: runs[i].out,
-					Floors: c.ex.Floors, Ceilings: c.ex.Ceilings,
-				})})
-			}
-		}
-		if len(causes) > 0 {
+		if causes := kindCauses(again.changes, runs); len(causes) > 0 {
 			return ev, setRefusal(again.goal.ID, causes)
 		}
-		// git holds each example's hash and H0's verdict; H0's outputs and
-		// cell go to the clone's trace, a cache a reader fills again with try.
-		p := events.ExamplesPlace{Role: o.Role}
-		var outs [][]byte
-		var cells []logstore.Cell
-		for i, c := range again.changes {
-			out := runs[i].out
-			h0 := events.Cell{
-				Commit: again.goal.Base, RowTree: again.goal.BaseTree, Probe: c.probeHash,
-				Exit: out.Exit, Verdict: string(runs[i].verdict),
-			}
-			p.Examples = append(p.Examples, events.PlacedExample{Line: c.line, Example: c.name, Hash: c.hash, H0: h0, Findings: c.findings})
-			outs = append(outs, out.Stdout, out.Stderr)
-			cells = append(cells, logstore.Cell{
-				Hash: c.hash, RowTree: h0.RowTree, Commit: h0.Commit, Probe: h0.Probe,
-				Output: logstore.Hash(out.Stdout), Stderr: logstore.Hash(out.Stderr),
-				Exit: h0.Exit, Verdict: h0.Verdict, By: logstore.CellByPlace,
-			})
-		}
-		payload, err := json.Marshal(p)
+		placed, outs, cells := placedExamples(again.goal.Base, again.goal.BaseTree, again.changes, runs)
+		payload, err := json.Marshal(events.ExamplesPlace{Role: o.Role, Examples: placed})
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeExamplesPlace, err)
 		}
@@ -224,6 +190,64 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 		}
 	}
 	return rep, nil
+}
+
+// measured is one changed example run on H0: what it printed and its verdict.
+type measured struct {
+	out     probe.Out
+	verdict example.Verdict
+}
+
+// measureOnH0 runs each changed example on the commit base, H0.
+func measureOnH0(root, base string, changes []change, timeout time.Duration) ([]measured, error) {
+	runs := make([]measured, len(changes))
+	for i, c := range changes {
+		out, err := probe.Run(probe.Opts{Repo: root, Commit: base, ExampleHash: c.hash, Timeout: timeout})
+		if err != nil {
+			return nil, err
+		}
+		runs[i] = measured{out: out, verdict: example.Compare(out.Stdout, c.ex)}
+	}
+	return runs, nil
+}
+
+// kindCauses is the Kind guard on the measured changes: each example whose
+// verdict on H0 is not the one its line's kind needs.
+func kindCauses(changes []change, runs []measured) []SetCause {
+	var causes []SetCause
+	for i, c := range changes {
+		if string(runs[i].verdict) != tables.Needs(c.lineRow.Kind) {
+			causes = append(causes, SetCause{Key: c.key, Err: fault.Refuse(fault.GuardKind, fault.WrongVerdictOnH0, KindFacts{
+				Line: c.lineRow, Verdict: string(runs[i].verdict), Out: runs[i].out,
+				Floors: c.ex.Floors, Ceilings: c.ex.Ceilings,
+			})})
+		}
+	}
+	return causes
+}
+
+// placedExamples are the examples an owner act records: git holds each
+// example's hash and H0's verdict; H0's outputs and cell go to the clone's
+// trace, a cache a reader fills again with try.
+func placedExamples(base, baseTree string, changes []change, runs []measured) ([]events.PlacedExample, [][]byte, []logstore.Cell) {
+	var placed []events.PlacedExample
+	var outs [][]byte
+	var cells []logstore.Cell
+	for i, c := range changes {
+		out := runs[i].out
+		h0 := events.Cell{
+			Commit: base, RowTree: baseTree, Probe: c.probeHash,
+			Exit: out.Exit, Verdict: string(runs[i].verdict),
+		}
+		placed = append(placed, events.PlacedExample{Line: c.line, Example: c.name, Hash: c.hash, H0: h0, Findings: c.findings})
+		outs = append(outs, out.Stdout, out.Stderr)
+		cells = append(cells, logstore.Cell{
+			Hash: c.hash, RowTree: h0.RowTree, Commit: h0.Commit, Probe: h0.Probe,
+			Output: logstore.Hash(out.Stdout), Stderr: logstore.Hash(out.Stderr),
+			Exit: h0.Exit, Verdict: h0.Verdict, By: logstore.CellByPlace,
+		})
+	}
+	return placed, outs, cells
 }
 
 // refusal is the refusal of a scan that found a cause, or that changes no
@@ -277,12 +301,40 @@ func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
 	if err := tables.GuardNotSelected(g); err != nil {
 		return scan{}, err
 	}
-	if err := tables.GuardGrillPlaces(o.Role); err != nil {
+	if err := tables.GuardOwnerPlaces(o.Role); err != nil {
+		return scan{}, err
+	}
+	if err := tables.GuardGoalActor(g, o.Actor, o.Role); err != nil {
+		return scan{}, err
+	}
+	dir := o.Examples
+	if dir == "" {
+		dir = path.Join("goals", g.ID)
+	}
+	return scanFolder(root, dir, g, t)
+}
+
+// exampleFolder is the clean slash form of a folder of examples given
+// relative to the top level; a folder outside it is a bad argument.
+func exampleFolder(dir string) (string, error) {
+	clean := path.Clean(filepath.ToSlash(dir))
+	if clean == "." || path.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, "../") {
+		return "", fault.BadArg(fault.BadExamplesFolder, dir)
+	}
+	return clean, nil
+}
+
+// scanFolder runs, for every line of g, Whole set, Committed, Adds only and
+// Meetable on each example folder under dir/<line>/, then the names of each
+// changed example's findings section and Covered, and collects the causes.
+func scanFolder(root, dir string, g *tables.Goal, t tables.Tables) (scan, error) {
+	dir, err := exampleFolder(dir)
+	if err != nil {
 		return scan{}, err
 	}
 	s := scan{goal: g}
 	for _, l := range g.Lines {
-		lineDir := path.Join("goals", g.ID, l.Key)
+		lineDir := path.Join(dir, l.Key)
 		names, err := exampleNames(root, lineDir)
 		if err != nil {
 			return scan{}, err
@@ -298,7 +350,7 @@ func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
 		}
 		for _, name := range names {
 			key := l.Key + "/" + name
-			c, changed, err := checkExample(root, g, l, name)
+			c, changed, err := checkExample(root, dir, g, l, name)
 			if err != nil {
 				if fault.KindOf(err) != fault.Refusal {
 					return scan{}, err
@@ -412,8 +464,8 @@ func exampleNames(root, lineDir string) ([]string, error) {
 // the set: its name, Committed, Adds only, then Meetable on a new hash. It
 // reports whether the folder changes the set: a new example key or a new
 // hash on a placed one.
-func checkExample(root string, g *tables.Goal, l tables.Line, name string) (change, bool, error) {
-	rel := path.Join("goals", g.ID, l.Key, name)
+func checkExample(root, dir string, g *tables.Goal, l tables.Line, name string) (change, bool, error) {
+	rel := path.Join(dir, l.Key, name)
 	if !exampleNameRe.MatchString(name) {
 		return change{}, false, fault.Refuse(fault.GuardWholeSet, fault.NotAnExampleName, rel)
 	}

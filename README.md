@@ -162,7 +162,7 @@ From Specification by Example, hyp keeps concrete examples as plain data that th
 
 | In these sources | The rule in hyp |
 |---|---|
-| The examples run as tests after the build. | **Each example runs on H0 first.** `hyp place` refuses a gap example that is met on H0, or a guard example that fails there. `hyp try` shows that verdict before the place, and uses no run. |
+| The examples run as tests after the build. | **Each example runs on H0 first.** `hyp add goal --examples` and `hyp place` refuse a gap example that is met on H0, or a guard example that fails there. `hyp try` shows that verdict before, and uses no run. |
 | The agent decides after the run whether the evidence is a proof. | **The verdict is set before the run.** An example states literal floors and ceilings. Nobody reads the output to decide. |
 | The agent runs each command, and its report is the record. | **hyp runs the Probe.** hyp runs the example's Probe on a fresh copy of the commit's subject. It stores each output in the clone's trace by its sha256. |
 | A check can become easier so that it passes. | **An example only becomes stricter.** A new version only adds floors or ceilings. A changed command, input or Probe is a new example. |
@@ -203,38 +203,39 @@ From [`grilling`](https://github.com/mattpocock/skills/blob/7739eaed7f8f3915437a
 
 ## How a Goal runs
 
-The owner records a Goal, the grill places its examples, and the runner runs builds until hyp calculates a stop. Each stop waits for the owner:
+The owner records a Goal with its examples, and the runner runs builds until hyp calculates a stop. Git holds only the owner's acts: the runner's runs stay in the clone's trace. Each stop waits for the owner:
 
 ```mermaid
 flowchart TD
   A["owner: hyp add goal<br/>words and lines on H0"] --> W(["written"])
-  W -- "grill: hyp place<br/>each example agrees<br/>with its line on H0" --> O(["open"])
+  A -- "--examples: each example agrees<br/>with its line on H0" --> O(["open"])
+  W -- "owner: hyp place" --> O
   O -- "runner: hyp run COMMIT G/LINE" --> C{"leaf Hypotheses<br/>met on every line?"}
   C -- "none, budget left" --> O
-  C -- "one: the runner selects" --> S(["selected<br/>report: the PR body"])
+  C -- "one: hyp shows it selected" --> S(["selected<br/>status prints the PR body"])
   C -- "two or more" --> T["stop: Two candidates"]
   C -- "none, three Hypotheses used" --> B["stop: Budget used"]
   T -- "owner: hyp select" --> S
-  T -- "grill: a new example" --> O
-  B -- "grill: a new example or version<br/>the budget starts again" --> O
+  T -- "owner: hyp place<br/>a new example" --> O
+  B -- "owner: hyp place<br/>a new example or version<br/>the budget starts again" --> O
   S -- "owner: hyp unselect<br/>the budget starts again" --> O
-  S -- "owner: hyp land" --> E(["ended"])
+  S -- "owner: hyp land G COMMIT<br/>carries the evidence" --> E(["ended"])
   T -- "owner: hyp land" --> E
   B -- "owner: hyp land" --> E
   W -- "owner: hyp close" --> E
   O -- "owner: hyp close" --> E
 ```
 
-A Goal is `written`, `open`, `selected` or `ended`, and hyp calculates the state from the events. The select records only a candidate: a leaf Hypothesis that meets every line. With one candidate the runner selects it. With two or more, only the owner selects, and the owner may select a candidate at any time. hyp also refuses a select of a commit with no spec under `goals/<G>/specs/`. The owner may close a Goal that is not ended at any time. A later Goal starts from an ended one with `add goal --from G`.
+A Goal is `written`, `open`, `selected` or `ended`, and hyp calculates the state from the events. A select is only of a candidate: a leaf Hypothesis that meets every line. With one candidate, hyp shows the Goal selected from the Results of the clone's trace, and writes no event. With two or more, only the owner selects. hyp shows no Goal selected on a commit with no spec under `goals/<G>/specs/`. A land on a commit carries its evidence, so every clone ends the Goal the same from git alone. The owner may close a Goal that is not ended at any time. A later Goal starts from an ended one with `add goal --from G`.
 
 Four roles act. The actor and the role are declared by the agent, and a guard that reads them catches an honest mistake, not a lie.
 
 | Role | Does | Acts |
 |---|---|---|
-| **owner** | Records the words and the lines, and names the findings the Goal is about. Selects between candidates. Ends the Goal, or opens a selected Goal again. Declines a finding. | `hyp add goal`, `hyp select`, `hyp land`, `hyp close`, `hyp unselect`, `hyp finding decline` |
-| **grill** | Asks the owner product questions. Writes the examples, and places them on the lines. | `hyp place` |
+| **owner** | Records the words, the lines and the examples, and names the findings the Goal is about. Places a later example. Selects between candidates. Ends the Goal, or opens a selected Goal again. Declines a finding. | `hyp add goal`, `hyp place`, `hyp select`, `hyp land`, `hyp close`, `hyp unselect`, `hyp finding decline` |
+| **grill** | Asks the owner product questions. Writes the examples in a draft folder and tries each on H0. Records no event. | none that writes |
 | **probe-writer** | Writes Probe code for an example. Records no event. | none that writes |
-| **runner** | Builds commits, runs each line on them, and selects the one candidate. | `hyp run`, `hyp select` |
+| **runner** | Builds commits and runs each line on them. Its runs stay in the clone's trace. | `hyp run` |
 
 Any agent may add a finding with `hyp finding add`, or refute one with `hyp finding refute`. hyp itself is not a role. It runs each Probe, calculates each state, and refuses an act whose guard fails, with exit 1 and the guard's name. `hyp status`, `hyp try`, `hyp show` and `hyp prune` are reads: they record nothing in the repository. `hyp spec` also names `reset` and `retract`, which later Goals will build.
 
@@ -292,7 +293,7 @@ hyp add goal --base HEAD --words "<one sentence>" \
 
 Give `--finding` one time for each finding the Goal is about, or leave it out.
 
-The first `hyp add goal` makes the store, `.tree/`, at the top level of the repository. Commit `.tree/` with the work. The grill then places the whole example set with the one place line that `hyp status <Goal> --role grill` prints, `hyp place <Goal>`.
+The first `hyp add goal` makes the store, `.tree/`, at the top level of the repository. Give it `--examples goals/draft-<name>`, the grill's draft folder: hyp runs each example on H0, copies the folder to `goals/<Goal>/`, and the Goal is open. Commit `.tree/` and `goals/<Goal>/` with the work.
 
 **5. Run the Goal.** `hyp status <Goal>` prints the runner's Start prompt of an open Goal, ready to copy. Give it to a runner session, and nothing else. When hyp stops the Goal for you, `hyp status` shows why, and `hyp help` lists every command.
 

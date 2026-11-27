@@ -111,7 +111,7 @@ then. The `--why` of the land or close says which, or that the want is dropped.
 The ended Goal's builds stay commits on their branches. They are not
 Hypotheses of the new Goal, and the hand-off never offers one to the runner.
 A runner that builds on one picks it onto the new record branch, because
-`hyp select` reads the Goal's spec from the selected commit. Record what
+hyp reads the Goal's spec from the selected commit. Record what
 agents found about those builds, such as their verdicts or why a Probe
 failed, as findings with `hyp finding add`, and name each in the new Goal:
 with `--finding F` in its `add goal`, or in the `findings` section of one of

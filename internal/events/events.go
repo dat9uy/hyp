@@ -75,21 +75,23 @@ func (k Kind) Home() string {
 }
 
 // Kinds are the entries of the fifteen event types, in the order hyp spec
-// prints them. A Result changes no Goal's state: the state is calculated from
-// the places, selects and ends alone, so a clone that holds no Result replays
-// the same state. hyp reads an event of a kind that changes no Goal's state
-// only from the trace, never from git.
+// prints them. Git holds only the owner's acts. A Result changes no state
+// that replay of git gives: replay calculates the state from the adds,
+// places, selects, unselects and ends alone, so every clone replays the same
+// state. A clone whose trace holds the Results that show one candidate shows
+// the Goal selected on it, with no event. hyp reads an event of a kind that
+// changes no state replay gives only from the trace, never from git.
 var Kinds = []Kind{
-	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces; its payload names the findings the Goal is about", true, "add goal"},
+	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces; its payload names the findings the Goal is about, and may carry the Goal's examples with their H0 verdicts", true, "add goal"},
 	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
-	{TypeExamplesPlace, true, "the Goal its node names; each example names the findings its findings section names", true, "place"},
+	{TypeExamplesPlace, true, "the Goal its node names; each example names the findings its findings section names", true, "place, by the owner; a place of the grill's is the older form, replayed"},
 	{TypeResultRecord, false, "the Goal its node names", false, "run"},
 	{TypeResultRetract, false, "the Goal of the Result its node names", false, "retract, not built"},
-	{TypeSelect, true, "the Goal its node names", true, "select"},
+	{TypeSelect, true, "the Goal its node names", true, "select, by the owner among two candidates; a select of the runner's is the older form, replayed"},
 	{TypeBudgetReset, true, "the Goal its node names", false, "reset, not built"},
-	{TypeLand, true, "the Goal its node names; it ends the Goal", false, "land"},
+	{TypeLand, true, "the Goal its node names; it ends the Goal, and may carry the evidence of the commit it lands", false, "land"},
 	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
-	{TypeUnselect, true, "the Goal its node names", true, "unselect"},
+	{TypeUnselect, true, "the Goal its node names; it names the commit it rejects", true, "unselect"},
 	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
 	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal: a Goal names it; the old form's node names the Goal it was recorded on; its payload may name an example and a commit that holds it", false, "finding add"},
 	{TypeFindingFold, false, "the Goal its payload names, which the fold counts as a name of the finding by that Goal; the old form names an issue", false, "none: the old form of a name, replayed and no longer written"},
@@ -133,6 +135,12 @@ type GoalAdd struct {
 	From     string   `json:"from"`
 	Lines    []Line   `json:"lines"`
 	Findings []string `json:"findings,omitempty"`
+
+	// Examples are the examples the owner adds the Goal with, each with its
+	// hash and H0's verdict, as a place names them: a Goal added with its
+	// examples is open at once. A goal.add written before add goal carried
+	// examples names none.
+	Examples []PlacedExample `json:"examples,omitempty"`
 }
 
 // Cell is H0's verdict on an example, written by the placement that adds it.
@@ -213,7 +221,7 @@ type Select struct {
 
 // Land is the payload of land: the stop the land ends, the event of the act
 // that caused that stop (a select, or the result.record of the run after
-// which the stop held), and the snapshot: the ids of the Goal's events that
+// which the stop held, or that showed the Goal selected), and the snapshot: the ids of the Goal's events that
 // replay applied when the owner landed. A land written before close existed
 // names no snapshot.
 type Land struct {
@@ -221,6 +229,23 @@ type Land struct {
 	Stop  string   `json:"stop"`
 	Cause string   `json:"cause"`
 	Seen  []string `json:"seen,omitempty"`
+
+	// The evidence the land approves, when it lands a commit: the commit,
+	// its tree, its row tree, and each current example's verdict on it. A
+	// land written before land carried evidence names none.
+	Commit   string        `json:"commit,omitempty"`
+	Tree     string        `json:"tree,omitempty"`
+	RowTree  string        `json:"row_tree,omitempty"`
+	Verdicts []LandVerdict `json:"verdicts,omitempty"`
+}
+
+// LandVerdict is one example's verdict on the commit a land names: the
+// example key's line and name, its hash, and its verdict there.
+type LandVerdict struct {
+	Line    string `json:"line"`
+	Example string `json:"example"`
+	Hash    string `json:"hash"`
+	Verdict string `json:"verdict"`
 }
 
 // Close is the payload of close: the owner's act that ends a Goal that is
@@ -231,9 +256,14 @@ type Close struct {
 }
 
 // Unselect is the payload of unselect: the owner's act that puts a selected
-// Goal back to open.
+// Goal back to open. Commit and RowTree name the commit it rejects and its
+// row tree: no clone shows the Goal selected on that row again. An unselect
+// written before it named its commit names none, and undoes the select
+// event it follows.
 type Unselect struct {
-	Role string `json:"role"`
+	Role    string `json:"role"`
+	Commit  string `json:"commit,omitempty"`
+	RowTree string `json:"row_tree,omitempty"`
 }
 
 // BudgetReset is the payload of budget.reset.

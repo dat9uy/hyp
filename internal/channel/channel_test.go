@@ -179,8 +179,8 @@ func goalWithExample(t *testing.T, r *testutil.Repo, commit bool) string {
 		testutil.Git(t, r.Dir, "add", "-A")
 		testutil.Git(t, r.Dir, "commit", "-q", "-m", "example")
 	}
-	t.Setenv("HYP_ACTOR", "grill-1")
-	t.Setenv("HYP_ROLE", "grill")
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
 	return goal
 }
 
@@ -201,7 +201,7 @@ func TestPlaceFlagsMayFollowThePositionals(t *testing.T) {
 	r := inRepo(t)
 	goal := goalWithExample(t, r, true)
 	t.Setenv("HYP_ROLE", "runner")
-	code, out, errs := run(t, "place", goal, "--role", "grill", "--why", "first")
+	code, out, errs := run(t, "place", goal, "--role", "owner", "--why", "first")
 	if code != 0 {
 		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
 	}
@@ -215,7 +215,7 @@ func TestPlaceRefusalExit1(t *testing.T) {
 		t.Fatalf("code %d, stdout %q, stderr %q; want the refusal on stderr and the state block on stdout", code, out, errs)
 	}
 	t.Setenv("HYP_ROLE", "runner")
-	if code, _, errs := run(t, "place", goal); code != 1 || !strings.Contains(errs, "Grill places") {
+	if code, _, errs := run(t, "place", goal); code != 1 || !strings.Contains(errs, "Owner places") {
 		t.Fatalf("runner: code %d, stderr %q", code, errs)
 	}
 }
@@ -243,7 +243,7 @@ func TestPlaceBadArgumentsExit2(t *testing.T) {
 
 func TestPlaceWithoutStoreExit1(t *testing.T) {
 	inRepo(t)
-	t.Setenv("HYP_ROLE", "grill")
+	t.Setenv("HYP_ROLE", "owner")
 	if code, _, errs := run(t, "place", "G-AAAAAA"); code != 1 || !strings.Contains(errs, "no store; run hyp add goal") {
 		t.Fatalf("code %d, stderr %q", code, errs)
 	}

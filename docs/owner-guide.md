@@ -18,8 +18,9 @@ You read examples and their outputs, not code. You read code only at the merge, 
 ```mermaid
 stateDiagram-v2
   [*] --> written: you add the Goal
-  written --> open: the grill places the examples
-  open --> selected: a select
+  [*] --> open: you add the Goal with its examples
+  written --> open: you place the examples
+  open --> selected: the runs show one candidate, or you select
   selected --> open: you unselect, and the grill re-grills
   open --> ended: you land at a stop, or close
   selected --> ended: you land, or close
@@ -42,7 +43,7 @@ A real event, such as a refusal or a run you flag, starts the work. A fact an ag
   ```
 
 - The grill writes the examples and runs each one on H0. Each example must agree with its line there: a gap example fails on H0, and a guard example is met on H0. When the change moves through states, the grill also writes a model and its chart with the [hyp-statechart](../skills/hyp-statechart/SKILL.md) skill. When two builds meet every example and print different things in one case, the grill shows you the case and what each build prints. You choose the output you want.
-- The grill places the examples, and the Goal opens. Its hand-off lists your decisions and a part "Not covered": each want that no example checks. No runner gets a "Not covered" item as a task.
+- The grill writes the examples in a draft folder, `goals/draft-<name>/`, and tries each one there. You add the Goal with `--examples goals/draft-<name>`: hyp runs each on H0, copies the folder to `goals/<G>/`, and the Goal is open. The grill's hand-off lists your decisions and a part "Not covered": each want that no example checks. No runner gets a "Not covered" item as a task.
 - You merge the record PR, which holds the Goal, its examples and the model. The examples then reach the runner's commits.
 
 ### 2. The run
@@ -50,20 +51,20 @@ A real event, such as a refusal or a run you flag, starts the work. A fact an ag
 `hyp status G` prints the runner's Start prompt of an open Goal, ready to copy. Start a runner session and give it that prompt, and nothing else. The prompt names no issue: the issue of the Goal closed when you added the Goal. The runner follows the run rules of the hyp-grill skill.
 
 - Each build that the runner offers is a Hypothesis. The budget is three Hypotheses after H0.
-- With one candidate, a build that meets every line, the runner selects it. The select's report is the PR body: the Goal's words, each line, each example's words, each chart of the model, and the selected commit and row. It holds no result of an example: every example is met by the select.
-- You may select a candidate at any time. You do not have to wait for the runner.
+- The runner's runs stay in its clone's trace: the runner commits no event. With one candidate, a build that meets every line and holds a spec, `hyp status G` shows the Goal selected on it and prints the PR body: the Goal's words, each line, each example's words, each chart of the model, and the selected commit and row. It holds no result of an example: every example is met on that commit.
+- With two candidates, only you select.
 
 hyp stops the run and waits for you at a stop:
 
 - **Selected.** Read the PR body, then read the code of the selected commit for its direction. When the build changes the kept model, `hyp status G` lists each changed step by its command and each changed rule with the words of the line it names; the grill turns each into a case you see as outputs. To see what an example prints on that commit, run `hyp try G LINE/EXAMPLE --commit C`.
-- **Two candidates.** Two builds meet every line. `hyp status G --role owner` prints the outputs of each build and a `hyp select` line for each one. Select the build you want, or have the grill place an example that fails the other.
+- **Two candidates.** Two builds meet every line. `hyp status G --role owner` prints the outputs of each build and a `hyp select` line for each one. Select the build you want, or place an example the grill writes that fails the other.
 - **Budget used.** Three Hypotheses ran and none meets every line. `hyp status G --role owner` prints the outputs table. A cell shows only the start of the first line: open `outputs/<hash>` in the trace of the clone that ran it to read every byte.
 
 ### 3. You land, close or re-grill
 
-- **Land.** `hyp land G` ends the Goal at its stop. Merge the runner's PR before the land, after it, or not at all: the land checks no commit. The landed Goal is a snapshot of your decision, and a later Goal can cite it with `--from G`.
+- **Land.** `hyp land G COMMIT` ends a selected Goal on that commit. The land carries the evidence: the commit, its tree, its row and each example's verdict there. When your clone holds no Result of an example on that commit, the land runs it first, and it lands only when every example is met. `hyp land G` with no commit ends the Goal at Two candidates or Budget used. The landed Goal is a snapshot of your decision, and a later Goal can cite it with `--from G`.
 - **Close.** `hyp close G` ends a Goal that you will not go on with, at any stop or none. The closed Goal keeps its rows and verdicts, and a later Goal can cite it with `--from G`, as it cites a landed one.
-- **Re-grill.** When your review finds a gap in a selected Goal, run `hyp unselect G`. The Goal is open again, each Hypothesis and verdict stays, and the budget starts again. Start a hyp-grill session on the Goal. The grill places an example on an existing line, and the runner runs again. At Budget used, the grill can also re-grill an example: a new version only adds a floor or a ceiling, and it gives the runner three new Hypotheses.
+- **Re-grill.** When your review finds a gap in a selected Goal, run `hyp unselect G COMMIT`. The unselect names the commit you reject: no clone shows the Goal selected on its row again. The Goal is open again, each Hypothesis and verdict stays, and the budget starts again. Start a hyp-grill session on the Goal. The grill writes an example on an existing line, you place it, and the runner runs again. At Budget used, the grill can also re-grill an example: a new version only adds a floor or a ceiling, and it gives the runner three new Hypotheses.
 
 A gap that needs a new line is a new Goal. Land or close this Goal, then add a new Goal with `--from G`. An ended Goal takes no write.
 

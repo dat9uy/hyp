@@ -1,6 +1,8 @@
 package channel
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -37,8 +39,34 @@ func TestTryPrintsTheCellAndRecordsNothing(t *testing.T) {
 	if testutil.Snapshot(t, r.Dir) != before {
 		t.Fatal("try changed the repository's git state")
 	}
-	if _, show, _ := run(t, "show", "grill-1"); !strings.Contains(show, "command: hyp try "+goal+" line-1/a\n") || !strings.Contains(show, "verdict: failed, exit 0\n") {
+	if _, show, _ := run(t, "show", "owner-1"); !strings.Contains(show, "command: hyp try "+goal+" line-1/a\n") || !strings.Contains(show, "verdict: failed, exit 0\n") {
 		t.Fatalf("show does not hold the try:\n%s", show)
+	}
+}
+
+// A draft folder is tried on the commit named, before any Goal holds it:
+// try needs no store and records nothing.
+func TestTryDraftNeedsNoGoal(t *testing.T) {
+	r := inRepo(t)
+	if err := os.MkdirAll(filepath.Join(r.Dir, "goals/draft-x/line-1/a"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(r.Dir, "goals/draft-x/line-1/a/example.txtar"), []byte("-- words --\nw\n-- run --\necho hi\n-- floor: equals --\nbye\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r.WriteExec(t, "goals/draft-x/line-1/a/probe/run", fixtureProbe)
+	base := strings.TrimSpace(testutil.Git(t, r.Dir, "rev-parse", "HEAD"))
+	before := testutil.Snapshot(t, r.Dir)
+	code, out, errs := run(t, "try", "--examples", "goals/draft-x", "--base", base, "line-1/a")
+	if code != 0 || !strings.Contains(out, "tried the draft goals/draft-x line-1/a on H0 "+base+"\n") ||
+		!strings.Contains(out, "nothing is recorded") || !strings.Contains(out, "verdict: failed, exit 0\n") {
+		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if testutil.Snapshot(t, r.Dir) != before {
+		t.Fatal("a draft try changed the repository's git state")
+	}
+	if code, _, _ := run(t, "try", "--examples", "goals/draft-x", "--base", base, "line-1/a", "--worktree"); code != 2 {
+		t.Fatalf("a draft try on another commit: code %d, want 2", code)
 	}
 }
 

@@ -3,6 +3,7 @@ package channel
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/acts"
@@ -30,6 +31,15 @@ func addGoalText(rep acts.Report) string {
 	}
 	if len(rep.Findings) > 0 {
 		fmt.Fprintf(&b, "findings: %s\n", strings.Join(rep.Findings, " "))
+	}
+	for _, p := range rep.Placed {
+		fmt.Fprintf(&b, "%s @%d  hash: %s  H0: %s (exit %d)\n", p.Key, p.Version, p.Hash, p.Verdict, p.Exit)
+	}
+	if len(rep.Placed) > 0 {
+		fmt.Fprintf(&b, "%s is %s\n", rep.Goal, rep.State)
+	}
+	if rep.Folder != "" {
+		fmt.Fprintf(&b, "copied the examples to %s/; commit them with the store\n", rep.Folder)
 	}
 	return b.String()
 }
@@ -103,7 +113,19 @@ func or(v, placeholder string) string {
 // landText is the report of a land: the Goal, and the stop it ended with the
 // act that caused it.
 func landText(rep acts.LandReport) string {
-	return fmt.Sprintf("landed %s\nstop: %s\n", rep.Goal, stopText(rep.Stop, rep.Cause))
+	var b strings.Builder
+	fmt.Fprintf(&b, "landed %s\nstop: %s\n", rep.Goal, stopText(rep.Stop, rep.Cause))
+	if rep.Commit != "" {
+		fmt.Fprintf(&b, "commit: %s  tree: %s  row: %s\n", rep.Commit, rep.Tree, rep.RowTree)
+		for _, v := range rep.Verdicts {
+			ran := ""
+			if slices.Contains(rep.Ran, v.Line+"/"+v.Example) {
+				ran = "  (run by the land: this clone held no Result)"
+			}
+			fmt.Fprintf(&b, "%s/%s  hash: %s  %s%s\n", v.Line, v.Example, v.Hash, v.Verdict, ran)
+		}
+	}
+	return b.String()
 }
 
 // findingText is the report of an act on a finding: each finding it wrote
@@ -173,8 +195,14 @@ func readyText(r acts.Ready) string {
 	case acts.ActSelect:
 		return "hyp select " + r.Goal + " " + r.Tree
 	case acts.ActLand:
+		if r.Commit != "" {
+			return "hyp land " + r.Goal + " " + shortCommit(r.Commit)
+		}
 		return "hyp land " + r.Goal
 	case acts.ActUnselect:
+		if r.Commit != "" {
+			return "hyp unselect " + r.Goal + " " + shortCommit(r.Commit)
+		}
 		return "hyp unselect " + r.Goal
 	case acts.ActClose:
 		return "hyp close " + r.Goal

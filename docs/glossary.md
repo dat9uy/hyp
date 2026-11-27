@@ -88,17 +88,17 @@ The role that adds the Goal, selects a candidate, unselects and lands a Goal, an
 _Avoid_: user, stakeholder, approver
 
 **Grill**:
-The role that writes a Goal's examples and places them, and that does the re-grill. Only the grill places (`hyp spec`, Grill places). The skill `skills/hyp-grill` teaches it. In that skill the grill also drafts the words and lines with the owner, and the owner records them.
+The role that writes a Goal's examples in a draft folder and tries them, and that does the re-grill. The grill records no event: the owner adds the Goal with the examples, and only the owner places (`hyp spec`, Owner places). The skill `skills/hyp-grill` teaches it. In that skill the grill also drafts the words and lines with the owner, and the owner records them.
 _Avoid_: interviewer, reviewer
 
 **Re-grill**:
-The grill's review of a Goal at a stop for the owner. At Two candidates or Budget used, it adjusts an example or places a new one. A selected Goal refuses every place, so its re-grill goes through the owner's `unselect`: the Goal is open again, and then the grill places. A new line is a new Goal.
+The grill's review of a Goal at a stop for the owner. At Two candidates or Budget used, it adjusts an example or places a new one. A selected Goal refuses every place, so its re-grill goes through the owner's `unselect`: the Goal is open again, and then the owner places. A new line is a new Goal.
 
 **Probe writer**:
 The role that writes a Probe. It writes no event. Whether it can be kept from reading the candidate is deferred (o11-blind).
 
 **Runner**:
-The role that builds commits for a Goal, runs lines on them and selects a single candidate. The runner never places an example (`hyp spec`, Grill places). `skills/hyp-grill/run-rules.md` lists the rules a runner follows that hyp cannot check.
+The role that builds commits for a Goal and runs lines on them. Its Results stay in the clone's trace, and hyp shows the Goal selected when they show a single candidate. The runner never places an example and never selects (`hyp spec`, Owner places). `skills/hyp-grill/run-rules.md` lists the rules a runner follows that hyp cannot check.
 _Avoid_: operator, driver
 
 ## Goal and lines
@@ -272,7 +272,7 @@ A Result that Stable refused, because a repeat on the same bytes gave another ve
 _Avoid_: flaky (say unstable, and name the example)
 
 **Select**:
-The act `select G HASH` and its `select` event. HASH is the row's subject hash, as hyp prints it. The act records one candidate row as the Goal's answer, with the commit of the row's latest Result. The select is the gate, and its report is the PR body.
+The one candidate row that is the Goal's answer, with the commit of the row's latest Result. With one candidate, hyp calculates the select from the Results of the clone's trace, and no event holds it. With two, the owner's act `select G HASH` and its `select` event hold it; HASH is the row's subject hash, as hyp prints it. The select is the gate, and `hyp status G` prints its PR body.
 _Avoid_: pick, choose, accept, merge
 
 **Spec** (of a Goal):
@@ -367,7 +367,7 @@ The read `try G LINE/EXAMPLE`. It runs an example folder as it is on disk, on H0
 _Avoid_: dry run
 
 **Land**:
-The owner's act `land G` and its `land` event, which end a Goal. The owner lands a Goal at a stop: after a select, or at Two candidates or Budget used with no select. The event names the stop it ends, the act that caused it and the snapshot. Land is the owner's decision, not a check of a commit, and it is not coupled to a merge: a Goal can land before the merge, after it, or with no merge. The landed Goal is a fixed snapshot that later Goals cite with `--from`.
+The owner's act `land G` and its `land` event, which end a Goal. The owner lands a Goal at a stop: on the selected commit, or at Two candidates or Budget used with no commit. The event names the stop it ends, the act that caused it and the snapshot. A land on a commit carries the evidence: the commit, its tree, its row and each example's verdict there, run first when the clone holds no Result. It is not coupled to a merge: a Goal can land before the merge, after it, or with no merge. The landed Goal is a fixed snapshot that later Goals cite with `--from`.
 _Avoid_: merge, recheck (the recheck of a commit on a main that moved is `unselect`, then a run)
 
 **Close**:
@@ -375,7 +375,7 @@ The owner's act `close G` and its `close` event, which end a Goal the owner will
 _Avoid_: abandon, delete, land (a land needs a stop; a close does not)
 
 **Unselect**:
-The owner's act `unselect G` and its `unselect` event. It puts a selected Goal back to open, so the grill can place a new example and the runner can run again, for example on a merge of a main that moved. The rows and cells stay as they were, and the budget starts again at the unselect. The owner may select a candidate again at once; the runner selects again only after a run that records a new cell: a cell of an example version, or of a row, that had not run before the unselect. An ended Goal takes no unselect (`hyp spec`, New cell; `hyp spec`; `hyp spec`).
+The owner's act `unselect G COMMIT` and its `unselect` event, which names the commit it rejects and its row. It puts a selected Goal back to open, so the owner can place a new example and the runner can run again, for example on a merge of a main that moved. No clone shows the Goal selected on the rejected row again. The rows and cells stay as they were, and the budget starts again at the unselect. hyp shows a select again only after a run that records a new cell: a cell of an example version, or of a row, that had not run before the unselect. An ended Goal takes no unselect (`hyp spec`, New cell; `hyp spec`; `hyp spec`).
 _Avoid_: deselect, reopen, undo
 
 **Snapshot**:

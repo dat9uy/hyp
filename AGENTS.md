@@ -41,15 +41,15 @@ hyp is changed the way it asks its users to decide things: with a Goal whose gap
 
 1. **A real event points at hyp.** In a real run a refusal or a warning fires, a Goal reaches a stop it cannot leave, `hyp status` lists an event under `refused at replay`, or the owner flags a run. A change is never proposed on speculation.
 2. **The event is recorded where it fits.** A fact an agent found is a finding from the moment it is found, with `hyp finding add`, and names no Goal. An issue tracks the process toward a want: it names the event and its scope, and holds the owner's decisions and the split into Goals. A Goal is the snapshot of the want. The issue closes when each want it tracks is held by an added Goal.
-3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, gap and guard lines, and a `--finding F` for each finding the Goal is about. The grill places one or more examples on each line with `hyp place`, each run on H0 to show it gives the verdict its line needs. The rules are in `hyp spec`.
-4. **The runner runs and selects.** `hyp run` runs a line on a commit, within a budget of three Hypotheses, and `hyp select` records the one candidate that is met on every line and holds a spec. The select's report is the PR body, and `hyp status` prints the allowed acts of each role as ready command lines. Every change is a Goal.
+3. **A Goal holds the question.** The owner adds it with `hyp add goal`: words, gap and guard lines, and a `--finding F` for each finding the Goal is about. The grill drafts one or more examples on each line in a draft folder and tries each on H0 with `hyp try --examples`, to show it gives the verdict its line needs. The owner adds the Goal with `--examples` and that folder, and the Goal is open at once; a later example is the owner's `hyp place`. The rules are in `hyp spec`.
+4. **The runner runs, and hyp shows the select.** `hyp run` runs a line on a commit, within a budget of three Hypotheses, and writes only to the clone's trace. When those Results show one candidate that is met on every line and holds a spec, `hyp status` shows the Goal selected on it, with no event, and prints the PR body. `hyp status` prints the allowed acts of each role as ready command lines. Every change is a Goal.
 5. **The change passes its gate.**
    - A failure that can be detected from the log or from git goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.
    - A change to `skills/`, a new skill included, is a build Goal like any code change: its lines, examples whose Probes the Goal writes and that give their line's verdict on H0 before they are placed, and the select. How a skill is tested is that Goal's choice.
    - A prose-only skill change, one that changes no command, flag, default, cap or exit code a skill names, ships as a plain PR that names its event and the owner's decision. Its gate is `go test`.
 
    [principles.md](docs/principles.md) §9 explains why the loop is guarded while it runs instead of proven in advance.
-6. **The PR body is the report `hyp select` printed:** each line's examples, outputs and verdicts, and the selected commit and row.
+6. **The PR body is what `hyp status G` prints under `PR body:`** once the Goal is selected: each line's examples, and the selected commit and row. The owner's `hyp land G COMMIT` then carries the evidence into git: the commit, its tree, its row and each example's verdict.
 
 ## Run controls
 

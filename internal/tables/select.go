@@ -30,12 +30,12 @@ func (g *Goal) metEverywhere(rowTree string) bool {
 }
 
 // Candidates are the rows of g that a select may name: leaf rows met on every
-// line under the current placements. A row whose leaf mark is unknown, because
+// line under the current placements, which no unselect rejected. A row whose leaf mark is unknown, because
 // this clone lacks a commit, is left out; GuardCandidate names that commit.
 func Candidates(g *Goal, anc Ancestry) []Row {
 	var out []Row
 	for _, row := range g.Rows(anc) {
-		if row.Leaf && row.Unknown == "" && g.metEverywhere(row.RowTree) {
+		if row.Leaf && row.Unknown == "" && !g.Rejected[row.RowTree] && g.metEverywhere(row.RowTree) {
 			out = append(out, row)
 		}
 	}

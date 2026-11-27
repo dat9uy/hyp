@@ -311,6 +311,7 @@ func addGoal(c *call, args []string, stdout, stderr io.Writer) error {
 	fs.StringVar(&o.From, "from", "", "")
 	fs.StringVar(&o.Words, "words", "", "")
 	fs.StringVar(&o.Base, "base", "", "")
+	fs.StringVar(&o.Examples, "examples", "", "")
 	fs.Var(&lines, "line", "")
 	positional, err := parseInterleaved(fs, args)
 	if err != nil {
@@ -346,6 +347,7 @@ func place(c *call, args []string, stdout, stderr io.Writer) error {
 	fs.SetOutput(io.Discard)
 	var o acts.PlaceOpts
 	actorFlags(fs, &o.Actor, &o.Role, &o.Why)
+	fs.StringVar(&o.Examples, "examples", "", "")
 	positional, err := parseInterleaved(fs, args)
 	if err != nil {
 		return flagsFailed("place", err)
@@ -437,10 +439,13 @@ func landCmd(c *call, args []string, stdout, stderr io.Writer) error {
 		return flagsFailed("land", err)
 	}
 	c.declare(o.Actor, o.Role)
-	if len(positional) != 1 {
+	if len(positional) < 1 || len(positional) > 2 {
 		return fault.BadArg(codeLandArgs, len(positional))
 	}
 	o.Goal = positional[0]
+	if len(positional) == 2 {
+		o.Commit = positional[1]
+	}
 	if err := checkWhy(o.Why); err != nil {
 		return err
 	}
@@ -520,9 +525,24 @@ func tryCmd(c *call, args []string, stdout, stderr io.Writer) error {
 	var o acts.TryOpts
 	fs.BoolVar(&o.Worktree, "worktree", false, "")
 	fs.StringVar(&o.Commit, "commit", "", "")
+	fs.StringVar(&o.Examples, "examples", "", "")
+	fs.StringVar(&o.Base, "base", "", "")
 	positional, role, err := readFlagsWith(c, "try", args, fs)
 	if err != nil {
 		return err
+	}
+	if o.Examples != "" {
+		// a draft folder: no Goal yet, so no state block
+		if len(positional) != 1 {
+			return fault.BadArg(codeTryArgs, len(positional))
+		}
+		o.Key, o.Dir = positional[0], c.dir
+		rep, err := acts.Try(o)
+		if err != nil {
+			return err
+		}
+		fmt.Fprint(stdout, tryText(rep))
+		return nil
 	}
 	if len(positional) != 2 {
 		return fault.BadArg(codeTryArgs, len(positional))
@@ -718,10 +738,13 @@ func unselectCmd(c *call, args []string, stdout, stderr io.Writer) error {
 		return flagsFailed("unselect", err)
 	}
 	c.declare(o.Actor, o.Role)
-	if len(positional) != 1 {
+	if len(positional) < 1 || len(positional) > 2 {
 		return fault.BadArg(codeUnselectArgs, len(positional))
 	}
 	o.Goal = positional[0]
+	if len(positional) == 2 {
+		o.Commit = positional[1]
+	}
 	if err := checkWhy(o.Why); err != nil {
 		return err
 	}

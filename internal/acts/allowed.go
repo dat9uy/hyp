@@ -69,7 +69,7 @@ func Stand(g *tables.Goal, repo string) Standing {
 		st.Stop, st.Cause = g.Land.Stop, causeOf(g, g.Land.Cause)
 	case g.Close != nil && g.Select != nil:
 		st.Stop = StopSelected
-		st.Cause = Cause{Act: ActSelect, ID: g.Select.ID, Time: g.Select.Time}
+		st.Cause = selectCause(g.Select)
 	case g.Close != nil:
 		// a closed Goal keeps the stop its rows hold, and waits for no one
 		if len(st.Candidates) >= 2 {
@@ -79,15 +79,25 @@ func Stand(g *tables.Goal, repo string) Standing {
 		}
 	case g.Select != nil:
 		st.Stop, st.Waits = StopSelected, "owner"
-		st.Cause = Cause{Act: ActSelect, ID: g.Select.ID, Time: g.Select.Time}
+		st.Cause = selectCause(g.Select)
 	case len(st.Candidates) >= 2:
 		st.Stop, st.Waits, st.Cause = StopTwoCandidates, "owner", lastRun(g)
 	case len(st.Candidates) == 0 && budgetUsed(g):
 		st.Stop, st.Waits, st.Cause = StopBudgetUsed, "owner", lastRun(g)
 	case g.State == tables.StateWritten:
-		st.Waits = "grill"
+		st.Waits = "owner"
 	}
 	return st
+}
+
+// selectCause is the act that caused the Selected stop: a select event of
+// the older form, or for a calculated select the run whose Result made its
+// row met on every line.
+func selectCause(sel *tables.Select) Cause {
+	if sel.Calculated {
+		return Cause{Act: ActRun, ID: sel.ID, Time: sel.Time}
+	}
+	return Cause{Act: ActSelect, ID: sel.ID, Time: sel.Time}
 }
 
 // lastRun is the run that caused a stop of the runs: the latest Result, in
@@ -103,16 +113,13 @@ func lastRun(g *tables.Goal) Cause {
 	return Cause{}
 }
 
-// causeOf is the cause a land event names: the Goal's select, or one of its
-// Results.
+// causeOf is the cause a land event names, as git alone holds it: the
+// Goal's select event of the older form, or else the id alone. A Result is
+// in a clone's trace, not in git, so the act and time of a Result that
+// caused the stop are not printed: every clone prints a landed Goal the same.
 func causeOf(g *tables.Goal, id string) Cause {
-	if g.Select != nil && g.Select.ID == id {
+	if g.Select != nil && g.Select.ID == id && !g.Select.Calculated {
 		return Cause{Act: ActSelect, ID: id, Time: g.Select.Time}
-	}
-	for _, r := range g.Results {
-		if r.ID == id {
-			return Cause{Act: ActRun, ID: id, Time: r.Time}
-		}
 	}
 	return Cause{ID: id}
 }
@@ -157,8 +164,10 @@ func allowedFor(g *tables.Goal, repo string) []Ready {
 		return nil
 	}
 	if g.Select != nil {
-		// a selected Goal allows only the owner's land, unselect and close
-		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand}, {Goal: g.ID, Role: "owner", Act: ActUnselect},
+		// a selected Goal allows only the owner's land and unselect of the
+		// selected commit, and close
+		c := g.Select.Commit
+		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand, Commit: c}, {Goal: g.ID, Role: "owner", Act: ActUnselect, Commit: c},
 			{Goal: g.ID, Role: "owner", Act: ActClose}}
 	}
 	st := Stand(g, repo)
@@ -182,17 +191,12 @@ func allowedFor(g *tables.Goal, repo string) []Ready {
 	if st.Stop == StopTwoCandidates || st.Stop == StopBudgetUsed {
 		add(Ready{Role: "owner", Act: ActLand})
 	}
+	// one place line, for the Goal's whole example set: a place is the
+	// owner's act. A selected Goal returned above.
+	add(Ready{Role: "owner", Act: ActPlace})
 	add(Ready{Role: "owner", Act: ActClose})
 
-	// grill: one place line, for the Goal's whole example set. A selected
-	// Goal returned above.
-	add(Ready{Role: "grill", Act: ActPlace})
-
-	// runner
-	switch {
-	case st.Stop == StopNone && len(st.Candidates) == 1 && g.HasNewCell() && selectable(g, repo, st.Candidates[0]):
-		add(Ready{Role: "runner", Act: ActSelect, Tree: st.Candidates[0].RowTree})
-	}
+	// runner: runs only; this clone's Results show the select
 	if st.Stop == StopNone {
 		// A lone candidate that fails Spec or Own path is fixed by a commit
 		// that changes only goals/, so its subject, and its Hypothesis, stay.

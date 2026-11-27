@@ -66,6 +66,7 @@ type Goal struct {
 	Land       *Land                  // the Goal's land, or nil
 	Close      *Close                 // the Goal's close, or nil
 	Unselects  []Unselect             // the owner's unselects, in merge order
+	Rejected   map[string]bool        // the row trees the owner's unselects reject: never selected again
 	Why        string                 // the why of its latest goal.add
 	Named      []string               // the finding.add ids its latest goal.add names
 
@@ -85,11 +86,16 @@ type Goal struct {
 
 // Select is a row of the Selects table.
 type Select struct {
-	ID      string // the select event id
+	ID      string // the select event id, or for a calculated select the Result that made the row met on every line
 	Commit  string
 	RowTree string
 	Time    string
 	Actor   string
+
+	// Calculated marks a select no event holds: this clone's Results show
+	// the row as the one candidate (acts.Calculate). A select event of the
+	// older form is not calculated.
+	Calculated bool
 }
 
 // Unselect is a row of the Unselects table: the owner's unselect of a
@@ -116,6 +122,14 @@ type Land struct {
 	Time  string
 	Actor string
 	Why   string // the why the owner gave the land
+
+	// The evidence the land carries, when it lands a commit: the commit, its
+	// tree, its row tree and each example's verdict there. A land of the
+	// older form carries none.
+	Commit   string
+	Tree     string
+	RowTree  string
+	Verdicts []events.LandVerdict
 }
 
 // Close is a row of the Closes table: the owner's close of a Goal, which ends
@@ -322,7 +336,38 @@ func GuardGoalAdd(t Tables, ev events.Event) error {
 	if err := GuardDraft(t, node); err != nil {
 		return err
 	}
-	return GuardWholeLines(p.Lines)
+	if err := GuardWholeLines(p.Lines); err != nil {
+		return err
+	}
+	return guardAddedExamples(p)
+}
+
+// guardAddedExamples is the table half of the examples a goal.add carries:
+// a new Goal only, each on a line of the Goal, each key once, each with H0's
+// verdict its line's kind needs as the add recorded it. The act ran each on
+// H0 (Kind) and read its folder (Committed, Adds only, Meetable).
+func guardAddedExamples(p events.GoalAdd) error {
+	seen := map[string]bool{}
+	for _, x := range p.Examples {
+		key := x.Line + "/" + x.Example
+		kind := ""
+		for _, l := range p.Lines {
+			if l.Key == x.Line {
+				kind = l.Kind
+			}
+		}
+		if kind == "" {
+			return fault.Refuse(fault.GuardWholeSet, fault.ExampleOffLine, key)
+		}
+		if seen[key] {
+			return fault.Refuse(fault.GuardAddsOnly, fault.KeyTwiceInSet, key)
+		}
+		seen[key] = true
+		if x.H0.Verdict != Needs(kind) || x.H0.RowTree != p.BaseTree {
+			return fault.Refuse(fault.GuardKind, fault.AddedVerdictWrong, key, x.H0.Verdict, Needs(kind))
+		}
+	}
+	return nil
 }
 
 // Current returns the current placement of an example key.
@@ -498,12 +543,23 @@ func GuardNotSelected(g *Goal) error {
 	return nil
 }
 
-// GuardGrillPlaces refuses a placement by any role but the grill.
-func GuardGrillPlaces(role string) error {
-	if role != "grill" {
-		return fault.Refuse(fault.GuardGrillPlaces, fault.NotGrill, role)
+// GuardOwnerPlaces refuses a place by any role but the owner: a place is
+// an owner act, and git holds only the owner's acts.
+func GuardOwnerPlaces(role string) error {
+	if role != "owner" {
+		return fault.Refuse(fault.GuardOwnerPlaces, fault.NotOwnerPlace, role)
 	}
 	return nil
+}
+
+// guardPlacerAtReplay is Owner places at replay: a place of the older form,
+// written before a place was the owner's act, names the grill, and replays
+// as it was.
+func guardPlacerAtReplay(role string) error {
+	if role == "grill" {
+		return nil
+	}
+	return GuardOwnerPlaces(role)
 }
 
 // GuardAddsOnlyTable refuses a placement of a hash the key has already held,
@@ -535,7 +591,7 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 func GuardPlace(t Tables, ev events.Event) error {
 	var p events.ExamplePlace
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardGrillPlaces, fault.PayloadInvalid, err)
+		return fault.Refuse(fault.GuardOwnerPlaces, fault.PayloadInvalid, err)
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
@@ -547,7 +603,7 @@ func GuardPlace(t Tables, ev events.Event) error {
 	if err := GuardNotSelected(g); err != nil {
 		return err
 	}
-	if err := GuardGrillPlaces(p.Role); err != nil {
+	if err := guardPlacerAtReplay(p.Role); err != nil {
 		return err
 	}
 	return GuardAddsOnlyTable(g, p.Line+"/"+p.Example, p.Hash)
@@ -561,7 +617,7 @@ func GuardPlace(t Tables, ev events.Event) error {
 func GuardPlaceSet(t Tables, ev events.Event) error {
 	var p events.ExamplesPlace
 	if err := events.Decode(ev, &p); err != nil {
-		return fault.Refuse(fault.GuardGrillPlaces, fault.PayloadInvalid, err)
+		return fault.Refuse(fault.GuardOwnerPlaces, fault.PayloadInvalid, err)
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {
@@ -573,7 +629,10 @@ func GuardPlaceSet(t Tables, ev events.Event) error {
 	if err := GuardNotSelected(g); err != nil {
 		return err
 	}
-	if err := GuardGrillPlaces(p.Role); err != nil {
+	if err := guardPlacerAtReplay(p.Role); err != nil {
+		return err
+	}
+	if err := GuardGoalActor(g, ev.Actor, p.Role); err != nil {
 		return err
 	}
 	if len(p.Examples) == 0 {
@@ -856,15 +915,28 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 		return // GuardGoalAdd decoded it already
 	}
 	if g, ok := t.Goals[ev.Node]; ok && ev.Node != ev.ID {
+		if len(p.Examples) > 0 {
+			refuse(ev, fault.Refuse(fault.GuardDraft, fault.ReplaceExamples, g.ID))
+			return
+		}
 		g.Words, g.Base, g.BaseTree, g.From, g.Lines, g.Why, g.Named = p.Words, p.Base, p.BaseTree, p.From, p.Lines, ev.Why, p.Findings
 		g.seen = append(g.seen, ev.ID)
 		g.refresh()
 		return
 	}
-	t.Goals[ev.ID] = &Goal{
+	g := &Goal{
 		ID: GoalID(ev.ID), EventID: ev.ID, Words: p.Words, Base: p.Base, BaseTree: p.BaseTree,
 		Budget: p.Budget, Actor: ev.Actor, From: p.From, State: StateWritten, Lines: p.Lines,
 		Why: ev.Why, Named: p.Findings, seen: []string{ev.ID},
+	}
+	t.Goals[ev.ID] = g
+	if len(p.Examples) > 0 {
+		// the add carries the examples: the Goal is open at once
+		for _, x := range p.Examples {
+			g.addPlacement(ev, x.Line, x.Example, x.Hash, x.H0, x.Findings)
+		}
+		g.epoch++
+		g.refresh()
 	}
 }
 
@@ -919,11 +991,46 @@ func GuardLand(t Tables, ev events.Event) error {
 	if err := GuardGoalActor(g, ev.Actor, p.Role); err != nil {
 		return err
 	}
+	if p.Commit != "" {
+		return GuardEvidence(g, p)
+	}
 	switch {
 	case p.Stop == StopSelected && g.Select != nil:
 	case (p.Stop == StopTwoCandidates || p.Stop == StopBudgetUsed) && g.Select == nil:
 	default:
 		return fault.Refuse(fault.GuardStop, fault.StopNotHeld, p.Stop, g.ID)
+	}
+	return nil
+}
+
+// GuardEvidence is the table half of a land that names a commit: the commit's
+// row is not one an unselect rejected, the Goal's select, when an event holds
+// one, is on that row, and the land carries a met verdict for every current
+// example of the Goal at its current hash. The act ran every example this
+// clone held no Result for; replay reads the verdicts the land carries, so
+// every clone ends the Goal from git alone.
+func GuardEvidence(g *Goal, p events.Land) error {
+	if g.State == StateWritten {
+		return fault.Refuse(fault.GuardEvidence, fault.LandNotOpen, g.ID, g.State)
+	}
+	if g.Rejected[p.RowTree] {
+		return fault.Refuse(fault.GuardEvidence, fault.CommitUnselected, p.Commit, g.ID)
+	}
+	if g.Select != nil && !g.Select.Calculated && g.Select.RowTree != p.RowTree {
+		return fault.Refuse(fault.GuardEvidence, fault.NotTheSelect, p.Commit, g.ID, g.Select.Commit)
+	}
+	verdicts := map[string]events.LandVerdict{}
+	for _, v := range p.Verdicts {
+		verdicts[v.Line+"/"+v.Example] = v
+	}
+	for _, x := range g.Placed() {
+		v, ok := verdicts[x.Key]
+		switch {
+		case !ok || v.Hash != x.Hash:
+			return fault.Refuse(fault.GuardEvidence, fault.EvidenceMissing, p.Commit, x.Key)
+		case v.Verdict != "met":
+			return fault.Refuse(fault.GuardEvidence, fault.NotMetOnCommit, x.Key, p.Commit, v.Verdict)
+		}
 	}
 	return nil
 }
@@ -940,7 +1047,13 @@ func replayLand(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 		return // GuardLand decoded it already
 	}
 	g := t.Goals[ev.Node]
-	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor, Why: ev.Why}
+	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor, Why: ev.Why,
+		Commit: p.Commit, Tree: p.Tree, RowTree: p.RowTree, Verdicts: p.Verdicts}
+	if p.Commit != "" && p.Stop == StopSelected && g.Select == nil {
+		// the land carries the select it approves: every clone reads the
+		// ended Goal selected on that commit
+		g.Select = &Select{ID: ev.ID, Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
+	}
 	g.State = StateEnded
 }
 
@@ -1025,6 +1138,18 @@ func GuardUnselect(t Tables, ev events.Event) error {
 	if err := GuardGoalActor(g, ev.Actor, p.Role); err != nil {
 		return err
 	}
+	if p.RowTree != "" {
+		// an unselect that names its commit rejects that row; the act
+		// checked that this clone showed the Goal selected on it, which
+		// reads the Results of its trace
+		if g.Select != nil && g.Select.RowTree != p.RowTree {
+			return fault.Refuse(fault.GuardSelected, fault.NotSelectedOn, g.ID, p.Commit, g.Select.Commit)
+		}
+		if g.Rejected[p.RowTree] {
+			return fault.Refuse(fault.GuardSelected, fault.AlreadyUnselected, g.ID, p.Commit)
+		}
+		return nil
+	}
 	return GuardHasSelect(g)
 }
 
@@ -1036,7 +1161,19 @@ func replayUnselect(t *Tables, ev events.Event, refuse func(events.Event, error)
 		refuse(ev, err)
 		return
 	}
+	var p events.Unselect
+	if err := events.Decode(ev, &p); err != nil {
+		return // GuardUnselect decoded it already
+	}
 	g := t.Goals[ev.Node]
+	undone := Select{Commit: p.Commit, RowTree: p.RowTree}
+	if g.Select != nil {
+		undone = *g.Select
+	}
+	if g.Rejected == nil {
+		g.Rejected = map[string]bool{}
+	}
+	g.Rejected[undone.RowTree] = true
 	versions := map[string]bool{}
 	for _, hist := range g.Placements {
 		for _, p := range hist {
@@ -1044,7 +1181,7 @@ func replayUnselect(t *Tables, ev events.Event, refuse func(events.Event, error)
 		}
 	}
 	g.Unselects = append(g.Unselects, Unselect{
-		ID: ev.ID, Select: *g.Select, Time: ev.TS, Actor: ev.Actor, Results: len(g.Results), Versions: versions,
+		ID: ev.ID, Select: undone, Time: ev.TS, Actor: ev.Actor, Results: len(g.Results), Versions: versions,
 	})
 	g.Select = nil
 	g.State = StateOpen

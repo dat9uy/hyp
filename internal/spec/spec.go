@@ -90,25 +90,36 @@ const descColumn = 41
 var Commands = []Command{
 	{Name: "add goal", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardDraft, fault.GuardWholeLines, fault.GuardFromEnded,
-			fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork}, Writes: "goal.add; a new Goal is in no state before it",
+			fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork,
+			fault.GuardWholeSet, fault.GuardCommitted, fault.GuardMeetable, fault.GuardCovered, fault.GuardKind}, Writes: "goal.add; a new Goal is in no state before it",
 		Help: `  add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
-           [--from G] [--finding F ...] [--why TEXT]
-                                         record a Goal; with G, replace a Goal
-                                         that is still written; each --finding
-                                         names a finding of this clone's trace
-                                         that the Goal is about
+           [--examples FOLDER] [--from G] [--finding F ...] [--why TEXT]
+                                         record a Goal; with --examples, the
+                                         example set in FOLDER/LINE/EXAMPLE,
+                                         each run on H0: the add carries each
+                                         example's hash and verdict, the Goal is
+                                         open at once, the set is copied to
+                                         goals/G/, and an example that does not
+                                         agree with its line records no Goal;
+                                         with G, replace a Goal that is still
+                                         written; each --finding names a
+                                         finding of this clone's trace that the
+                                         Goal is about
 `},
-	{Name: "place", Roles: []string{"grill"},
-		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardGrillPlaces, fault.GuardWholeSet,
+	{Name: "place", Roles: []string{"owner"},
+		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardOwnerPlaces, fault.GuardGoalsActor, fault.GuardWholeSet,
 			fault.GuardCommitted, fault.GuardAddsOnly, fault.GuardMeetable, fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork,
 			fault.GuardCovered, fault.GuardKind}, Writes: "examples.place",
-		Help: `  place G [--why TEXT]                   place the whole example set of Goal G:
-                                         every folder goals/G/LINE/EXAMPLE, each
-                                         run on H0; it places the set only when
-                                         every example agrees with its line and
-                                         each finding G names is named by an
-                                         example, and otherwise places none and
-                                         names each cause
+		Help: `  place G [--examples FOLDER] [--why TEXT]
+                                         the owner places the whole example set
+                                         of Goal G: every folder
+                                         goals/G/LINE/EXAMPLE, or with
+                                         --examples FOLDER/LINE/EXAMPLE, each new
+                                         or changed one run on H0; it places the
+                                         set only when every example agrees with
+                                         its line and each finding G names is
+                                         named by an example, and otherwise
+                                         places none and names each cause
 `},
 	{Name: "run", Roles: []string{"runner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardBytes, fault.GuardOpen,
@@ -118,6 +129,7 @@ var Commands = []Command{
 `},
 	{Name: "try",
 		Help: `  try G LINE/EXAMPLE [--worktree | --commit COMMIT]
+  try --examples FOLDER --base COMMIT LINE/EXAMPLE
                                          run the example folder goals/G/LINE/EXAMPLE
                                          as it is on disk, on H0, on COMMIT, or
                                          with --worktree on this checkout's files
@@ -126,24 +138,38 @@ var Commands = []Command{
                                          verdict as place and run would record
                                          them; it uses no run, and saves the
                                          cell in this clone's trace only when
-                                         the trace lacks it
+                                         the trace lacks it; with --examples,
+                                         the draft example FOLDER/LINE/EXAMPLE
+                                         of a Goal not added yet, on COMMIT as
+                                         its H0, and it saves nothing
 `},
-	{Name: "select", Roles: []string{"runner", "owner"},
+	{Name: "select", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardCandidate, fault.GuardNewCell,
 			fault.GuardGoalsActor, fault.GuardSpec, fault.GuardOwnPath}, Writes: "select",
-		Help: `  select G HASH [--why TEXT]             select the candidate row of Goal G whose
-                                         subject hash is HASH; the report is the
-                                         PR body: the Goal's words, each line,
-                                         each placed example's words, each
-                                         chart and the selected commit and row,
-                                         and no result of any example
+		Help: `  select G HASH [--why TEXT]             the owner selects one of two or more
+                                         candidate rows of Goal G, the one whose
+                                         subject hash is HASH; a lone candidate
+                                         this clone's Results show is selected
+                                         without it; the report is the PR body:
+                                         the Goal's words, each line, each
+                                         placed example's words, each chart and
+                                         the selected commit and row, and no
+                                         result of any example
 `},
 	{Name: "land", Roles: []string{"owner"},
-		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerLands, fault.GuardGoalsActor, fault.GuardStop}, Writes: "land",
-		Help: `  land G [--why TEXT]                    the owner lands Goal G at its stop: the
-                                         Goal ends, and its events up to the
-                                         land are the snapshot that a later
-                                         Goal's --from cites
+		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerLands, fault.GuardGoalsActor, fault.GuardEvidence,
+			fault.GuardSpec, fault.GuardOwnPath, fault.GuardStop}, Writes: "land",
+		Help: `  land G [COMMIT] [--why TEXT]           the owner lands Goal G: on COMMIT, or
+                                         on the commit G is selected on, the
+                                         land carries the commit, its tree and
+                                         each example's verdict there, running
+                                         first each example this clone holds no
+                                         Result of, and it is refused when one
+                                         is not met; with no commit and no
+                                         select, at its stop; the Goal ends,
+                                         and its events up to the land are the
+                                         snapshot that a later Goal's --from
+                                         cites
 `},
 	{Name: "close", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerClose, fault.GuardGoalsActor}, Writes: "close",
@@ -153,11 +179,15 @@ var Commands = []Command{
 `},
 	{Name: "unselect", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerUnsel, fault.GuardGoalsActor, fault.GuardSelected}, Writes: "unselect",
-		Help: `  unselect G [--why TEXT]                the owner unselects Goal G: G is open
-                                         again with its rows and cells, its
-                                         budget starts again, and the runner
-                                         selects again only after a run that
-                                         records a new cell
+		Help: `  unselect G [COMMIT] [--why TEXT]       the owner unselects Goal G on the
+                                         commit it is selected on, which COMMIT
+                                         may name: the unselect names that
+                                         commit, no clone shows G selected on
+                                         its row again, and a land on it is
+                                         refused; G is open again with its rows
+                                         and cells, its budget starts again, and
+                                         a select is calculated again only after
+                                         a run that records a new cell
 `},
 	{Name: ActFindingAdd, Any: true,
 		Guards: nil, Writes: "finding.add, in the trace",
@@ -283,7 +313,7 @@ type State struct {
 // States are the entries of the four states, in the order a Goal moves
 // through them. ended wins over selected, and selected over open.
 var States = []State{
-	{Name: StateWritten, Holds: "a goal.add exists, and the Goal is not open",
+	{Name: StateWritten, Holds: "a goal.add exists that carries no example, and the Goal is not open",
 		Allows: []string{ActAddGoal, ActPlace, ActRun, ActClose},
 		Stops: []Stop{
 			{ActRun, "on a commit that is not H0", fault.GuardOpen},
@@ -297,10 +327,11 @@ var States = []State{
 			{ActAddGoal, "a replace", fault.GuardDraft},
 			{ActSelect, "a row that is not a candidate", fault.GuardCandidate},
 			{ActSelect, "the runner's, after an unselect with no new cell since", fault.GuardNewCell},
-			{ActLand, "while the Goal has no stop", fault.GuardStop},
+			{ActLand, "with no commit, while the Goal has no stop", fault.GuardStop},
+			{ActLand, "on a commit where an example is not met, or that an unselect rejected", fault.GuardEvidence},
 			{ActUnselect, "the Goal has no select", fault.GuardSelected},
 		}},
-	{Name: StateSelected, Holds: "the Goal has a select that no unselect undid, and no end",
+	{Name: StateSelected, Holds: "this clone's Results show one candidate row, met on every line, holding a spec, that no unselect rejected; or a select event that no unselect undid, of the older form or the owner's among two candidates; and no end",
 		Allows: []string{ActLand, ActUnselect, ActClose},
 		Stops: []Stop{
 			{ActAddGoal, "a replace", fault.GuardDraft},
@@ -402,28 +433,28 @@ type Guard struct {
 
 // Guards are the entries of every guard, and of the refusals no guard names.
 var Guards = []Guard{
-	{fault.GuardDraft, "before the Goal opens, add goal G may replace it; after, its words and lines are frozen; a new Goal always passes",
-		[]fault.Code{fault.NoGoalToReplace, fault.NotWritten}, "yes"},
+	{fault.GuardDraft, "before the Goal opens, add goal G may replace it, with no example; after, its words and lines are frozen; a new Goal always passes",
+		[]fault.Code{fault.NoGoalToReplace, fault.NotWritten, fault.ReplaceExamples}, "yes"},
 	{fault.GuardWholeLines, "every line has a kind, gap or guard; the Goal has one to ten lines and at least one gap line",
 		[]fault.Code{fault.TooManyLines, fault.BadLineKind, fault.NoGapLine, fault.PayloadInvalid}, "yes"},
 	{fault.GuardFromEnded, "add goal --from G cites only an ended Goal, landed or closed; checked by the act only, never at replay",
 		[]fault.Code{fault.FromNotEnded}, "no: it is checked by the act only"},
 	{fault.GuardNotEnded, "no write after the owner's land or close ends the Goal; replay also stops an event of the Goal ahead of the end that the end's snapshot does not name",
 		[]fault.Code{fault.Ended, fault.NotInSnapshot}, "yes"},
-	{fault.GuardSelected, "place, run and select need the Goal to have no select; unselect needs it to have one",
-		[]fault.Code{fault.HasSelect, fault.NoSelect, fault.PayloadInvalid}, "yes"},
-	{fault.GuardGrillPlaces, "only the grill places an example",
-		[]fault.Code{fault.NotGrill, fault.PayloadInvalid}, "yes"},
-	{fault.GuardWholeSet, "the set of a place is every folder goals/G/LINE/EXAMPLE; every line holds an example folder, every placed example keeps its folder, and every folder's name is an example name",
-		[]fault.Code{fault.LineHoldsNoExample, fault.PlacedFolderGone, fault.NotAnExampleName}, "no: it reads the example folders"},
+	{fault.GuardSelected, "place, run and select need the Goal not selected; unselect needs it selected, on the commit it names, which no unselect rejected before",
+		[]fault.Code{fault.HasSelect, fault.NoSelect, fault.NotSelectedOn, fault.AlreadyUnselected, fault.PayloadInvalid}, "yes, against a select event; the act reads the select this clone's Results show"},
+	{fault.GuardOwnerPlaces, "only the owner places an example, with the Goal's actor; a place of the older form names the grill and replays as it was",
+		[]fault.Code{fault.NotOwnerPlace, fault.PayloadInvalid}, "yes"},
+	{fault.GuardWholeSet, "the set of an add goal --examples or a place is every folder FOLDER/LINE/EXAMPLE, goals/G/LINE/EXAMPLE by default; every line holds an example folder, every placed example keeps its folder, and every folder's name is an example name",
+		[]fault.Code{fault.LineHoldsNoExample, fault.PlacedFolderGone, fault.NotAnExampleName, fault.ExampleOffLine}, "no: it reads the example folders; replay checks that each example an add carries is on a line of the Goal"},
 	{fault.GuardCommitted, "each example folder's bytes on disk equal its bytes committed at HEAD",
 		[]fault.Code{fault.NotAFolder, fault.FolderOnDisk, fault.NotCommitted, fault.DiskNotCommitted, fault.DiffersAt, fault.SetChangedWhileProbe}, "no: it reads the example folders and git"},
 	{fault.GuardAddsOnly, "a new version of an example only adds floor or ceiling sections; any other change is a new example key; a hash the key held before never comes back, except the current one measured again on H0 after a replace moved H0; a place that changes no example places nothing",
 		[]fault.Code{fault.SetUnchanged, fault.KeyTwiceInSet, fault.AlreadyCurrent, fault.EarlierVersion, fault.SectionDiffers, fault.PathDiffers, fault.DropsFloor, fault.DropsCeiling, fault.AddsNothing}, "yes, the half that reads the events; the act checks the folders' bytes"},
 	{fault.GuardMeetable, "some output can meet each new example: no floor's whole text is an exit line exit N, since hyp cuts the Probe's last line exit N off before it compares; no two equals floors differ; an equals floor holds the text of each contains floor; no floor holds the text of a ceiling",
 		[]fault.Code{fault.FloorIsExitLine, fault.EqualsFloorsDiffer, fault.EqualsLacksContains, fault.FloorHoldsCeiling}, "no: it reads the example folders"},
-	{fault.GuardKind, "H0 gives each changed example the verdict its line's kind needs: a gap example fails, a guard example is met; the place records each example's hash and that verdict in git, and H0's outputs in the clone's trace",
-		[]fault.Code{fault.WrongVerdictOnH0, fault.H0MovedWhilePlacing}, "no: it runs the Probes on H0; replay reads the verdict the place recorded"},
+	{fault.GuardKind, "H0 gives each new or changed example the verdict its line's kind needs: a gap example fails, a guard example is met; the add goal or the place records each example's hash and that verdict in git, and H0's outputs in the clone's trace",
+		[]fault.Code{fault.WrongVerdictOnH0, fault.H0MovedWhilePlacing, fault.AddedVerdictWrong}, "no: it runs the Probes on H0; replay reads the verdict the add or the place recorded"},
 	{fault.GuardBytes, "the commit exists in this clone",
 		[]fault.Code{fault.CommitNotHere, fault.NotACommit}, "no: it reads git"},
 	{fault.GuardOpen, "the Goal is open, unless the commit's subject hash is H0's; the examples do not change while the Probes run",
@@ -436,7 +467,7 @@ var Guards = []Guard{
 		[]fault.Code{fault.BudgetUsed}, "no: it counts the Results of the clone's trace"},
 	{fault.GuardStable, "two runs on the same bytes give one verdict; a run it stops still records its Result, marked, which counts nothing",
 		[]fault.Code{fault.OtherVerdict, fault.VerdictsDiffered, fault.PayloadInvalid}, "no: it reads the cells of the clone's trace; replay keeps the mark a Result was recorded with"},
-	{fault.GuardCandidate, "the row is a candidate, a leaf row met on every line; with two or more candidates only the owner selects",
+	{fault.GuardCandidate, "the row is a candidate, a leaf row met on every line that no unselect rejected; only the owner selects, and a lone candidate is selected by the Results that show it, with no select event",
 		[]fault.Code{fault.RoleCannotSelect, fault.NoRow, fault.OwnerSelectsAmong, fault.RowNotLeaf, fault.RowNotMet, fault.NoResultOnRow}, "no: it reads the cells of the clone's trace"},
 	{fault.GuardNewCell, "after an unselect, the runner selects only once a run recorded a cell whose example version, or whose row, had not run before it; the owner selects at any time",
 		[]fault.Code{fault.NoNewCell}, "no: it reads the cells of the clone's trace"},
@@ -446,7 +477,9 @@ var Guards = []Guard{
 		[]fault.Code{fault.NoSpec, fault.RuleNoVariant, fault.NoChart}, "no: it reads git"},
 	{fault.GuardOwnerLands, "only the owner lands a Goal",
 		[]fault.Code{fault.NotOwner}, "yes"},
-	{fault.GuardStop, "a land needs a stop: selected, two candidates or budget used",
+	{fault.GuardEvidence, "a land on a commit carries, for every current example, its verdict on that commit, from this clone's Result or from a run the land makes first; every verdict is met, the row is not one an unselect rejected, and a select event, when one holds the Goal, is on that row",
+		[]fault.Code{fault.LandNotOpen, fault.CommitUnselected, fault.NotTheSelect, fault.EvidenceMissing, fault.NotMetOnCommit}, "yes: replay reads the verdicts the land carries"},
+	{fault.GuardStop, "a land with no commit needs a stop: two candidates or budget used",
 		[]fault.Code{fault.NoStop, fault.StopNotHeld, fault.PayloadInvalid}, "yes, the stop the land names against the select; the act reads the stop the Results hold"},
 	{fault.GuardOwnerClose, "only the owner closes a Goal, at any stop or none",
 		[]fault.Code{fault.NotOwnerClose, fault.PayloadInvalid}, "yes"},
@@ -515,7 +548,7 @@ type Rule struct {
 // Probe.
 var Rules = []Rule{
 	{"the store", []string{
-		"The store is .tree/ at the git top level: .tree/events/<actor>/<id>.json, one file per event, each written once and never changed. It holds the events of every kind that changes a Goal's state, and nothing else.",
+		"The store is .tree/ at the git top level: .tree/events/<actor>/<id>.json, one file per event, each written once and never changed. It holds the owner's acts, each with the evidence it approves, and nothing else: no act of the grill or the runner writes to it. A store written by an earlier hyp also holds the grill's places and the runner's selects, which replay reads as before.",
 		"An act adds one new file to the store and changes no file in it, so two branches that each record acts merge with a plain git merge, with no merge driver and no conflict, on GitHub too.",
 		"A store written by an earlier hyp also holds .tree/events/<actor>.jsonl, one file per actor of appended lines; hyp reads it as before and appends no line to it.",
 		"The first add goal creates the store; .tree/.gitattributes merges the older per-actor files by union. hyp reads from .tree/ only the events of the kinds that change a Goal's state, and no output.",
@@ -523,7 +556,7 @@ var Rules = []Rule{
 		"The trace is a cache of this clone: a clone that lacks a cell prints that the cell is not in this clone's trace, with the ready hyp try line that runs it again, and a try of a missing cell saves it there.",
 	}},
 	{"merge order and replay", []string{
-		"Replay reads every event of git and of the clone's trace by id, then by actor, then by line bytes, and calculates every table and state on every command; no state is stored. A Goal's state reads only events stored in git, so every clone calculates the same states.",
+		"Replay reads every event of git and of the clone's trace by id, then by actor, then by line bytes, and calculates every table and state on every command; no state is stored. The states written, open and ended read only events stored in git, so every clone calculates them the same; selected is calculated from the Results of this clone's trace, so a clone that lacks them shows the Goal open, and a land carries the evidence it approves into git.",
 		"Replay checks again, at each event's place, the guards whose entry says checked at replay; an event that fails them is listed under refused at replay and never deleted.",
 		"An end names its snapshot, the Goal's events stored in git that replay applied when the owner ended it; an event of a kind an end freezes that the snapshot does not name is stopped by Not ended.",
 	}},
@@ -547,9 +580,9 @@ var Rules = []Rule{
 	{"budget and stops", []string{
 		"The budget is three Hypotheses since the boundary, H0 never counted; a refused run costs nothing, a retracted Result still counts.",
 		"The boundary is the latest of the latest place, the latest budget.reset and the latest unselect, else the Goal's start.",
-		"The stops: selected (a select), two candidates (two or more candidates and no select), budget used (three Hypotheses counted, the third with a live cell for every example, and no candidate).",
+		"The stops: selected (one candidate this clone's Results show that holds a spec and writes no other Goal's folder, or a select event), two candidates (two or more candidates and no select), budget used (three Hypotheses counted, the third with a live cell for every example, and no candidate). A row an unselect rejected is no candidate.",
 		"A stop is calculated, never stored; it waits for the owner. At two candidates and budget used the state block adds the table of outputs.",
-		"Runs, rows, candidates and the stops two candidates and budget used are calculated from the Results of this clone's trace; selected reads the select in git.",
+		"Runs, rows, candidates and every stop are calculated from the Results of this clone's trace; a select event of the older form, or the owner's select among two candidates, is read from git.",
 		"Every state block of a Goal with a select warns when the selected commit is in this clone and on no branch or tag, whatever other commit with the same subject hash is on one.",
 	}},
 	{"the example file", []string{

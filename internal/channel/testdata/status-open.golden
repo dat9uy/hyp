@@ -2,9 +2,10 @@ G-XXXXXX  open  runs: 0 of 3 used
 stop: none
 waits: none
 owner may:
+  hyp place G-XXXXXX
   hyp close G-XXXXXX
 grill may:
-  hyp place G-XXXXXX
+  (none)
 probe-writer may:
   (none)
 runner may:

@@ -8,8 +8,8 @@ binary, and `hyp spec` prints each one. When this page and `hyp spec` differ,
 ## 1. What hyp is for
 
 **A change is admitted only when evidence shows that it meets the owner's
-Goal.** The owner states the Goal as words and lines. The grill places examples
-that can fail. The runner builds Hypotheses, the subjects of its commits, and
+Goal.** The owner states the Goal as words and lines, with the examples the grill
+writes that can fail. The runner builds Hypotheses, the subjects of its commits, and
 runs the lines on them. A
 later reader, such as the owner, a new session or another agent, reads the log
 and the PR body, not a chat. They find in the log what each example printed on
@@ -75,7 +75,7 @@ summary.
 
 ## 6. Who does what
 
-**The owner decides, the grill places, the runner runs, and hyp calculates.**
+**The owner decides and places, the grill writes examples, the runner runs, and hyp calculates.**
 The four roles are `owner`, `grill`, `probe-writer` and `runner`.
 
 1. **The owner records the Goal.** Its words and lines are frozen once it opens.
@@ -86,14 +86,16 @@ The four roles are `owner`, `grill`, `probe-writer` and `runner`.
    added the Goal selects for the owner (the guard Goal's actor).
 3. **The owner ends a Goal.** At a stop the owner lands the Goal, at any stop
    or none the owner may close it, and the owner may unselect a selected Goal
-   so that the grill can place again.
+   so that a new example can be placed. Git holds only the owner's acts.
 4. **The owner merges.** hyp writes nothing to GitHub. The merge is where the
    owner accepts a build and vetoes its mechanics.
-5. **Only the grill places an example** (the guard Grill places). The grill asks
-   the owner product questions only, and reports each decision that no example
+5. **Only the owner places an example** (the guard Owner places). The grill
+   writes the examples and tries them, and records no event. It asks the
+   owner product questions only, and reports each decision that no example
    checks.
-6. **The runner runs lines and selects one candidate.** It never places. It
-   runs only the lines that hyp prints for it.
+6. **The runner runs lines.** It never places and never selects: its runs stay
+   in its clone's trace, and hyp shows the Goal selected when they show one
+   candidate. It runs only the lines that hyp prints for it.
 7. **The probe writer writes no event.**
 8. **hyp does not authenticate a role.** The actor and the role are
    self-declared. A guard that reads them catches an honest mistake, not a lie.

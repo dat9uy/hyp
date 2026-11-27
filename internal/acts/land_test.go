@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/tables"
+	"github.com/dat9uy/hyp/internal/testutil"
 )
 
 func (e *runEnv) landOpts(actor, role string) LandOpts {
@@ -24,52 +26,87 @@ func (e *runEnv) lands(t *testing.T) []events.Event {
 	return out
 }
 
-// selected runs a met leaf with a spec and selects it; it returns the leaf's
-// commit and row tree.
+// selected runs a met leaf with a spec, which this clone then shows
+// selected; it returns the leaf's commit and row tree.
 func (e *runEnv) selected(t *testing.T) (commit, tree string) {
 	t.Helper()
 	commit, tree = e.metLeaf(t, "ok", true)
-	if _, err := Select(e.selectOpts(tree, "runner-1", "runner")); err != nil {
-		t.Fatal(err)
+	if g := e.shown(t); g.State != tables.StateSelected {
+		t.Fatalf("test setup: state %s, want selected", g.State)
 	}
 	return commit, tree
 }
 
-func TestLandAfterSelectNamesTheSelect(t *testing.T) {
+// A land on the selected commit carries its evidence: the commit, its tree,
+// its row tree and each example's verdict, so a clone that replays git alone
+// ends the Goal selected on that commit.
+func TestLandOnTheSelectedCommitCarriesItsEvidence(t *testing.T) {
 	e := newRunEnv(t)
 	commit, tree := e.selected(t)
-	sel := e.selects(t)
+	shown := e.shown(t)
 	rep, err := Land(e.landOpts("owner-1", "owner"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.Stop != StopSelected || rep.Cause.Act != ActSelect || rep.Cause.ID != sel[0].ID {
-		t.Fatalf("report = %+v, want the stop selected caused by %s", rep, sel[0].ID)
+	if rep.Stop != StopSelected || rep.Cause.Act != ActRun || rep.Cause.ID != shown.Select.ID || rep.Commit != commit || len(rep.Ran) != 0 {
+		t.Fatalf("report = %+v, want the stop selected on %s caused by %s", rep, commit, shown.Select.ID)
 	}
 	ls := e.lands(t)
 	var p events.Land
-	if len(ls) != 1 || json.Unmarshal(ls[0].Payload, &p) != nil || p.Stop != StopSelected || p.Cause != sel[0].ID || p.Role != "owner" {
+	if len(ls) != 1 || json.Unmarshal(ls[0].Payload, &p) != nil || p.Stop != StopSelected || p.Role != "owner" {
 		t.Fatalf("lands = %d, payload %+v", len(ls), p)
 	}
-	g := e.goalRow(t)
-	if g.State != tables.StateEnded || g.Land == nil || g.Select == nil {
-		t.Fatalf("state = %s, land %+v", g.State, g.Land)
+	cur, _ := shown.Current("line-1/a")
+	wantTree := testutil.Git(t, e.root, "rev-parse", commit+"^{tree}")
+	if p.Commit != commit || p.Tree != wantTree || p.RowTree != tree || len(p.Verdicts) != 1 ||
+		p.Verdicts[0] != (events.LandVerdict{Line: "line-1", Example: "a", Hash: cur.Hash, Verdict: "met"}) {
+		t.Fatalf("payload = %+v, want the evidence of %s", p, commit)
 	}
-	if st := Stand(g, e.root); st.Stop != StopSelected || st.Waits != "none" || st.Cause.ID != sel[0].ID {
+	g := e.goalRow(t) // replay of git alone
+	if g.State != tables.StateEnded || g.Land == nil || g.Select == nil || g.Select.Commit != commit {
+		t.Fatalf("state = %s, land %+v, select %+v", g.State, g.Land, g.Select)
+	}
+	if st := Stand(g, e.root); st.Stop != StopSelected || st.Waits != "none" {
 		t.Fatalf("standing = %+v", st)
 	}
 	if got := AllowedFor(g, e.root); len(got) != 0 {
 		t.Fatalf("a landed Goal allows %+v", got)
 	}
-	// a landed Goal takes no write: Not landed refuses each
+	// a landed Goal takes no write: Not ended refuses each
 	_, err = Land(e.landOpts("owner-1", "owner"))
 	refusedBy(t, err, "Not ended")
-	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
+	_, err = Select(e.selectOpts(tree, "owner-1", "owner"))
 	refusedBy(t, err, "Not ended")
 	_, err = e.run(commit)
 	refusedBy(t, err, "Not ended")
 	if len(e.lands(t)) != 1 {
 		t.Fatal("a refused land wrote an event")
+	}
+}
+
+// A land on a commit this clone holds no Result of runs each example there
+// first, and lands only when every one is met.
+func TestLandRunsTheExamplesThisCloneLacks(t *testing.T) {
+	e := newRunEnv(t)
+	bad := e.child(t, e.base, map[string]string{"counter": "nope\n", "goals/" + e.goal + "/specs/spec.md": "s\n"})
+	o := e.landOpts("owner-1", "owner")
+	o.Commit = bad
+	_, err := Land(o)
+	refusedBy(t, err, "Evidence")
+	if fault.CodeOf(err) != fault.NotMetOnCommit || len(e.lands(t)) != 0 {
+		t.Fatalf("err = %v, lands = %d", err, len(e.lands(t)))
+	}
+	good := e.child(t, e.base, map[string]string{"counter": "ok\n", "goals/" + e.goal + "/specs/spec.md": "s\n"})
+	o.Commit = good
+	rep, err := Land(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.Commit != good || len(rep.Ran) != 1 || rep.Ran[0] != "line-1/a" || len(rep.Verdicts) != 1 || rep.Verdicts[0].Verdict != "met" {
+		t.Fatalf("report = %+v, want line-1/a run and met on %s", rep, good)
+	}
+	if len(e.results(t)) != 0 {
+		t.Fatal("the land recorded a Result")
 	}
 }
 
@@ -101,7 +138,7 @@ func TestLandAfterBudgetUsedNamesTheLastRun(t *testing.T) {
 
 func TestLandRefusals(t *testing.T) {
 	e := newRunEnv(t)
-	// an open Goal has no stop
+	// an open Goal with no select and no commit named has no stop
 	_, err := Land(e.landOpts("owner-1", "owner"))
 	refusedBy(t, err, "Stop")
 	e.selected(t)
@@ -118,15 +155,15 @@ func TestLandRefusals(t *testing.T) {
 
 func TestStopWaitsForTheOwnerAfterSelect(t *testing.T) {
 	e := newRunEnv(t)
-	e.selected(t)
-	g := e.goalRow(t)
+	commit, _ := e.selected(t)
+	g := e.shown(t)
 	st := Stand(g, e.root)
 	if st.Stop != StopSelected || st.Waits != "owner" {
 		t.Fatalf("standing = %+v", st)
 	}
 	got := AllowedFor(g, e.root)
-	if len(got) != 3 || got[0].Role != "owner" || got[0].Act != ActLand || got[0].Goal != e.goal ||
-		got[1].Role != "owner" || got[1].Act != ActUnselect || got[1].Goal != e.goal ||
+	if len(got) != 3 || got[0].Role != "owner" || got[0].Act != ActLand || got[0].Goal != e.goal || got[0].Commit != commit ||
+		got[1].Role != "owner" || got[1].Act != ActUnselect || got[1].Goal != e.goal || got[1].Commit != commit ||
 		got[2].Role != "owner" || got[2].Act != ActClose || got[2].Goal != e.goal {
 		t.Fatalf("allowed = %+v, want only the owner's land, unselect and close", got)
 	}

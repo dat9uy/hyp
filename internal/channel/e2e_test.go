@@ -29,28 +29,19 @@ func readyLine(t *testing.T, out, role, prefix string) []string {
 	return nil
 }
 
-// TestOneGoalEndToEnd runs one Goal from add goal to select, each next command
-// the line hyp printed.
+// TestOneGoalEndToEnd runs one Goal from add goal to land, each next command
+// the line hyp printed. Git holds only the owner's acts: the add, which
+// carries the examples, and the land, which carries the evidence.
 func TestOneGoalEndToEnd(t *testing.T) {
 	r := testutil.NewRepo(t)
 	keepStoreOut(t, r.Dir)
-	base := r.Commit(t, map[string]string{"title.sh": titleBefore})
+	r.Commit(t, map[string]string{"title.sh": titleBefore})
 	t.Chdir(r.Dir)
 
-	// the owner adds the Goal
-	t.Setenv("HYP_ACTOR", "owner-1")
-	t.Setenv("HYP_ROLE", "owner")
-	code, out, errs := run(t, "add", "goal", "--base", base, "--words", "Show the whole title.",
-		"--line", "gap:status shows the whole title", "--line", "guard:short titles print as today")
-	fields := strings.Fields(out)
-	if code != 0 || len(fields) < 2 || !strings.Contains(out, "stop: none") || !strings.Contains(out, "waits: grill") {
-		t.Fatalf("add goal: code %d, stdout %q, stderr %q", code, out, errs)
-	}
-	goal := fields[1]
-
-	// the grill commits one example per line and places the set
+	// the grill commits a draft folder with one example per line; the commit
+	// that holds it is H0
 	for key, txtar := range map[string]string{"line-1/a": wholeTitle, "line-2/a": shortTitle} {
-		dir := filepath.Join("goals", goal, key)
+		dir := filepath.Join("goals", "draft-title", key)
 		if err := os.MkdirAll(filepath.Join(r.Dir, dir), 0o755); err != nil {
 			t.Fatal(err)
 		}
@@ -60,15 +51,27 @@ func TestOneGoalEndToEnd(t *testing.T) {
 		r.WriteExec(t, filepath.Join(dir, "probe", "run"), fixtureProbe)
 	}
 	testutil.Git(t, r.Dir, "add", "-A")
-	testutil.Git(t, r.Dir, "commit", "-q", "-m", "examples")
-	t.Setenv("HYP_ACTOR", "grill-1")
-	t.Setenv("HYP_ROLE", "grill")
-	if code, out, errs := run(t, "place", goal); code != 0 {
-		t.Fatalf("place: code %d, stdout %q, stderr %q", code, out, errs)
+	testutil.Git(t, r.Dir, "commit", "-q", "-m", "draft examples")
+	base := testutil.Git(t, r.Dir, "rev-parse", "HEAD")
+
+	// the owner adds the Goal with the draft folder: it is open at once
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
+	code, out, errs := run(t, "add", "goal", "--base", base, "--words", "Show the whole title.",
+		"--line", "gap:status shows the whole title", "--line", "guard:short titles print as today",
+		"--examples", "goals/draft-title")
+	fields := strings.Fields(out)
+	if code != 0 || len(fields) < 2 || !strings.Contains(out, " is open") || !strings.Contains(out, "copied the examples to goals/") {
+		t.Fatalf("add goal: code %d, stdout %q, stderr %q", code, out, errs)
 	}
-	_, out, _ = run(t, "status")
-	if !strings.Contains(out, goal+"  open  runs: 0 of 3 used\nstop: none\n") {
-		t.Fatalf("the Goal is not open after both placements:\n%s", out)
+	goal := fields[1]
+	if _, err := os.Stat(filepath.Join(r.Dir, "goals", goal, "line-1", "a", "example.txtar")); err != nil {
+		t.Fatalf("the examples are not copied to the Goal's folder: %v", err)
+	}
+	testutil.Git(t, r.Dir, "add", "-A")
+	testutil.Git(t, r.Dir, "commit", "-q", "-m", "add the Goal")
+	if _, out, _ = run(t, "status"); !strings.Contains(out, goal+"  open  runs: 0 of 3 used\nstop: none\n") {
+		t.Fatalf("the Goal is not open after the add:\n%s", out)
 	}
 
 	// the runner commits the fix and the spec, then runs both lines on it
@@ -84,25 +87,28 @@ func TestOneGoalEndToEnd(t *testing.T) {
 			t.Fatalf("%s: code %d, stdout %q, stderr %q", line, code, out, errs)
 		}
 	}
-
-	// the only candidate is the fix: the runner selects with the printed line
-	status := mustStatus(t)
-	if !strings.Contains(status, "stop: none") {
-		t.Fatalf("status before the select:\n%s", status)
-	}
-	selectArgs := readyLine(t, status, "runner", "hyp select "+goal+" ")
-	code, out, errs = run(t, selectArgs...)
-	if code != 0 || !strings.HasPrefix(out, "# "+goal+": Show the whole title.") ||
-		!strings.Contains(out, "## line-1 (gap): status shows the whole title") ||
-		!strings.Contains(out, "selected commit: "+fix) {
-		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
-	}
-	_, status, _ = run(t, "status", goal)
-	if !strings.Contains(status, "stop: selected") || !strings.Contains(status, "selected commit: "+fix) {
-		t.Fatalf("status after the select:\n%s", status)
-	}
 	if got := testutil.Snapshot(t, r.Dir); got != afterCommit {
 		t.Fatal("hyp changed the repository's git state between the last commit and the select")
+	}
+
+	// the only candidate is the fix: this clone shows the Goal selected, and
+	// status prints the PR body
+	_, status, _ := run(t, "status", goal)
+	if !strings.Contains(status, "stop: selected") || !strings.Contains(status, "selected commit: "+fix) ||
+		!strings.Contains(status, "## line-1 (gap): status shows the whole title") {
+		t.Fatalf("status after the runs:\n%s", status)
+	}
+
+	// the owner lands with the printed line
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
+	landArgs := readyLine(t, mustStatus(t), "owner", "hyp land "+goal+" ")
+	code, out, errs = run(t, landArgs...)
+	if code != 0 || !strings.Contains(out, fix) {
+		t.Fatalf("land: code %d, stdout %q, stderr %q", code, out, errs)
+	}
+	if _, status, _ = run(t, "status", goal); !strings.Contains(status, "ended") {
+		t.Fatalf("status after the land:\n%s", status)
 	}
 }
 

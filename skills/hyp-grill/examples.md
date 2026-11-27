@@ -1,7 +1,8 @@
 # The examples
 
-The examples part of hyp-grill. Use it when the Goal is recorded and its lines
-need examples. You propose the examples; the owner chooses their direction:
+The examples part of hyp-grill. Use it when the owner agreed to the Goal's
+words and lines, before the owner adds the Goal: the add carries the examples,
+and the Goal is open at once. You propose the examples; the owner chooses their direction:
 which reading of each line an example checks. A reading is one part or one
 meaning of a line's words. Ask in two rounds: first the readings of every line,
 then, after you write the floors, the split question. Ask no question about
@@ -26,7 +27,7 @@ full: the owner may read only the last message, not the status before it.
      reading in words alone is not enough to write a floor from.
 
    A model print is a direction, never a verdict: the example written from the
-   choice is still tried on H0 before it is placed (step 7), and a model result
+   choice is still tried on H0 before the owner adds it (step 7), and a model result
    never counts at select. Use plain English and no model word other than the
    "model print, not built" mark.
 2. **Write one example per chosen reading.** Its `words` section is the
@@ -49,8 +50,10 @@ full: the owner may read only the last message, not the status before it.
    the owner's choice names two things, never in advance. A split changes the
    lines, so the owner records it while the Goal is `written`. When the owner
    keeps one line, it holds one example per reading.
-4. **One folder per example**, at `goals/<G>/<line>/<example>/`, with an
-   `example.txtar` and a `probe/` folder. A new reading is a new example key,
+4. **One folder per example**, in a draft folder on the record branch, at
+   `goals/draft-<name>/<line>/<example>/`, with `<line>` the key the line will
+   get (`line-1` for the first), and with an `example.txtar` and a `probe/`
+   folder. The owner's add copies the set to `goals/<G>/`. A new reading is a new example key,
    never a new version of an existing one. The `example.txtar` sections are
    `words` (the reading the owner chose), `run` (the command run on the subject),
    `input/<path>` files, and at least one `floor: contains` or `floor: equals`,
@@ -67,33 +70,40 @@ full: the owner may read only the last message, not the status before it.
    [probe-writers.md](probe-writers.md): write no Probe code yourself, start a
    Probe writer from the block `hyp status G --role probe-writer` prints, and
    bring its commit onto the record branch.
-7. **Run `hyp try` before you place.** Do these in order:
+7. **Run `hyp try` before the owner adds the Goal.** Do these in order:
    - **Try each example on H0.** A gap example must fail on H0 and a guard
-     example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
-     verdict, exit code, output and stderr. It records nothing and uses no
+     example must be met on H0. Run
+     `hyp try --examples goals/draft-<name> --base COMMIT LINE/EXAMPLE`, with
+     COMMIT the H0 the add will name, or `hyp try G LINE/EXAMPLE` for a new
+     example of an added Goal, and read its verdict, exit code, output and
+     stderr. It records nothing and uses no
      run. When the verdict is not the one the line needs, fix the example and
      try again.
    - **Add the H0 ceilings.** A gap example's H0 output shows the behaviour
      the line wants gone: text of it that a half-fixed build could still print
      becomes a ceiling, copied byte for byte. Name each such ceiling in the
      hand-off with its H0 text; the owner may drop it.
-   - **Read the findings again.** Before you place, run `hyp status G` and
-     `hyp finding list` again: each finding G names, and each finding recorded
-     during the grill whose fact bears on G, is new evidence. It becomes an
+   - **Read the findings again.** Before the owner adds the Goal, run
+     `hyp status` and `hyp finding list` again: each finding the Goal will
+     name, and each finding recorded during the grill whose fact bears on it,
+     is new evidence. It becomes an
      example on the line its fact bears on, which names the finding in a
      `findings` section, one finding id per line, or the hand-off says why no
-     line needs it. hyp refuses the set while a finding that G names at
+     line needs it. hyp refuses the set while a finding that the Goal names at
      `add goal` has no example that names it. Check that the words of each
      example that names a finding state that finding's fact, in words the
      owner reads.
-   - **Place the whole set.** When every line holds its examples, commit the
-     folders and place the whole set with the one place line
-     `hyp status G --role grill` prints, `hyp place G`. hyp runs each new or
-     changed example on H0 and places the set only when every example gives
-     its line's verdict there. Otherwise it places none of the set and names
-     each example that disagrees, each line that holds no example and each
-     folder it cannot place, with the guard that refused it. Fix every cause
-     and place again. A placed example stays in the set: never remove its
+   - **The owner adds the Goal with the whole set.** When every line holds
+     its examples, commit the draft folder and draft the owner's add with
+     `--examples goals/draft-<name>`. hyp runs each example on H0 and records
+     the Goal, open at once, with each example's hash and verdict, only when
+     every example gives its line's verdict there. Otherwise it records no
+     Goal and names each example that disagrees, each line that holds no
+     example and each folder it cannot read, with the guard that refused it.
+     Fix every cause and draft the add again. A new example of an open Goal
+     is the owner's act too: the place line `hyp status G --role owner`
+     prints, with `--examples` naming the folder that holds the set, under
+     the same rules. A placed example stays in the set: never remove its
      folder.
 8. **Stop when the Goal has enough.** The Goal has enough when every line
    holds an example that gives its line's verdict on H0 (`hyp status G` shows
