@@ -1,0 +1,10 @@
+-- words --
+When hyp add goal cannot write the Goal's folder, it records no Goal: goals/ is read-only when the owner adds a Goal with the draft x, and hyp status then shows no Goal in work.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Count.' --line 'gap:the counter says ok.' --draft x >/dev/null 2>&1; HYP_ACTOR=owner hyp status
+-- floor: contains --
+no Goal is in work
+-- ceiling --
+  open  runs:
+-- findings --
+F-FHBFK9
