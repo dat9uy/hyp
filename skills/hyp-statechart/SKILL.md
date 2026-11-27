@@ -16,8 +16,9 @@ separate. Which output is wanted is the owner's choice. The chart shows the
 owner, in the owner's words, how the system moves between states.
 
 hyp reads the model's files and runs no model checker. At select, when the
-spec folder holds a model, hyp refuses the commit while a rule the check config
-checks has no variant config that names it, or while the folder holds no chart.
+spec folder holds a model, hyp refuses the commit in two cases. One case is a
+rule the check config checks that no variant config names. The other case is a
+folder that holds no chart.
 A model result never counts at select: only the examples on the commit count.
 
 ## When to use
@@ -50,10 +51,10 @@ record branch so that every runner commit holds it:
 A repository keeps one model of its machine in `goals/model/`: a TLA+ module
 and its check config. It is no Goal's folder, so a runner's own commit may
 change it. A Goal whose change moves the machine changes the kept model
-instead of writing the whole machine again: the commit edits `goals/model/`,
+instead of writing the whole machine again. The commit edits `goals/model/`,
 and the Goal's spec folder holds the variant configs and the chart. Run the
 tool on the kept model with `--out` in the Goal's spec folder, such as
-`--out goals/<G>/specs/out`: it then writes the variant configs under
+`--out goals/<G>/specs/out`. It then writes the variant configs under
 `goals/<G>/specs/variants/` and none under `goals/model/`.
 
 Name the source of a kept rule with its Goal: `\* source: G-XXXXXX:line-2`
@@ -63,12 +64,26 @@ selected commit adds or changes in the kept model: a step by its command, a
 rule with the words of the line its source names, or `no line`.
 
 At select, hyp compares the kept model of the commit with H0's, whatever
-commit the clone has checked out. Each rule that is new, or whose
-definition text differs, needs a variant config under
-`goals/<G>/specs/variants/` that names it; a rule the commit leaves as it was
-needs none. A change to the kept model also needs a chart in the Goal's spec
+commit the clone has checked out. Each rule that is new, or whose definition
+text differs, needs a variant config under `goals/<G>/specs/variants/` that
+names it. A rule the commit leaves as it was needs none. A change to the kept model also needs a chart in the Goal's spec
 folder. A Goal whose spec folder holds its own whole model is checked as the
 start of this skill says.
+
+## Steps, prints and outside reads
+
+A step is an action that changes a variable: a side effect of the system, such
+as a write to its store. A read or a refusal is a print, not a step. A variable
+changes only inside an action that a command takes.
+
+What a step reads from outside the system is that step's input. Examples are
+git history, a file another program wrote, a clock or a web service. When a
+rule or a later step needs the input, the step stores it in a variable, as the
+value or as the hash of the bytes. No rule or print reads the outside system
+again.
+
+Test the model: rewrite or remove the outside system's history. No variable
+may change.
 
 ## How to write the model
 

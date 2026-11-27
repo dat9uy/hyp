@@ -37,6 +37,13 @@ Results, their outputs, the findings and what hyp printed to each actor. The
 trace is a cache. It may be lost with its clone, and a reader that lacks a cell
 runs the example again. `hyp show` prints what hyp printed, byte for byte.
 
+**A Goal's state never comes from another system's history.** An act may read
+git, the file system or the clock. What it reads is the input of that one act,
+and the event it writes carries what a later state needs, as the value or the
+hash of the bytes. Replay calculates a Goal's state from events alone, so a
+rebase, a squash or a new clone changes none. A write is a step; a read of the
+state is a print.
+
 ## 3. H0 and the lines are the prior; an example is evidence only if it can fail
 
 **An example counts only when H0 gives the verdict its line needs.** H0 is the
