@@ -272,7 +272,9 @@ var Commands = []Command{
 `},
 	{Name: "show",
 		Help: `  show ACTOR                             print every output hyp printed to
-                                         ACTOR, byte for byte, oldest first;
+                                         ACTOR, byte for byte, oldest first,
+                                         then the step log of each of
+                                         ACTOR's Results that keeps one;
                                          an argument that is not an actor
                                          name exits 2, and a Goal id names
                                          hyp status G
@@ -586,6 +588,12 @@ var Rules = []Rule{
 		"No state or print reads git history: an act that reads git, such as run or land, carries what it read in its event, the commits of the Goal's rows its commit descends from, its spec folder and its kept model, and rows, leaves, candidates, the Spec guard of the calculated select and the prints of the selected commit are calculated from events. A select or land of the older form, which carries no read, is printed from git.",
 		"Every state block of a Goal with a select warns when the selected commit is in this clone and on no branch or tag, whatever other commit with the same subject hash is on one.",
 	}},
+	{"the step log", []string{
+		"A step log is a file of step lines, one step per line: step <Action> <json>, where Action is the name of a step and json is one JSON value on the same line. Any program can write it; a writer only appends to it, and never changes or removes a line.",
+		"With HYP_STEP_LOG set to a file, hyp appends to it one step line for each event it writes, after the event is stored: Action is the step its kind's entry names and json is the event line as stored. A read writes no step line, and a command that writes no event, such as hyp spec, appends nothing.",
+		"With HYP_STEP_LOG unset or empty, hyp writes no step line anywhere, and every command prints and writes the same as without the step log.",
+		"For each Probe run hyp sets HYP_STEP_LOG to a fresh file; run keeps that file in the clone's trace, outputs/<sha256>, when the subject's programs wrote to it, and the Result's cell of the example carries its hash. hyp show ACTOR prints, after the reads, the step log of each Result of the actor that keeps one.",
+	}},
 	{"the example file", []string{
 		"An example is goals/G/LINE/EXAMPLE/ with example.txtar and probe/. Its sections: words (one), input/<path> (any), run (one), floor: contains and floor: equals (one or more floors), ceiling (any), external (at most one), findings (at most one: the id of each finding the example names, one per line).",
 		"One literal per section, byte for byte; a section body's final newline does not count.",
@@ -593,7 +601,7 @@ var Rules = []Rule{
 	}},
 	{"the Probe", []string{
 		"hyp runs probe/run with empty stdin and a 10 minute timeout, in a fresh copy of the commit's subject ($HYP_SUBJECT), with $HYP_EXAMPLE a copy of the example folder and $HYP_RUN the run section.",
-		"Only PATH, HOME and the names of the external section pass from the environment.",
+		"Only PATH, HOME and the names of the external section pass from the environment; HYP_STEP_LOG names a fresh empty step log of that run (the step log).",
 		"The Probe prints the stdout of run, then a last line exit N; the output is the rest, with one final newline dropped. Its stderr is kept beside it and never compared.",
 		"A Probe that exits non-zero, times out or prints no exit line records nothing: exit 3.",
 	}},

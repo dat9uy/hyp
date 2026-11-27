@@ -291,6 +291,9 @@ An action of a model that changes state: a side effect, such as an act that writ
 **Walk**:
 The steps that an example's Probe and run section take, in the order they call their commands. An example is a requirement on a walk: its floors and ceilings say what the run section's steps must print. The statechart tool predicts an example from its walk; when it cannot see the walk, it predicts no verdict and lists the example to try on every variant.
 
+**Step log**:
+The steps a program really took, as a file of step lines, one per line: `step <Action> <json>`. Any program may append to it. hyp appends one step line for each event it writes while `HYP_STEP_LOG` names a file, with the step its event kind names and the event as stored. For each Probe run hyp sets `HYP_STEP_LOG` to a fresh file; `run` keeps it in the clone's trace when the subject wrote to it, the Result names it by hash, and `hyp show` prints it (`hyp spec`, the step log). A walk is what the kept model says the steps are; a step log is what they were.
+
 **Job**:
 What a Goal line names in the kept model: a step, or a rule over several steps. A rule names its line with the source comment `\* source: G:line-N` above it, and only such a rule is a want. Agents also write steps, prints and `model only` rules; these describe the build. A later Goal changes a job by changing the step or rule that a line names.
 _Avoid_: feature, capability

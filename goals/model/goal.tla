@@ -32,10 +32,20 @@ EXTENDS Naturals, FiniteSets, Sequences
 \* history, so a clone whose runner commits were pruned shows the Goal open.
 \* RowsFromBranches: hyp status reads the rows from the branches, so a clone
 \* whose runner branches were deleted shows the Goal open.
+\* KeepsNoSteps: run keeps no step of its Probe, as on H0.
+\* SharedStepLog: one step log for the whole hyp run, so the log a Result
+\* keeps holds the steps of every Probe run before it.
+\* ShowOmitsSteps: hyp show prints the reads and no step log.
+\* StepsForReads: hyp appends a step line for the read a command records,
+\* not only for the events of its act.
+\* StepsWhenUnset: with HYP_STEP_LOG unset, hyp appends its step lines to a
+\* file of its own.
 CONSTANTS GrillPlaces, AddGoalAcceptsDisagreeing, AddExampleSkipsH0,
           AddExampleSkipsAddsOnly, RunWritesGit, SelectIgnoresMissing,
           LandTrustsMissing, UnselectNamesNothing, SelectIgnoresUnselect,
-          IgnoreOldSelect, StatusReadsHistory, RowsFromBranches
+          IgnoreOldSelect, StatusReadsHistory, RowsFromBranches,
+          KeepsNoSteps, SharedStepLog, ShowOmitsSteps, StepsForReads,
+          StepsWhenUnset
 
 \* The number of clones and of commits, 1 or 2 each. The check config uses
 \* two of each; the chart config, which only draws the chart, one of each.
@@ -44,13 +54,22 @@ CONSTANTS NClones, NCommits
 \* pruned and branchGone are git outside hyp: the runner's branches were
 \* deleted, and git pruned the commits no ref reaches. A run reads git and
 \* its Result carries what it read, so no other variable depends on them.
+\* kept is the steps the step logs of a clone's Results keep, each the steps
+\* the subject's hyp wrote while its Probe ran; keptWrong is a Result whose
+\* step log is not the steps of its own Probe.
+\* extraStep is a step line appended to the file HYP_STEP_LOG names that no
+\* event of the command wrote, and stray is a step line written while
+\* HYP_STEP_LOG was unset.
+\* showDropped is a hyp show that printed fewer steps than the trace keeps.
 VARIABLES form, added, atAdd, later, results, unselected, anyUnselect,
           rejected, landed, landVerdict, closed, gitWriters, out,
-          pruned, branchGone
+          pruned, branchGone, kept, keptWrong, extraStep, stray, showDropped
 
 vars == <<form, added, atAdd, later, results, unselected, anyUnselect,
           rejected, landed, landVerdict, closed, gitWriters, out,
-          pruned, branchGone>>
+          pruned, branchGone, kept, keptWrong, extraStep, stray, showDropped>>
+
+stepVars == <<extraStep, stray>>
 
 Clones == IF NClones = 1 THEN {"a"} ELSE {"a", "b"}
 C == IF NCommits = 1 THEN {"c1"} ELSE {"c1", "c2"}
@@ -63,6 +82,22 @@ Agrees(e) == e # "bad"
 AddsOnly(e) == e # "e1x"
 \* The verdict an example gives on a commit's bytes.
 Truth(c, e) == IF c = "c2" /\ e = "e2" THEN "failed" ELSE "met"
+
+\* The steps the subject's hyp takes in an example's Probe: e1's Probe adds
+\* a Goal, e2's adds a finding, the others take no act.
+StepNames == {"AddGoal", "FindingAdd", "Place", "Run", "Land", "Unselect",
+              "Close", "Read"}
+ProbeSteps(e) == IF e = "e1" THEN {"AddGoal"}
+                 ELSE IF e = "e2" THEN {"FindingAdd"} ELSE {}
+
+\* The step lines of one command, with HYP_STEP_LOG set or not: ev is the
+\* step of the event its act writes, or "none", and with HYP_STEP_LOG set
+\* hyp appends the step line of ev. A command that names an actor also
+\* records a read, which has no step; with StepsForReads hyp appends a step
+\* line for it as well.
+Steps(set, ev) ==
+    /\ extraStep' = (extraStep \/ (set /\ StepsForReads))
+    /\ stray' = (stray \/ (~set /\ StepsWhenUnset /\ ev # "none"))
 
 placed == atAdd \cup later
 ended == landed # "none" \/ closed
@@ -79,6 +114,9 @@ GoalTypeOK ==
     /\ closed \in BOOLEAN
     /\ gitWriters \subseteq {"owner", "grill", "runner"}
     /\ pruned \in BOOLEAN /\ branchGone \in BOOLEAN
+    /\ kept \in [Clones -> SUBSET StepNames] /\ keptWrong \in BOOLEAN
+    /\ extraStep \in BOOLEAN
+    /\ stray \in BOOLEAN /\ showDropped \in BOOLEAN
 
 \* The old form's select of c1 holds while no unselect event exists.
 OldSel == IF form = "old" /\ ~IgnoreOldSelect /\ ~anyUnselect
@@ -121,24 +159,32 @@ Init ==
     /\ out = "none"
     /\ pruned = FALSE
     /\ branchGone = FALSE
+    /\ kept = [k \in Clones |-> {}]
+    /\ keptWrong = FALSE
+    /\ extraStep = FALSE
+    /\ stray = FALSE
+    /\ showDropped = FALSE
 
 \* The owner adds the Goal with its examples, each with its hash and its
 \* verdict on H0.
 \* command: hyp add goal
 AddGoal ==
-    \E S \in {{"e1"}, {"e1", "bad"}} :
+    \E S \in {{"e1"}, {"e1", "bad"}}, set \in BOOLEAN :
         /\ ~added
         /\ IF ~GrillPlaces /\ ~AddGoalAcceptsDisagreeing
                  /\ \E e \in S : ~Agrees(e)
            THEN /\ out' = "add goal exit 1: wrong-verdict-on-h0"
+                /\ Steps(set, "none")
                 /\ UNCHANGED <<added, atAdd, gitWriters, pruned, branchGone>>
            ELSE /\ added' = TRUE
                 /\ atAdd' = IF GrillPlaces THEN {} ELSE S
                 /\ gitWriters' = gitWriters \cup {"owner"}
                 /\ out' = IF GrillPlaces THEN "add goal exit 0: written"
                           ELSE "add goal exit 0: open"
+                /\ Steps(set, "AddGoal")
         /\ UNCHANGED <<form, later, results, unselected, anyUnselect,
-                       rejected, landed, landVerdict, closed, pruned, branchGone>>
+                       rejected, landed, landVerdict, closed, pruned, branchGone,
+                       kept, keptWrong, showDropped>>
 
 \* An act adds a new example to the Goal: the owner's, or with GrillPlaces
 \* the grill's place of today.
@@ -157,11 +203,21 @@ Place ==
                 /\ gitWriters' = gitWriters \cup
                        {IF GrillPlaces THEN "grill" ELSE "owner"}
                 /\ out' = "place exit 0: " \o e
+        /\ Steps(FALSE, IF out' = "place exit 0: " \o e THEN "Place" ELSE "none")
         /\ UNCHANGED <<form, added, atAdd, results, unselected, anyUnselect,
-                       rejected, landed, landVerdict, closed, pruned, branchGone>>
+                       rejected, landed, landVerdict, closed, pruned, branchGone,
+                       kept, keptWrong, showDropped>>
+
+\* The step log a run of example e in clone k keeps: the steps the subject's
+\* hyp took in e's Probe. With SharedStepLog it also holds the steps of the
+\* Probes run before it.
+RunLog(k, e) ==
+    IF KeepsNoSteps THEN {}
+    ELSE IF SharedStepLog THEN ProbeSteps(e) \cup kept[k]
+    ELSE ProbeSteps(e)
 
 \* The runner runs one example on one commit in clone k. The Result goes to
-\* that clone's trace.
+\* that clone's trace, with the step log of the example's Probe.
 \* command: hyp run
 Run ==
     \E k \in Clones, c \in C, e \in Ex :
@@ -169,11 +225,15 @@ Run ==
         /\ e \in placed
         /\ results[k][c][e] = "none"
         /\ results' = [results EXCEPT ![k][c][e] = Truth(c, e)]
+        /\ kept' = [kept EXCEPT ![k] = @ \cup RunLog(k, e)]
+        /\ keptWrong' = (keptWrong \/ RunLog(k, e) # ProbeSteps(e))
         /\ gitWriters' = IF RunWritesGit THEN gitWriters \cup {"runner"}
                          ELSE gitWriters
         /\ out' = "run exit 0: " \o c \o " " \o e \o " " \o Truth(c, e)
+        /\ Steps(FALSE, "Run")
         /\ UNCHANGED <<form, added, atAdd, later, unselected, anyUnselect,
-                       rejected, landed, landVerdict, closed, pruned, branchGone>>
+                       rejected, landed, landVerdict, closed, pruned, branchGone,
+                       showDropped>>
 
 \* What hyp status G prints in clone k, calculated from events alone.
 StatusFromEvents(k) ==
@@ -195,11 +255,31 @@ StatusText(k) ==
 \* hyp status G in clone k: a read; it changes only what is printed.
 \* command: hyp status
 Status ==
-    \E k \in Clones :
+    \E k \in Clones, set \in BOOLEAN :
         /\ out' = StatusText(k)
+        /\ Steps(set, "none")
         /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                        anyUnselect, rejected, landed, landVerdict, closed,
-                       gitWriters, pruned, branchGone>>
+                       gitWriters, pruned, branchGone, kept, keptWrong, showDropped>>
+
+\* The steps the Results of clone k keep, which hyp show prints.
+KeptIn(k) == kept[k]
+
+ShowText(k) ==
+    IF ShowOmitsSteps \/ KeptIn(k) = {} THEN "show: no step"
+    ELSE "show: step " \o (IF "AddGoal" \in KeptIn(k) THEN "AddGoal" ELSE "FindingAdd")
+
+\* hyp show of the runner in clone k: a read; it prints the reads, then the
+\* step log each Result keeps.
+\* command: hyp show
+Show ==
+    \E k \in Clones :
+        /\ out' = ShowText(k)
+        /\ showDropped' = (showDropped \/ (ShowOmitsSteps /\ KeptIn(k) # {}))
+        /\ Steps(FALSE, "none")
+        /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
+                       anyUnselect, rejected, landed, landVerdict, closed,
+                       gitWriters, pruned, branchGone, kept, keptWrong>>
 
 \* The commits clone k lets the owner land: the selected one, or a row with
 \* no failed Result and at least one met, whose missing Results land runs.
@@ -232,8 +312,9 @@ Land ==
                       /\ out' = "land exit 0: " \o c
                  ELSE /\ out' = "land exit 1: not met on " \o c
                       /\ UNCHANGED <<landed, landVerdict, gitWriters, pruned, branchGone>>
+        /\ Steps(FALSE, IF landed' # "none" THEN "Land" ELSE "none")
         /\ UNCHANGED <<form, added, atAdd, later, unselected, anyUnselect,
-                       rejected, closed, pruned, branchGone>>
+                       rejected, closed, pruned, branchGone, kept, keptWrong, showDropped>>
 
 \* The owner unselects the commit clone k shows selected, naming it.
 \* command: hyp unselect
@@ -248,8 +329,9 @@ Unselect ==
         /\ anyUnselect' = TRUE
         /\ gitWriters' = gitWriters \cup {"owner"}
         /\ out' = "unselect exit 0: " \o SelectedIn(k)
+        /\ Steps(FALSE, "Unselect")
         /\ UNCHANGED <<form, added, atAdd, later, results, landed,
-                       landVerdict, closed, pruned, branchGone>>
+                       landVerdict, closed, pruned, branchGone, kept, keptWrong, showDropped>>
 
 \* The runner's branches are deleted; their commits stay until git prunes
 \* them. Git outside hyp: no variable of hyp changes.
@@ -260,7 +342,7 @@ DeleteBranch ==
     /\ out' = "branches deleted"
     /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                    anyUnselect, rejected, landed, landVerdict, closed,
-                   gitWriters, pruned>>
+                   gitWriters, pruned, kept, keptWrong, stepVars, showDropped>>
 
 \* Git prunes the commits no ref reaches, such as after a rebase, a squash
 \* or a new clone.
@@ -271,7 +353,7 @@ Prune ==
     /\ out' = "commits pruned"
     /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                    anyUnselect, rejected, landed, landVerdict, closed,
-                   gitWriters, branchGone>>
+                   gitWriters, branchGone, kept, keptWrong, stepVars, showDropped>>
 
 \* command: hyp close
 Close ==
@@ -279,13 +361,19 @@ Close ==
     /\ closed' = TRUE
     /\ gitWriters' = gitWriters \cup {"owner"}
     /\ out' = "close exit 0"
+    /\ Steps(FALSE, "Close")
     /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
-                   anyUnselect, rejected, landed, landVerdict, pruned, branchGone>>
+                   anyUnselect, rejected, landed, landVerdict, pruned, branchGone,
+                   kept, keptWrong, showDropped>>
 
-Next == AddGoal \/ Place \/ Run \/ Status \/ Land \/ Unselect \/ Close
-        \/ DeleteBranch \/ Prune
+Next == AddGoal \/ Place \/ Run \/ Status \/ Show \/ Land \/ Unselect
+        \/ Close \/ DeleteBranch \/ Prune
 
 Spec == Init /\ [][Next]_vars
+
+\* The bound of a chart config only: the chart draws the new form of the
+\* store. The check config sets no bound.
+ChartNewForm == form = "new"
 
 \* source: G-T5QHQF:line-1
 OpenAtOnce == added => (ended \/ placed # {})
@@ -331,5 +419,18 @@ StatusSameAfterPrune ==
 \* source: G-YFB9QP:line-2
 StatusSameWithoutBranch ==
     branchGone => \A k \in Clones : StatusText(k) = StatusFromEvents(k)
+
+\* source: G-KDGPDT:line-1
+RunKeepsOwnSteps ==
+    ~keptWrong
+
+\* source: G-KDGPDT:line-2
+ShowPrintsSteps == ~showDropped
+
+\* source: G-KDGPDT:line-3
+OneStepPerEvent == ~extraStep
+
+\* source: G-KDGPDT:line-5
+NoStepWhenUnset == ~stray
 
 =============================================================================

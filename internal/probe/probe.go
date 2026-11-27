@@ -42,13 +42,15 @@ type Opts struct {
 type Out struct {
 	Stdout, Stderr []byte
 	Exit           int
+	Steps          []byte // the step log the subject's programs appended to $HYP_STEP_LOG
 }
 
 // Run extracts the subject of o.Commit (or copies the checkout's files) and
 // the example folder o.ExampleHash (or copies o.ExampleDir) into a fresh
 // temporary folder, runs the example's probe/run in the subject
 // with empty stdin and only PATH, HOME, the example's external names and the
-// HYP_ variables in its environment, and splits the last line "exit N" from
+// HYP_ variables in its environment, $HYP_STEP_LOG a fresh file the run's
+// step log is read from, and splits the last line "exit N" from
 // what it printed. A Probe that cannot start, exits non-zero itself, times
 // out or prints no final "exit N" line is an environment error naming the
 // example; nothing is recorded. The temporary folder is removed on return.
@@ -116,7 +118,8 @@ func Run(o Opts) (Out, error) {
 			env = append(env, ext+"="+v)
 		}
 	}
-	env = append(env, "HYP_SUBJECT="+subject, "HYP_EXAMPLE="+exampleDir, "HYP_RUN="+ex.Run)
+	stepLog := filepath.Join(tmp, "steps")
+	env = append(env, "HYP_SUBJECT="+subject, "HYP_EXAMPLE="+exampleDir, "HYP_RUN="+ex.Run, "HYP_STEP_LOG="+stepLog)
 
 	script := filepath.Join(exampleDir, "probe", "run")
 	if fi, err := os.Stat(script); err != nil || !fi.Mode().IsRegular() {
@@ -158,7 +161,11 @@ func Run(o Opts) (Out, error) {
 	if !ok {
 		return Out{}, fault.EnvFault(fault.ProbeNoExitLine, name)
 	}
-	return Out{Stdout: body, Stderr: stderr.Bytes(), Exit: code}, nil
+	steps, err := os.ReadFile(stepLog)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return Out{}, fault.EnvFault(fault.FileRead, stepLog, err)
+	}
+	return Out{Stdout: body, Stderr: stderr.Bytes(), Exit: code, Steps: steps}, nil
 }
 
 // splitExitLine splits the last line "exit N" off out. It returns the bytes

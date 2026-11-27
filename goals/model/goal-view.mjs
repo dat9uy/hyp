@@ -12,7 +12,18 @@ export const state = (v) => ({
     : v.branchGone
       ? "runner branches deleted"
       : "every commit held",
+  "Step log": stepLog(v),
 });
+
+const stepLog = (v) => {
+  if (v.stray) return "a step line written with HYP_STEP_LOG unset";
+  if (v.extraStep) return "a step line no event wrote";
+  if (v.showDropped) return "hyp show left out kept steps";
+  if (v.keptWrong) return "a Result keeps steps not its own";
+  return Object.values(v.kept).some((l) => l.length > 0)
+    ? "a Result keeps a step log"
+    : "no step log kept";
+};
 
 const goalState = (v) => {
   const store = v.form === "old" ? "old store: " : "";
@@ -54,6 +65,7 @@ export const step = (action, from, to) =>
     Place: "the owner adds an example",
     Run: "the runner runs an example on a commit",
     Status: "you read hyp status",
+    Show: "you read hyp show",
     Land: "the owner lands",
     Unselect: "the owner unselects the commit shown selected",
     Close: "the owner closes the Goal",

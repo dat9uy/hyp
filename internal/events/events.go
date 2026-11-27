@@ -63,6 +63,7 @@ type Kind struct {
 	Goal    string // the Goal the event belongs to, as its node names it
 	Frozen  bool   // an end of its Goal refuses it at replay when the end's snapshot does not name it
 	Writer  string // the act that writes it
+	Step    string // the step of the kept model whose name its step line carries, or "" for none
 }
 
 // Home is where the kind is stored: git when it changes a Goal's state, else
@@ -82,21 +83,21 @@ func (k Kind) Home() string {
 // the Goal selected on it, with no event. hyp reads an event of a kind that
 // changes no state replay gives only from the trace, never from git.
 var Kinds = []Kind{
-	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces; its payload names the findings the Goal is about, and may carry the Goal's examples with their H0 verdicts", true, "add goal"},
-	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
-	{TypeExamplesPlace, true, "the Goal its node names; each example names the findings its findings section names", true, "place, by the owner; a place of the grill's is the older form, replayed"},
-	{TypeResultRecord, false, "the Goal its node names; it carries what the run read of git about its commit: the commits of the Goal's rows it descends from, its spec folder and its kept model", false, "run"},
-	{TypeResultRetract, false, "the Goal of the Result its node names", false, "retract, not built"},
-	{TypeSelect, true, "the Goal its node names", true, "select, by the owner among two candidates; a select of the runner's is the older form, replayed"},
-	{TypeBudgetReset, true, "the Goal its node names", false, "reset, not built"},
-	{TypeLand, true, "the Goal its node names; it ends the Goal, and may carry the evidence of the commit it lands, with what it read of that commit's spec folder and kept model", false, "land"},
-	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
-	{TypeUnselect, true, "the Goal its node names; it names the commit it rejects", true, "unselect"},
-	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
-	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal: a Goal names it; the old form's node names the Goal it was recorded on; its payload may name an example and a commit that holds it", false, "finding add"},
-	{TypeFindingFold, false, "the Goal its payload names, which the fold counts as a name of the finding by that Goal; the old form names an issue", false, "none: the old form of a name, replayed and no longer written"},
-	{TypeFindingRefute, false, "the finding its node names", false, "finding refute"},
-	{TypeFindingDecline, false, "the finding its node names", false, "finding decline"},
+	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces; its payload names the findings the Goal is about, and may carry the Goal's examples with their H0 verdicts", true, "add goal", "AddGoal"},
+	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none", "Place"},
+	{TypeExamplesPlace, true, "the Goal its node names; each example names the findings its findings section names", true, "place, by the owner; a place of the grill's is the older form, replayed", "Place"},
+	{TypeResultRecord, false, "the Goal its node names; it carries what the run read of git about its commit: the commits of the Goal's rows it descends from, its spec folder and its kept model", false, "run", "Run"},
+	{TypeResultRetract, false, "the Goal of the Result its node names", false, "retract, not built", "Retract"},
+	{TypeSelect, true, "the Goal its node names", true, "select, by the owner among two candidates; a select of the runner's is the older form, replayed", "Select"},
+	{TypeBudgetReset, true, "the Goal its node names", false, "reset, not built", "BudgetReset"},
+	{TypeLand, true, "the Goal its node names; it ends the Goal, and may carry the evidence of the commit it lands, with what it read of that commit's spec folder and kept model", false, "land", "Land"},
+	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close", "Close"},
+	{TypeUnselect, true, "the Goal its node names; it names the commit it rejects", true, "unselect", "Unselect"},
+	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor", ""},
+	{TypeFindingAdd, false, "none: its node is its own id, and a finding names no Goal: a Goal names it; the old form's node names the Goal it was recorded on; its payload may name an example and a commit that holds it", false, "finding add", "FindingAdd"},
+	{TypeFindingFold, false, "the Goal its payload names, which the fold counts as a name of the finding by that Goal; the old form names an issue", false, "none: the old form of a name, replayed and no longer written", "FindingFold"},
+	{TypeFindingRefute, false, "the finding its node names", false, "finding refute", "FindingRefute"},
+	{TypeFindingDecline, false, "the finding its node names", false, "finding decline", "FindingDecline"},
 }
 
 // KindOf returns the entry of an event type, and false for a type outside the
@@ -193,6 +194,7 @@ type ExampleCell struct {
 	Stderr  string `json:"stderr"`
 	Exit    int    `json:"exit"`
 	Verdict string `json:"verdict"`
+	Steps   string `json:"steps,omitempty"` // the hash of the run's step log, when its Probe's subject wrote one
 }
 
 // ResultRecord is the payload of result.record. Refused is empty, or
