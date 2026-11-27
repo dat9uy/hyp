@@ -738,21 +738,12 @@ func snapshots(evs []events.Event, dropped map[string]bool) map[string]snapshot 
 		if dropped[ev.ID] || first[ev.Node] {
 			continue
 		}
-		var seen []string
-		switch ev.Type {
-		case events.TypeLand:
-			var p events.Land
-			if events.Decode(ev, &p) != nil {
-				continue
-			}
-			seen = p.Seen
-		case events.TypeClose:
-			var p events.Close
-			if events.Decode(ev, &p) != nil {
-				continue
-			}
-			seen = p.Seen
-		default:
+		k, ok := kindReplays[ev.Type]
+		if !ok || k.end == nil {
+			continue
+		}
+		seen, ok := k.end(ev)
+		if !ok {
 			continue
 		}
 		first[ev.Node] = true
@@ -768,17 +759,15 @@ func snapshots(evs []events.Event, dropped map[string]bool) map[string]snapshot 
 	return out
 }
 
-// goalOf is the goal.add event id of the Goal an event changes, when its
-// kind's entry says an end freezes it (events.Kinds), or empty for an event
-// that changes no Goal, that adds a new Goal, or that no end freezes.
+// goalOf is the goal.add event id of the Goal an end freezes the event on,
+// as its kind's replay entry names it, or empty for an event that changes no
+// Goal, that adds a new Goal, or that no end freezes.
 func goalOf(ev events.Event) string {
-	if k, ok := events.KindOf(ev.Type); !ok || !k.Frozen {
+	k, ok := kindReplays[ev.Type]
+	if !ok || k.goal == nil {
 		return ""
 	}
-	if ev.Type == events.TypeGoalAdd && ev.Node == ev.ID {
-		return ""
-	}
-	return ev.Node
+	return k.goal(ev)
 }
 
 func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
@@ -793,61 +782,58 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 				continue
 			}
 		}
-		switch ev.Type {
-		case events.TypeGoalAdd:
-			replayGoalAdd(&t, ev, refuse)
-		case events.TypeExamplePlace:
-			if err := GuardPlace(t, ev); err != nil {
-				refuse(ev, err)
-				continue
-			}
-			var p events.ExamplePlace
-			if err := events.Decode(ev, &p); err != nil {
-				continue // GuardPlace decoded it already
-			}
-			g := t.Goals[ev.Node]
-			g.place(ev, p)
-			g.seen = append(g.seen, ev.ID)
-			g.refresh()
-		case events.TypeExamplesPlace:
-			if err := GuardPlaceSet(t, ev); err != nil {
-				refuse(ev, err)
-				continue
-			}
-			var p events.ExamplesPlace
-			if err := events.Decode(ev, &p); err != nil {
-				continue // GuardPlaceSet decoded it already
-			}
-			g := t.Goals[ev.Node]
-			g.placeSet(ev, p)
-			g.seen = append(g.seen, ev.ID)
-			g.refresh()
-		case events.TypeResultRecord:
-			replayResult(&t, ev, refuse)
-		case events.TypeSelect:
-			replaySelect(&t, ev, refuse)
-		case events.TypeLand:
-			replayLand(&t, ev, refuse)
-		case events.TypeClose:
-			replayClose(&t, ev, refuse)
-		case events.TypeUnselect:
-			replayUnselect(&t, ev, refuse)
-		case events.TypeFindingAdd, events.TypeFindingFold, events.TypeFindingRefute, events.TypeFindingDecline:
-			replayFinding(&t, ev, refuse)
-		case events.TypeRead:
-			var p events.Read
-			if err := events.Decode(ev, &p); err != nil {
-				refuse(ev, fault.Refuse(fault.NoGuard, fault.PayloadInvalid, err))
-				continue
-			}
-			t.Reads[ev.Actor] = append(t.Reads[ev.Actor], Read{
-				ID: ev.ID, Time: ev.TS, Actor: ev.Actor, Role: p.Role, Command: p.Command,
-				Exit: p.Exit, Stdout: p.Stdout, Stderr: p.Stderr,
-			})
+		if k, ok := kindReplays[ev.Type]; ok {
+			k.apply(&t, ev, refuse)
 		}
 	}
 	linkNames(&t)
 	return t
+}
+
+// replayExamplePlace applies an old-form place of one example that
+// GuardPlace allows.
+func replayExamplePlace(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardPlace(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	var p events.ExamplePlace
+	if err := events.Decode(ev, &p); err != nil {
+		return // GuardPlace decoded it already
+	}
+	g := t.Goals[ev.Node]
+	g.place(ev, p)
+	g.seen = append(g.seen, ev.ID)
+	g.refresh()
+}
+
+// replayExamplesPlace applies a place of a set that GuardPlaceSet allows.
+func replayExamplesPlace(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardPlaceSet(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	var p events.ExamplesPlace
+	if err := events.Decode(ev, &p); err != nil {
+		return // GuardPlaceSet decoded it already
+	}
+	g := t.Goals[ev.Node]
+	g.placeSet(ev, p)
+	g.seen = append(g.seen, ev.ID)
+	g.refresh()
+}
+
+// replayRead adds a read to the reads of its actor. A read changes no Goal.
+func replayRead(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	var p events.Read
+	if err := events.Decode(ev, &p); err != nil {
+		refuse(ev, fault.Refuse(fault.NoGuard, fault.PayloadInvalid, err))
+		return
+	}
+	t.Reads[ev.Actor] = append(t.Reads[ev.Actor], Read{
+		ID: ev.ID, Time: ev.TS, Actor: ev.Actor, Role: p.Role, Command: p.Command,
+		Exit: p.Exit, Stdout: p.Stdout, Stderr: p.Stderr,
+	})
 }
 
 // replayResult adds a Result at its place in the merge order, when the run
