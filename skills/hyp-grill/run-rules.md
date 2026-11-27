@@ -36,7 +36,10 @@ Goal are told the same.
    run again to get a different verdict.
 4. **Keep every commit you ran.** The budget counts Hypotheses: each distinct
    subject you ran, other than H0. It cannot see a failed path you hide. Do not
-   rewrite away a commit you ran.
+   rewrite away a commit you ran. Keep work you have not committed in your
+   worktree or in a commit, never in `git stash`: every worktree of a clone
+   shares one stash list, so a pop can take another session's stash, and a
+   lost stash is found only by hand.
 5. **Leave the examples as the grill placed them.** An example that seems wrong
    goes to the owner; it is not yours to edit.
 6. **Commit no event.** Git holds only the owner's acts. hyp keeps your
