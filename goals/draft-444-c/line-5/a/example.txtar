@@ -1,8 +1,8 @@
 -- words --
 The hyp-grill skill tells the grill to draft examples in a named draft and names no goals/draft- folder.
 -- run --
-n=$(grep -rl "goals/draft-" skills/hyp-grill | wc -l | tr -d ' '); echo "files naming goals/draft-: $n"; grep -rq -e "--draft" skills/hyp-grill && echo "names --draft"
+n=$(grep -rl "goals/draft-" skills/hyp-grill | wc -l | tr -d ' '); echo "files naming goals/draft-: $n"; grep -rq -e "hyp try --draft" skills/hyp-grill && echo "names hyp try --draft"
 -- floor: contains --
 files naming goals/draft-: 0
 -- floor: contains --
-names --draft
+names hyp try --draft
