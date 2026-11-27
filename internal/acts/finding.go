@@ -21,6 +21,8 @@ type FindingOpts struct {
 	Fact     string   // finding add
 	Evidence string   // finding add
 	Draft    string   // finding add: an add goal command line for the owner, or empty
+	Example  string   // finding add: an example as G-XXXXXX/line-N/name, or empty
+	Commit   string   // finding add: a commit that holds Example, with Example
 	Findings []string // finding refute and decline: one
 }
 
@@ -35,7 +37,9 @@ type FindingReport struct {
 const DraftPrefix = "hyp add goal "
 
 // FindingAdd records a finding: a fact and its evidence, naming no Goal, and
-// an add goal the agent drafted for the owner when Draft is set.
+// an add goal the agent drafted for the owner when Draft is set. With Example
+// and Commit, the evidence also names an example and a commit that holds
+// it; a commit that does not hold the example is a refusal.
 func FindingAdd(o FindingOpts) (FindingReport, error) {
 	if o.Fact == "" {
 		return FindingReport{}, fault.BadArg(fault.EmptyFact)
@@ -46,8 +50,22 @@ func FindingAdd(o FindingOpts) (FindingReport, error) {
 	if o.Draft != "" && !strings.HasPrefix(o.Draft, DraftPrefix) {
 		return FindingReport{}, fault.BadArg(fault.DraftNotAddGoal)
 	}
+	if (o.Example == "") != (o.Commit == "") {
+		return FindingReport{}, fault.BadArg(fault.ExampleNoCommit)
+	}
+	commit := ""
+	if o.Example != "" {
+		root, err := logstore.TopLevel(o.Dir)
+		if err != nil {
+			return FindingReport{}, err
+		}
+		if commit, _, err = ExampleAt(root, o.Example, o.Commit); err != nil {
+			return FindingReport{}, err
+		}
+	}
 	return findingAct(o, events.TypeFindingAdd, func(t tables.Tables, ev *events.Event) error {
-		raw, err := json.Marshal(events.FindingAdd{Role: o.Role, Fact: o.Fact, Evidence: o.Evidence, Draft: o.Draft})
+		raw, err := json.Marshal(events.FindingAdd{Role: o.Role, Fact: o.Fact, Evidence: o.Evidence, Draft: o.Draft,
+			Example: o.Example, Commit: commit})
 		if err != nil {
 			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingAdd, err)
 		}

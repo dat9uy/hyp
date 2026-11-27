@@ -172,6 +172,7 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 	}
 	if o.Goal != "" {
 		findings(b, t, g)
+		walks(b, g, repo)
 	}
 	if o.Ask && g.State == tables.StateOpen && (o.Role == "" || o.Role == "owner") {
 		fmt.Fprintf(b, "\nThe runner's Start prompt, ready to copy:\n\n%s", fence(startPrompt(g.ID)))
@@ -293,6 +294,46 @@ func findings(b *strings.Builder, t tables.Tables, g *tables.Goal) {
 		fmt.Fprintf(b, "  %s  %s  by %s at %s\n", f.ID, findingStateText(f), f.Actor, f.Time)
 		fmt.Fprintf(b, "    evidence: %s\n", indentText(f.Evidence, "      "))
 		fmt.Fprintf(b, "    fact: %s\n", indentText(f.Fact, "      "))
+	}
+}
+
+// walks prints, for each line of g, each command of its placed examples'
+// run sections with the step of the kept model it takes, or no step: on H0,
+// or on the selected commit while g has a select. It prints nothing when
+// that commit keeps no model in goals/model/.
+func walks(b *strings.Builder, g *tables.Goal, repo string) {
+	commit, on := g.Base, "H0"
+	if g.Select != nil {
+		commit, on = g.Select.Commit, "the selected commit"
+	}
+	kept, err := acts.KeepsModel(repo, commit)
+	if err != nil {
+		fmt.Fprintf(b, "walks: not readable here: %s\n", bodyText(err, repo))
+		return
+	}
+	placed := g.Placed()
+	if !kept || len(placed) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "walks on %s, %s: each command of each placed example's run section with the step of the kept model it takes:\n", on, commit)
+	for _, l := range g.Lines {
+		first := true
+		for _, p := range placed {
+			if p.Line != l.Key {
+				continue
+			}
+			if first {
+				fmt.Fprintf(b, "  %s\n", l.Key)
+				first = false
+			}
+			fmt.Fprintf(b, "    %s\n", p.Key)
+			w, err := acts.WalkExample(repo, commit, p.Hash)
+			if err != nil {
+				fmt.Fprintf(b, "      not readable here: %s\n", bodyText(err, repo))
+				continue
+			}
+			walkSteps(b, w, "      ")
+		}
 	}
 }
 

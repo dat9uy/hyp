@@ -747,6 +747,8 @@ func findingCmd(c *call, act string, args []string, stdout, stderr io.Writer) er
 		fs.StringVar(&o.Fact, "fact", "", "")
 		fs.StringVar(&o.Evidence, "evidence", "", "")
 		fs.StringVar(&o.Draft, "draft", "", "")
+		fs.StringVar(&o.Example, "example", "", "")
+		fs.StringVar(&o.Commit, "commit", "", "")
 	}
 	positional, _, err := readFlagsWith(c, command, args, fs)
 	if err != nil {
@@ -797,10 +799,10 @@ func findingListCmd(c *call, args []string, stdout io.Writer) error {
 	if len(positional) != 0 {
 		return fault.BadArg(codeFindingArgs, "finding list", len(positional))
 	}
-	t, _, _, err := readStoreLines(c.dir)
+	t, _, root, err := readStoreLines(c.dir)
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(stdout, FindingList(t, o))
+	fmt.Fprint(stdout, FindingList(t, root, o))
 	return nil
 }

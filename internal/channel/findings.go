@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dat9uy/hyp/internal/acts"
 	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/tables"
 )
@@ -22,8 +23,12 @@ type ListOpts struct {
 // a declined finding prints the owner's why and no act; with
 // o.NotFolded only the findings that are not folded are listed. Each line of
 // an agent's text is indented, so a finding ends where the next one starts.
-func FindingList(t tables.Tables, o ListOpts) string {
+// A finding whose evidence names an example prints the example and its walk
+// on the commit it names; in a repository that keeps a model at HEAD, a
+// finding that names no example reads no walk. repo is the git top level.
+func FindingList(t tables.Tables, repo string, o ListOpts) string {
 	var b strings.Builder
+	keptHere, _ := acts.KeepsModel(repo, "HEAD")
 	shown, hidden, declined := 0, 0, 0
 	for _, f := range tables.SortedFindings(t) {
 		if o.NotFolded && f.State() != spec.FindingNotFolded {
@@ -41,6 +46,7 @@ func FindingList(t tables.Tables, o ListOpts) string {
 		fmt.Fprintf(&b, "%s  %s  by %s at %s\n", f.ID, findingStateText(f), f.Actor, f.Time)
 		fmt.Fprintf(&b, "  fact: %s\n", indentText(f.Fact, "    "))
 		fmt.Fprintf(&b, "  evidence: %s\n", indentText(f.Evidence, "    "))
+		findingWalk(&b, f, repo, keptHere)
 		if f.Draft != "" {
 			b.WriteString("  draft by the agent, which the owner may edit and run:\n")
 			fmt.Fprintf(&b, "    %s\n", indentText(f.Draft, "    "))
@@ -68,8 +74,59 @@ func FindingList(t tables.Tables, o ListOpts) string {
 		fmt.Fprintf(&b, "%s declined not shown; hyp finding list --all lists them.\n", findingCount(declined))
 	}
 	b.WriteString("record a new finding:\n")
-	b.WriteString("  hyp finding add --fact TEXT --evidence TEXT [--draft \"hyp add goal ...\"]\n")
+	b.WriteString("  hyp finding add --fact TEXT --evidence TEXT [--example G/line-N/name --commit C] [--draft \"hyp add goal ...\"]\n")
 	return b.String()
+}
+
+// findingWalk prints the example a finding's evidence names and its walk:
+// each command of the example's run section, on the commit the finding
+// names, with the step of the kept model it takes there, or no step. A
+// finding that names no example reads no walk when keptHere: the repository
+// keeps a model at HEAD; else it prints nothing, as before a kept model.
+func findingWalk(b *strings.Builder, f *tables.Finding, repo string, keptHere bool) {
+	if f.Example == "" {
+		if keptHere {
+			b.WriteString("  no walk: the evidence names no example\n")
+		}
+		return
+	}
+	fmt.Fprintf(b, "  example: %s at %s\n", f.Example, f.Commit)
+	w, err := findingExampleWalk(repo, f)
+	if err != nil {
+		fmt.Fprintf(b, "  walk: not readable here: %s\n", bodyText(err, repo))
+		return
+	}
+	if !w.Kept {
+		fmt.Fprintf(b, "  walk: %s keeps no model in %s\n", f.Commit, acts.KeptDir)
+		return
+	}
+	b.WriteString("  walk, each command of its run section with the step of the kept model it takes:\n")
+	walkSteps(b, w, "    ")
+}
+
+// findingExampleWalk is the walk of the example a finding names, on its
+// commit.
+func findingExampleWalk(repo string, f *tables.Finding) (acts.Walk, error) {
+	_, hash, err := acts.ExampleAt(repo, f.Example, f.Commit)
+	if err != nil {
+		return acts.Walk{}, err
+	}
+	return acts.WalkExample(repo, f.Commit, hash)
+}
+
+// walkSteps prints each command of a walk with its step, or no step, one
+// to a line after indent.
+func walkSteps(b *strings.Builder, w acts.Walk, indent string) {
+	if len(w.Steps) == 0 {
+		fmt.Fprintf(b, "%sno command\n", indent)
+	}
+	for _, s := range w.Steps {
+		step := s.Step
+		if step == "" {
+			step = "no step"
+		}
+		fmt.Fprintf(b, "%s%s: %s\n", indent, indentText(s.Command, indent+"  "), step)
+	}
 }
 
 // findingCount is "1 finding" or "N findings".

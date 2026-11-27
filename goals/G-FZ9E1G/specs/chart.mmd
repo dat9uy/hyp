@@ -1,0 +1,40 @@
+---
+title: "hyp, the acts on one finding"
+---
+stateDiagram-v2
+  s0: no finding
+  s1: not folded, evidence: an example the commit holds
+  s2: not folded, evidence: free text
+  s3: declined, evidence: an example the commit holds
+  s4: declined, evidence: free text
+  s5: folded, evidence: an example the commit holds
+  s6: folded, evidence: free text
+  s7: refuted, evidence: an example the commit holds
+  s8: refuted, evidence: free text
+  s9: ended, evidence: an example the commit holds
+  s10: ended, evidence: free text
+  s11: settled, evidence: an example the commit holds
+  s12: settled, evidence: free text
+  [*] --> s0
+  s0 --> s1: an agent adds the finding
+  s0 --> s2: an agent adds the finding
+  s1 --> s3: the owner declines it
+  s1 --> s5: the owner adds a Goal that names it
+  s1 --> s7: an agent refutes it
+  s2 --> s4: the owner declines it
+  s2 --> s6: the owner adds a Goal that names it
+  s2 --> s8: an agent refutes it
+  s5 --> s9: the owner closes the Goal
+  s5 --> s11: the owner lands the Goal with a select
+  s5 --> s7: an agent refutes it
+  s6 --> s10: the owner closes the Goal
+  s6 --> s12: the owner lands the Goal with a select
+  s6 --> s8: an agent refutes it
+  s9 --> s5: the owner adds a Goal that names it
+  s9 --> s7: an agent refutes it
+  s10 --> s6: the owner adds a Goal that names it
+  s10 --> s8: an agent refutes it
+  s11 --> s5: the owner adds a Goal that names it
+  s11 --> s7: an agent refutes it
+  s12 --> s6: the owner adds a Goal that names it
+  s12 --> s8: an agent refutes it

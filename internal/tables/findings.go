@@ -19,6 +19,8 @@ type Finding struct {
 	Fact     string
 	Evidence string
 	Draft    string // an add goal command line the agent drafted, or empty
+	Example  string // the example its evidence names, as G-XXXXXX/line-N/name, or empty
+	Commit   string // the commit that holds Example, when Example is set
 	Actor    string
 	Time     string
 	Names    []*Goal // the Goals that name it, in the order replay met them
@@ -327,7 +329,7 @@ func replayFinding(t *Tables, ev events.Event, refuse func(events.Event, error))
 			return // GuardFindingAdd decoded it already
 		}
 		f := &Finding{ID: FindingID(ev.ID), EventID: ev.ID, Fact: p.Fact, Evidence: p.Evidence, Draft: p.Draft,
-			Actor: ev.Actor, Time: ev.TS}
+			Example: p.Example, Commit: p.Commit, Actor: ev.Actor, Time: ev.TS}
 		t.findings[ev.ID] = f
 		t.order = append(t.order, f)
 	case events.TypeFindingFold:
