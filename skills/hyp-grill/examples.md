@@ -67,30 +67,34 @@ full: the owner may read only the last message, not the status before it.
    [probe-writers.md](probe-writers.md): write no Probe code yourself, start a
    Probe writer from the block `hyp status G --role probe-writer` prints, and
    bring its commit onto the record branch.
-7. **Run `hyp try` before you place.** A gap example must fail on H0 and a
-   guard example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
-   verdict, exit code, output and stderr. It records nothing and uses no run.
-   When the verdict is not the one the line needs, fix the example and try
-   again. A gap example's H0 output shows the behaviour the line wants gone:
-   text of it that a half-fixed build could still print becomes a ceiling,
-   copied byte for byte. Name each such ceiling in the hand-off with its H0
-   text; the owner may drop it. Before you place, run `hyp status G` and
-   `hyp finding list` again: each finding G names, and each finding recorded
-   during the grill whose fact bears on G, is new evidence. It becomes an
-   example on the line its fact bears on, which names the finding in a
-   `findings` section, one finding id per line, or the hand-off says why no
-   line needs it. hyp refuses the set while a finding that G names at
-   `add goal` has no example that names it. Before the place, check each
-   example that names a finding: its words state the finding's fact, so that
-   each such example states the finding's fact in words the owner reads. When
-   every line holds its examples, commit the folders and place
-   the whole set with the one place line `hyp status G --role grill` prints,
-   `hyp place G`. hyp runs each new or changed example on H0 and places the
-   set only when every example gives its line's verdict there. Otherwise it
-   places none of the set and names each example that disagrees, each line
-   that holds no example and each folder it cannot place, with the guard that
-   refused it. Fix every cause and place again. A placed example stays in the
-   set: never remove its folder.
+7. **Run `hyp try` before you place.** Do these in order:
+   - **Try each example on H0.** A gap example must fail on H0 and a guard
+     example must be met on H0. Run `hyp try G LINE/EXAMPLE` and read its
+     verdict, exit code, output and stderr. It records nothing and uses no
+     run. When the verdict is not the one the line needs, fix the example and
+     try again.
+   - **Add the H0 ceilings.** A gap example's H0 output shows the behaviour
+     the line wants gone: text of it that a half-fixed build could still print
+     becomes a ceiling, copied byte for byte. Name each such ceiling in the
+     hand-off with its H0 text; the owner may drop it.
+   - **Read the findings again.** Before you place, run `hyp status G` and
+     `hyp finding list` again: each finding G names, and each finding recorded
+     during the grill whose fact bears on G, is new evidence. It becomes an
+     example on the line its fact bears on, which names the finding in a
+     `findings` section, one finding id per line, or the hand-off says why no
+     line needs it. hyp refuses the set while a finding that G names at
+     `add goal` has no example that names it. Check that the words of each
+     example that names a finding state that finding's fact, in words the
+     owner reads.
+   - **Place the whole set.** When every line holds its examples, commit the
+     folders and place the whole set with the one place line
+     `hyp status G --role grill` prints, `hyp place G`. hyp runs each new or
+     changed example on H0 and places the set only when every example gives
+     its line's verdict there. Otherwise it places none of the set and names
+     each example that disagrees, each line that holds no example and each
+     folder it cannot place, with the guard that refused it. Fix every cause
+     and place again. A placed example stays in the set: never remove its
+     folder.
 8. **Stop when the Goal has enough.** The Goal has enough when every line
    holds an example that gives its line's verdict on H0 (`hyp status G` shows
    the Goal `open`), and every variant of the model is separated by an example

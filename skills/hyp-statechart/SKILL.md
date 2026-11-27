@@ -67,8 +67,8 @@ commit the clone has checked out. Each rule that is new, or whose
 definition text differs, needs a variant config under
 `goals/<G>/specs/variants/` that names it; a rule the commit leaves as it was
 needs none. A change to the kept model also needs a chart in the Goal's spec
-folder. A Goal whose spec folder holds its own whole model is checked as
-before.
+folder. A Goal whose spec folder holds its own whole model is checked as the
+start of this skill says.
 
 ## How to write the model
 
@@ -195,10 +195,9 @@ uses runs of the budget and can stop the Goal at `Two candidates`.
    `specs/tried/<variant>/<line>/<example>.txt`, and run the tool again. The
    report sets each tried cell beside its prediction and names each cell where
    they differ. Where they differ, find the cause. When the model is wrong, fix
-   the model, not an example. A model with no `command:` comment is predicted
-   from the shortest walk whose prints meet the example's floors, and that
-   walk can set up another case than the example's Probe does. When that is
-   the cause, the model is right and the tried verdict stands over the
+   the model, not an example. When the cause is the shortest walk of a model
+   with no `command:` comment (step 7), which set up another case than the
+   example's Probe, the model is right and the tried verdict stands over the
    prediction: tag the actions with their commands. Say which cause it was in
    one line of the hand-off.
 5. When a tried patch meets every example, the examples do not separate the two
