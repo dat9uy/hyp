@@ -582,7 +582,7 @@ func showCmd(c *call, args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(stdout, showText(root, actor, reads))
+	fmt.Fprint(stdout, showText(root, actor, reads)+stepsText(root, steppedOf(actor, t)))
 	return nil
 }
 

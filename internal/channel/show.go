@@ -9,6 +9,50 @@ import (
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
+// stepped is one Result of an actor that keeps a step log.
+type stepped struct {
+	tables.Result
+	Goal string
+}
+
+// steppedOf returns every Result of actor whose cells keep a step log,
+// oldest first.
+func steppedOf(actor string, log tables.Tables) []stepped {
+	var out []stepped
+	for _, g := range log.Goals {
+		for _, r := range g.Results {
+			if r.Actor != actor {
+				continue
+			}
+			for _, c := range r.Cells {
+				if c.Steps != "" {
+					out = append(out, stepped{*r, g.ID})
+					break
+				}
+			}
+		}
+	}
+	slices.SortStableFunc(out, func(a, b stepped) int { return strings.Compare(a.ID, b.ID) })
+	return out
+}
+
+// stepsText is the part of hyp show ACTOR after the reads: each Result of
+// the actor that keeps a step log, oldest first, with its id, Goal, line and
+// commit, then the step log of each of its examples that has one, as a block
+// of the bytes the run kept.
+func stepsText(root string, results []stepped) string {
+	var b strings.Builder
+	for i, r := range results {
+		fmt.Fprintf(&b, "\nresult %d of %d with steps: %s at %s, %s/%s on %s\n", i+1, len(results), r.ID, r.Time, r.Goal, r.Line, r.Commit)
+		for _, c := range r.Cells {
+			if c.Steps != "" {
+				writeStored(&b, root, "steps of "+r.Line+"/"+c.Example, c.Steps, 0)
+			}
+		}
+	}
+	return b.String()
+}
+
 // shownRead is one read show prints.
 type shownRead struct {
 	tables.Read

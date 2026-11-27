@@ -248,8 +248,8 @@ func sameBasis(first, again runChecked) error {
 }
 
 // runProbes runs the Probe of every placed example of the line on the commit.
-// It returns the cells, which name both outputs by hash, the outputs' bytes,
-// stdout then stderr of each example, and each example's words, in key
+// It returns the cells, which name both outputs and the step log by hash, the
+// outputs' bytes, stdout, stderr and any step log of each example, and each example's words, in key
 // order. It stores nothing: Run stores the outputs once its guards hold.
 func runProbes(root string, c runChecked, timeout time.Duration) ([]events.ExampleCell, [][]byte, []string, error) {
 	var cells []events.ExampleCell
@@ -264,12 +264,18 @@ func runProbes(root string, c runChecked, timeout time.Duration) ([]events.Examp
 		if err != nil {
 			return nil, nil, nil, err
 		}
-		cells = append(cells, events.ExampleCell{
+		cell := events.ExampleCell{
 			Example: p.Example, Hash: p.Hash, Probe: probeHash,
 			Output: logstore.Hash(out.Stdout), Stderr: logstore.Hash(out.Stderr),
 			Exit: out.Exit, Verdict: string(example.Compare(out.Stdout, ex)),
-		})
+		}
 		outs = append(outs, out.Stdout, out.Stderr)
+		// A step log is kept, by its hash, only when the subject wrote one.
+		if len(out.Steps) > 0 {
+			cell.Steps = logstore.Hash(out.Steps)
+			outs = append(outs, out.Steps)
+		}
+		cells = append(cells, cell)
 		words = append(words, ex.Words)
 	}
 	return cells, outs, words, nil

@@ -21,8 +21,8 @@ func specText() string {
 	b.WriteString("Goal it belongs to, whether an end freezes it, and the act that writes it; a\n")
 	b.WriteString("kind that changes a Goal's state is stored in git, every other kind in the trace\n")
 	for _, k := range events.Kinds {
-		fmt.Fprintf(&b, "  %s  changes a Goal's state: %s  stored in %s  Goal: %s  frozen by an end: %s  written by: %s\n",
-			k.Type, yesNo(k.Changes), k.Home(), k.Goal, yesNo(k.Frozen), k.Writer)
+		fmt.Fprintf(&b, "  %s  changes a Goal's state: %s  stored in %s  Goal: %s  frozen by an end: %s  written by: %s  step: %s\n",
+			k.Type, yesNo(k.Changes), k.Home(), k.Goal, yesNo(k.Frozen), k.Writer, stepName(k.Step))
 	}
 
 	b.WriteString("\nstates: each state, when it holds, the acts hyp status may offer in it, and\n")
@@ -139,4 +139,12 @@ func orNone(xs []string) string {
 		return "none"
 	}
 	return strings.Join(xs, ", ")
+}
+
+// stepName is the step an event kind's step line names, or none.
+func stepName(step string) string {
+	if step == "" {
+		return "none"
+	}
+	return step
 }

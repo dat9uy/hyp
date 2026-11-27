@@ -441,6 +441,8 @@ func appendLocked(base, actor, home string, build func([]events.Event) (events.E
 // evs, to the folder of events base: in the store, home git, to a new file
 // <actor>/<id>.json that no other event shares, so that an act changes no
 // file the store already holds; in the trace to the actor's <actor>.jsonl.
+// Then, when $HYP_STEP_LOG names a file, it appends the event's step line
+// there (StepLine).
 func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (events.Event, error) {
 	if k, ok := events.KindOf(ev.Type); !ok || k.Home() != home {
 		return ev, fault.EnvFault(fault.EventHome, ev.Type, home)
@@ -470,7 +472,10 @@ func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (
 	}
 	// Open only after build returned, so a refused act leaves no file behind.
 	if home == events.HomeGit {
-		return ev, writeNew(filepath.Join(eventsIn(base), actor), ev.ID+".json", line)
+		if err := writeNew(filepath.Join(eventsIn(base), actor), ev.ID+".json", line); err != nil {
+			return ev, err
+		}
+		return ev, appendStep(ev.Type, line)
 	}
 	path := filepath.Join(eventsIn(base), actor+".jsonl")
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o644)
@@ -498,7 +503,7 @@ func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (
 	if err := f.Sync(); err != nil {
 		return ev, fault.EnvFault(fault.FileSync, path, err)
 	}
-	return ev, nil
+	return ev, appendStep(ev.Type, line)
 }
 
 // writeNew writes line and a newline to the new file name in dir, which it
