@@ -8,6 +8,10 @@ run it. Then:
 - Write and commit the `example.txtar`. Its `run` stays the command the
   owner would type, word for word; the setup goes in the Probe, never in
   the `run`.
+- Tell the writer that each setup act must succeed: the Probe checks its exit
+  and exits 3 when it fails, so a refused setup shows as an environment
+  problem on H0, not as the failed verdict a gap example needs. This holds for
+  a Probe nested inside the setup too.
 - Write no Probe code for it yourself. Start a Probe writer: an agent
   whose prompt is the probe-writer block that
   `hyp status G --role probe-writer` prints, copied word for word, followed

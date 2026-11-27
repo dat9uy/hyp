@@ -37,9 +37,11 @@ act `hyp help` lists for adding a Goal; you draft the words and lines it takes,
 and the draft folder of examples it carries with `--examples`. Git holds only
 the owner's acts: you write no event, and the owner adds a new example to an
 open Goal with the place act.
-In that draft, set `HYP_ACTOR` to the owner's actor, never a placeholder: the
-actor of the `goal.add` events in the store, which the folder
-`.tree/events/<actor>/` names (or, in an older store, `.tree/events/<actor>.jsonl`). Ask the owner once, only when the store has no Goal yet or several actors
+
+In the owner's draft, set `HYP_ACTOR` to the owner's actor, never a
+placeholder: the actor of the `goal.add` events in the store, which the folder
+`.tree/events/<actor>/` names (in an older store, `.tree/events/<actor>.jsonl`).
+Ask the owner once, only when the store has no Goal yet or several actors
 added Goals. The owner's place, land, unselect and close of a Goal are allowed
 only to the actor that added it, so a wrong actor locks the owner out of them.
 
@@ -67,10 +69,13 @@ The issue is the owner's record, not a rule for the runner:
 - **A "Not covered" item that another open issue owns** (it waits on that
   issue's change, or that issue decides it) goes to that issue too, with the
   owner's words, and the hand-off names that issue.
-- **The issue closes when the owner adds the Goal.** An issue holds a want
-  only until its lines are known; from then on the written Goal holds it.
-  Decisions made after the add still go to that issue. A want whose lines are
-  already known needs no issue.
+- **The issue closes when each want it tracks is held by an added Goal.** An
+  issue tracks the process toward a want: the event, the owner's decisions,
+  the split into Goals and where each stands. A Goal is the snapshot of one
+  want. When the want splits into several Goals, the issue stays open until
+  the last one is added: the record PR of each earlier Goal says "Part of #N",
+  and the record PR of the last says "Closes #N". Decisions made after an add
+  still go to that issue. A want whose lines are already known needs no issue.
 - **A record cites only what others can read**: an issue, a PR or a commit.
   Never a gitignored or local file, such as a design page, a report or a
   memory note, in the Goal's words, a `--why` or a comment.
@@ -119,7 +124,7 @@ names, and the event the why names. Make the worktree of step 9 on branch
    do not turn it into a question.
 7. **A form question names every case.** When you ask about the form of what
    hyp prints (the state block, a report, an error), name every state a Goal
-   can be in (`written`, `open`, `selected`, `landed`) and every command that
+   can be in (`written`, `open`, `selected`, `ended`) and every command that
    prints that form, so the answer covers each one.
 8. **Draft the words and lines.** One sentence of words. Each line is `gap`
    (false on H0, the build must make it true) or `guard` (true on H0, the build
