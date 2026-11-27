@@ -1,8 +1,0 @@
--- words --
-hyp place reads an example set from a draft named with --draft NAME: a written Goal with no example, the clone's trace holds draft x, and the owner places it with --draft x.
--- run --
-HYP_ACTOR=owner HYP_ROLE=owner hyp place GOAL --draft x
--- floor: contains --
-placed GOAL: 1 example
--- floor: contains --
-GOAL is open

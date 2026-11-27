@@ -1,8 +1,0 @@
--- words --
-A runner's change that writes under the folder of another Goal in the store is still refused as another Goal's path: the store holds two Goals, and a runner's commit for one writes goals/<the other>/f.
--- run --
-HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1
--- floor: contains --
-Own path:
--- floor: contains --
-a path of another Goal

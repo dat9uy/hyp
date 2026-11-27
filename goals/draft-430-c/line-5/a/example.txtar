@@ -1,8 +1,0 @@
--- words --
-A result.record whose payload does not decode is still refused: the clone's trace holds a result.record, written by hand, with the payload {"bogus":1}; hyp status lists it under refused at replay.
--- run --
-HYP_ACTOR=owner hyp status
--- floor: contains --
-refused at replay:
--- findings --
-F-03QTKH

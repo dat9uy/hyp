@@ -1,8 +1,0 @@
--- words --
-hyp show prints the steps: after the runner's hyp run of line-1 on C1, as in line-1/a, hyp show of the runner's actor prints the step AddGoal line of that run.
--- run --
-HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; if HYP_ACTOR=runner-one hyp show runner-one 2>/dev/null | grep -q "step AddGoal {"; then echo "shown: yes"; else echo "shown: no"; fi
--- floor: contains --
-shown: yes
--- ceiling --
-shown: no

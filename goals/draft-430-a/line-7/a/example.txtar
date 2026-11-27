@@ -1,7 +1,0 @@
--- words --
-At a select this clone's Results show, hyp status lists no runner act: the Goal has one candidate C1 and shows selected; hyp status GOAL --role runner lists none.
--- run --
-HYP_ACTOR=runner-1 HYP_ROLE=runner hyp status GOAL --role runner
--- floor: contains --
-runner may:
-  (none)

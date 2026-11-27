@@ -1,8 +1,0 @@
--- words --
-A budget.reset event stored in git is listed as not read: the store holds a Goal and a budget.reset event file under .tree/events/owner/; hyp status lists it under not read at replay as an unknown event type.
--- run --
-HYP_ACTOR=owner hyp status
--- floor: contains --
-not read at replay:
--- floor: contains --
-unknown event type budget.reset

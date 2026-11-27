@@ -1,8 +1,0 @@
--- words --
-A place that changes an example restarts the budget: the Goal is open with one run used; the owner places a new example on line-1; hyp status shows no run used.
--- run --
-HYP_ACTOR=owner HYP_ROLE=owner hyp place GOAL --examples goals/draft-more >/dev/null 2>&1; echo "place exit $?"; HYP_ACTOR=owner hyp status GOAL | head -1
--- floor: contains --
-place exit 0
--- floor: contains --
-runs: 0 of 3 used

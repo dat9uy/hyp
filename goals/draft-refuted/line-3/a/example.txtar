@@ -1,8 +1,0 @@
--- words --
-The default list is otherwise the same: the same store; hyp finding list, without --all, prints the not-folded finding and does not print the declined one.
--- run --
-L=$(HYP_ACTOR=owner hyp finding list 2>&1); if echo "$L" | grep -q "^F_OPEN "; then echo "not folded: shown"; else echo "not folded: hidden"; fi; if echo "$L" | grep -q "^F_DECLINED "; then echo "declined: shown"; else echo "declined: hidden"; fi
--- floor: contains --
-not folded: shown
--- floor: contains --
-declined: hidden

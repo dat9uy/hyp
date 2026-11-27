@@ -1,8 +1,0 @@
--- words --
-hyp try reads an example set from a draft named with --draft NAME: the clone's trace holds draft x, whose line-1/a fails on H0, and hyp try --draft x tries it.
--- run --
-HYP_ACTOR=grill-1 HYP_ROLE=grill hyp try --draft x --base HEAD line-1/a
--- floor: contains --
-tried the draft
--- floor: contains --
-verdict: failed

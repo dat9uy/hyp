@@ -1,8 +1,0 @@
--- words --
-The default list hides a refuted finding: the store holds a not-folded, a refuted and a declined finding; hyp finding list, without --all, does not print the refuted finding.
--- run --
-L=$(HYP_ACTOR=owner hyp finding list 2>&1); if echo "$L" | grep -q "^F_REFUTED "; then echo "refuted: shown"; else echo "refuted: hidden"; fi
--- floor: contains --
-refuted: hidden
--- ceiling --
-refuted: shown

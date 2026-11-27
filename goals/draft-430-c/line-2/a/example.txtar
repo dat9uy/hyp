@@ -1,8 +1,0 @@
--- words --
-hyp spec does not list the code payload-invalid among the codes of the guard Stable: a payload that does not decode is a form fault.
--- run --
-l=$(hyp spec | grep '^  Stable  '); case "$l" in '') echo "Stable absent";; *'codes:'*payload-invalid*) echo "Stable lists payload-invalid";; *) echo "Stable lists no payload-invalid";; esac
--- floor: contains --
-Stable lists no payload-invalid
--- findings --
-F-03QTKH
