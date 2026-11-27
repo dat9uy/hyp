@@ -8,6 +8,7 @@ This file is for any agent or person who changes hyp. It says how the repository
 - **Two skills**: `skills/hyp-grill`, which grills and re-grills a Goal and ships the runner's run rules as its part `run-rules.md`, and `skills/hyp-statechart`, with which the grill writes a Goal's model, its switches and its chart, and which ships the statechart tool (MIT) with its license and source.
 - **The spec** is `hyp spec`: it prints every event kind, state, act, guard and exit code, from the entries in `internal/spec` and `internal/events` that the binary acts on.
 - **Docs** in `docs/`: the words in [glossary.md](docs/glossary.md), what the owner of a Goal sees and answers in [owner-guide.md](docs/owner-guide.md), the principles and the owner's role in [principles.md](docs/principles.md), why the select is the gate in [ADR 0015](docs/adr/0015-the-select-is-the-gate.md), why a skill change is a build Goal in [ADR 0021](docs/adr/0021-a-skill-change-is-a-build-goal.md).
+- **The kept model** in `goals/model/`: the one model of hyp's machine. A Goal whose change moves the machine changes it in the selected commit.
 - **Test data** under `internal/*/testdata`. Records made before the public release stay in the private development history.
 
 Install the binary as [install.md](docs/install.md) describes.

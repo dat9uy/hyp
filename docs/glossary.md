@@ -272,10 +272,24 @@ The act `select G HASH` and its `select` event. HASH is the row's subject hash, 
 _Avoid_: pick, choose, accept, merge
 
 **Spec** (of a Goal):
-The runner's files under `goals/<G>/specs/`, for example a model and its chart. A select needs the selected commit to hold one. When the spec is a model, every rule of its check configs must be named by a variant config, and the folder must hold a chart (`hyp spec`, Spec).
+The runner's files under `goals/<G>/specs/`: a Goal's own whole model and its chart, or, when the commit changes the kept model, the variant configs and the chart of that change. A select needs the selected commit to hold one. When the spec is a model, every rule of its check configs must be named by a variant config, and the folder must hold a chart (`hyp spec`, Spec).
 
 **Model**:
-A spec folder that holds a `.tla` file. hyp reads its configs and its chart at select, and runs no model checker (`hyp spec`, Spec). The skill `skills/hyp-statechart` teaches how to write one.
+A TLA+ module of the machine, with its check config. It is either the kept model of the repository or a Goal's own whole model in its spec folder. hyp reads its configs and its chart at select, and runs no model checker (`hyp spec`, Spec). The skill `skills/hyp-statechart` teaches how to write one.
+
+**Kept model**:
+The one model of a repository's machine, in `goals/model/`. It is no Goal's folder, so a runner's own commit may change it. A Goal's model is a change to it, carried only by the Goal's selected commit. At select, each rule that the commit adds or changes against H0 needs a variant config in the Goal's spec folder; a rule left as H0 holds it needs none. At `Selected`, `hyp status G` lists what the commit adds or changes in it (`hyp spec`, Spec).
+_Avoid_: shared model, global model
+
+**Step**:
+An action of a model that changes state: a side effect, such as an act that writes an event. A comment `\* command: <command>` above the action names the command that takes it. A read or a refusal is a print, not a step.
+
+**Walk**:
+The steps that an example's Probe and run section take, in the order they call their commands. An example is a requirement on a walk: its floors and ceilings say what the run section's steps must print. The statechart tool predicts an example from its walk; when it cannot see the walk, it predicts no verdict and lists the example to try on every variant.
+
+**Job**:
+What a Goal line names in the kept model: a step, or a rule over several steps. A rule names its line with the source comment `\* source: G:line-N` above it, and only such a rule is a want. Agents also write steps, prints and `model only` rules; these describe the build. A later Goal changes a job by changing the step or rule that a line names.
+_Avoid_: feature, capability
 
 **Check config**:
 A `.cfg` file of a model that is not under `specs/variants/` (or the older `specs/switches/`). Its rules are the names it lists under `INVARIANT`, `INVARIANTS`, `PROPERTY` or `PROPERTIES` (`hyp spec`, Spec).
@@ -290,7 +304,7 @@ A `.mmd` file of a spec folder outside its variant config folders. A model with 
 The branch that holds a Goal's examples and their place events. It merges before the runner's run, so the examples reach the runner's commits.
 
 **Own change**:
-What the runner wrote in a commit, not what it took in from main: the diff from its base to the commit. The **base** is the first commit on the first-parent walk that is H0 or a merge commit.
+What the runner wrote in a commit, not what it took in from main: the diff from its base to the commit. It may write under its own Goal's folder and under `goals/model/`, the kept model, and under no other Goal's folder. The **base** is the first commit on the first-parent walk that is H0 or a merge commit.
 
 ## Budget and stops
 
