@@ -62,6 +62,7 @@ const (
 	SelectNotInLog   Code = "select-not-in-log"  // Goal
 	NoResultOnRow    Code = "no-result-on-row"   // row tree
 	NoSpec           Code = "no-spec"            // commit, folder
+	NoRead           Code = "no-read"            // commit, Goal
 	RuleNoVariant    Code = "rule-no-variant"    // commit, rules, variants folder
 	NoChart          Code = "no-chart"           // commit, folder
 
@@ -157,7 +158,6 @@ const (
 	NoTree            Code = "no-tree"              // no values
 	TreeTwice         Code = "tree-twice"           // tree, count, Goal
 	NoRow             Code = "no-row"               // Goal, tree
-	RowLeafUnknown    Code = "row-leaf-unknown"     // row tree, commit
 	OwnerSelectsAmong Code = "owner-selects-among"  // Goal, candidates
 	RowNotLeaf        Code = "row-not-leaf"         // row tree
 	RowNotMet         Code = "row-not-met"          // row tree

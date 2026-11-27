@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/gitread"
 )
 
@@ -305,14 +306,8 @@ func KeptChange(root, from, commit string) ([]string, error) {
 }
 
 // KeptItem is one step or rule of the kept model that a commit adds or
-// changes. A step is a definition tagged with the command it takes; a rule
-// is a name its check configs check, with the source its comment names.
-type KeptItem struct {
-	Rule    bool   // a rule; else a step
-	Name    string // the name of its definition
-	Command string // a step's command
-	Source  string // a rule's source, as its comment names it; empty when none
-}
+// changes, as a Result carries it.
+type KeptItem = events.KeptItem
 
 // KeptDiff is what the kept model at commit adds or changes against the
 // kept model at from: each step that is new, or whose text or command

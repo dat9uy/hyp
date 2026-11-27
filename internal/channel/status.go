@@ -11,6 +11,7 @@ import (
 
 	"github.com/dat9uy/hyp"
 	"github.com/dat9uy/hyp/internal/acts"
+	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -107,7 +108,7 @@ func endedCount(n int) string {
 }
 
 func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string, o BlockOpts) {
-	st := acts.Stand(g, repo)
+	st := acts.Stand(g)
 	ended := g.State == tables.StateEnded
 	// an ended Goal prints no runs count: the runs are in each clone's trace,
 	// and an ended Goal reads the same in every clone
@@ -140,7 +141,7 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 			fmt.Fprintf(b, "split: %s on row %s\n", line, row.RowTree)
 		}
 	}
-	ready := acts.AllowedFor(g, repo)
+	ready := acts.AllowedFor(g)
 	for _, role := range roles {
 		if o.Role != "" && o.Role != role {
 			continue
@@ -203,11 +204,12 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 // or "no line" when it names none. It prints no TLA+ text, and nothing when
 // the commit leaves the kept model as H0 holds it.
 func keptChange(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string) {
-	items, err := acts.KeptDiff(repo, g.Base, g.Select.Commit)
+	read, err := acts.SelectedRead(repo, g)
 	if err != nil {
 		fmt.Fprintf(b, "\nkept model: not readable here: %s\n", bodyText(err, repo))
 		return
 	}
+	items := read.Kept
 	if len(items) == 0 {
 		return
 	}
@@ -303,10 +305,20 @@ func findings(b *strings.Builder, t tables.Tables, g *tables.Goal) {
 // that commit keeps no model in goals/model/.
 func walks(b *strings.Builder, g *tables.Goal, repo string) {
 	commit, on := g.Base, "H0"
+	walk := func(hash string) (acts.Walk, error) { return acts.WalkExample(repo, commit, hash) }
+	var kept bool
+	var err error
 	if g.Select != nil {
+		// the selected commit: what its run or its land read
 		commit, on = g.Select.Commit, "the selected commit"
+		var read *events.CommitRead
+		if read, err = acts.SelectedRead(repo, g); err == nil {
+			kept = read.Keeps
+			walk = func(hash string) (acts.Walk, error) { return acts.WalkRead(repo, read, hash) }
+		}
+	} else {
+		kept, err = acts.KeepsModel(repo, commit)
 	}
-	kept, err := acts.KeepsModel(repo, commit)
 	if err != nil {
 		fmt.Fprintf(b, "walks: not readable here: %s\n", bodyText(err, repo))
 		return
@@ -327,7 +339,7 @@ func walks(b *strings.Builder, g *tables.Goal, repo string) {
 				first = false
 			}
 			fmt.Fprintf(b, "    %s\n", p.Key)
-			w, err := acts.WalkExample(repo, commit, p.Hash)
+			w, err := walk(p.Hash)
 			if err != nil {
 				fmt.Fprintf(b, "      not readable here: %s\n", bodyText(err, repo))
 				continue
@@ -342,7 +354,7 @@ func walks(b *strings.Builder, g *tables.Goal, repo string) {
 // prints for every role: hyp status lists no select line for such a
 // candidate, and the line it lists instead does not say why.
 func heldBack(b *strings.Builder, g *tables.Goal, repo string) {
-	holds := acts.HeldBack(g, repo)
+	holds := acts.HeldBack(g)
 	if len(holds) == 0 {
 		return
 	}

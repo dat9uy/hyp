@@ -148,7 +148,7 @@ func TestHeldBackNamesWhatSelectRefuses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	holds := HeldBack(g, e.root)
+	holds := HeldBack(g)
 	if len(holds) != 1 {
 		t.Fatalf("holds = %v", holds)
 	}

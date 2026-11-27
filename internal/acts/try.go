@@ -264,5 +264,5 @@ func ReadTables(root string) (tables.Tables, []logstore.LineError, error) {
 		return tables.Tables{}, nil, err
 	}
 	t.UseCells(cells)
-	return Calculate(t, root), unread, nil
+	return Calculate(t), unread, nil
 }

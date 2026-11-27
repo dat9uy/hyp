@@ -107,7 +107,7 @@ func Land(o LandOpts) (LandReport, error) {
 		p := events.Land{Role: o.Role, Seen: g.Seen()}
 		rep = LandReport{Goal: g.ID}
 		if again.commit == "" {
-			st := Stand(g, root)
+			st := Stand(g)
 			if st.Stop == StopNone || st.Stop == StopSelected {
 				return ev, fault.Refuse(fault.GuardStop, fault.NoStop, g.ID)
 			}
@@ -131,9 +131,14 @@ func Land(o LandOpts) (LandReport, error) {
 			if err := tables.GuardEvidence(g, p); err != nil {
 				return ev, err
 			}
-			if err := guardSpec(root, g, again.commit); err != nil {
+			read, err := readSpec(root, g, again.commit)
+			if err != nil {
 				return ev, err
 			}
+			if err := SpecGuard(g, again.commit, &read); err != nil {
+				return ev, err
+			}
+			p.Read = &read
 			changes, err := gitread.OwnChange(root, again.commit, g.Base)
 			if err != nil {
 				return ev, err
@@ -182,7 +187,7 @@ type landPlan struct {
 // commit the land names: the one given, else the one this clone shows the
 // Goal selected on, else none.
 func planLand(root string, o LandOpts, evs []events.Event) (landPlan, error) {
-	t := Calculate(tables.Replay(evs), root)
+	t := Calculate(tables.Replay(evs))
 	g, err := t.Find(o.Goal)
 	if err != nil {
 		return landPlan{}, err

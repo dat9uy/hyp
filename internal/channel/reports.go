@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/acts"
-	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -287,27 +286,18 @@ func tryLine(g *tables.Goal, key, commit string) string {
 }
 
 // prCharts prints each chart (.mmd) of the selected commit's spec folder as
-// a mermaid block, so the owner reads the model's chart in the PR. A spec
+// a mermaid block, so the owner reads the model's chart in the PR: the
+// charts the run or the land of that commit read (acts.SelectedRead). A spec
 // folder with no chart prints nothing.
 func prCharts(b *strings.Builder, root string, g *tables.Goal) {
-	files, err := acts.SpecFiles(root, g.Select.Commit, g.ID)
+	read, err := acts.SelectedRead(root, g)
 	if err != nil {
 		fmt.Fprintf(b, "\n## Chart\n\nnot readable here: %s\n", bodyText(err, root))
 		return
 	}
-	m, err := acts.ReadModel(root, files)
-	if err != nil {
-		fmt.Fprintf(b, "\n## Chart\n\nnot readable here: %s\n", bodyText(err, root))
-		return
-	}
-	for _, c := range m.Charts {
+	for _, c := range read.Charts {
 		fmt.Fprintf(b, "\n## Chart: %s%s\n\n", acts.SpecDir(g.ID), c.Path)
-		data, err := gitread.Git(root, "cat-file", "blob", c.Hash)
-		if err != nil {
-			fmt.Fprintf(b, "not readable here: %s\n", bodyText(err, root))
-			continue
-		}
-		f := fence(string(data))
+		f := fence(c.Text)
 		b.WriteString(strings.Replace(f, "\n", "mermaid\n", 1))
 	}
 }

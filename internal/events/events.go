@@ -85,11 +85,11 @@ var Kinds = []Kind{
 	{TypeGoalAdd, true, "the Goal it adds, or the written Goal it replaces; its payload names the findings the Goal is about, and may carry the Goal's examples with their H0 verdicts", true, "add goal"},
 	{TypeExamplePlace, true, "the Goal its node names; the old form of a place, replayed and no longer written", true, "none"},
 	{TypeExamplesPlace, true, "the Goal its node names; each example names the findings its findings section names", true, "place, by the owner; a place of the grill's is the older form, replayed"},
-	{TypeResultRecord, false, "the Goal its node names", false, "run"},
+	{TypeResultRecord, false, "the Goal its node names; it carries what the run read of git about its commit: the commits of the Goal's rows it descends from, its spec folder and its kept model", false, "run"},
 	{TypeResultRetract, false, "the Goal of the Result its node names", false, "retract, not built"},
 	{TypeSelect, true, "the Goal its node names", true, "select, by the owner among two candidates; a select of the runner's is the older form, replayed"},
 	{TypeBudgetReset, true, "the Goal its node names", false, "reset, not built"},
-	{TypeLand, true, "the Goal its node names; it ends the Goal, and may carry the evidence of the commit it lands", false, "land"},
+	{TypeLand, true, "the Goal its node names; it ends the Goal, and may carry the evidence of the commit it lands, with what it read of that commit's spec folder and kept model", false, "land"},
 	{TypeClose, true, "the Goal its node names; it ends the Goal", false, "close"},
 	{TypeUnselect, true, "the Goal its node names; it names the commit it rejects", true, "unselect"},
 	{TypeRead, false, "none: it is what hyp printed to an actor, and changes no Goal", false, "every command that names an actor"},
@@ -196,7 +196,9 @@ type ExampleCell struct {
 }
 
 // ResultRecord is the payload of result.record. Refused is empty, or
-// "Stable" with the example keys whose verdict differed in Differing.
+// "Stable" with the example keys whose verdict differed in Differing. Read
+// is what the run read of git about its commit; a Result recorded before
+// runs carried it holds none.
 type ResultRecord struct {
 	Role      string        `json:"role"`
 	Line      string        `json:"line"`
@@ -205,6 +207,54 @@ type ResultRecord struct {
 	Refused   string        `json:"refused"`
 	Differing []string      `json:"differing,omitempty"`
 	Cells     []ExampleCell `json:"cells"`
+	Read      *CommitRead   `json:"read,omitempty"`
+}
+
+// CommitRead is what a run read of git about its commit when it recorded
+// its Result: the act reads git, and its event carries what it read, so no
+// state or print reads git history again. Rows, leaves, candidates, the
+// Spec guard of the calculated select and the prints of a selected commit
+// are calculated from it.
+type CommitRead struct {
+	// Above is each commit of the Goal's rows, H0's included, that the
+	// commit descends from, as git showed it when the run was recorded.
+	Above []string `json:"above,omitempty"`
+
+	// What the commit's spec folder, goals/G/specs/, holds.
+	SpecFiles int      `json:"spec_files"`        // the number of its files
+	Model     bool     `json:"model"`             // it holds a .tla file
+	Unnamed   []string `json:"unnamed,omitempty"` // the rules of its check configs no variant config names
+	Named     []string `json:"named,omitempty"`   // the rules some variant config names
+	Charts    []Chart  `json:"charts,omitempty"`  // its charts, outside the variant folders
+
+	// What the commit holds of the kept model, goals/model/.
+	Keeps bool       `json:"keeps"`           // the commit keeps a model there
+	Steps []KeptStep `json:"steps,omitempty"` // each step of it, in module order
+	Kept  []KeptItem `json:"kept,omitempty"`  // what it adds or changes against H0
+}
+
+// Chart is one chart (.mmd) of a spec folder: its path below the folder and
+// its text.
+type Chart struct {
+	Path string `json:"path"`
+	Text string `json:"text"`
+}
+
+// KeptStep is one step of the kept model: the name of its definition and
+// the command it takes.
+type KeptStep struct {
+	Name    string `json:"name"`
+	Command string `json:"command"`
+}
+
+// KeptItem is one step or rule of the kept model that a commit adds or
+// changes. A step is a definition tagged with the command it takes; a rule
+// is a name its check configs check, with the source its comment names.
+type KeptItem struct {
+	Rule    bool   `json:"rule,omitempty"`    // a rule; else a step
+	Name    string `json:"name"`              // the name of its definition
+	Command string `json:"command,omitempty"` // a step's command
+	Source  string `json:"source,omitempty"`  // a rule's source, as its comment names it; empty when none
 }
 
 // ResultRetract is the payload of result.retract.
@@ -237,6 +287,11 @@ type Land struct {
 	Tree     string        `json:"tree,omitempty"`
 	RowTree  string        `json:"row_tree,omitempty"`
 	Verdicts []LandVerdict `json:"verdicts,omitempty"`
+
+	// Read is what the land read of git about the commit it lands, its
+	// spec folder and kept model, so every clone prints the ended Goal from
+	// the event. A land written before land carried it holds none.
+	Read *CommitRead `json:"read,omitempty"`
 }
 
 // LandVerdict is one example's verdict on the commit a land names: the

@@ -88,7 +88,7 @@ func TestOneCandidateIsSelectedWithNoEvent(t *testing.T) {
 	// a second candidate is calculated too: the Goal shows two candidates,
 	// and no select
 	e.metLeaf(t, "ok2", true)
-	if g := e.shown(t); g.State != tables.StateOpen || g.Select != nil || Stand(g, e.root).Stop != StopTwoCandidates {
+	if g := e.shown(t); g.State != tables.StateOpen || g.Select != nil || Stand(g).Stop != StopTwoCandidates {
 		t.Fatalf("state = %s, select = %+v, want open at two candidates", g.State, g.Select)
 	}
 }
@@ -116,7 +116,7 @@ func TestRunnerCannotSelectAmongTwo(t *testing.T) {
 	e := newRunEnv(t)
 	_, t1 := e.metLeaf(t, "ok", true)
 	e.metLeaf(t, "ok2", true)
-	if g := e.shown(t); len(tables.Candidates(g, gitread.Ancestry{Dir: e.root})) != 2 || g.State != tables.StateOpen {
+	if g := e.shown(t); len(tables.Candidates(g)) != 2 || g.State != tables.StateOpen {
 		t.Fatalf("test setup: want two candidates and an open Goal, state %s", g.State)
 	}
 	_, err := Select(e.selectOpts(t1, "runner-1", "runner"))
@@ -161,7 +161,7 @@ func TestNoSpecHoldsTheSelectBack(t *testing.T) {
 	if g.State != tables.StateOpen {
 		t.Fatalf("state = %s, want open", g.State)
 	}
-	held := HeldBack(g, e.root)
+	held := HeldBack(g)
 	if len(held) != 1 {
 		t.Fatalf("held back = %+v, want one", held)
 	}
@@ -184,12 +184,17 @@ func TestOtherGoalPathHoldsTheSelectBack(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	// hyp status reads no git: a Result that carries no read of its commit
+	// is held back by Spec until a run records one; run checks Own path on
+	// the commit before it records, and the owner's select checks it on git.
 	g := e.shown(t)
-	held := HeldBack(g, e.root)
+	held := HeldBack(g)
 	if g.State != tables.StateOpen || len(held) != 1 {
 		t.Fatalf("state = %s, held back = %+v", g.State, held)
 	}
-	refusedBy(t, held[0].Err, "Own path")
+	refusedBy(t, held[0].Err, "Spec")
+	_, err := Select(e.selectOpts(tree, "owner-1", "owner"))
+	refusedBy(t, err, "Own path")
 }
 
 func TestSelectReturnsTheSelectedGoal(t *testing.T) {

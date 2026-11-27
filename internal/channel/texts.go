@@ -97,6 +97,7 @@ var words = map[fault.Code]string{
 	fault.SelectNotInLog:  "the select of %s is not in the log",
 	fault.NoResultOnRow:   "row %s has no Result to select",
 	fault.NoSpec:          "commit %s holds no file under %s; commit the spec, then run one line on that commit",
+	fault.NoRead:          "no Result of commit %s in this clone's trace carries what its run read of goals/%s/specs/; run one line on that commit",
 	fault.RuleNoVariant:   "commit %s holds a model whose rules no variant config names: %s; commit a variant config under %s that lists each rule it breaks, then run one line on that commit",
 	fault.NoChart:         "commit %s holds a model and no chart under %s; commit the chart (.mmd), then run one line on that commit",
 
@@ -196,7 +197,6 @@ var words = map[fault.Code]string{
 	fault.NoTree:               "select needs a subject hash",
 	fault.TreeTwice:            "%s matches %d rows of %s; give more of the subject hash",
 	fault.NoRow:                "%s has no row %s; a candidate is a leaf row met on every line",
-	fault.RowLeafUnknown:       "Candidate: the leaf mark of row %s needs commit %s, which this clone lacks",
 	fault.OwnerSelectsAmong:    "%s has %d candidates; only the owner selects among them",
 	fault.RowNotLeaf:           "row %s is not a leaf; a commit of another row descends from it",
 	fault.RowNotMet:            "row %s is not met on every line",

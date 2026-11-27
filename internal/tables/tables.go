@@ -130,6 +130,7 @@ type Land struct {
 	Tree     string
 	RowTree  string
 	Verdicts []events.LandVerdict
+	Read     *events.CommitRead // what the land read of the commit; nil on a land of the older form
 }
 
 // Close is a row of the Closes table: the owner's close of a Goal, which ends
@@ -185,9 +186,10 @@ type Result struct {
 	Refused   string // empty, or "Stable"
 	Differing []string
 	Cells     []events.ExampleCell
-	Unstable  []UnstableCell // set only on a Result refused by Stable
-	epoch     int            // the Goal's epoch when it was recorded
-	wasH0     bool           // its row tree was H0's when it was recorded
+	Unstable  []UnstableCell     // set only on a Result refused by Stable
+	Read      *events.CommitRead // what its run read of git; nil on a Result recorded before runs carried it
+	epoch     int                // the Goal's epoch when it was recorded
+	wasH0     bool               // its row tree was H0's when it was recorded
 }
 
 // Refused is an event that failed a guard at its place in the merge order.
@@ -880,7 +882,7 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 	g := t.Goals[ev.Node]
 	r := &Result{
 		ID: ev.ID, Line: p.Line, Commit: p.Commit, RowTree: p.RowTree, Actor: ev.Actor, Role: p.Role,
-		Time: ev.TS, Refused: p.Refused, Differing: p.Differing, Cells: p.Cells, epoch: g.epoch,
+		Time: ev.TS, Refused: p.Refused, Differing: p.Differing, Cells: p.Cells, Read: p.Read, epoch: g.epoch,
 		wasH0: p.RowTree == g.BaseTree,
 	}
 	if p.Refused != "" {
@@ -1048,7 +1050,7 @@ func replayLand(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 	}
 	g := t.Goals[ev.Node]
 	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor, Why: ev.Why,
-		Commit: p.Commit, Tree: p.Tree, RowTree: p.RowTree, Verdicts: p.Verdicts}
+		Commit: p.Commit, Tree: p.Tree, RowTree: p.RowTree, Verdicts: p.Verdicts, Read: p.Read}
 	if p.Commit != "" && p.Stop == StopSelected && g.Select == nil {
 		// the land carries the select it approves: every clone reads the
 		// ended Goal selected on that commit

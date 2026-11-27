@@ -51,7 +51,7 @@ func Unselect(o UnselectOpts) (UnselectReport, error) {
 	var rep UnselectReport
 	_, err = logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeUnselect, Why: o.Why, Actor: o.Actor}
-		t := Calculate(tables.Replay(evs), root)
+		t := Calculate(tables.Replay(evs))
 		g, err := t.Find(o.Goal)
 		if err != nil {
 			return ev, err

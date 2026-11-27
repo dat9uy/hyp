@@ -5,7 +5,16 @@ export const title = "A Goal's lifecycle, owner acts in git, Results in each clo
 
 const placed = (v) => [...v.atAdd, ...v.later];
 
-export const state = (v) => {
+export const state = (v) => ({
+  Goal: goalState(v),
+  "Git of the clone": v.pruned
+    ? "runner commits pruned"
+    : v.branchGone
+      ? "runner branches deleted"
+      : "every commit held",
+});
+
+const goalState = (v) => {
   const store = v.form === "old" ? "old store: " : "";
   if (!v.added) return "no Goal";
   if (v.landed !== "none") return `${store}landed on ${v.landed}`;
@@ -48,6 +57,8 @@ export const step = (action, from, to) =>
     Land: "the owner lands",
     Unselect: "the owner unselects the commit shown selected",
     Close: "the owner closes the Goal",
+    DeleteBranch: "the runner's branches are deleted",
+    Prune: "git prunes the commits no ref reaches",
   })[action] ?? action;
 
 export const print = (action, from, to) => to.out;

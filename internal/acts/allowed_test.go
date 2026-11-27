@@ -28,7 +28,7 @@ func acted(rl []Ready, act string) bool {
 // select its Results show.
 func (e *runEnv) allowed(t *testing.T) []Ready {
 	t.Helper()
-	return AllowedFor(e.shown(t), e.root)
+	return AllowedFor(e.shown(t))
 }
 
 // owners lists only the acts of the owner that are not the place and the
@@ -114,7 +114,7 @@ func TestAllowedTwoCandidatesOnlyOwnerMaySelect(t *testing.T) {
 			t.Fatalf("owner may %+v, want a select of %s", owner, tree)
 		}
 	}
-	if st := Stand(e.shown(t), e.root); st.Stop != StopTwoCandidates || len(st.Candidates) != 2 {
+	if st := Stand(e.shown(t)); st.Stop != StopTwoCandidates || len(st.Candidates) != 2 {
 		t.Fatalf("standing = %+v", st)
 	}
 }
@@ -127,7 +127,7 @@ func TestAllowedBudgetUsedRunnerMayNotRun(t *testing.T) {
 		if _, err := e.run(c); err != nil {
 			t.Fatal(err)
 		}
-		st := Stand(e.goalRow(t), e.root)
+		st := Stand(e.goalRow(t))
 		if i < 2 && st.Stop != StopNone {
 			t.Fatalf("after %d trees stop = %s", i+1, st.Stop)
 		}
@@ -136,7 +136,7 @@ func TestAllowedBudgetUsedRunnerMayNotRun(t *testing.T) {
 	if got := lines(rl, "runner"); len(got) != 0 {
 		t.Fatalf("runner may %+v after the budget is used", got)
 	}
-	if st := Stand(e.goalRow(t), e.root); st.Stop != StopBudgetUsed || st.Used != 3 || st.Waits != "owner" {
+	if st := Stand(e.goalRow(t)); st.Stop != StopBudgetUsed || st.Used != 3 || st.Waits != "owner" {
 		t.Fatalf("standing = %+v", st)
 	}
 }
@@ -152,7 +152,7 @@ func TestAllowedCandidateWithoutSpecAtBudgetMayRunSpecCommit(t *testing.T) {
 		}
 	}
 	commit, tree := e.metLeaf(t, "ok", false)
-	st := Stand(e.goalRow(t), e.root)
+	st := Stand(e.goalRow(t))
 	if st.Stop != StopNone || st.Used != 3 || len(st.Candidates) != 1 {
 		t.Fatalf("test setup: standing = %+v", st)
 	}
@@ -212,7 +212,7 @@ func TestAllowedOwnerMayPlaceTheSet(t *testing.T) {
 		t.Fatalf("one candidate, selected: owner may place %+v, want nothing", got)
 	}
 	o.metLeaf(t, "ok2", true)
-	if st := Stand(o.goalRow(t), o.root); st.Stop != StopTwoCandidates {
+	if st := Stand(o.goalRow(t)); st.Stop != StopTwoCandidates {
 		t.Fatalf("test setup: stop %s", st.Stop)
 	}
 	if got, want := placeLines(o.allowed(t)), places(o); !slices.Equal(got, want) {

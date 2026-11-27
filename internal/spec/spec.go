@@ -474,7 +474,7 @@ var Guards = []Guard{
 	{fault.GuardGoalsActor, "only the actor that added the Goal selects for the owner, lands, closes or unselects it",
 		[]fault.Code{fault.NotGoalsActor}, "yes"},
 	{fault.GuardSpec, "the selected commit holds a spec under goals/G/specs/; a model there names each rule of its check configs in a variant config, and holds a chart; when the commit changes the kept model, goals/model/, against H0, whatever commit the clone has checked out, a variant config under goals/G/specs/ names each kept rule that is new or whose definition text differs, the other kept rules need none, and the folder holds a chart",
-		[]fault.Code{fault.NoSpec, fault.RuleNoVariant, fault.NoChart}, "no: it reads git"},
+		[]fault.Code{fault.NoSpec, fault.NoRead, fault.RuleNoVariant, fault.NoChart}, "no: run and land read git and their events carry what they read; the calculated select and hyp status check what the Result of the commit carries"},
 	{fault.GuardOwnerLands, "only the owner lands a Goal",
 		[]fault.Code{fault.NotOwner}, "yes"},
 	{fault.GuardEvidence, "a land on a commit carries, for every current example, its verdict on that commit, from this clone's Result or from a run the land makes first; every verdict is met, the row is not one an unselect rejected, and a select event, when one holds the Goal, is on that row",
@@ -575,7 +575,7 @@ var Rules = []Rule{
 	}},
 	{"the subject", []string{
 		"A commit's subject is its tree without the top-level entries goals and .tree; its git tree hash is the subject hash, one Hypothesis, one row.",
-		"H0 is the Goal's base commit; a row is a leaf when none of its commits has a descendant among the commits of the Goal's other rows.",
+		"H0 is the Goal's base commit; a row is a leaf when no Result on another row carries one of its commits among the commits of the Goal's rows that its run read its commit descends from.",
 	}},
 	{"budget and stops", []string{
 		"The budget is three Hypotheses since the boundary, H0 never counted; a refused run costs nothing, a retracted Result still counts.",
@@ -583,6 +583,7 @@ var Rules = []Rule{
 		"The stops: selected (one candidate this clone's Results show that holds a spec and writes no other Goal's folder, or a select event), two candidates (two or more candidates and no select), budget used (three Hypotheses counted, the third with a live cell for every example, and no candidate). A row an unselect rejected is no candidate.",
 		"A stop is calculated, never stored; it waits for the owner. At two candidates and budget used the state block adds the table of outputs.",
 		"Runs, rows, candidates and every stop are calculated from the Results of this clone's trace; a select event of the older form, or the owner's select among two candidates, is read from git.",
+		"No state or print reads git history: an act that reads git, such as run or land, carries what it read in its event, the commits of the Goal's rows its commit descends from, its spec folder and its kept model, and rows, leaves, candidates, the Spec guard of the calculated select and the prints of the selected commit are calculated from events. A select or land of the older form, which carries no read, is printed from git.",
 		"Every state block of a Goal with a select warns when the selected commit is in this clone and on no branch or tag, whatever other commit with the same subject hash is on one.",
 	}},
 	{"the example file", []string{

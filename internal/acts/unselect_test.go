@@ -53,7 +53,7 @@ func TestUnselectOpensTheGoal(t *testing.T) {
 	if g.State != tables.StateOpen || g.Select != nil || tables.RunsUsed(g) != 0 || !g.Rejected[tree] {
 		t.Fatalf("state = %s, select %+v, runs %d", g.State, g.Select, tables.RunsUsed(g))
 	}
-	got := AllowedFor(g, e.root)
+	got := AllowedFor(g)
 	if hasAct(got, "owner", ActSelect) || hasAct(got, "runner", ActSelect) || !hasAct(got, "owner", ActPlace) || !hasAct(got, "runner", ActRun) {
 		t.Fatalf("allowed = %+v, want the owner's place, the runner's run and no select", got)
 	}

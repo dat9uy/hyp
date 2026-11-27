@@ -56,6 +56,7 @@ type runChecked struct {
 	commit  string // the full sha
 	rowTree string
 	placed  []tables.Placement // the current placements of the line, in key order
+	read    events.CommitRead  // what the run read of git about the commit, which its Result carries
 }
 
 // Run records one Result for every placed example of a line on a commit, or
@@ -116,7 +117,7 @@ func Run(o RunOpts) (RunReport, error) {
 		if err := sameBasis(first, again); err != nil {
 			return ev, err
 		}
-		payload := events.ResultRecord{Role: o.Role, Line: lineKey, Commit: again.commit, RowTree: again.rowTree, Cells: cells}
+		payload := events.ResultRecord{Role: o.Role, Line: lineKey, Commit: again.commit, RowTree: again.rowTree, Cells: cells, Read: &again.read}
 		if diff := tables.StableDiff(again.goal, lineKey, again.rowTree, cells); len(diff) > 0 {
 			payload.Refused = "Stable"
 			for _, d := range diff {
@@ -161,8 +162,9 @@ func Run(o RunOpts) (RunReport, error) {
 }
 
 // checkRun runs the guards that need no Probe, in the order of the state
-// machine: Selected, Bytes, Open, Own path, Leaf only, then Budget. An unknown
-// Goal or line is a bad argument.
+// machine: Selected, Bytes, Open, Own path, Leaf only, then Budget. Then it
+// reads what the Result carries of the commit (ReadCommit). An unknown Goal
+// or line is a bad argument.
 func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey string) (runChecked, error) {
 	t := tables.Replay(evs)
 	g, err := t.Find(goalName)
@@ -211,6 +213,9 @@ func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey stri
 		return runChecked{}, err
 	}
 	if err := tables.GuardBudget(g, c.rowTree); err != nil {
+		return runChecked{}, err
+	}
+	if c.read, err = ReadCommit(root, g, c.commit); err != nil {
 		return runChecked{}, err
 	}
 	return c, nil
