@@ -5,6 +5,7 @@ warning: the selected commit <hash> is on no branch or tag of this clone; push i
 owner may:
   hyp land G-XXXXXX <commit>
   hyp unselect G-XXXXXX <commit>
+  hyp place G-XXXXXX
   hyp close G-XXXXXX
 grill may:
   (none)

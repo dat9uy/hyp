@@ -40,12 +40,18 @@ EXTENDS Naturals, FiniteSets, Sequences
 \* not only for the events of its act.
 \* StepsWhenUnset: with HYP_STEP_LOG unset, hyp appends its step lines to a
 \* file of its own.
+\* RunAtSelect: as on H0, run checks the select of a select event only, so a
+\* run on a Goal this clone's Results show selected records its Result.
+\* PlaceRefusedAtShown: place is refused also while a clone's Results show
+\* the Goal selected with no select event.
+\* PlaceAtSelectEvent: place does not read the select event either, so the
+\* owner places on a Goal a select event holds.
 CONSTANTS GrillPlaces, AddGoalAcceptsDisagreeing, AddExampleSkipsH0,
           AddExampleSkipsAddsOnly, RunWritesGit, SelectIgnoresMissing,
           LandTrustsMissing, UnselectNamesNothing, SelectIgnoresUnselect,
           IgnoreOldSelect, StatusReadsHistory, RowsFromBranches,
           KeepsNoSteps, SharedStepLog, ShowOmitsSteps, StepsForReads,
-          StepsWhenUnset
+          StepsWhenUnset, RunAtSelect, PlaceRefusedAtShown, PlaceAtSelectEvent
 
 \* The number of clones and of commits, 1 or 2 each. The check config uses
 \* two of each; the chart config, which only draws the chart, one of each.
@@ -61,13 +67,19 @@ CONSTANTS NClones, NCommits
 \* event of the command wrote, and stray is a step line written while
 \* HYP_STEP_LOG was unset.
 \* showDropped is a hyp show that printed fewer steps than the trace keeps.
+\* selFault holds what a select let through or refused against the lines:
+\* "runAtSelect", a Result recorded in a clone that showed the Goal
+\* selected; "placeRefused", a place refused with no select event;
+\* "placeAtEvent", a place recorded while a select event held the Goal.
 VARIABLES form, added, atAdd, later, results, unselected, anyUnselect,
           rejected, landed, landVerdict, closed, gitWriters, out,
-          pruned, branchGone, kept, keptWrong, extraStep, stray, showDropped
+          pruned, branchGone, kept, keptWrong, extraStep, stray, showDropped,
+          selFault
 
 vars == <<form, added, atAdd, later, results, unselected, anyUnselect,
           rejected, landed, landVerdict, closed, gitWriters, out,
-          pruned, branchGone, kept, keptWrong, extraStep, stray, showDropped>>
+          pruned, branchGone, kept, keptWrong, extraStep, stray, showDropped,
+          selFault>>
 
 stepVars == <<extraStep, stray>>
 
@@ -117,6 +129,7 @@ GoalTypeOK ==
     /\ kept \in [Clones -> SUBSET StepNames] /\ keptWrong \in BOOLEAN
     /\ extraStep \in BOOLEAN
     /\ stray \in BOOLEAN /\ showDropped \in BOOLEAN
+    /\ selFault \subseteq {"runAtSelect", "placeRefused", "placeAtEvent"}
 
 \* The old form's select of c1 holds while no unselect event exists.
 OldSel == IF form = "old" /\ ~IgnoreOldSelect /\ ~anyUnselect
@@ -164,6 +177,7 @@ Init ==
     /\ extraStep = FALSE
     /\ stray = FALSE
     /\ showDropped = FALSE
+    /\ selFault = {}
 
 \* The owner adds the Goal with its examples, each with its hash and its
 \* verdict on H0.
@@ -184,25 +198,37 @@ AddGoal ==
                 /\ Steps(set, "AddGoal")
         /\ UNCHANGED <<form, later, results, unselected, anyUnselect,
                        rejected, landed, landVerdict, closed, pruned, branchGone,
-                       kept, keptWrong, showDropped>>
+                       kept, keptWrong, showDropped, selFault>>
 
 \* An act adds a new example to the Goal: the owner's, or with GrillPlaces
-\* the grill's place of today.
+\* the grill's place of today. A select event refuses it; a select that only
+\* a clone's Results show does not, and the new example, with no Result yet,
+\* shows the Goal open again.
 \* command: hyp place
 Place ==
     \E e \in Ex \ placed :
         /\ added /\ ~ended /\ later = {}
         /\ GrillPlaces \/ atAdd # {}
-        /\ IF ~AddExampleSkipsH0 /\ ~Agrees(e)
+        /\ IF OldSel # "none" /\ ~PlaceAtSelectEvent
+           THEN /\ out' = "place exit 1: selected"
+                /\ UNCHANGED <<later, gitWriters, selFault>>
+           ELSE IF PlaceRefusedAtShown /\ \E k \in Clones : SelectedIn(k) # "none"
+           THEN /\ out' = "place exit 1: selected"
+                /\ selFault' = selFault \cup {"placeRefused"}
+                /\ UNCHANGED <<later, gitWriters>>
+           ELSE IF ~AddExampleSkipsH0 /\ ~Agrees(e)
            THEN /\ out' = "place exit 1: wrong-verdict-on-h0"
-                /\ UNCHANGED <<later, gitWriters, pruned, branchGone>>
+                /\ UNCHANGED <<later, gitWriters, selFault>>
            ELSE IF ~AddExampleSkipsAddsOnly /\ ~AddsOnly(e)
            THEN /\ out' = "place exit 1: section-differs"
-                /\ UNCHANGED <<later, gitWriters, pruned, branchGone>>
+                /\ UNCHANGED <<later, gitWriters, selFault>>
            ELSE /\ later' = {e}
                 /\ gitWriters' = gitWriters \cup
                        {IF GrillPlaces THEN "grill" ELSE "owner"}
                 /\ out' = "place exit 0: " \o e
+                /\ selFault' = IF OldSel # "none"
+                                THEN selFault \cup {"placeAtEvent"}
+                                ELSE selFault
         /\ Steps(FALSE, IF out' = "place exit 0: " \o e THEN "Place" ELSE "none")
         /\ UNCHANGED <<form, added, atAdd, results, unselected, anyUnselect,
                        rejected, landed, landVerdict, closed, pruned, branchGone,
@@ -217,20 +243,29 @@ RunLog(k, e) ==
     ELSE ProbeSteps(e)
 
 \* The runner runs one example on one commit in clone k. The Result goes to
-\* that clone's trace, with the step log of the example's Probe.
+\* that clone's trace, with the step log of the example's Probe. A Goal that
+\* clone k shows selected, by its Results or by a select event, refuses the
+\* run: the runner stops at the first selectable candidate.
 \* command: hyp run
 Run ==
     \E k \in Clones, c \in C, e \in Ex :
         /\ added /\ ~ended /\ placed # {}
         /\ e \in placed
         /\ results[k][c][e] = "none"
-        /\ results' = [results EXCEPT ![k][c][e] = Truth(c, e)]
-        /\ kept' = [kept EXCEPT ![k] = @ \cup RunLog(k, e)]
-        /\ keptWrong' = (keptWrong \/ RunLog(k, e) # ProbeSteps(e))
-        /\ gitWriters' = IF RunWritesGit THEN gitWriters \cup {"runner"}
-                         ELSE gitWriters
-        /\ out' = "run exit 0: " \o c \o " " \o e \o " " \o Truth(c, e)
-        /\ Steps(FALSE, "Run")
+        /\ IF SelectedIn(k) # "none" /\ ~RunAtSelect
+           THEN /\ out' = "run exit 1: selected"
+                /\ Steps(FALSE, "none")
+                /\ UNCHANGED <<results, kept, keptWrong, gitWriters, selFault>>
+           ELSE /\ results' = [results EXCEPT ![k][c][e] = Truth(c, e)]
+                /\ kept' = [kept EXCEPT ![k] = @ \cup RunLog(k, e)]
+                /\ keptWrong' = (keptWrong \/ RunLog(k, e) # ProbeSteps(e))
+                /\ gitWriters' = IF RunWritesGit THEN gitWriters \cup {"runner"}
+                                 ELSE gitWriters
+                /\ out' = "run exit 0: " \o c \o " " \o e \o " " \o Truth(c, e)
+                /\ selFault' = IF SelectedIn(k) # "none"
+                                THEN selFault \cup {"runAtSelect"}
+                                ELSE selFault
+                /\ Steps(FALSE, "Run")
         /\ UNCHANGED <<form, added, atAdd, later, unselected, anyUnselect,
                        rejected, landed, landVerdict, closed, pruned, branchGone,
                        showDropped>>
@@ -260,7 +295,7 @@ Status ==
         /\ Steps(set, "none")
         /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                        anyUnselect, rejected, landed, landVerdict, closed,
-                       gitWriters, pruned, branchGone, kept, keptWrong, showDropped>>
+                       gitWriters, pruned, branchGone, kept, keptWrong, showDropped, selFault>>
 
 \* The steps the Results of clone k keep, which hyp show prints.
 KeptIn(k) == kept[k]
@@ -279,7 +314,7 @@ Show ==
         /\ Steps(FALSE, "none")
         /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                        anyUnselect, rejected, landed, landVerdict, closed,
-                       gitWriters, pruned, branchGone, kept, keptWrong>>
+                       gitWriters, pruned, branchGone, kept, keptWrong, selFault>>
 
 \* The commits clone k lets the owner land: the selected one, or a row with
 \* no failed Result and at least one met, whose missing Results land runs.
@@ -314,7 +349,7 @@ Land ==
                       /\ UNCHANGED <<landed, landVerdict, gitWriters, pruned, branchGone>>
         /\ Steps(FALSE, IF landed' # "none" THEN "Land" ELSE "none")
         /\ UNCHANGED <<form, added, atAdd, later, unselected, anyUnselect,
-                       rejected, closed, pruned, branchGone, kept, keptWrong, showDropped>>
+                       rejected, closed, pruned, branchGone, kept, keptWrong, showDropped, selFault>>
 
 \* The owner unselects the commit clone k shows selected, naming it.
 \* command: hyp unselect
@@ -331,7 +366,7 @@ Unselect ==
         /\ out' = "unselect exit 0: " \o SelectedIn(k)
         /\ Steps(FALSE, "Unselect")
         /\ UNCHANGED <<form, added, atAdd, later, results, landed,
-                       landVerdict, closed, pruned, branchGone, kept, keptWrong, showDropped>>
+                       landVerdict, closed, pruned, branchGone, kept, keptWrong, showDropped, selFault>>
 
 \* The runner's branches are deleted; their commits stay until git prunes
 \* them. Git outside hyp: no variable of hyp changes.
@@ -342,7 +377,7 @@ DeleteBranch ==
     /\ out' = "branches deleted"
     /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                    anyUnselect, rejected, landed, landVerdict, closed,
-                   gitWriters, pruned, kept, keptWrong, stepVars, showDropped>>
+                   gitWriters, pruned, kept, keptWrong, stepVars, showDropped, selFault>>
 
 \* Git prunes the commits no ref reaches, such as after a rebase, a squash
 \* or a new clone.
@@ -353,7 +388,7 @@ Prune ==
     /\ out' = "commits pruned"
     /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                    anyUnselect, rejected, landed, landVerdict, closed,
-                   gitWriters, branchGone, kept, keptWrong, stepVars, showDropped>>
+                   gitWriters, branchGone, kept, keptWrong, stepVars, showDropped, selFault>>
 
 \* command: hyp close
 Close ==
@@ -364,7 +399,7 @@ Close ==
     /\ Steps(FALSE, "Close")
     /\ UNCHANGED <<form, added, atAdd, later, results, unselected,
                    anyUnselect, rejected, landed, landVerdict, pruned, branchGone,
-                   kept, keptWrong, showDropped>>
+                   kept, keptWrong, showDropped, selFault>>
 
 Next == AddGoal \/ Place \/ Run \/ Status \/ Show \/ Land \/ Unselect
         \/ Close \/ DeleteBranch \/ Prune
@@ -432,5 +467,14 @@ OneStepPerEvent == ~extraStep
 
 \* source: G-KDGPDT:line-5
 NoStepWhenUnset == ~stray
+
+\* source: G-TYAMKX:line-1
+NoRunAtSelect == "runAtSelect" \notin selFault
+
+\* source: G-TYAMKX:line-4
+PlaceAtShownSelect == "placeRefused" \notin selFault
+
+\* source: G-TYAMKX:line-5
+NoPlaceAtSelectEvent == "placeAtEvent" \notin selFault
 
 =============================================================================

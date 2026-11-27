@@ -334,11 +334,11 @@ var States = []State{
 			{ActUnselect, "the Goal has no select", fault.GuardSelected},
 		}},
 	{Name: StateSelected, Holds: "this clone's Results show one candidate row, met on every line, holding a spec, that no unselect rejected; or a select event that no unselect undid, of the older form or the owner's among two candidates; and no end",
-		Allows: []string{ActLand, ActUnselect, ActClose},
+		Allows: []string{ActPlace, ActLand, ActUnselect, ActClose},
 		Stops: []Stop{
 			{ActAddGoal, "a replace", fault.GuardDraft},
 			{ActAddGoal, "--from G", fault.GuardFromEnded},
-			{ActPlace, "", fault.GuardSelected},
+			{ActPlace, "while a select event holds the Goal", fault.GuardSelected},
 			{ActRun, "", fault.GuardSelected},
 			{ActSelect, "", fault.GuardSelected},
 		}},

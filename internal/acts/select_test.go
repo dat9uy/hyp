@@ -35,6 +35,17 @@ func (e *runEnv) metLeaf(t *testing.T, value string, withSpec bool) (commit, tre
 	return commit, tree
 }
 
+// twoCandidates runs line-1 on two met leaves from H0 and returns the row
+// tree of the second, which holds a spec, and of the first, which holds none.
+// The first is run first: a candidate with no spec is held back, so the Goal
+// shows no select before the second run, and the run is not refused.
+func (e *runEnv) twoCandidates(t *testing.T) (withSpec, noSpec string) {
+	t.Helper()
+	_, noSpec = e.metLeaf(t, "ok2", false)
+	_, withSpec = e.metLeaf(t, "ok", true)
+	return withSpec, noSpec
+}
+
 func (e *runEnv) selects(t *testing.T) []events.Event {
 	t.Helper()
 	evs, _ := e.log(t)
@@ -85,18 +96,22 @@ func TestOneCandidateIsSelectedWithNoEvent(t *testing.T) {
 	refusedBy(t, err, "Candidate")
 	_, err = Select(e.selectOpts(tree, "owner-1", "owner"))
 	refusedBy(t, err, "Selected")
-	// a second candidate is calculated too: the Goal shows two candidates,
-	// and no select
-	e.metLeaf(t, "ok2", true)
-	if g := e.shown(t); g.State != tables.StateOpen || g.Select != nil || Stand(g).Stop != StopTwoCandidates {
-		t.Fatalf("state = %s, select = %+v, want open at two candidates", g.State, g.Select)
+	// the runner stops at the select: a run on a second leaf is refused by
+	// Selected and records no Result
+	c2 := e.child(t, e.base, map[string]string{"counter": "ok2\n", "goals/" + e.goal + "/specs/spec.md": "spec\n"})
+	_, err = e.run(c2)
+	refusedBy(t, err, "Selected")
+	if n := len(e.results(t)); n != 1 {
+		t.Fatalf("%d Results, want only the one of C1", n)
+	}
+	if g := e.shown(t); g.State != tables.StateSelected || g.Select == nil || g.Select.Commit != c {
+		t.Fatalf("state = %s, select = %+v, want still selected on %s", g.State, g.Select, c)
 	}
 }
 
 func TestSelectRefusesNonCandidate(t *testing.T) {
 	e := newRunEnv(t)
-	_, okTree := e.metLeaf(t, "ok", true)
-	e.metLeaf(t, "ok2", true)
+	okTree, _ := e.twoCandidates(t)
 	// a failed leaf is a row of the Goal but not a candidate
 	bad := e.child(t, e.base, map[string]string{"counter": "nope\n", "goals/" + e.goal + "/specs/spec.md": "s\n"})
 	if _, err := e.run(bad); err != nil {
@@ -114,8 +129,7 @@ func TestSelectRefusesNonCandidate(t *testing.T) {
 
 func TestRunnerCannotSelectAmongTwo(t *testing.T) {
 	e := newRunEnv(t)
-	_, t1 := e.metLeaf(t, "ok", true)
-	e.metLeaf(t, "ok2", true)
+	t1, _ := e.twoCandidates(t)
 	if g := e.shown(t); len(tables.Candidates(g)) != 2 || g.State != tables.StateOpen {
 		t.Fatalf("test setup: want two candidates and an open Goal, state %s", g.State)
 	}
@@ -128,8 +142,7 @@ func TestRunnerCannotSelectAmongTwo(t *testing.T) {
 
 func TestOwnerSelectsAmongTwo(t *testing.T) {
 	e := newRunEnv(t)
-	_, t1 := e.metLeaf(t, "ok", true)
-	e.metLeaf(t, "ok2", true)
+	t1, _ := e.twoCandidates(t)
 	rep, err := Select(e.selectOpts(t1, "owner-1", "owner"))
 	if err != nil || rep.RowTree != t1 {
 		t.Fatalf("report = %+v, %v", rep, err)
@@ -143,8 +156,7 @@ func TestOwnerSelectsAmongTwo(t *testing.T) {
 
 func TestOwnerOfOtherGoalRefused(t *testing.T) {
 	e := newRunEnv(t)
-	_, tree := e.metLeaf(t, "ok", true)
-	e.metLeaf(t, "ok2", true)
+	tree, _ := e.twoCandidates(t)
 	_, err := Select(e.selectOpts(tree, "owner-2", "owner"))
 	refusedBy(t, err, "Goal's actor")
 	if _, err := Select(e.selectOpts(tree, "owner-1", "owner")); err != nil {
@@ -199,8 +211,7 @@ func TestOtherGoalPathHoldsTheSelectBack(t *testing.T) {
 
 func TestSelectReturnsTheSelectedGoal(t *testing.T) {
 	e := newRunEnv(t)
-	_, tree := e.metLeaf(t, "ok", true)
-	e.metLeaf(t, "ok2", true)
+	tree, _ := e.twoCandidates(t)
 	rep, err := Select(e.selectOpts(tree, "owner-1", "owner"))
 	if err != nil {
 		t.Fatal(err)
@@ -214,8 +225,7 @@ func TestSelectReturnsTheSelectedGoal(t *testing.T) {
 
 func TestSelectWritesNoGitState(t *testing.T) {
 	e := newRunEnv(t)
-	_, tree := e.metLeaf(t, "ok", true)
-	e.metLeaf(t, "ok2", true)
+	tree, _ := e.twoCandidates(t)
 	before := testutil.Snapshot(t, e.root)
 	rep, err := Select(e.selectOpts(tree, "owner-1", "owner"))
 	if err != nil || len(e.selects(t)) != 1 || rep.Selected == nil {

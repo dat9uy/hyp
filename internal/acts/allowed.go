@@ -165,10 +165,14 @@ func allowedFor(g *tables.Goal) []Ready {
 	}
 	if g.Select != nil {
 		// a selected Goal allows only the owner's land and unselect of the
-		// selected commit, and close
+		// selected commit, and close; a select this clone's Results show,
+		// with no select event, also allows the owner's place
 		c := g.Select.Commit
-		return []Ready{{Goal: g.ID, Role: "owner", Act: ActLand, Commit: c}, {Goal: g.ID, Role: "owner", Act: ActUnselect, Commit: c},
-			{Goal: g.ID, Role: "owner", Act: ActClose}}
+		out := []Ready{{Goal: g.ID, Role: "owner", Act: ActLand, Commit: c}, {Goal: g.ID, Role: "owner", Act: ActUnselect, Commit: c}}
+		if g.Select.Calculated {
+			out = append(out, Ready{Goal: g.ID, Role: "owner", Act: ActPlace})
+		}
+		return append(out, Ready{Goal: g.ID, Role: "owner", Act: ActClose})
 	}
 	st := Stand(g)
 	var out []Ready

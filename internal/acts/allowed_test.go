@@ -102,17 +102,19 @@ func TestAllowedOneCandidateShowsSelected(t *testing.T) {
 
 func TestAllowedTwoCandidatesOnlyOwnerMaySelect(t *testing.T) {
 	e := newRunEnv(t)
-	_, t1 := e.metLeaf(t, "ok", true)
-	_, t2 := e.metLeaf(t, "ok2", true)
+	t1, t2 := e.twoCandidates(t)
 	rl := e.allowed(t)
 	if got := lines(rl, "runner"); acted(got, ActSelect) || acted(got, ActRun) {
 		t.Fatalf("runner may %+v at a stop", got)
 	}
+	// the owner may select the candidate that holds a spec; the one with
+	// none is held back by Spec
 	owner := lines(rl, "owner")
-	for _, tree := range []string{t1, t2} {
-		if !slices.Contains(owner, Ready{Goal: e.goal, Role: "owner", Act: ActSelect, Tree: tree}) {
-			t.Fatalf("owner may %+v, want a select of %s", owner, tree)
-		}
+	if !slices.Contains(owner, Ready{Goal: e.goal, Role: "owner", Act: ActSelect, Tree: t1}) {
+		t.Fatalf("owner may %+v, want a select of %s", owner, t1)
+	}
+	if slices.Contains(owner, Ready{Goal: e.goal, Role: "owner", Act: ActSelect, Tree: t2}) {
+		t.Fatalf("owner may %+v, want no select of %s, which holds no spec", owner, t2)
 	}
 	if st := Stand(e.shown(t)); st.Stop != StopTwoCandidates || len(st.Candidates) != 2 {
 		t.Fatalf("standing = %+v", st)
@@ -190,8 +192,9 @@ func placeLines(rl []Ready) []Ready {
 	return out
 }
 
-// The owner may place the whole set in every state that allows a place, and
-// not once the Goal is selected.
+// The owner may place the whole set in every state that allows a place: at
+// a select this clone's Results show too, and not once a select event holds
+// the Goal.
 func TestAllowedOwnerMayPlaceTheSet(t *testing.T) {
 	// written: line-1 holds an example, line-2 and line-3 none
 	e := newRunEnv(t, gapLine, gapLine, LineInput{Kind: events.KindGuard, Text: "it holds"})
@@ -207,11 +210,12 @@ func TestAllowedOwnerMayPlaceTheSet(t *testing.T) {
 	if got, want := placeLines(o.allowed(t)), places(o); !slices.Equal(got, want) {
 		t.Fatalf("open: owner may place %+v, want %+v", got, want)
 	}
-	_, tree := o.metLeaf(t, "ok", true)
-	if got := placeLines(o.allowed(t)); len(got) != 0 {
-		t.Fatalf("one candidate, selected: owner may place %+v, want nothing", got)
+	s := newRunEnv(t)
+	s.metLeaf(t, "ok", true)
+	if got, want := placeLines(s.allowed(t)), places(s); !slices.Equal(got, want) {
+		t.Fatalf("one candidate, selected with no event: owner may place %+v, want %+v", got, want)
 	}
-	o.metLeaf(t, "ok2", true)
+	tree, _ := o.twoCandidates(t)
 	if st := Stand(o.goalRow(t)); st.Stop != StopTwoCandidates {
 		t.Fatalf("test setup: stop %s", st.Stop)
 	}

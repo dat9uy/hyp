@@ -92,7 +92,7 @@ The role that writes a Goal's examples in a draft folder and tries them, and tha
 _Avoid_: interviewer, reviewer
 
 **Re-grill**:
-The grill's review of a Goal at a stop for the owner. At Two candidates or Budget used, it adjusts an example or places a new one. A selected Goal refuses every place, so its re-grill goes through the owner's `unselect`: the Goal is open again, and then the owner places. A new line is a new Goal.
+The grill's review of a Goal at a stop for the owner. At Two candidates or Budget used, it adjusts an example or places a new one. A Goal that this clone's Results show selected takes the owner's place of a new example, which shows the Goal open again. A Goal that a select event holds refuses every place, so its re-grill goes through the owner's `unselect`: the Goal is open again, and then the owner places. A new line is a new Goal.
 
 **Probe writer**:
 The role that writes a Probe. It writes no event. Whether it can be kept from reading the candidate is deferred (o11-blind).
@@ -426,7 +426,7 @@ _Avoid_: check, validation, rule (alone)
 | New cell | after an unselect, a runner's select follows a run that recorded a new cell; the owner's select does not need one |
 | Spec | the selected commit holds a file under `goals/<G>/specs/`; a model also names every check-config rule in a variant config, and holds a chart |
 | Own path | the commit's own change writes no path of another Goal |
-| Selected | the Goal has no select, for `place`, `run` and `select`; it has one, for `unselect` |
+| Selected | the Goal has no select, for `run` and `select`; no select event holds it, for `place`; it has one, for `unselect` |
 | Owner lands | the act's role is owner, for a land |
 | Owner closes | the act's role is owner, for a close |
 | Owner unselects | the act's role is owner, for an unselect |

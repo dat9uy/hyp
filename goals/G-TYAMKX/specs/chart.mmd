@@ -1,0 +1,164 @@
+---
+title: "A Goal's lifecycle, owner acts in git, Results in each clone"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: start
+    lg1: open
+    lg2: ended
+  }
+  class lg0 blue
+  class lg1 teal
+  class lg2 tan
+  state "Goal no Goal" as s0 {
+    state "Git of the clone every commit held" as s1 {
+      s2: Step log no step log kept
+      [*] --> s2
+    }
+    state "Git of the clone runner branches deleted" as s3 {
+      s4: Step log no step log kept
+      [*] --> s4
+    }
+    state "Git of the clone runner commits pruned" as s5 {
+      s6: Step log no step log kept
+      [*] --> s6
+    }
+    [*] --> s1
+  }
+  state "Goal open" as s7 {
+    state "Git of the clone every commit held" as s8 {
+      s9: Step log no step log kept
+      s10: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner branches deleted" as s11 {
+      s12: Step log no step log kept
+      s13: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner commits pruned" as s14 {
+      s15: Step log no step log kept
+      s16: Step log a Result keeps a step log
+    }
+  }
+  state "Goal closed" as s17 {
+    state "Git of the clone every commit held" as s18 {
+      s19: Step log no step log kept
+      s20: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner branches deleted" as s21 {
+      s22: Step log no step log kept
+      s23: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner commits pruned" as s24 {
+      s25: Step log no step log kept
+      s26: Step log a Result keeps a step log
+    }
+  }
+  state "Goal selected on c1" as s27 {
+    state "Git of the clone every commit held" as s28 {
+      s29: Step log a Result keeps a step log
+      [*] --> s29
+    }
+    state "Git of the clone runner branches deleted" as s30 {
+      s31: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner commits pruned" as s32 {
+      s33: Step log a Result keeps a step log
+    }
+  }
+  state "Goal landed on c1" as s34 {
+    state "Git of the clone every commit held" as s35 {
+      s36: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner branches deleted" as s37 {
+      s38: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner commits pruned" as s39 {
+      s40: Step log a Result keeps a step log
+    }
+  }
+  state "Goal open, c1 unselected" as s41 {
+    state "Git of the clone every commit held" as s42 {
+      s43: Step log a Result keeps a step log
+      [*] --> s43
+    }
+    state "Git of the clone runner branches deleted" as s44 {
+      s45: Step log a Result keeps a step log
+    }
+    state "Git of the clone runner commits pruned" as s46 {
+      s47: Step log a Result keeps a step log
+    }
+  }
+  [*] --> s0
+  s2 --> s3: the runner's branches are deleted
+  s2 --> s9: the owner adds the Goal with its examples
+  s4 --> s5: git prunes the commits no ref reaches
+  s4 --> s12: the owner adds the Goal with its examples
+  s9 --> s12: the runner's branches are deleted
+  s9 --> s19: the owner closes the Goal
+  s6 --> s15: the owner adds the Goal with its examples
+  s12 --> s22: the owner closes the Goal
+  s12 --> s15: git prunes the commits no ref reaches
+  s19 --> s22: the runner's branches are deleted
+  s9 --> s10: the runner runs an example on a commit
+  s29 --> s36: the owner lands
+  s29 --> s42: the owner unselects the commit shown selected
+  s29 --> s31: the runner's branches are deleted
+  s29 --> s20: the owner closes the Goal
+  s29 --> s10: the owner adds an example
+  s36 --> s38: the runner's branches are deleted
+  s43 --> s45: the runner's branches are deleted
+  s43 --> s20: the owner closes the Goal
+  s15 --> s25: the owner closes the Goal
+  s31 --> s38: the owner lands
+  s31 --> s45: the owner unselects the commit shown selected
+  s31 --> s23: the owner closes the Goal
+  s31 --> s33: git prunes the commits no ref reaches
+  s31 --> s13: the owner adds an example
+  s12 --> s13: the runner runs an example on a commit
+  s22 --> s25: git prunes the commits no ref reaches
+  s20 --> s23: the runner's branches are deleted
+  s10 --> s36: the owner lands
+  s10 --> s13: the runner's branches are deleted
+  s10 --> s20: the owner closes the Goal
+  s38 --> s40: git prunes the commits no ref reaches
+  s45 --> s23: the owner closes the Goal
+  s45 --> s47: git prunes the commits no ref reaches
+  s13 --> s38: the owner lands
+  s13 --> s23: the owner closes the Goal
+  s13 --> s16: git prunes the commits no ref reaches
+  s23 --> s26: git prunes the commits no ref reaches
+  s33 --> s40: the owner lands
+  s33 --> s47: the owner unselects the commit shown selected
+  s33 --> s26: the owner closes the Goal
+  s33 --> s16: the owner adds an example
+  s15 --> s16: the runner runs an example on a commit
+  s47 --> s26: the owner closes the Goal
+  s16 --> s40: the owner lands
+  s16 --> s26: the owner closes the Goal
+  s8 --> s28: the runner runs an example on a commit
+  s11 --> s31: the runner runs an example on a commit
+  s14 --> s33: the runner runs an example on a commit
+  class s2 blue
+  class s4 blue
+  class s6 blue
+  class s9 teal
+  class s10 teal
+  class s12 teal
+  class s13 teal
+  class s15 teal
+  class s16 teal
+  class s19 tan
+  class s20 tan
+  class s22 tan
+  class s23 tan
+  class s25 tan
+  class s26 tan
+  class s29 teal
+  class s31 teal
+  class s33 teal
+  class s36 tan
+  class s38 tan
+  class s40 tan
+  class s43 teal
+  class s45 teal
+  class s47 teal
