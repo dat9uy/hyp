@@ -1,7 +1,7 @@
 -- words --
 At a select this clone's Results show, the owner's place goes through: the Goal has one candidate C1 and shows selected; the owner places a new example on line-1; the place exits 0, and the Goal then shows open.
 -- run --
-HYP_ACTOR=owner hyp place GOAL --examples goals/draft-more >/dev/null 2>&1; echo "place exit $?"; HYP_ACTOR=owner hyp status GOAL | head -1
+HYP_ACTOR=owner HYP_ROLE=owner hyp place GOAL --examples goals/draft-more >/dev/null 2>&1; echo "place exit $?"; HYP_ACTOR=owner hyp status GOAL | head -1
 -- floor: contains --
 place exit 0
 -- floor: contains --

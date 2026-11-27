@@ -10,3 +10,7 @@ run exit 1
 GOAL  selected
 -- findings --
 F-P6G6VR
+-- ceiling --
+ran GOAL line-1 at
+-- ceiling --
+run exit 0
