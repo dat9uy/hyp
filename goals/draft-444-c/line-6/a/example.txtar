@@ -1,8 +1,0 @@
--- words --
-The repository holds no goals/draft- folder.
--- run --
-echo "draft folders: $(ls goals | grep -c '^draft-')"
--- floor: contains --
-draft folders: 0
--- findings --
-F-NCCCZD
