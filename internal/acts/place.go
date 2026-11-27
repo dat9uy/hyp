@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/example"
@@ -100,21 +99,16 @@ type scan struct {
 // refused by Adds only. The Probes run with the lock released, and every guard
 // is checked again under the lock before the event is appended.
 func Place(o PlaceOpts) (PlaceReport, error) {
-	if err := CheckActor(o.Actor, o.Role); err != nil {
-		return PlaceReport{}, err
-	}
-	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return PlaceReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
-	}
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := begin(o.Dir, o.Actor, o.Role, o.Why)
 	if err != nil {
 		return PlaceReport{}, err
 	}
+	root := w.root
 
 	var first scan
-	err = logstore.WithLock(root, func(evs []events.Event) error {
+	err = w.check(eventsView, func(t tables.Tables) error {
 		var err error
-		first, err = scanSet(root, o, evs)
+		first, err = scanSet(root, o, t)
 		if err != nil {
 			return err
 		}
@@ -133,9 +127,9 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	}
 
 	var rep PlaceReport
-	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	ev, err := w.append(eventsView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeExamplesPlace, Why: o.Why, Actor: o.Actor}
-		again, err := scanSet(root, o, evs)
+		again, err := scanSet(root, o, t)
 		if err != nil {
 			return ev, err
 		}
@@ -157,7 +151,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeExamplesPlace, err)
 		}
 		ev.Node, ev.Payload = again.goal.EventID, payload
-		if err := tables.GuardPlaceSet(tables.Replay(evs), ev); err != nil {
+		if err := tables.GuardPlaceSet(t, ev); err != nil {
 			return ev, err
 		}
 		// The outputs and cells are stored only once every guard holds, just
@@ -177,11 +171,11 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	if err != nil {
 		return PlaceReport{}, err
 	}
-	evs, _, err := logstore.Load(root)
+	after, _, err := load(root, eventsView)
 	if err != nil {
 		return PlaceReport{}, err
 	}
-	if g := tables.Replay(evs).Goals[ev.Node]; g != nil {
+	if g := after.Goals[ev.Node]; g != nil {
 		rep.State = g.State
 		for i := range rep.Placed {
 			if cur, ok := g.Current(rep.Placed[i].Key); ok {
@@ -288,12 +282,11 @@ func sameChanges(a, b []change) bool {
 // Goal, Whole set, Committed, Adds only and Meetable on each example
 // folder, then the names of each changed example's findings section (Not
 // refuted, Not declined, One in work) and Covered for the set, which it collects as causes
-// so a refusal names every one. Selected reads only a select event: a select
-// this clone's Results show (tables.Calculate) holds no event, and the owner's place
-// of a new example then moves the Goal back to open. An unknown Goal is a bad
-// argument.
-func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
-	t := tables.Replay(evs)
+// so a refusal names every one. Selected reads t in eventsView, only a select
+// event: a select this clone's Results show holds no event, and the owner's
+// place of a new example then moves the Goal back to open. An unknown Goal is
+// a bad argument.
+func scanSet(root string, o PlaceOpts, t tables.Tables) (scan, error) {
 	g, err := t.Find(o.Goal)
 	if err != nil {
 		return scan{}, err

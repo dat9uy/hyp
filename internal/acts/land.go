@@ -4,13 +4,11 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/example"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/probe"
 	"github.com/dat9uy/hyp/internal/tables"
 )
@@ -55,22 +53,17 @@ type LandReport struct {
 // which replay holds the ended Goal to in every clone. The examples run with
 // the lock released, and every guard is checked again under the lock.
 func Land(o LandOpts) (LandReport, error) {
-	if err := CheckActor(o.Actor, o.Role); err != nil {
-		return LandReport{}, err
-	}
-	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return LandReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
-	}
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := begin(o.Dir, o.Actor, o.Role, o.Why)
 	if err != nil {
 		return LandReport{}, err
 	}
+	root := w.root
 
 	// the first check finds the commit and runs what this clone lacks
 	var first landPlan
-	err = logstore.WithLock(root, func(evs []events.Event) error {
+	err = w.check(calculatedView, func(t tables.Tables) error {
 		var err error
-		first, err = planLand(root, o, evs)
+		first, err = planLand(root, o, t)
 		return err
 	})
 	if err != nil {
@@ -97,13 +90,13 @@ func Land(o LandOpts) (LandReport, error) {
 	}
 
 	var rep LandReport
-	_, err = logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	_, err = w.append(calculatedView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeLand, Why: o.Why, Actor: o.Actor}
-		again, err := planLand(root, o, evs)
+		again, err := planLand(root, o, t)
 		if err != nil {
 			return ev, err
 		}
-		t, g := again.tables, again.goal
+		g := again.goal
 		p := events.Land{Role: o.Role, Seen: g.Seen()}
 		rep = LandReport{Goal: g.ID}
 		if again.commit == "" {
@@ -178,7 +171,6 @@ func Land(o LandOpts) (LandReport, error) {
 // landPlan is what the guards of a land that need no Probe found: the Goal,
 // and the commit it lands with its tree and row tree, or no commit.
 type landPlan struct {
-	tables                tables.Tables
 	goal                  *tables.Goal
 	commit, tree, rowTree string
 }
@@ -186,8 +178,7 @@ type landPlan struct {
 // planLand runs Not ended, Owner lands and Goal's actor, and finds the
 // commit the land names: the one given, else the one this clone shows the
 // Goal selected on, else none.
-func planLand(root string, o LandOpts, evs []events.Event) (landPlan, error) {
-	t := tables.Calculate(tables.Replay(evs))
+func planLand(root string, o LandOpts, t tables.Tables) (landPlan, error) {
 	g, err := t.Find(o.Goal)
 	if err != nil {
 		return landPlan{}, err
@@ -201,7 +192,7 @@ func planLand(root string, o LandOpts, evs []events.Event) (landPlan, error) {
 	if err := tables.GuardGoalActor(g, o.Actor, o.Role); err != nil {
 		return landPlan{}, err
 	}
-	lp := landPlan{tables: t, goal: g}
+	lp := landPlan{goal: g}
 	name := o.Commit
 	if name == "" && g.Select != nil {
 		name = g.Select.Commit

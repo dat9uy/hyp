@@ -245,24 +245,3 @@ func HasCell(g *tables.Goal, key, rowTree string) bool {
 	_, ok = g.TraceCell(cur.Hash, rowTree)
 	return ok
 }
-
-// ReadTables reads every event of the store and of the clone's trace and
-// calculates the tables, with the cells the trace keeps as files. It also
-// returns the lines replay could not read.
-func ReadTables(root string) (tables.Tables, []logstore.LineError, error) {
-	evs, unread, err := logstore.Load(root)
-	if err != nil {
-		return tables.Tables{}, nil, err
-	}
-	t := tables.Replay(evs)
-	tr, err := logstore.TraceOf(root)
-	if err != nil {
-		return tables.Tables{}, nil, err
-	}
-	cells, err := tr.Cells()
-	if err != nil {
-		return tables.Tables{}, nil, err
-	}
-	t.UseCells(cells)
-	return tables.Calculate(t), unread, nil
-}

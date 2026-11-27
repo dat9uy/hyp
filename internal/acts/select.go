@@ -3,12 +3,10 @@ package acts
 import (
 	"encoding/json"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
@@ -39,26 +37,20 @@ type SelectReport struct {
 // commit of the row's latest Result in merge order, which is the commit the
 // select records. Everything is checked under the lock.
 func Select(o SelectOpts) (SelectReport, error) {
-	if err := CheckActor(o.Actor, o.Role); err != nil {
-		return SelectReport{}, err
-	}
-	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return SelectReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
-	}
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := begin(o.Dir, o.Actor, o.Role, o.Why)
 	if err != nil {
 		return SelectReport{}, err
 	}
+	root := w.root
 
 	var rep SelectReport
-	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	ev, err := w.append(calculatedView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeSelect, Why: o.Why, Actor: o.Actor}
 		if o.Role != "owner" {
 			// git holds only the owner's acts: the runner's Results show
 			// the Goal selected, and no event of the runner's holds it
 			return ev, fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, o.Role)
 		}
-		t := tables.Calculate(tables.Replay(evs))
 		g, err := t.Find(o.Goal)
 		if err != nil {
 			return ev, err

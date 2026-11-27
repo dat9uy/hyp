@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/example"
@@ -72,8 +71,8 @@ func Run(o RunOpts) (RunReport, error) {
 	if err := CheckActor(o.Actor, o.Role); err != nil {
 		return RunReport{}, err
 	}
-	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return RunReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
+	if err := checkWhy(o.Why); err != nil {
+		return RunReport{}, err
 	}
 	if o.Commit == "" {
 		return RunReport{}, fault.BadArg(fault.NoCommit)
@@ -83,15 +82,16 @@ func Run(o RunOpts) (RunReport, error) {
 		return RunReport{}, fault.BadArg(fault.BadGoalLine, o.Line)
 	}
 	goalName, lineKey := o.Line[:cut], o.Line[cut+1:]
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := writerAt(o.Dir, o.Actor)
 	if err != nil {
 		return RunReport{}, err
 	}
+	root := w.root
 
 	var first runChecked
-	err = logstore.WithLock(root, func(evs []events.Event) error {
+	err = w.check(calculatedView, func(t tables.Tables) error {
 		var err error
-		first, err = checkRun(root, o, evs, goalName, lineKey)
+		first, err = checkRun(root, o, t, goalName, lineKey)
 		return err
 	})
 	if err != nil {
@@ -108,9 +108,9 @@ func Run(o RunOpts) (RunReport, error) {
 
 	var rep RunReport
 	var stable error
-	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	ev, err := w.append(calculatedView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeResultRecord, Why: o.Why}
-		again, err := checkRun(root, o, evs, goalName, lineKey)
+		again, err := checkRun(root, o, t, goalName, lineKey)
 		if err != nil {
 			return ev, err
 		}
@@ -130,7 +130,7 @@ func Run(o RunOpts) (RunReport, error) {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeResultRecord, err)
 		}
 		ev.Node, ev.Payload = again.goal.EventID, raw
-		if err := tables.GuardRun(tables.Replay(evs), ev); err != nil {
+		if err := tables.GuardRun(t, ev); err != nil {
 			return ev, err
 		}
 		if err := putOutputs(root, outs...); err != nil {
@@ -142,11 +142,11 @@ func Run(o RunOpts) (RunReport, error) {
 	if err != nil {
 		return RunReport{}, err
 	}
-	evs, _, err := logstore.Load(root)
+	after, _, err := load(root, eventsView)
 	if err != nil {
 		return RunReport{}, err
 	}
-	g := tables.Replay(evs).Goals[ev.Node]
+	g := after.Goals[ev.Node]
 	if g == nil {
 		return RunReport{}, fault.EnvFault(fault.GoalVanished, rep.Goal)
 	}
@@ -164,11 +164,10 @@ func Run(o RunOpts) (RunReport, error) {
 // checkRun runs the guards that need no Probe, in the order of the state
 // machine: Selected, Bytes, Open, Own path, Leaf only, then Budget. Then it
 // reads what the Result carries of the commit (ReadCommit). Selected reads
-// the select this clone's Results show (tables.Calculate) as well as a select
-// event: the runner stops at the first selectable candidate. An unknown Goal
-// or line is a bad argument.
-func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey string) (runChecked, error) {
-	t := tables.Calculate(tables.Replay(evs))
+// t in calculatedView, the select this clone's Results show as well as a
+// select event: the runner stops at the first selectable candidate. An
+// unknown Goal or line is a bad argument.
+func checkRun(root string, o RunOpts, t tables.Tables, goalName, lineKey string) (runChecked, error) {
 	g, err := t.Find(goalName)
 	if err != nil {
 		return runChecked{}, err

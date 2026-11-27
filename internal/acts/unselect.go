@@ -3,12 +3,10 @@ package acts
 import (
 	"encoding/json"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
-	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
@@ -38,20 +36,13 @@ type UnselectReport struct {
 // starts again, and a select is calculated again only once a run records a
 // new cell (New cell). Everything is checked under the lock.
 func Unselect(o UnselectOpts) (UnselectReport, error) {
-	if err := CheckActor(o.Actor, o.Role); err != nil {
-		return UnselectReport{}, err
-	}
-	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return UnselectReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
-	}
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := begin(o.Dir, o.Actor, o.Role, o.Why)
 	if err != nil {
 		return UnselectReport{}, err
 	}
 	var rep UnselectReport
-	_, err = logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	_, err = w.append(calculatedView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeUnselect, Why: o.Why, Actor: o.Actor}
-		t := tables.Calculate(tables.Replay(evs))
 		g, err := t.Find(o.Goal)
 		if err != nil {
 			return ev, err
@@ -70,7 +61,7 @@ func Unselect(o UnselectOpts) (UnselectReport, error) {
 		}
 		sel := *g.Select
 		if o.Commit != "" {
-			commit, rowTree, err := commitAndRow(root, o.Commit)
+			commit, rowTree, err := commitAndRow(w.root, o.Commit)
 			if err != nil {
 				return ev, err
 			}
