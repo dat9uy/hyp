@@ -7,11 +7,13 @@ import (
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/spec"
+	"github.com/dat9uy/hyp/internal/tables"
 )
 
 // specText is what hyp spec prints: every entry hyp acts on, one line each,
 // so that a line names the entry it is about. The event kinds come from
-// internal/events, everything else from internal/spec.
+// internal/events, whether replay checks a guard from the replay entries in
+// internal/tables, everything else from internal/spec.
 func specText() string {
 	var b strings.Builder
 	b.WriteString("hyp spec: the one spec of hyp. hyp acts on each entry below, so a change to a\n")
@@ -82,7 +84,8 @@ func specText() string {
 		for _, c := range g.Codes {
 			codes = append(codes, string(c))
 		}
-		fmt.Fprintf(&b, "  %s  rule: %s  checked at replay: %s  codes: %s  exit %d\n", name, g.Rule, g.Replay, strings.Join(codes, ", "), spec.ExitCode(fault.Refusal))
+		replay := yesNo(tables.ChecksAtReplay(g.Name)) + g.ReplayWhy
+		fmt.Fprintf(&b, "  %s  rule: %s  checked at replay: %s  codes: %s  exit %d\n", name, g.Rule, replay, strings.Join(codes, ", "), spec.ExitCode(fault.Refusal))
 	}
 	fmt.Fprintf(&b, "  a place that places none of its set gives %s, with the guard of its first cause  exit %d\n",
 		fault.SetNotPlaced, spec.ExitCode(fault.Refusal))

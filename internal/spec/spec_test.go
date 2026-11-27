@@ -1,97 +1,60 @@
 package spec
 
 import (
-	"go/ast"
-	"go/parser"
-	"go/token"
-	"os"
-	"path/filepath"
-	"regexp"
 	"slices"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/testutil"
 )
 
-// faultConsts maps each constant name of package fault to its value.
-func faultConsts(t *testing.T) map[string]string {
-	t.Helper()
-	out := map[string]string{}
-	fs := token.NewFileSet()
-	for _, name := range []string{"fault.go", "codes.go"} {
-		f, err := parser.ParseFile(fs, filepath.Join("..", "fault", name), nil, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for _, d := range f.Decls {
-			g, ok := d.(*ast.GenDecl)
-			if !ok || g.Tok != token.CONST {
-				continue
-			}
-			for _, s := range g.Specs {
-				v := s.(*ast.ValueSpec)
-				for i, n := range v.Names {
-					if i < len(v.Values) {
-						if lit, ok := v.Values[i].(*ast.BasicLit); ok && lit.Kind == token.STRING {
-							out[n.Name], _ = strconv.Unquote(lit.Value)
-						}
-					}
-				}
-			}
-		}
-	}
-	return out
-}
-
-// TestGuardsHoldEveryRefusal: the guard entries name exactly the pairs of a
-// guard and a code that hyp's code refuses with, so a refusal hyp gives is
-// always the one hyp spec prints, and no entry names a refusal hyp never
-// gives.
+// TestGuardsHoldEveryRefusal: each code a guard can refuse with is in that
+// guard's entry, and each code of an entry is one that guard refuses with
+// somewhere in hyp's code, so a refusal hyp gives is always the one hyp spec
+// prints. The pairs are the values of the guard and the code of every
+// fault.Refuse call in the source of the binary. The one refusal whose guard
+// is no constant is set-not-placed, which names the guard of its first cause
+// and which hyp spec prints on its own line.
 func TestGuardsHoldEveryRefusal(t *testing.T) {
-	consts := faultConsts(t)
-	re := regexp.MustCompile(`fault\.Refuse\(fault\.([A-Za-z0-9]+), fault\.([A-Za-z0-9]+)`)
-	inCode := map[string]bool{}
-	err := filepath.WalkDir("..", func(path string, d os.DirEntry, err error) error {
-		if err != nil || d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
-			return err
+	entries := map[fault.Guard]map[fault.Code]bool{}
+	for _, g := range Guards {
+		entries[g.Name] = map[fault.Code]bool{}
+		for _, c := range g.Codes {
+			entries[g.Name][c] = true
 		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
+	}
+	used := map[string]bool{}
+	refusals := testutil.ReadCode(t).Refusals()
+	if len(refusals) < 100 {
+		t.Fatalf("found only %d refusals in hyp's code", len(refusals))
+	}
+	for _, r := range refusals {
+		if !r.CodeConst {
+			t.Errorf("%s: a refusal's code is no constant of package fault: %s", r.At, r.Code)
+			continue
 		}
-		for _, m := range re.FindAllStringSubmatch(string(data), -1) {
-			g, gok := consts[m[1]]
-			c, cok := consts[m[2]]
-			if !gok || !cok {
-				continue // a code held in a variable, such as a decode's
+		if !r.GuardConst {
+			if fault.Code(r.Code) != fault.SetNotPlaced {
+				t.Errorf("%s: %s is refused under a guard that is no constant: %s", r.At, r.Code, r.Guard)
 			}
-			inCode[g+" "+c] = true
+			continue
 		}
-		return nil
-	})
-	if err != nil {
-		t.Fatal(err)
+		codes, ok := entries[fault.Guard(r.Guard)]
+		if !ok {
+			t.Errorf("%s: hyp refuses under guard %q, which has no entry", r.At, r.Guard)
+			continue
+		}
+		if !codes[fault.Code(r.Code)] {
+			t.Errorf("%s: hyp refuses with %q under guard %q, whose entry does not name it", r.At, r.Code, r.Guard)
+		}
+		used[r.Guard+" "+r.Code] = true
 	}
-	if len(inCode) < 50 {
-		t.Fatalf("found only %d refusals in hyp's code", len(inCode))
-	}
-	inSpec := map[string]bool{}
 	for _, g := range Guards {
 		for _, c := range g.Codes {
-			inSpec[string(g.Name)+" "+string(c)] = true
-		}
-	}
-	for k := range inCode {
-		if !inSpec[k] {
-			t.Errorf("hyp refuses with %q, and no guard entry names it", k)
-		}
-	}
-	for k := range inSpec {
-		if !inCode[k] {
-			t.Errorf("a guard entry names %q, and hyp never refuses with it", k)
+			if !used[string(g.Name)+" "+string(c)] {
+				t.Errorf("the entry of guard %q names %q, and hyp never refuses with it under that guard", g.Name, c)
+			}
 		}
 	}
 }
