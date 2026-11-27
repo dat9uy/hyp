@@ -1,0 +1,10 @@
+-- words --
+A model within the chart budget, whose rules have sources of both forms, gives the same goal.md as today: a model of a few states, one rule with the source G-TEST00:line-1 and one with the source hyp spec, guard Not ended, and one example whose walk the tool finds.
+-- run --
+out=$(mktemp -d); skills/hyp-statechart/scripts/statechart goals/G-TEST00/specs/goal.tla --config goals/G-TEST00/specs/goal.cfg --view goals/G-TEST00/specs/goal-view.mjs --out "$out" >"$out/log" 2>&1; echo "tool exit $?"; cat goals/G-TEST00/specs/goal.md "$out/log"
+-- floor: contains --
+tool exit 0
+-- floor: contains --
+Lines of the Goal that no rule names: none.
+-- floor: contains --
+- line-1/a: walk
