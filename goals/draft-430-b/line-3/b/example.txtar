@@ -6,3 +6,5 @@ HYP_ACTOR=owner hyp status
 not read at replay:
 -- floor: contains --
 unknown event type result.retract
+-- ceiling --
+no Result ULID to retract
