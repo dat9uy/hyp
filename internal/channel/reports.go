@@ -245,6 +245,12 @@ func prBody(root string, g *tables.Goal) string {
 	if g == nil || g.Select == nil {
 		return ""
 	}
+	return prBodyOf(root, g, acts.ViewOf(root, g))
+}
+
+// prBodyOf is the PR body of g, a selected Goal, from view, the reads of
+// its commit that the rest of its status block shares.
+func prBodyOf(root string, g *tables.Goal, view *acts.GoalView) string {
 	tree := g.Select.RowTree
 	var split []string
 	if g.State != tables.StateEnded {
@@ -264,14 +270,14 @@ func prBody(root string, g *tables.Goal) string {
 			if p.Line != l.Key {
 				continue
 			}
-			words, err := acts.ExampleWords(root, p.Hash)
+			words, err := view.ExampleWords(p.Hash)
 			if err != nil {
 				words = "(example " + p.Hash + " is not readable here: " + bodyText(err, root) + ")"
 			}
 			fmt.Fprintf(&b, "\n### %s: %s\n", p.Key, words)
 		}
 	}
-	prCharts(&b, root, g)
+	prCharts(&b, root, g, view)
 	fmt.Fprintf(&b, "\nselected commit: %s\nselected row: %s\n", g.Select.Commit, tree)
 	return b.String()
 }
@@ -287,15 +293,15 @@ func tryLine(g *tables.Goal, key, commit string) string {
 
 // prCharts prints each chart (.mmd) of the selected commit's spec folder as
 // a mermaid block, so the owner reads the model's chart in the PR: the
-// charts the run or the land of that commit read (acts.SelectedRead). A spec
-// folder with no chart prints nothing.
-func prCharts(b *strings.Builder, root string, g *tables.Goal) {
-	read, err := acts.SelectedRead(root, g)
+// charts the run or the land of that commit read (acts.GoalView.Charts). A
+// spec folder with no chart prints nothing.
+func prCharts(b *strings.Builder, root string, g *tables.Goal, view *acts.GoalView) {
+	charts, err := view.Charts()
 	if err != nil {
 		fmt.Fprintf(b, "\n## Chart\n\nnot readable here: %s\n", bodyText(err, root))
 		return
 	}
-	for _, c := range read.Charts {
+	for _, c := range charts {
 		fmt.Fprintf(b, "\n## Chart: %s%s\n\n", acts.SpecDir(g.ID), c.Path)
 		f := fence(c.Text)
 		b.WriteString(strings.Replace(f, "\n", "mermaid\n", 1))

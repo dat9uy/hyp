@@ -11,7 +11,6 @@ import (
 
 	"github.com/dat9uy/hyp"
 	"github.com/dat9uy/hyp/internal/acts"
-	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
@@ -109,6 +108,7 @@ func endedCount(n int) string {
 
 func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string, o BlockOpts) {
 	st := acts.Stand(g)
+	view := acts.ViewOf(repo, g)
 	ended := g.State == tables.StateEnded
 	// an ended Goal prints no runs count: the runs are in each clone's trace,
 	// and an ended Goal reads the same in every clone
@@ -130,7 +130,7 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 		endWhy(b, g.Close.Why, o)
 	}
 	fmt.Fprintf(b, "waits: %s\n", st.Waits)
-	if g.Select != nil && acts.OnNoRef(repo, g.Select.Commit) {
+	if view.OnNoRef() {
 		fmt.Fprintf(b, "warning: the selected commit %s is on no branch or tag of this clone; push it or keep a branch on it, or git may lose it\n", g.Select.Commit)
 	}
 	for _, row := range st.Rows {
@@ -173,7 +173,7 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 	}
 	if o.Goal != "" {
 		findings(b, t, g)
-		walks(b, g, repo)
+		walks(b, g, view, repo)
 	}
 	if o.Ask && g.State == tables.StateOpen && (o.Role == "" || o.Role == "owner") {
 		fmt.Fprintf(b, "\nThe runner's Start prompt, ready to copy:\n\n%s", fence(startPrompt(g.ID)))
@@ -189,9 +189,9 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 		// the list of every Goal prints no PR body: an output it quotes can
 		// hold lines that read as Goals of this store
 	case st.Stop == acts.StopSelected:
-		keptChange(b, t, g, repo)
+		keptChange(b, t, view, repo)
 		if !o.NoBody {
-			fmt.Fprintf(b, "\nPR body:\n\n%s", prBody(repo, g))
+			fmt.Fprintf(b, "\nPR body:\n\n%s", prBodyOf(repo, g, view))
 		}
 	case st.Stop == acts.StopTwoCandidates || st.Stop == acts.StopBudgetUsed:
 		outputsTable(b, g, repo, st.Rows)
@@ -203,13 +203,12 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 // each rule with the words of the Goal line its source names as G:line-N,
 // or "no line" when it names none. It prints no TLA+ text, and nothing when
 // the commit leaves the kept model as H0 holds it.
-func keptChange(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string) {
-	read, err := acts.SelectedRead(repo, g)
+func keptChange(b *strings.Builder, t tables.Tables, view *acts.GoalView, repo string) {
+	items, err := view.Kept()
 	if err != nil {
 		fmt.Fprintf(b, "\nkept model: not readable here: %s\n", bodyText(err, repo))
 		return
 	}
-	items := read.Kept
 	if len(items) == 0 {
 		return
 	}
@@ -303,22 +302,13 @@ func findings(b *strings.Builder, t tables.Tables, g *tables.Goal) {
 // run sections with the step of the kept model it takes, or no step: on H0,
 // or on the selected commit while g has a select. It prints nothing when
 // that commit keeps no model in goals/model/.
-func walks(b *strings.Builder, g *tables.Goal, repo string) {
-	commit, on := g.Base, "H0"
-	walk := func(hash string) (acts.Walk, error) { return acts.WalkExample(repo, commit, hash) }
-	var kept bool
-	var err error
-	if g.Select != nil {
-		// the selected commit: what its run or its land read
-		commit, on = g.Select.Commit, "the selected commit"
-		var read *events.CommitRead
-		if read, err = acts.SelectedRead(repo, g); err == nil {
-			kept = read.Keeps
-			walk = func(hash string) (acts.Walk, error) { return acts.WalkRead(repo, read, hash) }
-		}
-	} else {
-		kept, err = acts.KeepsModel(repo, commit)
+func walks(b *strings.Builder, g *tables.Goal, view *acts.GoalView, repo string) {
+	commit, selected := view.WalkCommit()
+	on := "H0"
+	if selected {
+		on = "the selected commit"
 	}
+	kept, err := view.Keeps()
 	if err != nil {
 		fmt.Fprintf(b, "walks: not readable here: %s\n", bodyText(err, repo))
 		return
@@ -339,7 +329,7 @@ func walks(b *strings.Builder, g *tables.Goal, repo string) {
 				first = false
 			}
 			fmt.Fprintf(b, "    %s\n", p.Key)
-			w, err := walk(p.Hash)
+			w, err := view.Walk(p.Hash)
 			if err != nil {
 				fmt.Fprintf(b, "      not readable here: %s\n", bodyText(err, repo))
 				continue
