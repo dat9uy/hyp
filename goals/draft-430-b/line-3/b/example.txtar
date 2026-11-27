@@ -1,0 +1,8 @@
+-- words --
+A result.retract event in the clone's trace is listed as not read: the store holds a Goal, and the clone's trace holds a result.retract event; hyp status lists it under not read at replay as an unknown event type.
+-- run --
+HYP_ACTOR=owner hyp status
+-- floor: contains --
+not read at replay:
+-- floor: contains --
+unknown event type result.retract
