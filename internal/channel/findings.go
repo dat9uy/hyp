@@ -11,7 +11,7 @@ import (
 
 // ListOpts selects what FindingList prints.
 type ListOpts struct {
-	All       bool // list the settled, ended and declined findings too
+	All       bool // list the settled, ended, refuted and declined findings too
 	NotFolded bool // list only the findings that are not folded
 }
 
@@ -19,8 +19,8 @@ type ListOpts struct {
 // clone's trace in merge order, each with its state, fact, evidence, the
 // add goal its agent drafted, and the finding acts it allows as ready lines;
 // then the line that records a new finding. A finding that is settled or
-// ended, or declined, is left out unless o.All, and a last line counts each;
-// a declined finding prints the owner's why and no act; with
+// ended, refuted, or declined, is left out unless o.All, and a last line
+// counts each; a declined finding prints the owner's why and no act; with
 // o.NotFolded only the findings that are not folded are listed. Each line of
 // an agent's text is indented, so a finding ends where the next one starts.
 // A finding whose evidence names an example prints the example and its walk
@@ -29,13 +29,17 @@ type ListOpts struct {
 func FindingList(t tables.Tables, repo string, o ListOpts) string {
 	var b strings.Builder
 	keptHere, _ := acts.KeepsModel(repo, "HEAD")
-	shown, hidden, declined := 0, 0, 0
+	shown, hidden, refuted, declined := 0, 0, 0, 0
 	for _, f := range tables.SortedFindings(t) {
 		if o.NotFolded && f.State() != spec.FindingNotFolded {
 			continue
 		}
 		if !o.All && f.Ended() {
 			hidden++
+			continue
+		}
+		if !o.All && f.Refuted {
+			refuted++
 			continue
 		}
 		if !o.All && f.Declined {
@@ -69,6 +73,9 @@ func FindingList(t tables.Tables, repo string, o ListOpts) string {
 	}
 	if hidden > 0 {
 		fmt.Fprintf(&b, "%s settled or ended not shown; hyp finding list --all lists them.\n", findingCount(hidden))
+	}
+	if refuted > 0 {
+		fmt.Fprintf(&b, "%s refuted not shown; hyp finding list --all lists them.\n", findingCount(refuted))
 	}
 	if declined > 0 {
 		fmt.Fprintf(&b, "%s declined not shown; hyp finding list --all lists them.\n", findingCount(declined))
