@@ -1,0 +1,8 @@
+-- words --
+A selected Goal, on the build: line-1's example runs toy fold; H0's kept model has no action for it, and the selected commit adds the action Fold tagged toy fold; hyp status G-ONE shows toy fold with the step Fold, not no step.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+Fold
+-- ceiling --
+no step

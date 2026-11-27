@@ -1,0 +1,6 @@
+-- words --
+An open Goal, on H0: line-1 of the Goal G-ONE holds an example whose run section is toy list, and H0's kept model tags the action List with it; hyp status G-ONE shows line-1 with toy list and the step List.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+List

@@ -1,0 +1,6 @@
+-- words --
+No walk: a finding whose evidence is free text only, naming no example, reads no walk in hyp finding list.
+-- run --
+hyp finding list
+-- floor: contains --
+no walk
