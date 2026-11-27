@@ -1,0 +1,8 @@
+-- words --
+At a select this clone's Results show, hyp status lists the owner's place: the Goal has one candidate C1 and shows selected; hyp status GOAL --role owner lists a hyp place line beside land, unselect and close.
+-- run --
+HYP_ACTOR=owner hyp status GOAL --role owner
+-- floor: contains --
+  hyp place GOAL
+-- floor: contains --
+  hyp land GOAL
