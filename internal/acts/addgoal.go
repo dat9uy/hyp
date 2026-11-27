@@ -162,15 +162,16 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		if err != nil {
 			return ev, err
 		}
-		payload, err := json.Marshal(events.GoalAdd{
+		p := events.GoalAdd{
 			Role: o.Role, Words: o.Words, Base: base, BaseTree: baseTree,
 			Budget: DefaultBudget, From: from, Lines: lines, Findings: named, Examples: placed,
-		})
+		}
+		payload, err := json.Marshal(p)
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeGoalAdd, err)
 		}
 		ev.Payload, ev.Why = payload, o.Why
-		if err := tables.GuardGoalAdd(t, ev); err != nil {
+		if err := tables.GuardGoalAdd(t, ev, &p); err != nil {
 			return ev, err
 		}
 		if o.From != "" {

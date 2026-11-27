@@ -63,13 +63,14 @@ func FindingAdd(o FindingOpts) (FindingReport, error) {
 		}
 	}
 	return findingAct(o, events.TypeFindingAdd, func(t tables.Tables, ev *events.Event) error {
-		raw, err := json.Marshal(events.FindingAdd{Role: o.Role, Fact: o.Fact, Evidence: o.Evidence, Draft: o.Draft,
-			Example: o.Example, Commit: commit})
+		p := events.FindingAdd{Role: o.Role, Fact: o.Fact, Evidence: o.Evidence, Draft: o.Draft,
+			Example: o.Example, Commit: commit}
+		raw, err := json.Marshal(p)
 		if err != nil {
 			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingAdd, err)
 		}
 		ev.Payload = raw
-		return tables.GuardFindingAdd(t, *ev)
+		return tables.GuardFindingAdd(t, *ev, &p)
 	})
 }
 
@@ -86,12 +87,13 @@ func FindingRefute(o FindingOpts) (FindingReport, error) {
 		if err := tables.GuardNotDeclined(f); err != nil {
 			return err
 		}
-		raw, err := json.Marshal(events.FindingRefute{Role: o.Role})
+		p := events.FindingRefute{Role: o.Role}
+		raw, err := json.Marshal(p)
 		if err != nil {
 			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingRefute, err)
 		}
 		ev.Node, ev.Payload = f.EventID, raw
-		return tables.GuardFindingRefute(t, *ev)
+		return tables.GuardFindingRefute(t, *ev, &p)
 	})
 }
 
@@ -116,12 +118,13 @@ func FindingDecline(o FindingOpts) (FindingReport, error) {
 		if err := tables.GuardNotFolded(f); err != nil {
 			return err
 		}
-		raw, err := json.Marshal(events.FindingDecline{Role: o.Role})
+		p := events.FindingDecline{Role: o.Role}
+		raw, err := json.Marshal(p)
 		if err != nil {
 			return fault.EnvFault(fault.EncodeEvent, events.TypeFindingDecline, err)
 		}
 		ev.Node, ev.Payload = f.EventID, raw
-		return tables.GuardFindingDecline(t, *ev)
+		return tables.GuardFindingDecline(t, *ev, &p)
 	})
 }
 

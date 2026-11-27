@@ -12,7 +12,8 @@ import (
 )
 
 // TestEveryKindHasOneReplayEntry: every kind of events.Kinds has a replay
-// entry with a handler, a kind that changes a Goal's state above all; no
+// entry with a handler, a kind that changes a Goal's state above all, and
+// with the type its payload decodes into; no
 // entry names a type outside the closed set; an entry names a frozen Goal
 // exactly when its kind's entry says an end freezes it; and only land and
 // close name a snapshot.
@@ -26,6 +27,9 @@ func TestEveryKindHasOneReplayEntry(t *testing.T) {
 				t.Errorf("kind %s has no replay handler", k.Type)
 			}
 			continue
+		}
+		if r.payload == nil {
+			t.Errorf("kind %s names no payload type", k.Type)
 		}
 		if (r.goal != nil) != k.Frozen {
 			t.Errorf("kind %s: its replay entry names a frozen Goal: %v, its kind entry says frozen: %v", k.Type, r.goal != nil, k.Frozen)
@@ -63,7 +67,8 @@ func guardSet(t *testing.T, refusals []testutil.Refusal) map[fault.Guard]bool {
 
 // TestReplayEntriesNameTheGuardsReplayChecks: the guards of each kind's
 // replay entry are exactly those its handler's code can refuse an event
-// under, with the snapshot's Not ended for a kind an end freezes; and
+// under, with the form fault of a payload that does not decode for every
+// kind and the snapshot's Not ended for a kind an end freezes; and
 // ChecksAtReplay, which hyp spec prints, says yes for a guard of the spec
 // exactly when the code replay runs can refuse under it. The guards are read
 // from the source of every function replay can reach.
@@ -73,8 +78,17 @@ func TestReplayEntriesNameTheGuardsReplayChecks(t *testing.T) {
 	if !snapshot[fault.GuardNotEnded] {
 		t.Fatalf("the snapshot check refuses under %v, not Not ended", snapshot)
 	}
+	// decodePayloads decodes every kind's payload with events.Decode, and
+	// replayWith refuses an event under what it returned
+	decode := guardSet(t, code.Reachable(t, funcName(events.Decode)))
+	if !decode[fault.NoGuard] || len(decode) != 1 {
+		t.Fatalf("the payload decode refuses under %v, not only the form fault", decode)
+	}
 	for typ, k := range kindReplays {
 		want := guardSet(t, code.Reachable(t, funcName(k.apply)))
+		for g := range decode {
+			want[g] = true
+		}
 		if k.goal != nil {
 			for g := range snapshot {
 				want[g] = true

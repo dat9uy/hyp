@@ -102,11 +102,8 @@ func GuardGoalActor(g *Goal, actor, role string) error {
 // owner or runner is a form fault. Candidate and New cell read the cells of the clone's trace, which a
 // clone that did not run lacks, so replay does not check them: the act
 // checked them before it wrote the select. ev.Node is the goal.add event id.
-func GuardSelect(t Tables, ev events.Event) error {
-	var p events.Select
-	if err := events.Decode(ev, &p); err != nil {
-		return err
-	}
+// p is the payload of ev.
+func GuardSelect(t Tables, ev events.Event, p *events.Select) error {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToSelect, GoalID(ev.Node))

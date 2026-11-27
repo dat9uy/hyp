@@ -7,15 +7,25 @@ import (
 	"github.com/dat9uy/hyp/internal/fault"
 )
 
-// kindReplay is the replay entry of one event kind of events.Kinds: how
-// replay applies an event of the kind, the guards replay checks of it, which
-// Goal an end freezes it on, and, for a kind that ends a Goal, the snapshot
-// it names. Replay reaches a kind only through its entry, so a kind's replay
-// is changed in one place.
+// kindReplay is the replay entry of one event kind of events.Kinds: the type
+// of its payload, how replay applies an event of the kind, the guards replay
+// checks of it, which Goal an end freezes it on, and, for a kind that ends a
+// Goal, the snapshot it names. Replay reaches a kind only through its entry,
+// so a kind's replay is changed in one place.
+//
+// Replay decodes each payload once, in the type its entry names, before any
+// guard sees the event: a payload that does not decode is refused with the
+// decode error and never reaches apply. A guard never sees bytes, so no kind
+// and no guard decides on its own what an undecodable payload is.
 type kindReplay struct {
+	// payload returns a pointer to a new zero value of the kind's payload
+	// type, which replay decodes the event's payload into.
+	payload func() any
+
 	// apply checks the event against the guards replay checks for its kind
-	// and applies it to t, or hands it to refuse.
-	apply func(t *Tables, ev events.Event, refuse func(events.Event, error))
+	// and applies it to t, or hands it to refuse. p is the decoded payload,
+	// of the type payload returns.
+	apply func(t *Tables, ev events.Event, p any, refuse func(events.Event, error))
 
 	// guards are every guard replay can refuse an event of the kind under:
 	// each guard apply can refuse it under, NoGuard for a form fault, and
@@ -30,45 +40,58 @@ type kindReplay struct {
 	goal func(ev events.Event) string
 
 	// end is set for a kind that ends a Goal: it returns the ids of the
-	// snapshot the event names, nil for an end that names none, and false
-	// for a payload that does not decode.
-	end func(ev events.Event) ([]string, bool)
+	// snapshot the decoded payload p names, or nil for an end that names
+	// none.
+	end func(p any) []string
 }
 
 // kindReplays are the replay entries, keyed by event type. Every type of the
 // closed set has one, and no other type does.
 var kindReplays = map[string]kindReplay{
-	events.TypeGoalAdd: {apply: replayGoalAdd, goal: replacedGoal,
+	events.TypeGoalAdd: {payload: func() any { return new(events.GoalAdd) },
+		apply: replayGoalAdd, goal: replacedGoal,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardWholeLines, fault.GuardDraft,
 			fault.GuardWholeSet, fault.GuardAddsOnly, fault.GuardKind}},
-	events.TypeExamplePlace: {apply: replayExamplePlace, goal: nodeGoal,
+	events.TypeExamplePlace: {payload: func() any { return new(events.ExamplePlace) },
+		apply: replayExamplePlace, goal: nodeGoal,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardOwnerPlaces, fault.GuardSelected,
 			fault.GuardAddsOnly}},
-	events.TypeExamplesPlace: {apply: replayExamplesPlace, goal: nodeGoal,
+	events.TypeExamplesPlace: {payload: func() any { return new(events.ExamplesPlace) },
+		apply: replayExamplesPlace, goal: nodeGoal,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardOwnerPlaces, fault.GuardSelected,
 			fault.GuardGoalsActor, fault.GuardAddsOnly}},
-	events.TypeResultRecord: {apply: replayResult,
+	events.TypeResultRecord: {payload: func() any { return new(events.ResultRecord) },
+		apply:  replayResult,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardSelected, fault.GuardOpen}},
-	events.TypeSelect: {apply: replaySelect, goal: nodeGoal,
+	events.TypeSelect: {payload: func() any { return new(events.Select) },
+		apply: replaySelect, goal: nodeGoal,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardSelected, fault.GuardGoalsActor}},
-	events.TypeLand: {apply: replayLand, end: landSnapshot,
+	events.TypeLand: {payload: func() any { return new(events.Land) },
+		apply: replayLand, end: landSnapshot,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardStop, fault.GuardOwnerLands,
 			fault.GuardGoalsActor, fault.GuardEvidence}},
-	events.TypeClose: {apply: replayClose, end: closeSnapshot,
+	events.TypeClose: {payload: func() any { return new(events.Close) },
+		apply: replayClose, end: closeSnapshot,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardOwnerClose, fault.GuardGoalsActor}},
-	events.TypeUnselect: {apply: replayUnselect, goal: nodeGoal,
+	events.TypeUnselect: {payload: func() any { return new(events.Unselect) },
+		apply: replayUnselect, goal: nodeGoal,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardOwnerUnsel, fault.GuardGoalsActor,
 			fault.GuardSelected}},
-	events.TypeRead: {apply: replayRead,
+	events.TypeRead: {payload: func() any { return new(events.Read) },
+		apply:  replayRead,
 		guards: []fault.Guard{fault.NoGuard}},
-	events.TypeFindingAdd: {apply: replayFindingAdd,
+	events.TypeFindingAdd: {payload: func() any { return new(events.FindingAdd) },
+		apply:  replayFindingAdd,
 		guards: []fault.Guard{fault.NoGuard}},
-	events.TypeFindingFold: {apply: replayFindingFold,
+	events.TypeFindingFold: {payload: func() any { return new(events.FindingFold) },
+		apply: replayFindingFold,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardInWork, fault.GuardIssue, fault.GuardNotRefuted,
 			fault.GuardNotDeclined}},
-	events.TypeFindingRefute: {apply: replayFindingRefute,
+	events.TypeFindingRefute: {payload: func() any { return new(events.FindingRefute) },
+		apply:  replayFindingRefute,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotRefuted, fault.GuardNotDeclined}},
-	events.TypeFindingDecline: {apply: replayFindingDecline,
+	events.TypeFindingDecline: {payload: func() any { return new(events.FindingDecline) },
+		apply: replayFindingDecline,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardOwnerDecl, fault.GuardNotRefuted, fault.GuardNotDeclined,
 			fault.GuardNotFolded}},
 }
@@ -98,19 +121,35 @@ func replacedGoal(ev events.Event) string {
 }
 
 // landSnapshot is the snapshot a land names.
-func landSnapshot(ev events.Event) ([]string, bool) {
-	var p events.Land
-	if events.Decode(ev, &p) != nil {
-		return nil, false
-	}
-	return p.Seen, true
-}
+func landSnapshot(p any) []string { return p.(*events.Land).Seen }
 
 // closeSnapshot is the snapshot a close names.
-func closeSnapshot(ev events.Event) ([]string, bool) {
-	var p events.Close
-	if events.Decode(ev, &p) != nil {
-		return nil, false
+func closeSnapshot(p any) []string { return p.(*events.Close).Seen }
+
+// decoded is an event's payload as replay decoded it: p, of the type its
+// kind's entry names, or the error decoding it returned. Both are nil for
+// an event of a type outside the closed set.
+type decoded struct {
+	p   any
+	err error
+}
+
+// decodePayloads decodes the payload of every event once, in the type its
+// kind's replay entry names. It is the only place in this package that
+// decodes a payload.
+func decodePayloads(evs []events.Event) []decoded {
+	out := make([]decoded, len(evs))
+	for i, ev := range evs {
+		k, ok := kindReplays[ev.Type]
+		if !ok {
+			continue
+		}
+		p := k.payload()
+		if err := events.Decode(ev, p); err != nil {
+			out[i].err = err
+			continue
+		}
+		out[i].p = p
 	}
-	return p.Seen, true
+	return out
 }
