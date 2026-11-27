@@ -6,3 +6,6 @@ n=$(hyp spec | grep -c payload-invalid); echo "payload-invalid lines: $n"; hyp s
 payload-invalid lines: 0
 -- floor: contains --
 payload-decode
+-- findings --
+F-4D3VY1
+F-NKD9YP
