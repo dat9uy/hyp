@@ -37,31 +37,38 @@ func hasAct(rs []Ready, role, act string) bool {
 func TestUnselectOpensTheGoal(t *testing.T) {
 	e := newRunEnv(t)
 	commit, tree := e.selected(t)
-	sel := e.selects(t)
 	rep, err := Unselect(e.unselectOpts("owner-1", "owner"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.Goal != e.goal || rep.Select.ID != sel[0].ID || rep.Select.Commit != commit {
-		t.Fatalf("report = %+v, want the select %s undone", rep, sel[0].ID)
+	if rep.Goal != e.goal || rep.Select.Commit != commit || rep.Select.RowTree != tree {
+		t.Fatalf("report = %+v, want the select of %s undone", rep, commit)
 	}
-	g := e.goalRow(t)
-	if g.State != tables.StateOpen || g.Select != nil || tables.RunsUsed(g) != 0 {
+	evs, _ := e.log(t)
+	var p events.Unselect
+	if err := events.Decode(evs[len(evs)-1], &p); err != nil || p.Commit != commit || p.RowTree != tree {
+		t.Fatalf("payload = %+v, %v, want it to name %s", p, err, commit)
+	}
+	g := e.shown(t)
+	if g.State != tables.StateOpen || g.Select != nil || tables.RunsUsed(g) != 0 || !g.Rejected[tree] {
 		t.Fatalf("state = %s, select %+v, runs %d", g.State, g.Select, tables.RunsUsed(g))
 	}
 	got := AllowedFor(g, e.root)
-	if !hasAct(got, "owner", ActSelect) || hasAct(got, "runner", ActSelect) || !hasAct(got, "grill", ActPlace) {
-		t.Fatalf("allowed = %+v, want the owner's select and no runner's select", got)
+	if hasAct(got, "owner", ActSelect) || hasAct(got, "runner", ActSelect) || !hasAct(got, "owner", ActPlace) || !hasAct(got, "runner", ActRun) {
+		t.Fatalf("allowed = %+v, want the owner's place, the runner's run and no select", got)
 	}
-	// the runner's select needs a new cell; a rerun of the old row is none
-	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
-	refusedBy(t, err, "New cell")
+	// the rejected row is never selected again, and a land on it is refused
 	if _, err := e.run(commit); err != nil {
 		t.Fatal(err)
 	}
-	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
-	refusedBy(t, err, "New cell")
-	// a run on a new row is a new cell
+	if g := e.shown(t); g.State != tables.StateOpen {
+		t.Fatalf("after a rerun of the rejected row state = %s", g.State)
+	}
+	o := e.landOpts("owner-1", "owner")
+	o.Commit = commit
+	_, err = Land(o)
+	refusedBy(t, err, "Evidence")
+	// a run on a new row is a new cell, and its row is selected
 	c2 := e.child(t, commit, map[string]string{"more": "1\n"})
 	if _, err := e.run(c2); err != nil {
 		t.Fatal(err)
@@ -70,13 +77,7 @@ func TestUnselectOpensTheGoal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !hasAct(AllowedFor(e.goalRow(t), e.root), "runner", ActSelect) {
-		t.Fatal("no runner's select after a run on a new row")
-	}
-	if _, err := Select(e.selectOpts(t2, "runner-1", "runner")); err != nil {
-		t.Fatal(err)
-	}
-	if g := e.goalRow(t); g.State != tables.StateSelected || g.Select.RowTree != t2 {
+	if g := e.shown(t); g.State != tables.StateSelected || g.Select.RowTree != t2 {
 		t.Fatalf("state = %s, select %+v", g.State, g.Select)
 	}
 }
@@ -96,6 +97,11 @@ func TestUnselectRefusals(t *testing.T) {
 	if e.count(t, events.TypeUnselect) != 0 {
 		t.Fatal("a refused unselect wrote an event")
 	}
+	// a commit the Goal is not selected on
+	other := e.unselectOpts("owner-1", "owner")
+	other.Commit = e.base
+	_, err = Unselect(other)
+	refusedBy(t, err, "Selected")
 	if _, err := Unselect(e.unselectOpts("owner-1", "owner")); err != nil {
 		t.Fatal(err)
 	}

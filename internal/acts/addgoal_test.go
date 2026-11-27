@@ -162,3 +162,81 @@ func TestAddGoalWritesNoGitState(t *testing.T) {
 		t.Fatal("add goal changed the repository's git state")
 	}
 }
+
+// draft commits a draft example folder for each key under goals/draft-x and
+// returns the commit that holds them.
+func draft(t *testing.T, r *testutil.Repo, examples map[string]string) string {
+	t.Helper()
+	for key, txtar := range examples {
+		dir := filepath.Join("goals", "draft-x", key)
+		if err := os.MkdirAll(filepath.Join(r.Dir, dir), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(r.Dir, dir, "example.txtar"), []byte(txtar), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		r.WriteExec(t, filepath.Join(dir, "probe", "run"), fixtureProbe)
+	}
+	testutil.Git(t, r.Dir, "add", "-A")
+	testutil.Git(t, r.Dir, "commit", "-q", "-m", "draft")
+	return strings.TrimSpace(testutil.Git(t, r.Dir, "rev-parse", "HEAD"))
+}
+
+// An add with an examples folder carries every example with its H0 verdict,
+// so the Goal is open from git alone, and copies the folder to the Goal's.
+func TestAddGoalWithExamplesIsOpen(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"main.go": "package main\n"})
+	base := draft(t, r, map[string]string{"line-1/a": failingOnH0, "line-2/a": metOnH0})
+	o := opts(r.Dir, base, gapLine, LineInput{Kind: events.KindGuard, Text: "it holds"})
+	o.Examples = "goals/draft-x"
+	rep, err := AddGoal(o)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.State != tables.StateOpen || len(rep.Placed) != 2 || rep.Folder != "goals/"+rep.Goal {
+		t.Fatalf("report = %+v", rep)
+	}
+	evs, _, err := logstore.Load(r.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	g := tables.Replay(evs).ByID(rep.Goal)
+	if g == nil || g.State != tables.StateOpen || len(g.Placed()) != 2 {
+		t.Fatalf("replay of git alone: %+v", g)
+	}
+	for _, ev := range evs {
+		if ev.Type == events.TypeExamplesPlace {
+			t.Fatal("the add wrote a place event")
+		}
+	}
+	for _, f := range []string{"line-1/a/example.txtar", "line-2/a/probe/run"} {
+		if _, err := os.Stat(filepath.Join(r.Dir, "goals", rep.Goal, f)); err != nil {
+			t.Fatalf("not copied: %s: %v", f, err)
+		}
+	}
+}
+
+// An example whose H0 verdict is not what its line needs refuses the add,
+// and nothing is written.
+func TestAddGoalWithExamplesRefusesWrongVerdict(t *testing.T) {
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"main.go": "package main\n"})
+	base := draft(t, r, map[string]string{"line-1/a": metOnH0})
+	o := opts(r.Dir, base, gapLine)
+	o.Examples = "goals/draft-x"
+	_, err := AddGoal(o)
+	if fault.KindOf(err) != fault.Refusal {
+		t.Fatalf("err = %v, want a refusal", err)
+	}
+	if logstore.Find(r.Dir) == nil {
+		evs, _, _ := logstore.Load(r.Dir)
+		if len(evs) != 0 {
+			t.Fatalf("%d events after a refused add", len(evs))
+		}
+	}
+	o.Examples = "../outside"
+	if _, err := AddGoal(o); fault.KindOf(err) != fault.BadArguments {
+		t.Fatalf("err = %v, want a bad argument for a folder outside the repository", err)
+	}
+}

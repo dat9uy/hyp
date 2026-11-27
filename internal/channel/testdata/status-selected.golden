@@ -1,10 +1,10 @@
 G-XXXXXX  selected  runs: 1 of 3 used
-stop: selected, by select <id> at <time>
+stop: selected, by run <id> at <time>
 waits: owner
 warning: the selected commit <hash> is on no branch or tag of this clone; push it or keep a branch on it, or git may lose it
 owner may:
-  hyp land G-XXXXXX
-  hyp unselect G-XXXXXX
+  hyp land G-XXXXXX <commit>
+  hyp unselect G-XXXXXX <commit>
   hyp close G-XXXXXX
 grill may:
   (none)

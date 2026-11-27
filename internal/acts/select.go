@@ -54,7 +54,12 @@ func Select(o SelectOpts) (SelectReport, error) {
 	var rep SelectReport
 	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeSelect, Why: o.Why, Actor: o.Actor}
-		t := tables.Replay(evs)
+		if o.Role != "owner" {
+			// git holds only the owner's acts: the runner's Results show
+			// the Goal selected, and no event of the runner's holds it
+			return ev, fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, o.Role)
+		}
+		t := Calculate(tables.Replay(evs), root)
 		g, err := t.Find(o.Goal)
 		if err != nil {
 			return ev, err

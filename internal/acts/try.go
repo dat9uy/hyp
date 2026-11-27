@@ -23,6 +23,12 @@ type TryOpts struct {
 	Worktree     bool   // run on the checkout's files, not on H0
 	Commit       string // run on this commit, not on H0
 	ProbeTimeout time.Duration
+
+	// Examples names a draft folder of examples, FOLDER/<line>/<example>,
+	// for a Goal the owner has not added yet: Goal is empty, and Base is the
+	// commit the Goal will name as H0.
+	Examples string
+	Base     string
 }
 
 // TryReport is what try returns: the example as it is on disk, what its
@@ -65,6 +71,9 @@ func Try(o TryOpts) (TryReport, error) {
 	root, err := logstore.TopLevel(o.Dir)
 	if err != nil {
 		return TryReport{}, err
+	}
+	if o.Examples != "" {
+		return tryDraft(root, o, lineKey, name)
 	}
 	if err := logstore.Find(root); err != nil {
 		return TryReport{}, err
@@ -172,6 +181,54 @@ func Try(o TryOpts) (TryReport, error) {
 	return rep, nil
 }
 
+// tryDraft runs one example of a draft folder on the commit the Goal will
+// name as H0, before the owner adds the Goal with add goal --examples: the
+// folder as it is on disk, committed or not. It records nothing, and needs no
+// store.
+func tryDraft(root string, o TryOpts, lineKey, name string) (TryReport, error) {
+	if o.Worktree || o.Commit != "" {
+		return TryReport{}, fault.BadArg(fault.TryDraftOnH0)
+	}
+	dir, err := exampleFolder(o.Examples)
+	if err != nil {
+		return TryReport{}, err
+	}
+	base, baseTree, err := resolveBase(root, o.Base)
+	if err != nil {
+		return TryReport{}, err
+	}
+	rel := path.Join(dir, lineKey, name)
+	disk := filepath.Join(root, filepath.FromSlash(rel))
+	if fi, err := os.Stat(disk); err != nil || !fi.IsDir() {
+		return TryReport{}, fault.BadArg(fault.NotAFolder, rel)
+	}
+	data, err := os.ReadFile(filepath.Join(disk, "example.txtar"))
+	if err != nil {
+		return TryReport{}, fault.BadArg(fault.NoExampleTxtar, rel)
+	}
+	ex, err := example.Parse(data)
+	if err != nil {
+		return TryReport{}, err
+	}
+	rep := TryReport{ID: "the draft " + dir, Key: o.Key, Folder: rel, Words: ex.Words, Commit: base, H0: true, RowTree: baseTree}
+	if rep.Hash, err = gitread.DirTreeHash(disk); err != nil {
+		return TryReport{}, err
+	}
+	if fi, err := os.Stat(filepath.Join(disk, "probe")); err == nil && fi.IsDir() {
+		if rep.ProbeHash, err = gitread.DirTreeHash(filepath.Join(disk, "probe")); err != nil {
+			return TryReport{}, err
+		}
+	}
+	out, err := probe.Run(probe.Opts{Repo: root, Commit: base, ExampleDir: disk, Timeout: o.ProbeTimeout})
+	if err != nil {
+		return TryReport{}, err
+	}
+	rep.Out = out
+	rep.OutHash, rep.ErrHash = logstore.Hash(out.Stdout), logstore.Hash(out.Stderr)
+	rep.Verdict = string(example.Compare(out.Stdout, ex))
+	return rep, nil
+}
+
 // HasCell reports whether this clone holds the cell of the current placement
 // of key on the row with rowTree with its outputs: a live cell of a Result,
 // H0's cell of a place whose outputs this clone holds, or a cell a try saved.
@@ -207,5 +264,5 @@ func ReadTables(root string) (tables.Tables, []logstore.LineError, error) {
 		return tables.Tables{}, nil, err
 	}
 	t.UseCells(cells)
-	return t, unread, nil
+	return Calculate(t, root), unread, nil
 }

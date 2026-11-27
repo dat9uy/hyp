@@ -13,7 +13,7 @@ The Goal asks:
 ### line-1/a @1
 
 hash: <hash>
-placed: by grill-1 at <time>
+placed: by owner-1 at <time>
 verdict on H0 at place: failed, exit 0
 
 example.txtar, 61 bytes:

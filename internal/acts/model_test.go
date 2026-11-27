@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/fault"
-	"github.com/dat9uy/hyp/internal/gitread"
 )
 
 func TestCfgRulesReadsRuleSectionsOnly(t *testing.T) {
@@ -26,7 +25,17 @@ CHECK_DEADLOCK FALSE
 	}
 }
 
-// selectModel commits files on a leaf from H0, runs line-1 on it and selects.
+// landSpec is what the owner's land on commit, which meets every example,
+// gives: nil, or the Spec or Own path refusal that also holds back the
+// calculated select of that commit.
+func (e *runEnv) landSpec(t *testing.T, commit string) error {
+	t.Helper()
+	_, err := Land(LandOpts{Dir: e.root, Actor: "owner-1", Role: "owner", Goal: e.goal, Commit: commit})
+	return err
+}
+
+// selectModel commits files on a leaf from H0, runs line-1 on it and lands
+// it, which reads the spec as a calculated select does.
 func (e *runEnv) selectModel(t *testing.T, files map[string]string) error {
 	t.Helper()
 	all := map[string]string{"counter": "ok\n"}
@@ -37,12 +46,7 @@ func (e *runEnv) selectModel(t *testing.T, files map[string]string) error {
 	if _, err := e.run(commit); err != nil {
 		t.Fatal(err)
 	}
-	tree, err := gitread.RowTree(e.root, commit)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
-	return err
+	return e.landSpec(t, commit)
 }
 
 const (
@@ -176,12 +180,7 @@ func (e *runEnv) selectKept(t *testing.T, kept, spec map[string]string) error {
 	if _, err := e.run(commit); err != nil {
 		t.Fatal(err)
 	}
-	tree, err := gitread.RowTree(e.root, commit)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = Select(e.selectOpts(tree, "runner-1", "runner"))
-	return err
+	return e.landSpec(t, commit)
 }
 
 func TestSelectRefusesANewKeptRuleNoVariantNames(t *testing.T) {

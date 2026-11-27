@@ -110,8 +110,8 @@ func newFx(t *testing.T, examples map[string]string) *fx {
 	}
 	testutil.Git(t, r.Dir, "add", "-A")
 	testutil.Git(t, r.Dir, "commit", "-q", "--allow-empty", "-m", "examples")
-	t.Setenv("HYP_ACTOR", "grill-1")
-	t.Setenv("HYP_ROLE", "grill")
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
 	if len(examples) > 0 {
 		if code, out, errs := run(t, "place", f.goal); code != 0 {
 			t.Fatalf("place: code %d, stdout %q, stderr %q", code, out, errs)
@@ -133,12 +133,13 @@ func (f *fx) leaf(t *testing.T, files map[string]string) string {
 
 func (f *fx) spec() string { return "goals/" + f.goal + "/specs/spec.md" }
 
-// selectLine finds the ready select line in a status or run return.
-func selectLine(t *testing.T, out string) []string {
+// landLine finds the owner's ready land line in a status or run return,
+// which hyp prints once the Goal is shown selected.
+func landLine(t *testing.T, out string) []string {
 	t.Helper()
-	at := strings.Index(out, "hyp select")
-	if at < 0 {
-		t.Fatalf("no ready select line in:\n%s", out)
+	at := strings.Index(out, "hyp land")
+	if at < 0 || !strings.Contains(out, "  selected  ") {
+		t.Fatalf("no selected Goal with a ready land line in:\n%s", out)
 	}
 	line, _, _ := strings.Cut(out[at:], "\n")
 	return strings.Fields(line)
@@ -194,8 +195,7 @@ func TestStatusPrintsStartPrompt(t *testing.T) {
 	c := f.leaf(t, map[string]string{"counter": "ok\n", f.spec(): "spec\n"})
 	run(t, "run", c, f.goal+"/line-1")
 	_, out, _ = run(t, "status")
-	args := selectLine(t, out)
-	run(t, args[1:]...)
+	landLine(t, out)
 	if _, out, _ := run(t, "status", f.goal); strings.Contains(out, "Start prompt") {
 		t.Fatalf("a selected Goal prints the Start prompt:\n%s", out)
 	}
@@ -208,10 +208,7 @@ func TestStatusSelectedGolden(t *testing.T) {
 		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, out, _ := run(t, "status")
-	args := selectLine(t, out)
-	if code, out, errs := run(t, args[1:]...); code != 0 {
-		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
-	}
+	landLine(t, out)
 	code, out, errs := run(t, "status", f.goal)
 	if code != 0 || !strings.Contains(out, "stop: selected") {
 		t.Fatalf("code %d, stdout %q, stderr %q", code, out, errs)
@@ -318,23 +315,17 @@ func TestEveryWriteEndsWithStateBlock(t *testing.T) {
 	if at == nil || !strings.HasPrefix(out, "ran ") || at[0] == 0 {
 		t.Fatalf("run does not print its report and then the block:\n%s", out)
 	}
-	_, out, _ = run(t, "status")
-	args := selectLine(t, out)
-	_, out, _ = run(t, args[1:]...)
-	at = block.FindStringIndex(out)
-	if at == nil || !strings.HasPrefix(out, "# "+f.goal) || at[0] == 0 {
-		t.Fatalf("select does not print the PR body and then the block:\n%s", out)
-	}
-	if strings.Count(out, "selected commit:") != 1 {
-		t.Fatalf("the PR body is printed twice on select's return:\n%s", out)
+	_, out, _ = run(t, "status", f.goal)
+	if !block.MatchString(out) || strings.Count(out, "selected commit:") != 1 {
+		t.Fatalf("status G of a selected Goal does not print the block and the PR body once:\n%s", out)
 	}
 	t.Setenv("HYP_ACTOR", "owner-1")
 	t.Setenv("HYP_ROLE", "owner")
 	if _, out, _ := run(t, "add", "goal", "--base", "HEAD", "--words", "second", "--line", "gap:g"); !block.MatchString(out) || !strings.HasPrefix(out, "recorded ") {
 		t.Fatalf("add goal does not end with the block:\n%s", out)
 	}
-	t.Setenv("HYP_ACTOR", "grill-1")
-	t.Setenv("HYP_ROLE", "grill")
+	t.Setenv("HYP_ACTOR", "owner-1")
+	t.Setenv("HYP_ROLE", "owner")
 	if code, out, _ := run(t, "place", f.goal); code != 1 || !block.MatchString(out) {
 		t.Fatalf("place on a selected Goal: code %d, stdout:\n%s", code, out)
 	}
@@ -436,12 +427,9 @@ func TestLandedGoalPrintsItsRecordOnlyWhenNamed(t *testing.T) {
 		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, out, _ := run(t, "status")
-	args := selectLine(t, out)
-	if code, out, errs := run(t, args[1:]...); code != 0 || !strings.Contains(out, "  hyp land "+f.goal+"\n") {
-		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
-	}
-	code, out, errs := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner")
-	if code != 0 || !strings.HasPrefix(out, "landed "+f.goal+"\nstop: selected, by select ") || !strings.Contains(out, "selected row: ") {
+	args := landLine(t, out)
+	code, out, errs := run(t, append(args[1:], "--actor", "owner-1", "--role", "owner")...)
+	if code != 0 || !strings.HasPrefix(out, "landed "+f.goal+"\nstop: selected, by run ") || !strings.Contains(out, "commit: "+c) || !strings.Contains(out, "selected row: ") {
 		t.Fatalf("land: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, one, _ := run(t, "status", f.goal)
@@ -473,9 +461,7 @@ func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
 		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, out, _ := run(t, "status")
-	if code, out, errs := run(t, selectLine(t, out)[1:]...); code != 0 {
-		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
-	}
+	landLine(t, out)
 	if code, out, errs := run(t, "land", f.goal, "--actor", "owner-1", "--role", "owner"); code != 0 {
 		t.Fatalf("land: code %d, stdout %q, stderr %q", code, out, errs)
 	}
@@ -488,8 +474,8 @@ func TestEndedGoalReadsTheSameInEveryClone(t *testing.T) {
 			t.Fatalf("status G of a landed Goal prints %q:\n%s", bad, here)
 		}
 	}
-	if !strings.Contains(here, "by select ") || !strings.Contains(here, "### line-1/a: ") {
-		t.Fatalf("status G of a landed Goal names no select:\n%s", here)
+	if !strings.Contains(here, "selected commit: "+c) || !strings.Contains(here, "### line-1/a: ") {
+		t.Fatalf("status G of a landed Goal names no selected commit:\n%s", here)
 	}
 	other := filepath.Join(t.TempDir(), "clone")
 	testutil.Git(t, f.r.Dir, "clone", "-q", f.r.Dir, other)
@@ -509,11 +495,6 @@ func TestStatusListPrintsNoQuotedGoalLine(t *testing.T) {
 	c := f.leaf(t, map[string]string{"counter": quoted, f.spec(): "spec\n"})
 	if code, out, errs := run(t, "run", c, f.goal+"/line-1"); code != 0 {
 		t.Fatalf("run: code %d, stdout %q, stderr %q", code, out, errs)
-	}
-	_, out, _ := run(t, "status")
-	args := selectLine(t, out)
-	if code, out, errs := run(t, args[1:]...); code != 0 {
-		t.Fatalf("select: code %d, stdout %q, stderr %q", code, out, errs)
 	}
 	_, all, _ := run(t, "status")
 	for l := range strings.SplitSeq(all, "\n") {

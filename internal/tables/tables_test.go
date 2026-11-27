@@ -354,7 +354,7 @@ func TestReplayRefusesPlacementByTables(t *testing.T) {
 		ev   events.Event
 		want fault.Code
 	}{
-		"runner role":  {placeOn(t, idP1, id1, "r", "runner", "line-1", "a", hashA, "t", "failed"), fault.NotGrill},
+		"runner role":  {placeOn(t, idP1, id1, "r", "runner", "line-1", "a", hashA, "t", "failed"), fault.NotOwnerPlace},
 		"unknown goal": {placeOn(t, idP1, id2, "g", "grill", "line-1", "a", hashA, "t", "failed"), fault.NoGoalToPlace},
 	} {
 		tb := Replay([]events.Event{goal, tc.ev})
@@ -388,14 +388,18 @@ func TestGuardsOfPlace(t *testing.T) {
 	if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Selected" {
 		t.Fatalf("a selected Goal: %v, want a Selected refusal", err)
 	}
-	if err := GuardGrillPlaces("grill"); err != nil {
-		t.Fatalf("grill refused: %v", err)
+	if err := GuardOwnerPlaces("owner"); err != nil {
+		t.Fatalf("owner refused: %v", err)
 	}
-	for _, role := range []string{"runner", "owner", "probe-writer", ""} {
-		err := GuardGrillPlaces(role)
-		if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Grill places" {
-			t.Errorf("role %q: %v, want an Grill places refusal", role, err)
+	for _, role := range []string{"runner", "grill", "probe-writer", ""} {
+		err := GuardOwnerPlaces(role)
+		if err == nil || fault.KindOf(err) != fault.Refusal || string(fault.GuardOf(err)) != "Owner places" {
+			t.Errorf("role %q: %v, want an Owner places refusal", role, err)
 		}
+	}
+	// a place of the older form names the grill, and replays as it was
+	if err := guardPlacerAtReplay("grill"); err != nil {
+		t.Fatalf("an older place by the grill refused at replay: %v", err)
 	}
 	g = &Goal{Placements: map[string][]Placement{"line-1/a": {{Key: "line-1/a", Hash: hashA, Version: 1}}}}
 	if err := GuardAddsOnlyTable(g, "line-1/a", hashB); err != nil {

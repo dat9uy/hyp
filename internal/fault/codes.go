@@ -168,7 +168,13 @@ const (
 	BadLineKind       Code = "bad-line-kind"        // line number, line key, kind
 	NoGapLine         Code = "no-gap-line"          // no values
 	HasSelect         Code = "has-select"           // Goal
-	NotGrill          Code = "not-grill"            // role
+	NotOwnerPlace     Code = "not-owner-place"      // role
+	BadExamplesFolder Code = "bad-examples-folder"  // folder
+	CopyExamples      Code = "copy-examples"        // from, to, cause
+	TryDraftOnH0      Code = "try-draft-on-h0"      // no values
+	ExampleOffLine    Code = "example-off-line"     // example key
+	AddedVerdictWrong Code = "added-verdict-wrong"  // example key, verdict, verdict needed
+	ReplaceExamples   Code = "replace-examples"     // Goal
 	AlreadyCurrent    Code = "already-current"      // hash, key, version
 	EarlierVersion    Code = "earlier-version"      // hash, version, key
 	NoResultToRetract Code = "no-result-to-retract" // Result id
@@ -186,6 +192,13 @@ const (
 	NoSelect          Code = "no-select"            // Goal, state
 	NoGoalToUnselect  Code = "no-goal-to-unselect"  // Goal
 	NoNewCell         Code = "no-new-cell"          // Goal, unselect id
+	CommitUnselected  Code = "commit-unselected"    // commit, Goal
+	LandNotOpen       Code = "land-not-open"        // Goal, state
+	NotTheSelect      Code = "not-the-select"       // commit, Goal, selected commit
+	EvidenceMissing   Code = "evidence-missing"     // commit, example key
+	NotMetOnCommit    Code = "not-met-on-commit"    // example key, commit, verdict
+	NotSelectedOn     Code = "not-selected-on"      // Goal, commit, selected commit or empty
+	AlreadyUnselected Code = "already-unselected"   // Goal, commit
 
 	// findings
 	NoGoalForFinding     Code = "no-goal-for-finding"     // Goal

@@ -24,27 +24,40 @@ func acted(rl []Ready, act string) bool {
 	return slices.ContainsFunc(rl, func(r Ready) bool { return r.Act == act })
 }
 
+// allowed lists the Goal's allowed acts as this clone shows them, with the
+// select its Results show.
 func (e *runEnv) allowed(t *testing.T) []Ready {
 	t.Helper()
-	_, tb := e.log(t)
-	return AllowedFor(tb.ByID(e.goal), e.root)
+	return AllowedFor(e.shown(t), e.root)
 }
 
-func TestAllowedWrittenGoalGrillMayPlace(t *testing.T) {
+// owners lists only the acts of the owner that are not the place and the
+// close, which an open Goal always allows.
+func owners(rl []Ready) []Ready {
+	var out []Ready
+	for _, l := range lines(rl, "owner") {
+		if l.Act != ActPlace && l.Act != ActClose {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+func TestAllowedWrittenGoalOwnerMayPlace(t *testing.T) {
 	e := newRunEnv(t, gapLine, LineInput{Kind: events.KindGuard, Text: "it holds"})
 	if g := e.goalRow(t); g.State != tables.StateWritten {
 		t.Fatalf("test setup: %s", g.State)
 	}
 	rl := e.allowed(t)
-	if want := (Ready{Goal: e.goal, Role: "grill", Act: ActPlace}); !slices.Equal(lines(rl, "grill"), []Ready{want}) {
-		t.Fatalf("grill may %+v, want %+v", lines(rl, "grill"), want)
+	if got := lines(rl, "grill"); len(got) != 0 {
+		t.Fatalf("grill may %+v, want nothing: the grill writes no event", got)
 	}
 	if got := lines(rl, "runner"); len(got) != 0 {
 		t.Fatalf("runner may %+v, want nothing on a Goal that is not open", got)
 	}
-	if got := lines(rl, "owner"); len(got) != 2 || got[0] != (Ready{Goal: e.goal, Role: "owner", Act: ActAddGoal}) ||
-		got[1] != (Ready{Goal: e.goal, Role: "owner", Act: ActClose}) {
-		t.Fatalf("owner may %+v, want the Draft replace and the close", got)
+	want := []Ready{{Goal: e.goal, Role: "owner", Act: ActAddGoal}, {Goal: e.goal, Role: "owner", Act: ActPlace}, {Goal: e.goal, Role: "owner", Act: ActClose}}
+	if got := lines(rl, "owner"); !slices.Equal(got, want) {
+		t.Fatalf("owner may %+v, want the Draft replace, the place and the close", got)
 	}
 }
 
@@ -55,8 +68,8 @@ func TestAllowedOpenGoalRunnerMayRun(t *testing.T) {
 	if got := lines(rl, "runner"); !slices.Equal(got, []Ready{want}) {
 		t.Fatalf("runner may %+v, want [%+v]", got, want)
 	}
-	if got := lines(rl, "owner"); !slices.Equal(got, []Ready{{Goal: e.goal, Role: "owner", Act: ActClose}}) {
-		t.Fatalf("owner may %+v, want only the close on an open Goal with no stop", got)
+	if got := lines(rl, "owner"); !slices.Equal(got, []Ready{{Goal: e.goal, Role: "owner", Act: ActPlace}, {Goal: e.goal, Role: "owner", Act: ActClose}}) {
+		t.Fatalf("owner may %+v, want only the place and the close on an open Goal with no stop", got)
 	}
 	for _, l := range rl {
 		if !slices.Contains([]string{ActAddGoal, ActPlace, ActRun, ActSelect, ActClose}, l.Act) {
@@ -65,18 +78,25 @@ func TestAllowedOpenGoalRunnerMayRun(t *testing.T) {
 	}
 }
 
-func TestAllowedOneCandidateRunnerMaySelect(t *testing.T) {
+// A lone candidate shows the Goal selected: the owner may land or unselect
+// its commit, and the runner has no act.
+func TestAllowedOneCandidateShowsSelected(t *testing.T) {
 	e := newRunEnv(t)
-	_, tree := e.metLeaf(t, "ok", true)
-	want := Ready{Goal: e.goal, Role: "runner", Act: ActSelect, Tree: tree}
-	if got := lines(e.allowed(t), "runner"); !slices.Contains(got, want) {
-		t.Fatalf("runner may %+v, want %+v", got, want)
+	c, _ := e.metLeaf(t, "ok", true)
+	rl := e.allowed(t)
+	if got := lines(rl, "runner"); len(got) != 0 {
+		t.Fatalf("runner may %+v, want nothing on a selected Goal", got)
 	}
-	// a candidate whose commit holds no spec is not offered: run on the spec commit first
+	want := []Ready{{Goal: e.goal, Role: "owner", Act: ActLand, Commit: c}, {Goal: e.goal, Role: "owner", Act: ActUnselect, Commit: c}}
+	if got := owners(rl); !slices.Equal(got, want) {
+		t.Fatalf("owner may %+v, want %+v", got, want)
+	}
+	// a candidate whose commit holds no spec is not selected: run on the spec commit first
 	e2 := newRunEnv(t)
 	e2.metLeaf(t, "ok", false)
-	if got := lines(e2.allowed(t), "runner"); acted(got, ActSelect) {
-		t.Fatalf("offered %+v without a spec", got)
+	rl = e2.allowed(t)
+	if acted(rl, ActSelect) || acted(rl, ActLand) || !acted(lines(rl, "runner"), ActRun) {
+		t.Fatalf("allowed %+v without a spec, want only runs", rl)
 	}
 }
 
@@ -94,7 +114,7 @@ func TestAllowedTwoCandidatesOnlyOwnerMaySelect(t *testing.T) {
 			t.Fatalf("owner may %+v, want a select of %s", owner, tree)
 		}
 	}
-	if st := Stand(e.goalRow(t), e.root); st.Stop != StopTwoCandidates || len(st.Candidates) != 2 {
+	if st := Stand(e.shown(t), e.root); st.Stop != StopTwoCandidates || len(st.Candidates) != 2 {
 		t.Fatalf("standing = %+v", st)
 	}
 }
@@ -145,49 +165,63 @@ func TestAllowedCandidateWithoutSpecAtBudgetMayRunSpecCommit(t *testing.T) {
 	if _, err := e.run(spec); err != nil {
 		t.Fatalf("run on the spec commit: %v", err)
 	}
-	sel := Ready{Goal: e.goal, Role: "runner", Act: ActSelect, Tree: tree}
-	if got := lines(e.allowed(t), "runner"); !slices.Equal(got, []Ready{sel}) {
-		t.Fatalf("after the spec run runner may %+v, want [%+v]", got, sel)
+	g := e.shown(t)
+	if g.State != tables.StateSelected || g.Select.RowTree != tree || g.Select.Commit != spec {
+		t.Fatalf("after the spec run state = %s, select = %+v, want selected on %s", g.State, g.Select, spec)
+	}
+	if got := lines(e.allowed(t), "runner"); len(got) != 0 {
+		t.Fatalf("after the spec run runner may %+v, want nothing", got)
 	}
 }
 
-// places is the grill's one allowed place: the Goal's whole example set.
+// places is the owner's one allowed place: the Goal's whole example set.
 func places(e *runEnv) []Ready {
-	return []Ready{{Goal: e.goal, Role: "grill", Act: ActPlace}}
+	return []Ready{{Goal: e.goal, Role: "owner", Act: ActPlace}}
 }
 
-// The grill may place the whole set in every state that allows a place, and
-// nothing once the Goal is selected.
-func TestAllowedGrillMayPlaceTheSet(t *testing.T) {
+// placeLines are the owner's place lines among rl.
+func placeLines(rl []Ready) []Ready {
+	var out []Ready
+	for _, l := range lines(rl, "owner") {
+		if l.Act == ActPlace {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// The owner may place the whole set in every state that allows a place, and
+// not once the Goal is selected.
+func TestAllowedOwnerMayPlaceTheSet(t *testing.T) {
 	// written: line-1 holds an example, line-2 and line-3 none
 	e := newRunEnv(t, gapLine, gapLine, LineInput{Kind: events.KindGuard, Text: "it holds"})
 	if g := e.goalRow(t); g.State != tables.StateWritten {
 		t.Fatalf("test setup: %s", g.State)
 	}
-	if got, want := lines(e.allowed(t), "grill"), places(e); !slices.Equal(got, want) {
-		t.Fatalf("written: grill may %+v, want %+v", got, want)
+	if got, want := placeLines(e.allowed(t)), places(e); !slices.Equal(got, want) {
+		t.Fatalf("written: owner may place %+v, want %+v", got, want)
 	}
 
 	// open, with no stop, then with one candidate, two candidates and the select
 	o := newRunEnv(t)
-	if got, want := lines(o.allowed(t), "grill"), places(o); !slices.Equal(got, want) {
-		t.Fatalf("open: grill may %+v, want %+v", got, want)
+	if got, want := placeLines(o.allowed(t)), places(o); !slices.Equal(got, want) {
+		t.Fatalf("open: owner may place %+v, want %+v", got, want)
 	}
 	_, tree := o.metLeaf(t, "ok", true)
-	if got, want := lines(o.allowed(t), "grill"), places(o); !slices.Equal(got, want) {
-		t.Fatalf("one candidate: grill may %+v, want %+v", got, want)
+	if got := placeLines(o.allowed(t)); len(got) != 0 {
+		t.Fatalf("one candidate, selected: owner may place %+v, want nothing", got)
 	}
 	o.metLeaf(t, "ok2", true)
 	if st := Stand(o.goalRow(t), o.root); st.Stop != StopTwoCandidates {
 		t.Fatalf("test setup: stop %s", st.Stop)
 	}
-	if got, want := lines(o.allowed(t), "grill"), places(o); !slices.Equal(got, want) {
-		t.Fatalf("two candidates: grill may %+v, want %+v", got, want)
+	if got, want := placeLines(o.allowed(t)), places(o); !slices.Equal(got, want) {
+		t.Fatalf("two candidates: owner may place %+v, want %+v", got, want)
 	}
 	if _, err := Select(o.selectOpts(tree, "owner-1", "owner")); err != nil {
 		t.Fatal(err)
 	}
-	if got := lines(o.allowed(t), "grill"); len(got) != 0 {
-		t.Fatalf("selected: grill may %+v, want nothing", got)
+	if got := placeLines(o.allowed(t)); len(got) != 0 {
+		t.Fatalf("selected: owner may place %+v, want nothing", got)
 	}
 }
