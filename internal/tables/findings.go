@@ -314,53 +314,61 @@ func GuardFindingDecline(t Tables, ev events.Event) error {
 	return GuardNotFolded(f)
 }
 
-// replayFinding applies a finding event at its place in the merge order,
-// when its guards allow it. No finding event is in an end's snapshot: the
-// snapshot names only events stored in git.
-func replayFinding(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	switch ev.Type {
-	case events.TypeFindingAdd:
-		if err := GuardFindingAdd(*t, ev); err != nil {
-			refuse(ev, err)
-			return
-		}
-		var p events.FindingAdd
-		if events.Decode(ev, &p) != nil {
-			return // GuardFindingAdd decoded it already
-		}
-		f := &Finding{ID: FindingID(ev.ID), EventID: ev.ID, Fact: p.Fact, Evidence: p.Evidence, Draft: p.Draft,
-			Example: p.Example, Commit: p.Commit, Actor: ev.Actor, Time: ev.TS}
-		t.findings[ev.ID] = f
-		t.order = append(t.order, f)
-	case events.TypeFindingFold:
-		if err := GuardFindingFold(*t, ev); err != nil {
-			refuse(ev, err)
-			return
-		}
-		var p events.FindingFold
-		if events.Decode(ev, &p) != nil {
-			return
-		}
-		into := t.Goals[p.Goal] // nil for the oldest form
-		for _, id := range p.Findings {
-			f := t.findings[id]
-			f.name(into)
-			if p.Issue > 0 {
-				f.Issue = p.Issue
-			}
-		}
-	case events.TypeFindingRefute:
-		if err := GuardFindingRefute(*t, ev); err != nil {
-			refuse(ev, err)
-			return
-		}
-		t.findings[ev.Node].Refuted = true
-	case events.TypeFindingDecline:
-		if err := GuardFindingDecline(*t, ev); err != nil {
-			refuse(ev, err)
-			return
-		}
-		f := t.findings[ev.Node]
-		f.Declined, f.Why = true, ev.Why
+// replayFindingAdd adds a finding at its place in the merge order, when its
+// guards allow it. No finding event is in an end's snapshot: the snapshot
+// names only events stored in git.
+func replayFindingAdd(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardFindingAdd(*t, ev); err != nil {
+		refuse(ev, err)
+		return
 	}
+	var p events.FindingAdd
+	if events.Decode(ev, &p) != nil {
+		return // GuardFindingAdd decoded it already
+	}
+	f := &Finding{ID: FindingID(ev.ID), EventID: ev.ID, Fact: p.Fact, Evidence: p.Evidence, Draft: p.Draft,
+		Example: p.Example, Commit: p.Commit, Actor: ev.Actor, Time: ev.TS}
+	t.findings[ev.ID] = f
+	t.order = append(t.order, f)
+}
+
+// replayFindingFold applies an old fold its guards allow: each finding it
+// folds is named by its Goal, or in the oldest form by its issue.
+func replayFindingFold(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardFindingFold(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	var p events.FindingFold
+	if events.Decode(ev, &p) != nil {
+		return
+	}
+	into := t.Goals[p.Goal] // nil for the oldest form
+	for _, id := range p.Findings {
+		f := t.findings[id]
+		f.name(into)
+		if p.Issue > 0 {
+			f.Issue = p.Issue
+		}
+	}
+}
+
+// replayFindingRefute marks a finding refuted, when its guards allow it.
+func replayFindingRefute(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardFindingRefute(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	t.findings[ev.Node].Refuted = true
+}
+
+// replayFindingDecline marks a finding declined with the owner's why, when
+// its guards allow it.
+func replayFindingDecline(t *Tables, ev events.Event, refuse func(events.Event, error)) {
+	if err := GuardFindingDecline(*t, ev); err != nil {
+		refuse(ev, err)
+		return
+	}
+	f := t.findings[ev.Node]
+	f.Declined, f.Why = true, ev.Why
 }
