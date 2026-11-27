@@ -36,9 +36,13 @@ func TestAddGoalRecords(t *testing.T) {
 	if rep.Base != c {
 		t.Fatalf("base = %s, want the full sha %s", rep.Base, c)
 	}
-	data, err := os.ReadFile(filepath.Join(r.Dir, ".tree", "events", "owner-1.jsonl"))
+	files, err := filepath.Glob(filepath.Join(r.Dir, ".tree", "events", "owner-1", "*.json"))
+	if err != nil || len(files) != 1 {
+		t.Fatalf("events files = %v, %v; want one file of the actor at the top level", files, err)
+	}
+	data, err := os.ReadFile(files[0])
 	if err != nil || strings.Count(string(data), "\n") != 1 {
-		t.Fatalf("events file = %q, %v; want one line at the top level", data, err)
+		t.Fatalf("events file = %q, %v; want one line", data, err)
 	}
 	evs, errs, err := logstore.Events(r.Dir)
 	if err != nil || len(errs) != 0 || len(evs) != 1 {

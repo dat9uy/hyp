@@ -11,7 +11,7 @@ The folder `.tree/` at the git top level. It holds every Goal of the repository.
 _Avoid_: database, index (hyp keeps no table)
 
 **Event**:
-One JSON line in `.tree/events/<actor>.jsonl`. Only hyp writes it, and it is only appended. Every table and state comes from the events.
+One JSON line in a file of its own, `.tree/events/<actor>/<id>.json`, or in an older store a line of `.tree/events/<actor>.jsonl`. Only hyp writes it, and it is never changed. Every table and state comes from the events.
 _Avoid_: entry, record (alone)
 
 The fourteen event types, each with where it is stored in `hyp spec`:

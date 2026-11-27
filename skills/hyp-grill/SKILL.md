@@ -35,8 +35,8 @@ copy from a line hyp printed. Set `HYP_ACTOR` to your actor name and
 `HYP_ROLE=grill` for every command. The owner records the Goal itself, with the
 act `hyp help` lists for adding a Goal; you draft the words and lines it takes.
 In that draft, set `HYP_ACTOR` to the owner's actor, never a placeholder: the
-actor of the `goal.add` events in the store, which `.tree/events/<actor>.jsonl`
-names. Ask the owner once, only when the store has no Goal yet or several actors
+actor of the `goal.add` events in the store, which the folder
+`.tree/events/<actor>/` names (or, in an older store, `.tree/events/<actor>.jsonl`). Ask the owner once, only when the store has no Goal yet or several actors
 added Goals. The owner's land, unselect and select of a Goal are allowed only
 to the actor that added it, so a wrong actor locks the owner out of them.
 

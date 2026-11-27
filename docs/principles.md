@@ -23,12 +23,12 @@ line, a decline or a "not yet". A record that serves none of these is not kept.
 ## 2. The log is the truth; everything else is calculated
 
 **Events are appended and never edited, and every state is calculated from
-them.** Each actor appends to its own file under `.tree/events/`. hyp stores no
+them.** Each event is a file of its own under `.tree/events/<actor>/`. hyp stores no
 table: the Goal states, the rows, the candidates and the stops are calculated
 on every command. No command sets a state. A changed mind is a
 new event, for example a new version of an example, so the earlier event stays
-in the history. Two clones merge their logs by a union merge, and replay orders
-the events by id.
+in the history. Two clones merge their logs with a plain git merge, since no act
+changes a file another wrote, and replay orders the events by id.
 
 The log keeps what the owner learned or approved: the acts that change a
 Goal, such as `add goal`, `select`, `land` and `close`, and one place of each

@@ -530,21 +530,17 @@ func TestStatusListPrintsNoQuotedGoalLine(t *testing.T) {
 	}
 }
 
-// TestStatusReportsTornLine: a torn last line of an events file does not
-// parse. Replay skips it, and status, with or without a Goal, names its file
-// and line number. A later write still succeeds and the line stays reported.
+// TestStatusReportsTornLine: a torn last line of an events file, here one
+// of the older form, one file per actor, does not parse. Replay skips it,
+// and status, with or without a Goal, names its file and line number. A
+// later write still succeeds and the line stays reported.
 func TestStatusReportsTornLine(t *testing.T) {
 	f := newFx(t, map[string]string{"line-1/a": counterEx})
 	file := filepath.Join(f.r.Dir, ".tree", "events", "owner-1.jsonl")
-	data, err := os.ReadFile(file)
-	if err != nil {
+	if err := os.WriteFile(file, []byte("\n"+`{"v":1,"id":"`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	n := strings.Count(string(data), "\n") + 1
-	if err := os.WriteFile(file, append(data, []byte(`{"v":1,"id":"`)...), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	want := fmt.Sprintf("not read at replay:\n  .tree/events/owner-1.jsonl line %d: ", n)
+	want := fmt.Sprintf("not read at replay:\n  .tree/events/owner-1.jsonl line %d: ", 2)
 	for _, args := range [][]string{{"status"}, {"status", f.goal}} {
 		code, out, errs := run(t, args...)
 		if code != 0 || !strings.Contains(out, want) || !strings.Contains(out, f.goal) {
