@@ -552,11 +552,11 @@ func TestRunRefusedAfterTheProbesStoresNoOutput(t *testing.T) {
 func TestRunCarriesWhatItRead(t *testing.T) {
 	e := newRunEnv(t)
 	spec := "goals/" + e.goal + "/specs/spec.md"
-	c1 := e.child(t, e.base, map[string]string{"counter": "ok\n", spec: "s\n"})
+	c1 := e.child(t, e.base, map[string]string{"counter": "ok\n"})
 	if _, err := e.run(c1); err != nil {
 		t.Fatal(err)
 	}
-	c2 := e.child(t, c1, map[string]string{"counter": "ok2\n"})
+	c2 := e.child(t, c1, map[string]string{"counter": "ok2\n", spec: "s\n"})
 	if _, err := e.run(c2); err != nil {
 		t.Fatal(err)
 	}
