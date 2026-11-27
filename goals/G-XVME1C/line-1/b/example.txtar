@@ -1,0 +1,8 @@
+-- words --
+An unnamed rule shows no line: the selected commit changes the text of the rule OldRule in the kept model, tagged model only; hyp status G lists OldRule as no line.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+OldRule
+-- floor: contains --
+no line

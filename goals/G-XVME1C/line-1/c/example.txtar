@@ -1,0 +1,6 @@
+-- words --
+A new step shows its command: the selected commit adds to the kept model an action tagged with the comment command: toy fold; hyp status G lists the step as toy fold.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+toy fold

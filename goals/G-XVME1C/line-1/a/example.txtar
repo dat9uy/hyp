@@ -1,0 +1,8 @@
+-- words --
+A changed rule shows its line's words: the selected commit adds the rule NewRule to the kept model in goals/model/, tagged with the source G-ONE:line-1; hyp status G lists NewRule with line-1's words, the subject says bye, and prints none of NewRule's TLA+ text.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+NewRule
+-- ceiling --
+n \in {0, 1, 2}

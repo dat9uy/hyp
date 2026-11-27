@@ -1,0 +1,8 @@
+-- words --
+Unchanged parts are not listed: the selected commit changes the kept model, and leaves its rule KeepsCount as on H0; hyp status G does not name KeepsCount.
+-- run --
+hyp status G-ONE
+-- floor: contains --
+NewRule
+-- ceiling --
+KeepsCount
