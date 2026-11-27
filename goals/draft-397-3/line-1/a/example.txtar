@@ -6,3 +6,5 @@ T=$(mktemp -d); hyp status G-ONE >"$T/before" 2>&1; git branch -D c1 c2 >/dev/nu
 status: same
 -- ceiling --
 status: changed
+-- findings --
+F-AV4WJ7
