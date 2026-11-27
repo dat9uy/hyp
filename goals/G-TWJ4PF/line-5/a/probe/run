@@ -1,0 +1,69 @@
+#!/bin/sh
+# Probe of G-TWJ4PF. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test git repo with a base commit
+# holding greet.txt, sets up the branches the case needs by owner acts, runs
+# the example's run section with G-ONE replaced by the real Goal id, prints
+# its stdout with ids and timestamps replaced by stable tokens, then a last
+# line "exit N". Setup output goes to stderr. A setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+exec 3>&2 2>"$work/setup.err"
+
+fail() { echo "probe: $*" >&3; cat "$work/setup.err" >&3; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add -A && git commit -q -m base >&2 || fail "commit base"
+export HYP_ACTOR=owner HYP_ROLE=owner
+
+# add_goal WORDS: the owner adds a Goal of one gap line; sets G to its id.
+add_goal() {
+  added=$(hyp add goal --base HEAD --words "$1" --line 'gap:the subject says bye.') \
+    || fail "hyp add goal: $added"
+  G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+  [ -n "$G" ] || fail "no Goal id in: $added"
+  commit_staged "goal $G" || fail "commit goal"
+}
+
+# Base store holds G-ONE. Main closes it; side closes it again.
+add_goal 'Goal one.'; FIRST=$G; SECOND=G-ZZZZZZ
+git checkout -q -b side main >&2 || fail "checkout side"
+hyp close "$FIRST" --why 'side' >&2 || fail "hyp close side"
+commit_staged "close on side" || fail "commit side"
+git checkout -q main >&2 || fail "checkout main"
+hyp close "$FIRST" --why 'main' >&2 || fail "hyp close main"
+commit_staged "close on main" || fail "commit main"
+
+run=$(printf '%s' "$HYP_RUN" | sed -e "s/G-ONE/$FIRST/g")
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+norm() { sed -e "s/$FIRST/G-ONE/g" -e "s/$SECOND/G-TWO/g" \
+  -e 's/G-[A-Z0-9]\{6\}/G-XXXXXX/g' \
+  -e 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z\{0,1\}\([+-][0-9:]*\)\{0,1\}/TIMESTAMP/g' "$1"; }
+norm "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+norm "$work/err" >&3
+echo "exit $code"
+exit 0
