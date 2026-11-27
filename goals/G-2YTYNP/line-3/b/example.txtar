@@ -1,0 +1,8 @@
+-- words --
+A read appends nothing: with HYP_STEP_LOG set to a file, the owner's hyp add goal and then hyp spec leave that file with exactly one line, the step AddGoal of the add.
+-- run --
+F=$(mktemp); HYP_STEP_LOG="$F" HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words "Other." --line "gap:other" >/dev/null 2>&1; HYP_STEP_LOG="$F" hyp spec >/dev/null 2>&1; echo "lines: $(grep -c . "$F")"
+-- floor: contains --
+lines: 1
+-- ceiling --
+lines: 0
