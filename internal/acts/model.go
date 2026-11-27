@@ -9,6 +9,7 @@ import (
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/gitread"
+	"github.com/dat9uy/hyp/internal/tables"
 )
 
 // A Goal's spec folder, goals/<G>/specs/, may hold a model: a TLA+ module
@@ -16,7 +17,7 @@ import (
 // Hypothesis under specs/variants/, and a chart (.mmd). hyp reads these files
 // from a commit and runs no model checker. A spec folder written before the
 // rename holds its variant configs under specs/switches/; hyp reads both.
-const variantsDir = "variants/"
+const variantsDir = tables.VariantsDir
 
 // oldVariantsDir is the folder that held the variant configs before they
 // were called variant configs.
@@ -35,12 +36,9 @@ type SpecFile struct {
 	Hash string
 }
 
-// SpecDir is the spec folder of Goal id, as git names it.
-func SpecDir(id string) string { return path.Join("goals", id, "specs") + "/" }
-
 // SpecFiles lists the files under the spec folder of Goal id at commit.
 func SpecFiles(root, commit, id string) ([]SpecFile, error) {
-	dir := SpecDir(id)
+	dir := tables.SpecDir(id)
 	out, err := gitread.Git(root, "ls-tree", "-r", "-z", commit, dir)
 	if err != nil {
 		return nil, err

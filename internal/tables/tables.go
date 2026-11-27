@@ -93,7 +93,7 @@ type Select struct {
 	Actor   string
 
 	// Calculated marks a select no event holds: this clone's Results show
-	// the row as the one candidate (acts.Calculate). A select event of the
+	// the row as the one candidate (Calculate). A select event of the
 	// older form is not calculated.
 	Calculated bool
 }

@@ -164,11 +164,11 @@ func Run(o RunOpts) (RunReport, error) {
 // checkRun runs the guards that need no Probe, in the order of the state
 // machine: Selected, Bytes, Open, Own path, Leaf only, then Budget. Then it
 // reads what the Result carries of the commit (ReadCommit). Selected reads
-// the select this clone's Results show (Calculate) as well as a select
+// the select this clone's Results show (tables.Calculate) as well as a select
 // event: the runner stops at the first selectable candidate. An unknown Goal
 // or line is a bad argument.
 func checkRun(root string, o RunOpts, evs []events.Event, goalName, lineKey string) (runChecked, error) {
-	t := Calculate(tables.Replay(evs))
+	t := tables.Calculate(tables.Replay(evs))
 	g, err := t.Find(goalName)
 	if err != nil {
 		return runChecked{}, err

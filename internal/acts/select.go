@@ -2,7 +2,6 @@ package acts
 
 import (
 	"encoding/json"
-	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -59,7 +58,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 			// the Goal selected, and no event of the runner's holds it
 			return ev, fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, o.Role)
 		}
-		t := Calculate(tables.Replay(evs))
+		t := tables.Calculate(tables.Replay(evs))
 		g, err := t.Find(o.Goal)
 		if err != nil {
 			return ev, err
@@ -80,7 +79,7 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err := tables.GuardGoalActor(g, o.Actor, o.Role); err != nil {
 			return ev, err
 		}
-		commit := latestCommit(g, row.RowTree)
+		commit := tables.LatestCommit(g, row.RowTree)
 		if commit == "" {
 			return ev, fault.Refuse(fault.GuardCandidate, fault.NoResultOnRow, row.RowTree)
 		}
@@ -120,72 +119,14 @@ func Select(o SelectOpts) (SelectReport, error) {
 	return rep, nil
 }
 
-// latestCommit is the commit of the latest Result, in merge order, that counts
-// on the row with rowTree: not refused by Stable.
-func latestCommit(g *tables.Goal, rowTree string) string {
-	commit := ""
-	for _, r := range g.Results {
-		if r.RowTree == rowTree && r.Refused == "" {
-			commit = r.Commit
-		}
-	}
-	return commit
-}
-
 // guardSpec is the Spec guard of an act, which reads git: it reads the
-// commit (ReadCommit) and checks what it read (SpecGuard).
+// commit (ReadCommit) and checks what it read (tables.GuardSpec).
 func guardSpec(root string, g *tables.Goal, commit string) error {
 	read, err := readSpec(root, g, commit)
 	if err != nil {
 		return err
 	}
-	return SpecGuard(g, commit, &read)
-}
-
-// SpecGuard is the Spec guard on what a run read of the commit: the commit
-// holds a spec under goals/<G>/specs/. When the spec is a model (a .tla
-// file), every rule its check configs check is named by a variant config
-// under specs/variants/ (or the older specs/switches/). When the commit
-// changes the kept model (goals/model/), every rule of it that is new, or
-// whose text differs, against H0, whatever commit the clone has checked
-// out, is named by such a variant config too; the other rules of the kept
-// model need none. A model or a kept change needs a chart (.mmd) in the
-// folder. hyp reads the files and runs no model checker. A nil read is a
-// Result recorded before runs carried what they read: a run of a line on
-// the commit records one.
-func SpecGuard(g *tables.Goal, commit string, read *events.CommitRead) error {
-	dir := SpecDir(g.ID)
-	if read == nil {
-		return fault.Refuse(fault.GuardSpec, fault.NoRead, commit, g.ID)
-	}
-	if read.SpecFiles == 0 {
-		return fault.Refuse(fault.GuardSpec, fault.NoSpec, commit, dir)
-	}
-	var kept []string
-	for _, it := range read.Kept {
-		if it.Rule {
-			kept = append(kept, it.Name)
-		}
-	}
-	if !read.Model && len(kept) == 0 {
-		return nil
-	}
-	var missing []string
-	if read.Model {
-		missing = append(missing, read.Unnamed...)
-	}
-	for _, r := range kept {
-		if !slices.Contains(read.Named, r) && !slices.Contains(missing, r) {
-			missing = append(missing, r)
-		}
-	}
-	if len(missing) > 0 {
-		return fault.Refuse(fault.GuardSpec, fault.RuleNoVariant, commit, missing, dir+variantsDir)
-	}
-	if len(read.Charts) == 0 {
-		return fault.Refuse(fault.GuardSpec, fault.NoChart, commit, dir)
-	}
-	return nil
+	return tables.GuardSpec(g, commit, &read)
 }
 
 // ReadCommit is what a run reads of git about commit, which its Result
@@ -242,7 +183,7 @@ func readSpec(root string, g *tables.Goal, commit string) (events.CommitRead, er
 // and only then, it reads the commit from git, as those records were
 // printed.
 func SelectedRead(root string, g *tables.Goal) (*events.CommitRead, error) {
-	if read := ReadOf(g, g.Select.Commit); read != nil {
+	if read := tables.ReadOf(g, g.Select.Commit); read != nil {
 		return read, nil
 	}
 	if g.Land != nil && g.Land.Read != nil && g.Land.Commit == g.Select.Commit {
@@ -253,19 +194,6 @@ func SelectedRead(root string, g *tables.Goal) (*events.CommitRead, error) {
 		return nil, err
 	}
 	return &read, nil
-}
-
-// ReadOf is what the latest Result on commit that counts, not
-// refused by Stable, read of it; nil when no such Result
-// carries a read.
-func ReadOf(g *tables.Goal, commit string) *events.CommitRead {
-	var read *events.CommitRead
-	for _, r := range g.Results {
-		if r.Commit == commit && r.Refused == "" {
-			read = r.Read
-		}
-	}
-	return read
 }
 
 // ExampleFile is the example.txtar of the example folder with tree hash

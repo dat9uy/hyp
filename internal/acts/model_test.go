@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/fault"
+	"github.com/dat9uy/hyp/internal/tables"
 )
 
 func TestCfgRulesReadsRuleSectionsOnly(t *testing.T) {
@@ -148,7 +149,7 @@ func TestHeldBackNamesWhatSelectRefuses(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	holds := HeldBack(g)
+	holds := tables.HeldBack(g)
 	if len(holds) != 1 {
 		t.Fatalf("holds = %v", holds)
 	}

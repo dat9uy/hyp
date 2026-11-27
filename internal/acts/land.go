@@ -33,7 +33,7 @@ type LandOpts struct {
 type LandReport struct {
 	Goal     string
 	Stop     string
-	Cause    Cause
+	Cause    tables.Cause
 	Commit   string
 	Tree     string
 	RowTree  string
@@ -107,8 +107,8 @@ func Land(o LandOpts) (LandReport, error) {
 		p := events.Land{Role: o.Role, Seen: g.Seen()}
 		rep = LandReport{Goal: g.ID}
 		if again.commit == "" {
-			st := Stand(g)
-			if st.Stop == StopNone || st.Stop == StopSelected {
+			st := tables.Stand(g)
+			if st.Stop == tables.StopNone || st.Stop == tables.StopSelected {
 				return ev, fault.Refuse(fault.GuardStop, fault.NoStop, g.ID)
 			}
 			p.Stop, p.Cause = st.Stop, st.Cause.ID
@@ -127,7 +127,7 @@ func Land(o LandOpts) (LandReport, error) {
 				}
 				p.Verdicts = append(p.Verdicts, events.LandVerdict{Line: x.Line, Example: x.Example, Hash: x.Hash, Verdict: v})
 			}
-			p.Stop, p.Commit, p.Tree, p.RowTree = StopSelected, again.commit, again.tree, again.rowTree
+			p.Stop, p.Commit, p.Tree, p.RowTree = tables.StopSelected, again.commit, again.tree, again.rowTree
 			if err := tables.GuardEvidence(g, p); err != nil {
 				return ev, err
 			}
@@ -135,7 +135,7 @@ func Land(o LandOpts) (LandReport, error) {
 			if err != nil {
 				return ev, err
 			}
-			if err := SpecGuard(g, again.commit, &read); err != nil {
+			if err := tables.GuardSpec(g, again.commit, &read); err != nil {
 				return ev, err
 			}
 			p.Read = &read
@@ -146,17 +146,17 @@ func Land(o LandOpts) (LandReport, error) {
 			if err := tables.GuardOwnPath(g, changes); err != nil {
 				return ev, err
 			}
-			cause := Cause{}
+			cause := tables.Cause{}
 			if g.Select != nil && g.Select.RowTree == again.rowTree {
-				cause = Cause{Act: ActRun, ID: g.Select.ID, Time: g.Select.Time}
+				cause = tables.Cause{Act: ActRun, ID: g.Select.ID, Time: g.Select.Time}
 				if !g.Select.Calculated {
 					cause.Act = ActSelect
 				}
-			} else if c := lastRunOn(g, again.rowTree); c.ID != "" {
+			} else if c := tables.LastRunOn(g, again.rowTree); c.ID != "" {
 				cause = c
 			}
 			p.Cause = cause.ID
-			rep.Stop, rep.Cause = StopSelected, cause
+			rep.Stop, rep.Cause = tables.StopSelected, cause
 			rep.Commit, rep.Tree, rep.RowTree, rep.Verdicts, rep.Ran = p.Commit, p.Tree, p.RowTree, p.Verdicts, ranKeys
 		}
 		payload, err := json.Marshal(p)
@@ -187,7 +187,7 @@ type landPlan struct {
 // commit the land names: the one given, else the one this clone shows the
 // Goal selected on, else none.
 func planLand(root string, o LandOpts, evs []events.Event) (landPlan, error) {
-	t := Calculate(tables.Replay(evs))
+	t := tables.Calculate(tables.Replay(evs))
 	g, err := t.Find(o.Goal)
 	if err != nil {
 		return landPlan{}, err
@@ -224,15 +224,4 @@ func planLand(root string, o LandOpts, evs []events.Event) (landPlan, error) {
 		return landPlan{}, fault.Refuse(fault.GuardEvidence, fault.CommitUnselected, lp.commit, g.ID)
 	}
 	return lp, nil
-}
-
-// lastRunOn is the latest Result on the row with rowTree, in merge order,
-// that counts.
-func lastRunOn(g *tables.Goal, rowTree string) Cause {
-	for i := len(g.Results) - 1; i >= 0; i-- {
-		if r := g.Results[i]; r.RowTree == rowTree && r.Refused == "" {
-			return Cause{Act: ActRun, ID: r.ID, Time: r.Time}
-		}
-	}
-	return Cause{}
 }

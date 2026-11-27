@@ -580,7 +580,7 @@ func TestRunCarriesWhatItRead(t *testing.T) {
 		t.Fatal("test setup: C2 is still in the clone")
 	}
 	after := e.shown(t)
-	if after.Select == nil || after.Select.Commit != c2 || len(Stand(after).Rows) != 3 {
+	if after.Select == nil || after.Select.Commit != c2 || len(tables.Stand(after).Rows) != 3 {
 		t.Fatalf("after the prune: select = %+v, want the Goal selected on C2 with three rows", after.Select)
 	}
 }

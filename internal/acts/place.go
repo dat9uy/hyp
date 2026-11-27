@@ -289,7 +289,7 @@ func sameChanges(a, b []change) bool {
 // folder, then the names of each changed example's findings section (Not
 // refuted, Not declined, One in work) and Covered for the set, which it collects as causes
 // so a refusal names every one. Selected reads only a select event: a select
-// this clone's Results show (Calculate) holds no event, and the owner's place
+// this clone's Results show (tables.Calculate) holds no event, and the owner's place
 // of a new example then moves the Goal back to open. An unknown Goal is a bad
 // argument.
 func scanSet(root string, o PlaceOpts, evs []events.Event) (scan, error) {
