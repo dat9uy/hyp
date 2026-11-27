@@ -206,7 +206,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if logstore.Find(root) != nil {
 		// A refused first act must leave no store behind: run the guards
 		// against an empty log before creating one.
-		if _, err := build(tablesOf(nil, nil, eventsView), nil); err != nil {
+		if _, err := build(tablesOf(snapshotOf(nil), eventsView), nil); err != nil {
 			return Report{}, err
 		}
 		if err := logstore.Create(root); err != nil {
@@ -252,7 +252,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 // and cells for the clone's trace. A set with a cause is refused whole, and
 // no Goal is recorded.
 func addedExamples(root string, o AddGoalOpts, snap, base, baseTree string, lines []events.Line) ([]events.PlacedExample, [][]byte, []logstore.Cell, error) {
-	t := tablesOf(nil, nil, eventsView)
+	t := tablesOf(snapshotOf(nil), eventsView)
 	if logstore.Find(root) == nil {
 		var err error
 		if t, _, err = load(root, eventsView); err != nil {

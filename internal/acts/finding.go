@@ -162,7 +162,7 @@ func findingAct(o FindingOpts, typ string, build func(tables.Tables, *events.Eve
 	if err != nil {
 		return FindingReport{}, err
 	}
-	t := tablesOf(append(before, ev), nil, eventsView)
+	t := tablesOf(snapshotOf(append(before, ev)), eventsView)
 	var ids []string
 	switch typ {
 	case events.TypeFindingAdd:
