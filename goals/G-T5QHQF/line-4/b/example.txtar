@@ -1,10 +1,8 @@
 -- words --
-One not run stays open: Goal G-ONE has two examples on line-1 and line-2; the runner runs only line-1 on C1; hyp status shows the Goal open.
+Selected only when every example is met: Goal G-ONE has one example on line-1 and one on line-2; after the runner runs only line-1 on C1, hyp status shows the Goal open; after it also runs line-2, hyp status shows it selected on C1.
 -- run --
-HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; echo "run exit: $?"; hyp status G-ONE | head -1
+HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; echo "after one: $(hyp status G-ONE | head -1 | awk '{print $2}')"; HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-2 >/dev/null 2>&1; echo "after both: $(hyp status G-ONE | head -1 | awk '{print $2}')"
 -- floor: contains --
-run exit: 0
+after one: open
 -- floor: contains --
-G-ONE  open
--- ceiling --
-selected
+after both: selected
