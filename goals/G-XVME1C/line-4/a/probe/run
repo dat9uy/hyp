@@ -1,0 +1,70 @@
+#!/bin/sh
+# Probe of G-XVME1C line-4/a. The working directory is a copy of the subject.
+# It writes the fixture Goal goals/G-ONE (a whole model of its own whose rule
+# SaysBye names line-1, and one example for line-1), runs the example's run
+# section, prints its stdout, then a last line "exit N".
+# A setup failure goes to stderr and exits 3.
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+g=goals/G-ONE
+mkdir -p "$g/specs" "$g/line-1/a/probe" || fail "mkdir"
+
+cat >"$g/specs/greet.tla" <<'TLA' || fail "write greet.tla"
+-------------------------------- MODULE greet --------------------------------
+EXTENDS Integers
+
+CONSTANTS Breaks
+
+VARIABLES st, out
+
+vars == <<st, out>>
+
+Init == st = "none" /\ out = [cmd |-> "none", text |-> "none"]
+
+\* command: greet say
+Say ==
+    /\ st = "none" /\ st' = "said"
+    /\ out' = [cmd |-> "say", text |-> IF Breaks THEN "hello" ELSE "bye"]
+
+Next == Say
+
+Spec == Init /\ [][Next]_vars
+
+\* source: line-1
+SaysBye == (out.cmd = "say") => out.text = "bye"
+==============================================================================
+TLA
+
+cat >"$g/specs/greet.cfg" <<'CFG' || fail "write greet.cfg"
+SPECIFICATION Spec
+
+CONSTANTS
+    Breaks = FALSE
+
+INVARIANTS
+    SaysBye
+CFG
+
+cat >"$g/line-1/a/example.txtar" <<'TXT' || fail "write example"
+-- words --
+The subject says bye.
+-- run --
+cat greet.txt
+-- floor: contains --
+bye
+TXT
+
+cat >"$g/line-1/a/probe/run" <<'FIX' || fail "write fixture probe"
+#!/bin/sh
+sh -c "$HYP_RUN"
+FIX
+
+tmp=$(mktemp) || exit 3
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+rm -rf out
