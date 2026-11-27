@@ -184,3 +184,24 @@ func (g *Goal) CountedTrees() []string { return g.countedTrees() }
 
 // SortedGoals lists the Goals in the order of their goal.add events.
 func SortedGoals(t Tables) []*Goal { return sortedGoals(t) }
+
+// nameH0Outputs gives each unstable cell of H0's row the output the place
+// saved in the clone's trace: replay read the Result before the cells were
+// given, and H0's cell had no output then.
+func (g *Goal) nameH0Outputs() {
+	for _, r := range g.Results {
+		for i, u := range r.Unstable {
+			if u.First != "" || u.Tree != g.BaseTree {
+				continue
+			}
+			for _, c := range r.Cells {
+				if r.Line+"/"+c.Example != u.Key {
+					continue
+				}
+				if tc, ok := g.TraceCell(c.Hash, g.BaseTree); ok {
+					r.Unstable[i].First = tc.Output
+				}
+			}
+		}
+	}
+}

@@ -227,6 +227,7 @@ type Tables struct {
 func (t Tables) UseCells(cells map[string]logstore.Cell) {
 	for _, g := range t.Goals {
 		g.cells = cells
+		g.nameH0Outputs()
 	}
 }
 
