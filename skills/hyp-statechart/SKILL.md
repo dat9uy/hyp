@@ -73,13 +73,17 @@ start of this skill says.
 ## Steps, prints and outside reads
 
 A step is an action that changes a variable: a side effect of the system, such
-as a write to its store. A read or a refusal is a print, not a step. Every
-variable changes only inside an action that a command takes. What a step reads
-from outside the system, such as git history, a file another program wrote, a
-clock or a web service, is that step's input. When a rule or a later step needs
-it, the step stores it in a variable, as the value or the hash of the bytes. No
-rule or print reads the outside system again. Test the model: rewrite or remove
-the outside system's history; no variable may change.
+as a write to its store. A read or a refusal is a print, not a step. A variable
+changes only inside an action that a command takes.
+
+What a step reads from outside the system is that step's input. Examples are
+git history, a file another program wrote, a clock or a web service. When a
+rule or a later step needs the input, the step stores it in a variable, as the
+value or as the hash of the bytes. No rule or print reads the outside system
+again.
+
+Test the model: rewrite or remove the outside system's history. No variable
+may change.
 
 ## How to write the model
 
