@@ -51,12 +51,24 @@ leaf() { # name value spec
   git rev-parse HEAD
 }
 git checkout -q "$goalhead" >&2 || fail "checkout goal"
-c1=$(leaf c1 ok spec) || exit 3
-c2=$(leaf c2 "ok ok" spec) || exit 3
-git checkout -q main >&2
+c1=$(leaf c1 ok nospec) || exit 3
+c2=$(leaf c2 "ok ok" nospec) || exit 3
+git checkout -q main >&2 || fail "checkout main"
 for c in $c1 $c2; do
   HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run "$c" "$goal/line-1" >&2 || fail "run $c"
 done
+HYP_ACTOR=owner hyp status "$goal" >"$work/st1" 2>&1 || fail "status two candidates"
+head -1 "$work/st1" | grep -q "^$goal  open" || fail "goal not open at two candidates"
+grep -q selected "$work/st1" && fail "goal selected before the owner selects"
+git checkout -q "$c1" >&2 || fail "checkout c1"
+git checkout -q -b c1spec >&2 || fail "branch c1spec"
+mkdir -p "goals/$goal/specs" && echo spec >"goals/$goal/specs/spec.md" || fail "spec"
+git add -A && git commit -q -m c1spec >&2 || fail "commit c1spec"
+c1s=$(git rev-parse HEAD) || fail "c1s"
+git checkout -q main >&2
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run "$c1s" "$goal/line-1" >&2 || fail "run c1 spec"
+HYP_ACTOR=owner hyp status "$goal" >"$work/st2" 2>&1 || fail "status after spec"
+head -1 "$work/st2" | grep -q "^$goal  open" || fail "goal not open after spec run"
 tree1=$(HYP_ACTOR=owner hyp status "$goal" | awk '/^  row /{r=$2} /met  exit 0.* bytes: ok$/{print r; exit}')
 [ -n "$tree1" ] || fail "no row of C1"
 HYP_ACTOR=owner HYP_ROLE=owner hyp select "$goal" "$tree1" >&2 || fail "select"
