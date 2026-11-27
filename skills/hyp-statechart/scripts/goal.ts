@@ -543,6 +543,18 @@ export function sourcesOf(tla: string, rules: string[]) {
 
 // ---------------------------------------------------------------- variants
 
+// sourceLines returns the lines a source names, or undefined when the source is
+// neither a list of G-XXXXXX:line-N nor `hyp spec, guard NAME`.
+const REF = "G-[A-Z0-9]{6}:line-\\d+";
+export function sourceLines(source: string): { goal: string; line: string }[] | undefined {
+  if (/^hyp spec, guard \S.*$/.test(source)) return [];
+  if (!new RegExp(`^${REF}(\\s*,\\s*${REF})*$`).test(source)) return undefined;
+  return source.split(",").map((r) => {
+    const [goal, line] = r.trim().split(":");
+    return { goal, line };
+  });
+}
+
 export function variantsOf(sections: { key: string; tokens: string[] }[]) {
   const found: string[] = [];
   for (const s of sections) {
@@ -659,7 +671,7 @@ export async function goalReport(
   view: CheckedView,
   base: CheckResult,
   scratch: string,
-): Promise<{ text: string; refused: string[] } | undefined> {
+): Promise<{ text: string; refused: string[]; badSource: string[] } | undefined> {
   if (!isGoalConfig(configFile)) return undefined;
   const cfgText = fs.readFileSync(configFile, "utf8");
   const cfg = readConfig({ file: configFile, text: cfgText });
@@ -833,10 +845,16 @@ export async function goalReport(
   out.push(`- Rules with no source: ${noSource.length ? noSource.join(", ") : "none"}.`);
   if (goalDir) {
     const named = new Set<string>();
-    for (const s of sources.values()) for (const m of s.matchAll(/line-\d+/g)) named.add(m[0]);
+    for (const s of sources.values())
+      for (const ref of sourceLines(s) ?? []) if (ref.goal === name) named.add(ref.line);
     const unnamed = goal.lines.filter((l) => !named.has(l));
     out.push(`- Lines of the Goal that no rule names: ${unnamed.length ? unnamed.join(", ") : "none"}.`);
   }
+  const badSource = rules.filter((r) => sources.has(r) && !sourceLines(sources.get(r)!));
+  for (const r of badSource)
+    out.push(
+      `- ${r} has the source "${sources.get(r)}", which is neither a list of G-XXXXXX:line-N nor "hyp spec, guard NAME".`,
+    );
   if (written.length) out.push(`- Variant configs written: ${written.join(", ")}.`);
   const named = new Set(variants.flatMap((v) => broken.get(v) ?? []));
   const refused = goalDir ? rules.filter((r) => !named.has(r)) : [];
@@ -904,6 +922,7 @@ export async function goalReport(
       }
     }
   }
+  if (!baseModel) for (const ex of goal.examples) toTry.push(`- ${ex.key}: the model has more states than the chart budget.`);
   if (toTry.length && variants.length)
     out.push(
       "",
@@ -926,7 +945,7 @@ export async function goalReport(
     for (const ex of goal.examples)
       out.push(`| ${ex.key} | ${variants.map((v) => cellText(grid.get(v)!.get(ex.key)!)).join(" | ")} |`);
     out.push(
-      `| Separated by | ${variants.map((v) => (separatedBy.get(v)!.length ? separatedBy.get(v)!.join(" ") : "none")).join(" | ")} |`,
+      `| Separated by | ${variants.map((v) => (separatedBy.get(v)!.length ? separatedBy.get(v)!.join(" ") : baseModel ? "none" : "not predicted")).join(" | ")} |`,
     );
     const differ: string[] = [];
     for (const v of variants)
@@ -969,5 +988,5 @@ export async function goalReport(
         );
       }
     }
-  return { text: out.join("\n"), refused };
+  return { text: out.join("\n"), refused, badSource };
 }

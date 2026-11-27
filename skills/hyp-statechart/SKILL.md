@@ -58,7 +58,9 @@ tool on the kept model with `--out` in the Goal's spec folder, such as
 `goals/<G>/specs/variants/` and none under `goals/model/`.
 
 Name the source of a kept rule with its Goal: `\* source: G-XXXXXX:line-2`
-for a line of a Goal, or `\* source: model only` for a rule no line holds.
+for a line of a Goal (a list `G-XXXXXX:line-2, G-XXXXXX:line-3` names several), or
+`\* source: hyp spec, guard NAME` for a rule a guard of `hyp spec` holds. Any
+other source is refused: the tool names the rule and exits 3.
 At the selected stop, `hyp status G` lists each step and rule that the
 selected commit adds or changes in the kept model: a step by its command, a
 rule with the words of the line its source names, or `no line`.
@@ -92,10 +94,11 @@ may change.
    screen, a result, a stored value or a message. If the model has no variable
    for a rule, add the variable. Never weaken a rule to make it hold.
 2. **Name the source of each rule.** Put a line comment right above each rule:
-   `\* source: line-2` for a line of the Goal, `\* source: owner decision 3`
-   for a decision of the owner, or `\* source: model only` for another rule the
-   model needs that a variant can break. The tool lists each rule with no
-   source and each line of the Goal that no rule names.
+   `\* source: G-XXXXXX:line-2` for a line of the Goal (the Goal's own id: a
+   source that names another Goal names no line of this one), or
+   `\* source: hyp spec, guard NAME` for a guard of `hyp spec`. The tool lists
+   each rule with no source and each line of the Goal that no rule names, and
+   exits 3 on a source of any other form.
 
    A type rule, such as `TypeOK`, says only that each variable holds a value of
    its type. A variant changes what the system does, not the types of its

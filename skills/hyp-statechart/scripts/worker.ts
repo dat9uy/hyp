@@ -24,7 +24,7 @@ try {
     const goal = await goalReport(specFile, configFile, outDir, view, result, scratch);
     if (goal !== undefined) files.set("goal.md", [goal.text]);
     // Exit 3 when every rule holds but hyp select refuses the check config.
-    if (goal?.refused.length && exit === 0) exit = 3;
+    if ((goal?.refused.length || goal?.badSource.length) && exit === 0) exit = 3;
   } finally {
     fs.rmSync(scratch, { recursive: true, force: true });
   }
