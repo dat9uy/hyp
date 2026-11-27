@@ -1,0 +1,54 @@
+#!/bin/sh
+# Build the test Goal G-TEST00 in the subject copy, run the example's run
+# section, print its stdout, then a last line "exit N". Setup failures exit 3.
+fail() { echo "probe setup: $1" >&2; exit 3; }
+g=goals/G-TEST00
+mkdir -p "$g/line-1/a" "$g/specs" || fail mkdir
+cat >"$g/line-1/a/example.txtar" <<'EX' || fail example
+-- words --
+The model prints step once.
+-- run --
+echo step
+-- floor: contains --
+step
+EX
+cat >"$g/specs/goal.tla" <<'TLA' || fail tla
+---- MODULE goal ----
+EXTENDS Naturals
+CONSTANTS BreakA, BreakB
+VARIABLES a, b
+vars == <<a, b>>
+Init == a = 0 /\ b = 0
+IncA == (a < 2 \/ (BreakA /\ a < 3)) /\ a' = a + 1 /\ b' = b
+IncB == (b < 2 \/ (BreakB /\ b < 3)) /\ b' = b + 1 /\ a' = a
+Done == UNCHANGED vars
+Next == IncA \/ IncB \/ Done
+Spec == Init /\ [][Next]_vars
+\* source: G-TEST00:line-1
+AtMost2 == a <= 2
+\* source: see ADR 15
+BAtMost2 == b <= 2
+====
+TLA
+cat >"$g/specs/goal.cfg" <<'CFG' || fail cfg
+SPECIFICATION Spec
+CONSTANTS
+    BreakA = FALSE
+    BreakB = FALSE
+INVARIANTS
+    AtMost2
+    BAtMost2
+CFG
+cat >"$g/specs/goal-view.mjs" <<'VIEW' || fail view
+export const title = "G-TEST00";
+export const state = (v) => `a=${v.a} b=${v.b}`;
+export const step = (action) => action;
+export const print = (action) => (action === "Done" ? "" : "step");
+VIEW
+exec_out=$(mktemp) || fail mktemp
+sh -c "$HYP_RUN" >"$exec_out"
+code=$?
+cat "$exec_out"
+if [ -n "$(tail -c 1 "$exec_out")" ]; then echo; fi
+echo "exit $code"
+rm -f "$exec_out"
