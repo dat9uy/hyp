@@ -176,7 +176,7 @@ From [`show-me-your-work`](https://github.com/cursor/plugins/blob/ae5650febf4320
 |---|---|
 | A row states its result in words. | **hyp calculates each state.** hyp reads the events on each command and calculates every state. No command sets a state. |
 | Each row stands alone. | **Git gives the lineage.** hyp arranges a Goal's Hypotheses by the git ancestry of their commits, the Hypothesis tree. Only a leaf can be a candidate. |
-| You commit the log only when a reviewer needs it. | **The log is committed with the work.** Each owner act and each place appends one event to `.tree/events/<actor>.jsonl`. Git merges two branches of one events file by keeping every line of both. |
+| You commit the log only when a reviewer needs it. | **The log is committed with the work.** Each owner act and each place adds one event, a new file under `.tree/events/<actor>/`. Two branches never change the same file, so git merges them with no conflict, on GitHub too. |
 | A new session reads the rows to find the next step. | **`hyp status` prints the next acts.** For each role, it prints the allowed acts as ready command lines. |
 
 ### A model that finds missing examples

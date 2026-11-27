@@ -2,6 +2,7 @@ package logstore
 
 import (
 	"encoding/json"
+	"maps"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -92,6 +93,7 @@ func TestUnionMergedFileReplaysSame(t *testing.T) {
 	}
 	rng := rand.New(rand.NewSource(1))
 	for _, actor := range []string{"a", "b"} {
+		oldForm(t, root, actor)
 		p := filepath.Join(root, ".tree", "events", actor+".jsonl")
 		data, err := os.ReadFile(p)
 		if err != nil {
@@ -127,6 +129,7 @@ func TestTornLastLineIsReportedNotFatal(t *testing.T) {
 	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
+	oldForm(t, root, "a")
 	appendRaw(t, root, "a", `{"v":2,"id":"01M661QG60000000`)
 	evs, errs, err := Events(root)
 	if err != nil {
@@ -285,6 +288,118 @@ func TestEventWithWrongActorIsALineError(t *testing.T) {
 	}
 }
 
+// oldForm moves the actor's events from their files of one event into
+// <actor>.jsonl, the one file per actor an earlier hyp appended to.
+func oldForm(t *testing.T, root, actor string) {
+	t.Helper()
+	dir := filepath.Join(root, ".tree", "events", actor)
+	paths, err := filepath.Glob(filepath.Join(dir, "*.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range paths {
+		data, err := os.ReadFile(p)
+		if err != nil {
+			t.Fatal(err)
+		}
+		appendRaw(t, root, actor, string(data))
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// storeFiles is every file under .tree/events with its bytes.
+func storeFiles(t *testing.T, root string) map[string]string {
+	t.Helper()
+	files := map[string]string{}
+	base := filepath.Join(root, ".tree", "events")
+	err := filepath.WalkDir(base, func(p string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return err
+		}
+		data, err := os.ReadFile(p)
+		rel, _ := filepath.Rel(base, p)
+		files[rel] = string(data)
+		return err
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return files
+}
+
+func TestAppendAddsOneFileAndChangesNone(t *testing.T) {
+	root := newStore(t)
+	for i, actor := range []string{"a", "a", "b"} {
+		before := storeFiles(t, root)
+		ev, err := Append(root, actor, reset(`{"role":"owner"}`))
+		if err != nil {
+			t.Fatalf("append %d: %v", i, err)
+		}
+		after := storeFiles(t, root)
+		if len(after) != len(before)+1 {
+			t.Fatalf("append %d: %d files, want %d", i, len(after), len(before)+1)
+		}
+		for name, data := range before {
+			if after[name] != data {
+				t.Fatalf("append %d changed %s", i, name)
+			}
+		}
+		name := filepath.Join(actor, ev.ID+".json")
+		if !strings.HasSuffix(after[name], "\n") || strings.Count(after[name], "\n") != 1 {
+			t.Fatalf("append %d: %s = %q, want one line", i, name, after[name])
+		}
+	}
+	evs, errs, err := Events(root)
+	if err != nil || len(errs) != 0 || len(evs) != 3 {
+		t.Fatalf("Events = %d events, %v, %v", len(evs), errs, err)
+	}
+}
+
+func TestOldAndNewFilesReplayTogether(t *testing.T) {
+	root := newStore(t)
+	for i := 0; i < 2; i++ {
+		if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	oldForm(t, root, "a")
+	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
+		t.Fatal(err)
+	}
+	evs, errs, err := Events(root)
+	if err != nil || len(errs) != 0 || len(evs) != 3 {
+		t.Fatalf("Events = %d events, %v, %v", len(evs), errs, err)
+	}
+	if !slices.IsSortedFunc(evs, func(x, y events.Event) int { return strings.Compare(x.ID, y.ID) }) {
+		t.Fatal("events of the old and the new files are not in id order")
+	}
+}
+
+func TestEventFileOfAnotherActorIsReported(t *testing.T) {
+	root := newStore(t)
+	ev, err := Append(root, "a", reset(`{"role":"owner"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	from := filepath.Join(root, ".tree", "events", "a", ev.ID+".json")
+	to := filepath.Join(root, ".tree", "events", "b")
+	if err := os.MkdirAll(to, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(from, filepath.Join(to, ev.ID+".json")); err != nil {
+		t.Fatal(err)
+	}
+	evs, errs, err := Events(root)
+	if err != nil || len(evs) != 0 || len(errs) != 1 {
+		t.Fatalf("Events = %d events, %v, %v; want one line error", len(evs), errs, err)
+	}
+	if want := filepath.Join("b", ev.ID+".json"); errs[0].File != want || errs[0].Line != 1 {
+		t.Fatalf("line error = %+v, want %s line 1", errs[0], want)
+	}
+}
+
 // appendRaw writes s to an actor's file without a store call, as a crash or a
 // merge would leave it.
 func appendRaw(t *testing.T, root, actor, s string) {
@@ -304,13 +419,8 @@ func TestDuplicateLineReplaysOnce(t *testing.T) {
 	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
-	p := filepath.Join(root, ".tree", "events", "a.jsonl")
-	data, err := os.ReadFile(p)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(p, append(data, data...), 0o644); err != nil {
-		t.Fatal(err)
+	for _, data := range storeFiles(t, root) {
+		appendRaw(t, root, "a", data+data)
 	}
 	evs, errs, err := Events(root)
 	if err != nil || len(errs) != 0 {
@@ -354,12 +464,9 @@ func TestWithLockReadsAndWritesNothing(t *testing.T) {
 	if _, err := Append(root, "a", reset(`{"role":"owner"}`)); err != nil {
 		t.Fatal(err)
 	}
-	before, err := os.ReadFile(filepath.Join(root, ".tree", "events", "a.jsonl"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	before := storeFiles(t, root)
 	called := 0
-	err = WithLock(root, func(evs []events.Event) error {
+	err := WithLock(root, func(evs []events.Event) error {
 		called++
 		if len(evs) != 1 {
 			t.Errorf("WithLock passed %d events, want 1", len(evs))
@@ -369,8 +476,7 @@ func TestWithLockReadsAndWritesNothing(t *testing.T) {
 	if err != nil || called != 1 {
 		t.Fatalf("WithLock = %v, called %d times", err, called)
 	}
-	after, _ := os.ReadFile(filepath.Join(root, ".tree", "events", "a.jsonl"))
-	if string(after) != string(before) {
+	if after := storeFiles(t, root); !maps.Equal(after, before) {
 		t.Fatal("WithLock wrote to the log")
 	}
 	// the error of f comes back unchanged, and the lock is released
