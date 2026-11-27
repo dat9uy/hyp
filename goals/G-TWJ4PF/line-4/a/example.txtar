@@ -1,0 +1,10 @@
+-- words --
+An old store still replays: a repository whose store is one file per actor, as H0 writes it, holding a Goal added by the owner, prints the same hyp status as on H0.
+-- run --
+hyp status --all
+-- floor: contains --
+G-ONE
+-- floor: contains --
+written
+-- ceiling --
+refused

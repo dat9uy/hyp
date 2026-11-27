@@ -1,0 +1,8 @@
+-- words --
+Same actor, two files: in a repository whose store already holds a committed Goal, the owner adds two more Goals; the store gains two new files, and no file is changed.
+-- run --
+hyp add goal --base HEAD --words 'second want' --line 'gap:the subject says two' >/dev/null 2>&1; hyp add goal --base HEAD --words 'third want' --line 'gap:the subject says three' >/dev/null 2>&1; git status --porcelain --untracked-files=all .tree | cut -c1-2 | sort | uniq -c
+-- floor: contains --
+2 ??
+-- ceiling --
+M
