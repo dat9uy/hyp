@@ -104,8 +104,12 @@ _Avoid_: operator, driver
 ## Goal and lines
 
 **Goal**:
-What a change must make true, held as words and lines and recorded by `add goal`. Its id is `G-…`. A new purpose or a new line is a new Goal, which can cite an earlier, ended Goal with `--from` (`hyp spec`, From ended).
+What a change must make true, held as words and lines and recorded by `add goal`. A Goal is a snapshot of the want, or the problem statement, at the moment the owner adds it. Its id is `G-…`. A new purpose or a new line is a new Goal, which can cite an earlier, ended Goal with `--from` (`hyp spec`, From ended).
 _Avoid_: objective, epic, issue
+
+**Issue**:
+A GitHub issue that tracks the process toward a want, not the want itself: the event that started it, the owner's decisions in the owner's words, the split into Goals, and where each part stands. A Goal holds the want; the issue holds what happens before and around that snapshot. One issue may track several Goals, each named "Part of #N". It closes when each want it tracks is held by an added Goal, or by a new issue that its closing comment names. hyp neither reads nor writes issues.
+_Avoid_: ticket, backlog item
 
 **Words** (of a Goal):
 The owner's one sentence that states the Goal, given as `--words TEXT`.
