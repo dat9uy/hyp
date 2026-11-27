@@ -1,0 +1,8 @@
+-- words --
+A runner's change that only deletes files under a goals/X/ folder of no Goal passes Own path: H0 holds goals/draft-x/f, a runner's commit deletes it, and hyp run on that commit runs.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1
+-- floor: contains --
+ran GOAL line-1 at
+-- ceiling --
+Own path
