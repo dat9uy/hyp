@@ -1,0 +1,152 @@
+---
+title: "hyp, the acts on one finding"
+---
+stateDiagram-v2
+  s0: no finding
+  s1: not folded, evidence: an example the commit holds
+  s2: not folded, evidence: free text
+  s3: not folded, evidence: free text, the list --all shows it
+  s4: not folded, evidence: free text, the list shows it
+  s5: not folded, evidence: an example the commit holds, the list --all shows it
+  s6: not folded, evidence: an example the commit holds, the list shows it
+  s7: declined, evidence: an example the commit holds
+  s8: declined, evidence: free text
+  s9: folded, evidence: an example the commit holds
+  s10: folded, evidence: free text
+  s11: refuted, evidence: an example the commit holds
+  s12: refuted, evidence: free text
+  s13: declined, evidence: an example the commit holds, the list leaves it out
+  s14: declined, evidence: free text, the list leaves it out
+  s15: declined, evidence: free text, the list --all shows it
+  s16: declined, evidence: an example the commit holds, the list --all shows it
+  s17: folded, evidence: free text, the list --all shows it
+  s18: folded, evidence: free text, the list shows it
+  s19: folded, evidence: an example the commit holds, the list --all shows it
+  s20: folded, evidence: an example the commit holds, the list shows it
+  s21: ended, evidence: an example the commit holds
+  s22: ended, evidence: free text
+  s23: settled, evidence: an example the commit holds
+  s24: settled, evidence: free text
+  s25: refuted, evidence: an example the commit holds, the list leaves it out
+  s26: refuted, evidence: free text, the list leaves it out
+  s27: refuted, evidence: free text, the list --all shows it
+  s28: refuted, evidence: an example the commit holds, the list --all shows it
+  s29: ended, evidence: an example the commit holds, the list leaves it out
+  s30: ended, evidence: free text, the list leaves it out
+  s31: ended, evidence: free text, the list --all shows it
+  s32: ended, evidence: an example the commit holds, the list --all shows it
+  s33: settled, evidence: an example the commit holds, the list leaves it out
+  s34: settled, evidence: free text, the list leaves it out
+  s35: settled, evidence: free text, the list --all shows it
+  s36: settled, evidence: an example the commit holds, the list --all shows it
+  [*] --> s0
+  s0 --> s1: an agent adds the finding
+  s0 --> s2: an agent adds the finding
+  s1 --> s5: anyone lists all the findings
+  s1 --> s6: anyone lists the findings
+  s1 --> s7: the owner declines it
+  s1 --> s9: the owner adds a Goal that names it
+  s1 --> s11: an agent refutes it
+  s2 --> s3: anyone lists all the findings
+  s2 --> s4: anyone lists the findings
+  s2 --> s8: the owner declines it
+  s2 --> s10: the owner adds a Goal that names it
+  s2 --> s12: an agent refutes it
+  s3 --> s4: anyone lists the findings
+  s3 --> s8: the owner declines it
+  s3 --> s10: the owner adds a Goal that names it
+  s3 --> s12: an agent refutes it
+  s4 --> s3: anyone lists all the findings
+  s4 --> s8: the owner declines it
+  s4 --> s10: the owner adds a Goal that names it
+  s4 --> s12: an agent refutes it
+  s5 --> s6: anyone lists the findings
+  s5 --> s7: the owner declines it
+  s5 --> s9: the owner adds a Goal that names it
+  s5 --> s11: an agent refutes it
+  s6 --> s5: anyone lists all the findings
+  s6 --> s7: the owner declines it
+  s6 --> s9: the owner adds a Goal that names it
+  s6 --> s11: an agent refutes it
+  s7 --> s13: anyone lists the findings
+  s7 --> s16: anyone lists all the findings
+  s8 --> s14: anyone lists the findings
+  s8 --> s15: anyone lists all the findings
+  s9 --> s19: anyone lists all the findings
+  s9 --> s20: anyone lists the findings
+  s9 --> s21: the owner closes the Goal
+  s9 --> s23: the owner lands the Goal with a select
+  s9 --> s11: an agent refutes it
+  s10 --> s17: anyone lists all the findings
+  s10 --> s18: anyone lists the findings
+  s10 --> s22: the owner closes the Goal
+  s10 --> s24: the owner lands the Goal with a select
+  s10 --> s12: an agent refutes it
+  s11 --> s25: anyone lists the findings
+  s11 --> s28: anyone lists all the findings
+  s12 --> s26: anyone lists the findings
+  s12 --> s27: anyone lists all the findings
+  s13 --> s16: anyone lists all the findings
+  s14 --> s15: anyone lists all the findings
+  s15 --> s14: anyone lists the findings
+  s16 --> s13: anyone lists the findings
+  s17 --> s18: anyone lists the findings
+  s17 --> s22: the owner closes the Goal
+  s17 --> s24: the owner lands the Goal with a select
+  s17 --> s12: an agent refutes it
+  s18 --> s17: anyone lists all the findings
+  s18 --> s22: the owner closes the Goal
+  s18 --> s24: the owner lands the Goal with a select
+  s18 --> s12: an agent refutes it
+  s19 --> s20: anyone lists the findings
+  s19 --> s21: the owner closes the Goal
+  s19 --> s23: the owner lands the Goal with a select
+  s19 --> s11: an agent refutes it
+  s20 --> s19: anyone lists all the findings
+  s20 --> s21: the owner closes the Goal
+  s20 --> s23: the owner lands the Goal with a select
+  s20 --> s11: an agent refutes it
+  s21 --> s29: anyone lists the findings
+  s21 --> s32: anyone lists all the findings
+  s21 --> s9: the owner adds a Goal that names it
+  s21 --> s11: an agent refutes it
+  s22 --> s30: anyone lists the findings
+  s22 --> s31: anyone lists all the findings
+  s22 --> s10: the owner adds a Goal that names it
+  s22 --> s12: an agent refutes it
+  s23 --> s33: anyone lists the findings
+  s23 --> s36: anyone lists all the findings
+  s23 --> s9: the owner adds a Goal that names it
+  s23 --> s11: an agent refutes it
+  s24 --> s34: anyone lists the findings
+  s24 --> s35: anyone lists all the findings
+  s24 --> s10: the owner adds a Goal that names it
+  s24 --> s12: an agent refutes it
+  s25 --> s28: anyone lists all the findings
+  s26 --> s27: anyone lists all the findings
+  s27 --> s26: anyone lists the findings
+  s28 --> s25: anyone lists the findings
+  s29 --> s32: anyone lists all the findings
+  s29 --> s9: the owner adds a Goal that names it
+  s29 --> s11: an agent refutes it
+  s30 --> s31: anyone lists all the findings
+  s30 --> s10: the owner adds a Goal that names it
+  s30 --> s12: an agent refutes it
+  s31 --> s30: anyone lists the findings
+  s31 --> s10: the owner adds a Goal that names it
+  s31 --> s12: an agent refutes it
+  s32 --> s29: anyone lists the findings
+  s32 --> s9: the owner adds a Goal that names it
+  s32 --> s11: an agent refutes it
+  s33 --> s36: anyone lists all the findings
+  s33 --> s9: the owner adds a Goal that names it
+  s33 --> s11: an agent refutes it
+  s34 --> s35: anyone lists all the findings
+  s34 --> s10: the owner adds a Goal that names it
+  s34 --> s12: an agent refutes it
+  s35 --> s34: anyone lists the findings
+  s35 --> s10: the owner adds a Goal that names it
+  s35 --> s12: an agent refutes it
+  s36 --> s33: anyone lists the findings
+  s36 --> s9: the owner adds a Goal that names it
+  s36 --> s11: an agent refutes it

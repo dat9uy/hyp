@@ -227,9 +227,12 @@ func TestFindingDecline(t *testing.T) {
 	if strings.Contains(list, f1) || !strings.Contains(list, "1 finding declined not shown; hyp finding list --all lists them.\n") {
 		t.Fatalf("finding list shows a declined finding:\n%s", list)
 	}
+	if strings.Contains(list, f2) || !strings.Contains(list, "1 finding refuted not shown; hyp finding list --all lists them.\n") {
+		t.Fatalf("finding list shows a refuted finding:\n%s", list)
+	}
 	_, all, _ := run(t, "finding", "list", "--all")
 	if !strings.Contains(all, f1+"  declined  by ") || !strings.Contains(all, "  why: not wanted\n") ||
-		strings.Contains(all, "hyp finding refute "+f1) {
+		strings.Contains(all, "hyp finding refute "+f1) || !strings.Contains(all, f2+"  refuted  by ") {
 		t.Fatalf("finding list --all:\n%s", all)
 	}
 	if _, status, _ := run(t, "status"); !strings.Contains(status, "\n0 not folded: hyp finding list") {

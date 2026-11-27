@@ -9,8 +9,17 @@ const evidence = {
   unheld: "an example the commit does not hold",
 };
 
+const listed = {
+  shown: "the list shows it",
+  hidden: "the list leaves it out",
+  "all shown": "the list --all shows it",
+  "all hidden": "the list --all leaves it out",
+};
+
 export const state = (v) =>
-  v.st === "none" ? "no finding" : `${v.st}, evidence: ${evidence[v.ev] ?? v.ev}`;
+  v.st === "none"
+    ? "no finding"
+    : `${v.st}, evidence: ${evidence[v.ev] ?? v.ev}` + (listed[v.listed] ? `, ${listed[v.listed]}` : "");
 
 export const step = (action) =>
   ({
@@ -21,6 +30,7 @@ export const step = (action) =>
     FindingRefute: "an agent refutes it",
     FindingDecline: "the owner declines it",
     FindingList: "anyone lists the findings",
+    FindingListAll: "anyone lists all the findings",
   })[action] ?? action;
 
 export const print = (action, from, to) => to.out;

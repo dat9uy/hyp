@@ -8,11 +8,12 @@
 
 EXTENDS Sequences
 
-CONSTANTS DeclineFolded, NameRefuted, NameDeclined, AcceptUnheldExample, ListNoWalk
+CONSTANTS DeclineFolded, NameRefuted, NameDeclined, AcceptUnheldExample, ListNoWalk,
+          ListShowsRefuted, AllHidesRefuted, ListShowsDeclined
 
-VARIABLES st, prev, out, ev, shown
+VARIABLES st, prev, out, ev, shown, listed
 
-vars == <<st, prev, out, ev, shown>>
+vars == <<st, prev, out, ev, shown, listed>>
 
 States == {"none", "not folded", "folded", "settled", "ended", "refuted", "declined"}
 
@@ -23,13 +24,18 @@ Evidence == {"none", "free", "example", "unheld"}
 \* What the latest hyp finding list printed of the finding's walk.
 Shown == {"none", "walk", "no walk", "nothing"}
 
-TypeOK == st \in States /\ prev \in States /\ ev \in Evidence /\ shown \in Shown
+\* Whether the latest hyp finding list, since the finding's last act, printed
+\* the finding: none before such a list, shown or hidden by the default
+\* list, all shown or all hidden by hyp finding list --all.
+Listed == {"none", "shown", "hidden", "all shown", "all hidden"}
 
-Init == st = "none" /\ prev = "none" /\ out = "none" /\ ev = "none" /\ shown = "none"
+TypeOK == st \in States /\ prev \in States /\ ev \in Evidence /\ shown \in Shown /\ listed \in Listed
 
-Go(to, print) == st' = to /\ prev' = st /\ out' = print /\ UNCHANGED <<ev, shown>>
+Init == st = "none" /\ prev = "none" /\ out = "none" /\ ev = "none" /\ shown = "none" /\ listed = "none"
 
-Record(e) == st' = "not folded" /\ prev' = st /\ out' = "recorded F-1" /\ ev' = e /\ UNCHANGED shown
+Go(to, print) == st' = to /\ prev' = st /\ out' = print /\ listed' = "none" /\ UNCHANGED <<ev, shown>>
+
+Record(e) == st' = "not folded" /\ prev' = st /\ out' = "recorded F-1" /\ ev' = e /\ listed' = "none" /\ UNCHANGED shown
 
 \* command: hyp finding add
 FindingAdd ==
@@ -39,7 +45,7 @@ FindingAdd ==
        \/ AcceptUnheldExample /\ Record("unheld")
        \/ /\ ~AcceptUnheldExample
           /\ out' = "refused: the commit does not hold the example"
-          /\ UNCHANGED <<st, prev, ev, shown>>
+          /\ UNCHANGED <<st, prev, ev, shown, listed>>
 
 \* command: hyp add goal
 AddGoal ==
@@ -68,14 +74,37 @@ WalkShown ==
     ELSE IF ListNoWalk THEN "nothing"
     ELSE "walk"
 
+\* The states the default list leaves out.
+HiddenByDefault ==
+    {"settled", "ended"}
+    \cup (IF ListShowsRefuted THEN {} ELSE {"refuted"})
+    \cup (IF ListShowsDeclined THEN {} ELSE {"declined"})
+
 \* command: hyp finding list
 FindingList ==
     /\ st # "none"
     /\ st' = st /\ prev' = st /\ ev' = ev
-    /\ shown' = WalkShown
-    /\ out' = "F-1 " \o st \o " " \o WalkShown
+    /\ IF st \in HiddenByDefault
+       THEN /\ listed' = "hidden"
+            /\ shown' = shown
+            /\ out' = "1 finding " \o st \o " not shown"
+       ELSE /\ listed' = "shown"
+            /\ shown' = WalkShown
+            /\ out' = "F-1 " \o st \o " " \o WalkShown
 
-Next == FindingAdd \/ AddGoal \/ Land \/ Close \/ FindingRefute \/ FindingDecline \/ FindingList
+\* command: hyp finding list --all
+FindingListAll ==
+    /\ st # "none"
+    /\ st' = st /\ prev' = st /\ ev' = ev
+    /\ IF AllHidesRefuted /\ st = "refuted"
+       THEN /\ listed' = "all hidden"
+            /\ shown' = shown
+            /\ out' = "1 finding refuted not shown"
+       ELSE /\ listed' = "all shown"
+            /\ shown' = WalkShown
+            /\ out' = "F-1 " \o st \o " " \o WalkShown
+
+Next == FindingAdd \/ AddGoal \/ Land \/ Close \/ FindingRefute \/ FindingDecline \/ FindingList \/ FindingListAll
 
 Spec == Init /\ [][Next]_vars
 
@@ -96,4 +125,15 @@ WalkFollowsEvidence ==
     shown # "none" =>
         /\ (shown = "walk" <=> ev \in {"example", "unheld"})
         /\ (shown = "no walk" <=> ev = "free")
+
+\* source: G-TYA4YB:line-1
+DefaultHidesRefuted == (st = "refuted" /\ listed \in {"shown", "hidden"}) => listed = "hidden"
+
+\* source: G-TYA4YB:line-2
+AllShowsRefuted == (st = "refuted" /\ listed \in {"all shown", "all hidden"}) => listed = "all shown"
+
+\* source: G-TYA4YB:line-3
+DefaultShowsNotFoldedHidesDeclined ==
+    /\ (st = "not folded" /\ listed \in {"shown", "hidden"}) => listed = "shown"
+    /\ (st = "declined" /\ listed \in {"shown", "hidden"}) => listed = "hidden"
 =============================================================================

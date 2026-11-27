@@ -230,8 +230,8 @@ var Commands = []Command{
                                          step; in a repository that keeps a
                                          model, a finding that names no
                                          example reads no walk. A finding settled or
-                                         ended, or declined, is left out
-                                         unless --all; --not-folded lists only
+                                         ended, refuted, or declined, is left
+                                         out unless --all; --not-folded lists only
                                          the findings not folded
 `},
 	{Name: "status",
@@ -572,7 +572,7 @@ var Rules = []Rule{
 		"A Goal names the findings it is about in its own record, in git, by their ids alone: the owner names them at add goal with --finding F, and the grill in the findings section of an example, one id per line. Add goal and place refuse an id this clone's trace does not hold, a refuted or a declined finding, and a finding another Goal in work names; place refuses the set while a finding the Goal names at add goal has no example that names it. An old fold event counts as a name of each finding it folds by its Goal.",
 		"A finding's state follows from the Goals that name it: folded into G while G, a Goal in work, names it; settled once no Goal in work names it and a Goal that names it landed with a select; ended, not settled, when every Goal that named it ended with no select, and a later Goal may name it.",
 		"Its events are in the clone's trace and never in git: they change no file under .tree/ and no Goal's state, and an end's snapshot names none of them. A finding of the old form, recorded on a Goal, reads not folded until a Goal names it.",
-		"hyp finding list prints each finding with its state: not folded, folded into G, settled in G, ended in G, the old form's folded into #N, refuted, or declined with its why; a settled, ended or declined finding is left out unless --all. hyp status G prints the id of each finding G names on any clone, with its state and fact when this clone's trace holds it, and says so when it does not; hyp status counts the findings not folded, which wait for a Goal.",
+		"hyp finding list prints each finding with its state: not folded, folded into G, settled in G, ended in G, the old form's folded into #N, refuted, or declined with its why; a settled, ended, refuted or declined finding is left out unless --all. hyp status G prints the id of each finding G names on any clone, with its state and fact when this clone's trace holds it, and says so when it does not; hyp status counts the findings not folded, which wait for a Goal.",
 		"A finding's evidence may name an example, as G-XXXXXX/line-N/name, and a commit: finding add refuses a commit that does not hold the example's example.txtar. A finding and a Goal line are about the steps of the kept model, goals/model/, that their examples' run sections take, calculated and never written: each command of the run section takes the step of the kept model tagged \\* command: X whose words start it, the longest when two do, or no step. hyp finding list prints the walk of a finding's example on its commit; hyp status G prints the walk of each placed example on H0, or on the selected commit while G is selected.",
 	}},
 	{"the subject", []string{
