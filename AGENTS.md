@@ -47,6 +47,7 @@ hyp is changed the way it asks its users to decide things: with a Goal whose gap
    - A failure that can be detected from the log or from git goes into the binary as a refusal or a warning, not into skill text. Its gate is `go test`.
    - A change to `skills/`, a new skill included, is a build Goal like any code change: its lines, examples whose Probes the Goal writes and that give their line's verdict on H0 before they are placed, and the select. How a skill is tested is that Goal's choice.
    - A prose-only skill change, one that changes no command, flag, default, cap or exit code a skill names, ships as a plain PR that names its event and the owner's decision. Its gate is `go test`.
+   - A refactor that changes no output, no golden and no line `hyp spec` prints ships as a plain PR that names its event and the owner's decision. Its gate is `go test` with every golden unchanged.
 
    [principles.md](docs/principles.md) §9 explains why the loop is guarded while it runs instead of proven in advance.
 6. **The PR body is what `hyp status G` prints under `PR body:`** once the Goal is selected: each line's examples, and the selected commit and row. The owner's `hyp land G COMMIT` then carries the evidence into git: the commit, its tree, its row and each example's verdict.

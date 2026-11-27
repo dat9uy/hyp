@@ -28,7 +28,7 @@ type ListOpts struct {
 // finding that names no example reads no walk. repo is the git top level.
 func FindingList(t tables.Tables, repo string, o ListOpts) string {
 	var b strings.Builder
-	keptHere, _ := acts.KeepsModel(repo, "HEAD")
+	keptHere, _ := acts.CommitAt(repo, "HEAD").Keeps()
 	shown, hidden, refuted, declined := 0, 0, 0, 0
 	for _, f := range tables.SortedFindings(t) {
 		if o.NotFolded && f.State() != spec.FindingNotFolded {
@@ -118,7 +118,7 @@ func findingExampleWalk(repo string, f *tables.Finding) (acts.Walk, error) {
 	if err != nil {
 		return acts.Walk{}, err
 	}
-	return acts.WalkExample(repo, f.Commit, hash)
+	return acts.CommitAt(repo, f.Commit).Walk(hash)
 }
 
 // walkSteps prints each command of a walk with its step, or no step, one
