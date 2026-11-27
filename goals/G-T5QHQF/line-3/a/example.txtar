@@ -1,0 +1,10 @@
+-- words --
+Run writes no git: on open Goal G-ONE, the runner runs line-1 on commit C1, which meets its one example; the store in git does not change, and hyp status still shows the Goal selected on C1 from this clone's Results.
+-- run --
+HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; echo "run exit: $?"; echo "store changes: $(git status --porcelain --untracked-files=all .tree | wc -l | tr -d ' ')"; hyp status G-ONE | head -1
+-- floor: contains --
+run exit: 0
+-- floor: contains --
+store changes: 0
+-- floor: contains --
+selected

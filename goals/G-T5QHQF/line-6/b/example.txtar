@@ -1,0 +1,8 @@
+-- words --
+Unselect names the commit: Goal G-ONE shows selected on C1; the owner unselects C1; a land on C1 is then refused.
+-- run --
+hyp unselect G-ONE C1 >/dev/null 2>&1; hyp land G-ONE C1 >/dev/null 2>&1; echo "land exit: $?"; hyp status G-ONE | head -1
+-- floor: contains --
+land exit: 1
+-- ceiling --
+ended

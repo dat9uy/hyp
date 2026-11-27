@@ -1,0 +1,8 @@
+-- words --
+New version adds only: on open Goal G-ONE, the owner changes the run section of its example line-1/a and runs place; place refuses the new version.
+-- run --
+hyp place G-ONE --examples goals/draft-greet 2>&1; echo "place exit: $?"
+-- floor: contains --
+place exit: 1
+-- ceiling --
+place exit: 0

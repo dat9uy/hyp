@@ -1,0 +1,8 @@
+-- words --
+Selected only when every example is met: Goal G-ONE has one example on line-1 and one on line-2; after the runner runs only line-1 on C1, hyp status shows the Goal open; after it also runs line-2, hyp status shows it selected on C1.
+-- run --
+HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; echo "after one: $(hyp status G-ONE | head -1 | awk '{print $2}')"; HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-2 >/dev/null 2>&1; echo "after both: $(hyp status G-ONE | head -1 | awk '{print $2}')"
+-- floor: contains --
+after one: open
+-- floor: contains --
+after both: selected

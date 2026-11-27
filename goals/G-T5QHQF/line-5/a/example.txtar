@@ -1,0 +1,8 @@
+-- words --
+Land carries evidence: Goal G-ONE shows selected on C1 in this clone; the owner lands it on C1; the new land event holds C1's tree and each example's verdict met.
+-- run --
+hyp land G-ONE C1 >/dev/null 2>&1; echo "land exit: $?"; cat .tree/events/*/*.json 2>/dev/null | grep '"type":"land"' | grep -c "$(git rev-parse 'C1^{tree}')" | sed "s/^/land events with C1 tree: /"
+-- floor: contains --
+land exit: 0
+-- floor: contains --
+land events with C1 tree: 1

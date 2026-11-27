@@ -1,0 +1,47 @@
+---
+title: "A Goal's lifecycle, owner acts in git, Results in each clone"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: start
+    lg1: open
+    lg2: ended
+  }
+  class lg0 blue
+  class lg1 teal
+  class lg2 tan
+  s0: no Goal
+  s1: old store: selected on c1
+  s2: old store: landed on c1
+  s3: old store: open, c1 unselected
+  s4: open
+  s5: old store: closed
+  s6: closed
+  s7: selected on c1
+  s8: landed on c1
+  s9: open, c1 unselected
+  [*] --> s0
+  [*] --> s1
+  s0 --> s4: the owner adds the Goal with its examples
+  s1 --> s2: the owner lands
+  s1 --> s3: the owner unselects the commit shown selected
+  s1 --> s5: the owner closes the Goal
+  s3 --> s5: the owner closes the Goal
+  s4 --> s6: the owner closes the Goal
+  s4 --> s7: the runner runs an example on a commit
+  s7 --> s8: the owner lands
+  s7 --> s9: the owner unselects the commit shown selected
+  s7 --> s6: the owner closes the Goal
+  s7 --> s4: the owner adds an example
+  s9 --> s6: the owner closes the Goal
+  s4 --> s8: the owner lands
+  class s0 blue
+  class s1 teal
+  class s2 tan
+  class s3 teal
+  class s4 teal
+  class s5 tan
+  class s6 tan
+  class s7 teal
+  class s8 tan
+  class s9 teal

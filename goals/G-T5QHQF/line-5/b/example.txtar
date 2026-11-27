@@ -1,0 +1,8 @@
+-- words --
+Missing Result run first: Goal G-ONE has examples e1 and e2; this clone holds only e1 met on C2, and C2 fails e2; the owner lands on C2; land runs e2 and refuses.
+-- run --
+hyp land G-ONE C2 2>&1; echo "land exit: $?"
+-- floor: contains --
+land exit: 1
+-- ceiling --
+land exit: 0

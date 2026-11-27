@@ -1,0 +1,100 @@
+#!/bin/sh
+# Probe of G-T5QHQF line-2/a. The working directory is a copy of the subject.
+# It builds hyp from the subject, makes a test repo with a base commit holding
+# greet.txt, commits the draft folder goals/draft-greet, sets up the case,
+# runs the example's run section with G-ONE replaced by the real Goal id,
+# prints its stdout with real ids and timestamps replaced by stable tokens,
+# then a last line "exit N". Setup output goes to stderr. A setup failure
+# exits 3. Commit dates are fixed, so commit shas are the same on every run.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+commit_staged() {
+  git add -A || return 1
+  git diff --cached --quiet && return 0
+  git commit -q -m "$1" >&2
+}
+
+# Build hyp from the subject before HOME changes: the Go cache is under HOME.
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+cp skills/hyp-grill/probe/run "$work/draft-probe-run" || fail "copy probe"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+echo hello >greet.txt
+git add -A && git commit -q -m base >&2 || fail "commit base"
+git checkout -q -b c1 main >&2 && echo 'bye now' >greet.txt \
+  && git commit -q -am c1 >&2 || fail "commit c1"
+git checkout -q -b c2 main >&2 && echo bye >greet.txt \
+  && git commit -q -am c2 >&2 || fail "commit c2"
+git checkout -q main >&2 || fail "checkout main"
+
+# write_example DIR FLOOR: a draft example whose run prints the greeting.
+write_example() {
+  mkdir -p "$1/probe" || fail "mkdir $1"
+  printf '%s\n' '-- words --' 'The subject says bye.' '-- run --' 'cat greet.txt' \
+    '-- floor: contains --' "$2" >"$1/example.txtar"
+  cp "$work/draft-probe-run" "$1/probe/run" && chmod +x "$1/probe/run" || fail "probe copy"
+}
+
+# The draft folder: line-1/a, floor FLOOR1.
+draft_floor=bye
+write_example goals/draft-greet/line-1/a "$draft_floor"
+commit_staged "draft" || fail "commit draft"
+
+# open_goal: the Goal opens at once with the draft folder when this hyp
+# allows it; else in the older form: add goal, the draft copied to goals/G,
+# and the grill's place.
+open_goal() {
+  added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+    --line 'gap:the subject says bye.' --examples goals/draft-greet 2>"$work/add.err")
+  if [ -z "$added" ]; then
+    echo "probe: new add form refused, older form" >&2
+    cat "$work/add.err" >&2
+    added=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Greet.' \
+      --line 'gap:the subject says bye.') || fail "hyp add goal: $added"
+  fi
+  G=$(printf '%s\n' "$added" | sed -n 's/^recorded \(G-[A-Z0-9]*\).*/\1/p' | head -n 1)
+  [ -n "$G" ] || fail "no Goal id in: $added"
+  commit_staged "goal $G" || fail "commit goal"
+  if [ ! -d "goals/$G/line-1" ]; then
+    mkdir -p "goals/$G" && cp -R goals/draft-greet/line-1 "goals/$G/" || fail "copy draft"
+    commit_staged "example of $G" || fail "commit example"
+    HYP_ACTOR=grill HYP_ROLE=grill hyp place "$G" >&2 || fail "older place failed"
+    commit_staged placed || fail "commit placed"
+  fi
+}
+
+finish() {
+  export HYP_ACTOR=owner HYP_ROLE=owner
+  run=$(printf '%s' "$HYP_RUN" | sed -e "s/G-ONE/${G:-G-ONE}/g")
+  sh -c "$run" >"$work/out" 2>"$work/err"
+  code=$?
+  g=$(printf '%s' "${G:-G-ONE}" | tr 'A-Z' 'a-z')
+  sed -e "s/${G:-G-ONE}/G-ONE/g" -e "s/$g/g-one/g" \
+    -e 's/[0-9A-HJKMNP-TV-Z]\{26\}/ULID/g' \
+    -e 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z\{0,1\}\([+-][0-9:]*\)\{0,1\}/TIMESTAMP/g' "$work/out"
+  if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+  cat "$work/err" >&2
+  echo "exit $code"
+  exit 0
+}
+
+open_goal
+write_example goals/draft-greet/line-1/b hello
+commit_staged "draft line-1/b" || fail "commit draft b"
+finish

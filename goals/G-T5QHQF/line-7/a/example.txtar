@@ -1,0 +1,6 @@
+-- words --
+Grill drafts before add: the hyp-grill skill tells the grill to draft and try the examples before the owner adds the Goal, and add goal takes the draft folder.
+-- run --
+grep -rh -- '--examples' skills/hyp-grill | head -3
+-- floor: contains --
+--examples

@@ -1,0 +1,8 @@
+-- words --
+Disagreeing example refused: the draft folder holds a gap example already met on H0; add goal exits 1 and records no Goal.
+-- run --
+hyp add goal --base HEAD --words 'Greet.' --line 'gap:the subject says bye.' --examples goals/draft-greet 2>&1; echo "add exit: $?"; echo "goals: $(hyp status --all 2>/dev/null | grep -c '^G-')"
+-- floor: contains --
+add exit: 1
+-- floor: contains --
+goals: 0
