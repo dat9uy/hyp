@@ -326,11 +326,8 @@ func GuardWholeLines(lines []Line) error {
 // goal act and again by Replay at the event's place in the merge order, so the
 // two never drift. ev.Node is empty or equal to ev.ID for a new Goal, and the
 // goal.add event id of the Goal to replace otherwise.
-func GuardGoalAdd(t Tables, ev events.Event) error {
-	var p events.GoalAdd
-	if err := events.Decode(ev, &p); err != nil {
-		return err
-	}
+// p is the payload of ev.
+func GuardGoalAdd(t Tables, ev events.Event, p *events.GoalAdd) error {
 	node := ev.Node
 	if node == ev.ID {
 		node = ""
@@ -341,7 +338,7 @@ func GuardGoalAdd(t Tables, ev events.Event) error {
 	if err := GuardWholeLines(p.Lines); err != nil {
 		return err
 	}
-	if err := guardAddedExamples(p); err != nil {
+	if err := guardAddedExamples(*p); err != nil {
 		return err
 	}
 	if node == "" {
@@ -606,11 +603,8 @@ func GuardAddsOnlyTable(g *Goal, key, hash string) error {
 // event's place in the merge order: not Selected, Grill places and the table
 // half of Adds only. Not landed always holds. ev.Node is the goal.add event id
 // of the Goal.
-func GuardPlace(t Tables, ev events.Event) error {
-	var p events.ExamplePlace
-	if err := events.Decode(ev, &p); err != nil {
-		return err
-	}
+// p is the payload of ev.
+func GuardPlace(t Tables, ev events.Event, p *events.ExamplePlace) error {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
@@ -632,11 +626,8 @@ func GuardPlace(t Tables, ev events.Event) error {
 // Selected, Grill places, and for each example of the set the table half of
 // Adds only. The set names at least one example, each key once. Not landed
 // always holds. ev.Node is the goal.add event id of the Goal.
-func GuardPlaceSet(t Tables, ev events.Event) error {
-	var p events.ExamplesPlace
-	if err := events.Decode(ev, &p); err != nil {
-		return err
-	}
+// p is the payload of ev.
+func GuardPlaceSet(t Tables, ev events.Event, p *events.ExamplesPlace) error {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToPlace, GoalID(ev.Node))
@@ -719,12 +710,14 @@ func (g *Goal) placeSet(ev events.Event, p events.ExamplesPlace) {
 // ended Goal holds what the owner saw in every clone. A land written before
 // close existed names no snapshot and refuses nothing. The snapshot used is
 // that of the end replay applies; an end that replay refuses names none, so
-// Replay drops it and replays again.
+// Replay drops it and replays again. Replay decodes each payload once, before
+// it replays, and every pass reads the payloads it decoded.
 func Replay(evs []events.Event) Tables {
+	ps := decodePayloads(evs)
 	dropped := map[string]bool{}
 	for {
-		snaps := snapshots(evs, dropped)
-		t := replayWith(evs, snaps)
+		snaps := snapshots(evs, ps, dropped)
+		t := replayWith(evs, ps, snaps)
 		again := false
 		for node, s := range snaps {
 			if g := t.Goals[node]; g == nil || g.EndID() != evs[s.at].ID {
@@ -746,9 +739,10 @@ type snapshot struct {
 }
 
 // snapshots finds, for each Goal, its first end in the merge order that is
-// not dropped, and keeps it when it names a snapshot. Every later end of the
-// Goal fails Not ended.
-func snapshots(evs []events.Event, dropped map[string]bool) map[string]snapshot {
+// not dropped and whose payload decoded, and keeps it when it names a
+// snapshot. Every later end of the Goal fails Not ended. ps are the payloads
+// of evs as decodePayloads decoded them.
+func snapshots(evs []events.Event, ps []decoded, dropped map[string]bool) map[string]snapshot {
 	out := map[string]snapshot{}
 	first := map[string]bool{}
 	for i, ev := range evs {
@@ -756,13 +750,10 @@ func snapshots(evs []events.Event, dropped map[string]bool) map[string]snapshot 
 			continue
 		}
 		k, ok := kindReplays[ev.Type]
-		if !ok || k.end == nil {
+		if !ok || k.end == nil || ps[i].err != nil {
 			continue
 		}
-		seen, ok := k.end(ev)
-		if !ok {
-			continue
-		}
+		seen := k.end(ps[i].p)
 		first[ev.Node] = true
 		if seen == nil {
 			continue
@@ -797,7 +788,12 @@ func guardInSnapshot(ev events.Event, node string, s snapshot, endID string) err
 	return nil
 }
 
-func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
+// replayWith applies evs in order, with the snapshots snaps. ps are the
+// payloads of evs as decodePayloads decoded them: an event whose payload did
+// not decode is refused with the decode error, a form fault that names no
+// guard, after the half of Not ended that its end's snapshot checks, and its
+// kind's apply never sees it.
+func replayWith(evs []events.Event, ps []decoded, snaps map[string]snapshot) Tables {
 	t := Tables{Goals: map[string]*Goal{}, results: map[string]*Result{}, findings: map[string]*Finding{}, Reads: map[string][]Read{}}
 	refuse := func(ev events.Event, err error) {
 		t.RefusedAtReplay = append(t.RefusedAtReplay, Refused{EventID: ev.ID, Node: ev.Node, Err: err})
@@ -811,9 +807,15 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 				}
 			}
 		}
-		if k, ok := kindReplays[ev.Type]; ok {
-			k.apply(&t, ev, refuse)
+		k, ok := kindReplays[ev.Type]
+		if !ok {
+			continue
 		}
+		if ps[i].err != nil {
+			refuse(ev, ps[i].err)
+			continue
+		}
+		k.apply(&t, ev, ps[i].p, refuse)
 	}
 	linkNames(&t)
 	return t
@@ -821,44 +823,34 @@ func replayWith(evs []events.Event, snaps map[string]snapshot) Tables {
 
 // replayExamplePlace applies an old-form place of one example that
 // GuardPlace allows.
-func replayExamplePlace(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardPlace(*t, ev); err != nil {
+func replayExamplePlace(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.ExamplePlace)
+	if err := GuardPlace(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
 	}
-	var p events.ExamplePlace
-	if err := events.Decode(ev, &p); err != nil {
-		return // GuardPlace decoded it already
-	}
 	g := t.Goals[ev.Node]
-	g.place(ev, p)
+	g.place(ev, *p)
 	g.seen = append(g.seen, ev.ID)
 	g.refresh()
 }
 
 // replayExamplesPlace applies a place of a set that GuardPlaceSet allows.
-func replayExamplesPlace(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardPlaceSet(*t, ev); err != nil {
+func replayExamplesPlace(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.ExamplesPlace)
+	if err := GuardPlaceSet(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
 	}
-	var p events.ExamplesPlace
-	if err := events.Decode(ev, &p); err != nil {
-		return // GuardPlaceSet decoded it already
-	}
 	g := t.Goals[ev.Node]
-	g.placeSet(ev, p)
+	g.placeSet(ev, *p)
 	g.seen = append(g.seen, ev.ID)
 	g.refresh()
 }
 
 // replayRead adds a read to the reads of its actor. A read changes no Goal.
-func replayRead(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	var p events.Read
-	if err := events.Decode(ev, &p); err != nil {
-		refuse(ev, err)
-		return
-	}
+func replayRead(t *Tables, ev events.Event, payload any, _ func(events.Event, error)) {
+	p := payload.(*events.Read)
 	t.Reads[ev.Actor] = append(t.Reads[ev.Actor], Read{
 		ID: ev.ID, Time: ev.TS, Actor: ev.Actor, Role: p.Role, Command: p.Command,
 		Exit: p.Exit, Stdout: p.Stdout, Stderr: p.Stderr,
@@ -869,14 +861,11 @@ func replayRead(t *Tables, ev events.Event, refuse func(events.Event, error)) {
 // guards that read only git allow it. A Result is not in the snapshot an end
 // names: the snapshot names only events stored in git. A Result refused by
 // Stable is kept, marked, and counts for nothing.
-func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := guardRunAtReplay(*t, ev); err != nil {
+func replayResult(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.ResultRecord)
+	if err := guardRunAtReplay(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
-	}
-	var p events.ResultRecord
-	if err := events.Decode(ev, &p); err != nil {
-		return // GuardRun decoded it already
 	}
 	g := t.Goals[ev.Node]
 	r := &Result{
@@ -885,20 +874,17 @@ func replayResult(t *Tables, ev events.Event, refuse func(events.Event, error)) 
 		wasH0: p.RowTree == g.BaseTree,
 	}
 	if p.Refused != "" {
-		r.Unstable = g.unstableAt(p)
+		r.Unstable = g.unstableAt(*p)
 	}
 	g.Results = append(g.Results, r)
 	t.results[ev.ID] = r
 }
 
-func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardGoalAdd(*t, ev); err != nil {
+func replayGoalAdd(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.GoalAdd)
+	if err := GuardGoalAdd(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
-	}
-	var p events.GoalAdd
-	if err := events.Decode(ev, &p); err != nil {
-		return // GuardGoalAdd decoded it already
 	}
 	if g, ok := t.Goals[ev.Node]; ok && ev.Node != ev.ID {
 		// a replace carries no example: GuardGoalAdd refused one that does
@@ -927,14 +913,11 @@ func replayGoalAdd(t *Tables, ev events.Event, refuse func(events.Event, error))
 // merge order: not Selected, the table half of Candidate, and Goal's actor for
 // an owner. The git half of Candidate, the leaf mark, and Spec and Own path
 // are trusted as written.
-func replaySelect(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardSelect(*t, ev); err != nil {
+func replaySelect(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.Select)
+	if err := GuardSelect(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
-	}
-	var p events.Select
-	if err := events.Decode(ev, &p); err != nil {
-		return // GuardSelect decoded it already
 	}
 	g := t.Goals[ev.Node]
 	g.Select = &Select{ID: ev.ID, Commit: p.Commit, RowTree: p.RowTree, Time: ev.TS, Actor: ev.Actor}
@@ -956,11 +939,8 @@ func GuardOwnerLands(role string) error {
 // for Selected and none for the other two. That two candidates or the budget
 // held when the act ran reads git, and is trusted as written, as the leaf mark
 // of a select is. ev.Node is the goal.add event id.
-func GuardLand(t Tables, ev events.Event) error {
-	var p events.Land
-	if err := events.Decode(ev, &p); err != nil {
-		return err
-	}
+// p is the payload of ev.
+func GuardLand(t Tables, ev events.Event, p *events.Land) error {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToLand, GoalID(ev.Node))
@@ -975,7 +955,7 @@ func GuardLand(t Tables, ev events.Event) error {
 		return err
 	}
 	if p.Commit != "" {
-		return GuardEvidence(g, p)
+		return GuardEvidence(g, *p)
 	}
 	switch {
 	case p.Stop == StopSelected && g.Select != nil:
@@ -1030,14 +1010,11 @@ func GuardEvidenceRow(g *Goal, commit, rowTree string) error {
 
 // replayLand applies a land the table guards allow: the Goal is landed, and
 // keeps the stop the land names.
-func replayLand(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardLand(*t, ev); err != nil {
+func replayLand(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.Land)
+	if err := GuardLand(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
-	}
-	var p events.Land
-	if err := events.Decode(ev, &p); err != nil {
-		return // GuardLand decoded it already
 	}
 	g := t.Goals[ev.Node]
 	g.Land = &Land{ID: ev.ID, Stop: p.Stop, Cause: p.Cause, Time: ev.TS, Actor: ev.Actor, Why: ev.Why,
@@ -1062,11 +1039,8 @@ func GuardOwnerCloses(role string) error {
 // Replay at the event's place in the merge order: Not ended, Owner closes,
 // then Goal's actor. A close needs no stop. Every guard reads only the
 // tables. ev.Node is the goal.add event id.
-func GuardClose(t Tables, ev events.Event) error {
-	var p events.Close
-	if err := events.Decode(ev, &p); err != nil {
-		return err
-	}
+// p is the payload of ev.
+func GuardClose(t Tables, ev events.Event, p *events.Close) error {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToClose, GoalID(ev.Node))
@@ -1082,8 +1056,9 @@ func GuardClose(t Tables, ev events.Event) error {
 
 // replayClose applies a close the guards allow: the Goal is ended, and keeps
 // its rows, verdicts and select as they were.
-func replayClose(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardClose(*t, ev); err != nil {
+func replayClose(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.Close)
+	if err := GuardClose(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
 	}
@@ -1113,11 +1088,8 @@ func GuardHasSelect(g *Goal) error {
 // and by Replay at the event's place in the merge order: Not landed, Owner
 // unselects, Goal's actor, then Selected (the Goal has a select). Every guard
 // reads only the tables. ev.Node is the goal.add event id.
-func GuardUnselect(t Tables, ev events.Event) error {
-	var p events.Unselect
-	if err := events.Decode(ev, &p); err != nil {
-		return err
-	}
+// p is the payload of ev.
+func GuardUnselect(t Tables, ev events.Event, p *events.Unselect) error {
 	g, ok := t.Goals[ev.Node]
 	if !ok {
 		return fault.Refuse(fault.NoGuard, fault.NoGoalToUnselect, GoalID(ev.Node))
@@ -1159,14 +1131,11 @@ func GuardSelectedOn(g *Goal, commit, rowTree string) error {
 // replayUnselect applies an unselect the guards allow: the Goal loses its
 // select and is open again, its Results and cells stay as they were, and the
 // budget's boundary moves to the unselect.
-func replayUnselect(t *Tables, ev events.Event, refuse func(events.Event, error)) {
-	if err := GuardUnselect(*t, ev); err != nil {
+func replayUnselect(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
+	p := payload.(*events.Unselect)
+	if err := GuardUnselect(*t, ev, p); err != nil {
 		refuse(ev, err)
 		return
-	}
-	var p events.Unselect
-	if err := events.Decode(ev, &p); err != nil {
-		return // GuardUnselect decoded it already
 	}
 	g := t.Goals[ev.Node]
 	undone := Select{Commit: p.Commit, RowTree: p.RowTree}

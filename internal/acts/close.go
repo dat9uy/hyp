@@ -39,12 +39,13 @@ func Close(o CloseOpts) (CloseReport, error) {
 		if err != nil {
 			return ev, err
 		}
-		payload, err := json.Marshal(events.Close{Role: o.Role, Seen: g.Seen()})
+		p := events.Close{Role: o.Role, Seen: g.Seen()}
+		payload, err := json.Marshal(p)
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeClose, err)
 		}
 		ev.Node, ev.Payload = g.EventID, payload
-		if err := tables.GuardClose(t, ev); err != nil {
+		if err := tables.GuardClose(t, ev, &p); err != nil {
 			return ev, err
 		}
 		rep = CloseReport{Goal: g.ID}

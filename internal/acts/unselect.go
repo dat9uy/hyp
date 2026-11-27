@@ -69,12 +69,13 @@ func Unselect(o UnselectOpts) (UnselectReport, error) {
 				return ev, err
 			}
 		}
-		payload, err := json.Marshal(events.Unselect{Role: o.Role, Commit: sel.Commit, RowTree: sel.RowTree})
+		p := events.Unselect{Role: o.Role, Commit: sel.Commit, RowTree: sel.RowTree}
+		payload, err := json.Marshal(p)
 		if err != nil {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeUnselect, err)
 		}
 		ev.Node, ev.Payload = g.EventID, payload
-		if err := tables.GuardUnselect(t, ev); err != nil {
+		if err := tables.GuardUnselect(t, ev, &p); err != nil {
 			return ev, err
 		}
 		rep = UnselectReport{Goal: g.ID, Select: sel}

@@ -130,7 +130,7 @@ func Run(o RunOpts) (RunReport, error) {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeResultRecord, err)
 		}
 		ev.Node, ev.Payload = again.goal.EventID, raw
-		if err := tables.GuardRun(t, ev); err != nil {
+		if err := tables.GuardRun(t, ev, &payload); err != nil {
 			return ev, err
 		}
 		if err := putOutputs(root, outs...); err != nil {

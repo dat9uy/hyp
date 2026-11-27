@@ -157,7 +157,7 @@ func Land(o LandOpts) (LandReport, error) {
 			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeLand, err)
 		}
 		ev.Node, ev.Payload = g.EventID, payload
-		if err := tables.GuardLand(t, ev); err != nil {
+		if err := tables.GuardLand(t, ev, &p); err != nil {
 			return ev, err
 		}
 		return ev, nil
