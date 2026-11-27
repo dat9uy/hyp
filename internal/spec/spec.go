@@ -515,8 +515,10 @@ type Rule struct {
 // Probe.
 var Rules = []Rule{
 	{"the store", []string{
-		"The store is .tree/ at the git top level: .tree/events/<actor>.jsonl, one file per actor, appended only. It holds the events of every kind that changes a Goal's state, and nothing else.",
-		"The first add goal creates it; .tree/.gitattributes merges the events files by union. hyp reads from .tree/ only the events of the kinds that change a Goal's state, and no output.",
+		"The store is .tree/ at the git top level: .tree/events/<actor>/<id>.json, one file per event, each written once and never changed. It holds the events of every kind that changes a Goal's state, and nothing else.",
+		"An act adds one new file to the store and changes no file in it, so two branches that each record acts merge with a plain git merge, with no merge driver and no conflict, on GitHub too.",
+		"A store written by an earlier hyp also holds .tree/events/<actor>.jsonl, one file per actor of appended lines; hyp reads it as before and appends no line to it.",
+		"The first add goal creates the store; .tree/.gitattributes merges the older per-actor files by union. hyp reads from .tree/ only the events of the kinds that change a Goal's state, and no output.",
 		"The trace is $HOME/.hyp/traces/<sha256 of the clone's git common directory>/: events/<actor>.jsonl holds the events of every kind that changes no Goal's state, outputs/<sha256> every output, and cells/ H0's cells of the places and the cells a try ran again. Every command that names an actor records there what hyp printed to it, before it prints.",
 		"The trace is a cache of this clone: a clone that lacks a cell prints that the cell is not in this clone's trace, with the ready hyp try line that runs it again, and a try of a missing cell saves it there.",
 	}},

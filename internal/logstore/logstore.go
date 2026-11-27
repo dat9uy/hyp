@@ -1,6 +1,6 @@
 // Package logstore owns .tree/ at the git top level: creating it, the
-// per-actor events files, the one append path, merge order and the outputs
-// named by their sha256.
+// events files, the one write path, merge order and the outputs named by
+// their sha256.
 package logstore
 
 import (
@@ -31,8 +31,10 @@ import (
 )
 
 // GitAttributes is the content of .tree/.gitattributes: git merges an events
-// file of two branches by keeping every line of both, and replay orders the
-// lines by id whatever their order in the file.
+// file of the older form, events/<actor>.jsonl, of two branches by keeping
+// every line of both, and replay orders the lines by id whatever their order
+// in the file. hyp writes each new event of the store to a file of its own,
+// which two branches never both change, so a merge needs no driver for them.
 const GitAttributes = "events/*.jsonl merge=union\n"
 
 // MaxWhy is the longest why, in runes.
@@ -53,10 +55,13 @@ type LineError struct {
 	Trace bool // the file is in the clone's trace, not in .tree/events
 }
 
-// A folder of events is a folder that holds events/<actor>.jsonl: the
-// store's .tree/ in the repository, or the trace folder of a clone
-// (trace.go), which also holds outputs/<sha256>. The functions that take a
-// root read the store.
+// A folder of events is a folder that holds events/<actor>.jsonl, a file of
+// lines appended per actor, and events/<actor>/<id>.json, a file of one
+// event: the store's .tree/ in the repository, or the trace folder of a
+// clone (trace.go), which also holds outputs/<sha256>. hyp writes each event
+// of the store to a new events/<actor>/<id>.json and each event of the trace
+// to its actor's events/<actor>.jsonl; it reads both forms in both folders.
+// The functions that take a root read the store.
 func treeDir(root string) string   { return filepath.Join(root, ".tree") }
 func eventsDir(root string) string { return eventsIn(treeDir(root)) }
 func eventsIn(base string) string  { return filepath.Join(base, "events") }
@@ -158,11 +163,40 @@ func idAfter(t time.Time, last string) string {
 	return ""
 }
 
-// parseFile reads the events of one file, name being the file's base name.
-// A line that does not parse, whose id is not a ULID or whose actor is not
-// the file's actor is returned as a LineError and skipped.
+// eventFiles is the events files of a folder of events, as paths below it:
+// each <actor>.jsonl and each <actor>/<id>.json.
+func eventFiles(dir string) ([]string, error) {
+	var names []string
+	for _, pat := range []string{"*.jsonl", filepath.Join("*", "*.json")} {
+		paths, err := filepath.Glob(filepath.Join(dir, pat))
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range paths {
+			rel, err := filepath.Rel(dir, p)
+			if err != nil {
+				return nil, err
+			}
+			names = append(names, rel)
+		}
+	}
+	return names, nil
+}
+
+// fileActor is the actor of the events file name, a path below the folder
+// of events: the base name of <actor>.jsonl, the folder of <actor>/<id>.json.
+func fileActor(name string) string {
+	if dir := filepath.Dir(name); dir != "." {
+		return dir
+	}
+	return strings.TrimSuffix(name, ".jsonl")
+}
+
+// parseFile reads the events of one file, name being its path below the
+// folder of events. A line that does not parse, whose id is not a ULID or
+// whose actor is not the file's actor is returned as a LineError and skipped.
 func parseFile(name string, data []byte) ([]events.Event, [][]byte, []LineError) {
-	actor := strings.TrimSuffix(name, ".jsonl")
+	actor := fileActor(name)
 	var evs []events.Event
 	var lines [][]byte
 	var errs []LineError
@@ -225,16 +259,15 @@ func eventsOf(store, trace string) ([]events.Event, []LineError, error) {
 		if base == "" {
 			continue
 		}
-		paths, err := filepath.Glob(filepath.Join(eventsIn(base), "*.jsonl"))
+		names, err := eventFiles(eventsIn(base))
 		if err != nil {
 			return nil, nil, fault.EnvFault(fault.ReadEvents, err)
 		}
-		for _, p := range paths {
-			data, err := os.ReadFile(p)
+		for _, name := range names {
+			data, err := os.ReadFile(filepath.Join(eventsIn(base), name))
 			if err != nil {
 				return nil, nil, fault.EnvFault(fault.ReadEvents, err)
 			}
-			name := filepath.Base(p)
 			evs, lines, errs := parseFile(name, data)
 			for j := range errs {
 				errs[j].Trace = i > 0
@@ -260,7 +293,8 @@ type line struct {
 // mergeLines orders events by id, then by actor, then by line bytes, whatever
 // the file or the line order inside a file: a file that git merged with the
 // union driver holds both branches' lines in any order, and replays the same.
-// A union merge can keep one line twice; the copy holds no second event.
+// A union merge can keep one line twice, and an event can be in an old file
+// and a file of its own; the copy holds no second event.
 func mergeLines(all []line) []events.Event {
 	slices.SortStableFunc(all, func(a, b line) int {
 		if c := strings.Compare(a.ev.ID, b.ev.ID); c != 0 {
@@ -350,9 +384,9 @@ func lockBoth(root string) (Trace, func(), error) {
 
 // Append takes the store's lock and the trace's, reads every event of both,
 // calls build with them, and writes the event build returns as one fsynced
-// line where its kind's entry says (events.Kinds): .tree/events/<actor>.jsonl
-// for a kind that changes a Goal's state, the trace's events/<actor>.jsonl
-// for every other kind. V, ID, TS and Actor are filled in here, and Node too
+// line where its kind's entry says (events.Kinds): a new file
+// .tree/events/<actor>/<id>.json for a kind that changes a Goal's state, the
+// trace's events/<actor>.jsonl for every other kind. V, ID, TS and Actor are filled in here, and Node too
 // when build left it empty: a new Goal's goal.add names itself. An error from
 // build is returned unchanged and nothing is written, not even the file.
 func Append(root, actor string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
@@ -403,8 +437,10 @@ func appendLocked(base, actor, home string, build func([]events.Event) (events.E
 	return writeEvent(base, actor, home, evs, ev)
 }
 
-// writeEvent writes ev as one fsynced line to the actor's file in the folder
-// of events base, with an id after every id of evs.
+// writeEvent writes ev as one fsynced line, with an id after every id of
+// evs, to the folder of events base: in the store, home git, to a new file
+// <actor>/<id>.json that no other event shares, so that an act changes no
+// file the store already holds; in the trace to the actor's <actor>.jsonl.
 func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (events.Event, error) {
 	if k, ok := events.KindOf(ev.Type); !ok || k.Home() != home {
 		return ev, fault.EnvFault(fault.EventHome, ev.Type, home)
@@ -433,6 +469,9 @@ func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (
 		return ev, fault.EnvFault(fault.EncodeEvent, ev.Type, err)
 	}
 	// Open only after build returned, so a refused act leaves no file behind.
+	if home == events.HomeGit {
+		return ev, writeNew(filepath.Join(eventsIn(base), actor), ev.ID+".json", line)
+	}
 	path := filepath.Join(eventsIn(base), actor+".jsonl")
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0o644)
 	if err != nil {
@@ -460,6 +499,27 @@ func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (
 		return ev, fault.EnvFault(fault.FileSync, path, err)
 	}
 	return ev, nil
+}
+
+// writeNew writes line and a newline to the new file name in dir, which it
+// creates, and fsyncs it. A file of that name is never overwritten.
+func writeNew(dir, name string, line []byte) error {
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fault.EnvFault(fault.CreateStore, err)
+	}
+	path := filepath.Join(dir, name)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		return fault.EnvFault(fault.FileOpen, path, err)
+	}
+	defer f.Close()
+	if _, err := f.Write(append(line, '\n')); err != nil {
+		return fault.EnvFault(fault.FileWrite, path, err)
+	}
+	if err := f.Sync(); err != nil {
+		return fault.EnvFault(fault.FileSync, path, err)
+	}
+	return nil
 }
 
 // OutputPath is where PutOutput stores the output named hex: the clone's

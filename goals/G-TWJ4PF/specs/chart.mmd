@@ -1,0 +1,58 @@
+---
+title: "hyp's store, two branches and a plain merge"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: apart
+    lg1: merged
+  }
+  class lg0 blue
+  class lg1 teal
+  s0: main: no act#59; side: no act
+  s1: main: no act#59; side: G-ONE closed
+  s2: main: G-ONE closed#59; side: no act
+  s3: merged
+  s4: main: no act#59; side: acts
+  s5: main: acts#59; side: no act
+  s6: main: acts#59; side: G-ONE closed
+  s7: main: G-ONE closed#59; side: acts
+  s8: main: G-ONE closed#59; side: G-ONE closed
+  s9: main: acts#59; side: acts
+  [*] --> s0
+  s0 --> s1: the owner closes G-ONE on a branch
+  s0 --> s2: the owner closes G-ONE on a branch
+  s0 --> s3: git merge, with no merge driver
+  s0 --> s4: the owner adds a Goal on a branch
+  s0 --> s5: the owner adds a Goal on a branch
+  s1 --> s8: the owner closes G-ONE on a branch
+  s1 --> s3: git merge, with no merge driver
+  s1 --> s6: the owner adds a Goal on a branch
+  s2 --> s8: the owner closes G-ONE on a branch
+  s2 --> s3: git merge, with no merge driver
+  s2 --> s7: the owner adds a Goal on a branch
+  s4 --> s1: the owner closes G-ONE on a branch
+  s4 --> s7: the owner closes G-ONE on a branch
+  s4 --> s3: git merge, with no merge driver
+  s4 --> s9: the owner adds a Goal on a branch
+  s5 --> s6: the owner closes G-ONE on a branch
+  s5 --> s2: the owner closes G-ONE on a branch
+  s5 --> s3: git merge, with no merge driver
+  s5 --> s9: the owner adds a Goal on a branch
+  s6 --> s8: the owner closes G-ONE on a branch
+  s6 --> s3: git merge, with no merge driver
+  s7 --> s8: the owner closes G-ONE on a branch
+  s7 --> s3: git merge, with no merge driver
+  s8 --> s3: git merge, with no merge driver
+  s9 --> s6: the owner closes G-ONE on a branch
+  s9 --> s7: the owner closes G-ONE on a branch
+  s9 --> s3: git merge, with no merge driver
+  class s0 blue
+  class s1 blue
+  class s2 blue
+  class s3 teal
+  class s4 blue
+  class s5 blue
+  class s6 blue
+  class s7 blue
+  class s8 blue
+  class s9 blue

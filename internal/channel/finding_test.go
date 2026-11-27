@@ -258,7 +258,11 @@ func TestFindingDraft(t *testing.T) {
 func TestFindingOldForm(t *testing.T) {
 	r := inRepo(t)
 	goal := newGoal(t)
-	data, err := os.ReadFile(filepath.Join(r.Dir, ".tree", "events", "owner-1.jsonl"))
+	files, err := filepath.Glob(filepath.Join(r.Dir, ".tree", "events", "owner-1", "*.json"))
+	if err != nil || len(files) != 1 {
+		t.Fatalf("events files = %v, %v; want the goal.add alone", files, err)
+	}
+	data, err := os.ReadFile(files[0])
 	if err != nil {
 		t.Fatal(err)
 	}
