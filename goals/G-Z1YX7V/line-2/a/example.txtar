@@ -1,0 +1,8 @@
+-- words --
+A successful hyp add goal --draft NAME records the Goal open, and goals/<G>/ holds the examples whose hashes the goal.add carries: the owner adds a Goal with the draft x, and the Goal is open with its example in its folder.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base HEAD --words 'Count.' --line 'gap:the counter says ok.' --draft x >/dev/null 2>&1; ls goals/G-*/line-1/a; HYP_ACTOR=owner hyp status
+-- floor: contains --
+example.txtar
+-- floor: contains --
+  open  runs: 0 of 3 used
