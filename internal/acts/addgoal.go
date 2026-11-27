@@ -99,6 +99,9 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if err := CheckActor(o.Actor, o.Role); err != nil {
 		return Report{}, err
 	}
+	if err := checkWhy(o.Why); err != nil {
+		return Report{}, err
+	}
 	if strings.TrimSpace(o.Words) == "" {
 		return Report{}, fault.BadArg(fault.EmptyWords)
 	}
@@ -109,10 +112,11 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		}
 		lines[i] = events.Line{Key: "line-" + strconv.Itoa(i+1), Text: l.Text, Kind: l.Kind}
 	}
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := writerAt(o.Dir, o.Actor)
 	if err != nil {
 		return Report{}, err
 	}
+	root := w.root
 	base, baseTree, err := resolveBase(root, o.Base)
 	if err != nil {
 		return Report{}, err
@@ -130,8 +134,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	}
 
 	var rep Report
-	build := func(evs []events.Event) (events.Event, error) {
-		t := tables.Replay(evs)
+	build := func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeGoalAdd}
 		goal := &tables.Goal{}
 		if o.Goal != "" {
@@ -191,14 +194,14 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if logstore.Find(root) != nil {
 		// A refused first act must leave no store behind: run the guards
 		// against an empty log before creating one.
-		if _, err := build(nil); err != nil {
+		if _, err := build(tablesOf(nil, nil, eventsView), nil); err != nil {
 			return Report{}, err
 		}
 		if err := logstore.Create(root); err != nil {
 			return Report{}, err
 		}
 	}
-	ev, err := logstore.Append(root, o.Actor, build)
+	ev, err := w.append(eventsView, build)
 	if err != nil {
 		return Report{}, err
 	}
@@ -222,8 +225,8 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		rep.Goal = tables.GoalID(ev.ID)
 	}
 	rep.State = tables.StateWritten
-	if evs, _, err := logstore.Load(root); err == nil {
-		if g := tables.Replay(evs).Goals[ev.Node]; g != nil {
+	if after, _, err := load(root, eventsView); err == nil {
+		if g := after.Goals[ev.Node]; g != nil {
 			rep.State = g.State
 		}
 	}
@@ -237,15 +240,12 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 // and cells for the clone's trace. A set with a cause is refused whole, and
 // no Goal is recorded.
 func addedExamples(root string, o AddGoalOpts, base, baseTree string, lines []events.Line) ([]events.PlacedExample, [][]byte, []logstore.Cell, error) {
-	var t tables.Tables
+	t := tablesOf(nil, nil, eventsView)
 	if logstore.Find(root) == nil {
-		evs, _, err := logstore.Load(root)
-		if err != nil {
+		var err error
+		if t, _, err = load(root, eventsView); err != nil {
 			return nil, nil, nil, err
 		}
-		t = tables.Replay(evs)
-	} else {
-		t = tables.Replay(nil)
 	}
 	named, _, err := nameFindings(t, o.Findings, nil)
 	if err != nil {

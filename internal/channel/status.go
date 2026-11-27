@@ -107,7 +107,7 @@ func endedCount(n int) string {
 }
 
 func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string, o BlockOpts) {
-	st := acts.Stand(g)
+	st := tables.Stand(g)
 	view := acts.ViewOf(repo, g)
 	ended := g.State == tables.StateEnded
 	// an ended Goal prints no runs count: the runs are in each clone's trace,
@@ -117,7 +117,7 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 	} else {
 		fmt.Fprintf(b, "%s  %s  runs: %d of %d used\n", g.ID, g.State, st.Used, tables.MaxHypotheses)
 	}
-	if !ended && st.Stop == acts.StopNone && st.Used == tables.MaxHypotheses-1 {
+	if !ended && st.Stop == tables.StopNone && st.Used == tables.MaxHypotheses-1 {
 		fmt.Fprintf(b, "last run: after this, %s stops for the owner.\n", g.ID)
 	}
 	fmt.Fprintf(b, "stop: %s\n", stopText(st.Stop, st.Cause))
@@ -185,15 +185,15 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 		fmt.Fprintf(b, "\nThe Goal asked:\n\n%s", askedText(g))
 	}
 	switch {
-	case o.Goal == "" && (g.State == tables.StateEnded || st.Stop == acts.StopSelected):
+	case o.Goal == "" && (g.State == tables.StateEnded || st.Stop == tables.StopSelected):
 		// the list of every Goal prints no PR body: an output it quotes can
 		// hold lines that read as Goals of this store
-	case st.Stop == acts.StopSelected:
+	case st.Stop == tables.StopSelected:
 		keptChange(b, t, view, repo)
 		if !o.NoBody {
 			fmt.Fprintf(b, "\nPR body:\n\n%s", prBodyOf(repo, g, view))
 		}
-	case st.Stop == acts.StopTwoCandidates || st.Stop == acts.StopBudgetUsed:
+	case st.Stop == tables.StopTwoCandidates || st.Stop == tables.StopBudgetUsed:
 		outputsTable(b, g, repo, st.Rows)
 	}
 }
@@ -344,7 +344,7 @@ func walks(b *strings.Builder, g *tables.Goal, view *acts.GoalView, repo string)
 // prints for every role: hyp status lists no select line for such a
 // candidate, and the line it lists instead does not say why.
 func heldBack(b *strings.Builder, g *tables.Goal, repo string) {
-	holds := acts.HeldBack(g)
+	holds := tables.HeldBack(g)
 	if len(holds) == 0 {
 		return
 	}

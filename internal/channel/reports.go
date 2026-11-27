@@ -171,7 +171,7 @@ func unselectText(rep acts.UnselectReport) string {
 
 // stopText is a stop as an event: which stop, the act that caused it, its
 // event id and when. The stop none has no cause.
-func stopText(stop string, c acts.Cause) string {
+func stopText(stop string, c tables.Cause) string {
 	if c.ID == "" {
 		return stop
 	}
@@ -302,7 +302,7 @@ func prCharts(b *strings.Builder, root string, g *tables.Goal, view *acts.GoalVi
 		return
 	}
 	for _, c := range charts {
-		fmt.Fprintf(b, "\n## Chart: %s%s\n\n", acts.SpecDir(g.ID), c.Path)
+		fmt.Fprintf(b, "\n## Chart: %s%s\n\n", tables.SpecDir(g.ID), c.Path)
 		f := fence(c.Text)
 		b.WriteString(strings.Replace(f, "\n", "mermaid\n", 1))
 	}

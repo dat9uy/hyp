@@ -48,12 +48,12 @@ func TestLandOnTheSelectedCommitCarriesItsEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.Stop != StopSelected || rep.Cause.Act != ActRun || rep.Cause.ID != shown.Select.ID || rep.Commit != commit || len(rep.Ran) != 0 {
+	if rep.Stop != tables.StopSelected || rep.Cause.Act != ActRun || rep.Cause.ID != shown.Select.ID || rep.Commit != commit || len(rep.Ran) != 0 {
 		t.Fatalf("report = %+v, want the stop selected on %s caused by %s", rep, commit, shown.Select.ID)
 	}
 	ls := e.lands(t)
 	var p events.Land
-	if len(ls) != 1 || json.Unmarshal(ls[0].Payload, &p) != nil || p.Stop != StopSelected || p.Role != "owner" {
+	if len(ls) != 1 || json.Unmarshal(ls[0].Payload, &p) != nil || p.Stop != tables.StopSelected || p.Role != "owner" {
 		t.Fatalf("lands = %d, payload %+v", len(ls), p)
 	}
 	cur, _ := shown.Current("line-1/a")
@@ -66,7 +66,7 @@ func TestLandOnTheSelectedCommitCarriesItsEvidence(t *testing.T) {
 	if g.State != tables.StateEnded || g.Land == nil || g.Select == nil || g.Select.Commit != commit {
 		t.Fatalf("state = %s, land %+v, select %+v", g.State, g.Land, g.Select)
 	}
-	if st := Stand(g); st.Stop != StopSelected || st.Waits != "none" {
+	if st := tables.Stand(g); st.Stop != tables.StopSelected || st.Waits != "none" {
 		t.Fatalf("standing = %+v", st)
 	}
 	if got := AllowedFor(g); len(got) != 0 {
@@ -128,7 +128,7 @@ func TestLandAfterBudgetUsedNamesTheLastRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if rep.Stop != StopBudgetUsed || rep.Cause.Act != ActRun || rep.Cause.ID != last {
+	if rep.Stop != tables.StopBudgetUsed || rep.Cause.Act != ActRun || rep.Cause.ID != last {
 		t.Fatalf("report = %+v, want budget used caused by %s", rep, last)
 	}
 	if g := e.goalRow(t); g.State != tables.StateEnded || g.Select != nil {
@@ -157,8 +157,8 @@ func TestStopWaitsForTheOwnerAfterSelect(t *testing.T) {
 	e := newRunEnv(t)
 	commit, _ := e.selected(t)
 	g := e.shown(t)
-	st := Stand(g)
-	if st.Stop != StopSelected || st.Waits != "owner" {
+	st := tables.Stand(g)
+	if st.Stop != tables.StopSelected || st.Waits != "owner" {
 		t.Fatalf("standing = %+v", st)
 	}
 	got := AllowedFor(g)

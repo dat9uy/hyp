@@ -2,11 +2,9 @@ package acts
 
 import (
 	"encoding/json"
-	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
-	"github.com/dat9uy/hyp/internal/logstore"
 	"github.com/dat9uy/hyp/internal/tables"
 )
 
@@ -30,20 +28,13 @@ type CloseReport struct {
 // the close ends the Goal and names its snapshot. It checks no commit. Everything
 // is checked under the lock.
 func Close(o CloseOpts) (CloseReport, error) {
-	if err := CheckActor(o.Actor, o.Role); err != nil {
-		return CloseReport{}, err
-	}
-	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return CloseReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
-	}
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := begin(o.Dir, o.Actor, o.Role, o.Why)
 	if err != nil {
 		return CloseReport{}, err
 	}
 	var rep CloseReport
-	_, err = logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	_, err = w.append(eventsView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeClose, Why: o.Why, Actor: o.Actor}
-		t := tables.Replay(evs)
 		g, err := t.Find(o.Goal)
 		if err != nil {
 			return ev, err

@@ -3,7 +3,6 @@ package acts
 import (
 	"encoding/json"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/dat9uy/hyp/internal/events"
 	"github.com/dat9uy/hyp/internal/fault"
@@ -141,17 +140,17 @@ func findingAct(o FindingOpts, typ string, build func(tables.Tables, *events.Eve
 	if !ValidRole(o.Role) {
 		o.Role = ""
 	}
-	if n := utf8.RuneCountInString(o.Why); n > logstore.MaxWhy {
-		return FindingReport{}, fault.BadArg(fault.WhyTooLong, n, logstore.MaxWhy)
+	if err := checkWhy(o.Why); err != nil {
+		return FindingReport{}, err
 	}
-	root, err := logstore.TopLevel(o.Dir)
+	w, err := writerAt(o.Dir, o.Actor)
 	if err != nil {
 		return FindingReport{}, err
 	}
 	var before []events.Event
-	ev, err := logstore.Append(root, o.Actor, func(evs []events.Event) (events.Event, error) {
+	ev, err := w.append(eventsView, func(t tables.Tables, evs []events.Event) (events.Event, error) {
 		ev := events.Event{Type: typ, Why: o.Why}
-		if err := build(tables.Replay(evs), &ev); err != nil {
+		if err := build(t, &ev); err != nil {
 			return ev, err
 		}
 		before = evs
@@ -160,7 +159,7 @@ func findingAct(o FindingOpts, typ string, build func(tables.Tables, *events.Eve
 	if err != nil {
 		return FindingReport{}, err
 	}
-	t := tables.Replay(append(before, ev))
+	t := tablesOf(append(before, ev), nil, eventsView)
 	var ids []string
 	switch typ {
 	case events.TypeFindingAdd:

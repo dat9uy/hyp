@@ -173,7 +173,7 @@ func TestNoSpecHoldsTheSelectBack(t *testing.T) {
 	if g.State != tables.StateOpen {
 		t.Fatalf("state = %s, want open", g.State)
 	}
-	held := HeldBack(g)
+	held := tables.HeldBack(g)
 	if len(held) != 1 {
 		t.Fatalf("held back = %+v, want one", held)
 	}
@@ -200,7 +200,7 @@ func TestOtherGoalPathHoldsTheSelectBack(t *testing.T) {
 	// is held back by Spec until a run records one; run checks Own path on
 	// the commit before it records, and the owner's select checks it on git.
 	g := e.shown(t)
-	held := HeldBack(g)
+	held := tables.HeldBack(g)
 	if g.State != tables.StateOpen || len(held) != 1 {
 		t.Fatalf("state = %s, held back = %+v", g.State, held)
 	}

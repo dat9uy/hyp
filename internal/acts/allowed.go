@@ -3,18 +3,9 @@ package acts
 import (
 	"slices"
 
-	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/gitread"
 	"github.com/dat9uy/hyp/internal/spec"
 	"github.com/dat9uy/hyp/internal/tables"
-)
-
-// The stops of a Goal.
-const (
-	StopNone          = "none"
-	StopSelected      = tables.StopSelected
-	StopTwoCandidates = tables.StopTwoCandidates
-	StopBudgetUsed    = tables.StopBudgetUsed
 )
 
 // The acts a ready line names: the acts of the spec's state entries.
@@ -37,107 +28,6 @@ type Ready struct {
 	Line   string // place and run: the line key
 	Commit string // run: the commit, or empty for any leaf
 	Tree   string // select: the candidate's row tree
-}
-
-// Cause is the event of the act that caused a stop: a select, or the
-// result.record of the run after which the stop held.
-type Cause struct {
-	Act  string // ActSelect or ActRun
-	ID   string // the event id
-	Time string // the event's time
-}
-
-// Standing is what hyp calculates about a Goal from the tables alone: what
-// each run read of git is in its Result.
-type Standing struct {
-	Stop       string
-	Cause      Cause  // the act that caused the stop; empty for StopNone
-	Waits      string // who the Goal waits for: grill, owner or none
-	Used       int    // N of "runs: N of 3 used"
-	Rows       []tables.Row
-	Candidates []tables.Row
-}
-
-// Stand calculates the standing of a Goal: its rows and candidates, and the
-// stop with the act that caused it. A landed Goal keeps the stop
-// its land names; an ended Goal waits for no one. It reads no git.
-func Stand(g *tables.Goal) Standing {
-	st := Standing{Stop: StopNone, Waits: "none", Used: tables.RunsUsed(g), Rows: g.Rows()}
-	st.Candidates = tables.Candidates(g)
-	switch {
-	case g.Land != nil:
-		st.Stop, st.Cause = g.Land.Stop, causeOf(g, g.Land.Cause)
-	case g.Close != nil && g.Select != nil:
-		st.Stop = StopSelected
-		st.Cause = selectCause(g.Select)
-	case g.Close != nil:
-		// a closed Goal keeps the stop its rows hold, and waits for no one
-		if len(st.Candidates) >= 2 {
-			st.Stop, st.Cause = StopTwoCandidates, lastRun(g)
-		} else if len(st.Candidates) == 0 && budgetUsed(g) {
-			st.Stop, st.Cause = StopBudgetUsed, lastRun(g)
-		}
-	case g.Select != nil:
-		st.Stop, st.Waits = StopSelected, "owner"
-		st.Cause = selectCause(g.Select)
-	case len(st.Candidates) >= 2:
-		st.Stop, st.Waits, st.Cause = StopTwoCandidates, "owner", lastRun(g)
-	case len(st.Candidates) == 0 && budgetUsed(g):
-		st.Stop, st.Waits, st.Cause = StopBudgetUsed, "owner", lastRun(g)
-	case g.State == tables.StateWritten:
-		st.Waits = "owner"
-	}
-	return st
-}
-
-// selectCause is the act that caused the Selected stop: a select event of
-// the older form, or for a calculated select the run whose Result made its
-// row met on every line.
-func selectCause(sel *tables.Select) Cause {
-	if sel.Calculated {
-		return Cause{Act: ActRun, ID: sel.ID, Time: sel.Time}
-	}
-	return Cause{Act: ActSelect, ID: sel.ID, Time: sel.Time}
-}
-
-// lastRun is the run that caused a stop of the runs: the latest Result, in
-// merge order, that counts, not refused by Stable. Only a
-// run adds a row or a cell, so the latest one is the run after which the stop
-// held.
-func lastRun(g *tables.Goal) Cause {
-	for i := len(g.Results) - 1; i >= 0; i-- {
-		if r := g.Results[i]; r.Refused == "" {
-			return Cause{Act: ActRun, ID: r.ID, Time: r.Time}
-		}
-	}
-	return Cause{}
-}
-
-// causeOf is the cause a land event names, as git alone holds it: the
-// Goal's select event of the older form, or else the id alone. A Result is
-// in a clone's trace, not in git, so the act and time of a Result that
-// caused the stop are not printed: every clone prints a landed Goal the same.
-func causeOf(g *tables.Goal, id string) Cause {
-	if g.Select != nil && g.Select.ID == id && !g.Select.Calculated {
-		return Cause{Act: ActSelect, ID: id, Time: g.Select.Time}
-	}
-	return Cause{ID: id}
-}
-
-// budgetUsed reports the stop Budget used: three trees counted, the third
-// with a live cell for every placed example. The caller checks no candidate.
-func budgetUsed(g *tables.Goal) bool {
-	counted := g.CountedTrees()
-	if len(counted) < tables.MaxHypotheses {
-		return false
-	}
-	third := counted[tables.MaxHypotheses-1]
-	for _, p := range g.Placed() {
-		if g.Verdict(p.Key, third) == tables.NotRun {
-			return false
-		}
-	}
-	return true
 }
 
 // Allowed lists the allowed acts of every Goal, in the order of the Goals'
@@ -174,7 +64,7 @@ func allowedFor(g *tables.Goal) []Ready {
 		}
 		return append(out, Ready{Goal: g.ID, Role: "owner", Act: ActClose})
 	}
-	st := Stand(g)
+	st := tables.Stand(g)
 	var out []Ready
 	add := func(r Ready) {
 		r.Goal = g.ID
@@ -185,14 +75,14 @@ func allowedFor(g *tables.Goal) []Ready {
 	if g.State == tables.StateWritten {
 		add(Ready{Role: "owner", Act: ActAddGoal})
 	}
-	if st.Stop == StopTwoCandidates || (st.Stop == StopNone && len(st.Candidates) == 1) {
+	if st.Stop == tables.StopTwoCandidates || (st.Stop == tables.StopNone && len(st.Candidates) == 1) {
 		for _, c := range st.Candidates {
-			if selectable(g, c) {
+			if tables.Selectable(g, c) {
 				add(Ready{Role: "owner", Act: ActSelect, Tree: c.RowTree})
 			}
 		}
 	}
-	if st.Stop == StopTwoCandidates || st.Stop == StopBudgetUsed {
+	if st.Stop == tables.StopTwoCandidates || st.Stop == tables.StopBudgetUsed {
 		add(Ready{Role: "owner", Act: ActLand})
 	}
 	// one place line, for the Goal's whole example set: a place is the
@@ -201,10 +91,10 @@ func allowedFor(g *tables.Goal) []Ready {
 	add(Ready{Role: "owner", Act: ActClose})
 
 	// runner: runs only; this clone's Results show the select
-	if st.Stop == StopNone {
+	if st.Stop == tables.StopNone {
 		// A lone candidate that fails Spec or Own path is fixed by a commit
 		// that changes only goals/, so its subject, and its Hypothesis, stay.
-		fix := len(st.Candidates) == 1 && !selectable(g, st.Candidates[0])
+		fix := len(st.Candidates) == 1 && !tables.Selectable(g, st.Candidates[0])
 		out = append(out, runLines(g, st, fix)...)
 	}
 	return orderRoles(out)
@@ -227,7 +117,7 @@ func orderRoles(ls []Ready) []Ready {
 // fix, the lone candidate cannot be selected on its commit: a run of any line
 // on a new commit of the same Hypothesis costs no budget, so every line is
 // open on a commit hyp cannot know yet.
-func runLines(g *tables.Goal, st Standing, fix bool) []Ready {
+func runLines(g *tables.Goal, st tables.Standing, fix bool) []Ready {
 	var out []Ready
 	add := func(commit, line string) {
 		out = append(out, Ready{Goal: g.ID, Role: "runner", Act: ActRun, Commit: commit, Line: line})
@@ -265,54 +155,6 @@ func runLines(g *tables.Goal, st Standing, fix bool) []Ready {
 					break
 				}
 			}
-		}
-	}
-	return out
-}
-
-// selectable checks the select guards that the act checks on git, Spec and
-// Own path, on what the Result of the commit the select would record read
-// of it. A candidate that fails them is not listed; HeldBack names the guard.
-func selectable(g *tables.Goal, c tables.Row) bool {
-	return gitGuards(g, c) == nil
-}
-
-// gitGuards is the first select guard that the act checks on git and that
-// refuses the candidate c, as hyp select would print it, on the commit the
-// select would record: Spec, on what the Result of that commit carries. Own
-// path held when that Result was recorded, since run checks it on the same
-// commit and H0. It is nil when both hold.
-func gitGuards(g *tables.Goal, c tables.Row) error {
-	commit := latestCommit(g, c.RowTree)
-	if commit == "" {
-		return fault.Refuse(fault.GuardCandidate, fault.NoResultOnRow, c.RowTree)
-	}
-	return SpecGuard(g, commit, ReadOf(g, commit))
-}
-
-// Hold is a candidate whose select hyp holds back: its row and the refusal
-// hyp select would print for it.
-type Hold struct {
-	Row tables.Row
-	Err error
-}
-
-// HeldBack lists the candidates of an open Goal whose select hyp holds back,
-// in the order of the candidates: each candidate of a Goal at no stop with
-// one candidate, or at Two candidates, that fails a select guard that reads
-// git in the act. A selected or ended Goal holds none back.
-func HeldBack(g *tables.Goal) []Hold {
-	if g.State == tables.StateEnded || g.Select != nil {
-		return nil
-	}
-	st := Stand(g)
-	if !(st.Stop == StopTwoCandidates || (st.Stop == StopNone && len(st.Candidates) == 1)) {
-		return nil
-	}
-	var out []Hold
-	for _, c := range st.Candidates {
-		if err := gitGuards(g, c); err != nil {
-			out = append(out, Hold{Row: c, Err: err})
 		}
 	}
 	return out
