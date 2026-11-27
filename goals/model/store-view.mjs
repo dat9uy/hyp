@@ -4,18 +4,16 @@
 export const title = "hyp's store, two branches and a plain merge";
 
 const acts = (v, b) => {
-  const n = v.added[b] + v.changed[b];
-  if (n === 0) return "no act";
-  return `${n} act${n > 1 ? "s" : ""}${v.ended[b] ? ", G-ONE ended" : ""}`;
+  if (v.ended[b]) return "G-ONE closed";
+  return v.added[b] + v.changed[b] === 0 ? "no act" : "acts";
 };
 
 export const state = (v) => {
-  const store = v.form === "old" ? "older store" : "store";
   if (v.phase === "merged") {
-    if (v.conflict) return `${store}, merge stopped on a conflict`;
-    return `${store}, merged${v.applied > 1 ? ", both ends applied" : ""}${v.reads ? "" : ", base Goal not read"}`;
+    if (v.conflict) return "merge stopped on a conflict";
+    return `merged${v.applied > 1 ? ", both closes applied" : ""}${v.reads ? "" : ", base Goal not read"}`;
   }
-  return `${store}, main: ${acts(v, "main")}; side: ${acts(v, "side")}`;
+  return `main: ${acts(v, "main")}; side: ${acts(v, "side")}`;
 };
 
 export const colors = { apart: "blue", merged: "teal" };

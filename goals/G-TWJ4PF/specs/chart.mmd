@@ -8,259 +8,51 @@ stateDiagram-v2
   }
   class lg0 blue
   class lg1 teal
-  s0: store, main: no act#59; side: no act
-  s1: older store, main: no act#59; side: no act
-  s2: store, main: no act#59; side: 1 act, G-ONE ended
-  s3: older store, main: no act#59; side: 1 act, G-ONE ended
-  s4: store, main: 1 act, G-ONE ended#59; side: no act
-  s5: older store, main: 1 act, G-ONE ended#59; side: no act
-  s6: store, merged
-  s7: older store, merged
-  s8: store, main: no act#59; side: 1 act
-  s9: older store, main: no act#59; side: 1 act
-  s10: store, main: 1 act#59; side: no act
-  s11: older store, main: 1 act#59; side: no act
-  s12: store, main: no act#59; side: 2 acts, G-ONE ended
-  s13: older store, main: no act#59; side: 2 acts, G-ONE ended
-  s14: store, main: 1 act#59; side: 1 act, G-ONE ended
-  s15: older store, main: 1 act#59; side: 1 act, G-ONE ended
-  s16: store, main: 1 act, G-ONE ended#59; side: 1 act
-  s17: older store, main: 1 act, G-ONE ended#59; side: 1 act
-  s18: store, main: 2 acts, G-ONE ended#59; side: no act
-  s19: older store, main: 2 acts, G-ONE ended#59; side: no act
-  s20: store, main: 1 act, G-ONE ended#59; side: 1 act, G-ONE ended
-  s21: older store, main: 1 act, G-ONE ended#59; side: 1 act, G-ONE ended
-  s22: store, main: no act#59; side: 2 acts
-  s23: older store, main: no act#59; side: 2 acts
-  s24: store, main: 1 act#59; side: 1 act
-  s25: older store, main: 1 act#59; side: 1 act
-  s26: store, main: 2 acts#59; side: no act
-  s27: older store, main: 2 acts#59; side: no act
-  s28: store, main: 1 act#59; side: 2 acts, G-ONE ended
-  s29: older store, main: 1 act#59; side: 2 acts, G-ONE ended
-  s30: store, main: 2 acts#59; side: 1 act, G-ONE ended
-  s31: older store, main: 2 acts#59; side: 1 act, G-ONE ended
-  s32: store, main: 1 act, G-ONE ended#59; side: 2 acts
-  s33: older store, main: 1 act, G-ONE ended#59; side: 2 acts
-  s34: store, main: 2 acts, G-ONE ended#59; side: 1 act
-  s35: older store, main: 2 acts, G-ONE ended#59; side: 1 act
-  s36: store, main: 1 act, G-ONE ended#59; side: 2 acts, G-ONE ended
-  s37: older store, main: 1 act, G-ONE ended#59; side: 2 acts, G-ONE ended
-  s38: store, main: 2 acts, G-ONE ended#59; side: 1 act, G-ONE ended
-  s39: older store, main: 2 acts, G-ONE ended#59; side: 1 act, G-ONE ended
-  s40: store, main: 1 act#59; side: 2 acts
-  s41: older store, main: 1 act#59; side: 2 acts
-  s42: store, main: 2 acts#59; side: 1 act
-  s43: older store, main: 2 acts#59; side: 1 act
-  s44: store, main: 2 acts#59; side: 2 acts, G-ONE ended
-  s45: older store, main: 2 acts#59; side: 2 acts, G-ONE ended
-  s46: store, main: 2 acts, G-ONE ended#59; side: 2 acts
-  s47: older store, main: 2 acts, G-ONE ended#59; side: 2 acts
-  s48: store, main: 2 acts, G-ONE ended#59; side: 2 acts, G-ONE ended
-  s49: older store, main: 2 acts, G-ONE ended#59; side: 2 acts, G-ONE ended
-  s50: store, main: 2 acts#59; side: 2 acts
-  s51: older store, main: 2 acts#59; side: 2 acts
+  s0: main: no act#59; side: no act
+  s1: main: no act#59; side: G-ONE closed
+  s2: main: G-ONE closed#59; side: no act
+  s3: merged
+  s4: main: no act#59; side: acts
+  s5: main: acts#59; side: no act
+  s6: main: acts#59; side: G-ONE closed
+  s7: main: G-ONE closed#59; side: acts
+  s8: main: G-ONE closed#59; side: G-ONE closed
+  s9: main: acts#59; side: acts
   [*] --> s0
-  [*] --> s1
+  s0 --> s1: the owner closes G-ONE on a branch
   s0 --> s2: the owner closes G-ONE on a branch
-  s0 --> s4: the owner closes G-ONE on a branch
-  s0 --> s6: git merge, with no merge driver
-  s0 --> s8: the owner adds a Goal on a branch
-  s0 --> s10: the owner adds a Goal on a branch
-  s1 --> s3: the owner closes G-ONE on a branch
-  s1 --> s5: the owner closes G-ONE on a branch
-  s1 --> s7: git merge, with no merge driver
-  s1 --> s9: the owner adds a Goal on a branch
-  s1 --> s11: the owner adds a Goal on a branch
-  s2 --> s20: the owner closes G-ONE on a branch
-  s2 --> s6: git merge, with no merge driver
-  s2 --> s12: the owner adds a Goal on a branch
-  s2 --> s14: the owner adds a Goal on a branch
-  s3 --> s21: the owner closes G-ONE on a branch
-  s3 --> s7: git merge, with no merge driver
-  s3 --> s13: the owner adds a Goal on a branch
-  s3 --> s15: the owner adds a Goal on a branch
-  s4 --> s20: the owner closes G-ONE on a branch
-  s4 --> s6: git merge, with no merge driver
-  s4 --> s16: the owner adds a Goal on a branch
-  s4 --> s18: the owner adds a Goal on a branch
-  s5 --> s21: the owner closes G-ONE on a branch
-  s5 --> s7: git merge, with no merge driver
-  s5 --> s17: the owner adds a Goal on a branch
-  s5 --> s19: the owner adds a Goal on a branch
-  s8 --> s12: the owner closes G-ONE on a branch
-  s8 --> s16: the owner closes G-ONE on a branch
-  s8 --> s6: git merge, with no merge driver
-  s8 --> s22: the owner adds a Goal on a branch
-  s8 --> s24: the owner adds a Goal on a branch
-  s9 --> s13: the owner closes G-ONE on a branch
-  s9 --> s17: the owner closes G-ONE on a branch
-  s9 --> s7: git merge, with no merge driver
-  s9 --> s23: the owner adds a Goal on a branch
-  s9 --> s25: the owner adds a Goal on a branch
-  s10 --> s14: the owner closes G-ONE on a branch
-  s10 --> s18: the owner closes G-ONE on a branch
-  s10 --> s6: git merge, with no merge driver
-  s10 --> s24: the owner adds a Goal on a branch
-  s10 --> s26: the owner adds a Goal on a branch
-  s11 --> s15: the owner closes G-ONE on a branch
-  s11 --> s19: the owner closes G-ONE on a branch
-  s11 --> s7: git merge, with no merge driver
-  s11 --> s25: the owner adds a Goal on a branch
-  s11 --> s27: the owner adds a Goal on a branch
-  s12 --> s36: the owner closes G-ONE on a branch
-  s12 --> s6: git merge, with no merge driver
-  s12 --> s28: the owner adds a Goal on a branch
-  s13 --> s37: the owner closes G-ONE on a branch
-  s13 --> s7: git merge, with no merge driver
-  s13 --> s29: the owner adds a Goal on a branch
-  s14 --> s38: the owner closes G-ONE on a branch
-  s14 --> s6: git merge, with no merge driver
-  s14 --> s28: the owner adds a Goal on a branch
-  s14 --> s30: the owner adds a Goal on a branch
-  s15 --> s39: the owner closes G-ONE on a branch
-  s15 --> s7: git merge, with no merge driver
-  s15 --> s29: the owner adds a Goal on a branch
-  s15 --> s31: the owner adds a Goal on a branch
-  s16 --> s36: the owner closes G-ONE on a branch
-  s16 --> s6: git merge, with no merge driver
-  s16 --> s32: the owner adds a Goal on a branch
-  s16 --> s34: the owner adds a Goal on a branch
-  s17 --> s37: the owner closes G-ONE on a branch
-  s17 --> s7: git merge, with no merge driver
-  s17 --> s33: the owner adds a Goal on a branch
-  s17 --> s35: the owner adds a Goal on a branch
-  s18 --> s38: the owner closes G-ONE on a branch
-  s18 --> s6: git merge, with no merge driver
-  s18 --> s34: the owner adds a Goal on a branch
-  s19 --> s39: the owner closes G-ONE on a branch
-  s19 --> s7: git merge, with no merge driver
-  s19 --> s35: the owner adds a Goal on a branch
-  s20 --> s6: git merge, with no merge driver
-  s20 --> s36: the owner adds a Goal on a branch
-  s20 --> s38: the owner adds a Goal on a branch
-  s21 --> s7: git merge, with no merge driver
-  s21 --> s37: the owner adds a Goal on a branch
-  s21 --> s39: the owner adds a Goal on a branch
-  s22 --> s32: the owner closes G-ONE on a branch
-  s22 --> s6: git merge, with no merge driver
-  s22 --> s40: the owner adds a Goal on a branch
-  s23 --> s33: the owner closes G-ONE on a branch
-  s23 --> s7: git merge, with no merge driver
-  s23 --> s41: the owner adds a Goal on a branch
-  s24 --> s28: the owner closes G-ONE on a branch
-  s24 --> s34: the owner closes G-ONE on a branch
-  s24 --> s6: git merge, with no merge driver
-  s24 --> s40: the owner adds a Goal on a branch
-  s24 --> s42: the owner adds a Goal on a branch
-  s25 --> s29: the owner closes G-ONE on a branch
-  s25 --> s35: the owner closes G-ONE on a branch
-  s25 --> s7: git merge, with no merge driver
-  s25 --> s41: the owner adds a Goal on a branch
-  s25 --> s43: the owner adds a Goal on a branch
-  s26 --> s30: the owner closes G-ONE on a branch
-  s26 --> s6: git merge, with no merge driver
-  s26 --> s42: the owner adds a Goal on a branch
-  s27 --> s31: the owner closes G-ONE on a branch
-  s27 --> s7: git merge, with no merge driver
-  s27 --> s43: the owner adds a Goal on a branch
-  s28 --> s48: the owner closes G-ONE on a branch
-  s28 --> s6: git merge, with no merge driver
-  s28 --> s44: the owner adds a Goal on a branch
-  s29 --> s49: the owner closes G-ONE on a branch
-  s29 --> s7: git merge, with no merge driver
-  s29 --> s45: the owner adds a Goal on a branch
-  s30 --> s6: git merge, with no merge driver
-  s30 --> s44: the owner adds a Goal on a branch
-  s31 --> s7: git merge, with no merge driver
-  s31 --> s45: the owner adds a Goal on a branch
-  s32 --> s6: git merge, with no merge driver
-  s32 --> s46: the owner adds a Goal on a branch
-  s33 --> s7: git merge, with no merge driver
-  s33 --> s47: the owner adds a Goal on a branch
-  s34 --> s48: the owner closes G-ONE on a branch
-  s34 --> s6: git merge, with no merge driver
-  s34 --> s46: the owner adds a Goal on a branch
-  s35 --> s49: the owner closes G-ONE on a branch
-  s35 --> s7: git merge, with no merge driver
-  s35 --> s47: the owner adds a Goal on a branch
-  s36 --> s6: git merge, with no merge driver
-  s36 --> s48: the owner adds a Goal on a branch
-  s37 --> s7: git merge, with no merge driver
-  s37 --> s49: the owner adds a Goal on a branch
-  s38 --> s6: git merge, with no merge driver
-  s38 --> s48: the owner adds a Goal on a branch
-  s39 --> s7: git merge, with no merge driver
-  s39 --> s49: the owner adds a Goal on a branch
-  s40 --> s46: the owner closes G-ONE on a branch
-  s40 --> s6: git merge, with no merge driver
-  s40 --> s50: the owner adds a Goal on a branch
-  s41 --> s47: the owner closes G-ONE on a branch
-  s41 --> s7: git merge, with no merge driver
-  s41 --> s51: the owner adds a Goal on a branch
-  s42 --> s44: the owner closes G-ONE on a branch
-  s42 --> s6: git merge, with no merge driver
-  s42 --> s50: the owner adds a Goal on a branch
-  s43 --> s45: the owner closes G-ONE on a branch
-  s43 --> s7: git merge, with no merge driver
-  s43 --> s51: the owner adds a Goal on a branch
-  s44 --> s6: git merge, with no merge driver
-  s45 --> s7: git merge, with no merge driver
-  s46 --> s6: git merge, with no merge driver
-  s47 --> s7: git merge, with no merge driver
-  s48 --> s6: git merge, with no merge driver
-  s49 --> s7: git merge, with no merge driver
-  s50 --> s6: git merge, with no merge driver
-  s51 --> s7: git merge, with no merge driver
+  s0 --> s3: git merge, with no merge driver
+  s0 --> s4: the owner adds a Goal on a branch
+  s0 --> s5: the owner adds a Goal on a branch
+  s1 --> s8: the owner closes G-ONE on a branch
+  s1 --> s3: git merge, with no merge driver
+  s1 --> s6: the owner adds a Goal on a branch
+  s2 --> s8: the owner closes G-ONE on a branch
+  s2 --> s3: git merge, with no merge driver
+  s2 --> s7: the owner adds a Goal on a branch
+  s4 --> s1: the owner closes G-ONE on a branch
+  s4 --> s7: the owner closes G-ONE on a branch
+  s4 --> s3: git merge, with no merge driver
+  s4 --> s9: the owner adds a Goal on a branch
+  s5 --> s6: the owner closes G-ONE on a branch
+  s5 --> s2: the owner closes G-ONE on a branch
+  s5 --> s3: git merge, with no merge driver
+  s5 --> s9: the owner adds a Goal on a branch
+  s6 --> s8: the owner closes G-ONE on a branch
+  s6 --> s3: git merge, with no merge driver
+  s7 --> s8: the owner closes G-ONE on a branch
+  s7 --> s3: git merge, with no merge driver
+  s8 --> s3: git merge, with no merge driver
+  s9 --> s6: the owner closes G-ONE on a branch
+  s9 --> s7: the owner closes G-ONE on a branch
+  s9 --> s3: git merge, with no merge driver
   class s0 blue
   class s1 blue
   class s2 blue
-  class s3 blue
+  class s3 teal
   class s4 blue
   class s5 blue
-  class s6 teal
-  class s7 teal
+  class s6 blue
+  class s7 blue
   class s8 blue
   class s9 blue
-  class s10 blue
-  class s11 blue
-  class s12 blue
-  class s13 blue
-  class s14 blue
-  class s15 blue
-  class s16 blue
-  class s17 blue
-  class s18 blue
-  class s19 blue
-  class s20 blue
-  class s21 blue
-  class s22 blue
-  class s23 blue
-  class s24 blue
-  class s25 blue
-  class s26 blue
-  class s27 blue
-  class s28 blue
-  class s29 blue
-  class s30 blue
-  class s31 blue
-  class s32 blue
-  class s33 blue
-  class s34 blue
-  class s35 blue
-  class s36 blue
-  class s37 blue
-  class s38 blue
-  class s39 blue
-  class s40 blue
-  class s41 blue
-  class s42 blue
-  class s43 blue
-  class s44 blue
-  class s45 blue
-  class s46 blue
-  class s47 blue
-  class s48 blue
-  class s49 blue
-  class s50 blue
-  class s51 blue
