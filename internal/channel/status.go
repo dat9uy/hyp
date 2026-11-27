@@ -86,10 +86,10 @@ func StateBlock(t tables.Tables, unread []logstore.LineError, repo string, o Blo
 			fmt.Fprintf(&b, "  %s: %s\n", where, bodyText(l.Err, repo))
 		}
 	}
+	if o.Goal == "" && inWork == 0 {
+		b.WriteString("no Goal is in work.\n")
+	}
 	if hidden > 0 {
-		if inWork == 0 {
-			b.WriteString("no Goal is in work.\n")
-		}
 		fmt.Fprintf(&b, "%s not shown; hyp status --all lists every Goal.\n", endedCount(hidden))
 	}
 	if o.Goal == "" {

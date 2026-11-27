@@ -281,6 +281,7 @@ var Commands = []Command{
                                          written or open Goal, leaves out the
                                          blocks of ended Goals with a line that
                                          counts them (--all prints them too),
+                                         says no Goal is in work when none is,
                                          and ends with the count of findings
                                          not folded
 `},

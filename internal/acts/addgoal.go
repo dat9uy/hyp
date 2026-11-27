@@ -213,8 +213,22 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 			return Report{}, err
 		}
 	}
-	ev, err := w.append(eventsView, build)
+	// The Goal's own folder gets its example set, as later places read it by
+	// default. It is written before the event, so a Goal the log records
+	// always has its folder, and a folder that cannot be written records no
+	// Goal. hyp writes no git state, so the owner commits it.
+	var folder string
+	ev, err := w.appendBefore(eventsView, build, func(ev events.Event) error {
+		if len(placed) == 0 {
+			return nil
+		}
+		folder = filepath.Join(root, "goals", tables.GoalID(ev.ID))
+		return copyExamples(snap, folder, lines)
+	})
 	if err != nil {
+		if folder != "" {
+			os.RemoveAll(folder)
+		}
 		return Report{}, err
 	}
 	// H0's outputs and cells of the examples it carries go to the clone's
@@ -226,11 +240,6 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		return Report{}, err
 	}
 	if len(placed) > 0 {
-		// the Goal's own folder gets its example set, as later places read
-		// it by default; hyp writes no git state, so the owner commits it
-		if err := copyExamples(snap, filepath.Join(root, "goals", tables.GoalID(ev.ID)), lines); err != nil {
-			return Report{}, err
-		}
 		rep.Folder = path.Join("goals", tables.GoalID(ev.ID))
 	}
 	if !rep.Replaced {

@@ -225,6 +225,35 @@ func TestAddGoalWithExamplesIsOpen(t *testing.T) {
 	}
 }
 
+// An add that cannot write the Goal's folder records no Goal.
+func TestAddGoalRecordsNoGoalWhenItsFolderCannotBeWritten(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("root writes a read-only folder")
+	}
+	r := testutil.NewRepo(t)
+	r.Commit(t, map[string]string{"main.go": "package main\n"})
+	base := draft(t, r, map[string]string{"line-1/a": failingOnH0})
+	goals := filepath.Join(r.Dir, "goals")
+	if err := os.Mkdir(goals, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(goals, 0o755)
+	o := opts(r.Dir, base, gapLine)
+	o.Draft = "x"
+	if _, err := AddGoal(o); fault.KindOf(err) != fault.Environment {
+		t.Fatalf("err = %v, want an environment problem", err)
+	}
+	evs, _, err := logstore.Load(r.Dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ev := range evs {
+		if ev.Type == events.TypeGoalAdd {
+			t.Fatal("the add recorded a Goal whose folder is missing")
+		}
+	}
+}
+
 // An example whose H0 verdict is not what its line needs refuses the add,
 // and nothing is written.
 func TestAddGoalWithExamplesRefusesWrongVerdict(t *testing.T) {

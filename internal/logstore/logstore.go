@@ -390,6 +390,14 @@ func lockBoth(root string) (Trace, func(), error) {
 // when build left it empty: a new Goal's goal.add names itself. An error from
 // build is returned unchanged and nothing is written, not even the file.
 func Append(root, actor string, build func([]events.Event) (events.Event, error)) (events.Event, error) {
+	return AppendBefore(root, actor, build, nil)
+}
+
+// AppendBefore is Append with a step between the event's id and its write:
+// before gets the event with its id, and an error from it leaves the event
+// unwritten. An act whose files are named by the id writes them there, so
+// the log never records an event whose files are missing.
+func AppendBefore(root, actor string, build func([]events.Event) (events.Event, error), before func(events.Event) error) (events.Event, error) {
 	if !ValidActor(actor) {
 		return events.Event{}, fault.BadArg(fault.BadActor, actor)
 	}
@@ -414,7 +422,7 @@ func Append(root, actor string, build func([]events.Event) (events.Event, error)
 	if k.Home() == events.HomeTrace {
 		base = tr.Dir
 	}
-	return writeEvent(base, actor, k.Home(), evs, ev)
+	return writeEvent(base, actor, k.Home(), evs, ev, before)
 }
 
 // appendLocked appends the event build returns to the folder of events
@@ -434,7 +442,7 @@ func appendLocked(base, actor, home string, build func([]events.Event) (events.E
 	if err != nil {
 		return ev, err
 	}
-	return writeEvent(base, actor, home, evs, ev)
+	return writeEvent(base, actor, home, evs, ev, nil)
 }
 
 // writeEvent writes ev as one fsynced line, with an id after every id of
@@ -443,7 +451,7 @@ func appendLocked(base, actor, home string, build func([]events.Event) (events.E
 // file the store already holds; in the trace to the actor's <actor>.jsonl.
 // Then, when $HYP_STEP_LOG names a file, it appends the event's step line
 // there (StepLine).
-func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (events.Event, error) {
+func writeEvent(base, actor, home string, evs []events.Event, ev events.Event, before func(events.Event) error) (events.Event, error) {
 	if k, ok := events.KindOf(ev.Type); !ok || k.Home() != home {
 		return ev, fault.EnvFault(fault.EventHome, ev.Type, home)
 	}
@@ -469,6 +477,11 @@ func writeEvent(base, actor, home string, evs []events.Event, ev events.Event) (
 	line, err := json.Marshal(ev)
 	if err != nil {
 		return ev, fault.EnvFault(fault.EncodeEvent, ev.Type, err)
+	}
+	if before != nil {
+		if err := before(ev); err != nil {
+			return ev, err
+		}
 	}
 	// Open only after build returned, so a refused act leaves no file behind.
 	if home == events.HomeGit {
