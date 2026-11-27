@@ -1,7 +1,7 @@
 -- words --
 The tool reports each rule whose source is neither a list of G-XXXX:line-N nor hyp spec, guard NAME, names the rule, and exits 3: one rule of the spec has the source see ADR 15.
 -- run --
-out=$(mktemp -d); skills/hyp-statechart/scripts/statechart goals/G-TEST00/specs/goal.tla --config goals/G-TEST00/specs/goal.cfg --view goals/G-TEST00/specs/goal-view.mjs --out "$out" >"$out/log" 2>&1; echo "tool exit $?"; cat goals/G-TEST00/specs/goal.md "$out/log"
+out=$(mktemp -d); skills/hyp-statechart/scripts/statechart goals/G-TEST00/specs/goal.tla --config goals/G-TEST00/specs/goal.cfg --view goals/G-TEST00/specs/goal-view.mjs --out "$out/o" >"$out/log" 2>&1; echo "tool exit $?"; cat "$out/log"
 -- floor: contains --
 tool exit 3
 -- floor: contains --

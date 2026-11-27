@@ -1,7 +1,7 @@
 -- words --
 goal.md counts a line of the Goal as named only by a rule whose source names that Goal and that line: the test Goal G-TEST00 has line-1, and the spec's only rule has the source G-OTHER:line-1, so goal.md says line-1 is named by no rule.
 -- run --
-out=$(mktemp -d); skills/hyp-statechart/scripts/statechart goals/G-TEST00/specs/goal.tla --config goals/G-TEST00/specs/goal.cfg --view goals/G-TEST00/specs/goal-view.mjs --out "$out" >"$out/log" 2>&1; echo "tool exit $?"; cat goals/G-TEST00/specs/goal.md "$out/log"
+out=$(mktemp -d); skills/hyp-statechart/scripts/statechart goals/G-TEST00/specs/goal.tla --config goals/G-TEST00/specs/goal.cfg --view goals/G-TEST00/specs/goal-view.mjs --out "$out/o" >"$out/log" 2>&1; echo "tool exit $?"; cat "$out/log"
 -- floor: contains --
 Lines of the Goal that no rule names: line-1.
 -- ceiling --
