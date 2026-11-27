@@ -1,0 +1,10 @@
+-- words --
+Open at once: the owner adds a Goal whose draft folder holds one example that fails on H0; the add succeeds and hyp status shows the Goal open, not written.
+-- run --
+hyp add goal --base HEAD --words 'Greet.' --line 'gap:the subject says bye.' --examples goals/draft-greet >/dev/null 2>&1; echo "add exit: $?"; hyp status --all 2>/dev/null | grep -E '  (open|written)' | sed 's/^G-[0-9A-Z]*/G/'
+-- floor: contains --
+add exit: 0
+-- floor: contains --
+G  open
+-- ceiling --
+written

@@ -1,0 +1,8 @@
+-- words --
+New example checked on H0: on open Goal G-ONE, the owner adds to its draft folder a gap example already met on H0 and runs place; place refuses it.
+-- run --
+hyp place G-ONE --examples goals/draft-greet 2>&1; echo "place exit: $?"
+-- floor: contains --
+place exit: 1
+-- ceiling --
+place exit: 0

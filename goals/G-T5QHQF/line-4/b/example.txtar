@@ -1,0 +1,10 @@
+-- words --
+One not run stays open: Goal G-ONE has two examples on line-1 and line-2; the runner runs only line-1 on C1; hyp status shows the Goal open.
+-- run --
+HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; echo "run exit: $?"; hyp status G-ONE | head -1
+-- floor: contains --
+run exit: 0
+-- floor: contains --
+G-ONE  open
+-- ceiling --
+selected

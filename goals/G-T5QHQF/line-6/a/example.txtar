@@ -1,0 +1,10 @@
+-- words --
+Unselected not shown again: Goal G-ONE shows selected on C1; the owner unselects C1; hyp status shows the Goal open.
+-- run --
+hyp unselect G-ONE C1 >/dev/null 2>&1; echo "unselect exit: $?"; hyp status G-ONE | head -1
+-- floor: contains --
+unselect exit: 0
+-- floor: contains --
+G-ONE  open
+-- ceiling --
+selected

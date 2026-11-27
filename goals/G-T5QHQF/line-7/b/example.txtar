@@ -1,0 +1,8 @@
+-- words --
+Run rules: PR from status: the run rules tell the runner to open its PR from what hyp status shows, and no longer tell it to select.
+-- run --
+cat skills/hyp-grill/run-rules.md
+-- floor: contains --
+hyp status
+-- ceiling --
+Select when hyp offers it

@@ -1,0 +1,8 @@
+-- words --
+All met shows selected: on open Goal G-ONE, the runner runs line-1 on commit C1, which meets every example; hyp status shows the Goal selected on C1, with no select event in the store.
+-- run --
+HYP_ACTOR=runner-one HYP_ROLE=runner hyp run C1 G-ONE/line-1 >/dev/null 2>&1; hyp status G-ONE | head -2; echo "select events: $(cat .tree/events/*.jsonl .tree/events/*/*.json 2>/dev/null | grep -c '"type":"select"')"
+-- floor: contains --
+selected
+-- floor: contains --
+select events: 0

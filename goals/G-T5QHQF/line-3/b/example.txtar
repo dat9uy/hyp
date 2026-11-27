@@ -1,0 +1,6 @@
+-- words --
+Grill writes no git: on open Goal G-ONE, with a new example committed in its draft folder, the grill runs place; the store in git does not change.
+-- run --
+HYP_ACTOR=grill-one HYP_ROLE=grill hyp place G-ONE --examples goals/draft-greet >/dev/null 2>&1; echo "store changes: $(git status --porcelain --untracked-files=all .tree | wc -l | tr -d ' ')"
+-- floor: contains --
+store changes: 0

@@ -1,0 +1,8 @@
+-- words --
+Old store prints as H0: a repository whose committed store holds, in H0's form written by hand, a Goal, a place of its example and a select of commit C1, prints the Goal selected on C1, as on H0.
+-- run --
+hyp status --all | head -2
+-- floor: contains --
+selected
+-- ceiling --
+refused
