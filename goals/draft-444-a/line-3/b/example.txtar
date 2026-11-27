@@ -1,0 +1,8 @@
+-- words --
+A goal.add whose payload decodes and whose lines hold no gap line is still refused under its guard: the store holds a goal.add, written by hand, whose one line is a guard line; hyp status lists it under refused at replay under Whole lines.
+-- run --
+HYP_ACTOR=owner hyp status
+-- floor: contains --
+refused at replay:
+-- floor: contains --
+Whole lines: the Goal has no gap line

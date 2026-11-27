@@ -1,0 +1,8 @@
+-- words --
+An event of kind unselect whose payload does not decode names no guard: the store holds a unselect, written by hand, whose payload carries the unknown field "zz"; hyp status lists it under refused at replay as a fault of its payload alone.
+-- run --
+HYP_ACTOR=owner hyp status
+-- floor: contains --
+refused at replay:
+-- floor: contains --
+ULID: unselect payload: json: unknown field "zz"
