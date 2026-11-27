@@ -98,8 +98,8 @@ func GuardGoalActor(g *Goal, actor, role string) error {
 
 // GuardSelect is the check of a select event that reads only events stored
 // in git, called by the select act and by Replay at the event's place in the
-// merge order: not Ended, not Selected, a role that selects, and Goal's
-// actor. Candidate and New cell read the cells of the clone's trace, which a
+// merge order: not Ended, not Selected, and Goal's actor. A role other than
+// owner or runner is a form fault. Candidate and New cell read the cells of the clone's trace, which a
 // clone that did not run lacks, so replay does not check them: the act
 // checked them before it wrote the select. ev.Node is the goal.add event id.
 func GuardSelect(t Tables, ev events.Event) error {
@@ -118,7 +118,9 @@ func GuardSelect(t Tables, ev events.Event) error {
 		return err
 	}
 	if !selectRole(p.Role) {
-		return fault.Refuse(fault.GuardCandidate, fault.RoleCannotSelect, p.Role)
+		// no act writes a select with another role, so the event breaks
+		// the form of a select: a form fault, not a refusal of Candidate
+		return fault.Refuse(fault.NoGuard, fault.SelectRole, p.Role)
 	}
 	return GuardGoalActor(g, ev.Actor, p.Role)
 }

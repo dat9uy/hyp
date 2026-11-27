@@ -314,7 +314,7 @@ func guardRunAtReplay(t Tables, ev events.Event) error {
 func guardRunGit(t Tables, ev events.Event) (*Goal, events.ResultRecord, error) {
 	var p events.ResultRecord
 	if err := events.Decode(ev, &p); err != nil {
-		return nil, p, fault.Refuse(fault.GuardStable, fault.PayloadInvalid, err)
+		return nil, p, fault.Refuse(fault.NoGuard, fault.PayloadInvalid, err)
 	}
 	g, ok := t.Goals[ev.Node]
 	if !ok {

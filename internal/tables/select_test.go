@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
+	"github.com/dat9uy/hyp/internal/fault"
 	"github.com/dat9uy/hyp/internal/testutil"
 )
 
@@ -123,6 +124,32 @@ func TestReplaySelectGuardsAgain(t *testing.T) {
 	tb := Replay(append(base(), selectEv(t, "a", "owner", "commit-r1", "r1"), selectEv(t, "a", "owner", "commit-r1", "r1")))
 	if len(tb.RefusedAtReplay) != 1 || tb.Goals[id1].Select == nil {
 		t.Fatalf("refused = %+v, want the second select refused", tb.RefusedAtReplay)
+	}
+}
+
+// A select with a role no select names and a result.record whose payload does
+// not decode break the form of their event: replay refuses each as a form
+// fault, which names no guard, not under Candidate or Stable.
+func TestReplayFormFaultsNameNoGuard(t *testing.T) {
+	bogus := run(t, "r1", "met")
+	bogus.Payload = []byte(`{"bogus":1}`)
+	cases := []struct {
+		name string
+		ev   events.Event
+		code fault.Code
+	}{
+		{"a select whose role is grill", selectEv(t, "a", "grill", "commit-r1", "r1"), fault.SelectRole},
+		{"a result.record whose payload does not decode", bogus, fault.PayloadInvalid},
+	}
+	for _, c := range cases {
+		tb := Replay([]events.Event{goalAdd(t, id1, "", "w", gap), placeEv(t, idP1, "line-1", "a", hashA, "failed"), run(t, "r1", "met"), c.ev})
+		if len(tb.RefusedAtReplay) != 1 {
+			t.Fatalf("%s: refused at replay = %+v, want one", c.name, tb.RefusedAtReplay)
+		}
+		e, ok := fault.As(tb.RefusedAtReplay[0].Err)
+		if !ok || e.Guard != fault.NoGuard || e.Code != c.code {
+			t.Errorf("%s: refused with %v, want a form fault with code %s", c.name, tb.RefusedAtReplay[0].Err, c.code)
+		}
 	}
 }
 
