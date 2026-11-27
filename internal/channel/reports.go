@@ -128,8 +128,6 @@ func landText(rep acts.LandReport) string {
 }
 
 // findingText is the report of an act on a finding: each finding it wrote
-// about with its state after the act. The first line names the first
-// findingText is the report of an act on a finding: each finding it wrote
 // about, with its state after the act.
 func findingText(rep acts.FindingReport) string {
 	var b strings.Builder
