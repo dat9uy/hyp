@@ -53,9 +53,12 @@ consequence of the build. So show the owner what the build does beyond its
 examples, as real runs, before the owner reads the code. This covers what the
 owner put in a line and what the owner left out.
 
-1. **Find the cases in the diff.** Read the diff between H0 and the selected
-   commit C. For each changed part, write one case: a command the owner would
-   type that reaches that part. Skip a case that a placed example already
+1. **Find the cases in the diff.** Start from `hyp status G`: under
+   `kept model:` it lists each step and rule of the kept model that C adds or
+   changes against H0, each rule with the words of the line it names. Write
+   one case for each listed step or rule. Then read the diff between H0 and
+   C, and write one case for each other changed part. A case is a command
+   the owner would type that reaches that part. Skip a case that a placed example already
    holds: its verdict is met by rule.
 2. **Write each case as an example folder that you do not place.** Put it
    under the line whose words are nearest to it, or under any line when none

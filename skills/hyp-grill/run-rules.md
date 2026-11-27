@@ -24,7 +24,9 @@ Goal are told the same.
    example's verdict on your uncommitted files. It records nothing and uses no
    run of the budget. The select needs a spec in the commit, so when the
    record branch holds none, write the Goal's model before the first commit you
-   run. Follow the hyp-statechart skill: try each variant the tool
+   run. When the repository keeps a model in `goals/model/`, change it in your
+   commit, and carry into it the draft the grill left in `goals/<G>/specs/`;
+   keep no `.tla` file in the Goal's folder then. Follow the hyp-statechart skill: try each variant the tool
    predicts to meet every example as a patch this way, and report each
    potential Hypothesis that meets every example with the outputs `hyp try`
    printed, never from the model alone. Its patch

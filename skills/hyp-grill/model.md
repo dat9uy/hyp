@@ -6,6 +6,20 @@ skill: a TLA+ spec in `goals/<G>/specs/`, one variant per potential Hypothesis,
 and the chart. The statechart tool, not you, says which rules each variant
 breaks and which examples each variant would meet.
 
+When the repository keeps a model of its machine in `goals/model/`, the
+Goal's model is a change to that kept model, not a new whole model:
+
+- Start from the kept module. Add or change only the steps, prints and rules
+  the Goal's lines touch, and give each rule you add the source of its line
+  as `G:line-N`.
+- Keep the draft with the Goal. Write it as a copy of the kept module in
+  `goals/<G>/specs/`, never in `goals/model/` on the record branch: the
+  record PR merges before any select, and the kept model on a commit must
+  describe that commit's code. The runner carries the change into
+  `goals/model/` in the commit it selects.
+- A repository with no kept model writes a Goal's own whole model in
+  `goals/<G>/specs/`, as before.
+
 - Draft the model after the owner consents to the words and lines and
   before the examples are final, so that the variants the tool reports can
   still give the examples their direction.

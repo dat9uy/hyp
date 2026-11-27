@@ -143,9 +143,11 @@ names, and the event the why names. Make the worktree of step 9 on branch
 10. **Draft the model with `/hyp-statechart`.** When the change moves through
     states, write the Goal's model on the record branch with the
     hyp-statechart skill, which ships with hyp, after the owner consents to
-    the words and lines and before the examples are final. Follow
-    [model.md](model.md) for when to draft it and what to ask the owner about
-    each variant the statechart tool reports.
+    the words and lines and before the examples are final. When the
+    repository keeps a model in `goals/model/`, the Goal's model is a change
+    to it, drafted in the Goal's folder. Follow [model.md](model.md) for when
+    to draft it, where the draft stays, and what to ask the owner about each
+    variant the statechart tool reports.
 
 ## How to grill the examples
 
