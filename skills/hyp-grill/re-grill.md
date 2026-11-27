@@ -1,19 +1,16 @@
 # Re-grill
 
-The re-grill part of hyp-grill. Read it at a stop for the owner, when a
-selected Goal is reviewed, or when a runner reports a placed example that no
-build can meet.
-
-The re-grill reviews a Goal against its lines, from what builds really
-printed, at each stop for the owner: `Selected`, `Two candidates` and
-`Budget used`. A runner's report of an example that no build can meet goes
-straight to "When the Goal must end", stop or no stop. At `Two candidates`
-and `Budget used`, read the table of outputs `hyp status G` prints and each
-output it names, in the trace of the clone that ran it; where this clone's
-trace lacks a cell, run the `hyp try` line `hyp status G` prints for it. At
-`Selected`, read each example's output on the selected commit C with
-`hyp try G LINE/EXAMPLE --commit C`. A met output matters as much as a
-failed one.
+The re-grill part of hyp-grill. It reviews a Goal against its lines, from what
+builds really printed, at each stop for the owner (`Selected`,
+`Two candidates` and `Budget used`) and when a selected Goal is reviewed. A
+runner's report of an example that no build can meet goes straight to "When
+the Goal must end", stop or no stop. At `Two candidates` and `Budget used`,
+read the table of outputs `hyp status G` prints and each output it names, in
+the trace of the clone that ran it; where this clone's trace lacks a cell, run
+the `hyp try` line `hyp status G` prints for it. At `Selected`, read each
+example's output on the selected commit C with
+`hyp try G LINE/EXAMPLE --commit C`. A met output matters as much as a failed
+one.
 
 - **Discover ceilings.** In each met output, look for text the line's words
   forbid that its floors let through. Show the owner the example, its floors
@@ -26,10 +23,11 @@ failed one.
   key. When a build the owner accepts fails only on a floor, the floor is too
   strict, and the Goal must end (below).
 
-Every kept finding is a place, and a place restarts the budget: tell the
-owner this cost before they keep it. At the `Selected` stop the owner first
-unselects; the rows and verdicts stay. A changed `run`, input or Probe is a
-new example key, and a place that changes no example is refused.
+Every ceiling, floor or example the owner keeps is a place, and a place
+restarts the budget: tell the owner this cost before they keep it. At the
+`Selected` stop the owner first unselects; the rows and verdicts stay. A
+changed `run`, input or Probe is a new example key, and a place that changes
+no example is refused.
 
 - **When the owner reports something odd**, ask the owner, as a question, to
   state it in one of two forms, quoted in your question: "On input X, I must

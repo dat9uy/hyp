@@ -26,10 +26,10 @@ Goal are told the same.
    record branch holds none, write the Goal's model before the first commit you
    run. When the repository keeps a model in `goals/model/`, change it in your
    commit, and carry into it the draft the grill left in `goals/<G>/specs/`;
-   keep no `.tla` file in the Goal's folder then. Follow the hyp-statechart skill: try each variant the tool
-   predicts to meet every example as a patch this way, and report each
-   potential Hypothesis that meets every example with the outputs `hyp try`
-   printed, never from the model alone. Its patch
+   keep no `.tla` file in the Goal's folder then. Follow the hyp-statechart
+   skill: try each variant the tool predicts to meet every example as a patch
+   this way, and report each potential Hypothesis that meets every example
+   with the outputs `hyp try` printed, never from the model alone. Its patch
    goes in the PR body as a diff (rule 9).
 3. **A refusal names its guard.** Read the guard's name and fix its cause. Never
    run again to get a different verdict.

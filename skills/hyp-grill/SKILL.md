@@ -21,7 +21,7 @@ line or an example, and every decision that no example checks is reported.
   selected Goal is to be reviewed, or a runner reports a placed example that
   no build can meet: that is the re-grill, in [re-grill.md](re-grill.md).
 - A runner needs the run rules: give it [run-rules.md](run-rules.md), the run
-  part of this skill. It is a part of this skill, not a second skill.
+  part of this skill, not a second skill.
 - Not for: writing or running the build itself. The runner does that.
 
 ## What hyp checks, and what this skill holds
@@ -137,17 +137,18 @@ names, and the event the why names. Make the worktree of step 9 on branch
    Before you show the owner the act that adds the Goal, run `git fetch origin`
    and `git worktree add -b record/<issue> <path> origin/main` (or the default
    branch), with `<issue>` the issue you grill, or a short name of the want when
-   it has no issue (for a Goal already recorded, `record/<G>` instead) and `<path>` a folder beside the repository. The owner runs the act in that path, and every commit of the
-   grill and pick of a Probe writer's commit happens there. hyp gives the Goal
-   its id only when it is added: rename the branch `record/<G>` then.
+   it has no issue, and `<path>` a folder beside the repository. The owner runs
+   the act in that path, and every commit of the grill and pick of a Probe
+   writer's commit happens there. hyp gives the Goal its id only when it is
+   added: rename the branch `record/<G>` then.
 10. **Draft the model with `/hyp-statechart`.** When the change moves through
     states, write the Goal's model on the record branch with the
     hyp-statechart skill, which ships with hyp, after the owner consents to
     the words and lines and before the examples are final. When the
     repository keeps a model in `goals/model/`, the Goal's model is a change
-    to it, drafted in the Goal's folder. Follow [model.md](model.md) for when
-    to draft it, where the draft stays, and what to ask the owner about each
-    variant the statechart tool reports.
+    to it, drafted in the Goal's folder. Follow [model.md](model.md) for
+    where the draft stays and what to ask the owner about each variant the
+    statechart tool reports.
 
 ## How to grill the examples
 
@@ -160,13 +161,10 @@ chooses, you write one example per chosen reading, try each on H0 with
 
 At a stop for the owner (`Selected`, `Two candidates`, `Budget used`), when a
 selected Goal is reviewed, or when a runner reports a placed example that no
-build can meet, follow [re-grill.md](re-grill.md): it reviews the
-Goal from what builds really printed, finds ceilings and loose floors, and
-turns each kept finding into an adjust or a new Goal. At `Selected` it also
-walks the difference: it runs, on H0 and on the selected commit, each case of
-the diff that no placed example holds, and asks the owner to predict each
-output first. It also says when a Goal must end because an example is wrong,
-and what happens to that Goal's builds.
+build can meet, follow [re-grill.md](re-grill.md). It reviews the Goal from
+what builds really printed and turns each change the owner keeps into an
+adjust or a new Goal; at `Selected` it walks the difference with the owner;
+and it says when a Goal must end because an example is wrong.
 
 ## Hand-off
 

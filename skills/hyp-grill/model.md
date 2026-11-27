@@ -18,11 +18,13 @@ Goal's model is a change to that kept model, not a new whole model:
   describe that commit's code. The runner carries the change into
   `goals/model/` in the commit it selects.
 - A repository with no kept model writes a Goal's own whole model in
-  `goals/<G>/specs/`, as before.
+  `goals/<G>/specs/`.
 
-- Draft the model after the owner consents to the words and lines and
-  before the examples are final, so that the variants the tool reports can
-  still give the examples their direction.
+For every model:
+
+- Draft it after the owner consents to the words and lines and before the
+  examples are final, so that the variants the tool reports can still give
+  the examples their direction.
 - The hyp-statechart skill owns how to run the tool, how to try each
   variant as a patch with `hyp try G LINE/EXAMPLE --worktree`, and what
   its part of the hand-off holds. Follow it there; this step adds only
@@ -44,4 +46,4 @@ Goal's model is a change to that kept model, not a new whole model:
   one example meets not every example, so its other tries teach nothing.
 
 At select, hyp refuses a model that has a rule no variant config names, or
-no chart; a spec folder with no model is selected as before.
+no chart; a spec folder with no model passes this check.
