@@ -1,0 +1,16 @@
+-- words --
+hyp spec names none of the parts that were never built: no event kind budget.reset or result.retract, no guard Own Result and no code no-result-to-retract.
+-- run --
+if hyp spec | grep -q '^  budget.reset  '; then echo "budget.reset kind: listed"; else echo "budget.reset kind: absent"; fi; if hyp spec | grep -q '^  result.retract  '; then echo "result.retract kind: listed"; else echo "result.retract kind: absent"; fi; if hyp spec | grep -q '^  Own Result  '; then echo "Own Result guard: listed"; else echo "Own Result guard: absent"; fi; if hyp spec | grep -q 'no-result-to-retract'; then echo "no-result-to-retract code: listed"; else echo "no-result-to-retract code: absent"; fi
+-- floor: contains --
+budget.reset kind: absent
+-- floor: contains --
+result.retract kind: absent
+-- floor: contains --
+Own Result guard: absent
+-- floor: contains --
+no-result-to-retract code: absent
+-- ceiling --
+: listed
+-- findings --
+F-N2NRZV
