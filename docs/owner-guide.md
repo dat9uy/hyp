@@ -55,7 +55,7 @@ A real event, such as a refusal or a run you flag, starts the work. A fact an ag
 
 hyp stops the run and waits for you at a stop:
 
-- **Selected.** Read the PR body, then read the code of the selected commit for its direction. To see what an example prints on that commit, run `hyp try G LINE/EXAMPLE --commit C`.
+- **Selected.** Read the PR body, then read the code of the selected commit for its direction. When the build changes the kept model, `hyp status G` lists each changed step by its command and each changed rule with the words of the line it names; the grill turns each into a case you see as outputs. To see what an example prints on that commit, run `hyp try G LINE/EXAMPLE --commit C`.
 - **Two candidates.** Two builds meet every line. `hyp status G --role owner` prints the outputs of each build and a `hyp select` line for each one. Select the build you want, or have the grill place an example that fails the other.
 - **Budget used.** Three Hypotheses ran and none meets every line. `hyp status G --role owner` prints the outputs table. A cell shows only the start of the first line: open `outputs/<hash>` in the trace of the clone that ran it to read every byte.
 

@@ -118,6 +118,31 @@ Each record has one home. Git holds what every clone must agree on. The trace ho
 | A Result: one line on one build | hyp, from a run | The clone's trace, in `~/.hyp/traces/` |
 | A fact | an agent | A finding, in the clone's trace |
 | A part of what you want, before its lines are known | you | An issue, in your words |
+| The steps, prints and rules of the machine | agents, carried by a selected commit | The kept model, in git (`goals/model/`) |
+
+### How the records relate
+
+A Goal holds its want for one moment. The kept model holds the machine across Goals:
+
+- **The kept model** is the one model of the repository's machine, in `goals/model/`. Its steps are the acts that change state, and its prints are what a read or a refusal shows.
+- **An example is a requirement on a walk.** Its Probe and run section call commands, and each command takes a step of the kept model. The example's floors and ceilings say what those steps must print.
+- **A job is a step or a rule that a line names.** A rule names its line with the source `G:line-N`. Later Goals change the same steps and rules, so a job outlives the Goal that first named it. A rule that names no line describes the build; it is not a want.
+- **A finding names its evidence.** A Goal names the findings its want is about.
+- **At `Selected`, `hyp status G` lists what the build changed in the kept model.** Each changed rule shows the words of the line it names. You see each change as outputs, and read the code for direction.
+
+```mermaid
+flowchart LR
+  F["Finding<br/>a fact and its evidence"] -- "a Goal names it" --> G["Goal<br/>words and lines"]
+  G --> L["Line"]
+  L --> E["Example<br/>a requirement on a walk"]
+  E -- "its commands take" --> S["Steps and prints"]
+  L -- "G:line-N names" --> R["Rule"]
+  subgraph K["Kept model, goals/model/"]
+    S
+    R
+  end
+  K -- "changed by a selected commit" --> ST["hyp status at Selected<br/>lists each change"]
+```
 
 A trace may be lost with its clone. A reader that lacks a cell runs the example again. hyp writes no git state of its own and nothing to GitHub: you and the agents commit, push and write the issues.
 
@@ -160,9 +185,9 @@ From [`create-formal-verification-skill`](https://github.com/cursor/plugins/blob
 
 | In these skills | The rule in hyp |
 |---|---|
-| The model checker gives the verdict on the model. | **Only the examples count at the select.** hyp runs no model checker. The model is in `goals/<G>/specs/`: a `.tla` module, its check config, one variant config per potential Hypothesis, and `chart.mmd`. |
+| The model checker gives the verdict on the model. | **Only the examples count at the select.** hyp runs no model checker. The kept model is in `goals/model/`: a `.tla` module and its check config. A Goal that changes it holds one variant config per potential Hypothesis and `chart.mmd` in `goals/<G>/specs/`. A repository with no kept model keeps a Goal's own whole model there. |
 | Each property fails on a broken variant of the code. | **Each variant is tried as a patch.** The grill writes each variant's build as a patch and runs the examples on it with `hyp try --worktree`. A patch that meets every example goes to the owner with its outputs, and the owner chooses which output is wanted. |
-| The verify skill leaves the check for the next agent. | **The select checks the model.** hyp refuses a select while a rule of the check config has no variant config that names it, or while the folder holds no chart. |
+| The verify skill leaves the check for the next agent. | **The select checks the model.** hyp refuses a select while a rule of a Goal's own model, or a kept rule that the commit adds or changes, has no variant config that names it, or while the folder holds no chart. |
 | The chart goes to the reader. | **The PR body prints the chart.** The report of the select holds each chart of the spec folder in a `mermaid` block. |
 
 ### A grill that leaves a Goal for another session
