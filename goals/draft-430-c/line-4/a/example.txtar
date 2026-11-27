@@ -1,0 +1,13 @@
+-- words --
+hyp spec prints checked at replay: no for the guards Stable and Candidate, which replay checks no part of.
+-- run --
+for g in 'Stable' 'Candidate'; do l=$(hyp spec | grep "^  $g  "); case "$l" in *'checked at replay: yes'*) echo "$g: yes";; *'checked at replay: no'*) echo "$g: no";; *) echo "$g: absent";; esac; done
+-- floor: contains --
+Stable: no
+-- floor: contains --
+Candidate: no
+-- ceiling --
+: yes
+-- findings --
+F-03QTKH
+F-QRHBR5
