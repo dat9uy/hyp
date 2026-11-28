@@ -183,12 +183,12 @@ func TestGuardBudgetSkipsStableRefusal(t *testing.T) {
 type fakeTree struct {
 	hashes  map[string]string
 	writers map[string]string
-	owner   map[string]bool
+	events  map[string][]string
 }
 
 func (f fakeTree) TreeHash(p string) (string, error) { return f.hashes[p], nil }
-func (f fakeTree) Writer(p string) (string, bool, error) {
-	return f.writers[p], f.owner[p], nil
+func (f fakeTree) Writer(p string) (gitread.Writer, error) {
+	return gitread.Writer{Commit: f.writers[p], Events: f.events[p]}, nil
 }
 
 func TestGuardOwnPathRefusesOtherGoal(t *testing.T) {
@@ -211,9 +211,9 @@ func TestGuardOwnPathRefusesOtherGoal(t *testing.T) {
 
 // TestGuardOwnPathReadsTheStore: another Goal's example folder passes when
 // it holds a tree an act of that Goal recorded, and its other files pass when
-// an owner's act wrote them.
+// the commit that wrote them adds the file of an event of that Goal.
 func TestGuardOwnPathReadsTheStore(t *testing.T) {
-	other := &Goal{ID: "G-OTHER00", Lines: []Line{{Key: "line-1"}},
+	other := &Goal{ID: "G-OTHER00", Lines: []Line{{Key: "line-1"}}, seen: []string{"EV1"},
 		Placements: map[string][]Placement{"line-1/a": {{Key: "line-1/a", Hash: "h1"}}}}
 	tb := Tables{Goals: map[string]*Goal{"a": {ID: "G-NXHHVA"}, "b": other}}
 	g := tb.Goals["a"]
@@ -222,14 +222,14 @@ func TestGuardOwnPathReadsTheStore(t *testing.T) {
 	tree := fakeTree{
 		hashes:  map[string]string{"goals/G-OTHER00/line-1/a": "h1"},
 		writers: map[string]string{ex.Path: "w1", spec.Path: "w2"},
-		owner:   map[string]bool{spec.Path: true},
+		events:  map[string][]string{spec.Path: {"EV1"}},
 	}
 	if err := GuardOwnPath(g, tb, tree, []gitread.OwnPath{ex, spec}); err != nil {
 		t.Fatalf("bytes the owner's acts recorded were refused: %v", err)
 	}
 	tree.hashes["goals/G-OTHER00/line-1/a"] = "h2"
 	refusedWith(t, GuardOwnPath(g, tb, tree, []gitread.OwnPath{ex}), "Own path")
-	tree.owner[spec.Path] = false
+	tree.events[spec.Path] = []string{"EV-OF-ANOTHER"}
 	err := GuardOwnPath(g, tb, tree, []gitread.OwnPath{spec})
 	refusedWith(t, err, "Own path")
 	if !testutil.Mentions(err, "w2") {
@@ -241,11 +241,12 @@ func TestGuardOwnPathReadsTheStore(t *testing.T) {
 func TestOwnPathAllowsMainWithOwnerActs(t *testing.T) {
 	r := testutil.NewRepo(t)
 	h0 := r.Commit(t, map[string]string{"main.go": "1"})
-	// the owner's act on another Goal, on main: its spec and an event
-	r.Commit(t, map[string]string{".tree/events/e1": "{}", "goals/G-OTHER00/specs/spec.md": "x"})
+	// the owner's record of an act on another Goal, on main: its spec and its event
+	r.Commit(t, map[string]string{".tree/events/owner/EV1.json": "{}", "goals/G-OTHER00/specs/spec.md": "x"})
 	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "runner")
 	tip := r.Commit(t, map[string]string{"own.go": "1", "goals/G-NXHHVA/specs/spec.md": "s"})
 	g := &Goal{ID: "G-NXHHVA"}
+	tb := Tables{Goals: map[string]*Goal{"a": g, "b": {ID: "G-OTHER00", seen: []string{"EV1"}}}}
 	own, err := gitread.GoalChange(r.Dir, tip, h0)
 	if err != nil {
 		t.Fatal(err)
@@ -253,16 +254,17 @@ func TestOwnPathAllowsMainWithOwnerActs(t *testing.T) {
 	if len(own) != 2 {
 		t.Fatalf("goal change = %v, want the two specs", own)
 	}
-	if err := GuardOwnPath(g, ownGoals, &gitread.CommitTree{Dir: r.Dir, Commit: tip, H0: h0}, own); err != nil {
+	if err := GuardOwnPath(g, tb, &gitread.CommitTree{Dir: r.Dir, Commit: tip, H0: h0}, own); err != nil {
 		t.Fatalf("an owner's act on another Goal refused the runner: %v", err)
 	}
-	// A runner commit that writes another Goal's folder itself is refused.
-	bad := r.Commit(t, map[string]string{"goals/G-OTHER00/specs/spec.md": "y"})
+	// A runner commit that writes another Goal's folder is refused, also
+	// when it writes under .tree/ as an owner's record does.
+	bad := r.Commit(t, map[string]string{"goals/G-OTHER00/specs/spec.md": "y", ".tree/note": "n"})
 	own, err = gitread.GoalChange(r.Dir, bad, h0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = GuardOwnPath(g, ownGoals, &gitread.CommitTree{Dir: r.Dir, Commit: bad, H0: h0}, own)
+	err = GuardOwnPath(g, tb, &gitread.CommitTree{Dir: r.Dir, Commit: bad, H0: h0}, own)
 	refusedWith(t, err, "Own path")
 	if !testutil.Mentions(err, bad) {
 		t.Fatalf("err = %v, want the runner's commit %s", err, bad)

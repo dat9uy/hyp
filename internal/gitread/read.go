@@ -322,33 +322,39 @@ func (c *CommitTree) object(commit, path, kind string) (string, error) {
 	return "", nil
 }
 
-// Writer is the commit that wrote the bytes path holds in the commit: the
-// walk from the commit goes to a parent that holds the same bytes there
-// while one does, and the writer is the commit no parent of which does.
-// owner reports that the writer records an owner's act, as it writes a
-// path under .tree/, or that the walk reached a commit H0's history holds,
-// which no run of the Goal wrote.
-func (c *CommitTree) Writer(path string) (writer string, owner bool, err error) {
+// Writer is who wrote the bytes a path holds in a run's commit.
+type Writer struct {
+	Commit string   // the commit that wrote them
+	Old    bool     // a commit H0's history holds, which no run of the Goal wrote
+	Events []string // the ids of the events whose files Commit adds under .tree/events/
+}
+
+// Writer finds the commit that wrote the bytes path holds in the commit:
+// the walk from the commit goes to a parent that holds the same bytes there
+// while one does, and the writer is the commit no parent of which does, or
+// the first commit H0's history holds.
+func (c *CommitTree) Writer(path string) (Writer, error) {
 	if c.newer == nil {
+		var err error
 		if c.newer, err = revList(c.Dir, c.Commit, "^"+c.H0); err != nil {
-			return "", false, err
+			return Writer{}, err
 		}
 	}
 	blob, err := c.object(c.Commit, path, "blob")
 	if err != nil {
-		return "", false, err
+		return Writer{}, err
 	}
 	cur := c.Commit
 	for {
 		ps, newer := c.newer[cur]
 		if !newer {
-			return cur, true, nil
+			return Writer{Commit: cur, Old: true}, nil
 		}
 		next := ""
 		for _, p := range ps {
 			b, err := c.object(p, path, "blob")
 			if err != nil {
-				return "", false, err
+				return Writer{}, err
 			}
 			if b == blob {
 				next = p
@@ -356,30 +362,34 @@ func (c *CommitTree) Writer(path string) (writer string, owner bool, err error) 
 			}
 		}
 		if next == "" {
-			owner, err := c.writesTree(cur, ps)
-			return cur, owner, err
+			evs, err := c.addedEvents(cur, ps)
+			return Writer{Commit: cur, Events: evs}, err
 		}
 		cur = next
 	}
 }
 
-// writesTree reports whether commit, against its first parent, writes a
-// path under .tree/, where the owner's acts are.
-func (c *CommitTree) writesTree(commit string, parents []string) (bool, error) {
+// addedEvents is the ids of the event files that commit, against its first
+// parent, adds under .tree/events/: each file is named by its event's id.
+func (c *CommitTree) addedEvents(commit string, parents []string) ([]string, error) {
 	if len(parents) == 0 {
-		t, err := c.object(commit, ".tree", "tree")
-		return t != "", err
+		return nil, nil
 	}
-	raw, err := Git(c.Dir, "diff-tree", "-r", "--name-only", "-z", parents[0], commit)
+	raw, err := Git(c.Dir, "diff-tree", "-r", "--name-status", "-z", parents[0], commit)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-	for _, f := range bytes.Split(raw, []byte{0}) {
-		if strings.HasPrefix(string(f), ".tree/") {
-			return true, nil
+	fields := bytes.Split(raw, []byte{0})
+	var ids []string
+	for i := 0; i+1 < len(fields); i += 2 {
+		st, p := string(fields[i]), string(fields[i+1])
+		if st != "A" || !strings.HasPrefix(p, ".tree/events/") || !strings.HasSuffix(p, ".json") {
+			continue
 		}
+		name := p[strings.LastIndex(p, "/")+1:]
+		ids = append(ids, strings.TrimSuffix(name, ".json"))
 	}
-	return false, nil
+	return ids, nil
 }
 
 // changedPath is a path of a diff-tree --name-status output and whether the

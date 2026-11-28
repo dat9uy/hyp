@@ -202,11 +202,10 @@ func GuardLeafOnly(g *Goal, anc Ancestry, commit string) error {
 }
 
 // GoalTree is what Own path reads of a run's commit: the tree hash at a
-// path, and the commit that wrote the bytes at a path and whether that
-// commit records an owner's act.
+// path, and who wrote the bytes at a path.
 type GoalTree interface {
 	TreeHash(path string) (string, error)
-	Writer(path string) (commit string, owner bool, err error)
+	Writer(path string) (gitread.Writer, error)
 }
 
 // GuardOwnPath is the Own path guard. It checks each Goal folder of the
@@ -216,7 +215,8 @@ type GoalTree interface {
 // folder of no Goal. An example folder of X, goals/X/<line>/<example>/,
 // holds a tree whose hash an add or a place of X recorded for that example;
 // any other file of X's folder, such as its spec, was written by a commit
-// that records an owner's act. So it reads what the runner wrote, whatever
+// that adds the file of an event of X the store holds, as the owner's
+// record of an act on X does, or by a commit H0's history holds. So it reads what the runner wrote, whatever
 // branch brought the owner's acts on other Goals. goals/model/, the
 // repository's kept model, is no Goal's folder: a Goal's model is a change
 // to it. A file the commit lacks is no write.
@@ -240,14 +240,14 @@ func GuardOwnPath(g *Goal, t Tables, tree GoalTree, changes []gitread.OwnPath) e
 				continue
 			}
 		}
-		writer, _, err := tree.Writer(c.Path)
+		w, err := tree.Writer(c.Path)
 		if err != nil {
 			return err
 		}
 		if other != nil {
-			return fault.Refuse(fault.GuardOwnPath, fault.OtherGoalPath, writer, c.Path, g.ID)
+			return fault.Refuse(fault.GuardOwnPath, fault.OtherGoalPath, w.Commit, c.Path, g.ID)
 		}
-		return fault.Refuse(fault.GuardOwnPath, fault.NoGoalFolder, writer, c.Path)
+		return fault.Refuse(fault.GuardOwnPath, fault.NoGoalFolder, w.Commit, c.Path)
 	}
 	return nil
 }
@@ -271,8 +271,16 @@ func recordedPath(x *Goal, tree GoalTree, path, inner string) (bool, error) {
 			return false, nil
 		}
 	}
-	_, owner, err := tree.Writer(path)
-	return owner, err
+	w, err := tree.Writer(path)
+	if err != nil || w.Old {
+		return w.Old, err
+	}
+	for _, id := range w.Events {
+		if slices.Contains(x.seen, id) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // countedTrees are the distinct row trees, H0's excluded, of the Goal's

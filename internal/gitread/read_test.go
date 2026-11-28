@@ -336,13 +336,13 @@ func TestGoalChangeReadsTheTrees(t *testing.T) {
 }
 
 // TestWriterFollowsTheBytes: the writer of a path is the commit that wrote
-// the bytes it holds, through a merge that took them in, and it is an owner's
-// act when that commit writes under .tree/.
+// the bytes it holds, through a merge that took them in, with the ids of the
+// event files it adds under .tree/events/.
 func TestWriterFollowsTheBytes(t *testing.T) {
 	r := testutil.NewRepo(t)
 	h0 := r.Commit(t, map[string]string{"main.go": "1"})
-	act := r.Commit(t, map[string]string{".tree/events/e1": "{}", "goals/G-XXXXXX/specs/model.tla": "m"})
-	plain := r.Commit(t, map[string]string{"goals/G-XXXXXX/specs/x.tla": "x"})
+	act := r.Commit(t, map[string]string{".tree/events/owner/EV1.json": "{}", "goals/G-XXXXXX/specs/model.tla": "m"})
+	plain := r.Commit(t, map[string]string{"goals/G-XXXXXX/specs/x.tla": "x", ".tree/note": "n"})
 	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "runner", h0)
 	r.Commit(t, map[string]string{"own.go": "1"})
 	testutil.Git(t, r.Dir, "merge", "-q", "--no-ff", "-m", "take in main", "main")
@@ -351,18 +351,19 @@ func TestWriterFollowsTheBytes(t *testing.T) {
 	tree := &CommitTree{Dir: r.Dir, Commit: tip, H0: h0}
 	for _, c := range []struct {
 		path, writer string
-		owner        bool
+		old          bool
+		events       string
 	}{
-		{"goals/G-XXXXXX/specs/model.tla", act, true},
-		{"goals/G-XXXXXX/specs/x.tla", plain, false},
-		{"main.go", h0, true}, // H0's history holds it
+		{"goals/G-XXXXXX/specs/model.tla", act, false, "EV1"},
+		{"goals/G-XXXXXX/specs/x.tla", plain, false, ""},
+		{"main.go", h0, true, ""}, // H0's history holds it
 	} {
-		w, owner, err := tree.Writer(c.path)
+		w, err := tree.Writer(c.path)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if w != c.writer || owner != c.owner {
-			t.Errorf("writer of %s = %s, %v; want %s, %v", c.path, w, owner, c.writer, c.owner)
+		if w.Commit != c.writer || w.Old != c.old || strings.Join(w.Events, ",") != c.events {
+			t.Errorf("writer of %s = %+v; want %s, old %v, events %q", c.path, w, c.writer, c.old, c.events)
 		}
 	}
 	h, err := tree.TreeHash("goals/G-XXXXXX/specs")
