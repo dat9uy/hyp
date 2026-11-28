@@ -1,0 +1,10 @@
+-- words --
+A guard example reads a file in HOME that changes after the add, so it measures differently on the new base BASE_N and on H0 alike: the run is refused, and the refusal says the environment changed.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run CN GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit 1
+-- floor: contains --
+environment
+-- ceiling --
+ran GOAL line-1 at

@@ -1,0 +1,14 @@
+-- words --
+The runner's commit CP stands on a fix P that keeps a gap example failed but changes which of its floors hold: the run is refused, and the refusal names that example and the base commit BASE_P.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run CP GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit 1
+-- floor: contains --
+line-1/a
+-- floor: contains --
+BASE_P
+-- ceiling --
+ran GOAL line-1 at
+-- ceiling --
+line-1/a met

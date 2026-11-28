@@ -1,0 +1,6 @@
+-- words --
+A runner starts from a main that holds a fix N, which changes nothing the examples measure, and runs its own commit CN on it: the run is recorded.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run CN GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit 0

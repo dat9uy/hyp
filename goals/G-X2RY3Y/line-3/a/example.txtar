@@ -1,0 +1,8 @@
+-- words --
+After the move onto base BASE_V was refused, the runner runs its commit C1 on H0: that run is recorded, and hyp status lists the refused move with BASE_V.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run C1 GOAL/line-1 2>&1; echo "run exit $?"; HYP_ACTOR=owner hyp status GOAL
+-- floor: contains --
+run exit 0
+-- floor: contains --
+BASE_V

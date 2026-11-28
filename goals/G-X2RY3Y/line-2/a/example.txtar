@@ -1,0 +1,12 @@
+-- words --
+The runner's commit CV stands on a fix V that turns a guard example from met to failed: the run is refused, and the refusal names that example and the base commit BASE_V.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run CV GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit 1
+-- floor: contains --
+line-2/a
+-- floor: contains --
+BASE_V
+-- ceiling --
+ran GOAL line-1 at
