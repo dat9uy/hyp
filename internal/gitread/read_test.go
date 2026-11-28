@@ -3,7 +3,6 @@ package gitread
 import (
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -290,9 +289,9 @@ func TestExtractTreeDoesNotOverwriteCaseCollision(t *testing.T) {
 	}
 }
 
-func ownPaths(t *testing.T, r *testutil.Repo, commit, h0 string) []string {
+func goalPaths(t *testing.T, r *testutil.Repo, commit, h0 string) []string {
 	t.Helper()
-	got, err := OwnChange(r.Dir, commit, h0)
+	got, err := GoalChange(r.Dir, commit, h0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -303,45 +302,75 @@ func ownPaths(t *testing.T, r *testutil.Repo, commit, h0 string) []string {
 	return out
 }
 
-func TestOwnChangeStopsAtMergeCommit(t *testing.T) {
+// TestGoalChangeReadsTheTrees: the change is each goals/ file whose entry
+// differs from H0's, whichever branch brought it; a file the commit lacks is
+// marked deleted.
+func TestGoalChangeReadsTheTrees(t *testing.T) {
 	r := testutil.NewRepo(t)
-	h0 := r.Commit(t, map[string]string{"main.go": "1"})
-	// A side branch merges goals/X in; the runner takes that main in by a
-	// merge, then writes its own file.
+	h0 := r.Commit(t, map[string]string{"main.go": "1", "goals/G-OLD000/specs/spec.md": "s"})
 	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "side")
 	r.Commit(t, map[string]string{"goals/G-XXXXXX/line-1/a/example.txtar": "x"})
 	testutil.Git(t, r.Dir, "checkout", "-q", "main")
 	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "runner")
-	first := r.Commit(t, map[string]string{"own1.go": "1"})
+	r.Commit(t, map[string]string{"own1.go": "1"})
 	testutil.Git(t, r.Dir, "merge", "-q", "--no-ff", "-m", "take in main", "side")
-	merge := testutil.Git(t, r.Dir, "rev-parse", "HEAD")
-	tip := r.Commit(t, map[string]string{"own2.go": "2"})
+	testutil.Git(t, r.Dir, "rm", "-q", "goals/G-OLD000/specs/spec.md")
+	tip := r.Commit(t, map[string]string{"goals/G-YYYYYY/specs/spec.md": "s"})
 
-	// Positive: the runner's own file after the merge is in the change.
-	got := ownPaths(t, r, tip, h0)
-	if !slices.Contains(got, "own2.go") {
-		t.Fatalf("own change of tip = %v, want own2.go in it", got)
+	got, err := GoalChange(r.Dir, tip, h0)
+	if err != nil {
+		t.Fatal(err)
 	}
-	// The walk stops at the merge: neither the merged-in folder nor the commit
-	// before the merge is read.
+	want := map[string]bool{"goals/G-OLD000/specs/spec.md": true, "goals/G-XXXXXX/line-1/a/example.txtar": false, "goals/G-YYYYYY/specs/spec.md": false}
+	if len(got) != len(want) {
+		t.Fatalf("goal change = %v, want the paths of %v", got, want)
+	}
 	for _, p := range got {
-		if strings.HasPrefix(p, "goals/") || p == "own1.go" {
-			t.Fatalf("own change of tip = %v, must stop at the merge commit %s", got, merge[:8])
+		if del, ok := want[p.Path]; !ok || del != p.Deleted {
+			t.Fatalf("goal change = %v, want %v (path: deleted)", got, want)
 		}
 	}
-	_ = first
-	// A merge commit with no conflict resolution adds no path of its own: its
-	// change is the runner's first-parent commits, not the merged-in folder.
-	if got := ownPaths(t, r, merge, h0); !slices.Equal(got, []string{"own1.go"}) {
-		t.Fatalf("own change of a clean merge = %v, want only own1.go", got)
+	if got := goalPaths(t, r, h0, h0); len(got) != 0 {
+		t.Fatalf("goal change of H0 = %v", got)
 	}
-	// Without a merge, the walk reaches H0 and collects every commit.
-	if got := ownPaths(t, r, first, h0); !slices.Equal(got, []string{"own1.go"}) {
-		t.Fatalf("own change of first = %v", got)
+}
+
+// TestWriterFollowsTheBytes: the writer of a path is the commit that wrote
+// the bytes it holds, through a merge that took them in, and it is an owner's
+// act when that commit writes under .tree/.
+func TestWriterFollowsTheBytes(t *testing.T) {
+	r := testutil.NewRepo(t)
+	h0 := r.Commit(t, map[string]string{"main.go": "1"})
+	act := r.Commit(t, map[string]string{".tree/events/e1": "{}", "goals/G-XXXXXX/specs/model.tla": "m"})
+	plain := r.Commit(t, map[string]string{"goals/G-XXXXXX/specs/x.tla": "x"})
+	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "runner", h0)
+	r.Commit(t, map[string]string{"own.go": "1"})
+	testutil.Git(t, r.Dir, "merge", "-q", "--no-ff", "-m", "take in main", "main")
+	tip := r.Commit(t, map[string]string{"own.go": "2"})
+
+	tree := &CommitTree{Dir: r.Dir, Commit: tip, H0: h0}
+	for _, c := range []struct {
+		path, writer string
+		owner        bool
+	}{
+		{"goals/G-XXXXXX/specs/model.tla", act, true},
+		{"goals/G-XXXXXX/specs/x.tla", plain, false},
+		{"main.go", h0, true}, // H0's history holds it
+	} {
+		w, owner, err := tree.Writer(c.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if w != c.writer || owner != c.owner {
+			t.Errorf("writer of %s = %s, %v; want %s, %v", c.path, w, owner, c.writer, c.owner)
+		}
 	}
-	// H0 itself has no own change.
-	if got := ownPaths(t, r, h0, h0); len(got) != 0 {
-		t.Fatalf("own change of H0 = %v", got)
+	h, err := tree.TreeHash("goals/G-XXXXXX/specs")
+	if err != nil || h == "" {
+		t.Fatalf("tree hash of a folder = %q, %v", h, err)
+	}
+	if h, err := tree.TreeHash("goals/G-NONE00"); err != nil || h != "" {
+		t.Fatalf("tree hash of no folder = %q, %v; want empty", h, err)
 	}
 }
 

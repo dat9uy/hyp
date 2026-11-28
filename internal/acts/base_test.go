@@ -54,6 +54,27 @@ func TestRunOnANewerBaseThatMeasuresTheSameIsRecorded(t *testing.T) {
 	}
 }
 
+// TestACommitOfNoCodeIsNoBase: a commit newer than H0 that is not the
+// runner's and changes no code, as an owner's act does, is no base: a run
+// that stands on it and on one other fix has that fix as its one base.
+func TestACommitOfNoCodeIsNoBase(t *testing.T) {
+	e := newRunEnv(t)
+	act := e.child(t, e.base, map[string]string{"goals/model/note": "x\n"})
+	n := e.child(t, e.base, map[string]string{"other": "x\n"})
+	cn := e.ownSpec(t, act, "ok")
+	testutil.Git(t, e.root, "checkout", "-q", cn)
+	testutil.Git(t, e.root, "merge", "-q", "--no-ff", "-m", "take in the fix", n)
+	m := strings.TrimSpace(testutil.Git(t, e.root, "rev-parse", "HEAD"))
+	testutil.Git(t, e.root, "checkout", "-q", "main")
+	if _, err := e.run(m); err != nil {
+		t.Fatal(err)
+	}
+	res := e.results(t)
+	if len(res) != 1 || res[0].Refused != "" || res[0].Base == nil || res[0].Base.Commit != n {
+		t.Fatalf("results = %+v, want one Result that names the base %s", res, n)
+	}
+}
+
 func TestRunOnANewerBaseThatMeasuresDifferentlyIsRefused(t *testing.T) {
 	e := newRunEnv(t)
 	v := e.child(t, e.base, map[string]string{"counter": "ok\n"})

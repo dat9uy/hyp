@@ -78,11 +78,11 @@ func Select(o SelectOpts) (SelectReport, error) {
 		if err := guardSpec(root, g, commit); err != nil {
 			return ev, err
 		}
-		changes, err := gitread.OwnChange(root, commit, g.Base)
+		changes, err := gitread.GoalChange(root, commit, g.Base)
 		if err != nil {
 			return ev, err
 		}
-		if err := tables.GuardOwnPath(g, t, changes); err != nil {
+		if err := tables.GuardOwnPath(g, t, &gitread.CommitTree{Dir: root, Commit: commit, H0: g.Base}, changes); err != nil {
 			return ev, err
 		}
 		p := events.Select{Role: o.Role, Commit: commit, RowTree: row.RowTree}
