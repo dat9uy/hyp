@@ -139,7 +139,7 @@ _Avoid_: edit, amend
 `written`, `open`, `selected` or `ended`, calculated and never stored.
 - **written**: a `goal.add` exists, and the Goal is not open. It has an H0 but no verdict on it, so its gap is claimed, not shown. A written Goal may wait; only its H0 ages, and an outdated Goal is replaced by a new Goal.
 - **open**: every line holds a placed example. Each current placement has a live cell on H0's row with the verdict its line's kind needs.
-- **selected**: the Goal has a select. It allows only the owner's `land`, `unselect` and `close`. An unselect puts it back to open.
+- **selected**: the Goal has a select. It allows the owner's `place`, `land`, `unselect` and `close`, and a run on a merge of the selected commit, which is a move. An unselect puts it back to open.
 - **ended**: the owner landed or closed the Goal. It takes no write. A line under `stop:` names the end: `landed:` or `closed:`.
 
 _Avoid_: done, met (as a state word); unmet, placeholder (say written or open); landed as the state word (say ended, and the line names the land)
@@ -216,6 +216,22 @@ _Avoid_: tree, first tree (say H1, or the 1st Hypothesis); attempt; candidate (a
 **H0**:
 The Hypothesis of the Goal's base: the commit `--base` names, and its subject hash. A gap example fails on H0 and a guard example is met on H0. The budget never counts H0.
 _Avoid_: baseline, main
+
+**Base** (of a run):
+The newest commit newer than H0 that a run's commit stands on, found by the walk down its own change. A commit with no such base stands on H0. hyp measures the placed examples on the base, and the Result names it (`hyp spec`, the subject).
+_Avoid_: base for the Goal's `--base` (say H0)
+
+**Move** (onto newer code):
+A run on a commit whose base is newer than H0. hyp records it only when every placed example gives on the base what it gives on H0. Otherwise the Goal stays on its old base, and `hyp status G` lists a refused move for the owner (`hyp spec`, Same base). A run on a merge of the selected commit is a move above the select (`hyp spec`, Selected).
+_Avoid_: rebase, rerun
+
+**Premise**:
+The Goal in work that a Goal added with `--from` rests on. The resting Goal's H0 is the commit its premise is selected or landed on. It lands only after its premise landed on a commit, and on a commit that holds that commit (`hyp spec`, open; `hyp spec`, Landed first). A Goal added with `--from` an ended Goal has no premise.
+_Avoid_: parent, dependency
+
+**Cut** (of a premise):
+The owner's unselect or close of a premise. A Goal that rests on it no longer stands on the cut select, and its Results there count nothing (`hyp spec`, open).
+_Avoid_: cut for a byte block's label (that cut shortens printed bytes)
 
 **Rival**:
 A Hypothesis the runner builds beside another, from the same parent in the Hypothesis tree, to test a different design. It costs the budget like any Hypothesis.
@@ -410,13 +426,14 @@ _Avoid_: check, validation, rule (alone)
 | Adds only | a new version only adds floors or ceilings, its hash is new on its key, and a place changes at least one example |
 | Leaf only | the commit is H0, or no row of the Goal descends from it |
 | Bytes | the commit exists |
+| Same base | a run on a commit whose base is newer than H0 is recorded only when every placed example gives on that base what it gives on H0 |
 | Stable | a repeat on the same bytes gives the same verdict |
 | Budget | the run adds no fourth counted Hypothesis since the boundary |
 | Candidate | the Hypothesis is a candidate; with two or more, the role is owner |
 | New cell | after an unselect, a runner's select follows a run that recorded a new cell; the owner's select does not need one |
 | Spec | the selected commit holds a file under `goals/<G>/specs/`; a model also names every check-config rule in a variant config, and holds a chart |
 | Own path | the commit's own change writes no path of another Goal |
-| Selected | the Goal has no select, for `run` and `select`; no select event holds it, for `place`; it has one, for `unselect` |
+| Selected | the Goal has no select, for `run` and `select`, and no select event holds it, for `place`; a run on a merge of the selected commit, with no select event, moves the Goal from its select and passes; it has one, for `unselect` |
 | Owner lands | the act's role is owner, for a land |
 | Owner closes | the act's role is owner, for a close |
 | Owner unselects | the act's role is owner, for an unselect |
