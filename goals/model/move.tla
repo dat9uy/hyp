@@ -1,10 +1,14 @@
--------------------------------- MODULE base --------------------------------
+-------------------------------- MODULE move --------------------------------
 \* One Goal in work whose rows may stand on code newer than its H0. A commit
 \* is the set of builds it holds: "g" is the Goal's own change, the others are
 \* builds another PR or Goal made. A commit's base is the commit without "g".
 \* H0 is the empty set. Each example measures one of three things on a base:
 \* the same floors and ceilings as on H0, the same verdict with a floor that
 \* differs, or another verdict. The environment can change on its own.
+\* In git, each commit of the Goal's own change writes the Goal's folder; the
+\* base is the newest commit below the run's commit that does not, and a
+\* merge of the selected commit runs above the select. The chart config,
+\* move-chart.cfg, bounds the states with Small so the chart stays readable.
 
 EXTENDS Naturals, FiniteSets
 
@@ -48,7 +52,7 @@ Init == /\ rows = {}
 
 Above(c) == sel # {} /\ sel \subseteq c /\ sel # c
 
-Accept(c) ==
+MoveAccept(c) ==
     LET b == Base(c) IN
     /\ rows' = rows \cup {c}
     /\ bases' = bases \cup {b}
@@ -57,13 +61,13 @@ Accept(c) ==
     /\ prNamesBase' = ~PrOmitsBase
     /\ UNCHANGED <<refused, inWork, env, belowRefused>>
 
-Refuse(c, why) ==
+MoveRefuse(c, why) ==
     /\ refused' = refused \cup {[base |-> Base(c), why |-> why, envChanged |-> env = "changed"]}
     /\ inWork' = IF RefusalStopsGoal THEN FALSE ELSE inWork
     /\ UNCHANGED <<rows, sel, bases, used, env, prNamesBase, belowRefused>>
 
 \* command: hyp run
-Run(c) ==
+MoveRun(c) ==
     LET b == Base(c) IN
     /\ inWork
     /\ used < Budget
@@ -73,21 +77,21 @@ Run(c) ==
          THEN /\ belowRefused' = TRUE
               /\ UNCHANGED <<rows, sel, bases, refused, used, inWork, env, prNamesBase>>
        ELSE IF b \in bases \/ NoBaseCheck
-         THEN Accept(c)
+         THEN MoveAccept(c)
        ELSE IF RefuseNewer
-         THEN Refuse(c, "code")
+         THEN MoveRefuse(c, "code")
        ELSE IF \E e \in E : Differs(e, b)
          THEN IF env = "changed" /\ ~NoEnvRecheck
-                THEN Refuse(c, "environment")
-                ELSE Refuse(c, "code")
-       ELSE Accept(c)
+                THEN MoveRefuse(c, "environment")
+                ELSE MoveRefuse(c, "code")
+       ELSE MoveAccept(c)
 
 \* The environment changes: no command takes this step.
 EnvChange == /\ env = "same"
              /\ env' = "changed"
              /\ UNCHANGED <<rows, sel, bases, refused, used, inWork, prNamesBase, belowRefused>>
 
-Next == (\E c \in Commits : Run(c)) \/ EnvChange
+Next == (\E c \in Commits : MoveRun(c)) \/ EnvChange
 
 Spec == Init /\ [][Next]_vars
 

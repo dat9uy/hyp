@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/dat9uy/hyp/internal/fault"
@@ -44,6 +45,39 @@ func Compare(output []byte, ex Example) Verdict {
 	}
 	return Met
 }
+
+// Mark is one floor or ceiling of an example and whether it holds on an
+// output: a floor holds when the output contains or equals its text, a
+// ceiling holds when the output does not contain its text.
+type Mark struct {
+	Name  string // "floor N" or "ceiling N", counted from 1 in the order of the file
+	Holds bool
+}
+
+// Marks is each floor of ex, then each ceiling, with whether it holds on
+// output. Two outputs measure an example the same when their marks are the
+// same: the verdict follows from the marks.
+func Marks(output []byte, ex Example) []Mark {
+	var out []Mark
+	for i, f := range ex.Floors {
+		holds := false
+		switch f.Op {
+		case OpContains:
+			holds = bytes.Contains(output, []byte(f.Text))
+		case OpEquals:
+			holds = bytes.Equal(output, []byte(f.Text))
+		}
+		out = append(out, Mark{Name: "floor " + strconv.Itoa(i+1), Holds: holds})
+	}
+	for i, c := range ex.Ceilings {
+		out = append(out, Mark{Name: "ceiling " + strconv.Itoa(i+1), Holds: !bytes.Contains(output, []byte(c))})
+	}
+	return out
+}
+
+// SameMarks reports whether a and b, the marks of one example on two
+// outputs, are the same.
+func SameMarks(a, b []Mark) bool { return slices.Equal(a, b) }
 
 // ExitLine is the last line a Probe prints, "exit N". hyp cuts it off the
 // Probe's stdout before it compares, so the output never ends with it.

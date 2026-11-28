@@ -257,8 +257,10 @@ func TestRunAfterSelectRefusedBySelectedState(t *testing.T) {
 
 func TestRunRefusesAncestorRow(t *testing.T) {
 	e := newRunEnv(t)
-	c1 := e.leaf(t, e.base, "ok")
-	c2 := e.leaf(t, c1, "ok2")
+	// each commit of the runner's own change writes the Goal's folder, so
+	// c1 is no base of c2
+	c1 := e.own(t, e.base, "ok")
+	c2 := e.own(t, c1, "ok2")
 	if _, err := e.run(c2); err != nil {
 		t.Fatalf("a leaf was refused: %v", err)
 	}

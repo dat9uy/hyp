@@ -182,11 +182,13 @@ type Result struct {
 	Actor     string
 	Role      string
 	Time      string
-	Refused   string // empty, or "Stable"
+	Refused   string // empty, "Stable" or "Same base"
 	Differing []string
 	Cells     []events.ExampleCell
 	Unstable  []UnstableCell     // set only on a Result refused by Stable
 	Read      *events.CommitRead // what its run read of git; nil on a Result recorded before runs carried it
+	Base      *events.BaseRead   // the base newer than H0 its run measured; nil when it stood on H0
+	Move      string             // the selected commit its run, on a merge of it, moved from
 	epoch     int                // the Goal's epoch when it was recorded
 	wasH0     bool               // its row tree was H0's when it was recorded
 }
@@ -558,6 +560,13 @@ func GuardNotSelected(g *Goal) error {
 	return nil
 }
 
+// IsMove reports whether a run that names move, the selected commit its
+// commit merges, moves g from its select: g shows selected on move by this
+// clone's Results, with no select event.
+func IsMove(g *Goal, move string) bool {
+	return move != "" && g.State == StateSelected && g.Select != nil && g.Select.Calculated && g.Select.Commit == move
+}
+
 // GuardOwnerPlaces refuses a place by any role but the owner: a place is
 // an owner act, and git holds only the owner's acts.
 func GuardOwnerPlaces(role string) error {
@@ -871,9 +880,9 @@ func replayResult(t *Tables, ev events.Event, payload any, refuse func(events.Ev
 	r := &Result{
 		ID: ev.ID, Line: p.Line, Commit: p.Commit, RowTree: p.RowTree, Actor: ev.Actor, Role: p.Role,
 		Time: ev.TS, Refused: p.Refused, Differing: p.Differing, Cells: p.Cells, Read: p.Read, epoch: g.epoch,
-		wasH0: p.RowTree == g.BaseTree,
+		wasH0: p.RowTree == g.BaseTree, Base: p.Base, Move: p.Move,
 	}
-	if p.Refused != "" {
+	if p.Refused == RefusedStable {
 		r.Unstable = g.unstableAt(*p)
 	}
 	g.Results = append(g.Results, r)

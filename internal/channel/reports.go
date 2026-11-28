@@ -277,7 +277,40 @@ func prBodyOf(root string, g *tables.Goal, view *acts.GoalView) string {
 	}
 	prCharts(&b, root, g, view)
 	fmt.Fprintf(&b, "\nselected commit: %s\nselected row: %s\n", g.Select.Commit, tree)
+	prBase(&b, g)
 	return b.String()
+}
+
+// prBase names the base the select was measured against, as the Result of
+// the selected commit in this clone's trace recorded it: H0, or the commit
+// newer than H0 that the selected commit's own change stands on, with each
+// placed example's verdict there and on the selected commit. A clone with
+// no Result on the selected commit, and an ended Goal, print nothing.
+func prBase(b *strings.Builder, g *tables.Goal) {
+	if g.State == tables.StateEnded {
+		return // an ended Goal reads the same in every clone
+	}
+	base, ok := g.BaseOf(g.Select.Commit)
+	if !ok {
+		return
+	}
+	verdict := func(hash, key string) string {
+		if base == nil {
+			return g.H0Verdict(key)
+		}
+		if tc, ok := g.TraceCell(hash, base.RowTree); ok {
+			return tc.Verdict
+		}
+		return "not in this clone's trace"
+	}
+	if base == nil {
+		fmt.Fprintf(b, "base: %s, H0\n", g.Base)
+	} else {
+		fmt.Fprintf(b, "base: %s, newer than H0 %s; each example on it measures as on H0\n", base.Commit, g.Base)
+	}
+	for _, p := range g.Placed() {
+		fmt.Fprintf(b, "  %s: %s on the base, %s on the selected commit\n", p.Key, verdict(p.Hash, p.Key), g.Verdict(p.Key, g.Select.RowTree))
+	}
 }
 
 // tryLine is the ready hyp try line that runs the cell of key again in this

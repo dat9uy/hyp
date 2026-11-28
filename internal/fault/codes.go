@@ -59,6 +59,8 @@ const (
 	ExamplesChanged  Code = "examples-changed"   // no values
 	ExampleChanged   Code = "example-changed"    // key, from hash, to hash
 	VerdictsDiffered Code = "verdicts-differed"  // acts.StableFacts
+	BaseDiffers      Code = "base-differs"       // acts.BaseFacts
+	TwoBases         Code = "two-bases"          // commit, Goal, bases
 	SelectNotInLog   Code = "select-not-in-log"  // Goal
 	NoResultOnRow    Code = "no-result-on-row"   // row tree
 	NoSpec           Code = "no-spec"            // commit, folder
