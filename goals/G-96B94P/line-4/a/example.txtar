@@ -1,0 +1,8 @@
+-- words --
+3a opens it: skills/hyp-grill/SKILL.md names draw_issue.py and says the grill opens the issue itself.
+-- run --
+tr '\n' ' ' < skills/hyp-grill/SKILL.md | tr -s ' ' | grep -o -e 'draw_issue.py' -e 'opens the issue' | sort -u
+-- floor: contains --
+draw_issue.py
+-- floor: contains --
+opens the issue

@@ -1,0 +1,37 @@
+#!/bin/sh
+# Make the subject a git repository, build its hyp, make one Goal closed with
+# no select, put its id in the example's body.md, then run the example.
+fail() { echo "setup failed: $1" >&2; exit 3; }
+tools=$(mktemp -d) || fail "mktemp"
+git init -q . >&2 || fail "git init"
+git config user.name probe || fail "git config name"
+git config user.email probe@example.invalid || fail "git config email"
+git add -A >/dev/null 2>&1 || fail "git add"
+git commit -q -m subject >/dev/null 2>&1 || fail "git commit"
+CGO_ENABLED=0 go build -o "$tools/hyp" ./cmd/hyp >&2 || fail "go build"
+PATH="$tools:$PATH"
+export PATH
+HYP_ACTOR=owner
+HYP_ROLE=owner
+export HYP_ACTOR HYP_ROLE
+base=$(git rev-parse HEAD) || fail "rev-parse"
+out=$(hyp add goal --base "$base" --words 'probe setup Goal' --line 'gap:probe setup line' 2>&1) || fail "add goal: $out"
+id=$(printf '%s\n' "$out" | grep -oE 'G-[A-Z0-9]+' | head -n 1)
+[ -n "$id" ] || fail "no Goal id in: $out"
+hyp close "$id" --why 'probe setup: closed with no select' >&2 || fail "close"
+st=$(hyp status "$id" 2>&1) || fail "status: $st"
+printf '%s\n' "$st" | grep -q 'ended' || fail "status of $id lacks ended"
+printf '%s\n' "$st" | grep -q 'closed:' || fail "status of $id lacks closed:"
+git add -A >/dev/null 2>&1 || fail "git add store"
+git commit -q -m 'probe setup' >/dev/null 2>&1 || fail "git commit store"
+body="$HYP_EXAMPLE/input/body.md"
+sed -E "s/(^|[^A-Za-z0-9-])G-CLOSED($|[^A-Za-z0-9-])/\\1$id\\2/g" "$body" >"$body.new" || fail "sed"
+mv "$body.new" "$body" || fail "mv body"
+tmp=$(mktemp) || fail "mktemp"
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"
+rm -rf "$tools"

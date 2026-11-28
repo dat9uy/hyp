@@ -1,0 +1,13 @@
+-- words --
+2e ended with no select: the holder Goal was closed with no select, so the check gives holder-ended for that item and exits 1.
+-- input/body.md --
+| Item | Tag | Holder |
+|---|---|---|
+| demo-I2 | Proposed | G-CLOSED line-1 |
+-- run --
+python3 skills/hyp-grill/scripts/check_holders.py "$HYP_EXAMPLE/input/body.md"
+echo "exit code: $?"
+-- floor: contains --
+holder-ended demo-I2
+-- floor: contains --
+exit code: 1

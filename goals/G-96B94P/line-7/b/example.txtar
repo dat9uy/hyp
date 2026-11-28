@@ -1,0 +1,12 @@
+-- words --
+5b re-grill: re-grill.md says the orchestrator records a partial fix as a finding at Selected, whatever the owner answers.
+-- run --
+tr '\n' ' ' < skills/hyp-grill/re-grill.md | tr -s ' ' | grep -o -E 'partial fix.{0,250}'
+-- floor: contains --
+partial fix
+-- floor: contains --
+finding
+-- floor: contains --
+Selected
+-- floor: contains --
+whatever the owner answers

@@ -1,0 +1,8 @@
+-- words --
+6b with no issue: hyp-grill's text says that with no tracking issue each remainder is a finding only.
+-- run --
+cat skills/hyp-grill/*.md | tr '\n' ' ' | tr -s ' ' | grep -o -E 'no tracking issue.{0,250}'
+-- floor: contains --
+no tracking issue
+-- floor: contains --
+a finding only

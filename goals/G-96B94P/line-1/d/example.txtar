@@ -1,0 +1,42 @@
+-- words --
+1d broken page: a page with a duplicate id draws no body, names id-duplicate and exits 1.
+-- input/page.json --
+{
+ "id": "demo",
+ "title": "Demo page",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "A runner who branches from main meets the refusal.",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Hypothetical",
+   "date": "2026-11-28",
+   "section": 3,
+   "text": "Two Goals rest on one premise."
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Owner said",
+   "date": "2026-11-28",
+   "section": 3,
+   "text": "Keep the words of the owner."
+  }
+ ]
+}
+-- run --
+python3 skills/hyp-grill/scripts/draw_issue.py "$HYP_EXAMPLE/input/page.json" 2>&1
+echo "exit code: $?"
+-- floor: contains --
+id-duplicate
+-- floor: contains --
+exit code: 1
+-- ceiling --
+| Item | Tag | Holder |

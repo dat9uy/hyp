@@ -1,0 +1,25 @@
+-- words --
+1b holder table: the body holds a holder table, | Item | Tag | Holder |, with one row for each item and its holder empty.
+-- input/page.json --
+{"id": "demo", "title": "Demo page",
+ "items": [
+  {"id": "demo-I1", "tag": "Proposed", "date": "2026-11-28", "section": 1,
+   "text": "A runner who branches from main meets the refusal.", "findings": ["F-1NG9VB"]},
+  {"id": "demo-I2", "tag": "Hypothetical", "date": "2026-11-28", "section": 3,
+   "text": "Two Goals rest on one premise."},
+  {"id": "demo-I3", "tag": "Owner said", "date": "2026-11-28", "section": 3,
+   "text": "Keep the words of the owner."}
+ ]}
+-- run --
+python3 skills/hyp-grill/scripts/draw_issue.py "$HYP_EXAMPLE/input/page.json"
+echo "exit code: $?"
+-- floor: contains --
+| Item | Tag | Holder |
+-- floor: contains --
+| demo-I1 | Proposed |
+-- floor: contains --
+| demo-I2 | Hypothetical |
+-- floor: contains --
+| demo-I3 | Owner said |
+-- floor: contains --
+exit code: 0

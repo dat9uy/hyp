@@ -1,0 +1,10 @@
+-- words --
+3b check at split and done: skills/hyp-grill/SKILL.md names check_holders.py and says it runs at every split and before any report of done.
+-- run --
+tr '\n' ' ' < skills/hyp-grill/SKILL.md | tr -s ' ' | grep -o -e 'check_holders.py' -e 'every split' -e 'before any report of done' | sort -u
+-- floor: contains --
+check_holders.py
+-- floor: contains --
+every split
+-- floor: contains --
+before any report of done
