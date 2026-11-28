@@ -109,6 +109,18 @@ _Avoid_: objective, epic, issue
 A GitHub issue that tracks the process toward a want, not the want itself: the event that started it, the owner's decisions in the owner's words, the split into Goals, and where each part stands. A Goal holds the want; the issue holds what happens before and around that snapshot. One issue may track several Goals, each named "Part of #N". It closes when each want it tracks is held by an added Goal, or by a new issue that its closing comment names. hyp neither reads nor writes issues.
 _Avoid_: ticket, backlog item
 
+**Rethink page**:
+A local page that `skills/hyp-rethinking` draws from a data file of items, each with an id, one tag and a text. It is scratch: no record cites it. The grill opens an issue from it with `skills/hyp-grill/scripts/draw_issue.py`, and that issue holds every item.
+_Avoid_: report, design page (as a record)
+
+**Holder** (of an item):
+The record that holds one item of a rethink page, written in the holder table of the issue drawn from the page: a Goal line, an example drafted for a line, a finding, the owner's answer, or the owner's close. Each tag has its kind of holder. `skills/hyp-grill/scripts/check_holders.py` lists each item with no holder, or with a holder of the wrong kind, unknown to the store or ended with no select.
+_Avoid_: owner (of an item), assignee
+
+**Orchestrator**:
+The session that starts a Goal's runner and reports to the owner. It is not a role of hyp: it acts as the grill or the runner, and at `Selected` it records each partial fix the walk or the runner shows as a finding.
+_Avoid_: controller, manager
+
 **Words** (of a Goal):
 The owner's one sentence that states the Goal, given as `--words TEXT`.
 

@@ -92,6 +92,15 @@ owner put in a line and what the owner left out.
    in the code that no case showed, record it with `hyp finding add`, with the
    case that would have shown it as its evidence.
 
+### A partial fix at `Selected`
+
+A partial fix, or a part the build left out, that the walk or the runner's
+report shows is recorded as a finding at `Selected` by the orchestrator, the
+session that starts the runner and reports to the owner, whatever the owner
+answers: keep the build, unselect it or end the Goal. A PR's notes alone do
+not hold it. Record it with `hyp finding add`, and name it in the tracking
+issue's holder table when the Goal has one.
+
 ## When the Goal must end
 
 A placed example cannot be repaired: a version only adds floors and
