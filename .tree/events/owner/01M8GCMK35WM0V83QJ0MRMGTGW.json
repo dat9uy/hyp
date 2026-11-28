@@ -1,0 +1,1 @@
+{"v":2,"id":"01M8GCMK35WM0V83QJ0MRMGTGW","ts":"2026-11-28T06:14:18.469097Z","actor":"owner","type":"unselect","node":"01M8GAA55QP16BT738FHFPFKYT","payload":{"role":"owner","commit":"979a78a8dc571c9a98752486349b139a5c4e2163","row_tree":"ac2053390fc9d03141b540b00815614c1a847db4"},"why":"line-2/b: a place on B measures a new example on B's --base, not on A's select C1"}

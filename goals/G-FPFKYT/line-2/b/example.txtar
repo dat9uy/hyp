@@ -1,0 +1,8 @@
+-- words --
+B is open on A's select C1, and the owner places on B a new example that fails on C1 but is met on B's --base: the place is accepted, because B's H0 is C1.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp place GOAL_B --draft y 2>&1; echo "place exit $?"
+-- floor: contains --
+place exit 0
+-- ceiling --
+no Goal
