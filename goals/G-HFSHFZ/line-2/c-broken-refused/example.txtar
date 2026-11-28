@@ -1,0 +1,79 @@
+-- words --
+check_items.py refuses a diagram whose edge names a node X that the diagram does not declare, with exit 1 and a code at diagrams[0].edges[0].
+-- input/page.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "own change",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "text": "A runner who branches from main after another Goal is added meets the refusal.",
+   "section": 1,
+   "source": "F-1NG9VB",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "text": "H0 is the commit a Goal starts from.",
+   "section": 2,
+   "source": "docs/glossary.md"
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "runner",
+   "label": "Runner"
+  }
+ ],
+ "diagrams": [
+  {
+   "id": "commits",
+   "section": 1,
+   "caption": "The fix on a branch from main",
+   "nodes": [
+    {
+     "id": "h0",
+     "label": "H0"
+    },
+    {
+     "id": "a",
+     "label": "add A"
+    },
+    {
+     "id": "b",
+     "label": "add B"
+    },
+    {
+     "id": "fix",
+     "label": "fix"
+    }
+   ],
+   "edges": [
+    {
+     "from": "x",
+     "to": "a"
+    }
+   ]
+  }
+ ]
+}
+-- run --
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/page.json"
+echo "exit code: $?"
+-- floor: contains --
+diagrams[0].edges[0]
+-- floor: contains --
+exit code: 1
+-- ceiling --
+items[
