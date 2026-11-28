@@ -88,7 +88,11 @@ full: the owner may read only the last message, not the status before it.
      refused on H0 that no build may change, such as `hyp finding add` in a
      repository with no store, gives the same failed verdict on every build.
      When a setup act hides its output (`>/dev/null 2>&1`), run it once by hand
-     on H0 and read its exit.
+     on H0 and read its exit. When the Goal's own gap is what makes a setup
+     act possible, such as a line that allows an act H0 refuses, that act
+     fails on H0 by design: the Probe tolerates its refusal, prints it to
+     stderr and goes on, and the hand-off names each example that fails on
+     H0 for that reason.
    - **Add the H0 ceilings.** A gap example's H0 output shows the behaviour
      the line wants gone: text of it that a half-fixed build could still print
      becomes a ceiling, copied byte for byte. Name each such ceiling in the
@@ -112,8 +116,8 @@ full: the owner may read only the last message, not the status before it.
      example and each folder it cannot read, with the guard that refused it.
      Fix every cause and draft the add again. A new example of an open Goal
      is the owner's act too: the place line `hyp status G --role owner`
-     prints, with `--draft NAME` naming the draft that holds the set, under
-     the same rules. A placed example stays in the set: never remove its
+     prints, with `--draft NAME` naming a draft that holds the whole set,
+     every placed example and the new one, under the same rules. A placed example stays in the set: never remove its
      folder.
 8. **Stop when the Goal has enough.** The Goal has enough when every line
    holds an example that gives its line's verdict on H0 (`hyp status G` shows
