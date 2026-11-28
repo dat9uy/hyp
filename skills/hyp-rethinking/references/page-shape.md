@@ -24,7 +24,7 @@ object with these fields, and no others:
 
 | Field | Holds |
 |---|---|
-| `id` | The page id, such as `finding-key`. Every item id starts with it and a dash. |
+| `id` | The page id, such as `finding-key`. Every item id starts with it and a dash. The id stays the same when the page is rewritten, so an item id and the issue drawn from the page still name the same item. |
 | `title` | Optional. The page title. |
 | `concept` | Optional. The concept's name, as the diagrams label it. |
 | `items` | Every claim of the page, in reading order. |

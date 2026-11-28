@@ -163,6 +163,8 @@ read `references/section-grill.md`.
   or walk a real event through it, one question at a time, recording only the owner's
   words. Read it for a section grill or an event walk.
 - `references/public-doc-voice.md`: the voice every sentence of the page is written in.
+- The data file, its checker and its drawing take their ideas from ak-render (MIT). No
+  code is copied from it, and no AgentKit tool is needed.
 - `scripts/check_items.py <page>.json`: refuses a data file with exit 1 and names each
   defect by its code and path: an item with no id, a duplicate id, an id that does not
   start with the page id, an unknown tag, an item with no date or text, an unknown field,

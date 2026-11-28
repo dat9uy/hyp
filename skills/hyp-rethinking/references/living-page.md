@@ -21,6 +21,9 @@ after item, and the page must say at every moment what is decided and what is pr
 - **Open → decided** only by the owner's answer to that question. When a decision on
   another item seems to imply an answer, keep the question Open and show the
   implication as Proposed, beside it.
+- **The page keeps its id.** A rewrite of the page, of any size, keeps the page id, so
+  every item id that starts with it stays valid. A new concept gets a new page with a
+  new id.
 - **A replaced item keeps its id.** When the owner replaces an item, a proposal or the
   owner's own words, write the new words and the date of the owner's answer into that
   item. The item keeps its id and shows only its new words and date. Add no "replaced"
