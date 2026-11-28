@@ -13,7 +13,7 @@ PAGE = {'id': 'demo', 'title': 'Demo page', 'items': [
     {'id': 'demo-I2', 'tag': 'Hypothetical', 'date': '2026-11-28', 'section': 3,
      'text': 'Two Goals | one premise.'},
     {'id': 'demo-I3', 'tag': 'Fact', 'date': '2026-11-28', 'text': 'No section.'},
-]}
+], 'diagrams': [{'id': 'problem', 'section': 0, 'nodes': [{'id': 'a', 'label': 'A'}]}]}
 
 
 def run(script, data, suffix):
