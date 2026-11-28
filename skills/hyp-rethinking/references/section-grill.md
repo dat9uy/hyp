@@ -11,7 +11,7 @@ all apply here.
 ## Before the first question
 
 - Read the whole page, then the named section closely. List its Open items and
-  the §13 rows (or the page's open-questions list) that name the section.
+  the open questions of section 10 that name the section.
 - Back up the page's data file, named for the grill:
   `<page>.json.bak-before-grill-<section>`.
 - Do not read code or skills from an older version of the system to answer a

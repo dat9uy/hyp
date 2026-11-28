@@ -21,6 +21,9 @@ after item, and the page must say at every moment what is decided and what is pr
 - **Open → decided** only by the owner's answer to that question. When a decision on
   another item seems to imply an answer, keep the question Open and show the
   implication as Proposed, beside it.
+- **The page keeps its id.** A rewrite of the page, of any size, keeps the page id, so
+  every item id that starts with it stays valid. A new concept gets a new page with a
+  new id.
 - **A replaced item keeps its id.** When the owner replaces an item, a proposal or the
   owner's own words, write the new words and the date of the owner's answer into that
   item. The item keeps its id and shows only its new words and date. Add no "replaced"
@@ -55,10 +58,8 @@ contradicts the decision.
 After each set of edits, run from the skill folder:
 
 1. `python3 scripts/check_items.py <page>.json`. It names each defect of the data by its
-   code and path: `id-missing`, `id-duplicate`, `id-prefix`, `tag-unknown`,
-   `date-missing`, `text-missing`, `section-unknown`, `impact-missing`,
-   `purpose-not-fact`, `source-missing`, `party-unknown`, `node-unknown`,
-   `field-unknown` and `shape`. Fix each one in the data file until it exits 0.
+   code and path, as the script's header lists them. Fix each one in the data file
+   until it exits 0.
 2. `python3 scripts/draw_page.py <page>.json <page>.html`, which draws the page again.
 3. `python3 scripts/check_page.py <page>.html`. Fix what it reports in the data file,
    then draw again. It checks four things that went wrong by hand:

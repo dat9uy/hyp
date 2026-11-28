@@ -2,7 +2,7 @@
 name: hyp-rethinking
 description: "Rethink one concept of a system from scratch: show where the concept breaks, set aside the rules built on it, state what any replacement must keep, and give three different ways to build it, each tested against the real event. Use when the owner says a concept feels wrong, asks to go back to square one, to remove the existing behaviour and suggest ways from scratch, rejects advice that only repairs the current mechanism, or asks what a loose word in the model means. Also use to update an existing rethink or proposal page as the owner decides its items, or to grill the owner on one section of such a page. Not for a new feature that has no existing concept to rethink."
 metadata:
-  version: 2.0.0
+  version: 2.1.0
 ---
 
 # Rethinking
@@ -32,6 +32,11 @@ The owner decides. This skill proposes, and it records the owner's decisions onl
 own page, as "Owner said" tags. It never edits the system or writes to the project's own
 records. The page stays marked "Proposal, not decided" until the owner records the
 decision elsewhere. Write only the page and its files.
+
+The page is scratch: no record cites it. When the owner wants its items built, hand
+the data file to the hyp-grill skill, which draws an issue from it with every item and
+a holder table, and checks that each item has a holder. Do not copy items into an
+issue by hand: a copy made from memory drops items unseen.
 
 ## How to work
 
@@ -163,11 +168,11 @@ read `references/section-grill.md`.
   or walk a real event through it, one question at a time, recording only the owner's
   words. Read it for a section grill or an event walk.
 - `references/public-doc-voice.md`: the voice every sentence of the page is written in.
+- The data file, its checker and its drawing take their ideas from ak-render (MIT). No
+  code is copied from it, and no AgentKit tool is needed.
 - `scripts/check_items.py <page>.json`: refuses a data file with exit 1 and names each
-  defect by its code and path: an item with no id, a duplicate id, an id that does not
-  start with the page id, an unknown tag, an item with no date or text, an unknown field,
-  a section 1 with no impact item, an item of section 2 that is not a Fact with a source,
-  and a diagram edge to an undeclared node. Exit 2 when the file cannot be read.
+  defect by its code and path; the codes are listed in the script's header. Exit 2 when
+  the file cannot be read.
 - `scripts/draw_page.py <page>.json <page>.html`: draws the whole page from its data
   file. Exit 1 when the data has a defect, 2 when a file cannot be read or written.
 - `scripts/check_page.py <page>`: reports headings out of order, references to a missing
