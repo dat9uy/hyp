@@ -1035,7 +1035,7 @@ func GuardEvidence(g *Goal, p events.Land) error {
 // not written, and the row of commit, rowTree, is not one an unselect
 // rejected. The land act checks it before it runs a Probe.
 func GuardEvidenceRow(g *Goal, commit, rowTree string) error {
-	if g.State == StateWritten {
+	if g.State == StateWritten && !g.openAtReplay() {
 		return fault.Refuse(fault.GuardEvidence, fault.LandNotOpen, g.ID, g.State)
 	}
 	if g.Rejected[rowTree] {

@@ -134,7 +134,10 @@ var Commands = []Command{
                                          set only when every example agrees with
                                          its line and each finding G names is
                                          named by an example, and otherwise
-                                         places none and names each cause
+                                         places none and names each cause;
+                                         a Goal that rests on a premise
+                                         selected or landed on a commit has
+                                         that commit as its H0
 `},
 	{Name: "run", Roles: []string{"runner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardBytes, fault.GuardOpen,

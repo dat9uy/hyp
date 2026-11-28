@@ -183,3 +183,23 @@ func GuardLandedFirst(t Tables, g *Goal, commit string, holds func(premise strin
 	}
 	return nil
 }
+
+// UseRestBases gives each Goal of t that rests on a premise the H0 the
+// calculated tables c show it standing on: the commit its premise is
+// selected or landed on, when there is one. A Goal whose premise has no such
+// commit keeps the base its goal.add names.
+func (t Tables) UseRestBases(c Tables) {
+	for id, g := range t.Goals {
+		cg := c.Goals[id]
+		if !g.Rests || cg == nil || cg.Rest == nil || cg.Rest.Commit == "" {
+			continue
+		}
+		g.Base, g.BaseTree = cg.Rest.Commit, cg.Rest.RowTree
+	}
+}
+
+// openAtReplay reports whether replay lets an act of g pass Open: replay
+// cannot see the select of the premise a Goal rests on, which a clone's
+// Results calculate, so for such a Goal the act checked Open where the
+// Goal stands.
+func (g *Goal) openAtReplay() bool { return g.Rests && g.Rest == nil }

@@ -24,6 +24,11 @@ const (
 	// selectable candidate; select, unselect and land read it, and so does
 	// every read that prints a Goal.
 	calculatedView
+	// placeView is eventsView with the H0 of each Goal that rests on a
+	// premise moved onto the commit this clone shows the premise selected
+	// or landed on (tables.UseRestBases): the owner's place reads it, so a
+	// place on such a Goal measures its examples where the Goal stands.
+	placeView
 )
 
 // snapshot is what the tables of an act are calculated from: the events of
@@ -64,8 +69,13 @@ func snapshotOf(evs []events.Event) snapshot {
 func tablesOf(s snapshot, v view) tables.Tables {
 	t := tables.Replay(s.evs)
 	t.UseCells(s.cells)
-	if v == calculatedView {
+	switch v {
+	case calculatedView:
 		t = tables.Calculate(t)
+	case placeView:
+		c := tables.Replay(s.evs)
+		c.UseCells(s.cells)
+		t.UseRestBases(tables.Calculate(c))
 	}
 	return t
 }
