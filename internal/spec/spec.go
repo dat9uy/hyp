@@ -89,7 +89,7 @@ const descColumn = 41
 // them.
 var Commands = []Command{
 	{Name: "add goal", Roles: []string{"owner"},
-		Guards: []fault.Guard{fault.GuardDraft, fault.GuardWholeLines, fault.GuardFromEnded,
+		Guards: []fault.Guard{fault.GuardDraft, fault.GuardWholeLines,
 			fault.GuardNotRefuted, fault.GuardNotDeclined, fault.GuardOneInWork,
 			fault.GuardWholeSet, fault.GuardMeetable, fault.GuardCovered, fault.GuardKind}, Writes: "goal.add; a new Goal is in no state before it",
 		Help: `  add goal [G] --base COMMIT --words TEXT --line gap:TEXT [--line guard:TEXT ...]
@@ -106,7 +106,18 @@ var Commands = []Command{
                                          with G, replace a Goal that is still
                                          written; each --finding names a
                                          finding of this clone's trace that the
-                                         Goal is about
+                                         Goal is about; --from G cites Goal G:
+                                         an ended G as the Goal it starts from,
+                                         or a G in work as its premise, on
+                                         whose select the new Goal rests: it
+                                         stays written until G is selected or
+                                         landed on a commit, and opens on that
+                                         commit as its H0 when each of its
+                                         examples gives there the verdict its
+                                         line needs; it goes back to written
+                                         when the owner unselects or closes G,
+                                         and its Results on the cut commit
+                                         count for nothing
 `},
 	{Name: "place", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardOwnerPlaces, fault.GuardGoalsActor, fault.GuardWholeSet,
@@ -174,7 +185,7 @@ var Commands = []Command{
                                          result of any example
 `},
 	{Name: "land", Roles: []string{"owner"},
-		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerLands, fault.GuardGoalsActor, fault.GuardEvidence,
+		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerLands, fault.GuardGoalsActor, fault.GuardLandedFirst, fault.GuardEvidence,
 			fault.GuardSpec, fault.GuardOwnPath, fault.GuardStop}, Writes: "land",
 		Help: `  land G [COMMIT] [--why TEXT]           the owner lands Goal G: on COMMIT, or
                                          on the commit G is selected on, the
@@ -186,7 +197,9 @@ var Commands = []Command{
                                          select, at its stop; the Goal ends,
                                          and its events up to the land are the
                                          snapshot that a later Goal's --from
-                                         cites
+                                         cites; a Goal that rests on a premise
+                                         lands only after it, on a commit that
+                                         holds the commit it landed on
 `},
 	{Name: "close", Roles: []string{"owner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardOwnerClose, fault.GuardGoalsActor}, Writes: "close",
@@ -341,7 +354,7 @@ var States = []State{
 			{ActLand, "a written Goal has no stop", fault.GuardStop},
 			{ActUnselect, "the Goal has no select", fault.GuardSelected},
 		}},
-	{Name: StateOpen, Holds: "every line holds a placed example, and every current example gives on H0 the verdict its line's kind needs",
+	{Name: StateOpen, Holds: "every line holds a placed example, and every current example gives on H0 the verdict its line's kind needs; the H0 of a Goal that rests on a premise is the commit the premise is selected or landed on, and each example's verdict there is its cell in this clone's trace",
 		Allows: []string{ActPlace, ActRun, ActSelect, ActLand, ActClose},
 		Stops: []Stop{
 			{ActAddGoal, "a replace", fault.GuardDraft},
@@ -355,7 +368,6 @@ var States = []State{
 		Allows: []string{ActPlace, ActLand, ActUnselect, ActClose},
 		Stops: []Stop{
 			{ActAddGoal, "a replace", fault.GuardDraft},
-			{ActAddGoal, "--from G", fault.GuardFromEnded},
 			{ActPlace, "while a select event holds the Goal", fault.GuardSelected},
 			{ActRun, "on a commit that is not a merge of the commit this clone's Results select, or while a select event holds the Goal", fault.GuardSelected},
 			{ActSelect, "", fault.GuardSelected},
@@ -462,8 +474,6 @@ var Guards = []Guard{
 		[]fault.Code{fault.NoGoalToReplace, fault.NotWritten, fault.ReplaceExamples}, ""},
 	{fault.GuardWholeLines, "every line has a kind, gap or guard; the Goal has one to ten lines and at least one gap line",
 		[]fault.Code{fault.TooManyLines, fault.BadLineKind, fault.NoGapLine}, ""},
-	{fault.GuardFromEnded, "add goal --from G cites only an ended Goal, landed or closed; checked by the act only, never at replay",
-		[]fault.Code{fault.FromNotEnded}, ": it is checked by the act only"},
 	{fault.GuardNotEnded, "no write after the owner's land or close ends the Goal; replay also stops an event of the Goal ahead of the end that the end's snapshot does not name",
 		[]fault.Code{fault.Ended, fault.NotInSnapshot}, ""},
 	{fault.GuardSelected, "place, run and select need the Goal not selected; a run on a merge commit one of whose parents is the commit this clone's Results select, with no select event, moves the Goal from it and passes; unselect needs it selected, on the commit it names, which no unselect rejected before",
@@ -504,6 +514,8 @@ var Guards = []Guard{
 		[]fault.Code{fault.NoSpec, fault.NoRead, fault.RuleNoVariant, fault.NoChart}, ": run and land read git and their events carry what they read; the calculated select and hyp status check what the Result of the commit carries"},
 	{fault.GuardOwnerLands, "only the owner lands a Goal",
 		[]fault.Code{fault.NotOwner}, ""},
+	{fault.GuardLandedFirst, "a Goal added with --from a Goal in work rests on that Goal, its premise: it lands only after the premise landed on a commit, and on a commit that holds the commit the premise landed on",
+		[]fault.Code{fault.PremiseNotLanded, fault.LandWithoutPremise}, ", that the premise landed on a commit; the act reads git for the commit it holds"},
 	{fault.GuardEvidence, "a land on a commit carries, for every current example, its verdict on that commit, from this clone's Result or from a run the land makes first; every verdict is met, the row is not one an unselect rejected, and a select event, when one holds the Goal, is on that row",
 		[]fault.Code{fault.LandNotOpen, fault.CommitUnselected, fault.NotTheSelect, fault.EvidenceMissing, fault.NotMetOnCommit}, ": replay reads the verdicts the land carries"},
 	{fault.GuardStop, "a land with no commit needs a stop: two candidates or budget used",
@@ -581,7 +593,7 @@ var Rules = []Rule{
 		"The trace is a cache of this clone: a clone that lacks a cell prints that the cell is not in this clone's trace, with the ready hyp try line that runs it again, and a try of a missing cell saves it there.",
 	}},
 	{"merge order and replay", []string{
-		"Replay reads every event of git and of the clone's trace by id, then by actor, then by line bytes, and calculates every table and state on every command; no state is stored. The states written, open and ended read only events stored in git, so every clone calculates them the same; selected is calculated from the Results of this clone's trace, so a clone that lacks them shows the Goal open, and a land carries the evidence it approves into git.",
+		"Replay reads every event of git and of the clone's trace by id, then by actor, then by line bytes, and calculates every table and state on every command; no state is stored. The states written, open and ended read only events stored in git, so every clone calculates them the same, except for a Goal that rests on a premise: it is open on the premise's select only in a clone whose trace shows the premise selected and holds its examples' cells there, which the run that selects the premise measures; selected is calculated from the Results of this clone's trace, so a clone that lacks them shows the Goal open, and a land carries the evidence it approves into git.",
 		"Replay checks again, at each event's place, the guards whose entry says checked at replay; an event that fails them is listed under refused at replay and never deleted.",
 		"An end names its snapshot, the Goal's events stored in git that replay applied when the owner ended it; an event of a kind an end freezes that the snapshot does not name is stopped by Not ended.",
 	}},

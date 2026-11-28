@@ -170,22 +170,44 @@ func TestStopWaitsForTheOwnerAfterSelect(t *testing.T) {
 	}
 }
 
-func TestAddGoalFromNeedsALandedGoal(t *testing.T) {
+// A Goal added with --from a Goal in work rests on it: it is written and
+// waits for the select, and it lands only after the Goal it rests on. A
+// Goal added with --from an ended Goal does not rest.
+func TestAddGoalFromAGoalInWorkRestsOnIt(t *testing.T) {
 	e := newRunEnv(t)
-	from := func() error {
+	from := func() *tables.Goal {
+		t.Helper()
 		o := opts(e.root, "HEAD", gapLine)
 		o.From = e.goal
-		_, err := AddGoal(o)
-		return err
+		rep, err := AddGoal(o)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tb, _, err := ReadTables(e.root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		g, err := tb.Find(rep.Goal)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return g
 	}
-	refusedBy(t, from(), "From ended")
+	b := from()
+	if !b.Rests || b.Rest == nil || b.Rest.State != tables.RestWaits || b.State != tables.StateWritten {
+		t.Fatalf("rest = %+v, state %s; want written, waiting for the select", b.Rest, b.State)
+	}
+	if st := tables.Stand(b); st.Waits != e.goalRow(t).ID+"'s select" {
+		t.Fatalf("waits = %q", st.Waits)
+	}
 	e.selected(t)
-	refusedBy(t, from(), "From ended")
+	_, err := Land(LandOpts{Dir: e.root, Actor: "owner-1", Role: "owner", Goal: b.ID})
+	refusedBy(t, err, "Landed first")
 	if _, err := Land(e.landOpts("owner-1", "owner")); err != nil {
 		t.Fatal(err)
 	}
-	if err := from(); err != nil {
-		t.Fatal(err)
+	if c := from(); c.Rests || c.Rest != nil {
+		t.Fatalf("a Goal added --from an ended Goal rests: %+v", c.Rest)
 	}
 	evs, _ := e.log(t)
 	var p events.GoalAdd

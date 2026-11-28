@@ -102,7 +102,7 @@ _Avoid_: operator, driver
 ## Goal and lines
 
 **Goal**:
-What a change must make true, held as words and lines and recorded by `add goal`. A Goal is a snapshot of the want, or the problem statement, at the moment the owner adds it. Its id is `G-…`. A new purpose or a new line is a new Goal, which can cite an earlier, ended Goal with `--from` (`hyp spec`, From ended).
+What a change must make true, held as words and lines and recorded by `add goal`. A Goal is a snapshot of the want, or the problem statement, at the moment the owner adds it. Its id is `G-…`. A new purpose or a new line is a new Goal, which can cite an earlier, ended Goal with `--from`. A Goal added with `--from` a Goal in work rests on that Goal's select: it stays written until that Goal is selected or landed on a commit, opens on that commit as its H0 when each of its examples gives there the verdict its line needs, and lands only after that Goal (`hyp spec`, add goal and Landed first).
 _Avoid_: objective, epic, issue
 
 **Issue**:
@@ -421,7 +421,7 @@ _Avoid_: check, validation, rule (alone)
 | Owner closes | the act's role is owner, for a close |
 | Owner unselects | the act's role is owner, for an unselect |
 | Stop | the Goal is at a stop, for a land |
-| From ended | the Goal that `add goal --from` cites is landed or closed |
+| Landed first | a Goal that rests on a Goal in work lands after that Goal landed, on a commit that holds the commit it landed on |
 
 The guard **Nothing new** is removed: Stable judges every repeat.
 

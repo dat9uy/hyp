@@ -129,7 +129,12 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 		fmt.Fprintf(b, "closed: by %s, close %s at %s\n", g.Close.Actor, g.Close.ID, g.Close.Time)
 		endWhy(b, g.Close.Why, o)
 	}
-	fmt.Fprintf(b, "waits: %s\n", st.Waits)
+	waits := st.Waits
+	if r := g.Rest; r != nil && r.State == tables.RestEnded {
+		waits += "; " + r.Premise + restEnd(r)
+	}
+	fmt.Fprintf(b, "waits: %s\n", waits)
+	restLines(b, g)
 	if !ended {
 		refusedMoves(b, g)
 	}
@@ -570,4 +575,44 @@ func startPrompt(id string) string {
 		"  source of work.\n"+
 		"- Open a PR whose body is the select's report. Do not merge the PR: the\n"+
 		"  owner merges.\n", id, actor)
+}
+
+// restEnd is how the premise of an ended rest ended.
+func restEnd(r *tables.Rest) string {
+	if r.Closed {
+		return " was closed"
+	}
+	return " landed with no commit"
+}
+
+// restLines print what a Goal that rests on a premise reads of it: the
+// premise and the commit it is selected or landed on, and each example that
+// gives the wrong verdict there, or that this clone has not measured there.
+func restLines(b *strings.Builder, g *tables.Goal) {
+	r := g.Rest
+	if r == nil {
+		return
+	}
+	on := "selected on " + r.Commit
+	if r.Landed {
+		on = "landed on " + r.Commit
+	}
+	switch r.State {
+	case tables.RestWaits:
+		fmt.Fprintf(b, "rests on: %s, in work with no select; %s opens on the commit %[1]s is selected on\n", r.Premise, g.ID)
+	case tables.RestEnded:
+		fmt.Fprintf(b, "rests on: %s, which ended with no commit; %s waits for the owner\n", r.Premise, g.ID)
+	case tables.RestOn:
+		fmt.Fprintf(b, "rests on: %s, %s, the H0 of %s\n", r.Premise, on, g.ID)
+	case tables.RestWrong:
+		fmt.Fprintf(b, "rests on: %s, %s, where an example does not give the verdict its line needs:\n", r.Premise, on)
+		for _, w := range r.Wrong {
+			fmt.Fprintf(b, "  %s: %s on %s; its line needs %s\n", w.Key, w.Verdict, r.Commit, w.Needs)
+		}
+	case tables.RestUnmeasured:
+		fmt.Fprintf(b, "rests on: %s, %s, where this clone has not measured an example:\n", r.Premise, on)
+		for _, k := range r.Missing {
+			fmt.Fprintf(b, "  hyp try %s %s --commit %s\n", g.ID, k, r.Commit)
+		}
+	}
 }

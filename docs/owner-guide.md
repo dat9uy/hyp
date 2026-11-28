@@ -68,6 +68,8 @@ hyp stops the run and waits for you at a stop:
 
 A gap that needs a new line is a new Goal. Land or close this Goal, then add a new Goal with `--from G`. An ended Goal takes no write.
 
+You can also add the next Goal while G is in work: `hyp add goal --from G` with its examples. The new Goal rests on G's select. It stays written until G is selected, then opens on G's selected commit with no act of yours, when each of its examples gives there the verdict its line needs; `hyp status` lists each example that does not. When you unselect or close G, the new Goal goes back to written, and its runs on the cut commit use none of its budget. You land it only after G, on a commit that holds the commit G landed on.
+
 ## What you read
 
 `hyp status G --role owner` prints the state block of one Goal:
