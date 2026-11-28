@@ -11,7 +11,13 @@ run it. Then:
 - Tell the writer that each setup act must succeed: the Probe checks its exit
   and exits 3 when it fails, so a refused setup shows as an environment
   problem on H0, not as the failed verdict a gap example needs. This holds for
-  a Probe nested inside the setup too.
+  a Probe nested inside the setup too. The one exception is a setup act that
+  the Goal's own gap makes possible, which H0 refuses by design: name it, and
+  tell the writer to tolerate its refusal, print it to stderr and go on.
+- When the `run` uses tokens for ids, tell the writer to replace each token
+  only as a whole word, and the Goal id last, so no token rewrites a random
+  id; to use a sed form that BSD and GNU sed both accept, such as `sed -E`;
+  and to test the replacement with a Goal id that contains a token.
 - Write no Probe code for it yourself. Start a Probe writer: an agent
   whose prompt is the probe-writer block that
   `hyp status G --role probe-writer` prints, copied word for word, followed
