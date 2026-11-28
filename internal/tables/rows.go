@@ -94,9 +94,16 @@ func sortedGoals(t Tables) []*Goal {
 // Leaf only refuses a run on an ancestor of a row, so a row recorded later
 // never lies below one recorded before it, and the Result of the lower row
 // is always the earlier one; the later Result names it.
+//
+// A move above a select, a run on a merge of the selected commit, makes
+// the rows below it no leaf only once its row is met on every line: until
+// then the Goal stays selected on the commit it moves from.
 func (g *Goal) leaf(tree string, commits []string) bool {
 	for _, r := range g.Results {
 		if r.Refused != "" || r.RowTree == tree || r.Read == nil {
+			continue
+		}
+		if r.Move != "" && !g.metEverywhere(r.RowTree) {
 			continue
 		}
 		for _, c := range r.Read.Above {
@@ -332,6 +339,9 @@ func guardRunGit(t Tables, ev events.Event, p *events.ResultRecord) (*Goal, erro
 	if err := GuardNotEnded(g); err != nil {
 		return nil, err
 	}
+	if IsMove(g, p.Move) {
+		return g, nil
+	}
 	if err := GuardNotSelected(g); err != nil {
 		return nil, err
 	}
@@ -339,4 +349,53 @@ func guardRunGit(t Tables, ev events.Event, p *events.ResultRecord) (*Goal, erro
 		return nil, err
 	}
 	return g, nil
+}
+
+// RefusedStable and RefusedSameBase are the marks of a Result its run
+// recorded although a guard refused it: it counts for nothing.
+const (
+	RefusedStable   = "Stable"
+	RefusedSameBase = "Same base"
+)
+
+// RowBases maps each commit of g's rows, H0's excluded, to the base its
+// latest Result recorded, "" for H0: the walk of a later run's base goes
+// through them (gitread.Bases).
+func (g *Goal) RowBases() map[string]string {
+	out := map[string]string{}
+	for _, r := range g.Results {
+		if r.Refused != "" || r.Commit == g.Base {
+			continue
+		}
+		out[r.Commit] = ""
+		if r.Base != nil {
+			out[r.Commit] = r.Base.Commit
+		}
+	}
+	return out
+}
+
+// BaseOf is the base the latest Result on commit that counts recorded, and
+// whether such a Result exists; the base is nil when the commit stood on H0.
+func (g *Goal) BaseOf(commit string) (*events.BaseRead, bool) {
+	var base *events.BaseRead
+	found := false
+	for _, r := range g.Results {
+		if r.Commit == commit && r.Refused == "" {
+			base, found = r.Base, true
+		}
+	}
+	return base, found
+}
+
+// RefusedMoves are the Results of g refused by Same base, in merge order:
+// the moves onto a newer base that wait for the owner.
+func (g *Goal) RefusedMoves() []*Result {
+	var out []*Result
+	for _, r := range g.Results {
+		if r.Refused == RefusedSameBase {
+			out = append(out, r)
+		}
+	}
+	return out
 }

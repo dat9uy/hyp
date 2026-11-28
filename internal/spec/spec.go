@@ -127,9 +127,12 @@ var Commands = []Command{
 `},
 	{Name: "run", Roles: []string{"runner"},
 		Guards: []fault.Guard{fault.GuardNotEnded, fault.GuardSelected, fault.GuardBytes, fault.GuardOpen,
-			fault.GuardOwnPath, fault.GuardLeafOnly, fault.GuardBudget, fault.GuardStable}, Writes: "result.record",
+			fault.GuardOwnPath, fault.GuardLeafOnly, fault.GuardBudget, fault.GuardSameBase, fault.GuardStable}, Writes: "result.record",
 		Help: `  run COMMIT G/LINE [--why TEXT]         run every placed example of a line of
-                                         Goal G on COMMIT and record the Result
+                                         Goal G on COMMIT and record the Result;
+                                         when COMMIT stands on code newer than
+                                         H0, every placed example is measured
+                                         on that base first, with no run used
 `},
 	{Name: "try",
 		Help: `  try G LINE/EXAMPLE [--worktree | --commit COMMIT]
@@ -354,7 +357,7 @@ var States = []State{
 			{ActAddGoal, "a replace", fault.GuardDraft},
 			{ActAddGoal, "--from G", fault.GuardFromEnded},
 			{ActPlace, "while a select event holds the Goal", fault.GuardSelected},
-			{ActRun, "", fault.GuardSelected},
+			{ActRun, "on a commit that is not a merge of the commit this clone's Results select, or while a select event holds the Goal", fault.GuardSelected},
 			{ActSelect, "", fault.GuardSelected},
 		}},
 	{Name: StateEnded, Holds: "the Goal has a land or a close",
@@ -463,7 +466,7 @@ var Guards = []Guard{
 		[]fault.Code{fault.FromNotEnded}, ": it is checked by the act only"},
 	{fault.GuardNotEnded, "no write after the owner's land or close ends the Goal; replay also stops an event of the Goal ahead of the end that the end's snapshot does not name",
 		[]fault.Code{fault.Ended, fault.NotInSnapshot}, ""},
-	{fault.GuardSelected, "place, run and select need the Goal not selected; unselect needs it selected, on the commit it names, which no unselect rejected before",
+	{fault.GuardSelected, "place, run and select need the Goal not selected; a run on a merge commit one of whose parents is the commit this clone's Results select, with no select event, moves the Goal from it and passes; unselect needs it selected, on the commit it names, which no unselect rejected before",
 		[]fault.Code{fault.HasSelect, fault.NoSelect, fault.NotSelectedOn, fault.AlreadyUnselected}, ", against a select event; the act reads the select this clone's Results show"},
 	{fault.GuardOwnerPlaces, "only the owner places an example, with the Goal's actor; a place of the older form names the grill and replays as it was",
 		[]fault.Code{fault.NotOwnerPlace}, ""},
@@ -487,9 +490,11 @@ var Guards = []Guard{
 		[]fault.Code{fault.AncestorOfRow}, ": it reads git"},
 	{fault.GuardBudget, "at most three Hypotheses run since the boundary, H0 never counted",
 		[]fault.Code{fault.BudgetUsed}, ": it counts the Results of the clone's trace"},
+	{fault.GuardSameBase, "a run on a commit that stands on code newer than H0 is recorded only when every placed example of the Goal gives on that base the floors and ceilings it gives on H0; else its Result is recorded marked, with no cell, counts nothing, and hyp status G lists it as a refused move for the owner, with each example that differs and whether H0 now measures it as at its place (the code changed) or not (the environment changed); the base is one commit",
+		[]fault.Code{fault.BaseDiffers, fault.TwoBases}, ": it reads git and runs the Probes"},
 	{fault.GuardStable, "two runs on the same bytes give one verdict; a run it stops still records its Result, marked, which counts nothing",
 		[]fault.Code{fault.OtherVerdict, fault.VerdictsDiffered}, ": it reads the cells of the clone's trace; replay keeps the mark a Result was recorded with"},
-	{fault.GuardCandidate, "the row is a candidate, a leaf row met on every line that no unselect rejected; only the owner selects, and a lone candidate is selected by the Results that show it, with no select event",
+	{fault.GuardCandidate, "the row is a candidate, a leaf row met on every line that no unselect rejected; a row a move above the select stands on stays a leaf until the move's row is met on every line; only the owner selects, and a lone candidate is selected by the Results that show it, with no select event",
 		[]fault.Code{fault.RoleCannotSelect, fault.NoRow, fault.OwnerSelectsAmong, fault.RowNotLeaf, fault.RowNotMet, fault.NoResultOnRow}, ": it reads the cells of the clone's trace"},
 	{fault.GuardNewCell, "after an unselect, the runner selects only once a run recorded a cell whose example version, or whose row, had not run before it; the owner selects at any time",
 		[]fault.Code{fault.NoNewCell}, ": it reads the cells of the clone's trace"},
@@ -572,7 +577,7 @@ var Rules = []Rule{
 		"An act adds one new file to the store and changes no file in it, so two branches that each record acts merge with a plain git merge, with no merge driver and no conflict, on GitHub too.",
 		"A store written by an earlier hyp also holds .tree/events/<actor>.jsonl, one file per actor of appended lines; hyp reads it as before and appends no line to it.",
 		"The first add goal creates the store; .tree/.gitattributes merges the older per-actor files by union. hyp reads from .tree/ only the events of the kinds that change a Goal's state, and no output.",
-		"The trace is $HOME/.hyp/traces/<sha256 of the clone's git common directory>/: events/<actor>.jsonl holds the events of every kind that changes no Goal's state, outputs/<sha256> every output, and cells/ H0's cells of the places and the cells a try ran again. Every command that names an actor records there what hyp printed to it, before it prints.",
+		"The trace is $HOME/.hyp/traces/<sha256 of the clone's git common directory>/: events/<actor>.jsonl holds the events of every kind that changes no Goal's state, outputs/<sha256> every output, and cells/ H0's cells of the places, the cells a try ran again and the cells a run measured on a base. Every command that names an actor records there what hyp printed to it, before it prints.",
 		"The trace is a cache of this clone: a clone that lacks a cell prints that the cell is not in this clone's trace, with the ready hyp try line that runs it again, and a try of a missing cell saves it there.",
 	}},
 	{"merge order and replay", []string{
@@ -596,6 +601,7 @@ var Rules = []Rule{
 	{"the subject", []string{
 		"A commit's subject is its tree without the top-level entries goals and .tree; its git tree hash is the subject hash, one Hypothesis, one row.",
 		"H0 is the Goal's base commit; a row is a leaf when no Result on another row carries one of its commits among the commits of the Goal's rows that its run read its commit descends from.",
+		"The own change of a run's commit is the commit itself and each commit newer than H0 below it that is the runner's: a commit, not a merge, whose change writes a path under goals/G/ and none under .tree/; a merge one of whose parents is the runner's; and each commit of the Goal's rows. So each commit of the runner's own change writes the Goal's folder, such as its spec. The base is the newest commit newer than H0 that the walk down the own change reaches first, through the base each row's Result recorded; a commit with no such base stands on H0. Measuring a base uses no run: its cells go to the clone's trace, and the Result names the base, which the PR body of a selected Goal names with each example's verdict there and on the selected commit.",
 	}},
 	{"budget and stops", []string{
 		"The budget is three Hypotheses since the boundary, H0 never counted; a refused run costs nothing.",

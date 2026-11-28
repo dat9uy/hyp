@@ -47,6 +47,7 @@ const (
 	GuardBytes       Guard = "Bytes"
 	GuardStable      Guard = "Stable"
 	GuardBudget      Guard = "Budget"
+	GuardSameBase    Guard = "Same base"
 	GuardCandidate   Guard = "Candidate"
 	GuardSpec        Guard = "Spec"
 	GuardOwnPath     Guard = "Own path"

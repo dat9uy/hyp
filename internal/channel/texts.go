@@ -210,6 +210,7 @@ var words = map[fault.Code]string{
 	fault.BadLineKind:          "line %d (%s) has kind %s; want gap or guard",
 	fault.NoGapLine:            "the Goal has no gap line",
 	fault.HasSelect:            "%s has a select; it takes no place, run or second select",
+	fault.TwoBases:             "%s stands on two bases newer than H0 of %s, %s; merge them into one commit first, so one base holds the code the run is measured against",
 	fault.NotOwnerPlace:        "only the owner places an example; the role is %s",
 	fault.BadExamplesFolder:    "%s is not a folder inside the repository",
 	fault.BadDraftName:         "%s is not a draft name: use 1 to 40 characters of a-z, 0-9 and -, the first not a dash",
@@ -299,7 +300,7 @@ var words = map[fault.Code]string{
 
 // shaped are the codes whose values do not fit one format: bodyText prints
 // each with a function of its own, kindText and stableText.
-var shaped = map[fault.Code]bool{fault.WrongVerdictOnH0: true, fault.VerdictsDiffered: true, fault.SetNotPlaced: true}
+var shaped = map[fault.Code]bool{fault.WrongVerdictOnH0: true, fault.VerdictsDiffered: true, fault.SetNotPlaced: true, fault.BaseDiffers: true}
 
 // failText is the text hyp prints for err: "refused: " and the guard for a
 // refusal, then the words of its code with its values. root is the git top
@@ -329,6 +330,8 @@ func bodyText(err error, root string) string {
 		text = kindText(e.Args)
 	} else if e.Code == fault.VerdictsDiffered {
 		text = stableText(e.Args, root)
+	} else if e.Code == fault.BaseDiffers {
+		text = baseText(e.Args)
 	} else if ok {
 		values := make([]any, len(e.Args))
 		for i, a := range e.Args {
@@ -436,6 +439,46 @@ func stableText(args []any, root string) string {
 		writeStored(&b, root, "second output "+d.Output, d.Output, maxShown)
 	}
 	return strings.TrimSuffix(b.String(), "\n")
+}
+
+// baseText is the Same base refusal: the commit, its base, and each example
+// that measures differently there than on H0, with the floors and ceilings
+// that changed and whether the environment changed.
+func baseText(args []any) string {
+	if len(args) != 1 {
+		return "(" + string(fault.BaseDiffers) + ")"
+	}
+	f, ok := args[0].(acts.BaseFacts)
+	if !ok {
+		return "(" + string(fault.BaseDiffers) + ")"
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%s stands on %s, code newer than H0 of %s, and %s measures %s differently than H0; %s stays on its old base, the run adds no row and uses no run, and hyp status %s lists the refused move for the owner; the base is the newest commit below %s whose change writes nothing under goals/%s/\n",
+		f.Commit, f.Base, f.Goal, f.Base, plural(len(f.Diffs), "an example", "examples"), f.Goal, f.Goal, f.Commit, f.Goal)
+	for _, d := range f.Diffs {
+		fmt.Fprintf(&b, "%s: %s on H0, %s on %s", d.Key, d.H0Verdict, d.BaseVerdict, f.Base)
+		for _, m := range d.Changed {
+			on, off := "H0", f.Base
+			if !m.Holds {
+				on, off = f.Base, "H0"
+			}
+			fmt.Fprintf(&b, "; %s holds on %s, not on %s", m.Name, on, off)
+		}
+		if d.Environment {
+			b.WriteString("; H0 now measures it differently than at its place too: the environment changed, not the code\n")
+		} else {
+			b.WriteString("; H0 measures it as at its place: the code changed\n")
+		}
+	}
+	return strings.TrimSuffix(b.String(), "\n")
+}
+
+// plural is one when n is 1, else many.
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
 
 // writeBlock writes bytes hyp holds under a label, as they are: never quoted,

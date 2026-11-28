@@ -2,6 +2,7 @@ package acts
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"time"
 
@@ -56,13 +57,17 @@ type runChecked struct {
 	rowTree string
 	placed  []tables.Placement // the current placements of the line, in key order
 	read    events.CommitRead  // what the run read of git about the commit, which its Result carries
+	move    string             // the selected commit the commit merges, when the run moves from it
 }
 
 // Run records one Result for every placed example of a line on a commit, or
 // refuses with the first failing guard, in the order its entry in hyp spec names: Not
 // ended (always holds), Selected, Bytes, Open (not for H0), Own path, Leaf
-// only, Budget, then Stable. Everything but Stable is checked before a Probe
-// runs, so a refused run costs nothing; the Probes run with the lock
+// only, Budget, Same base, then Stable. Everything but Same base and Stable
+// is checked before a Probe runs, so a refused run costs nothing; Same base
+// measures every placed example on the base the commit stands on, when it
+// is newer than H0, and records a Result marked refused, with no cell, when
+// one measures differently there; the Probes run with the lock
 // released, and every guard is checked again under the lock before the
 // outputs are stored and the event is appended, so a refused run leaves no
 // file. A run that Stable refuses keeps its outputs and records a Result
@@ -98,6 +103,13 @@ func Run(o RunOpts) (RunReport, error) {
 		return RunReport{}, err
 	}
 
+	bc, err := measureBase(root, first, o.ProbeTimeout)
+	if err != nil {
+		return RunReport{}, err
+	}
+	if len(bc.diffs) > 0 {
+		return refuseBase(w, o, first, bc, goalName, lineKey)
+	}
 	cells, outs, words, err := runProbes(root, first, o.ProbeTimeout)
 	if err != nil {
 		return RunReport{}, err
@@ -117,9 +129,10 @@ func Run(o RunOpts) (RunReport, error) {
 		if err := sameBasis(first, again); err != nil {
 			return ev, err
 		}
-		payload := events.ResultRecord{Role: o.Role, Line: lineKey, Commit: again.commit, RowTree: again.rowTree, Cells: cells, Read: &again.read}
+		payload := events.ResultRecord{Role: o.Role, Line: lineKey, Commit: again.commit, RowTree: again.rowTree, Cells: cells, Read: &again.read,
+			Base: bc.read, Move: again.move}
 		if diff := tables.StableDiff(again.goal, lineKey, again.rowTree, cells); len(diff) > 0 {
-			payload.Refused = "Stable"
+			payload.Refused = tables.RefusedStable
 			for _, d := range diff {
 				payload.Differing = append(payload.Differing, d.Key)
 			}
@@ -133,7 +146,10 @@ func Run(o RunOpts) (RunReport, error) {
 		if err := tables.GuardRun(t, ev, &payload); err != nil {
 			return ev, err
 		}
-		if err := putOutputs(root, outs...); err != nil {
+		if err := putOutputs(root, append(outs, bc.outs...)...); err != nil {
+			return ev, err
+		}
+		if err := putCells(root, bc.cells...); err != nil {
 			return ev, err
 		}
 		rep = RunReport{Goal: again.goal.ID, Line: lineKey, Commit: again.commit, RowTree: again.rowTree}
@@ -161,12 +177,71 @@ func Run(o RunOpts) (RunReport, error) {
 	return rep, nil
 }
 
+// refuseBase records the Result of a run whose base measures an example
+// differently than H0, marked refused by Same base, with no cell: the
+// refused move waits for the owner in hyp status, and counts for nothing.
+// The cells measured on the base go to the clone's trace. It returns the
+// refusal.
+func refuseBase(w writer, o RunOpts, first runChecked, bc baseCheck, goalName, lineKey string) (RunReport, error) {
+	root := w.root
+	_, err := w.append(calculatedView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
+		ev := events.Event{Type: events.TypeResultRecord, Why: o.Why}
+		again, err := checkRun(root, o, t, goalName, lineKey)
+		if err != nil {
+			return ev, err
+		}
+		if err := sameBasis(first, again); err != nil {
+			return ev, err
+		}
+		payload := events.ResultRecord{Role: o.Role, Line: lineKey, Commit: again.commit, RowTree: again.rowTree,
+			Refused: tables.RefusedSameBase, Read: &again.read, Base: bc.read, Move: again.move}
+		raw, err := json.Marshal(payload)
+		if err != nil {
+			return ev, fault.EnvFault(fault.EncodeEvent, events.TypeResultRecord, err)
+		}
+		ev.Node, ev.Payload = again.goal.EventID, raw
+		if err := tables.GuardRun(t, ev, &payload); err != nil {
+			return ev, err
+		}
+		if err := putOutputs(root, bc.outs...); err != nil {
+			return ev, err
+		}
+		return ev, putCells(root, bc.cells...)
+	})
+	if err != nil {
+		return RunReport{}, err
+	}
+	return RunReport{}, bc.refusal(first.goal, first.commit)
+}
+
+// moveOf is the selected commit that a run on rev moves g from: g shows
+// selected on it by this clone's Results, with no select event, and rev
+// names a merge commit one of whose parents it is. It is "" otherwise.
+func moveOf(root string, g *tables.Goal, rev string) string {
+	if g.State != tables.StateSelected || g.Select == nil || !g.Select.Calculated || strings.HasPrefix(rev, "-") {
+		return ""
+	}
+	if ok, err := gitread.HasCommit(root, rev); err != nil || !ok {
+		return ""
+	}
+	commit, err := gitread.CommitOf(root, rev)
+	if err != nil {
+		return ""
+	}
+	parents, err := gitread.Parents(root, commit)
+	if err != nil || len(parents) < 2 || !slices.Contains(parents, g.Select.Commit) {
+		return ""
+	}
+	return g.Select.Commit
+}
+
 // checkRun runs the guards that need no Probe, in the order of the state
 // machine: Selected, Bytes, Open, Own path, Leaf only, then Budget. Then it
 // reads what the Result carries of the commit (ReadCommit). Selected reads
 // t in calculatedView, the select this clone's Results show as well as a
-// select event: the runner stops at the first selectable candidate. An
-// unknown Goal or line is a bad argument.
+// select event: the runner stops at the first selectable candidate, except
+// on a merge of the selected commit, which moves the Goal from it (moveOf).
+// An unknown Goal or line is a bad argument.
 func checkRun(root string, o RunOpts, t tables.Tables, goalName, lineKey string) (runChecked, error) {
 	g, err := t.Find(goalName)
 	if err != nil {
@@ -184,8 +259,11 @@ func checkRun(root string, o RunOpts, t tables.Tables, goalName, lineKey string)
 	if err := tables.GuardNotEnded(g); err != nil {
 		return runChecked{}, err
 	}
-	if err := tables.GuardNotSelected(g); err != nil {
-		return runChecked{}, err
+	c.move = moveOf(root, g, o.Commit)
+	if !tables.IsMove(g, c.move) {
+		if err := tables.GuardNotSelected(g); err != nil {
+			return runChecked{}, err
+		}
 	}
 	anc := gitread.Ancestry{Dir: root}
 	if strings.HasPrefix(o.Commit, "-") {
@@ -200,8 +278,10 @@ func checkRun(root string, o RunOpts, t tables.Tables, goalName, lineKey string)
 	if c.rowTree, err = gitread.RowTree(root, c.commit); err != nil {
 		return runChecked{}, err
 	}
-	if err := tables.GuardOpen(g, c.rowTree, lineKey); err != nil {
-		return runChecked{}, err
+	if !tables.IsMove(g, c.move) {
+		if err := tables.GuardOpen(g, c.rowTree, lineKey); err != nil {
+			return runChecked{}, err
+		}
 	}
 	changes, err := gitread.OwnChange(root, c.commit, g.Base)
 	if err != nil {

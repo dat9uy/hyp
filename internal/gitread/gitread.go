@@ -103,6 +103,10 @@ func permits(cmd string, rest []string) bool {
 		// one fixed form: the first branch or tag that contains a commit
 		return len(rest) == len(refsForm)+1 && slices.Equal(rest[:3], refsForm[:3]) &&
 			noDash(rest[3:4]) && slices.Equal(rest[4:], refsForm[3:])
+	case "rev-list":
+		// one fixed form: the commits and their parents of the revisions
+		// stdin names, one per line
+		return slices.Equal(rest, revListForm)
 	case "ls-files":
 		// one fixed form: the files of the checkout a commit of every
 		// change would hold
@@ -148,6 +152,10 @@ func contains(ss []string, s string) bool {
 // refsForm is the one for-each-ref form hyp reads with, the commit going
 // after --contains.
 var refsForm = []string{"--count=1", "--format=%(refname)", "--contains", "refs/heads", "refs/remotes", "refs/tags"}
+
+// revListForm is the one rev-list form hyp reads with: the revisions are on
+// stdin, so no argument of the list comes from a caller.
+var revListForm = []string{"--parents", "--stdin"}
 
 // OnARef reports whether a branch, a remote branch or a tag of the clone at
 // dir contains commit.

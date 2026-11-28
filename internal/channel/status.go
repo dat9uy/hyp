@@ -130,6 +130,9 @@ func goalBlock(b *strings.Builder, t tables.Tables, g *tables.Goal, repo string,
 		endWhy(b, g.Close.Why, o)
 	}
 	fmt.Fprintf(b, "waits: %s\n", st.Waits)
+	if !ended {
+		refusedMoves(b, g)
+	}
 	if view.OnNoRef() {
 		fmt.Fprintf(b, "warning: the selected commit %s is on no branch or tag of this clone; push it or keep a branch on it, or git may lose it\n", g.Select.Commit)
 	}
@@ -386,6 +389,32 @@ func unstable(b *strings.Builder, g *tables.Goal) {
 			}
 			fmt.Fprintf(b, "  %s on %s: %s then %s\n", u.Key, u.Tree, orUnknown(u.First), u.Second)
 		}
+	}
+}
+
+// refusedMoves lists each run that Same base refused, which waits for the
+// owner: the commit, the base it stands on, and each example that measures
+// differently there than on H0, with whether the code or the environment
+// changed. The Goal stays in work on its old base.
+func refusedMoves(b *strings.Builder, g *tables.Goal) {
+	moves := g.RefusedMoves()
+	if len(moves) == 0 {
+		return
+	}
+	b.WriteString("refused moves, which wait for the owner: the Goal stays on its old base\n")
+	for _, r := range moves {
+		if r.Base == nil {
+			continue
+		}
+		var parts []string
+		for _, key := range r.Base.Differing {
+			why := "the code changed"
+			if slices.Contains(r.Base.Environment, key) {
+				why = "the environment changed"
+			}
+			parts = append(parts, key+" ("+why+")")
+		}
+		fmt.Fprintf(b, "  %s on base %s: measures differently than H0: %s\n", r.Commit, r.Base.Commit, strings.Join(parts, ", "))
 	}
 }
 

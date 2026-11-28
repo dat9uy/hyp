@@ -24,3 +24,5 @@ PR body:
 
 selected commit: <hash>
 selected row: <hash>
+base: <hash>, H0
+  line-1/a: failed on the base, met on the selected commit

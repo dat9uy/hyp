@@ -1,4 +1,4 @@
-// The view of base.tla: one Goal in work whose rows may stand on newer code.
+// The view of move.tla: one Goal in work whose rows may stand on newer code.
 
 export const title = "A Goal moves onto newer code only when nothing it measures changed";
 

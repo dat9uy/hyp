@@ -194,9 +194,12 @@ type ExampleCell struct {
 }
 
 // ResultRecord is the payload of result.record. Refused is empty, or
-// "Stable" with the example keys whose verdict differed in Differing. Read
-// is what the run read of git about its commit; a Result recorded before
-// runs carried it holds none.
+// "Stable" with the example keys whose verdict differed in Differing, or
+// "Same base" for a run on a base that measures an example differently than
+// H0, which records no cell. Read is what the run read of git about its
+// commit; a Result recorded before runs carried it holds none. Base is the
+// base the run measured, when its commit stands on code newer than H0. Move
+// is the selected commit a run on a merge of it moves from.
 type ResultRecord struct {
 	Role      string        `json:"role"`
 	Line      string        `json:"line"`
@@ -206,6 +209,19 @@ type ResultRecord struct {
 	Differing []string      `json:"differing,omitempty"`
 	Cells     []ExampleCell `json:"cells"`
 	Read      *CommitRead   `json:"read,omitempty"`
+	Base      *BaseRead     `json:"base,omitempty"`
+	Move      string        `json:"move,omitempty"`
+}
+
+// BaseRead is the base a run measured: the commit its commit's own change
+// stands on, newer than H0, and its subject hash. Differing are the example
+// keys that measure differently there than on H0, and Environment those of
+// them that also measure differently on H0 now than at their place.
+type BaseRead struct {
+	Commit      string   `json:"commit"`
+	RowTree     string   `json:"row_tree"`
+	Differing   []string `json:"differing,omitempty"`
+	Environment []string `json:"environment,omitempty"`
 }
 
 // CommitRead is what a run read of git about its commit when it recorded

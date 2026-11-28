@@ -113,7 +113,8 @@ func (t Trace) Append(actor string, ev events.Event) (events.Event, error) {
 
 // Cell is one cell of an example on one row that the clone's trace keeps as
 // a file, not as an event: H0's cell of a place, whose event in git names no
-// output, or a cell a try ran again because this clone's trace lacked it.
+// output, a cell a try ran again because this clone's trace lacked it, or a
+// cell a run measured on the base its commit stands on.
 // Its outputs are in the trace's outputs/.
 type Cell struct {
 	Hash    string `json:"hash"`     // the example folder's tree hash
@@ -131,6 +132,7 @@ type Cell struct {
 const (
 	CellByPlace = "place" // the place that measured H0
 	CellByTry   = "try"   // a try that ran the cell again in this clone
+	CellByBase  = "base"  // a run that measured the base its commit stands on
 )
 
 // CellKey is the key of the cell of the example with hash on the row with
