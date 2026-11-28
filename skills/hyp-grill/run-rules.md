@@ -40,6 +40,12 @@ Goal are told the same.
    worktree or in a commit, never in `git stash`: every worktree of a clone
    shares one stash list, so a pop can take another session's stash, and a
    lost stash is found only by hand.
+   Each commit of your own change writes a path under `goals/<G>/`, such as
+   its spec, and none under `.tree/`. hyp reads a commit below your run that
+   writes nothing there as the base, not as your change, and measures every
+   example on it. So a commit of code alone, with the spec in a later commit,
+   makes `Same base` refuse the run. Put the code and the spec in one commit,
+   or write under `goals/<G>/` in each commit.
 5. **Leave the examples as the grill placed them.** An example that seems wrong
    goes to the owner; it is not yours to edit.
 6. **Commit no event.** Git holds only the owner's acts. hyp keeps your
