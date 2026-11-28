@@ -42,6 +42,11 @@ no example is refused.
   line is always a new Goal, never an edit of an open one. Use the words "an
   adjust" or "a new Goal" in the proposal. The owner decides.
 - Use `hyp show <actor>` to read exactly what hyp printed to the runner.
+- **Check a report against the code before you pass it on.** A runner's
+  report, or another agent's, about what the build does is prose. Before you
+  tell the owner what the build does or does not do, read the code the report
+  names, or `hyp spec` on the build, and say which you read. A claim you did
+  not check goes to the owner as the agent's words, never as a fact.
 
 ## At `Selected`: walk the difference
 
