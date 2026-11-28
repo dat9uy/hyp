@@ -1,0 +1,11 @@
+-- words --
+Both SKILL.md files exist and their name: is hyp-rethinking and hyp-bayes-thinking.
+-- run --
+grep -h '^name:' skills/hyp-rethinking/SKILL.md skills/hyp-bayes-thinking/SKILL.md
+echo "exit code: $?"
+-- floor: contains --
+name: hyp-rethinking
+-- floor: contains --
+name: hyp-bayes-thinking
+-- floor: contains --
+exit code: 0

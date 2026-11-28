@@ -1,0 +1,10 @@
+-- words --
+A path that cannot be read gives exit 2.
+-- run --
+test -f skills/hyp-rethinking/scripts/check_items.py && echo 'check_items.py ships'
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/no-such-file.json"
+echo "exit code: $?"
+-- floor: contains --
+check_items.py ships
+-- floor: contains --
+exit code: 2

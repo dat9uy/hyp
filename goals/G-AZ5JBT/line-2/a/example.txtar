@@ -1,0 +1,11 @@
+-- words --
+The reference exists and holds the sections "The voice" and "Hard no".
+-- run --
+grep -h -e '^## The voice' -e '^## Hard no' skills/hyp-rethinking/references/public-doc-voice.md
+echo "exit code: $?"
+-- floor: contains --
+## The voice
+-- floor: contains --
+## Hard no
+-- floor: contains --
+exit code: 0

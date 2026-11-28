@@ -1,0 +1,24 @@
+-- words --
+Five pages, one fault each: the page whose only fault is no diagram prints its message and exit 1.
+-- input/page.html --
+<!doctype html><html><body>
+<h2>6. Approaches</h2><p>None.</p><h2>7. Side by side</h2><svg viewBox="0 0 1 1"></svg>
+</body></html>
+-- run --
+test -f skills/hyp-rethinking/scripts/check_page.py && echo 'check_page.py ships'
+python3 skills/hyp-rethinking/scripts/check_page.py "$HYP_EXAMPLE/input/page.html"
+echo "exit code: $?"
+-- floor: contains --
+check_page.py ships
+-- floor: contains --
+section 6: 0 diagrams, needs 3
+-- floor: contains --
+exit code: 1
+-- ceiling --
+heading order:
+-- ceiling --
+reference to missing section
+-- ceiling --
+duplicate id
+-- ceiling --
+words:
