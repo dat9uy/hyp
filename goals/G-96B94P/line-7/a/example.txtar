@@ -1,0 +1,10 @@
+-- words --
+5a run rules: run-rules.md says a partial fix is recorded as a finding, and that a PR's notes alone do not hold it.
+-- run --
+tr '\n' ' ' < skills/hyp-grill/run-rules.md | tr -s ' ' | grep -o -E 'partial fix.{0,250}'
+-- floor: contains --
+partial fix
+-- floor: contains --
+finding
+-- floor: contains --
+PR's notes alone

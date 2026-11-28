@@ -1,0 +1,26 @@
+#!/bin/sh
+# Make the subject copy a git repository with a store of one Goal, build its
+# hyp, then run the example's run section like the generic Probe.
+fail() { echo "probe setup: $1" >&2; exit 3; }
+bin=$(mktemp -d) || fail "mktemp -d failed"
+git init -q . >&2 || fail "git init failed"
+git config user.name probe || fail "git config user.name failed"
+git config user.email probe@example.invalid || fail "git config user.email failed"
+git add -A >&2 || fail "git add failed"
+git commit -q -m subject >&2 || fail "git commit failed"
+CGO_ENABLED=0 go build -o "$bin/hyp" ./cmd/hyp >&2 || fail "go build of hyp failed"
+PATH="$bin:$PATH"
+export PATH
+head=$(git rev-parse HEAD) || fail "git rev-parse failed"
+HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --base "$head" --words 'probe setup Goal' --line 'gap:probe setup line' >&2 || fail "hyp add goal failed"
+n=$(HYP_ACTOR=owner hyp status | grep -c '^G-') || fail "hyp status failed"
+[ "$n" = 1 ] || fail "hyp status lists $n Goals, want 1"
+git add -A >&2 || fail "git add of the store failed"
+git commit -q -m store >&2 || fail "git commit of the store failed"
+tmp=$(mktemp) || fail "mktemp failed"
+sh -c "$HYP_RUN" >"$tmp"
+code=$?
+cat "$tmp"
+if [ -n "$(tail -c 1 "$tmp")" ]; then echo; fi
+echo "exit $code"
+rm -f "$tmp"

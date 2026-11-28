@@ -1,0 +1,10 @@
+-- words --
+4a: hyp-grill's text says an item too vague for a sharp line is held by a line of a written Goal, sharpened before the Goal opens.
+-- run --
+cat skills/hyp-grill/*.md | tr '\n' ' ' | tr -s ' ' | grep -o -E 'too vague.{0,250}'
+-- floor: contains --
+too vague
+-- floor: contains --
+written Goal
+-- floor: contains --
+before the Goal opens

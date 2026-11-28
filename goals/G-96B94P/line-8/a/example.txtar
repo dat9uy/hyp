@@ -1,0 +1,8 @@
+-- words --
+6a with an issue: hyp-grill's text says that at the end of each Goal the land and each remainder go to the tracking issue.
+-- run --
+cat skills/hyp-grill/*.md | tr '\n' ' ' | tr -s ' ' | grep -o -E 'tracking issue.{0,250}'
+-- floor: contains --
+tracking issue
+-- floor: contains --
+each remainder
