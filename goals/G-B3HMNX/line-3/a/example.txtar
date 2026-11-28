@@ -1,0 +1,8 @@
+-- words --
+A's runner commits its fix together with bytes at Goal B's example path goals/B/line-1/a/example.txtar that no act of B recorded, and runs it: the run is refused as a path of another Goal.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+a path of another Goal
+-- floor: contains --
+run exit 1

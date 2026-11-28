@@ -1,0 +1,74 @@
+#!/bin/sh
+# Probe of an example at a runner's run on a commit made from main after another Goal's add.
+# The working directory is a copy of the subject. It builds hyp from the subject and makes a test repo:
+# H0 holds counter "counter: bad"; Goals A and B each have line-1 (gap: the counter says ok) with the
+# generic Probe, and the owner adds A, commits, adds B, commits, all on main. The runner branches from main,
+# sets counter ok and commits a spec under goals/A/specs/.
+# B's add commit also holds B's draft model goals/B/specs/model.tla, written by the owner (the grill) after the add act. ROW and GOAL in the run section are replaced by
+# that commit and A's id. Output: stdout, then stderr, tokens for ids, then a last line "exit N".
+# Setup output goes to stderr. A setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+cp skills/hyp-grill/probe/run "$work/generic-run" || fail "generic probe"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+printf 'counter: bad\n' >counter
+git add -A && git commit -q -m base >&2 || fail "commit base"
+
+owner() { HYP_ACTOR=owner HYP_ROLE=owner hyp "$@"; }
+
+# addgoal NAME [model]: a Goal with one gap line, its draft NAME, and a commit of the add; sets goal
+addgoal() {
+  draft=$(HYP_ACTOR=owner hyp draft path "$1") || fail "draft path"
+  mkdir -p "$draft/line-1/a/probe" || fail "mkdir example"
+  printf '%s\n' '-- words --' 'Example.' '-- run --' 'cat counter' '-- floor: contains --' 'counter:' '-- floor: contains --' 'ok' >"$draft/line-1/a/example.txtar"
+  cp "$work/generic-run" "$draft/line-1/a/probe/run" && chmod +x "$draft/line-1/a/probe/run" || fail "probe copy"
+  owner add goal --base HEAD --words 'Count.' --line 'gap:the counter says ok.' --draft "$1" >"$work/add" 2>&1 || { cat "$work/add" >&2; fail "add goal $1"; }
+  cat "$work/add" >&2
+  goal=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/add" | head -1)
+  [ -n "$goal" ] || fail "no Goal id"
+  if [ -n "$2" ]; then mkdir -p "goals/$goal/specs" && printf 'MODULE model\n' >"goals/$goal/specs/model.tla" || fail "model"; fi
+  git add -A && git commit -q -m "add $1" >&2 || fail "commit add $1"
+}
+addgoal x
+goalA=$goal
+addgoal y model
+goalB=$goal
+
+# the runner's branch from main, after B's add: the fix and a spec of A
+git checkout -q -b runner-a || fail "checkout"
+printf 'counter: ok\n' >counter
+mkdir -p "goals/$goalA/specs" && printf 'spec\n' >"goals/$goalA/specs/spec.md" || fail "spec"
+git add -A && git commit -q -m "runner A" >&2 || fail "commit runner"
+row=$(git rev-parse HEAD)
+
+tokens() { sed -e "s/$goalA/GOAL/g" -e "s/$goalB/GOAL_B/g" -e "s/$row/ROW/g" \
+    -e "s/$(echo "$row" | cut -c1-7)[0-9a-f]*/ROW/g" \
+    -e 's/[0-9a-f]\{40\}/HASH/g' -e 's/[0-9A-HJKMNP-TV-Z]\{26\}/ULID/g' \
+    -e 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z\{0,1\}\([+-][0-9:]*\)\{0,1\}/TIMESTAMP/g' "$1"; }
+
+run=$(printf '%s' "$HYP_RUN" | sed -E -e "s/(^|[^A-Za-z0-9_-])ROW([^A-Za-z0-9_-]|$)/\\1$row\\2/g" -e "s/(^|[^A-Za-z0-9_-])ROW([^A-Za-z0-9_-]|$)/\\1$row\\2/g" -e "s/(^|[^A-Za-z0-9_-])GOAL(\$|[^A-Za-z0-9_-])/\\1$goalA\\2/g" -e "s/GOAL\//$goalA\//g")
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+tokens "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+tokens "$work/err" >&2
+echo "exit $code"
+exit 0

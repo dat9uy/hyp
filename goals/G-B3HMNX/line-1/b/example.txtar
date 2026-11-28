@@ -1,0 +1,8 @@
+-- words --
+Goal B's record commit on main brings B's draft model under goals/B/specs/ together with B's add. A's runner branches from main after it, commits a fix with a spec under goals/A/, and runs it: the run is recorded.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit 0
+-- ceiling --
+a path of another Goal

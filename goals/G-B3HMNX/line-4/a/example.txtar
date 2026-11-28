@@ -1,0 +1,8 @@
+-- words --
+A's runner commits its fix together with a new file goals/draft-x/f, a folder of no Goal, and runs it: the run is refused as a folder of no Goal.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+of no Goal
+-- floor: contains --
+run exit 1
