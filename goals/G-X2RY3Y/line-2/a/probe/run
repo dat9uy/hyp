@@ -1,0 +1,90 @@
+#!/bin/sh
+# Probe of an example whose run section is the runner's first run in a test repo. The working directory is a copy of
+# the subject. It builds hyp from the subject and makes a test repo: H0 holds counter "counter: bad" and name "hyp".
+# The owner adds a Goal GOAL on H0 with line-1 (gap: the counter says ok; line-1/a) and line-2 (guard: the name
+# stays hyp; line-2/a). Builds, each a commit holding goals/GOAL/specs/spec.md when it is a runner commit:
+# V = H0 + name xyz, CV = V + counter ok; P = H0 + counter "count: bad", CP = P + counter ok.
+# No run is made before the run section. GOAL, CV, CP, BASE_V and BASE_P in the run section are replaced by the
+# Goal id and the commits. It prints the stdout with ids mapped back to tokens, then a last line "exit N".
+# Setup output goes to stderr. A setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+cp skills/hyp-grill/probe/run "$work/generic-run" || fail "generic probe"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+printf 'counter: bad\n' >counter
+printf 'hyp\n' >name
+git add -A && git commit -q -m base >&2 || fail "commit base"
+base=$(git rev-parse HEAD)
+
+owner() { HYP_ACTOR=owner HYP_ROLE=owner hyp "$@"; }
+
+draft=$(HYP_ACTOR=owner HYP_ROLE=owner hyp draft path x) || fail "draft path"
+[ -n "$draft" ] || fail "no draft path"
+
+# mkex LINE KEY RUN FLOOR...: an example of draft x with the generic Probe
+mkex() {
+  d="$draft/$1/$2"
+  mkdir -p "$d/probe" || fail "mkdir example"
+  { printf '%s\n' '-- words --' "Example $1/$2." '-- run --' "$3"; shift 3
+    for f in "$@"; do printf '%s\n' '-- floor: contains --' "$f"; done; } >"$d/example.txtar" || fail "example.txtar"
+  cp "$work/generic-run" "$d/probe/run" && chmod +x "$d/probe/run" || fail "probe copy"
+}
+mkex line-1 a 'cat counter' 'counter:' 'ok'
+mkex line-2 a 'cat name' 'hyp'
+
+owner add goal --base HEAD --words 'Count.' --line 'gap:the counter says ok.' --line 'guard:the name stays hyp.' --draft x >"$work/add" 2>&1 || { cat "$work/add" >&2; fail "add goal"; }
+cat "$work/add" >&2
+goal=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/add" | head -1)
+[ -n "$goal" ] || fail "no Goal id"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+
+# build NAME FROM FILE TEXT [SPEC]: a commit on FROM that sets FILE to TEXT; SPEC=spec adds the runner's spec
+build() {
+  git checkout -q -b "$1" "$2" || fail "checkout $1"
+  printf '%s\n' "$4" >"$3" || fail "write $3"
+  if [ "$5" = spec ]; then
+    mkdir -p "goals/$goal/specs" && printf 'spec %s\n' "$1" >"goals/$goal/specs/spec.md" || fail "spec"
+  fi
+  git add -A && git commit -q -m "build $1" >&2 || fail "commit $1"
+  git rev-parse HEAD
+}
+v=$(build v "$base" name xyz)
+cv=$(build cv "$v" counter 'counter: ok' spec)
+p=$(build p "$base" counter 'count: bad')
+cp=$(build cp "$p" counter 'counter: ok' spec)
+git checkout -q main || fail "checkout main"
+
+tok() { sed -E "s/(^|[^A-Za-z0-9_])$1([^A-Za-z0-9_]|\$)/\\1$2\\2/g"; }
+run=$(printf '%s' "$HYP_RUN" | tok BASE_V "$v" | tok BASE_P "$p" | tok CV "$cv" | tok CP "$cp" | tok GOAL "$goal")
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+map() {
+  sed -e "s/$goal/GOAL/g" -e "s/$cv/CV/g" -e "s/$cp/CP/g" -e "s/$v/BASE_V/g" -e "s/$p/BASE_P/g" \
+    -e "s/$(echo "$cv" | cut -c1-7)[0-9a-f]*/CV/g" -e "s/$(echo "$cp" | cut -c1-7)[0-9a-f]*/CP/g" \
+    -e "s/$(echo "$v" | cut -c1-7)[0-9a-f]*/BASE_V/g" -e "s/$(echo "$p" | cut -c1-7)[0-9a-f]*/BASE_P/g" \
+    -e 's/[0-9A-HJKMNP-TV-Z]\{26\}/ULID/g' \
+    -e 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z\{0,1\}\([+-][0-9:]*\)\{0,1\}/TIMESTAMP/g' "$1"
+}
+map "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+map "$work/err" >&2
+echo "exit $code"
+exit 0

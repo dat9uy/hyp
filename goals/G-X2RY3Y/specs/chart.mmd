@@ -1,0 +1,19 @@
+---
+title: "A Goal moves onto newer code only when nothing it measures changed"
+---
+stateDiagram-v2
+  s0: open
+  s1: selected on N
+  s2: selected on H0
+  s3: open, a move refused
+  s4: selected on N, a move refused
+  s5: selected on H0, a move refused
+  [*] --> s0
+  s0 --> s1: a run is recorded
+  s0 --> s2: a run is recorded
+  s0 --> s3: a run on newer code is refused
+  s1 --> s4: a run on newer code is refused
+  s2 --> s1: a run is recorded
+  s2 --> s5: a run on newer code is refused
+  s3 --> s4: a run is recorded
+  s3 --> s5: a run is recorded

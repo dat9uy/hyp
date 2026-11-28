@@ -1,0 +1,6 @@
+-- words --
+The runner runs one commit CN on a fix N, a new base: hyp status shows one run used.
+-- run --
+HYP_ACTOR=owner hyp status GOAL | head -1
+-- floor: contains --
+runs: 1 of 3 used

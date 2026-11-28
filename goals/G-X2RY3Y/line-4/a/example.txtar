@@ -1,0 +1,10 @@
+-- words --
+The Goal is selected on C1; the runner merges a fix N into it as M and runs M: the run is recorded, and the Goal shows selected.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run M GOAL/line-1 2>&1; echo "run exit $?"; HYP_ACTOR=owner hyp status GOAL | head -1
+-- floor: contains --
+run exit 0
+-- floor: contains --
+GOAL  selected
+-- ceiling --
+has a select; it takes no place, run or second select

@@ -1,0 +1,6 @@
+-- words --
+The Goal is selected on CN, the runner's commit on a fix N: the PR body hyp status prints names the base BASE_N its select was measured against.
+-- run --
+HYP_ACTOR=owner hyp status GOAL | sed -n '/PR body/,$p'
+-- floor: contains --
+BASE_N
