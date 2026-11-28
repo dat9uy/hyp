@@ -59,9 +59,9 @@ ceilings it must not hold. No reader judges a verdict.
 the current examples.** With one candidate the runner may select it. With two or
 more, only the owner may select. The selected commit must hold a spec
 (the guards Candidate and Spec). The report of the
-select is the PR body, and the owner's merge accepts it
-([ADR 0015](adr/0015-the-select-is-the-gate.md) records why the select is the
-gate).
+select is the PR body. The owner accepts the build with the land, not with the
+merge ([ADR 0015](adr/0015-the-select-is-the-gate.md) records why the select is
+the gate).
 
 ## 5. A budget stops the loop, and nothing scores a round
 
@@ -87,8 +87,10 @@ The four roles are `owner`, `grill`, `probe-writer` and `runner`.
 3. **The owner ends a Goal.** At a stop the owner lands the Goal, at any stop
    or none the owner may close it, and the owner may unselect a selected Goal
    so that a new example can be placed. Git holds only the owner's acts.
-4. **The owner merges.** hyp writes nothing to GitHub. The merge is where the
-   owner accepts a build and vetoes its mechanics.
+4. **The owner merges.** hyp writes nothing to GitHub. The merge only moves
+   code into main, and the owner can still veto a build's mechanics there.
+   The owner accepts a build with the land, before the merge, after it, or
+   with no merge.
 5. **Only the owner places an example** (the guard Owner places). The grill
    writes the examples and tries them, and records no event. It asks the
    owner product questions only, and reports each decision that no example
