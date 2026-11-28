@@ -289,11 +289,11 @@ func checkRun(root string, o RunOpts, t tables.Tables, goalName, lineKey string)
 			return runChecked{}, err
 		}
 	}
-	changes, err := gitread.OwnChange(root, c.commit, g.Base)
+	changes, err := gitread.GoalChange(root, c.commit, g.Base)
 	if err != nil {
 		return runChecked{}, err
 	}
-	if err := tables.GuardOwnPath(g, t, changes); err != nil {
+	if err := tables.GuardOwnPath(g, t, &gitread.CommitTree{Dir: root, Commit: c.commit, H0: g.Base}, changes); err != nil {
 		return runChecked{}, err
 	}
 	if err := tables.GuardLeafOnly(g, anc, c.commit); err != nil {

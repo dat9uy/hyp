@@ -132,11 +132,11 @@ func Land(o LandOpts) (LandReport, error) {
 				return ev, err
 			}
 			p.Read = &read
-			changes, err := gitread.OwnChange(root, again.commit, g.Base)
+			changes, err := gitread.GoalChange(root, again.commit, g.Base)
 			if err != nil {
 				return ev, err
 			}
-			if err := tables.GuardOwnPath(g, t, changes); err != nil {
+			if err := tables.GuardOwnPath(g, t, &gitread.CommitTree{Dir: root, Commit: again.commit, H0: g.Base}, changes); err != nil {
 				return ev, err
 			}
 			cause := tables.Cause{}

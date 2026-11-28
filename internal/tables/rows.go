@@ -201,29 +201,86 @@ func GuardLeafOnly(g *Goal, anc Ancestry, commit string) error {
 	return nil
 }
 
-// GuardOwnPath is the Own path guard: the runner's own change writes no path
-// under goals/<another Goal>/, and adds or changes no file under a goals/X/
-// folder of no Goal in the store t. goals/model/, the repository's kept model,
-// is no Goal's folder: a Goal's model is a change to it. A change that only
-// deletes files of a folder of no Goal passes.
-func GuardOwnPath(g *Goal, t Tables, changes []gitread.OwnPath) error {
+// GoalTree is what Own path reads of a run's commit: the tree hash at a
+// path, and who wrote the bytes at a path.
+type GoalTree interface {
+	TreeHash(path string) (string, error)
+	Writer(path string) (gitread.Writer, error)
+}
+
+// GuardOwnPath is the Own path guard. It checks each Goal folder of the
+// run's commit against the store t, where the commit's goals/ tree differs
+// from H0's (changes): a file under goals/X/ of another Goal X holds bytes
+// X's owner acts recorded, and no file is added or changed under a goals/X/
+// folder of no Goal. An example folder of X, goals/X/<line>/<example>/,
+// holds a tree whose hash an add or a place of X recorded for that example;
+// any other file of X's folder, such as its spec, was written by a commit
+// that adds the file of an event of X the store holds, as the owner's
+// record of an act on X does, or by a commit H0's history holds. So it reads what the runner wrote, whatever
+// branch brought the owner's acts on other Goals. goals/model/, the
+// repository's kept model, is no Goal's folder: a Goal's model is a change
+// to it. A file the commit lacks is no write.
+func GuardOwnPath(g *Goal, t Tables, tree GoalTree, changes []gitread.OwnPath) error {
 	for _, c := range changes {
 		rest, ok := strings.CutPrefix(c.Path, "goals/")
-		if !ok {
+		if !ok || c.Deleted {
 			continue
 		}
-		name, _, _ := strings.Cut(rest, "/")
+		name, inner, _ := strings.Cut(rest, "/")
 		if name == g.ID || name == "model" {
 			continue
 		}
-		if t.ByID(name) != nil {
-			return fault.Refuse(fault.GuardOwnPath, fault.OtherGoalPath, c.Commit, c.Path, g.ID)
+		other := t.ByID(name)
+		if other != nil {
+			ok, err := recordedPath(other, tree, c.Path, inner)
+			if err != nil {
+				return err
+			}
+			if ok {
+				continue
+			}
 		}
-		if !c.Deleted {
-			return fault.Refuse(fault.GuardOwnPath, fault.NoGoalFolder, c.Commit, c.Path)
+		w, err := tree.Writer(c.Path)
+		if err != nil {
+			return err
 		}
+		if other != nil {
+			return fault.Refuse(fault.GuardOwnPath, fault.OtherGoalPath, w.Commit, c.Path, g.ID)
+		}
+		return fault.Refuse(fault.GuardOwnPath, fault.NoGoalFolder, w.Commit, c.Path)
 	}
 	return nil
+}
+
+// recordedPath reports whether the file at path, inner within the folder
+// of Goal x, holds bytes x's owner acts recorded.
+func recordedPath(x *Goal, tree GoalTree, path, inner string) (bool, error) {
+	parts := strings.SplitN(inner, "/", 3)
+	if len(parts) == 3 {
+		if _, isLine := x.line(parts[0]); isLine {
+			key := parts[0] + "/" + parts[1]
+			h, err := tree.TreeHash("goals/" + x.ID + "/" + key)
+			if err != nil {
+				return false, err
+			}
+			for _, p := range x.Placements[key] {
+				if h != "" && p.Hash == h {
+					return true, nil
+				}
+			}
+			return false, nil
+		}
+	}
+	w, err := tree.Writer(path)
+	if err != nil || w.Old {
+		return w.Old, err
+	}
+	for _, id := range w.Events {
+		if slices.Contains(x.seen, id) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // countedTrees are the distinct row trees, H0's excluded, of the Goal's

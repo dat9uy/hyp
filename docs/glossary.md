@@ -218,7 +218,7 @@ The Hypothesis of the Goal's base: the commit `--base` names, and its subject ha
 _Avoid_: baseline, main
 
 **Base** (of a run):
-The newest commit newer than H0 that a run's commit stands on, found by the walk down its own change. A commit with no such base stands on H0. hyp measures the placed examples on the base, and the Result names it (`hyp spec`, the subject).
+The newest commit newer than H0 that a run's commit stands on, found by the walk down its own change. A commit that changes no code, such as an owner's add goal, is never a base. A commit with no such base stands on H0. hyp measures the placed examples on the base, and the Result names it (`hyp spec`, the subject).
 _Avoid_: base for the Goal's `--base` (say H0)
 
 **Move** (onto newer code):
@@ -325,7 +325,7 @@ A `.mmd` file of a spec folder outside its variant config folders. A model with 
 The branch that holds a Goal's examples and their place events. It merges before the runner's run, so the examples reach the runner's commits.
 
 **Own change**:
-What the runner wrote in a commit, not what it took in from main: the diff from its base to the commit. It may write under its own Goal's folder and under `goals/model/`, the kept model, and under no other Goal's folder. The **base** is the first commit on the first-parent walk that is H0 or a merge commit.
+What the runner wrote in a commit, not what it took in from main: the commit and each commit newer than H0 below it that writes the Goal's folder and nothing under `.tree/`. It may write under its own Goal's folder and under `goals/model/`, the kept model. Own path does not read it from the commits: it checks each other Goal's folder in the commit against the store, so the owner's acts on other Goals that a branch took in from main are never the runner's (`hyp spec`, guard Own path).
 
 ## Budget and stops
 
@@ -432,7 +432,7 @@ _Avoid_: check, validation, rule (alone)
 | Candidate | the Hypothesis is a candidate; with two or more, the role is owner |
 | New cell | after an unselect, a runner's select follows a run that recorded a new cell; the owner's select does not need one |
 | Spec | the selected commit holds a file under `goals/<G>/specs/`; a model also names every check-config rule in a variant config, and holds a chart |
-| Own path | the commit's own change writes no path of another Goal |
+| Own path | every other Goal's folder in the commit holds only what that Goal's owner acts recorded |
 | Selected | the Goal has no select, for `run` and `select`, and no select event holds it, for `place`; a run on a merge of the selected commit, with no select event, moves the Goal from its select and passes; it has one, for `unselect` |
 | Owner lands | the act's role is owner, for a land |
 | Owner closes | the act's role is owner, for a close |

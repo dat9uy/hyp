@@ -2,7 +2,6 @@ package tables
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/dat9uy/hyp/internal/events"
@@ -180,51 +179,96 @@ func TestGuardBudgetSkipsStableRefusal(t *testing.T) {
 	}
 }
 
+// fakeTree is a GoalTree with fixed tree hashes and writers.
+type fakeTree struct {
+	hashes  map[string]string
+	writers map[string]string
+	events  map[string][]string
+}
+
+func (f fakeTree) TreeHash(p string) (string, error) { return f.hashes[p], nil }
+func (f fakeTree) Writer(p string) (gitread.Writer, error) {
+	return gitread.Writer{Commit: f.writers[p], Events: f.events[p]}, nil
+}
+
 func TestGuardOwnPathRefusesOtherGoal(t *testing.T) {
 	g := &Goal{ID: "G-NXHHVA"}
-	own := []gitread.OwnPath{{Path: "main.go", Commit: "c1"}, {Path: "goals/G-NXHHVA/line-1/a/example.txtar", Commit: "c1"}}
-	if err := GuardOwnPath(g, ownGoals, own); err != nil {
+	tree := fakeTree{writers: map[string]string{"goals/G-OTHER00/line-1/a/probe/run": "c2"}}
+	own := []gitread.OwnPath{{Path: "goals/G-NXHHVA/line-1/a/example.txtar"}, {Path: "goals/model/m.tla"}}
+	if err := GuardOwnPath(g, ownGoals, tree, own); err != nil {
 		t.Fatalf("the Goal's own folder was refused: %v", err)
 	}
-	err := GuardOwnPath(g, ownGoals, append(own, gitread.OwnPath{Path: "goals/G-OTHER00/line-1/a/probe/run", Commit: "c2"}))
+	err := GuardOwnPath(g, ownGoals, tree, append(own, gitread.OwnPath{Path: "goals/G-OTHER00/line-1/a/probe/run"}))
 	refusedWith(t, err, "Own path")
 	if !testutil.Mentions(err, "goals/G-OTHER00/line-1/a/probe/run") || !testutil.Mentions(err, "c2") {
 		t.Fatalf("err = %v, want the path and the commit that wrote it", err)
 	}
+	// a file the commit lacks is no write
+	if err := GuardOwnPath(g, ownGoals, tree, []gitread.OwnPath{{Path: "goals/G-OTHER00/specs/s", Deleted: true}}); err != nil {
+		t.Fatalf("a deleted file of another Goal was refused: %v", err)
+	}
 }
 
-func TestOwnPathAllowsMergedMainWithOtherGoal(t *testing.T) {
+// TestGuardOwnPathReadsTheStore: another Goal's example folder passes when
+// it holds a tree an act of that Goal recorded, and its other files pass when
+// the commit that wrote them adds the file of an event of that Goal.
+func TestGuardOwnPathReadsTheStore(t *testing.T) {
+	other := &Goal{ID: "G-OTHER00", Lines: []Line{{Key: "line-1"}}, seen: []string{"EV1"},
+		Placements: map[string][]Placement{"line-1/a": {{Key: "line-1/a", Hash: "h1"}}}}
+	tb := Tables{Goals: map[string]*Goal{"a": {ID: "G-NXHHVA"}, "b": other}}
+	g := tb.Goals["a"]
+	ex := gitread.OwnPath{Path: "goals/G-OTHER00/line-1/a/example.txtar"}
+	spec := gitread.OwnPath{Path: "goals/G-OTHER00/specs/model.tla"}
+	tree := fakeTree{
+		hashes:  map[string]string{"goals/G-OTHER00/line-1/a": "h1"},
+		writers: map[string]string{ex.Path: "w1", spec.Path: "w2"},
+		events:  map[string][]string{spec.Path: {"EV1"}},
+	}
+	if err := GuardOwnPath(g, tb, tree, []gitread.OwnPath{ex, spec}); err != nil {
+		t.Fatalf("bytes the owner's acts recorded were refused: %v", err)
+	}
+	tree.hashes["goals/G-OTHER00/line-1/a"] = "h2"
+	refusedWith(t, GuardOwnPath(g, tb, tree, []gitread.OwnPath{ex}), "Own path")
+	tree.events[spec.Path] = []string{"EV-OF-ANOTHER"}
+	err := GuardOwnPath(g, tb, tree, []gitread.OwnPath{spec})
+	refusedWith(t, err, "Own path")
+	if !testutil.Mentions(err, "w2") {
+		t.Fatalf("err = %v, want the commit that wrote the spec", err)
+	}
+	refusedWith(t, GuardOwnPath(g, tb, tree, []gitread.OwnPath{{Path: "goals/draft-x/f"}}), "Own path")
+}
+
+func TestOwnPathAllowsMainWithOwnerActs(t *testing.T) {
 	r := testutil.NewRepo(t)
 	h0 := r.Commit(t, map[string]string{"main.go": "1"})
-	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "side")
-	r.Commit(t, map[string]string{"goals/G-OTHER00/line-1/a/example.txtar": "x"})
-	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "runner", h0)
-	r.Commit(t, map[string]string{"own.go": "1"})
-	testutil.Git(t, r.Dir, "merge", "-q", "--no-ff", "-m", "take in main", "side")
-	tip := r.Commit(t, map[string]string{"goals/G-NXHHVA/specs/spec.md": "s"})
+	// the owner's record of an act on another Goal, on main: its spec and its event
+	r.Commit(t, map[string]string{".tree/events/owner/EV1.json": "{}", "goals/G-OTHER00/specs/spec.md": "x"})
+	testutil.Git(t, r.Dir, "checkout", "-q", "-b", "runner")
+	tip := r.Commit(t, map[string]string{"own.go": "1", "goals/G-NXHHVA/specs/spec.md": "s"})
 	g := &Goal{ID: "G-NXHHVA"}
-	own, err := gitread.OwnChange(r.Dir, tip, h0)
+	tb := Tables{Goals: map[string]*Goal{"a": g, "b": {ID: "G-OTHER00", seen: []string{"EV1"}}}}
+	own, err := gitread.GoalChange(r.Dir, tip, h0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(own) == 0 {
-		t.Fatal("the runner's own change is empty")
+	if len(own) != 2 {
+		t.Fatalf("goal change = %v, want the two specs", own)
 	}
-	if err := GuardOwnPath(g, ownGoals, own); err != nil {
-		t.Fatalf("a merged-in folder of another Goal refused the runner: %v", err)
+	if err := GuardOwnPath(g, tb, &gitread.CommitTree{Dir: r.Dir, Commit: tip, H0: h0}, own); err != nil {
+		t.Fatalf("an owner's act on another Goal refused the runner: %v", err)
 	}
-	// The diff from H0 would hold the other Goal's folder.
-	all, _ := gitread.Git(r.Dir, "diff-tree", "-r", "--name-only", h0, tip)
-	if !strings.Contains(string(all), "goals/G-OTHER00") {
-		t.Fatal("test setup: the diff from H0 does not hold the merged-in folder")
-	}
-	// A runner commit that writes another Goal's folder itself is refused.
-	bad := r.Commit(t, map[string]string{"goals/G-OTHER00/line-1/b/example.txtar": "y"})
-	own, err = gitread.OwnChange(r.Dir, bad, h0)
+	// A runner commit that writes another Goal's folder is refused, also
+	// when it writes under .tree/ as an owner's record does.
+	bad := r.Commit(t, map[string]string{"goals/G-OTHER00/specs/spec.md": "y", ".tree/note": "n"})
+	own, err = gitread.GoalChange(r.Dir, bad, h0)
 	if err != nil {
 		t.Fatal(err)
 	}
-	refusedWith(t, GuardOwnPath(g, ownGoals, own), "Own path")
+	err = GuardOwnPath(g, tb, &gitread.CommitTree{Dir: r.Dir, Commit: bad, H0: h0}, own)
+	refusedWith(t, err, "Own path")
+	if !testutil.Mentions(err, bad) {
+		t.Fatalf("err = %v, want the runner's commit %s", err, bad)
+	}
 }
 
 func TestGuardBudgetIgnoresAnEarlierH0(t *testing.T) {
@@ -253,12 +297,13 @@ var ownGoals = Tables{Goals: map[string]*Goal{"a": {ID: "G-NXHHVA"}, "b": {ID: "
 
 func TestGuardOwnPathFolderOfNoGoal(t *testing.T) {
 	g := &Goal{ID: "G-NXHHVA"}
-	err := GuardOwnPath(g, ownGoals, []gitread.OwnPath{{Path: "goals/draft-x/f", Commit: "c1"}})
+	tree := fakeTree{writers: map[string]string{"goals/draft-x/f": "c1"}}
+	err := GuardOwnPath(g, ownGoals, tree, []gitread.OwnPath{{Path: "goals/draft-x/f"}})
 	refusedWith(t, err, "Own path")
 	if !testutil.Mentions(err, "no-goal-folder") || testutil.Mentions(err, "other-goal-path") {
 		t.Fatalf("err = %v, want the folder of no Goal, not another Goal's path", err)
 	}
-	if err := GuardOwnPath(g, ownGoals, []gitread.OwnPath{{Path: "goals/draft-x/f", Commit: "c1", Deleted: true}}); err != nil {
+	if err := GuardOwnPath(g, ownGoals, tree, []gitread.OwnPath{{Path: "goals/draft-x/f", Deleted: true}}); err != nil {
 		t.Fatalf("a delete of a folder of no Goal was refused: %v", err)
 	}
 }

@@ -260,67 +260,136 @@ func (a Ancestry) IsAncestor(x, y string) (bool, error) { return IsAncestor(a.Di
 // HasCommit reports whether the clone holds the commit.
 func (a Ancestry) HasCommit(commit string) (bool, error) { return HasCommit(a.Dir, commit) }
 
-// OwnPath is a path the runner's own change touches and the commit that wrote
-// it.
+// OwnPath is a path under goals/ whose entry in a run's commit differs from
+// H0's, and whether the commit lacks it.
 type OwnPath struct {
 	Path    string
-	Commit  string
-	Deleted bool // the commit deletes the path
+	Deleted bool // the commit holds no file at the path that H0 holds
 }
 
-// OwnChange returns the paths of the runner's own change of commit: what the
-// runner wrote, not what it took in from main.
-//
-// The base is found by walking first parents from commit, commit excluded, to
-// the first commit that is h0 or a merge commit. The paths are the union of
-// each non-merge commit's change against its parent on that walk, plus, when
-// commit is itself a merge, the paths that differ from every parent. It never
-// diffs from h0 when a merge lies between.
-func OwnChange(dir, commit, h0 string) ([]OwnPath, error) {
+// GoalChange returns each file under goals/ whose entry in commit differs
+// from its entry in h0: what a Goal's folder in commit holds that H0 does
+// not. It reads the two trees, not the commits between them, so it is the
+// same whichever branch brought each file.
+func GoalChange(dir, commit, h0 string) ([]OwnPath, error) {
 	if commit == h0 {
 		return nil, nil
 	}
+	raw, err := Git(dir, "diff-tree", "-r", "--name-status", "-z", h0, commit)
+	if err != nil {
+		return nil, err
+	}
 	var out []OwnPath
-	seen := map[string]bool{}
-	add := func(c string, paths []changedPath) {
-		for _, p := range paths {
-			if !seen[p.path] {
-				seen[p.path] = true
-				out = append(out, OwnPath{Path: p.path, Commit: c, Deleted: p.deleted})
-			}
+	for _, p := range diffPaths(raw, "") {
+		if strings.HasPrefix(p.path, "goals/") {
+			out = append(out, OwnPath{Path: p.path, Deleted: p.deleted})
 		}
 	}
-	cur := commit
+	return out, nil
+}
+
+// CommitTree reads a run's commit for Goal paths: its trees, and the
+// commits newer than H0 below it.
+type CommitTree struct {
+	Dir, Commit, H0 string
+
+	newer map[string][]string // the commits newer than H0 below Commit, with their parents
+}
+
+// TreeHash is the hash of the tree at path in the commit, or "" when the
+// commit holds no tree there.
+func (c *CommitTree) TreeHash(path string) (string, error) {
+	return c.object(c.Commit, path, "tree")
+}
+
+// object is the id of the entry of kind at path in commit, or "" when
+// there is none.
+func (c *CommitTree) object(commit, path, kind string) (string, error) {
+	out, err := Git(c.Dir, "ls-tree", "-z", commit, path)
+	if err != nil {
+		return "", err
+	}
+	for _, rec := range bytes.Split(out, []byte{0}) {
+		meta, name, ok := strings.Cut(string(rec), "\t")
+		if !ok || name != path {
+			continue
+		}
+		f := strings.Fields(meta)
+		if len(f) == 3 && f[1] == kind {
+			return f[2], nil
+		}
+	}
+	return "", nil
+}
+
+// Writer is who wrote the bytes a path holds in a run's commit.
+type Writer struct {
+	Commit string   // the commit that wrote them
+	Old    bool     // a commit H0's history holds, which no run of the Goal wrote
+	Events []string // the ids of the events whose files Commit adds under .tree/events/
+}
+
+// Writer finds the commit that wrote the bytes path holds in the commit:
+// the walk from the commit goes to a parent that holds the same bytes there
+// while one does, and the writer is the commit no parent of which does, or
+// the first commit H0's history holds.
+func (c *CommitTree) Writer(path string) (Writer, error) {
+	if c.newer == nil {
+		var err error
+		if c.newer, err = revList(c.Dir, c.Commit, "^"+c.H0); err != nil {
+			return Writer{}, err
+		}
+	}
+	blob, err := c.object(c.Commit, path, "blob")
+	if err != nil {
+		return Writer{}, err
+	}
+	cur := c.Commit
 	for {
-		parents, err := parentsOf(dir, cur)
-		if err != nil {
-			return nil, err
+		ps, newer := c.newer[cur]
+		if !newer {
+			return Writer{Commit: cur, Old: true}, nil
 		}
-		args := []string{"diff-tree", "-r", "--name-status", "-z", cur}
-		if len(parents) > 1 {
-			args = []string{"diff-tree", "-r", "-c", "--name-status", "-z", cur}
+		next := ""
+		for _, p := range ps {
+			b, err := c.object(p, path, "blob")
+			if err != nil {
+				return Writer{}, err
+			}
+			if b == blob {
+				next = p
+				break
+			}
 		}
-		raw, err := Git(dir, args...)
-		if err != nil {
-			return nil, err
-		}
-		add(cur, diffPaths(raw, cur))
-		if len(parents) == 0 {
-			return out, nil
-		}
-		next := parents[0]
-		if next == h0 {
-			return out, nil
-		}
-		nextParents, err := parentsOf(dir, next)
-		if err != nil {
-			return nil, err
-		}
-		if len(nextParents) > 1 {
-			return out, nil
+		if next == "" {
+			evs, err := c.addedEvents(cur, ps)
+			return Writer{Commit: cur, Events: evs}, err
 		}
 		cur = next
 	}
+}
+
+// addedEvents is the ids of the event files that commit, against its first
+// parent, adds under .tree/events/: each file is named by its event's id.
+func (c *CommitTree) addedEvents(commit string, parents []string) ([]string, error) {
+	if len(parents) == 0 {
+		return nil, nil
+	}
+	raw, err := Git(c.Dir, "diff-tree", "-r", "--name-status", "-z", parents[0], commit)
+	if err != nil {
+		return nil, err
+	}
+	fields := bytes.Split(raw, []byte{0})
+	var ids []string
+	for i := 0; i+1 < len(fields); i += 2 {
+		st, p := string(fields[i]), string(fields[i+1])
+		if st != "A" || !strings.HasPrefix(p, ".tree/events/") || !strings.HasSuffix(p, ".json") {
+			continue
+		}
+		name := p[strings.LastIndex(p, "/")+1:]
+		ids = append(ids, strings.TrimSuffix(name, ".json"))
+	}
+	return ids, nil
 }
 
 // changedPath is a path of a diff-tree --name-status output and whether the

@@ -20,7 +20,8 @@ func Parents(dir, commit string) ([]string, error) { return parentsOf(dir, commi
 // Goal's rows, which rowBases maps to the base its Result recorded, "" for
 // h0. The base is each commit newer than h0 that the walk from commit
 // through the own change, and through the bases the rows recorded, reaches
-// first, less each one another of them descends from.
+// first, less each one another of them descends from. A commit that changes
+// no code, such as an owner's add goal, is no base: the walk goes through it.
 func Bases(dir, commit, h0, id string, rowBases map[string]string) ([]string, error) {
 	parents, err := revList(dir, commit, "^"+h0)
 	if err != nil {
@@ -84,8 +85,16 @@ func Bases(dir, commit, h0, id string, rowBases map[string]string) ([]string, er
 			return err
 		}
 		if !ok && !first {
-			found = append(found, c)
-			return nil
+			same, err := sameSubject(dir, c, ps)
+			if err != nil {
+				return err
+			}
+			if !same {
+				found = append(found, c)
+				return nil
+			}
+			// a commit that changes no code, such as an owner's act, is no
+			// base: the walk goes on below it
 		}
 		for _, p := range ps {
 			if err := walk(p, false); err != nil {
@@ -121,6 +130,25 @@ func Bases(dir, commit, h0, id string, rowBases map[string]string) ([]string, er
 		}
 	}
 	return top, nil
+}
+
+// sameSubject reports whether commit holds the subject of each of its
+// parents: it changes no code, only goals/ and .tree/.
+func sameSubject(dir, commit string, parents []string) (bool, error) {
+	own, err := RowTree(dir, commit)
+	if err != nil {
+		return false, err
+	}
+	for _, p := range parents {
+		t, err := RowTree(dir, p)
+		if err != nil {
+			return false, err
+		}
+		if t != own {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // writesGoal reports whether the change of commit, not a merge, against its
