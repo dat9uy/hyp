@@ -1,0 +1,105 @@
+-- words --
+3b Six pass: six items plus the impact item, with a section 0 picture, pass the checker with exit 0 and the page is drawn.
+-- input/six.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "the chart",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "A grill that draws the chart of a big model meets the budget refusal.",
+   "source": "F-1NG9VB",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 1 of the event."
+  },
+  {
+   "id": "demo-I3",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 2 of the event."
+  },
+  {
+   "id": "demo-I4",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 3 of the event."
+  },
+  {
+   "id": "demo-I5",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 4 of the event."
+  },
+  {
+   "id": "demo-I6",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 5 of the event."
+  },
+  {
+   "id": "demo-I7",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 6 of the event."
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "tool",
+   "label": "Tool"
+  }
+ ],
+ "diagrams": [
+  {
+   "id": "problem",
+   "section": 0,
+   "caption": "The model does not fit the chart",
+   "nodes": [
+    {
+     "id": "model",
+     "label": "model 11,150 states"
+    },
+    {
+     "id": "chart",
+     "label": "chart budget 500"
+    }
+   ],
+   "edges": [
+    {
+     "from": "model",
+     "to": "chart"
+    }
+   ]
+  }
+ ]
+}
+-- run --
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/six.json"; echo "check exit: $?"
+d=$(mktemp -d) && python3 skills/hyp-rethinking/scripts/draw_page.py "$HYP_EXAMPLE/input/six.json" "$d/page.html"; echo "draw exit: $?"
+-- floor: contains --
+check exit: 0
+-- floor: contains --
+draw exit: 0
+-- ceiling --
+section 0 is not 1 to 10

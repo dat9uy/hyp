@@ -1,0 +1,150 @@
+-- words --
+1c Section 1 diagram not enough: data whose only diagram is the event's commit graph in section 1 is refused with exit 1.
+-- input/section1.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "the chart",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "A grill that draws the chart of a big model meets the budget refusal.",
+   "source": "F-1NG9VB",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 1 of the event."
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "tool",
+   "label": "Tool"
+  }
+ ],
+ "diagrams": [
+  {
+   "id": "commits",
+   "section": 1,
+   "caption": "The commits of the event",
+   "nodes": [
+    {
+     "id": "h0",
+     "label": "H0"
+    },
+    {
+     "id": "fix",
+     "label": "fix"
+    }
+   ],
+   "edges": [
+    {
+     "from": "h0",
+     "to": "fix"
+    }
+   ]
+  }
+ ]
+}
+-- input/with.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "the chart",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "A grill that draws the chart of a big model meets the budget refusal.",
+   "source": "F-1NG9VB",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 1 of the event."
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "tool",
+   "label": "Tool"
+  }
+ ],
+ "diagrams": [
+  {
+   "id": "problem",
+   "section": 0,
+   "caption": "The model does not fit the chart",
+   "nodes": [
+    {
+     "id": "model",
+     "label": "model 11,150 states"
+    },
+    {
+     "id": "chart",
+     "label": "chart budget 500"
+    }
+   ],
+   "edges": [
+    {
+     "from": "model",
+     "to": "chart"
+    }
+   ]
+  },
+  {
+   "id": "commits",
+   "section": 1,
+   "caption": "The commits of the event",
+   "nodes": [
+    {
+     "id": "h0",
+     "label": "H0"
+    },
+    {
+     "id": "fix",
+     "label": "fix"
+    }
+   ],
+   "edges": [
+    {
+     "from": "h0",
+     "to": "fix"
+    }
+   ]
+  }
+ ]
+}
+-- run --
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/section1.json"; echo "section 1 diagram only: exit $?"
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/with.json"; echo "with picture: exit $?"
+-- floor: contains --
+section 1 diagram only: exit 1
+-- floor: contains --
+with picture: exit 0
+-- ceiling --
+section 0 is not 1 to 10

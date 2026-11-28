@@ -1,0 +1,134 @@
+-- words --
+2b Over the limit is marked: of bars goal-model 11150, run-base 52124 and after-fix 320 against the limit chart budget 500, the two bars above the limit carry the mark "over" and the bar under it does not.
+-- input/page.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "the chart",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "A grill that draws the chart of a big model meets the budget refusal.",
+   "source": "F-1NG9VB",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "section": 1,
+   "text": "Fact 1 of the event."
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "tool",
+   "label": "Tool"
+  }
+ ],
+ "diagrams": [
+  {
+   "id": "states",
+   "section": 0,
+   "caption": "States of each model against the chart budget",
+   "bars": [
+    {
+     "label": "goal-model",
+     "value": 11150
+    },
+    {
+     "label": "run-base",
+     "value": 52124
+    },
+    {
+     "label": "after-fix",
+     "value": 320
+    }
+   ],
+   "limit": {
+    "label": "chart budget",
+    "value": 500
+   }
+  }
+ ]
+}
+-- input/look.py --
+import html, re, sys
+
+
+def txt(s):
+    s = re.sub(r'<(style|script)\b.*?</\1>', ' ', s, flags=re.S)
+    return html.unescape(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', s))).strip()
+
+
+def head(path):
+    """The part of the page above the heading of section 1, or None."""
+    try:
+        t = open(path, encoding='utf-8').read()
+    except OSError:
+        return None
+    m = re.search(r'<h2\b[^>]*>\s*1\.', t)
+    return t[:m.start()] if m else ''
+
+
+def size(part):
+    """The summed length of the rect and line shapes in the diagrams of part."""
+    n = 0.0
+    for svg in re.findall(r'<svg\b.*?</svg>', part, re.S):
+        for r in re.findall(r'<rect\b[^>]*>', svg):
+            for k in ('width', 'height'):
+                m = re.search(r'\b%s="([\d.]+)"' % k, r)
+                n += float(m.group(1)) if m else 0
+        for ln in re.findall(r'<line\b[^>]*>', svg):
+            v = {k: float(x) for k, x in re.findall(r'\b([xy][12])="([\d.-]+)"', ln)}
+            if len(v) == 4:
+                n += abs(v['x2'] - v['x1']) + abs(v['y2'] - v['y1'])
+    return n
+
+
+def main(a):
+    cmd, pages, words = a[0], a[1:3] if a[0] == 'grows' else a[1:2], a[2:]
+    parts = [head(p) for p in pages]
+    if any(p is None for p in parts):
+        print('no page drawn')
+        return
+    if any(p == '' for p in parts):
+        print('no section 1')
+        return
+    svgs = re.findall(r'<svg\b.*?</svg>', parts[0], re.S)
+    if cmd == 'show':
+        print('above section 1: %d diagrams' % len(svgs))
+        for w in words:
+            ok = any(w in txt(s) for s in svgs)
+            print(('above section 1: a diagram shows %s' if ok
+                   else 'above section 1: no diagram shows %s') % w)
+    elif cmd == 'count':
+        w = words[0]
+        n = sum(len(re.findall(r'\b%s\b' % re.escape(w), txt(s))) for s in svgs)
+        print('%s marks: %d' % (w, n))
+    elif cmd == 'grows':
+        print('bar grows with its number' if size(parts[1]) > size(parts[0])
+              else 'bar does not grow')
+
+
+main(sys.argv[1:])
+-- run --
+d=$(mktemp -d) && python3 skills/hyp-rethinking/scripts/draw_page.py "$HYP_EXAMPLE/input/page.json" "$d/page.html"; echo "draw exit: $?"
+python3 "$HYP_EXAMPLE/input/look.py" count "$d/page.html" over
+-- floor: contains --
+draw exit: 0
+-- floor: contains --
+over marks: 2
+-- ceiling --
+section 0 is not 1 to 10
+-- ceiling --
+"bars" is not a field of this format
