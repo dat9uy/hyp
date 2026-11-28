@@ -40,8 +40,14 @@ reader checks the item, such as a path with its line, a commit or a finding id; 
 shows it after the text. `findings` is optional: the ids of the findings the item rests
 on.
 
-Two sections have rules `scripts/check_items.py` checks:
+Three rules `scripts/check_items.py` checks:
 
+- **The page opens with a picture of the problem.** The data holds at least one diagram
+  of section 0. The page draws it in a block above "1. The event". A page with none is
+  refused (`picture-missing`); a diagram of section 1 does not stand in for it. When the
+  problem is numbers against a limit, draw bars (below), not a graph.
+- **Section 1 is short.** It holds at most six items besides the one impact item
+  (`event-too-long`).
 - **Section 1 names who meets the problem.** When section 1 holds items, one of them is
   the impact item: it names the `findings` that show who meets the problem on the normal
   path. The page draws it under "Who meets it". A section 1 with items and no impact item
@@ -49,12 +55,18 @@ Two sections have rules `scripts/check_items.py` checks:
 - **Section 2 holds only facts.** Each item of section 2 is tagged `Fact` and has a
   `source` (`purpose-not-fact`, `source-missing`).
 
-A diagram is `{"id", "section", "caption", "nodes", "edges"}`. Each node is
+A diagram is `{"id", "section", "caption", "nodes", "edges"}`, with `section` 0 to 10. Each node is
 `{"id", "label"}`, and each edge `{"from", "to"}` names two nodes of the same diagram. The
 page draws it in its section, left to right, each node one column right of the nodes its
 edges come from; an edge that skips a column arcs above the boxes. Use one diagram per
 shape the event can take, each with a caption that names its verdict, so the owner sees
 why the two shapes differ.
+
+A diagram of numbers is `{"id", "section", "caption", "bars", "limit"}` in place of nodes
+and edges. Each bar is `{"label", "value"}` and `limit` is `{"label", "value"}`. The page
+draws each bar to scale with its number, marks "over" on each bar above the limit, and
+draws the limit as a line. A bar or a limit with no number is refused
+(`bar-number-missing`).
 
 An approach is `{"name", "concept_at", "steps", "caption", "table"}`. `concept_at` is
 the id of the party where the concept lives. `steps` are the numbered steps of the
@@ -73,7 +85,10 @@ the one canvas, so only the concept moves.
             "source": "F-1NG9VB", "findings": ["F-1NG9VB"]},
            {"id": "demo-I3", "tag": "Fact", "date": "2026-11-27", "section": 2,
             "text": "H0 is the commit a Goal starts from.", "source": "docs/glossary.md"}],
- "diagrams": [{"id": "commits", "section": 1, "caption": "Refused: branch from main",
+ "diagrams": [{"id": "problem", "section": 0, "caption": "The branch is refused",
+               "nodes": [{"id": "main", "label": "main"}, {"id": "refused", "label": "refused"}],
+               "edges": [{"from": "main", "to": "refused"}]},
+              {"id": "commits", "section": 1, "caption": "Refused: branch from main",
                "nodes": [{"id": "h0", "label": "H0"}, {"id": "fix", "label": "fix"}],
                "edges": [{"from": "h0", "to": "fix"}]}],
  "parties": [{"id": "owner", "label": "Owner"}, {"id": "tool", "label": "Tool"}],

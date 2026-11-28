@@ -16,7 +16,11 @@ WHOLE = {
         {'id': 'demo-I4', 'tag': 'Fact', 'date': '2026-11-28', 'section': 2,
          'text': 'The key names a Goal.', 'source': 'docs/glossary.md'},
     ],
-    'diagrams': [{'id': 'commits', 'section': 1, 'caption': 'The fix from main',
+    'diagrams': [{'id': 'problem', 'section': 0, 'caption': 'States against the budget',
+                  'bars': [{'label': 'goal-model', 'value': 11150},
+                           {'label': 'after-fix', 'value': 320}],
+                  'limit': {'label': 'chart budget', 'value': 500}},
+                 {'id': 'commits', 'section': 1, 'caption': 'The fix from main',
                   'nodes': [{'id': 'h0', 'label': 'H0'}, {'id': 'a', 'label': 'add A'},
                             {'id': 'fix', 'label': 'fix'}],
                   'edges': [{'from': 'h0', 'to': 'a'}, {'from': 'a', 'to': 'fix'},
@@ -49,6 +53,18 @@ class CheckItems(unittest.TestCase):
         _, p = write(WHOLE)
         self.assertEqual(run(CHECK, p), (0, ''))
 
+    def test_picture_bars_and_event_length(self):
+        page = json.loads(json.dumps(WHOLE))
+        page['diagrams'].pop(0)
+        self.assertIn('picture-missing diagrams', run(CHECK, write(page)[1])[1])
+        page = json.loads(json.dumps(WHOLE))
+        page['diagrams'][0]['bars'][1].pop('value')
+        self.assertIn('bar-number-missing diagrams[0].bars[1]', run(CHECK, write(page)[1])[1])
+        page = json.loads(json.dumps(WHOLE))
+        page['items'] += [{'id': f'demo-X{i}', 'tag': 'Fact', 'date': '2026-11-28',
+                           'section': 1, 'text': 'A fact.'} for i in range(6)]
+        self.assertIn('event-too-long items', run(CHECK, write(page)[1])[1])
+
     def test_each_defect_has_its_code_and_path(self):
         page = json.loads(json.dumps(WHOLE))
         page['items'] = [
@@ -74,12 +90,12 @@ class CheckItems(unittest.TestCase):
         page['items'][2]['findings'] = []
         page['items'].append({'id': 'demo-I5', 'tag': 'Proposed', 'date': 'd', 'text': 't',
                               'section': 2})
-        page['diagrams'][0]['edges'].append({'from': 'a', 'to': 'nowhere'})
+        page['diagrams'][1]['edges'].append({'from': 'a', 'to': 'nowhere'})
         _, p = write(page)
         code, out = run(CHECK, p)
         self.assertEqual(code, 1)
         for want in ('impact-missing items:', 'purpose-not-fact items[4]',
-                     'source-missing items[4]', 'node-unknown diagrams[0].edges[3].to'):
+                     'source-missing items[4]', 'node-unknown diagrams[1].edges[3].to'):
             self.assertIn(want, out)
         self.assertNotIn('items[3]', out)
 
@@ -102,7 +118,7 @@ class DrawPage(unittest.TestCase):
         self.assertEqual(run(DRAW, p, out)[0], 0)
         self.assertEqual(run(PAGE, out), (0, ''))
         page = open(out, encoding='utf-8').read()
-        self.assertEqual(page.count('<svg'), 7)
+        self.assertEqual(page.count("<svg"), 8)
         for want in ('demo-I1', 'Owner said', '2026-11-27', 'Keep the words of the owner.',
                      '2. What it is for</h2>', '<h3>Who meets it</h3>', 'docs/glossary.md',
                      'findings: <code>F-1</code>', 'The fix from main'):
