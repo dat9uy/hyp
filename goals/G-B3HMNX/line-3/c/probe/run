@@ -1,0 +1,89 @@
+#!/bin/sh
+# Probe of a guard example of the run's commit under goals/. The working directory is a copy of the subject.
+# It builds hyp from the subject and makes a test repo: Goal A (a gap line, its example placed) is added
+# on main; A's runner commit ROW is a child of A's add commit and holds the fix, A's spec and one foreign
+# write (MODE) and a file under .tree/ in the same commit (the commit writes .tree/ too). Goal B is added on main after ROW, so B's add is not below ROW. ROW and GOAL in the run
+# section are replaced by the commit and A's id. It prints the stdout, then the stderr, with ids and
+# hashes mapped to tokens, then a last line "exit N". Setup output goes to stderr. A setup failure exits 3.
+mode=specb
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+cp skills/hyp-grill/probe/run "$work/generic-run" || fail "generic probe"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+printf 'counter: bad\n' >counter
+git add -A && git commit -q -m base >&2 || fail "commit base"
+base=$(git rev-parse HEAD) || fail "base"
+
+owner() { HYP_ACTOR=owner HYP_ROLE=owner hyp "$@"; }
+
+addgoal() {
+  owner add goal --base "$base" --words "$1" --line "gap:$2" >"$work/add" 2>&1 || { cat "$work/add" >&2; fail "add goal"; }
+  cat "$work/add" >&2
+  grep -o 'G-[0-9A-Z]\{6\}' "$work/add" | head -1
+}
+
+# Goal A, with its one gap example written and placed
+goal=$(addgoal 'Count.' 'the counter says ok.')
+[ -n "$goal" ] || fail "no Goal id"
+git add -A && git commit -q -m goal >&2 || fail "commit goal"
+ex="goals/$goal/line-1/a"
+mkdir -p "$ex/probe" || fail "mkdir example"
+printf '%s\n' '-- words --' 'The counter says ok.' '-- run --' 'cat counter' \
+  '-- floor: contains --' 'ok' >"$ex/example.txtar" || fail "example"
+cp "$work/generic-run" "$ex/probe/run" && chmod +x "$ex/probe/run" || fail "probe copy"
+git add -A && git commit -q -m example >&2 || fail "commit example"
+owner place "$goal" >&2 || fail "place"
+git add -A && git commit -q -m events >&2 || fail "commit events"
+a_add=$(git rev-parse HEAD) || fail "a_add"
+
+# Goal B is added on main after A's runner branch point; it is not below ROW
+bgoal=$(addgoal 'Other.' 'the other thing holds.')
+[ -n "$bgoal" ] || fail "no Goal B id"
+git add -A && git commit -q -m "goal B" >&2 || fail "commit goal B"
+
+# A's runner commit: a child of A's add commit
+git checkout -q -b row "$a_add" >&2 || fail "checkout row"
+printf 'counter: ok\n' >counter
+mkdir -p "goals/$goal/specs" && printf 'spec\n' >"goals/$goal/specs/spec.md" || fail "spec"
+case "$mode" in
+  editb) mkdir -p "goals/$bgoal/line-1/a" && printf 'edited\n' >"goals/$bgoal/line-1/a/example.txtar" || fail "row file" ;;
+  specb) mkdir -p "goals/$bgoal/specs" && printf 'x\n' >"goals/$bgoal/specs/x.tla" || fail "row file" ;;
+  nogoal) mkdir -p goals/draft-x && printf 'y\n' >goals/draft-x/f || fail "row file" ;;
+esac
+mkdir -p .tree && printf 'note\n' >.tree/note || fail "tree file"
+git add -A >&2 && git commit -q -m row >&2 || fail "commit row"
+row=$(git rev-parse HEAD) || fail "row"
+git checkout -q main >&2 || fail "checkout main"
+
+run=$(printf '%s' "$HYP_RUN" | sed -E -e "s/(^|[^A-Za-z0-9_-])ROW([^A-Za-z0-9_-]|$)/\\1$row\\2/g" -e "s/(^|[^A-Za-z0-9_-])GOAL([^A-Za-z0-9_-]|$)/\\1$goal\\2/g")
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+map() {
+  sed -e "s/$goal/GOAL/g" -e "s/$bgoal/GOALB/g" -e "s/$row/ROW/g" -e "s/$a_add/ADD/g" -e "s/$base/BASE/g" \
+    -e 's/[0-9A-HJKMNP-TV-Z]\{26\}/ULID/g' \
+    -e 's/\b[0-9a-f]\{40\}\b/HASH/g' \
+    -e 's/[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}T[0-9:.]*Z\{0,1\}\([+-][0-9:]*\)\{0,1\}/TIMESTAMP/g' "$1"
+}
+map "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+map "$work/err"
+echo "exit $code"
+exit 0

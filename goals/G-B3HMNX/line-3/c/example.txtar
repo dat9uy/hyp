@@ -1,0 +1,8 @@
+-- words --
+A's runner commits its fix together with a new file under Goal B's spec folder, goals/B/specs/, and a file under .tree/, so the commit looks like an owner's act, and runs it: the run is refused as a path of another Goal, because no act of B recorded that spec file.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+a path of another Goal
+-- floor: contains --
+run exit 1
