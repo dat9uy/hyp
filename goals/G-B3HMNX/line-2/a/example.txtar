@@ -1,0 +1,10 @@
+-- words --
+Goals A and B are added on main. A's runner commits fix R1 on A's add commit, which changes nothing B's examples measure. B's runner branches from main, commits its fix, merges R1 and runs: the run is recorded with R1 as its one base, not refused with two-bases.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit 0
+-- ceiling --
+stands on two bases
+-- findings --
+F-N2MYNN

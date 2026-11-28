@@ -1,0 +1,10 @@
+-- words --
+The owner adds Goal A and then Goal B on main, each in its own commit. A's runner branches from main, commits a fix with a spec under goals/A/, and runs it: the run is recorded, not refused by Own path for B's add.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit 0
+-- ceiling --
+a path of another Goal
+-- findings --
+F-1T5B7B

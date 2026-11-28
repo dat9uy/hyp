@@ -1,0 +1,10 @@
+-- words --
+Goal A2 is added with --from A, so its H0 is CA, the commit A is selected on. A2's runner branches from main, which holds A's add but not CA, and runs its fix: hyp does not name A's add, a commit older than A2's H0, as a path the runner wrote.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+run exit
+-- ceiling --
+a path of another Goal
+-- findings --
+F-1T5B7B

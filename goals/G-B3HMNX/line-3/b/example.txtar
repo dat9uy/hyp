@@ -1,0 +1,8 @@
+-- words --
+A's runner commits its fix together with a new file under Goal B's spec folder, goals/B/specs/, and runs it: the run is refused as a path of another Goal.
+-- run --
+HYP_ACTOR=runner-1 HYP_ROLE=runner hyp run ROW GOAL/line-1 2>&1; echo "run exit $?"
+-- floor: contains --
+a path of another Goal
+-- floor: contains --
+run exit 1

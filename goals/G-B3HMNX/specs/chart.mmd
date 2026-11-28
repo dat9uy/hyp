@@ -1,0 +1,10 @@
+---
+title: "A run is judged by what its runner wrote"
+---
+stateDiagram-v2
+  s0: before the run
+  s1: the run is refused by Own path
+  s2: the run is recorded
+  [*] --> s0
+  s0 --> s1: the runner runs a commit that writes a folder of no Goal or the runner runs a commit that writes another Goal's folder
+  s0 --> s2: the runner runs its commit
