@@ -3,8 +3,8 @@
 
 Usage: check_page.py PAGE.html [--max-words 25]
 Reports headings out of order, "section N" references to a missing section,
-duplicate id values, descriptive sentences longer than the limit, and a section 6
-with fewer than three diagrams or a section 7 with none. A diagram is an <svg> or a
+duplicate id values, descriptive sentences longer than the limit, and a section 7
+with fewer than three diagrams or a section 8 with none. A diagram is an <svg> or a
 Mermaid block. A quotation in double quotes counts as one word in the sentence
 length: the page keeps the owner's words exactly, so their length is not the
 page's to fix.
@@ -49,7 +49,7 @@ def main():
     ids = re.findall(r'\sid="([^"]+)"', body)
     for i in sorted({i for i in ids if ids.count(i) > 1}):
         out.append(f'duplicate id "{i}" ({ids.count(i)} times)')
-    for n, need in ((6, 3), (7, 1)):
+    for n, need in ((7, 3), (8, 1)):
         part = section(body, n)
         if part is not None:
             got = len(re.findall(r'<svg\b|class="mermaid"|```mermaid', part))

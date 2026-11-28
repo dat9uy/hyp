@@ -106,7 +106,7 @@ rethink below only when a slot has no home, or the owner asks for it.
 - **Draw each approach on one shared canvas.** Owner, after a page of three text-only
   approaches: "always have visualization for me to differentiate between options". Each
   approach gets a diagram, and the three use the same parties at the same places, so the
-  only thing that moves is where the concept lives. Section 7 is visual too. The rules are
+  only thing that moves is where the concept lives. Section 8 is visual too. The rules are
   in `references/page-shape.md`, "The diagrams".
 - **Separate fact from interpretation.** A test result is a fact; deciding which rule
   or requirement it falls under is interpretation, and it belongs to whoever owns
@@ -144,7 +144,7 @@ read `references/section-grill.md`.
 - The page holds every section of `references/page-shape.md` in order.
 - Every "today" claim has a source the reader can check, and was checked this session.
 - The three approaches differ in kind, and each shows the event run under it, in words and
-  in a diagram on the shared canvas. Section 7 holds a visual comparison.
+  in a diagram on the shared canvas. Section 8 holds a visual comparison.
 - `scripts/check_items.py` exits 0 on the data file, and the page is drawn from it.
 - Every claim carries a source tag, every sentence passes the "The voice"
   rules of `references/public-doc-voice.md` (a descriptive sentence has 25 words or
@@ -165,12 +165,13 @@ read `references/section-grill.md`.
 - `references/public-doc-voice.md`: the voice every sentence of the page is written in.
 - `scripts/check_items.py <page>.json`: refuses a data file with exit 1 and names each
   defect by its code and path: an item with no id, a duplicate id, an id that does not
-  start with the page id, an unknown tag, an item with no date or text, an unknown field.
-  Exit 2 when the file cannot be read.
+  start with the page id, an unknown tag, an item with no date or text, an unknown field,
+  a section 1 with no impact item, an item of section 2 that is not a Fact with a source,
+  and a diagram edge to an undeclared node. Exit 2 when the file cannot be read.
 - `scripts/draw_page.py <page>.json <page>.html`: draws the whole page from its data
   file. Exit 1 when the data has a defect, 2 when a file cannot be read or written.
 - `scripts/check_page.py <page>`: reports headings out of order, references to a missing
   section, duplicate ids, sentences over 25 words (a quotation counts as one word), and
-  sections 6 and 7 without the diagrams they need. Exit 1 means findings. Python 3
+  sections 7 and 8 without the diagrams they need. Exit 1 means findings. Python 3
   standard library only; runs on macOS, Linux and Windows. Tests: `python3 -m unittest discover -s
   scripts/tests`.

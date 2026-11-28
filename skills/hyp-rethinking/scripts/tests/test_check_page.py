@@ -38,13 +38,13 @@ class CheckPage(unittest.TestCase):
         self.assertIn('27 words', out)
 
     def test_approaches_need_diagrams(self):
-        bare = '<body><h2>6. Approaches</h2><svg></svg><p>A.</p><h2>7. Side</h2><p>T.</p></body>'
+        bare = '<body><h2>7. Approaches</h2><svg></svg><p>A.</p><h2>8. Side</h2><p>T.</p></body>'
         code, out = run(bare)
         self.assertEqual(code, 1)
-        self.assertIn('section 6: 1 diagrams, needs 3', out)
-        self.assertIn('section 7: 0 diagrams, needs 1', out)
-        full = ('<body><h2>6. Approaches</h2><svg></svg><svg></svg><pre class="mermaid">a</pre>'
-                '<h2>7. Side</h2><svg></svg></body>')
+        self.assertIn('section 7: 1 diagrams, needs 3', out)
+        self.assertIn('section 8: 0 diagrams, needs 1', out)
+        full = ('<body><h2>7. Approaches</h2><svg></svg><svg></svg><pre class="mermaid">a</pre>'
+                '<h2>8. Side</h2><svg></svg></body>')
         self.assertEqual(run(full), (0, ''))
 
     def test_missing_file_exits_2(self):

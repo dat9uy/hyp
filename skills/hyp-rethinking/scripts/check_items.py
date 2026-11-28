@@ -11,8 +11,13 @@ the file, such as items[2] or approaches[0].concept_at. The codes:
   tag-unknown     an item tag is not one of the tags in TAGS
   date-missing    an item has no date
   text-missing    an item has no text
-  section-unknown an item names a section that is not 1 to 9
+  section-unknown an item or a diagram names a section that is not 1 to 10
+  impact-missing  section 1 has items, and none of them names the findings that
+                  show who meets the problem
+  purpose-not-fact an item of section 2, "What it is for", is not tagged Fact
+  source-missing  an item of section 2 has no source
   party-unknown   an approach places its concept at a party the page does not declare
+  node-unknown    a diagram edge names a node the diagram does not declare
   field-unknown   a field this format does not hold, such as a "replaced" marker
   shape           a value of the wrong type, such as items that is not a list
 
@@ -22,11 +27,16 @@ is not JSON. Python 3 standard library only.
 import json, sys
 
 TAGS = ('Owner said', 'Proposed', 'Open', 'Fact', 'Hypothetical')
-PAGE_FIELDS = ('id', 'title', 'concept', 'items', 'parties', 'approaches')
-ITEM_FIELDS = ('id', 'tag', 'date', 'text', 'section')
+PAGE_FIELDS = ('id', 'title', 'concept', 'items', 'parties', 'approaches', 'diagrams')
+ITEM_FIELDS = ('id', 'tag', 'date', 'text', 'section', 'source', 'findings')
+SECTION_COUNT = 10
+EVENT, PURPOSE = 1, 2
 PARTY_FIELDS = ('id', 'label')
 APPROACH_FIELDS = ('name', 'concept_at', 'steps', 'caption', 'table')
 STEP_FIELDS = ('text', 'from', 'to', 'mark')
+DIAGRAM_FIELDS = ('id', 'section', 'caption', 'nodes', 'edges')
+NODE_FIELDS = ('id', 'label')
+EDGE_FIELDS = ('from', 'to')
 
 
 def _text(v):
@@ -40,12 +50,23 @@ def _unknown(obj, allowed, path, out):
                         f'"{k}" is not a field of this format'))
 
 
-def _list(page, key, out):
-    v = page.get(key, [])
+def _list(obj, key, out, path=''):
+    v = obj.get(key, [])
     if not isinstance(v, list):
-        out.append(('shape', key, f'{key} must be a list'))
+        where = f'{path}.{key}' if path else key
+        out.append(('shape', where, f'{key} must be a list'))
         return []
     return v
+
+
+def findings_of(it):
+    """The finding ids an item names, or an empty list."""
+    v = it.get('findings')
+    return [f for f in v if _text(f)] if isinstance(v, list) else []
+
+
+def _section(v):
+    return v in range(1, SECTION_COUNT + 1) and not isinstance(v, bool)
 
 
 def check(page):
@@ -82,8 +103,26 @@ def check(page):
             out.append(('date-missing', p, 'the item has no date'))
         if not _text(it.get('text')):
             out.append(('text-missing', p, 'the item has no text'))
-        if 'section' in it and it['section'] not in range(1, 10):
-            out.append(('section-unknown', p, f'section {json.dumps(it["section"])} is not 1 to 9'))
+        if 'section' in it and not _section(it['section']):
+            out.append(('section-unknown', p, f'section {json.dumps(it["section"])} '
+                        f'is not 1 to {SECTION_COUNT}'))
+        if 'source' in it and not _text(it['source']):
+            out.append(('shape', f'{p}.source', 'source is a text, such as a path or an id'))
+        if 'findings' in it and not (isinstance(it['findings'], list)
+                                     and all(_text(f) for f in it['findings'])):
+            out.append(('shape', f'{p}.findings', 'findings is a list of finding ids'))
+        if it.get('section') == PURPOSE:
+            if it.get('tag') != 'Fact':
+                out.append(('purpose-not-fact', p, 'an item of section 2, "What it is for", '
+                            'is not tagged Fact'))
+            if not _text(it.get('source')):
+                out.append(('source-missing', p, 'an item of section 2, "What it is for", '
+                            'has no source'))
+    items = page.get('items') if isinstance(page.get('items'), list) else []
+    event = [it for it in items if isinstance(it, dict) and it.get('section') == EVENT]
+    if event and not any(findings_of(it) for it in event):
+        out.append(('impact-missing', 'items', 'section 1 holds no impact item: an item that '
+                    'says who meets the problem, with the findings that show it'))
     parties = set()
     for i, pa in enumerate(_list(page, 'parties', out)):
         p = f'parties[{i}]'
@@ -125,6 +164,37 @@ def check(page):
                                 f'{json.dumps(st[end])} is not a declared party'))
             if st.get('mark') not in (None, 'caught', 'missed'):
                 out.append(('shape', f'{sp}.mark', 'mark is caught or missed'))
+    for i, dg in enumerate(_list(page, 'diagrams', out)):
+        p = f'diagrams[{i}]'
+        if not isinstance(dg, dict):
+            out.append(('shape', p, 'a diagram must be an object'))
+            continue
+        _unknown(dg, DIAGRAM_FIELDS, p, out)
+        if not _text(dg.get('id')):
+            out.append(('id-missing', p, 'the diagram has no id'))
+        if not _section(dg.get('section')):
+            out.append(('section-unknown', f'{p}.section', f'section '
+                        f'{json.dumps(dg.get("section"))} is not 1 to {SECTION_COUNT}'))
+        nodes = set()
+        for j, nd in enumerate(_list(dg, 'nodes', out, p)):
+            np = f'{p}.nodes[{j}]'
+            if not isinstance(nd, dict) or not _text(nd.get('id')):
+                out.append(('shape', np, 'a node is an object with an id'))
+                continue
+            _unknown(nd, NODE_FIELDS, np, out)
+            if nd['id'] in nodes:
+                out.append(('id-duplicate', np, f'node id "{nd["id"]}" is declared twice'))
+            nodes.add(nd['id'])
+        for j, ed in enumerate(_list(dg, 'edges', out, p)):
+            ep = f'{p}.edges[{j}]'
+            if not isinstance(ed, dict):
+                out.append(('shape', ep, 'an edge is an object with a from and a to'))
+                continue
+            _unknown(ed, EDGE_FIELDS, ep, out)
+            for end in ('from', 'to'):
+                if ed.get(end) not in nodes:
+                    out.append(('node-unknown', f'{ep}.{end}',
+                                f'{json.dumps(ed.get(end))} is not a node of this diagram'))
     return out
 
 
