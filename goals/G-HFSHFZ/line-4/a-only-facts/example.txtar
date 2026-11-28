@@ -1,0 +1,57 @@
+-- words --
+check_items.py refuses an item in section 2, 'What it is for', whose tag is not Fact, with exit 1 and a code that names that item.
+-- input/page.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "own change",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "text": "A runner who branches from main after another Goal is added meets the refusal.",
+   "section": 1,
+   "source": "F-1NG9VB",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "text": "H0 is the commit a Goal starts from.",
+   "section": 2,
+   "source": "docs/glossary.md"
+  },
+  {
+   "id": "demo-I3",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Own path could read the store.",
+   "section": 2
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "runner",
+   "label": "Runner"
+  }
+ ]
+}
+-- run --
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/page.json"
+echo "exit code: $?"
+-- floor: contains --
+items[2]
+-- floor: contains --
+exit code: 1
+-- ceiling --
+items[0]
+-- ceiling --
+items[1]

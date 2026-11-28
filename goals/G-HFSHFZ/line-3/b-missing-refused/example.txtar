@@ -1,0 +1,34 @@
+-- words --
+check_items.py refuses, with exit 1, a page whose section 1 has items but no impact item.
+-- input/page.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "own change",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Owner said",
+   "date": "2026-11-28",
+   "text": "The page does not explain the problem.",
+   "section": 1
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "runner",
+   "label": "Runner"
+  }
+ ]
+}
+-- run --
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/page.json"
+echo "exit code: $?"
+-- floor: contains --
+exit code: 1
+-- ceiling --
+exit code: 0

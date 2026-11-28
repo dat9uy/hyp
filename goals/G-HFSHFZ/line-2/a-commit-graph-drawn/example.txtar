@@ -1,0 +1,126 @@
+-- words --
+A data file with a commit graph in section 1 (nodes H0, add A, add B and fix, with edges between them) passes check_items.py, and the drawn section 1 holds a diagram that shows add B and fix.
+-- input/page.json --
+{
+ "id": "demo",
+ "title": "Demo",
+ "concept": "own change",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "text": "A runner who branches from main after another Goal is added meets the refusal.",
+   "section": 1,
+   "source": "F-1NG9VB",
+   "findings": [
+    "F-1NG9VB"
+   ]
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Fact",
+   "date": "2026-11-28",
+   "text": "H0 is the commit a Goal starts from.",
+   "section": 2,
+   "source": "docs/glossary.md"
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "runner",
+   "label": "Runner"
+  }
+ ],
+ "diagrams": [
+  {
+   "id": "commits",
+   "section": 1,
+   "caption": "The fix on a branch from main",
+   "nodes": [
+    {
+     "id": "h0",
+     "label": "H0"
+    },
+    {
+     "id": "a",
+     "label": "add A"
+    },
+    {
+     "id": "b",
+     "label": "add B"
+    },
+    {
+     "id": "fix",
+     "label": "fix"
+    }
+   ],
+   "edges": [
+    {
+     "from": "h0",
+     "to": "a"
+    },
+    {
+     "from": "a",
+     "to": "b"
+    },
+    {
+     "from": "b",
+     "to": "fix"
+    }
+   ]
+  }
+ ]
+}
+-- input/look.py --
+import html, re, sys
+
+
+def txt(s):
+    s = re.sub(r'<(style|script)\b.*?</\1>', ' ', s, flags=re.S)
+    return html.unescape(re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', s))).strip()
+
+
+def main(a):
+    try:
+        t = open(a[0], encoding='utf-8').read()
+    except OSError:
+        print('no page drawn')
+        return
+    hs = list(re.finditer(r'<h2\b[^>]*>(.*?)</h2>', t, re.S))
+    names = [txt(m.group(1)) for m in hs]
+    print('headings: ' + ' | '.join(names))
+    want, checks = a[1], a[2:]
+    i = next((k for k, n in enumerate(names) if re.sub(r'^\d+\.\s*', '', n) == want), None)
+    if i is None:
+        print('no section ' + want)
+        return
+    body = t[hs[i].end():hs[i + 1].start() if i + 1 < len(hs) else len(t)]
+    svgs = re.findall(r'<svg\b.*?</svg>', body, re.S)
+    print('%s: %d diagrams' % (want, len(svgs)))
+    for kind, word in zip(checks[::2], checks[1::2]):
+        if kind == 'has':
+            print(('%s has %s' if word in txt(body) else '%s lacks %s') % (want, word))
+        else:
+            ok = any(word in txt(s) for s in svgs)
+            print(('%s: a diagram shows %s' if ok else '%s: no diagram shows %s') % (want, word))
+
+
+main(sys.argv[1:])
+-- run --
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/page.json"
+echo "exit code: $?"
+d=$(mktemp -d) && python3 skills/hyp-rethinking/scripts/draw_page.py "$HYP_EXAMPLE/input/page.json" "$d/page.html"; echo "draw exit: $?"
+python3 "$HYP_EXAMPLE/input/look.py" "$d/page.html" "The event" svg "add B" svg "fix"
+-- floor: contains --
+exit code: 0
+-- floor: contains --
+The event: a diagram shows add B
+-- floor: contains --
+The event: a diagram shows fix
+-- ceiling --
+field-unknown
