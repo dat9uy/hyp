@@ -214,7 +214,7 @@ One build the runner offers against a Goal's examples: the subject of a commit. 
 _Avoid_: tree, first tree (say H1, or the 1st Hypothesis); attempt; candidate (a candidate is a Hypothesis met on every line)
 
 **H0**:
-The Hypothesis of the Goal's base: the commit `--base` names, and its subject hash. A gap example fails on H0 and a guard example is met on H0. The budget never counts H0.
+The Hypothesis of the Goal's base: the commit `--base` names, and its subject hash. For a Goal that rests on a premise, it is the commit the premise is selected or landed on (`hyp spec`, open). A gap example fails on H0 and a guard example is met on H0. The budget never counts H0.
 _Avoid_: baseline, main
 
 **Base** (of a run):
@@ -230,7 +230,7 @@ The Goal in work that a Goal added with `--from` rests on. The resting Goal's H0
 _Avoid_: parent, dependency
 
 **Cut** (of a premise):
-The owner's unselect or close of a premise. A Goal that rests on it no longer stands on the cut select, and its Results there count nothing (`hyp spec`, open).
+The owner's unselect or close of a premise. A Goal that rests on it no longer stands on the cut select: its H0 is the commit its premise is next selected or landed on (`hyp spec`, open).
 _Avoid_: cut for a byte block's label (that cut shortens printed bytes)
 
 **Rival**:
