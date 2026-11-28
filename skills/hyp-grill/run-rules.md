@@ -65,7 +65,10 @@ Goal are told the same.
    with its variant and the outputs `hyp try` printed.
 10. **A defect outside the Goal** is fixed only when the line needs it.
     Otherwise record it as a finding (rule 11) and list it in the PR for the
-    owner.
+    owner. A partial fix, or a part of a line's want that your build leaves
+    out, is a finding too: record it before you open the PR and list its id
+    there. A PR's notes alone do not hold it, because a PR is read once, at
+    the merge.
 11. **A fact that no line of its Goal needs is a finding.** Record it with
     `hyp finding add --fact TEXT --evidence TEXT`: the fact and a pointer to
     its evidence, such as a commit, a path or a Result id. Then read

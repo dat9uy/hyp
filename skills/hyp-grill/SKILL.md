@@ -80,6 +80,62 @@ The issue is the owner's record, not a rule for the runner:
   Never a gitignored or local file, such as a design page, a report or a
   memory note, in the Goal's words, a `--why` or a comment.
 
+## A rethink page becomes an issue
+
+A rethink page, which the hyp-rethinking skill draws, is scratch. It changes
+while the owner talks, and it is a local file, so no record cites it. Its
+items are where a Goal's lines come from, and every item counts, a Proposed
+item too. Do not expect an issue to exist: when the owner wants a page's items
+built, the grill opens the issue from the page itself, and the issue then
+holds each item until a record holds it.
+
+1. Check the page's data file with hyp-rethinking's `check_items.py` until it
+   exits 0.
+2. From this skill's folder, run
+   `python3 scripts/draw_issue.py PAGE.json > body.md`. It draws the body: the
+   page's sections that hold items, in page order, each item with its id, tag
+   and text, and a holder table, `| Item | Tag | Holder |`, with one row for
+   each item and its holder empty. It draws nothing while the data has a
+   defect, and exits 1.
+3. The grill opens the issue with that body:
+   `gh issue create --title "PAGE TITLE" --body-file body.md`. When the page
+   changes, draw the body again, carry over each holder already written, and
+   replace the issue's body with `gh issue edit N --body-file body.md`.
+
+Write each holder as the owner decides. Each tag has its kind of holder:
+
+- **Owner said** and **Proposed**: a line of an open or written Goal,
+  `G-XXXXXX line-N`.
+- **Fact**: a finding, `F-XXXXXX`, when the page wants the fact gone;
+  otherwise the Goal line whose why holds the fact as evidence.
+- **Open**: the owner's answer, `owner: "WORDS"`.
+- **Hypothetical**: an example drafted for a line, `G-XXXXXX line-N/NAME`, or
+  `draft NAME line-N/NAME` before the Goal is added.
+- **Any tag**: the owner's close of the item, `close: "WORDS"`, in the
+  owner's words.
+
+An item too vague for a sharp line is held by a line of a written Goal that
+holds the item's words, and the grill sharpens that line with the owner
+before the Goal opens. A finding never holds a vague item: a finding is a
+fact, and a vague item is a want.
+
+Run `python3 scripts/check_holders.py body.md` on the issue's current body
+(`gh issue view N --json body -q .body > body.md`) at every split of the
+items into Goals and before any report of done, in the clone that holds the
+store. It lists each item with no holder (`holder-missing`), a holder whose
+kind does not fit its tag (`holder-kind`), a Goal or line the store does not
+hold (`holder-unknown`), and a Goal that ended with no select
+(`holder-ended`), and exits 1. A report of done waits until it exits 0. The
+talk needs no end: the items stay in the table, so the check reads them at
+any time.
+
+At the end of each Goal, the land and each remainder go to the tracking issue
+with their records: the land with its commit, and each remainder, a part the
+Goal left out or fixed only in part, with the finding or the written Goal that
+holds it. Write the new holder into the table and run the check again. With no
+tracking issue, each remainder is a finding only: record it with
+`hyp finding add`, and open no issue for it.
+
 ## How to grill
 
 When the owner already recorded the Goal (`hyp status G` shows it `written`
@@ -221,5 +277,14 @@ the runner looks for no rivals until the owner unselects.
   cannot run to a Probe writer.
 - The hyp-statechart skill, beside this one: the model, its variants and its
   chart, with the statechart tool.
+- [scripts/draw_issue.py](scripts/draw_issue.py) `PAGE.json`: prints an
+  issue body from a rethink page's data file, with every item and an empty
+  holder table. Exit 1 when the data has a defect, 2 when a file cannot be
+  read.
+- [scripts/check_holders.py](scripts/check_holders.py) `BODY.md`: lists each
+  item of an issue body whose holder is missing, of the wrong kind, unknown to
+  the store or ended with no select. Exit 1 with defects, 2 when the body
+  cannot be read or `hyp` cannot run. Both scripts use the Python 3 standard
+  library only. Tests: `python3 -m unittest discover -s scripts/tests`.
 - [probe/run](probe/run): the generic Probe, a POSIX `sh` script. hyp runs it
   on macOS and Linux; `hyp try` exercises it, so it has no test of its own.
