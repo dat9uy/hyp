@@ -11,7 +11,12 @@ the file, such as items[2] or approaches[0].concept_at. The codes:
   tag-unknown     an item tag is not one of the tags in TAGS
   date-missing    an item has no date
   text-missing    an item has no text
-  section-unknown an item or a diagram names a section that is not 1 to 10
+  section-unknown an item names a section that is not 1 to 10, or a diagram one
+                  that is not 0 to 10
+  picture-missing the page has no diagram of section 0, the picture of the problem
+                  that is drawn above section 1
+  event-too-long  section 1 holds more than MAX_EVENT items besides one impact item
+  bar-number-missing a bar, or the limit of a bar diagram, has no label or no number
   impact-missing  section 1 has items, and none of them names the findings that
                   show who meets the problem
   purpose-not-fact an item of section 2, "What it is for", is not tagged Fact
@@ -31,10 +36,13 @@ PAGE_FIELDS = ('id', 'title', 'concept', 'items', 'parties', 'approaches', 'diag
 ITEM_FIELDS = ('id', 'tag', 'date', 'text', 'section', 'source', 'findings')
 SECTION_COUNT = 10
 EVENT, PURPOSE = 1, 2
+PICTURE = 0  # the section of the picture drawn above section 1
+MAX_EVENT = 6
 PARTY_FIELDS = ('id', 'label')
 APPROACH_FIELDS = ('name', 'concept_at', 'steps', 'caption', 'table')
 STEP_FIELDS = ('text', 'from', 'to', 'mark')
-DIAGRAM_FIELDS = ('id', 'section', 'caption', 'nodes', 'edges')
+DIAGRAM_FIELDS = ('id', 'section', 'caption', 'nodes', 'edges', 'bars', 'limit')
+BAR_FIELDS = ('label', 'value')
 NODE_FIELDS = ('id', 'label')
 EDGE_FIELDS = ('from', 'to')
 
@@ -65,8 +73,12 @@ def findings_of(it):
     return [f for f in v if _text(f)] if isinstance(v, list) else []
 
 
-def _section(v):
-    return v in range(1, SECTION_COUNT + 1) and not isinstance(v, bool)
+def _section(v, first=1):
+    return v in range(first, SECTION_COUNT + 1) and not isinstance(v, bool)
+
+
+def _number(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 def check(page):
@@ -123,6 +135,10 @@ def check(page):
     if event and not any(findings_of(it) for it in event):
         out.append(('impact-missing', 'items', 'section 1 holds no impact item: an item that '
                     'says who meets the problem, with the findings that show it'))
+    rest = len(event) - (1 if any(findings_of(it) for it in event) else 0)
+    if rest > MAX_EVENT:
+        out.append(('event-too-long', 'items', f'section 1 holds {rest} items besides the '
+                    f'impact item; the most is {MAX_EVENT}'))
     parties = set()
     for i, pa in enumerate(_list(page, 'parties', out)):
         p = f'parties[{i}]'
@@ -172,9 +188,26 @@ def check(page):
         _unknown(dg, DIAGRAM_FIELDS, p, out)
         if not _text(dg.get('id')):
             out.append(('id-missing', p, 'the diagram has no id'))
-        if not _section(dg.get('section')):
+        if not _section(dg.get('section'), PICTURE):
             out.append(('section-unknown', f'{p}.section', f'section '
-                        f'{json.dumps(dg.get("section"))} is not 1 to {SECTION_COUNT}'))
+                        f'{json.dumps(dg.get("section"))} is not 0 to {SECTION_COUNT}'))
+        for j, br in enumerate(_list(dg, 'bars', out, p)):
+            bp = f'{p}.bars[{j}]'
+            if not isinstance(br, dict):
+                out.append(('shape', bp, 'a bar is an object with a label and a value'))
+                continue
+            _unknown(br, BAR_FIELDS, bp, out)
+            if not _text(br.get('label')) or not _number(br.get('value')):
+                out.append(('bar-number-missing', bp, 'a bar has a label and a number'))
+        lim = dg.get('limit')
+        if 'limit' in dg:
+            if not isinstance(lim, dict):
+                out.append(('shape', f'{p}.limit', 'limit is an object with a label and a value'))
+            else:
+                _unknown(lim, BAR_FIELDS, f'{p}.limit', out)
+                if not _text(lim.get('label')) or not _number(lim.get('value')):
+                    out.append(('bar-number-missing', f'{p}.limit',
+                                'the limit has a label and a number'))
         nodes = set()
         for j, nd in enumerate(_list(dg, 'nodes', out, p)):
             np = f'{p}.nodes[{j}]'
@@ -195,6 +228,11 @@ def check(page):
                 if ed.get(end) not in nodes:
                     out.append(('node-unknown', f'{ep}.{end}',
                                 f'{json.dumps(ed.get(end))} is not a node of this diagram'))
+    diagrams = page.get('diagrams') if isinstance(page.get('diagrams'), list) else []
+    if not any(isinstance(d, dict) and d.get('section') == PICTURE
+               and not isinstance(d.get('section'), bool) for d in diagrams):
+        out.append(('picture-missing', 'diagrams', 'no diagram of section 0: the page opens '
+                    'with a picture of the problem, drawn above section 1'))
     return out
 
 

@@ -10,7 +10,10 @@ items of section 1 under "Who meets it", a diagram for each approach in section 
 and the same diagrams small in section 8 above the side-by-side table. An item
 shows its source and the findings it names.
 
-A diagram of the data file, such as a commit graph, is drawn left to right: each
+A diagram of section 0 is the picture of the problem: it is drawn in a block above
+section 1, and the checker refuses a page that holds none. A diagram with "bars"
+and a "limit" is drawn as bars to scale, each over the limit marked "over"; any
+other diagram of the data file, such as a commit graph, is drawn left to right: each
 node one column right of the nodes its edges come from, with an arrow per edge.
 
 Every diagram is drawn on one canvas: the parties the page declares, in the order
@@ -92,6 +95,8 @@ svg .step{fill:var(--fg);font-size:12px}
 svg .arrow{stroke:var(--muted);stroke-width:1.5;fill:none}
 svg .num{fill:var(--muted);font-size:12px;font-weight:600}
 svg .head{fill:var(--muted)}
+svg .bar{fill:var(--proposed)}svg .bar.over{fill:var(--hl)}
+svg .limit{stroke:var(--hl);stroke-width:2;stroke-dasharray:5 4}
 svg .node{fill:var(--box);stroke:var(--fg);stroke-width:1.5}
 """
 
@@ -218,13 +223,45 @@ def graph(dg, n):
             + ''.join(out) + '</svg>')
 
 
+BAR_X, BAR_MAX, ROW = 170, 400, 34
+
+
+def bars(dg):
+    """A diagram of numbers against a limit: one bar to scale per number, a mark on
+    each bar over the limit, and the limit as a dashed line through the bars."""
+    rows, lim = dg.get('bars', []), dg.get('limit')
+    top = 30 if lim else 8
+    scale = max([b['value'] for b in rows] + [lim['value'] if lim else 0, 1])
+    out = []
+    for i, b in enumerate(rows):
+        y = top + i * ROW
+        w = max(b['value'] / scale * BAR_MAX, 1)
+        over = bool(lim) and b['value'] > lim['value']
+        out.append(f'<text class="label" x="{BAR_X - 10}" y="{y + 19}" '
+                   f'text-anchor="end">{esc(b["label"])}</text>')
+        out.append(f'<rect class="bar{" over" if over else ""}" x="{BAR_X}" y="{y + 4}" '
+                   f'width="{w:.1f}" height="{ROW - 12}" rx="3"/>')
+        out.append(f'<text class="label" x="{BAR_X + w + 8:.1f}" y="{y + 19}">'
+                   f'{b["value"]:,}{" over" if over else ""}</text>')
+    height = top + len(rows) * ROW + 4
+    if lim:
+        x = BAR_X + lim['value'] / scale * BAR_MAX
+        out.append(f'<line class="limit" x1="{x:.1f}" y1="22" x2="{x:.1f}" y2="{height - 4}"/>')
+        out.append(f'<text class="clabel" x="{x:.1f}" y="14" text-anchor="start">'
+                   f'{esc(lim["label"])} {lim["value"]:,}</text>')
+    label = dg.get('caption') or dg['id']
+    return (f'<svg viewBox="0 0 {BAR_X + BAR_MAX + 120} {height}" role="img" '
+            f'aria-label="{esc(label)}" xmlns="http://www.w3.org/2000/svg">'
+            + ''.join(out) + '</svg>')
+
+
 def graphs_html(page, n):
     out = []
     for i, dg in enumerate(page.get('diagrams', [])):
         if dg.get('section') == n:
             cap = (f'<figcaption>{esc(dg["caption"])}</figcaption>'
                    if dg.get('caption') else '')
-            out.append(f'<figure id="d-{esc(dg["id"])}">{graph(dg, i)}{cap}</figure>')
+            out.append(f'<figure id="d-{esc(dg["id"])}">{bars(dg) if 'bars' in dg else graph(dg, i)}{cap}</figure>')
     return ''.join(out)
 
 
@@ -270,6 +307,9 @@ def draw(page):
             '<span class="tag t-open">Open</span> '
             '<span class="tag t-fact">Fact</span> '
             '<span class="tag t-hypo">Hypothetical</span></p></div>']
+    picture = graphs_html(page, check_items.PICTURE)
+    if picture:
+        body.append(f'<h2 id="s0">The problem</h2>{picture}')
     for n, name in SECTIONS:
         body.append(f'<h2 id="s{n}">{n}. {esc(name)}</h2>')
         figs = graphs_html(page, n)
