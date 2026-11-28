@@ -1,0 +1,14 @@
+-- words --
+A is selected on C2, where B's gap example is already met: B stays written, and hyp status B lists that example and its verdict on C2 among what waits for the owner.
+-- run --
+HYP_ACTOR=runner-a HYP_ROLE=runner hyp run C2 GOAL_A/line-1 >/dev/null 2>&1; HYP_ACTOR=owner hyp status GOAL_B 2>&1
+-- floor: contains --
+GOAL_B  written
+-- floor: contains --
+line-1/a
+-- floor: contains --
+C2
+-- floor: contains --
+waits: owner
+-- ceiling --
+no Goal

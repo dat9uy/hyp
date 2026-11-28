@@ -1,0 +1,102 @@
+#!/bin/sh
+# Probe of an example of the move onto a refused base (drafts of Goal B from Goal A in work).
+# The working directory is a copy of the subject. It builds hyp from the subject and makes a test repo:
+# H0 (counter bad), Goal A (added by the owner, one gap line), Goal B (tolerated when the add is refused),
+# and the commits C1, C2, C3, BC, N, M. SETUP runs before the run section. The tokens GOAL_A, GOAL_B, H0,
+# C1, C2, C3, BC, N, M in the run section are replaced by ids and mapped back in the output.
+# It prints the stdout with a last line "exit N". Setup output goes to stderr. A setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+fail() { echo "probe: $*" >&2; exit 3; }
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+cp skills/hyp-grill/probe/run "$work/generic-run" || fail "generic probe"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+printf 'counter: bad\n' >counter
+git add -A && git commit -q -m base >&2 || fail "commit base"
+h0=$(git rev-parse HEAD)
+
+owner() { HYP_ACTOR=owner HYP_ROLE=owner hyp "$@"; }
+runner_a() { HYP_ACTOR=runner-a HYP_ROLE=runner hyp "$@"; }
+
+mkex() { # DRAFT WORD
+  dr=$(HYP_ACTOR=probe-writer-432b HYP_ROLE=probe-writer hyp draft path "$1") || fail "draft path $1"
+  d="$dr/line-1/a"
+  mkdir -p "$d/probe" || fail "mkdir example"
+  printf '%s\n' '-- words --' "The counter says $2." '-- run --' 'cat counter' '-- floor: contains --' "$2" >"$d/example.txtar"
+  cp "$work/generic-run" "$d/probe/run" && chmod +x "$d/probe/run" || fail "probe copy"
+}
+mkex xa ok
+mkex xb done
+
+owner add goal --base "$h0" --words 'Count.' --line 'gap:the counter says ok.' --draft xa >"$work/adda" 2>&1 || { cat "$work/adda" >&2; fail "add goal A"; }
+cat "$work/adda" >&2
+ga=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/adda" | head -1)
+[ -n "$ga" ] || fail "no Goal id for A"
+git add -A && git commit -q -m goal-a >&2 || fail "commit goal A"
+
+# Goal B: today's hyp refuses this add (From ended); tolerated
+gb=G-NONE01
+if owner add goal --from "$ga" --base "$h0" --words 'Done.' --line 'gap:the counter says done.' --draft xb >"$work/addb" 2>&1; then
+  cat "$work/addb" >&2
+  g=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/addb" | head -1)
+  [ -n "$g" ] && gb=$g
+  git add -A && git commit -q -m goal-b >&2
+else
+  echo "tolerated: add of B refused:" >&2; cat "$work/addb" >&2
+fi
+
+# build BRANCH PARENT COUNTER-CONTENT GOAL-ID [FILE]
+build() {
+  git checkout -q -b "$1" "$2" || fail "checkout $1"
+  if [ -n "$3" ]; then printf '%s\n' "$3" >counter; fi
+  if [ -n "$4" ]; then mkdir -p "goals/$4/specs" && printf 'spec %s\n' "$1" >"goals/$4/specs/spec.md" || fail "spec"; fi
+  if [ -n "$5" ]; then printf 'x\n' >"$5"; fi
+  git add -A && git commit -q -m "build $1" >&2 || fail "commit $1"
+  git rev-parse HEAD
+}
+c1=$(build c1 "$h0" 'counter: ok' "$ga")
+c2=$(build c2 "$h0" 'counter: ok done' "$ga")
+c3=$(build c3 "$h0" 'counter: ok!' "$ga")
+bc=$(build bc "$c1" 'counter: ok done' "$gb")
+n=$(build n "$h0" '' '' other)
+git checkout -q -b m "$c1" || fail "checkout m"
+git merge -q --no-ff -m merge "$n" >&2 || fail "merge N"
+m=$(git rev-parse HEAD)
+git checkout -q main || fail "checkout main"
+
+
+B='(^|[^A-Za-z0-9_-])'; E='([^A-Za-z0-9_-]|$)'
+run=$(printf '%s' "$HYP_RUN" | sed -E \
+  -e "s/${B}H0${E}/\1$h0\2/g" -e "s/${B}BC${E}/\1$bc\2/g" -e "s/${B}C1${E}/\1$c1\2/g" \
+  -e "s/${B}C2${E}/\1$c2\2/g" -e "s/${B}C3${E}/\1$c3\2/g" -e "s/${B}M${E}/\1$m\2/g" -e "s/${B}N${E}/\1$n\2/g" \
+  -e "s/${B}GOAL_B${E}/\1$gb\2/g" -e "s/${B}GOAL_A${E}/\1$ga\2/g")
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+ab() { echo "$1" | cut -c1-7; }
+map() {
+  sed -E -e "s/$ga/GOAL_A/g" -e "s/$gb/GOAL_B/g" \
+    -e "s/$bc/BC/g" -e "s/$c1/C1/g" -e "s/$c2/C2/g" -e "s/$c3/C3/g" -e "s/$m/M/g" -e "s/$n/N/g" -e "s/$h0/H0/g" \
+    -e "s/$(ab $bc)[0-9a-f]*/BC/g" -e "s/$(ab $c1)[0-9a-f]*/C1/g" -e "s/$(ab $c2)[0-9a-f]*/C2/g" \
+    -e "s/$(ab $c3)[0-9a-f]*/C3/g" -e "s/$(ab $m)[0-9a-f]*/M/g" -e "s/$(ab $n)[0-9a-f]*/N/g" -e "s/$(ab $h0)[0-9a-f]*/H0/g" \
+    -e "s/G-[0-9A-Z]{6}/GOAL_B/g" "$1"
+}
+map "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+map "$work/err" >&2
+echo "exit $code"
+exit 0

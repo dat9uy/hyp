@@ -1,0 +1,10 @@
+-- words --
+A and B are both selected: hyp land B is refused, and the refusal names A as not landed.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp land GOAL_B BC 2>&1; echo "land exit $?"
+-- floor: contains --
+land exit 1
+-- floor: contains --
+GOAL_A
+-- ceiling --
+no Goal

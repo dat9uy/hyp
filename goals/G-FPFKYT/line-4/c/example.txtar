@@ -1,0 +1,10 @@
+-- words --
+A's select moved to a merge M above C1, and the owner landed A on M: hyp land B is refused, because B's commit does not hold M.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp land GOAL_B BC 2>&1; echo "land exit $?"
+-- floor: contains --
+land exit 1
+-- floor: contains --
+GOAL_A
+-- ceiling --
+no Goal
