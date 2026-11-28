@@ -11,7 +11,16 @@ WHOLE = {
         {'id': 'demo-I1', 'tag': 'Owner said', 'date': '2026-11-27',
          'text': 'Keep the words of the owner.', 'section': 1},
         {'id': 'demo-I2', 'tag': 'Fact', 'date': '2026-11-28', 'text': 'Items are data.'},
+        {'id': 'demo-I3', 'tag': 'Fact', 'date': '2026-11-28', 'section': 1,
+         'text': 'A runner meets the refusal.', 'source': 'F-1', 'findings': ['F-1']},
+        {'id': 'demo-I4', 'tag': 'Fact', 'date': '2026-11-28', 'section': 2,
+         'text': 'The key names a Goal.', 'source': 'docs/glossary.md'},
     ],
+    'diagrams': [{'id': 'commits', 'section': 1, 'caption': 'The fix from main',
+                  'nodes': [{'id': 'h0', 'label': 'H0'}, {'id': 'a', 'label': 'add A'},
+                            {'id': 'fix', 'label': 'fix'}],
+                  'edges': [{'from': 'h0', 'to': 'a'}, {'from': 'a', 'to': 'fix'},
+                            {'from': 'h0', 'to': 'fix'}]}],
     'parties': [{'id': 'owner', 'label': 'Owner'}, {'id': 'tool', 'label': 'Tool'}],
     'approaches': [
         {'name': n, 'concept_at': at,
@@ -60,6 +69,26 @@ class CheckItems(unittest.TestCase):
                      'party-unknown approaches[0].concept_at'):
             self.assertIn(want, out)
 
+    def test_event_and_purpose_rules(self):
+        page = json.loads(json.dumps(WHOLE))
+        page['items'][2]['findings'] = []
+        page['items'].append({'id': 'demo-I5', 'tag': 'Proposed', 'date': 'd', 'text': 't',
+                              'section': 2})
+        page['diagrams'][0]['edges'].append({'from': 'a', 'to': 'nowhere'})
+        _, p = write(page)
+        code, out = run(CHECK, p)
+        self.assertEqual(code, 1)
+        for want in ('impact-missing items:', 'purpose-not-fact items[4]',
+                     'source-missing items[4]', 'node-unknown diagrams[0].edges[3].to'):
+            self.assertIn(want, out)
+        self.assertNotIn('items[3]', out)
+
+    def test_a_page_with_no_event_items_needs_no_impact(self):
+        page = json.loads(json.dumps(WHOLE))
+        page['items'] = [it for it in page['items'] if it.get('section') != 1]
+        _, p = write(page)
+        self.assertEqual(run(CHECK, p), (0, ''))
+
     def test_unreadable_file_exits_2(self):
         self.assertEqual(run(CHECK, '/no/such/page.json')[0], 2)
         _, p = write('{not json')
@@ -73,9 +102,13 @@ class DrawPage(unittest.TestCase):
         self.assertEqual(run(DRAW, p, out)[0], 0)
         self.assertEqual(run(PAGE, out), (0, ''))
         page = open(out, encoding='utf-8').read()
-        self.assertEqual(page.count('<svg'), 6)
-        for want in ('demo-I1', 'Owner said', '2026-11-27', 'Keep the words of the owner.'):
+        self.assertEqual(page.count('<svg'), 7)
+        for want in ('demo-I1', 'Owner said', '2026-11-27', 'Keep the words of the owner.',
+                     '2. What it is for</h2>', '<h3>Who meets it</h3>', 'docs/glossary.md',
+                     'findings: <code>F-1</code>', 'The fix from main'):
             self.assertIn(want, page)
+        event = page[page.index('1. The event'):page.index('2. What it is for')]
+        self.assertIn('add A', event)
 
     def test_defective_data_draws_nothing(self):
         page = json.loads(json.dumps(WHOLE))

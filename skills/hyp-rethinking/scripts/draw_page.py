@@ -3,10 +3,15 @@
 
 Usage: draw_page.py PAGE.json PAGE.html
 Checks the data with check_items.py first and draws nothing when it finds a
-defect. Then writes one self-contained HTML page: the banner, sections 1 to 9 of
-the page shape with each item in its section (an item with no section goes under
-"Other items"), a diagram for each approach in section 6, and the same diagrams
-small in section 7 above the side-by-side table.
+defect. Then writes one self-contained HTML page: the banner, sections 1 to 10
+of the page shape with each item in its section (an item with no section goes
+under "Other items"), each diagram of the data file in its section, the impact
+items of section 1 under "Who meets it", a diagram for each approach in section 7,
+and the same diagrams small in section 8 above the side-by-side table. An item
+shows its source and the findings it names.
+
+A diagram of the data file, such as a commit graph, is drawn left to right: each
+node one column right of the nodes its edges come from, with an arrow per edge.
 
 Every diagram is drawn on one canvas: the parties the page declares, in the order
 it declares them, at the same places. The concept is the one highlighted shape,
@@ -24,15 +29,17 @@ import check_items  # noqa: E402
 
 SECTIONS = (
     (1, 'The event'),
-    (2, 'Where it breaks'),
-    (3, 'What gets cleared'),
-    (4, 'What any answer must keep'),
-    (5, 'A worked case'),
-    (6, 'Three approaches'),
-    (7, 'Side by side'),
-    (8, 'The lean'),
-    (9, 'Open questions'),
+    (2, 'What it is for'),
+    (3, 'Where it breaks'),
+    (4, 'What gets cleared'),
+    (5, 'What any answer must keep'),
+    (6, 'A worked case'),
+    (7, 'Three approaches'),
+    (8, 'Side by side'),
+    (9, 'The lean'),
+    (10, 'Open questions'),
 )
+APPROACHES, SIDE = 7, 8
 TAG_CLASS = {'Owner said': 'owner', 'Proposed': 'proposed', 'Open': 'open',
              'Fact': 'fact', 'Hypothetical': 'hypo'}
 MARK = {'caught': '✓', 'missed': '✗'}
@@ -66,6 +73,8 @@ border-radius:999px;border:1px solid currentColor;margin-right:6px}
 .iid{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;color:var(--muted);
 margin-right:6px}
 .date{font-size:.8rem;color:var(--muted);margin-right:6px}
+.src,.fnd{font-size:.8rem;color:var(--muted);margin-left:6px}
+.src code,.fnd code{font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
 .empty{color:var(--muted)}
 figure{margin:12px 0}
 figure svg{width:100%;height:auto;display:block}
@@ -83,6 +92,7 @@ svg .step{fill:var(--fg);font-size:12px}
 svg .arrow{stroke:var(--muted);stroke-width:1.5;fill:none}
 svg .num{fill:var(--muted);font-size:12px;font-weight:600}
 svg .head{fill:var(--muted)}
+svg .node{fill:var(--box);stroke:var(--fg);stroke-width:1.5}
 """
 
 
@@ -158,6 +168,66 @@ def diagram(page, ap, n, key, concept):
             f'xmlns="http://www.w3.org/2000/svg">' + ''.join(out) + '</svg>')
 
 
+def graph(dg, n):
+    """One diagram of the data file, such as a commit graph, as an inline SVG."""
+    nodes = dg.get('nodes', [])
+    ids = [nd['id'] for nd in nodes]
+    edges = [e for e in dg.get('edges', []) if e['from'] in ids and e['to'] in ids]
+    col = {i: 0 for i in ids}
+    for _ in ids:  # longest path from a node with no edge in; a cycle stops at len(ids)
+        for e in edges:
+            if e['from'] != e['to']:
+                col[e['to']] = max(col[e['to']], min(col[e['from']] + 1, len(ids) - 1))
+    row, rows = {}, {}
+    for i in ids:
+        row[i] = rows.get(col[i], 0)
+        rows[col[i]] = row[i] + 1
+    # an edge that skips a column, or goes back, arcs above the boxes it passes
+    arcs = [e for e in edges if col[e['to']] - col[e['from']] != 1]
+    lift = max((26 + 12 * abs(col[e['to']] - col[e['from']]) for e in arcs), default=0)
+    top = 20 + lift
+    pos = {i: (20 + col[i] * (BOX_W + GAP), top + row[i] * (BOX_H + 30)) for i in ids}
+    width = 40 + (max(col.values(), default=0) + 1) * (BOX_W + GAP) - GAP
+    height = top + 20 + max(rows.values(), default=1) * (BOX_H + 30) - 30
+    marker = f'arrow-graph-{n}'
+    out = [f'<defs><marker id="{marker}" viewBox="0 0 10 10" refX="9" refY="5" '
+           'markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+           '<path class="head" d="M0,0 L10,5 L0,10 z"/></marker></defs>']
+    for e in edges:
+        (x1, y1), (x2, y2) = pos[e['from']], pos[e['to']]
+        if e in arcs:
+            high = top - 26 - 12 * abs(col[e['to']] - col[e['from']])
+            a, b = x1 + BOX_W / 2, x2 + BOX_W / 2
+            if a == b:
+                b += BOX_W / 4
+            d = f'M{a},{y1} C{a},{high} {b},{high} {b},{y2}'
+        else:
+            d = f'M{x1 + BOX_W},{y1 + BOX_H / 2} L{x2},{y2 + BOX_H / 2}'
+        out.append(f'<path class="arrow" d="{d}" marker-end="url(#{marker})"/>')
+    for nd in nodes:
+        x, y = pos[nd['id']]
+        out.append(f'<rect class="node" x="{x}" y="{y}" width="{BOX_W}" height="{BOX_H}" rx="6"/>')
+        lines = wrap(str(nd.get('label', nd['id'])), 18)
+        for k, part in enumerate(lines):
+            ty = y + 27 + (k - (len(lines) - 1) / 2) * 16
+            out.append(f'<text class="label" x="{x + BOX_W / 2}" y="{ty}" '
+                       f'text-anchor="middle">{esc(part)}</text>')
+    label = dg.get('caption') or dg['id']
+    return (f'<svg viewBox="0 0 {max(width, 200)} {height}" role="img" '
+            f'aria-label="{esc(label)}" xmlns="http://www.w3.org/2000/svg">'
+            + ''.join(out) + '</svg>')
+
+
+def graphs_html(page, n):
+    out = []
+    for i, dg in enumerate(page.get('diagrams', [])):
+        if dg.get('section') == n:
+            cap = (f'<figcaption>{esc(dg["caption"])}</figcaption>'
+                   if dg.get('caption') else '')
+            out.append(f'<figure id="d-{esc(dg["id"])}">{graph(dg, i)}{cap}</figure>')
+    return ''.join(out)
+
+
 def caption(page, ap, concept):
     if ap.get('caption'):
         return ap['caption']
@@ -170,7 +240,13 @@ def item_li(it):
     t = it['tag']
     return (f'<li id="{esc(it["id"])}"><span class="tag t-{TAG_CLASS[t]}">{esc(t)}</span>'
             f'<span class="iid">{esc(it["id"])}</span>'
-            f'<span class="date">{esc(it["date"])}</span> {esc(it["text"])}</li>')
+            f'<span class="date">{esc(it["date"])}</span> {esc(it["text"])}'
+            + (f'<span class="src">source: <code>{esc(it["source"])}</code></span>'
+               if it.get('source') else '')
+            + (f'<span class="fnd">findings: ' + ', '.join(
+                f'<code>{esc(f)}</code>' for f in check_items.findings_of(it)) + '</span>'
+               if check_items.findings_of(it) else '')
+            + '</li>')
 
 
 def items_html(items):
@@ -196,7 +272,17 @@ def draw(page):
             '<span class="tag t-hypo">Hypothetical</span></p></div>']
     for n, name in SECTIONS:
         body.append(f'<h2 id="s{n}">{n}. {esc(name)}</h2>')
-        if n == 6:
+        figs = graphs_html(page, n)
+        if n == check_items.EVENT:
+            impact = [it for it in by[n] if check_items.findings_of(it)]
+            rest = [it for it in by[n] if not check_items.findings_of(it)]
+            if rest or not (impact or figs):
+                body.append(items_html(rest))
+            body.append(figs)
+            if impact:
+                body.append('<h3>Who meets it</h3>')
+                body.append(items_html(impact))
+        elif n == APPROACHES:
             for i, ap in enumerate(aps):
                 body.append(f'<h3>Approach {esc(ap.get("name", i + 1))}</h3>')
                 body.append(f'<figure>{diagram(page, ap, i, "big", concept)}'
@@ -207,19 +293,23 @@ def draw(page):
                     body.append('<div class="scroll"><table>' + ''.join(
                         f'<tr><th>{esc(k)}</th><td>{esc(v)}</td></tr>'
                         for k, v in table.items()) + '</table></div>')
-            if by[n] or not aps:
+            body.append(figs)
+            if by[n] or not (aps or figs):
                 body.append(items_html(by[n]))
-        elif n == 7:
+        elif n == SIDE:
             body.append('<div class="row">' + ''.join(
                 f'<figure>{diagram(page, ap, i, "small", concept)}'
                 f'<figcaption>Approach {esc(ap.get("name", i + 1))}</figcaption></figure>'
                 for i, ap in enumerate(aps)) + '</div>')
             if aps:
                 body.append(side_by_side(page, aps))
+            body.append(figs)
             if by[n]:
                 body.append(items_html(by[n]))
         else:
-            body.append(items_html(by[n]))
+            body.append(figs)
+            if by[n] or not figs:
+                body.append(items_html(by[n]))
     if other:
         body.append('<h2 id="other">Other items</h2>')
         body.append(items_html(other))
