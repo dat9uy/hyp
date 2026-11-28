@@ -1,0 +1,12 @@
+-- words --
+B is open on C1, and the owner unselects C1: B goes back to written and waits for A's select.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp unselect GOAL_A C1 >/dev/null 2>&1; HYP_ACTOR=owner hyp status GOAL_B 2>&1 | head -3
+-- floor: contains --
+GOAL_B  written
+-- floor: contains --
+GOAL_A
+-- ceiling --
+GOAL_B  open
+-- ceiling --
+no Goal

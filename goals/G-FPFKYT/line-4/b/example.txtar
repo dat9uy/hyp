@@ -1,0 +1,8 @@
+-- words --
+The owner lands A on C1, then lands B: the land of B is accepted.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp land GOAL_B BC 2>&1; echo "land exit $?"
+-- floor: contains --
+land exit 0
+-- ceiling --
+no Goal

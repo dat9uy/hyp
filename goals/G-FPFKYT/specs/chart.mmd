@@ -1,0 +1,93 @@
+---
+title: "A Goal that rests on another Goal's select"
+---
+stateDiagram-v2
+  s0: A open#59; B not added
+  s1: A closed#59; B not added
+  s2: A open#59; B written, waits for A's select
+  s3: A selected on c1#59; B not added
+  s4: A selected on c2#59; B not added
+  s5: A selected on c3#59; B not added
+  s6: A closed#59; B open on its own H0
+  s7: A closed#59; B written, A was closed
+  s8: A landed on c1#59; B not added
+  s9: A landed on c2#59; B not added
+  s10: A landed on c3#59; B not added
+  s11: A selected on c1#59; B open on c1
+  s12: A selected on c3#59; B open on c3
+  s13: A selected on c2#59; B written, an example wrong on A's select
+  s14: A landed on c1#59; B open on c1
+  s15: A landed on c1#59; B open on its own H0
+  s16: A landed on c2#59; B open on its own H0
+  s17: A landed on c3#59; B open on c3
+  s18: A landed on c3#59; B open on its own H0
+  s19: A landed on c2#59; B written, an example wrong on A's select
+  s20: A closed#59; B selected on its own H0
+  s21: A selected on c1#59; B selected on c1
+  s22: A selected on c3#59; B selected on c3
+  s23: A closed#59; B landed on its own H0
+  s24: A landed on c1#59; B selected on c1
+  s25: A landed on c3#59; B selected on c3
+  s26: A landed on c1#59; B selected on its own H0
+  s27: A landed on c2#59; B selected on its own H0
+  s28: A landed on c3#59; B selected on its own H0
+  s29: A landed on c1#59; B landed on c1
+  s30: A landed on c3#59; B landed on c3
+  s31: A landed on c1#59; B landed on its own H0
+  s32: A landed on c2#59; B landed on its own H0
+  s33: A landed on c3#59; B landed on its own H0
+  [*] --> s0
+  s0 --> s1: the owner closes A
+  s0 --> s2: the owner adds B --from A
+  s0 --> s3: A is selected
+  s0 --> s4: A is selected
+  s0 --> s5: A is selected
+  s1 --> s6: the owner adds B --from A
+  s2 --> s7: the owner closes A
+  s2 --> s11: A is selected
+  s2 --> s12: A is selected
+  s2 --> s13: A is selected
+  s3 --> s1: the owner closes A
+  s3 --> s0: the owner unselects A
+  s3 --> s8: the owner lands A
+  s3 --> s11: the owner adds B --from A
+  s4 --> s1: the owner closes A
+  s4 --> s0: the owner unselects A
+  s4 --> s9: the owner lands A
+  s4 --> s13: the owner adds B --from A
+  s5 --> s1: the owner closes A
+  s5 --> s0: the owner unselects A
+  s5 --> s10: the owner lands A
+  s5 --> s12: the owner adds B --from A
+  s6 --> s20: B's runner runs
+  s8 --> s15: the owner adds B --from A
+  s9 --> s16: the owner adds B --from A
+  s10 --> s18: the owner adds B --from A
+  s11 --> s7: the owner closes A
+  s11 --> s2: the owner unselects A
+  s11 --> s14: the owner lands A
+  s11 --> s21: B's runner runs
+  s12 --> s7: the owner closes A
+  s12 --> s2: the owner unselects A
+  s12 --> s17: the owner lands A
+  s12 --> s22: B's runner runs
+  s13 --> s7: the owner closes A
+  s13 --> s2: the owner unselects A
+  s13 --> s19: the owner lands A
+  s14 --> s24: B's runner runs
+  s15 --> s26: B's runner runs
+  s16 --> s27: B's runner runs
+  s17 --> s25: B's runner runs
+  s18 --> s28: B's runner runs
+  s20 --> s23: the owner lands B
+  s21 --> s7: the owner closes A
+  s21 --> s2: the owner unselects A
+  s21 --> s24: the owner lands A
+  s22 --> s7: the owner closes A
+  s22 --> s2: the owner unselects A
+  s22 --> s25: the owner lands A
+  s24 --> s29: the owner lands B
+  s25 --> s30: the owner lands B
+  s26 --> s31: the owner lands B
+  s27 --> s32: the owner lands B
+  s28 --> s33: the owner lands B

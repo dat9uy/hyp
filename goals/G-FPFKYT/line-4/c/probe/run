@@ -1,0 +1,120 @@
+#!/bin/sh
+# Probe of an example of line 4 of 432b. The working directory is a copy of the subject.
+# It builds hyp from the subject and makes a test repo: H0 (counter bad), Goal A (line-1: counter says ok),
+# Goal B added with --from A (tolerated: today's hyp refuses), builds C1, C2, C3, BC, N, M (runner commits
+# that hold their Goal's spec). A is selected on C1, then B's runner runs BC. A variant setup may follow.
+# The tokens GOAL_A, GOAL_B, H0, C1, C2, C3, BC, N, M in the run section are replaced by ids and mapped
+# back in the output. It prints the stdout with a last line "exit N". Setup output goes to stderr.
+# A setup failure exits 3.
+
+work=$(mktemp -d) || exit 3
+trap 'rm -rf "$work"' EXIT
+
+fail() { echo "probe: $*" >&2; exit 3; }
+
+mkdir -p "$work/bin" || fail "mkdir"
+CGO_ENABLED=0 go build -o "$work/bin/hyp" ./cmd/hyp >&2 || fail "go build failed"
+cp skills/hyp-grill/probe/run "$work/generic-run" || fail "generic probe"
+
+export HOME="$work/home"
+mkdir -p "$HOME" || fail "mkdir HOME"
+export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
+export GIT_AUTHOR_NAME=owner GIT_AUTHOR_EMAIL=owner@example.invalid
+export GIT_COMMITTER_NAME=owner GIT_COMMITTER_EMAIL=owner@example.invalid
+export GIT_AUTHOR_DATE='2026-01-01T00:00:00+0000'
+export GIT_COMMITTER_DATE='2026-01-01T00:00:00+0000'
+export PATH="$work/bin:$PATH"
+
+repo="$work/repo"
+mkdir -p "$repo" && cd "$repo" || fail "mkdir repo"
+git init -q -b main >&2 || fail "git init"
+printf 'counter: bad\n' >counter
+git add -A && git commit -q -m base >&2 || fail "commit base"
+h0=$(git rev-parse HEAD)
+
+owner() { HYP_ACTOR=owner HYP_ROLE=owner hyp "$@"; }
+runa() { HYP_ACTOR=runner-a HYP_ROLE=runner hyp "$@"; }
+runb() { HYP_ACTOR=runner-b HYP_ROLE=runner hyp "$@"; }
+
+mkex() { # DRAFT WORDS FLOOR
+  dr=$(HYP_ACTOR=probe-writer-432b HYP_ROLE=probe-writer hyp draft path "$1") || fail "draft path"
+  d="$dr/line-1/a"
+  mkdir -p "$d/probe" || fail "mkdir example"
+  printf '%s\n' '-- words --' "$2" '-- run --' 'cat counter' '-- floor: contains --' "$3" >"$d/example.txtar"
+  cp "$work/generic-run" "$d/probe/run" && chmod +x "$d/probe/run" || fail "probe copy"
+}
+mkex xa 'The counter says ok.' ok
+mkex xb 'The counter says done.' done
+
+owner add goal --base "$h0" --words 'Count.' --line 'gap:the counter says ok' --draft xa >"$work/adda" 2>&1 || { cat "$work/adda" >&2; fail "add goal A"; }
+cat "$work/adda" >&2
+ga=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/adda" | head -1)
+[ -n "$ga" ] || fail "no Goal id A"
+git add -A && git commit -q -m goal-a >&2 || fail "commit goal A"
+
+# B: today's hyp refuses --from a Goal in work; tolerated
+if owner add goal --from "$ga" --base "$h0" --words 'Done.' --line 'gap:the counter says done.' --draft xb >"$work/addb" 2>&1; then
+  cat "$work/addb" >&2
+  gb=$(grep -o 'G-[0-9A-Z]\{6\}' "$work/addb" | grep -v "$ga" | head -1)
+  [ -n "$gb" ] || fail "no Goal id B"
+  git add -A && git commit -q -m goal-b >&2 || fail "commit goal B"
+else
+  cat "$work/addb" >&2
+  gb=G-NONE01
+fi
+
+# build BRANCH PARENT FILE CONTENT GOAL: a commit on PARENT that writes GOAL's spec
+build() {
+  git checkout -q -b "$1" "$2" || fail "checkout $1"
+  printf '%s\n' "$4" >"$3"
+  if [ -n "$5" ]; then
+    mkdir -p "goals/$5/specs" && printf 'spec %s\n' "$1" >"goals/$5/specs/spec.md" || fail "spec"
+  fi
+  git add -A && git commit -q -m "build $1" >&2 || fail "commit $1"
+  git rev-parse HEAD
+}
+c1=$(build c1 "$h0" counter 'counter: ok' "$ga")
+c2=$(build c2 "$h0" counter 'counter: ok done' "$ga")
+c3=$(build c3 "$h0" counter 'counter: ok!' "$ga")
+bc=$(build bc "$c1" counter 'counter: ok done' "$gb")
+n=$(build n "$h0" other x)
+git checkout -q -b m "$c1" || fail "checkout m"
+git merge -q --no-ff -m merge "$n" >&2 || fail "merge N"
+m=$(git rev-parse HEAD)
+git checkout -q main || fail "checkout main"
+
+# setup: A selected on C1
+runa run "$c1" "$ga/line-1" >&2 || fail "run C1 line-1"
+owner status "$ga" 2>&1 | head -1 | grep -q "^$ga  selected" || fail "A does not show selected"
+# B's runner runs BC on B's line (tolerated: B does not exist on today's hyp)
+runb run "$bc" "$gb/line-1" >&2 || echo "probe: B's run tolerated" >&2
+
+runa run "$m" "$ga/line-1" >&2 || fail "run M line-1"
+owner status "$ga" 2>&1 | head -1 | grep -q "^$ga  selected" || fail "A does not show selected on M"
+owner status "$ga" 2>&1 | head -3 >&2
+owner land "$ga" "$m" >&2 || fail "land A on M"
+git add -A && git commit -q -m land-a >&2 || fail "commit store"
+
+# tokens: commits first, Goal ids last
+B='(^|[^A-Za-z0-9_-])'; E='([^A-Za-z0-9_-]|$)'
+run=$(printf '%s' "$HYP_RUN" | sed -E \
+  -e "s/${B}H0${E}/\1$h0\2/g" -e "s/${B}BC${E}/\1$bc\2/g" -e "s/${B}C1${E}/\1$c1\2/g" \
+  -e "s/${B}C2${E}/\1$c2\2/g" -e "s/${B}C3${E}/\1$c3\2/g" -e "s/${B}N${E}/\1$n\2/g" \
+  -e "s/${B}M${E}/\1$m\2/g" \
+  -e "s/${B}GOAL_A${E}/\1$ga\2/g" -e "s/${B}GOAL_B${E}/\1$gb\2/g")
+sh -c "$run" >"$work/out" 2>"$work/err"
+code=$?
+map() {
+  s7() { echo "$1" | cut -c1-7; }
+  sed -E \
+    -e "s/$ga/GOAL_A/g" -e "s/$gb/GOAL_B/g" -e 's/G-[0-9A-Z]{6}/GOAL_B/g' \
+    -e "s/$m/M/g" -e "s/$bc/BC/g" -e "s/$c1/C1/g" -e "s/$c2/C2/g" -e "s/$c3/C3/g" -e "s/$n/N/g" -e "s/$h0/H0/g" \
+    -e "s/$(s7 "$m")[0-9a-f]*/M/g" -e "s/$(s7 "$bc")[0-9a-f]*/BC/g" -e "s/$(s7 "$c1")[0-9a-f]*/C1/g" \
+    -e "s/$(s7 "$c2")[0-9a-f]*/C2/g" -e "s/$(s7 "$c3")[0-9a-f]*/C3/g" -e "s/$(s7 "$n")[0-9a-f]*/N/g" \
+    -e "s/$(s7 "$h0")[0-9a-f]*/H0/g" "$1"
+}
+map "$work/out"
+if [ -n "$(tail -c 1 "$work/out")" ]; then echo; fi
+map "$work/err" >&2
+echo "exit $code"
+exit 0

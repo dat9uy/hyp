@@ -1,0 +1,12 @@
+-- words --
+B is open on C1, and the owner closes A: B goes back to written, hyp status B says A was closed, and B waits for the owner.
+-- run --
+HYP_ACTOR=owner HYP_ROLE=owner hyp close GOAL_A >/dev/null 2>&1; HYP_ACTOR=owner hyp status GOAL_B 2>&1 | head -3
+-- floor: contains --
+GOAL_B  written
+-- floor: contains --
+closed
+-- floor: contains --
+waits: owner
+-- ceiling --
+no Goal

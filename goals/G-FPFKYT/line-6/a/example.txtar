@@ -1,0 +1,8 @@
+-- words --
+B ran once on C1; the owner unselected C1, and A's runner now runs C3: B opens on C3 with none of its three runs used.
+-- run --
+HYP_ACTOR=runner-a HYP_ROLE=runner hyp run C3 GOAL_A/line-1 >/dev/null 2>&1; HYP_ACTOR=owner hyp status GOAL_B 2>&1 | head -1
+-- floor: contains --
+GOAL_B  open  runs: 0 of 3 used
+-- ceiling --
+no Goal

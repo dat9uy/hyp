@@ -1,0 +1,10 @@
+-- words --
+B rests on A, which is open; A's runner runs its commit C1 and A is selected: B opens on C1 with no act of the owner.
+-- run --
+HYP_ACTOR=runner-a HYP_ROLE=runner hyp run C1 GOAL_A/line-1 >/dev/null 2>&1; HYP_ACTOR=owner hyp status GOAL_B 2>&1
+-- floor: contains --
+GOAL_B  open
+-- floor: contains --
+C1
+-- ceiling --
+no Goal

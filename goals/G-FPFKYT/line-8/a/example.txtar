@@ -1,0 +1,8 @@
+-- words --
+A is landed on C1, and the owner adds B with --from A and --base C1: B is open on C1 at once, as today.
+-- run --
+out=$(HYP_ACTOR=owner HYP_ROLE=owner hyp add goal --from GOAL_A --base C1 --words 'Done.' --line 'gap:the counter says done.' --draft xb 2>&1); code=$?; printf '%s\n' "$out"; echo "add exit $code"; g=$(printf '%s\n' "$out" | sed -n 's/^recorded //p'); HYP_ACTOR=owner hyp status "$g" 2>&1 | head -3
+-- floor: contains --
+add exit 0
+-- floor: contains --
+GOAL_B  open
