@@ -82,6 +82,16 @@ type Goal struct {
 	// logstore.CellKey: H0's cells of the places, and the cells a try ran
 	// again. Tables.UseCells sets them.
 	cells map[string]logstore.Cell
+
+	// Rests marks a Goal added with --from a Goal in work: it rests on that
+	// Goal's select (Rest). Its goal.add marks it so.
+	Rests bool
+	// Rest is what a resting Goal in work reads of its premise; Calculate
+	// sets it.
+	Rest *Rest
+	// premise are the cells, by example key, of a Goal that stands on its
+	// premise's commit: its H0 cells there.
+	premise map[string]LiveCell
 }
 
 // Select is a row of the Selects table.
@@ -444,7 +454,13 @@ type LiveCell struct {
 // placement's, or whose key's line the Goal no longer lists, is history.
 func (g *Goal) LiveCells(rowTree string) []LiveCell {
 	var out []LiveCell
-	if rowTree == g.BaseTree {
+	if rowTree == g.BaseTree && g.premise != nil {
+		for _, p := range g.Placed() {
+			if c, ok := g.premise[p.Key]; ok && c.Hash == p.Hash {
+				out = append(out, c)
+			}
+		}
+	} else if rowTree == g.BaseTree {
 		for _, p := range g.Placed() {
 			if p.H0.RowTree == g.BaseTree {
 				// the outputs are the trace's alone, whatever the place names
@@ -889,6 +905,13 @@ func replayResult(t *Tables, ev events.Event, payload any, refuse func(events.Ev
 	t.results[ev.ID] = r
 }
 
+// restsOn reports whether the Goal the add p records rests on the Goal its
+// From cites: the add marks it so, and the cited Goal is one of the store.
+func (t *Tables) restsOn(p *events.GoalAdd) bool {
+	_, ok := t.Goals[p.From]
+	return p.Rests && p.From != "" && ok
+}
+
 func replayGoalAdd(t *Tables, ev events.Event, payload any, refuse func(events.Event, error)) {
 	p := payload.(*events.GoalAdd)
 	if err := GuardGoalAdd(*t, ev, p); err != nil {
@@ -898,6 +921,7 @@ func replayGoalAdd(t *Tables, ev events.Event, payload any, refuse func(events.E
 	if g, ok := t.Goals[ev.Node]; ok && ev.Node != ev.ID {
 		// a replace carries no example: GuardGoalAdd refused one that does
 		g.Words, g.Base, g.BaseTree, g.From, g.Lines, g.Why, g.Named = p.Words, p.Base, p.BaseTree, p.From, p.Lines, ev.Why, p.Findings
+		g.Rests = t.restsOn(p)
 		g.seen = append(g.seen, ev.ID)
 		g.refresh()
 		return
@@ -905,7 +929,7 @@ func replayGoalAdd(t *Tables, ev events.Event, payload any, refuse func(events.E
 	g := &Goal{
 		ID: GoalID(ev.ID), EventID: ev.ID, Words: p.Words, Base: p.Base, BaseTree: p.BaseTree,
 		Budget: p.Budget, Actor: ev.Actor, From: p.From, State: StateWritten, Lines: p.Lines,
-		Why: ev.Why, Named: p.Findings, seen: []string{ev.ID},
+		Why: ev.Why, Named: p.Findings, seen: []string{ev.ID}, Rests: t.restsOn(p),
 	}
 	t.Goals[ev.ID] = g
 	if len(p.Examples) > 0 {
@@ -963,6 +987,9 @@ func GuardLand(t Tables, ev events.Event, p *events.Land) error {
 	if err := GuardGoalActor(g, ev.Actor, p.Role); err != nil {
 		return err
 	}
+	if err := GuardLandedFirst(t, g, p.Commit, nil); err != nil {
+		return err
+	}
 	if p.Commit != "" {
 		return GuardEvidence(g, *p)
 	}
@@ -1008,7 +1035,7 @@ func GuardEvidence(g *Goal, p events.Land) error {
 // not written, and the row of commit, rowTree, is not one an unselect
 // rejected. The land act checks it before it runs a Probe.
 func GuardEvidenceRow(g *Goal, commit, rowTree string) error {
-	if g.State == StateWritten {
+	if g.State == StateWritten && !g.openAtReplay() {
 		return fault.Refuse(fault.GuardEvidence, fault.LandNotOpen, g.ID, g.State)
 	}
 	if g.Rejected[rowTree] {

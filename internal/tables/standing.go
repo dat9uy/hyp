@@ -47,8 +47,12 @@ type Standing struct {
 // (New cell). A clone that lacks those Results shows the Goal open. A Goal
 // whose select an event of the older form holds, and an ended Goal, keep
 // what replay gave them.
+//
+// A Goal that rests on a premise is calculated after it, in the order of
+// the Goals' events: its rest reads the premise's select (Tables.rest).
 func Calculate(t Tables) Tables {
-	for _, g := range t.Goals {
+	for _, g := range sortedGoals(t) {
+		t.rest(g)
 		calculateSelect(g)
 	}
 	return t
@@ -102,6 +106,8 @@ func Stand(g *Goal) Standing {
 		st.Stop, st.Waits, st.Cause = StopTwoCandidates, "owner", lastRun(g)
 	case len(st.Candidates) == 0 && budgetUsed(g):
 		st.Stop, st.Waits, st.Cause = StopBudgetUsed, "owner", lastRun(g)
+	case g.Rest != nil && g.Rest.State == RestWaits:
+		st.Waits = g.Rest.Premise + "'s select"
 	case g.State == StateWritten:
 		st.Waits = "owner"
 	}

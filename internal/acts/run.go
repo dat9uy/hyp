@@ -158,7 +158,13 @@ func Run(o RunOpts) (RunReport, error) {
 	if err != nil {
 		return RunReport{}, err
 	}
-	after, _, err := load(root, eventsView)
+	if stable == nil {
+		// a run that selects a premise measures the Goals that rest on
+		// it; the Result stands whatever that finds, and hyp status
+		// names each example left unmeasured
+		_ = measureRests(root, o.ProbeTimeout)
+	}
+	after, _, err := load(root, calculatedView)
 	if err != nil {
 		return RunReport{}, err
 	}

@@ -32,7 +32,7 @@ const (
 	GuardOwnerUnsel  Guard = "Owner unselects"
 	GuardNewCell     Guard = "New cell"
 	GuardStop        Guard = "Stop"
-	GuardFromEnded   Guard = "From ended"
+	GuardLandedFirst Guard = "Landed first"
 	GuardWholeLines  Guard = "Whole lines"
 	GuardOpen        Guard = "Open"
 	GuardGoalsActor  Guard = "Goal's actor"

@@ -69,7 +69,7 @@ var kindReplays = map[string]kindReplay{
 	events.TypeLand: {payload: func() any { return new(events.Land) },
 		apply: replayLand, end: landSnapshot,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardStop, fault.GuardOwnerLands,
-			fault.GuardGoalsActor, fault.GuardEvidence}},
+			fault.GuardGoalsActor, fault.GuardLandedFirst, fault.GuardEvidence}},
 	events.TypeClose: {payload: func() any { return new(events.Close) },
 		apply: replayClose, end: closeSnapshot,
 		guards: []fault.Guard{fault.NoGuard, fault.GuardNotEnded, fault.GuardOwnerClose, fault.GuardGoalsActor}},

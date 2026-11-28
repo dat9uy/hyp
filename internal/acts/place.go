@@ -120,7 +120,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 	}
 
 	var first scan
-	err = w.check(eventsView, func(t tables.Tables) error {
+	err = w.check(placeView, func(t tables.Tables) error {
 		var err error
 		first, err = scanSet(root, o, t)
 		if err != nil {
@@ -142,7 +142,7 @@ func Place(o PlaceOpts) (PlaceReport, error) {
 
 	var rep PlaceReport
 	var written []change
-	ev, err := w.append(eventsView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
+	ev, err := w.append(placeView, func(t tables.Tables, _ []events.Event) (events.Event, error) {
 		ev := events.Event{Type: events.TypeExamplesPlace, Why: o.Why, Actor: o.Actor}
 		again, err := scanSet(root, o, t)
 		if err != nil {

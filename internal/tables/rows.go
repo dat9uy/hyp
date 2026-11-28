@@ -345,6 +345,9 @@ func guardRunGit(t Tables, ev events.Event, p *events.ResultRecord) (*Goal, erro
 	if err := GuardNotSelected(g); err != nil {
 		return nil, err
 	}
+	if g.openAtReplay() {
+		return g, nil
+	}
 	if err := GuardOpen(g, p.RowTree, p.Line); err != nil {
 		return nil, err
 	}

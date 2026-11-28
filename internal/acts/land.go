@@ -41,7 +41,7 @@ type LandReport struct {
 
 // Land records the owner's land of a Goal, or refuses with the first failing
 // guard, in the order its entry in hyp spec names: Not ended, Owner lands,
-// Goal's actor, Evidence, Spec, Own path, then Stop. A land on a commit, the
+// Goal's actor, Landed first, Evidence, Spec, Own path, then Stop. A land on a commit, the
 // one named or the one this clone shows the Goal selected on, carries its
 // evidence: the commit, its tree, its row tree and each current example's
 // verdict there. For an example this clone holds no Result of on that row,
@@ -165,6 +165,10 @@ func Land(o LandOpts) (LandReport, error) {
 	if err != nil {
 		return LandReport{}, err
 	}
+	// a Goal that rests on the landed Goal stands on the commit it landed
+	// on; the land stands whatever that finds, and hyp status names each
+	// example left unmeasured
+	_ = measureRests(root, o.ProbeTimeout)
 	return rep, nil
 }
 
@@ -175,9 +179,9 @@ type landPlan struct {
 	commit, tree, rowTree string
 }
 
-// planLand runs Not ended, Owner lands and Goal's actor, and finds the
-// commit the land names: the one given, else the one this clone shows the
-// Goal selected on, else none.
+// planLand runs Not ended, Owner lands and Goal's actor, finds the commit
+// the land names: the one given, else the one this clone shows the Goal
+// selected on, else none, and runs Landed first on it.
 func planLand(root string, o LandOpts, t tables.Tables) (landPlan, error) {
 	g, err := t.Find(o.Goal)
 	if err != nil {
@@ -198,9 +202,14 @@ func planLand(root string, o LandOpts, t tables.Tables) (landPlan, error) {
 		name = g.Select.Commit
 	}
 	if name == "" {
-		return lp, nil
+		return lp, tables.GuardLandedFirst(t, g, "", nil)
 	}
 	if lp.commit, lp.rowTree, err = commitAndRow(root, name); err != nil {
+		return landPlan{}, err
+	}
+	anc := gitread.Ancestry{Dir: root}
+	holds := func(premise string) (bool, error) { return anc.IsAncestor(premise, lp.commit) }
+	if err := tables.GuardLandedFirst(t, g, lp.commit, holds); err != nil {
 		return landPlan{}, err
 	}
 	out, err := gitread.Git(root, "rev-parse", "--verify", lp.commit+"^{tree}")

@@ -125,7 +125,7 @@ type Cell struct {
 	Stderr  string `json:"stderr"`
 	Exit    int    `json:"exit"`
 	Verdict string `json:"verdict"`
-	By      string `json:"by"` // CellByPlace or CellByTry
+	By      string `json:"by"` // CellByPlace, CellByTry, CellByBase or CellByRest
 }
 
 // Who saved a cell of the trace.
@@ -133,6 +133,7 @@ const (
 	CellByPlace = "place" // the place that measured H0
 	CellByTry   = "try"   // a try that ran the cell again in this clone
 	CellByBase  = "base"  // a run that measured the base its commit stands on
+	CellByRest  = "rest"  // an act that measured a resting Goal on its premise's commit
 )
 
 // CellKey is the key of the cell of the example with hash on the row with

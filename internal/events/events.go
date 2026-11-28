@@ -133,6 +133,11 @@ type GoalAdd struct {
 	Lines    []Line   `json:"lines"`
 	Findings []string `json:"findings,omitempty"`
 
+	// Rests marks an add whose From names a Goal in work: the Goal rests on
+	// that Goal's select. A goal.add written before a Goal could rest names
+	// none, and its Goal replays as it was, whatever its From's state.
+	Rests bool `json:"rests,omitempty"`
+
 	// Examples are the examples the owner adds the Goal with, each with its
 	// hash and H0's verdict, as a place names them: a Goal added with its
 	// examples is open at once. A goal.add written before add goal carried

@@ -92,7 +92,7 @@ func CheckActor(actor, role string) error {
 }
 
 // AddGoal records a Goal, or replaces a written one, or refuses with the first
-// failing guard: Draft, Whole lines, From ended, then for each finding it
+// failing guard: Draft, Whole lines, then for each finding it
 // names Not refuted, Not declined and One in work; a finding this clone's
 // trace does not hold is a refusal. It creates .tree/ at the git top level
 // when it is absent, and only after the guards pass.
@@ -155,13 +155,15 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 			}
 			ev.Node, goal = g.EventID, g
 		}
-		from := ""
+		from, rests := "", false
 		if o.From != "" {
 			g, err := t.Find(o.From)
 			if err != nil {
 				return ev, err
 			}
-			from = g.EventID
+			// a Goal in work is the premise the new Goal rests on; an
+			// ended one is the Goal it starts from
+			from, rests = g.EventID, g.State != tables.StateEnded
 		}
 		var self *tables.Goal
 		if o.Goal != "" {
@@ -173,7 +175,7 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		}
 		p := events.GoalAdd{
 			Role: o.Role, Words: o.Words, Base: base, BaseTree: baseTree,
-			Budget: DefaultBudget, From: from, Lines: lines, Findings: named, Examples: placed,
+			Budget: DefaultBudget, From: from, Rests: rests, Lines: lines, Findings: named, Examples: placed,
 		}
 		payload, err := json.Marshal(p)
 		if err != nil {
@@ -182,16 +184,6 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 		ev.Payload, ev.Why = payload, o.Why
 		if err := tables.GuardGoalAdd(t, ev, &p); err != nil {
 			return ev, err
-		}
-		if o.From != "" {
-			// From ended is the act's guard only: replay does not check
-			// it, so a log written before land, whose Goal cites a Goal
-			// that is not ended, replays as it was. A landed and a closed
-			// Goal are both ended.
-			cited, _ := t.Find(o.From)
-			if cited.State != tables.StateEnded {
-				return ev, fault.Refuse(fault.GuardFromEnded, fault.FromNotEnded, cited.ID, cited.State)
-			}
 		}
 		rep = Report{Replaced: o.Goal != "", Words: o.Words, Base: base, BaseTree: baseTree, Lines: lines, Findings: ids}
 		for _, x := range placed {
@@ -245,8 +237,12 @@ func AddGoal(o AddGoalOpts) (Report, error) {
 	if !rep.Replaced {
 		rep.Goal = tables.GoalID(ev.ID)
 	}
+	if o.From != "" {
+		// a Goal that rests on a selected premise opens on its commit
+		_ = measureRests(root, o.ProbeTimeout)
+	}
 	rep.State = tables.StateWritten
-	if after, _, err := load(root, eventsView); err == nil {
+	if after, _, err := load(root, calculatedView); err == nil {
 		if g := after.Goals[ev.Node]; g != nil {
 			rep.State = g.State
 		}
