@@ -1,0 +1,24 @@
+-- words --
+Five pages, one fault each: the page whose only fault is duplicate id prints its message and exit 1.
+-- input/page.html --
+<!doctype html><html><body>
+<h2 id="x">1. One</h2><p id="x">Fine.</p>
+</body></html>
+-- run --
+test -f skills/hyp-rethinking/scripts/check_page.py && echo 'check_page.py ships'
+python3 skills/hyp-rethinking/scripts/check_page.py "$HYP_EXAMPLE/input/page.html"
+echo "exit code: $?"
+-- floor: contains --
+check_page.py ships
+-- floor: contains --
+duplicate id "x"
+-- floor: contains --
+exit code: 1
+-- ceiling --
+heading order:
+-- ceiling --
+reference to missing section
+-- ceiling --
+words:
+-- ceiling --
+diagrams, needs

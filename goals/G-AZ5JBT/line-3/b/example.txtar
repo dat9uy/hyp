@@ -1,0 +1,99 @@
+-- words --
+One file holding all five defects gives exit 1 and prints all five codes.
+-- input/page.json --
+{
+ "id": "demo",
+ "items": [
+  {
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Store items as data."
+  },
+  {
+   "id": "demo-I1",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Store items as data."
+  },
+  {
+   "id": "demo-I1",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Store items as data."
+  },
+  {
+   "id": "other-I3",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Store items as data."
+  },
+  {
+   "id": "demo-I4",
+   "tag": "Later",
+   "date": "2026-11-28",
+   "text": "Store items as data."
+  },
+  {
+   "id": "demo-I5",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Store items as data.",
+   "note": "x"
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "agent",
+   "label": "Agent"
+  },
+  {
+   "id": "tool",
+   "label": "Tool"
+  }
+ ],
+ "approaches": [
+  {
+   "name": "A",
+   "concept_at": "owner",
+   "steps": [
+    "The owner writes the item."
+   ]
+  },
+  {
+   "name": "B",
+   "concept_at": "agent",
+   "steps": [
+    "The agent writes the item."
+   ]
+  },
+  {
+   "name": "C",
+   "concept_at": "tool",
+   "steps": [
+    "The tool writes the item."
+   ]
+  }
+ ]
+}
+-- run --
+test -f skills/hyp-rethinking/scripts/check_items.py && echo 'check_items.py ships'
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/page.json"
+echo "exit code: $?"
+-- floor: contains --
+check_items.py ships
+-- floor: contains --
+id-missing
+-- floor: contains --
+id-duplicate
+-- floor: contains --
+id-prefix
+-- floor: contains --
+tag-unknown
+-- floor: contains --
+field-unknown
+-- floor: contains --
+exit code: 1

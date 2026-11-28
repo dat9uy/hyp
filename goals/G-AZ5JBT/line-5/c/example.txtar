@@ -1,0 +1,68 @@
+-- words --
+An item that carries a field such as replaced_by is refused with field-unknown.
+-- input/page.json --
+{
+ "id": "demo",
+ "items": [
+  {
+   "id": "demo-I1",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Store items as data."
+  },
+  {
+   "id": "demo-I2",
+   "tag": "Proposed",
+   "date": "2026-11-28",
+   "text": "Store items as data.",
+   "replaced_by": "demo-I1"
+  }
+ ],
+ "parties": [
+  {
+   "id": "owner",
+   "label": "Owner"
+  },
+  {
+   "id": "agent",
+   "label": "Agent"
+  },
+  {
+   "id": "tool",
+   "label": "Tool"
+  }
+ ],
+ "approaches": [
+  {
+   "name": "A",
+   "concept_at": "owner",
+   "steps": [
+    "The owner writes the item."
+   ]
+  },
+  {
+   "name": "B",
+   "concept_at": "agent",
+   "steps": [
+    "The agent writes the item."
+   ]
+  },
+  {
+   "name": "C",
+   "concept_at": "tool",
+   "steps": [
+    "The tool writes the item."
+   ]
+  }
+ ]
+}
+-- run --
+test -f skills/hyp-rethinking/scripts/check_items.py && echo 'check_items.py ships'
+python3 skills/hyp-rethinking/scripts/check_items.py "$HYP_EXAMPLE/input/page.json"
+echo "exit code: $?"
+-- floor: contains --
+check_items.py ships
+-- floor: contains --
+field-unknown
+-- floor: contains --
+exit code: 1

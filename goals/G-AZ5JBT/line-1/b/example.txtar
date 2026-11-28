@@ -1,0 +1,13 @@
+-- words --
+hyp-rethinking names hyp-bayes-thinking, and hyp-bayes-thinking names hyp-rethinking; neither names the bare old name (`bayes-thinking`, `rethinking`).
+-- run --
+grep -q hyp-bayes-thinking skills/hyp-rethinking/SKILL.md && echo 'hyp-rethinking names hyp-bayes-thinking'
+grep -q hyp-rethinking skills/hyp-bayes-thinking/SKILL.md && echo 'hyp-bayes-thinking names hyp-rethinking'
+grep -rn -e '`bayes-thinking`' -e '`rethinking`' -e '^name: rethinking' -e '^name: bayes-thinking' skills/hyp-rethinking skills/hyp-bayes-thinking | sed 's/^/old name: /'
+true
+-- floor: contains --
+hyp-rethinking names hyp-bayes-thinking
+-- floor: contains --
+hyp-bayes-thinking names hyp-rethinking
+-- ceiling --
+old name:

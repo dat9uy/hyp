@@ -1,0 +1,10 @@
+-- words --
+hyp-rethinking/SKILL.md names references/public-doc-voice.md, and never tells you to load the skill public-doc-voice itself.
+-- run --
+grep -o 'references/public-doc-voice.md' skills/hyp-rethinking/SKILL.md | head -1
+grep -n -e 'the `public-doc-voice` skill' -e 'load `public-doc-voice`' skills/hyp-rethinking/SKILL.md | sed 's/^/loads the skill: /'
+true
+-- floor: contains --
+references/public-doc-voice.md
+-- ceiling --
+loads the skill:

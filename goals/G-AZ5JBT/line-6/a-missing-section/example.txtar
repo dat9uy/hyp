@@ -1,0 +1,24 @@
+-- words --
+Five pages, one fault each: the page whose only fault is missing section prints its message and exit 1.
+-- input/page.html --
+<!doctype html><html><body>
+<h2>1. One</h2><p>See section 2.</p>
+</body></html>
+-- run --
+test -f skills/hyp-rethinking/scripts/check_page.py && echo 'check_page.py ships'
+python3 skills/hyp-rethinking/scripts/check_page.py "$HYP_EXAMPLE/input/page.html"
+echo "exit code: $?"
+-- floor: contains --
+check_page.py ships
+-- floor: contains --
+reference to missing section 2
+-- floor: contains --
+exit code: 1
+-- ceiling --
+heading order:
+-- ceiling --
+duplicate id
+-- ceiling --
+words:
+-- ceiling --
+diagrams, needs
